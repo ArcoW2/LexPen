@@ -5,9 +5,10 @@
 **Repository**
 - GitHub: `https://github.com/ArcoW2/LexPen` (private, MIT license, Visual Studio `.gitignore`).
 - Local folder: `D:\prive\SynologyDrive\Projects\LexPen`.
-- `main` is on GitHub (pushed 2026-10-19 at `624f0b0`; `git ls-remote origin` showed only `main`).
-- Branch `editor-first`: the editor-first plan, executed on 2026-10-19. Local only: **not merged, not pushed**.
-  Push it, or merge it into `main`, only when asked.
+- `main` is on GitHub (pushed 2026-10-19 at `7933b15`; `git ls-remote origin` showed only `main`).
+- Work is done on a local branch and squash-merged into `main` when you approve it (`git merge --squash`, one
+  commit with the time of the merge), then only `main` is pushed: the commit times of the work stay on this PC
+  (your wish, 2026-10-19). Branch `editor-first` was merged that way into `7933b15`; it stays local, never pushed.
 - Local branch `scratch` holds the raw copy from before the cleanup, under the old name. It must **never be
   pushed**; delete it (`git branch -D scratch`) once you have checked nothing is missing on GitHub.
 - Commits use only the GitHub noreply address: `user.email` is set in this repository's own config
@@ -34,13 +35,10 @@
 - Explorer caches icons: a pinned shortcut may show an old icon until it is pinned again.
 
 **Next**
-- `docs/plans/executed/PLAN-editor-first.md` is done on the branch `editor-first`: editor first, keys file with
-  chords, menu bar, F1 as command palette, bookmarks, numbered clipboards, gutter (change, git and fold markers),
-  bottom bar, encodings, backup on save. Its section 5 lists every decision taken during the run.
-- When you approve the branch: squash-merge it into `main` (`git merge --squash editor-first`, one commit with the
-  time of the merge, so the branch's own commit times stay on this PC), then push `main` only. Wanted by you on
-  2026-10-19: the commit times of the work should not be visible on GitHub.
-- Also on `editor-first`: the settings window and settings.json, the data folder's `State\` subfolder
+- Merged into `main` (`7933b15`): `docs/plans/executed/PLAN-editor-first.md` (editor first, keys file with
+  chords, menu bar, F1 as command palette, bookmarks, numbered clipboards, gutter, bottom bar, encodings, backup on
+  save); its section 5 lists every decision taken during the run.
+- Also merged: the settings window and settings.json, the data folder's `State\` subfolder
   (`docs/plans/executed/PLAN-settings-window.md`); pinned and read-only tabs, Close all tabs (`docs/plans/executed/PLAN-pinned-tabs.md`); wrapping, the editor / preview splitter and the heartbeat
   (`docs/plans/executed/PLAN-long-lines.md`); fonts and line height (`docs/plans/executed/PLAN-fonts.md`) and the fix for Ctrl+V with the Windows
   clipboard.
