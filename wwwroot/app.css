@@ -321,10 +321,9 @@ body[data-tab-bar=menu] .mm-tabs { overflow-x: hidden; }
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 18px;
   font-style: var(--tab-style, normal); text-decoration: var(--tab-deco, none);
 }
-/* Drafts (never saved) and read-only copies (edited in the other pane or window) are italic. */
-.mm-draft .mm-tab-name, .mm-ro .mm-tab-name { font-style: italic; }
-.mm-pin { flex: none; margin-right: -2px; opacity: .8; }   /* a pinned tab */
-.mm-ro .mm-tab-name::after { content: " (read-only)"; color: var(--fg-dim); }
+/* Drafts (never saved) are italic; a pinned tab has a pin, a read-only tab a padlock, before the name. */
+.mm-draft .mm-tab-name { font-style: italic; }
+.mm-pin, .mm-lock { flex: none; margin-right: -2px; opacity: .8; }
 .mm-tab-close { flex: none; width: 20px; padding: 0; border: 0; line-height: 18px; visibility: hidden; }
 .mm-tab-close::before { content: "\2715"; font-size: calc(10px * var(--ui-scale)); }
 .mm-tab:hover .mm-tab-close, .mm-tab.mm-on .mm-tab-close, .mm-tab.mm-dirty .mm-tab-close { visibility: visible; }

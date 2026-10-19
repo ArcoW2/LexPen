@@ -978,6 +978,7 @@ function tabElement(pane, tab) {
   close.className = 'mm-tab-close';
   close.title = withKey('Close', 'closeTab');
   if (tab.pinned) el.insertAdjacentHTML('beforeend', PIN_ICON);
+  if (!editable(tab)) el.insertAdjacentHTML('beforeend', tab.readOnly ? LOCK_ICON_MINE : LOCK_ICON);
   el.append(name, close);
   return el;
 }
@@ -985,6 +986,15 @@ function tabElement(pane, tab) {
 // A pinned tab: a pin before the name.
 const PIN_ICON = '<svg class="mm-pin" viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-label="Pinned">' +
   '<path d="M9.8 1.5l4.7 4.7-1.4 1.4-.7-.7-2.6 2.6.3 3-1.4 1.4-2.9-2.9-3.6 3.6-.7-.7 3.6-3.6-2.9-2.9 1.4-1.4 3 .3 2.6-2.6-.7-.7z"/></svg>';
+
+// A read-only tab (read-only on disk, or edited in the other pane or another window): a padlock.
+const LOCK_ICON = '<svg class="mm-lock" viewBox="0 0 16 16" width="12" height="12" aria-label="Read-only">' +
+  '<path d="M5 7V5a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" stroke-width="1.6"/>' +
+  '<rect x="3" y="7" width="10" height="7.5" rx="1.5" fill="currentColor"/></svg>';
+// Read-only set by you (tab menu): the padlock underlined.
+const LOCK_ICON_MINE = '<svg class="mm-lock" viewBox="0 0 16 16" width="12" height="12" aria-label="Read-only (set by you)">' +
+  '<path d="M5 5.5V4a3 3 0 0 1 6 0v1.5" fill="none" stroke="currentColor" stroke-width="1.6"/>' +
+  '<rect x="3" y="5.5" width="10" height="6.5" rx="1.5" fill="currentColor"/><rect x="1.5" y="14" width="13" height="1.6" fill="currentColor"/></svg>';
 
 // ---------- Tab colours ----------
 // Rules from tab-colours.json in the data folder (the host reads it and sends changes; the format is

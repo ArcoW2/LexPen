@@ -23,7 +23,7 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   (a setting, on by default). Kept in the session.
 - **Read-only tabs** (right-click a tab > Read-only): the tab cannot change the file; switching it off is
   refused while another tab or window edits the file. A file with the Windows read-only attribute opens
-  read-only. The tooltip says why a tab is read-only.
+  read-only. A padlock before the name shows it (underlined: set by you); the tooltip says why.
 - **Wrap long lines** (View menu, Alt+Z, on by default): in the editor and for code in the preview. A line of
   more than 10,000 characters always wraps in the preview: one such coloured line makes the browser freeze for
   seconds on every mouse move (see docs/plans/executed/PLAN-long-lines.md).
