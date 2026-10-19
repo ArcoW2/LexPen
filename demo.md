@@ -77,7 +77,7 @@ Task list:
 
 A local image, relative to this file:
 
-![LexPen icon](img/icon/2-hash-dark.png)
+![LexPen icon](img/icon/lexpen.png)
 
 The same image sized with HTML, next to the other icon designs:
 
