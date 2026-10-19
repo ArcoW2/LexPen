@@ -1,4 +1,42 @@
-# LexPen - handoff (session of 2026-10-16)
+# LexPen - handoff (sessions of 2026-10-16 and 2026-10-19)
+
+## 0. Current state (2026-10-19)
+
+**Repository**
+- GitHub: `https://github.com/ArcoW2/LexPen` (private, MIT license, Visual Studio `.gitignore`).
+- Local folder: `D:\prive\SynologyDrive\Projects\LexPen`.
+- `main` is committed locally and **not pushed yet**. Push only `main` (`git push -u origin main`, never
+  `--all`), then check `git ls-remote origin` shows only `main`.
+- Local branch `scratch` holds the raw copy from before the cleanup, under the old name. It must **never be
+  pushed**; delete it (`git branch -D scratch`) once `main` is on GitHub and nothing is missing.
+- Commits use only the GitHub noreply address: `user.email` is set in this repository's own config
+  (`147609951+ArcoW2@users.noreply.github.com`). The global `user.email` is a different address, so any
+  new personal repository needs its own `user.email` too. GitHub blocks pushes that expose a private email.
+- Git credentials: the global config has per-host entries; `https://github.com` uses the GitHub username
+  (not an email) and no `usehttppath`, so the browser login is asked once.
+- Synology Drive: exclude `bin`, `obj`, `.vs`, `publish`, `node_modules` from syncing (and preferably
+  `.git`); work in this folder from one machine only.
+
+**Name and icon**
+- Name: LexPen. Names considered and rejected, with the reason, are in `docs/plans/PLAN-editor-first.md` 3.8.
+- Repo description: "Fast, intuitive and flexible text and code editor for Windows, with a built-in viewer."
+  (also in About, README and `register.ps1`).
+- Icon: `img/icon/lexpen.svg` is the source: an L drawn as an I-beam cursor, dark blue `#1f3a5f` on a
+  light-blue `#82c0ff` rounded square, the foot fading in bands dark green `#2e8b47`, yellow `#e0a82e`,
+  light red `#ff8f87`. One icon for light and dark. `img/icon/make-ico.ps1` rebuilds `lexpen.ico`
+  (16 to 256 px) and `lexpen.png` from it with Edge headless. The other files in `img/icon/` are earlier
+  candidates, still referenced by `demo.md`.
+- Explorer caches icons: a pinned shortcut may show an old icon until it is pinned again.
+
+**Next**
+- The plan for this phase: `docs/plans/PLAN-editor-first.md` (editor first, chord keys Ctrl+H / Ctrl+K /
+  Ctrl+Q, bookmarks, gutter, multi-clipboard). Open questions are in its section 4; first one: which
+  features to strip (3.7).
+- Before making the repository public: a name check (GitHub, winget, trademark registers), a
+  `THIRD-PARTY-NOTICES.md` for the bundled libraries (licenses verified from `node_modules`), and a
+  read-through of `docs/` for internal context.
+
+## Earlier state
 
 Where the work stands, so it can be picked up later. Details per feature are in the two plans:
 `docs/plans/executed/PLAN-tabs-panes-windows.md` and `docs/plans/executed/PLAN-next-features.md` (both have a "Resolved issues during
