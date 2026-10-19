@@ -79,12 +79,9 @@ A local image, relative to this file:
 
 ![LexPen icon](img/icon/lexpen.png)
 
-The same image sized with HTML, next to the other icon designs:
+The same image sized with HTML:
 
-<img src="img/icon/1-markdown-blue.png" width="64" alt="Blue icon">
-<img src="img/icon/2-hash-dark.png" width="64" alt="Dark icon">
-<img src="img/icon/3-document.png" width="64" alt="Document icon">
-<img src="img/icon/4-day-night.png" width="64" alt="Day and night icon">
+<img src="img/icon/lexpen.png" width="64" alt="LexPen icon">
 
 ## Quotes and alerts
 

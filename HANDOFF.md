@@ -24,8 +24,8 @@
 - Icon: `img/icon/lexpen.svg` is the source: an L drawn as an I-beam cursor, dark blue `#1f3a5f` on a
   light-blue `#82c0ff` rounded square, the foot fading in bands dark green `#2e8b47`, yellow `#e0a82e`,
   light red `#ff8f87`. One icon for light and dark. `img/icon/make-ico.ps1` rebuilds `lexpen.ico`
-  (16 to 256 px) and `lexpen.png` from it with Edge headless. The other files in `img/icon/` are earlier
-  candidates, still referenced by `demo.md`.
+  (16 to 256 px) and `lexpen.png` from it with Edge headless. These are the only files in `img/icon/`;
+  the earlier candidates were removed.
 - Explorer caches icons: a pinned shortcut may show an old icon until it is pinned again.
 
 **Next**
