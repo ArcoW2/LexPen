@@ -1,0 +1,8 @@
+# XML, and the files that are XML (project files, configuration, XAML, SVG, ...).
+# Every part is explained in languages\_template\language.yaml.
+name: XML
+extensions: [.xml, .csproj, .vbproj, .fsproj, .props, .targets, .config, .xaml, .axaml, .svg, .resx, .nuspec, .xsd, .xsl, .xslt, .manifest]
+open: edit
+mode: xml               # built in
+fold: indent
+comments: { block: ['<!--', '-->'] }

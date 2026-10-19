@@ -191,8 +191,12 @@ function fenceFold(cm, start) {
     if (fence.test(cm.getLine(l))) return { from: CodeMirror.Pos(start.line, text.length), to: CodeMirror.Pos(l, cm.getLine(l).length) };
 }
 
-const foldFinder = doc => !doc.language ? CodeMirror.fold.combine(fenceFold, CodeMirror.fold.markdown)
-  : doc.language === 'yaml' ? CodeMirror.fold.indent : doc.language === 'plaintext' ? () => undefined : CodeMirror.fold.brace;
+// Folding as the language pack says ("fold": markdown, brace, indent or none).
+function foldFinder(doc) {
+  const fold = doc.language ? packOf(doc)?.fold : 'markdown';
+  return fold === 'markdown' ? CodeMirror.fold.combine(fenceFold, CodeMirror.fold.markdown)
+    : fold === 'indent' ? CodeMirror.fold.indent : fold === 'brace' ? CodeMirror.fold.brace : () => undefined;
+}
 
 // ---------- The columns ----------
 // Line numbers: absolute, or relative to the cursor line (which shows its own number). "Every 10": the number on
@@ -233,7 +237,7 @@ function setupGutter(pane) {
   ];
   // Only when something changed: setting the columns or the fold finder makes the editor measure every line
   // again, which a switch to or from the preview does not need.
-  const key = [gutters.join(), numbers, setting('lineNumberCount'), doc.language ?? 'markdown'].join('|');   // the fold finder follows the language
+  const key = [gutters.join(), numbers, setting('lineNumberCount'), doc.language ?? 'markdown', languagesVersion].join('|');   // the fold finder follows the language
   if (pane.gutterKey !== key) {
     pane.gutterKey = key;
     cm.setOption('lineNumbers', numbers !== 'none');

@@ -48,7 +48,9 @@ Join-Files @(
     'codemirror\addon\fold\foldgutter.js',
     'codemirror\addon\fold\brace-fold.js',
     'codemirror\addon\fold\indent-fold.js',
-    'codemirror\addon\fold\markdown-fold.js'
+    'codemirror\addon\fold\markdown-fold.js',
+    'codemirror\addon\mode\simple.js',      # language packs: colouring rules (simple mode)
+    'codemirror\addon\runmode\runmode.js'   # language packs: the same colouring in the preview
 ) 'editor.js' ";`n"
 Join-Files @('codemirror\lib\codemirror.css', 'codemirror\addon\dialog\dialog.css', 'codemirror\addon\fold\foldgutter.css') 'editor.css' "`n"
 

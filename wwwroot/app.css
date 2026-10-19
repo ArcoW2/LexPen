@@ -29,6 +29,11 @@
   --find-hit: rgba(255, 196, 0, .4); --find-current: rgba(255, 140, 0, .85); --find-current-fg: #000; --find-box: #ffff00;
 }
 
+/* Which way "more contrast" goes: away from the background (darker on light, lighter on dark). A language
+   pack's token type with "contrast" uses it (languages.js). Not a theme colour: outside the blocks above. */
+:root, .mm-themed[data-theme=light] { --contrast-dir: -1; }
+:root[data-theme=dark], .mm-themed[data-theme=dark] { --contrast-dir: 1; }
+
 /* Fonts (Options > Settings > Fonts, see setFonts): the editor's, and the app's with a scale for its sizes. */
 :root {
   --editor-font: Consolas, "Cascadia Mono", monospace; --editor-size: 14px; --editor-line: 1.3;
@@ -466,15 +471,13 @@ body[data-busy]::after {
   color: var(--fg-dim); font-weight: 400;
 }
 
-/* Code files (JSON, YAML, PowerShell, C#). Keys: json .cm-property, yaml .cm-atom */
-.mm-editor-pane[data-lang] .CodeMirror .cm-keyword, .mm-editor-pane[data-lang] .CodeMirror .cm-atom { color: var(--hl-keyword); }
-.mm-editor-pane[data-lang] .CodeMirror .cm-number, .mm-editor-pane[data-lang] .CodeMirror .cm-builtin { color: var(--hl-number); }
-.mm-editor-pane[data-lang] .CodeMirror .cm-property, .mm-editor-pane[data-lang=yaml] .CodeMirror .cm-atom { color: var(--hl-attr); }
-.mm-editor-pane[data-lang] .CodeMirror .cm-variable-2, .mm-editor-pane[data-lang] .CodeMirror .cm-variable-3,
-.mm-editor-pane[data-lang] .CodeMirror .cm-type, .mm-editor-pane[data-lang] .CodeMirror .cm-def { color: var(--hl-title); }
-.mm-editor-pane[data-lang] .CodeMirror .cm-comment { color: var(--hl-comment); font-style: italic; }
-.mm-editor-pane[data-lang] .CodeMirror .cm-meta, .mm-editor-pane[data-lang=yaml] .CodeMirror .cm-def { color: var(--fg-dim); }
-.mm-editor-pane[data-lang] .CodeMirror .cm-error { color: inherit; background: none; }   /* powershell marks tokens it does not know */
+/* Code files (language packs): the look of every token type comes from the packs' "tokens" (the usual ones in
+   languages\plaintext\language.yaml), as CSS made by languages.js (updatePackColours), in the editor and in
+   the preview (.mm-code, run mode). */
+/* The preview of a code file: a block per line (data-line: outline, scroll sync); an empty line keeps its height. */
+.mm-preview pre.mm-code { font: var(--editor-size)/var(--editor-line) var(--editor-font); }
+.mm-code > div { min-height: 1em; }
+.mm-editor-pane[data-lang] .CodeMirror .cm-error { background: none; }   /* powershell marks tokens it does not know */
 
 /* Find bar of a pane (find.js), between its tabs and its content. */
 .mm-find { flex: none; padding: 3px 6px; background: var(--bg-side); border-bottom: 1px solid var(--border); }
@@ -504,12 +507,15 @@ body[data-busy]::after {
   background: var(--find-current); color: var(--find-current-fg); outline: 2px solid var(--find-box); border-radius: 2px;
 }
 
-/* Formatting bar above the editor (format.js): markdown only, switchable in the More menu. */
+/* Formatting bar above the editor (format.js): markdown's built-in bar, or a code language's bar (its pack's
+   bar.yaml, mm-code-bar); both switch off with View > Formatting bar. */
 .mm-format {
   flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 1px; padding: 3px 6px;
   background: var(--bg-side); border-bottom: 1px solid var(--border); user-select: none;
 }
-body[data-no-format-bar] .mm-format, .mm-editor-pane[data-lang] .mm-format { display: none; }
+body[data-no-format-bar] .mm-format, .mm-editor-pane[data-lang] .mm-format:not(.mm-code-bar),
+.mm-editor-pane:not([data-lang]) .mm-code-bar { display: none; }
+.mm-fmt-label { font-size: calc(12px * var(--ui-scale)); }
 .mm-format[data-disabled] { opacity: .45; pointer-events: none; }
 .mm-fmt { display: inline-flex; align-items: center; justify-content: center; gap: 2px; min-width: 28px; height: 26px; padding: 0 5px; font-size: calc(14px * var(--ui-scale)); }
 .mm-fmt svg { display: block; }

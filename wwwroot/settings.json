@@ -7,7 +7,8 @@
   "themeLight": "light",          // the theme for light mode (a file name in themes\ without .json)
   "themeDark": "dark",            // the theme for dark mode
   "theme": "light",               // "light" or "dark": the mode when not following Windows (Day / night)
-  "openMarkdownIn": "edit",       // how a markdown file opens: "edit", "split" (editor and preview) or "preview"
+  "openIn.*": "",                 // how a file opens, per language ("openIn.markdown", "openIn.sql", ...): "edit",
+                                  // "split" (editor and preview), "preview", or "" as the language pack says
 
   // ---------- Editor ----------
   "editorFont": "",               // a font name; "" is Consolas

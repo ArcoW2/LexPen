@@ -377,8 +377,7 @@ sealed class MainForm : Form
                 using var d = new OpenFileDialog
                 {
                     Multiselect = true,
-                    Filter = "Markdown and text|*.md;*.markdown;*.mdown;*.mkd;*.mdx;*.txt|" +
-                             "Code (JSON, YAML, PowerShell, C#)|*.json;*.yaml;*.yml;*.ps1;*.psm1;*.psd1;*.cs|All files|*.*",
+                    Filter = app.FileFilter(),   // from the language packs
                 };
                 return d.ShowDialog(this) == DialogResult.OK
                     ? new JsonArray(d.FileNames.Select(f => (JsonNode?)f).ToArray())
@@ -472,15 +471,15 @@ sealed class MainForm : Form
 
             case "pickSave":
             {
-                // Starts on the filter that matches the file's own type.
-                var ext = Path.GetExtension(Arg("name")).ToLowerInvariant();
+                // Starts on the filter that matches the file's own type (from the language packs).
+                var ext = "*" + Path.GetExtension(Arg("name")).ToLowerInvariant();
+                var filter = app.FileFilter();
+                var pairs = filter.Split('|');
+                var index = Enumerable.Range(0, pairs.Length / 2).FirstOrDefault(i => pairs[i * 2 + 1].Split(';').Contains(ext), pairs.Length / 2 - 1);
                 using var d = new SaveFileDialog
                 {
-                    Filter = "Markdown|*.md|JSON|*.json|YAML|*.yaml;*.yml|PowerShell|*.ps1;*.psm1;*.psd1|C#|*.cs|All files|*.*",
-                    FilterIndex = ext switch
-                    {
-                        ".md" => 1, ".json" => 2, ".yaml" or ".yml" => 3, ".ps1" or ".psm1" or ".psd1" => 4, ".cs" => 5, _ => 6,
-                    },
+                    Filter = filter,
+                    FilterIndex = index + 1,
                     FileName = Arg("name"),
                     InitialDirectory = Arg("dir"),
                 };
@@ -495,7 +494,8 @@ sealed class MainForm : Form
                 var (text, encoding) = ReadText(Arg("path"));
                 // Read-only on disk: the tab opens read-only (it cannot be saved anyway).
                 var readOnly = (File.GetAttributes(Arg("path")) & FileAttributes.ReadOnly) != 0;
-                return new JsonObject { ["text"] = text, ["encoding"] = encoding, ["readOnly"] = readOnly };
+                // A language chosen for this file before (the selector), else null: by extension.
+                return new JsonObject { ["text"] = text, ["encoding"] = encoding, ["readOnly"] = readOnly, ["language"] = app.FileLanguage(Arg("path")) };
             }
 
             // In the encoding the file was read in; `backup`: the old file becomes name.bak.
@@ -549,6 +549,14 @@ sealed class MainForm : Form
             // The look (themes, light / dark mode); Day / night while following Windows.
             case "look":
                 return app.Look();
+
+            // Language packs: all of them, and a language chosen for a file.
+            case "languages":
+                return app.Languages.DeepClone();
+
+            case "setFileLanguage":
+                app.SetFileLanguage(Arg("path"), msg["language"]?.GetValue<string>());
+                return null;
 
             case "switchMode":
                 app.SwitchMode();

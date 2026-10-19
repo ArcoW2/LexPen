@@ -1,0 +1,10 @@
+# The buttons above the editor for this language, left to right. Each: an action of the pack (or of plain
+# text: toggleComment, blockComment, indent, outdent), an icon (a file in icons\ of this pack or of
+# plaintext\icons: comment, blockcomment, indent, outdent, snippet) and an optional short label shown after
+# the icon. The tooltip is the action's title and its key from keys.json. '-' is a separator.
+- { action: toggleComment, icon: comment }
+- '-'
+- { action: indent, icon: indent }
+- { action: outdent, icon: outdent }
+- '-'
+- { action: snippetIff, icon: snippet, label: iff }

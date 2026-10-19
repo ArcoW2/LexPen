@@ -1,0 +1,17 @@
+# PowerShell. Every part is explained in languages\_template\language.yaml.
+name: PowerShell
+extensions: [.ps1, .psm1, .psd1]
+open: edit
+mode: powershell        # built in
+fold: brace
+comments: { line: '#', block: ['<#', '#>'] }
+outline:
+  - { pattern: '^\s*function\s+([\w-]+)', name: 1, level: 1, flags: i }
+actions:
+  snippetFunction:
+    title: 'Snippet: function'
+    hint: A function with a parameter block
+    insert: "function $0 {\n    param(\n    )\n}\n"
+  snippetTry:
+    title: 'Snippet: try / catch'
+    insert: "try {\n    $0\n} catch {\n    Write-Error $_\n}\n"

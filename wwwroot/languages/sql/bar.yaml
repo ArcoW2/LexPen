@@ -1,0 +1,10 @@
+- { action: toggleComment, icon: comment }
+- { action: blockComment, icon: blockcomment }
+- '-'
+- { action: indent, icon: indent }
+- { action: outdent, icon: outdent }
+- '-'
+- { action: snippetSelect, icon: snippet, label: select }
+- { action: snippetInsert, icon: snippet, label: insert }
+- { action: snippetUpdate, icon: snippet, label: update }
+- { action: snippetProcedure, icon: snippet, label: proc }

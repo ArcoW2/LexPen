@@ -1,0 +1,3 @@
+# The buttons above the editor for JSON files.
+- { action: indent, icon: indent }
+- { action: outdent, icon: outdent }

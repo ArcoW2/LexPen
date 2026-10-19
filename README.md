@@ -9,6 +9,15 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
 
 ## Features
 
+- **Languages**: a language pack per language (`wwwroot\languages\<name>\language.yaml`, `bar.yaml`, icons):
+  markdown, plain text, C#, JSON, YAML, PowerShell, XML, JavaScript, SQL and Delphi / Pascal ship. A pack gives
+  the extensions, how the file opens, the colouring (a built-in mode, or word lists and patterns as SQL and
+  Pascal), comments, the outline (procedures, classes, ...), actions and snippets and the buttons above the
+  editor. The preview of a code file is coloured as the editor (not above 2 MB). The language in the bottom bar
+  is a selector (also View > Language...); the choice is kept per file. Your own packs go in
+  `%LOCALAPPDATA%\LexPen\languages\` (start from `wwwroot\languages\_template`, every part explained there; a
+  folder with a shipped name replaces it) and apply at once; mistakes show in the settings window. How a file
+  opens: per language, the pack's choice unless you set it (settings window, General > Open in).
 - **Themes**: Light, Dark, Black (OLED), Greenish, Bluish, Reddish and Yellowish ship in `wwwroot\themes`; your own
   go in `%LOCALAPPDATA%\LexPen\themes\` (a file with the same name replaces a shipped one) and apply at once.
   LexPen follows Windows' light / dark mode (a setting, on), with a theme chosen for each mode; Day / night
@@ -242,6 +251,7 @@ PowerShell and C# modes and the search, comment and fold add-ons; loaded when th
 | `Fonts.cs` | The installed fonts for the font settings, monospaced or not |
 | `SettingsFile.cs` | `settings.json`: the defaults merged with yours, problems, only differences written |
 | `SettingsForm.cs` | The settings window (`wwwroot/settings.html`, `settings.js`) |
+| `LanguagePacks.cs` | Language packs: shipped and yours, YAML read with YamlDotNet, given to the page as JSON |
 | `ThemeFile.cs` | Themes: shipped and yours, checked, colour names from app.css |
 | `DataFolder.cs` | The data folder's layout (`State\`) and the one-time move of an older layout |
 | `MainForm.cs` | One window: WebView2 host, message handling, file access, watchers, git, close prompt |
@@ -261,7 +271,8 @@ PowerShell and C# modes and the search, comment and fold add-ons; loaded when th
 | `vendor.ps1` | Rebuilds `wwwroot/vendor` |
 
 `%LOCALAPPDATA%\LexPen` holds what you choose: `settings.json` (only what differs from the defaults), `keys.json`,
-`favourites.json`, `tab-colours.json`, `themes\`. What LexPen remembers by itself is in its `State\` subfolder: `state.json`
-(window position, recent lists), `session.json` (the first window's tabs and panes), `Drafts\`, `clipboards.json`,
+`favourites.json`, `tab-colours.json`, `themes\`, `languages\`. What LexPen remembers by itself is in its `State\` subfolder: `state.json`
+(window position, recent lists), `session.json` (the first window's tabs and panes, each tab's cursor and scroll
+position, restored at the next start), `Drafts\`, `clipboards.json`,
 `bookmarks.json` and `EBWebView\` (the browser's own data). An older layout is moved over once at start
 (DataFolder.cs). Set the environment variable `LEXPEN_DATA` to use another folder (for testing).

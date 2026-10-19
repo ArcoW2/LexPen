@@ -36,6 +36,7 @@ static class Program
         var app = new AppHost();
         app.WatchSettings();
         app.WatchThemes();
+        app.WatchLanguages();
         app.Launch(paths, shift);
         if (owner) app.Listen(name);
         Application.Run(app);

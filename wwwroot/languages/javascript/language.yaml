@@ -1,0 +1,18 @@
+# JavaScript. Every part is explained in languages\_template\language.yaml.
+name: JavaScript
+extensions: [.js, .mjs, .cjs, .jsx]
+open: edit
+mode: javascript        # built in
+fold: brace
+comments: { line: '//', block: ['/*', '*/'] }
+outline:
+  - { pattern: '^\s*(?:export\s+)?(?:default\s+)?class\s+(\w+)', name: 1, level: 1 }
+  - { pattern: '^\s*(?:export\s+)?(?:async\s+)?function\s*\*?\s*(\w+)', name: 1, level: 1 }
+  - { pattern: '^\s*(?:export\s+)?(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?(?:function|\([^)]*\)\s*=>|\w+\s*=>)', name: 1, level: 1 }
+actions:
+  snippetFunction:
+    title: 'Snippet: function'
+    insert: "function $0() {\n}\n"
+  snippetTry:
+    title: 'Snippet: try / catch'
+    insert: "try {\n  $0\n} catch (e) {\n}\n"

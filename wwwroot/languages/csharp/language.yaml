@@ -1,0 +1,27 @@
+# C#. Every part is explained in languages\_template\language.yaml.
+name: C#
+extensions: [.cs, .csx]
+open: edit
+mode: text/x-csharp     # built in
+fold: brace
+comments: { line: '//', block: ['/*', '*/'] }
+outline:
+  - pattern: '^\s*(?:\[[^\]]*\]\s*)*(?:(?:public|private|protected|internal|static|sealed|abstract|partial|readonly|unsafe|file|ref)\s+)*(?:class|interface|record|struct|enum)\s+(\w+)'
+    name: 1
+    level: 1
+  - pattern: '^\s*(?:(?:public|private|protected|internal|static|virtual|override|async|abstract|sealed|extern|unsafe|new|partial)\s+)+[\w<>\[\],.?() ]+?\s+(\w+)\s*(?:<[^>]*>)?\s*\('
+    name: 1
+    level: 2
+actions:
+  snippetTry:
+    title: 'Snippet: try / catch'
+    insert: "try\n{\n    $0\n}\ncatch (Exception ex)\n{\n}\n"
+  snippetIf:
+    title: 'Snippet: if'
+    insert: "if ($0)\n{\n}\n"
+  snippetForeach:
+    title: 'Snippet: foreach'
+    insert: "foreach (var item in $0)\n{\n}\n"
+  snippetProperty:
+    title: 'Snippet: property'
+    insert: 'public string $0 { get; set; }'

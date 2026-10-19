@@ -21,24 +21,8 @@ const appActions = new Map();
 const appAction = (name, def) => appActions.set(name, { name, ...def });
 
 // ---------- Language packs ----------
-// Markdown and plain text ship now; plain text is the base: an action a language does not have itself is
-// taken from plain text. Code files without a pack (JSON, YAML, PowerShell, C#) use plain text plus the
-// comment markers of their editor mode.
-const packs = {};
-const PACK_NAMES = ['markdown', 'plaintext'];
-const LANGUAGE_TITLES = { markdown: 'Markdown', plaintext: 'Plain text', json: 'JSON', yaml: 'YAML', powershell: 'PowerShell', csharp: 'C#' };
-
-async function loadLanguages() {
-  for (const name of PACK_NAMES) {
-    try { packs[name] = parseJsonc(await (await fetch(`languages/${name}/language.json`)).text()); }
-    catch (e) { packs[name] = { actions: {} }; toast(`languages\\${name}\\language.json: ${e.message}`); }
-  }
-}
-
-const languageOf = doc => !doc ? null : doc.language ?? 'markdown';
-const languageTitle = doc => packs[languageOf(doc)]?.name ?? LANGUAGE_TITLES[languageOf(doc)] ?? languageOf(doc);
-const langDef = (doc, name) => doc ? packs[languageOf(doc)]?.actions?.[name] ?? packs.plaintext?.actions?.[name] : null;
-const packActionNames = () => [...new Set(PACK_NAMES.flatMap(n => Object.keys(packs[n]?.actions ?? {})))];
+// The packs, the language of a document and its actions: languages.js. Plain text is the base: an action a
+// language does not have itself is taken from plain text.
 
 const isAction = name => appActions.has(name) || packActionNames().includes(name);
 const isMove = name => !!appActions.get(name)?.move || !!langDef(activeDoc(), name)?.jump;
@@ -100,6 +84,9 @@ function runLanguage(pane, def, params, ctx) {
   if (def.jump) return jumpTo(cm, def.jump, params[0] ?? 1, ctx.extend);
   if (cm.getOption('readOnly')) return toast('This tab is read-only.');
   if (def.command) return EDIT_COMMANDS[def.command]?.(cm, ...params);
+  if (def.insert != null) return insertSnippet(cm, def.insert);
+  if (Array.isArray(def.wrap)) return wrapSelection(cm, ...def.wrap);
+  if (def.linePrefix != null) return toggleLinePrefix(cm, String(def.linePrefix));
 }
 
 // ---------- The app actions ----------
@@ -129,8 +116,8 @@ appAction('editorSwitch', { title: 'Editor', hint: 'Show or hide the editor (at 
   checked: () => !!activeTab() && activeTab().mode !== 'preview', enabled: () => !!activeTab(), run: () => setSwitch('editor') });
 appAction('previewSwitch', { title: 'Preview', hint: 'Show or hide the preview (at least one of editor and preview stays)', group: 'view',
   checked: () => !!activeTab() && activeTab().mode !== 'edit', enabled: () => !!activeTab(), run: () => setSwitch('preview') });
-appAction('outline', { title: 'Outline', hint: 'The headings at the right of each pane; click one to go there', group: 'view',
-  enabled: () => !activeDoc()?.language,
+appAction('outline', { title: 'Outline', hint: 'The headings (or procedures, classes, ...) at the right of each pane; click one to go there', group: 'view',
+  enabled: () => hasOutline(activeDoc()),
   checked: () => document.body.hasAttribute('data-outline'), run: () => commands.outline() });
 appAction('wrap', { title: 'Wrap long lines', hint: 'In the editor and in code in the preview', group: 'view',
   checked: () => setting('wrap'), run: () => setWrap(!setting('wrap')) });
@@ -240,10 +227,8 @@ appAction('overwrite', { title: 'Insert / overwrite', hint: 'Typing replaces the
 // ---------- Settings (Options > Settings: the settings window) ----------
 appAction('settings', { title: 'Settings...', hint: 'Every setting, searchable; a change applies at once in every window', group: 'settings',
   run: () => host('openSettings') });
-appAction('openMarkdownIn', { title: 'Open markdown in', hint: 'How a markdown file opens', group: 'settings',
-  variants: [['edit'], ['split'], ['preview']],
-  variantTitles: { edit: 'Open markdown in the editor', split: 'Open markdown in editor and preview', preview: 'Open markdown in the preview' },
-  checked: ([mode]) => setting('openMarkdownIn') === mode, run: ([mode]) => setSetting('openMarkdownIn', mode) });
+appAction('chooseLanguage', { title: 'Language...', hint: 'Of the active tab: colouring, outline, bar and actions (also a click on the language in the bottom bar)', group: 'view',
+  enabled: () => !!activeDoc(), run: () => showLanguageList() });
 appAction('tabOrder', { title: 'Ctrl+Tab order', hint: 'Recently used, or the order of the tab bar', group: 'settings',
   variants: [['recent'], ['tabs']], variantTitles: { recent: 'Ctrl+Tab in recently used order', tabs: 'Ctrl+Tab in tab bar order' },
   checked: ([order]) => setting('tabOrder') === order, run: ([order]) => setSetting('tabOrder', order) });
@@ -277,8 +262,6 @@ for (const [name, title, hint] of [
 // from the action of the same name where there is one. Sent to the host at start (settingDefs).
 const SETTING_GROUPS = ['General', 'Editor', 'Preview', 'Files', 'Tabs', 'Find', 'App', 'Keys'];
 const SETTING_ROWS = [
-  { name: 'openMarkdownIn', group: 'General', kind: 'choice',
-    options: () => [['edit', 'The editor'], ['split', 'Editor and preview'], ['preview', 'The preview']] },
   { name: 'followWindows', group: 'General', sub: 'Theme', kind: 'toggle', title: 'Follow Windows',
     hint: 'Light or dark as Windows is (Settings > Personalization > Colors), at once; Day / night switches until Windows changes' },
   { name: 'themeLight', group: 'General', sub: 'Theme', kind: 'choice', title: 'Theme for light mode',
@@ -328,11 +311,21 @@ const SETTING_ROWS = [
 const themeOptions = () => [...(look?.themes ?? [])].sort((a, b) => (a.base === 'light' ? 0 : 1) - (b.base === 'light' ? 0 : 1))
   .map(t => [t.id, `${t.name} (${t.base}${t.mine ? ', yours' : ''})`]);
 
+// General > Open in: a row per language (its pack's "open" unless you choose).
+const openInRows = () => PACK_NAMES.map(name => ({
+  name: 'openIn.' + name, group: 'General', sub: 'Open in', kind: 'choice', title: packs[name].name, default: '',
+  hint: (packs[name].extensions ?? []).join(' ') || 'Files you give this language',
+  options: () => [['', `As the language says (${({ edit: 'the editor', split: 'editor and preview', preview: 'the preview' })[packs[name].open] ?? 'the editor'})`],
+    ['edit', 'The editor'], ['split', 'Editor and preview'], ['preview', 'The preview']],
+}));
+
 function settingDefs() {
-  return SETTING_ROWS.map(r => {
+  const rows = [...SETTING_ROWS];
+  rows.splice(rows.findIndex(r => r.group === 'General'), 0, ...openInRows());
+  return rows.map(r => {
     const action = appActions.get(r.name);
     return {
-      name: r.name, group: r.group, sub: r.sub ?? null, kind: r.kind,
+      name: r.name, group: r.group, sub: r.sub ?? null, kind: r.kind, default: r.default,
       title: r.title ?? action?.title ?? r.name, hint: r.hint ?? action?.hint ?? '',
       options: r.options?.() ?? (r.kind === 'size' ? [[0, `Default (${r.base()})`], ...FONT_SIZES.map(pt => [pt, pt + ' pt'])] : null),
       monoFirst: r.name === 'editorFont',

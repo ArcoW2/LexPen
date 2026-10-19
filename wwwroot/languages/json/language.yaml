@@ -1,0 +1,6 @@
+# JSON. Every part is explained in languages\_template\language.yaml.
+name: JSON
+extensions: [.json, .jsonc, .geojson, .webmanifest]
+open: edit
+mode: { name: javascript, json: true }   # built in
+fold: brace

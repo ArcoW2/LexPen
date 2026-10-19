@@ -1,15 +1,14 @@
 'use strict';
 
 const FILE_URL = 'https://file.lexpen.example/';   // served by the host, see MainForm.OnFileRequested
-const MARKDOWN_FILE = /\.(md|markdown|mdown|mkd|mdx|txt)$/i;
-// Other files are shown as code: highlighted for these extensions, plain text otherwise.
-const CODE_LANG = {
-  json: 'json', yaml: 'yaml', yml: 'yaml',
-  ps1: 'powershell', psm1: 'powershell', psd1: 'powershell', cs: 'csharp',
+// A markdown file (the folder pane's markdown-only filter): by the markdown pack's extensions.
+const MARKDOWN_FILE = { test: name => languageFor(name) === 'markdown' };
+// The language of a file (languages.js, by its pack's extensions); undefined for markdown (and a draft).
+const codeLang = (path, text) => {
+  if (!path) return undefined;
+  const name = languageFor(path, text);
+  return name === 'markdown' ? undefined : name;
 };
-// The highlight.js language for a file; undefined for markdown (and a draft, which has no file yet).
-const codeLang = path =>
-  !path || MARKDOWN_FILE.test(path) ? undefined : CODE_LANG[path.match(/\.([^.\\]+)$/)?.[1].toLowerCase()] ?? 'plaintext';
 const WELCOME = `<h1>LexPen</h1><p>Open a file or a folder to get started (File menu).</p>
 <p>All commands and their keys: <kbd>F1</kbd>.</p>`;
 // Drag and drop between tabs, panes and windows.
@@ -214,7 +213,7 @@ const changed = doc => doc.dirty || doc.draftChanged;
 
 function makeDoc({ path = null, draft = null, text = '', encoding = 'UTF-8' }) {
   const doc = {
-    path, draft, text, eol: eolOf(text), language: codeLang(path),
+    path, draft, text, eol: eolOf(text), language: codeLang(path, text),
     encoding,              // as read from disk (see TextFile.cs); saving writes it back the same way
     savedText: text,       // as last read or saved: the change markers compare with it (gutter.js)
     cmDoc: null, history: null, savedGeneration: 0,
@@ -233,9 +232,13 @@ function makeDoc({ path = null, draft = null, text = '', encoding = 'UTF-8' }) {
 }
 
 async function loadDoc(path) {
-  const { text, encoding, readOnly } = await host('read', { path });
-  const doc = findDoc(path) ?? makeDoc({ path, text, encoding });
+  const { text, encoding, readOnly, language } = await host('read', { path });
+  const found = findDoc(path), doc = found ?? makeDoc({ path, text, encoding });
   doc.diskReadOnly = readOnly;
+  if (!found && language && packs[language]) {   // chosen for this file before (the language selector)
+    doc.language = language === 'markdown' ? undefined : language;
+    doc.languageChosen = true;
+  }
   doc.lock = await host('lock', { path });
   unfresh(path);
   syncWatchFiles();
@@ -252,7 +255,7 @@ function dropDoc(doc, release = true) {
 }
 
 // Markdown opens as the setting says (Options > Settings > Open markdown in); other files in the editor.
-const openMode = doc => doc.language ? 'edit' : ['edit', 'split', 'preview'].includes(setting('openMarkdownIn')) ? setting('openMarkdownIn') : 'edit';
+// How a file opens: openMode in languages.js.
 
 function makeTab(doc, mode) {
   const article = document.createElement('article');
@@ -446,11 +449,7 @@ function loadEditor() {
     .then(() => loadScript('bookmarks.js')).then(() => loadScript('gutter.js'));
 }
 
-const EDITOR_MODES = {
-  json: { name: 'javascript', json: true }, yaml: 'yaml', powershell: 'powershell', csharp: 'text/x-csharp',
-  plaintext: 'text/plain',
-};
-const editorMode = doc => doc.language ? EDITOR_MODES[doc.language] : { name: 'gfm', highlightFormatting: true };
+const editorMode = doc => doc.language ? languageMode(doc.language) : { name: 'gfm', highlightFormatting: true };
 
 // Markdown keys (Enter, Tab in tables); in code files the key keeps its editor default.
 const markdownOnly = run => editor =>
@@ -469,7 +468,18 @@ function materialize(doc) {
 }
 
 // Each tab edits a linked Doc with shared history, so both panes show the same text live.
-const tabDoc = tab => tab.cmDoc ??= materialize(tab.doc).linkedDoc({ sharedHist: true });
+// A tab restored from the session gets its cursor and editor scroll position back here (restoreCursor).
+function tabDoc(tab) {
+  if (tab.cmDoc) return tab.cmDoc;
+  tab.cmDoc = materialize(tab.doc).linkedDoc({ sharedHist: true });
+  const at = tab.restoreCursor;
+  if (at) {
+    tab.cmDoc.setCursor(Math.min(at.line, tab.cmDoc.lastLine()), at.ch);
+    tab.cmDoc.scrollTop = at.top ?? 0;   // the editor takes it over when it shows this document
+    tab.restoreCursor = null;
+  }
+  return tab.cmDoc;
+}
 
 function releaseTabDoc(tab) {
   if (!tab.cmDoc) return;
@@ -482,7 +492,7 @@ async function ensureEditor(pane) {
   if (pane.cm) return;
   await loadEditor();
   if (pane.cm) return;
-  pane.editorEl.append(makeFormatBar(pane));   // see format.js
+  pane.editorEl.append(makeFormatBar(pane), makeCodeBar(pane));   // see format.js
   pane.cm = CodeMirror(pane.editorEl, {
     value: '',
     lineNumbers: true,
@@ -505,6 +515,7 @@ async function ensureEditor(pane) {
   });
   pane.cm.on('cursorActivity', () => {
     updateRelativeNumbers(pane);
+    saveSession();   // the cursor is kept in the session (after a second without moving)
     refreshFormatBar(pane);
     if (pane.index === state.activePane) updateStatus();
   });
@@ -594,11 +605,17 @@ async function renderNow(tab) {
   const doc = tab.doc, text = docText(doc), article = tab.article;
 
   // Built in a <template> so images are not requested before their paths are fixed.
+  // A code file: its language's colouring (languages.js, the editor script has the colouring engine).
+  if (doc.language && !window.CodeMirror?.runMode) {
+    await loadEditor();
+    if (id !== tab.renderId) return;
+  }
   const tpl = document.createElement('template');
   tpl.innerHTML = doc.language
-    ? `<pre><code class="language-${doc.language}">${hljs.highlight(text, { language: doc.language, ignoreIllegals: true }).value}</code></pre>`
+    ? `<pre class="mm-code" data-lang="${doc.language}">${codeHtml(text, text.length > PREVIEW_COLOUR_LIMIT ? 'text/plain' : languageMode(doc.language))}</pre>`
     : md.render(withFrontMatter(text));
   const content = tpl.content;
+  if (doc.language && hasLongLine(text)) content.firstElementChild.classList.add('mm-long-line');
 
   const dir = doc.path ? dirOf(doc.path) : state.root;
   if (dir) {
@@ -808,6 +825,7 @@ async function showActive(pane) {
       }
       pane.cm.setOption('readOnly', !editable(tab));
       if (tab.doc.language) pane.editorEl.dataset.lang = tab.doc.language; else delete pane.editorEl.dataset.lang;
+      fillCodeBar(pane);
       pane.cm.refresh();
       refreshFormatBar(pane);
     }
@@ -1091,7 +1109,7 @@ function updateChrome() {
   document.body.toggleAttribute('data-dirty', !!doc && (doc.dirty || !!doc.draft));
   $('.mm-switch-editor').classList.toggle('mm-on', !!tab && tab.mode !== 'preview');
   $('.mm-switch-preview').classList.toggle('mm-on', !!tab && tab.mode !== 'edit');
-  $('.mm-outline-button').disabled = !!doc?.language;   // the outline lists markdown headings
+  $('.mm-outline-button').disabled = !!doc && !hasOutline(doc);   // markdown's headings, or a pack's outline
   markTreeActive();
 }
 
@@ -1195,6 +1213,8 @@ function updateStatus() {
   statusUi.clip.title = clips.active === 0 ? 'The Windows clipboard is active (click: the clipboards)'
     : `Clipboard ${clips.active} is active: ${clips.previews[clips.active] || '(empty)'} (click: the clipboards)`;
 }
+
+statusUi.lang.addEventListener('click', () => showLanguageList());
 
 events.clipboards = ({ state }) => {
   Object.assign(clips, state);
@@ -1359,7 +1379,7 @@ async function saveDoc(doc, saveAs) {
     if (doc.path) host('unlock', { path: doc.path });
     doc.path = path;
     doc.lock = await host('lock', { path });
-    doc.language = codeLang(path);   // saved as another file type
+    if (!doc.languageChosen) doc.language = codeLang(path, docText(doc));   // saved as another file type
     unfresh(path);
   }
   doc.dirty = false;
@@ -2344,10 +2364,10 @@ function setOutline(on) {
 
 function showOutline(pane) {
   const doc = pane.active?.doc;
-  const show = document.body.hasAttribute('data-outline') && !!doc && !doc.language;
+  const show = document.body.hasAttribute('data-outline') && hasOutline(doc);
   pane.el.toggleAttribute('data-no-outline', !show);
   if (!show) return;
-  const headings = headingsOf(doc);
+  const headings = outlineOf(doc) ?? [];
   if (pane.outlineFor === doc && pane.outlineVersion === doc.version) return markOutline(pane);
   pane.outlineFor = doc;
   pane.outlineVersion = doc.version;
@@ -2360,7 +2380,7 @@ function showOutline(pane) {
     item.textContent = item.title = h.text;
     return item;
   }));
-  if (!headings.length) pane.outlineEl.innerHTML = '<div class="mm-outline-none">No headings</div>';
+  if (!headings.length) pane.outlineEl.innerHTML = `<div class="mm-outline-none">${doc.language ? 'Nothing found' : 'No headings'}</div>`;
   markOutline(pane);
 }
 
@@ -2584,9 +2604,21 @@ function sessionData() {
         path: tab.doc.path, draft: tab.doc.draft, mode: tab.mode,
         top: pane.active === tab && !pane.el.hidden ? pane.previewEl.scrollTop : tab.previewTop,
         ...(tab.pinned && { pinned: true }), ...(tab.readOnly && { readOnly: true }),
+        ...(tab.doc.draft && tab.doc.languageChosen && { language: languageOf(tab.doc) }),   // a file's choice: the host keeps it
+        ...tabCursor(tab),
       })),
     })),
   };
+}
+
+// A tab's cursor and editor scroll position: from its editor document, or as restored and not shown yet.
+function tabCursor(tab) {
+  if (tab.cmDoc) {
+    const { line, ch } = tab.cmDoc.getCursor();
+    return { cursor: [line, ch], editorTop: Math.round(tab.cmDoc.scrollTop || 0) };
+  }
+  const at = tab.restoreCursor;
+  return at ? { cursor: [at.line, at.ch], editorTop: at.top } : {};
 }
 
 let started = false;
@@ -2616,6 +2648,11 @@ async function restore(session, drafts) {
       tab.previewTop = t.top || 0;
       tab.pinned = !!t.pinned;
       tab.readOnly = !!t.readOnly;
+      if (Array.isArray(t.cursor)) tab.restoreCursor = { line: t.cursor[0] | 0, ch: t.cursor[1] | 0, top: t.editorTop | 0 };
+      if (doc.draft && t.language && packs[t.language]) {
+        doc.language = t.language === 'markdown' ? undefined : t.language;
+        doc.languageChosen = true;
+      }
       pane.tabs.push(tab);
     }
     pane.active = pane.tabs[saved.active] ?? pane.tabs[0] ?? null;
@@ -2702,7 +2739,20 @@ function applyLook(next) {
   if (before && before.themes.map(t => t.id + t.name).join() !== look.themes.map(t => t.id + t.name).join())
     host('settingDefs', { defs: settingDefs() });
 }
-events.look = ({ look }) => applyLook(look);
+events.look = ({ look }) => {
+  applyLook(look);
+  updatePackColours();   // a pack's own colours depend on the theme
+};
+
+// The language packs changed (your languages folder): editors, previews, outlines and the settings window follow.
+events.languages = ({ languages }) => {
+  applyLanguages(languages);
+  for (const doc of docs) doc.outline = null;
+  for (const tab of allTabs()) tab.stale = true;
+  for (const pane of panes) pane.modeKey = pane.codeBarKey = pane.gutterKey = null;
+  showAll();
+  host('settingDefs', { defs: settingDefs() });
+};
 events.runAction = ({ name }) => runAction(name, [], { from: 'menu' });   // from the settings window
 events.tabColours = ({ text }) => {
   setTabColours(text);
@@ -2853,14 +2903,15 @@ async function movePageSettings() {
   const ls = localStorage, values = {};
   const was = (name, on) => { if (ls[name] !== undefined) values[name] = ls[name] === on; };
   const notOff = name => { if (ls[name] !== undefined) values[name] = ls[name] !== 'off'; };
-  for (const name of ['openMarkdownIn', 'tabOrder', 'editorFont', 'appFont']) if (ls[name]) values[name] = ls[name];
+  for (const name of ['tabOrder', 'editorFont', 'appFont']) if (ls[name]) values[name] = ls[name];
+  if (ls.openMarkdownIn) values['openIn.markdown'] = ls.openMarkdownIn;
   for (const name of ['editorSize', 'editorLine', 'appSize', 'zoom']) if (+ls[name]) values[name] = +ls[name];
   for (const name of ['findShared', 'lineBreaks']) was(name, 'on');
   if (ls.tabRows === 'on') values.tabBar = 'rows';
   if (ls['gutter.lineNumbers'] === 'off') values.lineNumbers = 'none';
   for (const name of ['backup', 'wrap', 'movePinned', 'formatBar', ...GUTTER_NAMES.map(n => 'gutter.' + n)]) notOff(name);
   await host('settingsImport', { values });
-  for (const name of [...Object.keys(values), 'tabRows', 'gutter.lineNumbers']) delete ls[name];
+  for (const name of [...Object.keys(values), 'tabRows', 'gutter.lineNumbers', 'openMarkdownIn']) delete ls[name];
   Object.assign(settings, await host('settings'));
 }
 const GUTTER_NAMES = ['bookmarks', 'changes', 'git', 'folds'];

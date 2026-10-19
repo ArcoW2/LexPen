@@ -499,7 +499,7 @@ function blockComment(cm) {
 // "line" pattern, "after": the line before matches, "token": the editor's token type there). None
 // further: the end or the start of the text. `extend`: select from where the cursor was.
 function jumpTo(cm, spec, dir, extend) {
-  const line = new RegExp(spec.line), after = spec.after && new RegExp(spec.after);
+  const line = new RegExp(spec.line, spec.flags ?? ''), after = spec.after && new RegExp(spec.after, spec.flags ?? '');
   const hit = l => line.test(cm.getLine(l)) && (!after || l === 0 || after.test(cm.getLine(l - 1))) &&
     (!spec.token || (cm.getTokenTypeAt(Pos(l, 1)) || '').split(' ').includes(spec.token));
   const last = cm.lastLine();
@@ -549,7 +549,49 @@ const EDIT_COMMANDS = {
   toggleComment,
   blockComment,
   removeBlockComment: cm => { removeBlockComment(cm); },
+  indent: cm => cm.execCommand('indentMore'),
+  outdent: cm => cm.execCommand('indentLess'),
 };
+
+// ---------- The bar of a code language (its pack's bar.yaml) ----------
+// Markdown has the formatting bar above; another language gets the buttons its pack lists: an icon (of the
+// pack, else of plain text), an optional label, the action's title and key as tooltip.
+function makeCodeBar(pane) {
+  const bar = document.createElement('div');
+  bar.className = 'mm-format mm-code-bar';
+  bar.hidden = true;
+  bar.addEventListener('mousedown', e => e.preventDefault());   // the focus stays in the editor
+  bar.addEventListener('click', e => {
+    const button = e.target.closest('[data-action]');
+    if (button && pane.cm) runAction(button.dataset.action, [], { from: 'bar' });
+  });
+  pane.codeBar = bar;
+  return bar;
+}
+
+function fillCodeBar(pane) {
+  const doc = pane.active?.doc, key = (doc?.language ?? '') + ':' + languagesVersion;
+  if (!pane.codeBar || pane.codeBarKey === key) return;
+  pane.codeBarKey = key;
+  const pack = doc?.language && packs[doc.language], bar = pane.codeBar;
+  bar.replaceChildren();
+  for (const item of pack?.bar ?? []) {
+    if (item === '-') {
+      bar.append(Object.assign(document.createElement('span'), { className: 'mm-fmt-sep' }));
+      continue;
+    }
+    if (!item?.action) continue;
+    const button = document.createElement('button');
+    button.className = 'mm-fmt';
+    button.tabIndex = -1;
+    button.dataset.action = item.action;
+    button.title = withKey(actionTitle(item.action), item.action);
+    const icon = pack.icons?.[item.icon] ?? packs.plaintext?.icons?.[item.icon] ?? '';
+    button.innerHTML = icon + (item.label ? `<span class="mm-fmt-label">${escapeHtml(String(item.label))}</span>` : '');
+    bar.append(button);
+  }
+  bar.hidden = !bar.children.length;
+}
 
 // ---------- The formatting bar ----------
 const svg = body => `<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;

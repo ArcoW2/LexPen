@@ -49,6 +49,84 @@ sealed class AppHost : ApplicationContext
     string? SettingText(string name) => settings["values"]?[name]?.GetValueKind() == JsonValueKind.String ? settings["values"]![name]!.GetValue<string>() : null;
     bool SettingFlag(string name) => settings["values"]?[name]?.GetValueKind() == JsonValueKind.True;
 
+    // ---------- Language packs (LanguagePacks) ----------
+    static string UserLanguagesDir => Path.Combine(DataDir, LanguagePacks.FolderName);
+    static string ShippedLanguagesDir => Path.Combine(AppContext.BaseDirectory, "wwwroot", LanguagePacks.FolderName);
+    JsonObject languages = new();
+    /// <summary>Every pack as JSON for the pages, the extensions, problems (LanguagePacks.Load).</summary>
+    public JsonObject Languages => languages;
+
+    // A language you chose for a file (the selector in the bottom bar): kept by path, State\file-languages.json.
+    static string FileLanguagesPath => Path.Combine(DataFolder.StateDir(DataDir), "file-languages.json");
+    Dictionary<string, string> fileLanguages = LoadFileLanguages();
+
+    static Dictionary<string, string> LoadFileLanguages()
+    {
+        try { return JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(FileLanguagesPath)) is { } d
+            ? new Dictionary<string, string>(d, StringComparer.OrdinalIgnoreCase) : new(StringComparer.OrdinalIgnoreCase); }
+        catch { return new(StringComparer.OrdinalIgnoreCase); }
+    }
+
+    public string? FileLanguage(string path) => fileLanguages.GetValueOrDefault(path);
+
+    /// <summary>Null: the language follows the extension again.</summary>
+    public void SetFileLanguage(string path, string? language)
+    {
+        if (language is null) fileLanguages.Remove(path); else fileLanguages[path] = language;
+        Directory.CreateDirectory(Path.GetDirectoryName(FileLanguagesPath)!);
+        File.WriteAllText(FileLanguagesPath, JsonSerializer.Serialize(fileLanguages));
+    }
+
+    /// <summary>File dialog filters from the packs: markdown first, then each language, then all files.</summary>
+    public string FileFilter()
+    {
+        var parts = new List<string>();
+        foreach (var (_, node) in languages["packs"]?.AsObject() ?? [])
+        {
+            var exts = node?["extensions"]?.AsArray().Select(e => "*" + e).ToList() ?? [];
+            if (exts.Count > 0) parts.Add($"{node!["name"]}|{string.Join(";", exts)}");
+        }
+        var markdown = parts.FindIndex(p => p.StartsWith("Markdown|"));
+        if (markdown > 0) { var m = parts[markdown]; parts.RemoveAt(markdown); parts.Insert(0, m); }
+        parts.Add("All files|*.*");
+        return string.Join("|", parts);
+    }
+
+    void LoadLanguages() => languages = LanguagePacks.Load(ShippedLanguagesDir, UserLanguagesDir);
+
+    // Your languages folder changed (a pack edited, added or removed): read the packs again, every window follows.
+    FileSystemWatcher? languagesWatcher;
+    readonly System.Windows.Forms.Timer languagesTimer = new() { Interval = 300 };
+
+    public void WatchLanguages()
+    {
+        LoadLanguages();
+        try { Directory.CreateDirectory(UserLanguagesDir); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return; }
+        languagesWatcher = new FileSystemWatcher(UserLanguagesDir)
+        {
+            IncludeSubdirectories = true,
+            NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite | NotifyFilters.Size,
+        };
+        void Changed() => windows.FirstOrDefault(w => !w.IsDisposed)?.BeginInvoke(() =>
+        {
+            languagesTimer.Stop();
+            languagesTimer.Start();
+        });
+        languagesWatcher.Changed += (_, _) => Changed();
+        languagesWatcher.Created += (_, _) => Changed();
+        languagesWatcher.Deleted += (_, _) => Changed();
+        languagesWatcher.Renamed += (_, _) => Changed();
+        languagesTimer.Tick += (_, _) =>
+        {
+            languagesTimer.Stop();
+            LoadLanguages();
+            foreach (var w in windows) w.Post(new JsonObject { ["event"] = "languages", ["languages"] = languages.DeepClone() });
+            settingsWindow?.Post(new JsonObject { ["event"] = "languages", ["languages"] = languages.DeepClone() });
+        };
+        languagesWatcher.EnableRaisingEvents = true;
+    }
+
     // ---------- Themes (ThemeFile) and light / dark mode ----------
     static string UserThemesDir => Path.Combine(DataDir, ThemeFile.FolderName);
     static string ShippedThemesDir => Path.Combine(AppContext.BaseDirectory, "wwwroot", ThemeFile.FolderName);

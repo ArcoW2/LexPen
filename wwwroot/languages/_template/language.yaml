@@ -1,0 +1,95 @@
+# A language pack: copy this folder to %LOCALAPPDATA%\LexPen\languages\<name>\ (for example "tcc"), rename
+# nothing else, and edit. A folder with the name of a shipped language (csharp, sql, ...) replaces it. A
+# changed pack applies at once in every LexPen window; a mistake is shown in the settings window and the
+# language falls back to plain text. Folders starting with _ are not loaded (this one).
+#
+# YAML in short: "name: value"; a list is [a, b, c] or one "- item" per line; text with a colon, comma or
+# # in it goes between quotes ('...' keeps backslashes as they are, so patterns read as written).
+
+name: TCC / CMD                    # shown in the bottom bar and the language list
+extensions: [.btm, .cmd, .bat]     # files that get this language (with or without the dot)
+firstLine: '^@?echo off'           # optional: a pattern for the first line, for files without a known extension
+open: edit                         # how a file opens: edit, split (editor and preview) or preview;
+                                   # your setting per language (settings window, General > Open in) wins
+fold: indent                       # folding in the gutter: brace ({ }), indent, markdown or none
+
+# ---------- Colouring: which token type each piece of text gets ----------
+# Either a built-in editor mode (mode: javascript, xml, yaml, powershell, text/x-csharp, ...), which names the
+# types itself, or the parts below: rules, comments, quotes, word lists and numbers, tried in that order. Each
+# gives a token type; text none of them matches is type "text". The looks of the types: "tokens" further on.
+caseSensitive: false               # words match in any case
+comments:
+  token: comment                   # optional: their token type (comment is the default)
+  line: 'rem '                     # one line comment marker; also used by Toggle comment
+  block: ['/*', '*/']              # optional: one block comment
+  moreBlocks: []                   # optional: more block comment kinds, colouring only: [['(*', '*)']]
+  moreLines: ['::']                # optional: more line comment markers, colouring only
+quotes:                            # strings, each: open, optional close (else the same as open), and
+                                   #   double: true    the closing quote written twice is one quote inside,
+                                   #                   not the end: "say ""hi""" and 'it''s'
+                                   #   escape: '\'     the character after it is part of the string
+                                   #   multiline: true the string may go on over several lines
+                                   #   token: ...      another look than string (as a quoted name)
+  - { open: '"', double: true }
+  - { open: '`', token: variable-2 }
+numbers:                           # what a number is: a pattern or a list of them (each may be { regex, token });
+  - '\d+(\.\d+)?'                  # false: no numbers. Without this part: 0x1F, 12, 1.5e3
+words:                             # word lists: the list's name is the token type of its words (a word ending
+                                   # in * is every word starting with it: '@@*'; the longest of those is tried first):
+  keyword: [if, else, do, enddo, for, goto, gosub, return, call, set, setlocal, endlocal, echo, iff, endiff,
+    switch, case, default, endswitch, quit, cancel]
+  builtin: [copy, move, del, dir, cd, md, rd, start, pushd, popd]
+  atom: ['on', 'off']              # type, builtin, atom and keyword are usual ones, with a look already
+  label: [':*']                    # a type of your own: give it a look under "tokens"
+rules:                             # extra patterns, tried first: regex and its token type
+  - { regex: '%[\w@]+%?', token: variable-2 }
+  - { regex: '^\s*:\w+', token: label }
+
+# ---------- How each token type looks ----------
+# One flow: every piece of text gets a token type above (a word list's name, the "token" of a rule, comment,
+# quote or number; everything else is "text"), and every type gets its look here. The usual types (keyword,
+# string, comment, number, builtin, atom, type, def, variable-2, property, attribute, meta, text, ...) already
+# have a look in languages\plaintext\language.yaml; list a type here to change it or to give a type of your own
+# a look. A look, all parts optional:
+#   theme: keyword     a theme colour (keyword, string, comment, number, title, attr, fg, fgDim, accent, ...)
+#   like: variable-2   the look of another type
+#   color: '#c0c0ff'   a fixed colour (better inside byTheme: one colour rarely suits light and dark)
+#   contrast: 20       lightness points further from the background (stronger); -20: closer (subtler)
+#   bold, italic, underline, strikethrough: true / false
+#   byTheme: { dark: { ... }, light: { ... }, black: { ... } }   changes for one theme or base
+# A type without a look looks like text.
+tokens:
+  label: { like: def, bold: true, contrast: 10 }
+  keyword: { byTheme: { dark: { color: '#ff9e64' }, light: { color: '#b45309' } } }
+  variable-2: { byTheme: { dark: { color: '#7dcfff', italic: true } } }
+
+# ---------- Outline ----------
+# Patterns that find the entries of the outline (the Outline button): name is the group with the name,
+# level 1 or 2 (or a group whose length is the level), flags i for any case.
+outline:
+  - { pattern: '^\s*:(\w+)', name: 1, level: 1 }
+
+# ---------- Actions ----------
+# What a key (keys.json) or a bar button does in this language. Kinds:
+#   command: a built-in command (toggleComment, blockComment, indent, outdent, ...)
+#   insert: a snippet; $0 is where the cursor goes, \n a new line
+#   wrap: before / after the selection (the cursor between when nothing is selected)
+#   linePrefix: put in front of every selected line, or taken away when all have it
+#   jump: to the next / previous line matching "line" (keys give the direction, as Ctrl+PgDn / Ctrl+PgUp)
+actions:
+  snippetIff:
+    title: 'Snippet: iff'
+    hint: An IFF block
+    insert: "iff $0 then\n\nendiff\n"
+  quoteSelection:
+    title: Quote the selection
+    wrap: ['"', '"']
+  echoOff:
+    title: Echo the lines
+    linePrefix: 'echo '
+  section:
+    title: Section
+    hint: To the next / previous label
+    jump: { line: '^\s*:\w+' }
+    variants: [[1], [-1]]
+    variantTitles: { '1': Next section, '-1': Previous section }

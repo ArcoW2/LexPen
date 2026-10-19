@@ -105,6 +105,7 @@ sealed class SettingsForm : Form
                 var init = (JsonObject)app.Settings.DeepClone();
                 init["defs"] = app.SettingDefs?.DeepClone();
                 init["look"] = app.Look();
+                init["languageProblems"] = app.Languages["problems"]?.DeepClone();
                 return init;
             }
 

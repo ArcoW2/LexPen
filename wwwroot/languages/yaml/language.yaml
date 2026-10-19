@@ -1,0 +1,12 @@
+# YAML. Every part is explained in languages\_template\language.yaml.
+name: YAML
+extensions: [.yaml, .yml]
+open: edit
+mode: yaml              # built in
+fold: indent
+comments: { line: '#' }
+outline:
+  - { pattern: '^([A-Za-z_][\w.-]*)\s*:', name: 1, level: 1 }   # top-level keys
+tokens:
+  atom: { like: property }            # keys
+  def: { theme: fgDim }               # anchors and aliases

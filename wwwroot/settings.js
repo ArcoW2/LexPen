@@ -155,7 +155,7 @@ function build() {
       reset.className = 'st-reset';
       reset.textContent = 'Reset';
       reset.title = 'Back to the default';
-      reset.addEventListener('click', () => set(def.name, settings.defaults[def.name]));
+      reset.addEventListener('click', () => set(def.name, def.default ?? settings.defaults[def.name]));
       el.append(reset);
     }
     ui.list.append(el);
@@ -173,7 +173,7 @@ function show() {
     c.show(settings.values[def.name]);
     el.classList.toggle('st-changed', settings.user.includes(def.name));
   }
-  const problems = [...(settings.problems ?? []), ...(settings.look?.problems ?? [])];
+  const problems = [...(settings.problems ?? []), ...(settings.look?.problems ?? []), ...(settings.languageProblems ?? [])];
   ui.problems.hidden = !problems.length;
   ui.problems.textContent = problems.join('\n');
 }
@@ -195,11 +195,15 @@ function set(name, value) {
 
 events.settings = ({ settings: s }) => {
   const mine = Object.fromEntries([...unconfirmed.keys()].map(n => [n, settings.values[n]]));
-  settings = { ...s, defs: settings.defs, look: settings.look };
+  settings = { ...s, defs: settings.defs, look: settings.look, languageProblems: settings.languageProblems };
   Object.assign(settings.values, mine);
   show();
 };
 
+events.languages = ({ languages }) => {
+  settings.languageProblems = languages.problems;
+  show();
+};
 events.look = ({ look }) => {
   settings.look = look;
   show();

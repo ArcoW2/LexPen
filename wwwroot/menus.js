@@ -44,7 +44,7 @@ const MENUS = [
       ['&Hide this pane', 'paneHide'], ['Hide &other pane', 'paneHideOther'], ['&Close this pane', 'paneClose'],
       ['C&lose other pane', 'paneCloseOther'], ['&Show hidden pane', 'paneShow']] },
     ['Scroll both panes &together', 'compareScroll'], '-',
-    ['&Wrap long lines', 'wrap'], ['For&matting bar', 'formatBar'],
+    ['&Language...', 'chooseLanguage'], ['&Wrap long lines', 'wrap'], ['For&matting bar', 'formatBar'],
     { label: 'Tab ba&r', sub: [['One row that &scrolls', 'tabBar', 'scroll'], ['One row, a &menu for the rest', 'tabBar', 'menu'],
       ['Several &rows', 'tabBar', 'rows']] },
     { label: '&Gutter', sub: [{ label: '&Line numbers', sub: [['&None', 'lineNumbers', 'none'], ['Every &10', 'lineNumbers', 'tens'],

@@ -1,6 +1,6 @@
 # Plan: formatters per language (format a document or a selection)
 
-Status: draft, 2026-10-19, not finished. Created as asked with PLAN-language-packs.md (its Q7): formatters
+Status: draft, 2026-10-19, not finished. Created as asked with executed/PLAN-language-packs.md (its Q7): formatters
 are not part of the language packs plan, and this plan has to exist before that one is approved.
 
 ## 1. What this is about

@@ -42,8 +42,9 @@
   (`docs/plans/executed/PLAN-settings-window.md`); pinned and read-only tabs, Close all tabs (`docs/plans/executed/PLAN-pinned-tabs.md`); wrapping, the editor / preview splitter and the heartbeat
   (`docs/plans/executed/PLAN-long-lines.md`); fonts and line height (`docs/plans/executed/PLAN-fonts.md`) and the fix for Ctrl+V with the Windows
   clipboard.
-- Next plan: `docs/plans/PLAN-language-packs.md` (your answers to Q1-Q8 worked in; Q9, how YAML is read, is open).
-  With it, as drafts: `PLAN-fenced-code-colours.md` (Q5) and `PLAN-formatters.md` (Q7).
+- Language packs: `docs/plans/executed/PLAN-language-packs.md`, on the local branch `languages` until you approve it.
+  Drafts waiting: `PLAN-fenced-code-colours.md` (fenced code in markdown, Q5) and `PLAN-formatters.md` (Q7).
+- Before making the repository public, also: YamlDotNet (MIT) in THIRD-PARTY-NOTICES.
 - Merged into `main` (`caa3f7b`): themes (`docs/plans/executed/PLAN-themes.md`), the preview theme per mode and
   find at the end of the file; the padlock for read-only tabs (`752eb7c`).
 - Before making the repository public: a name check (GitHub, winget, trademark registers), a

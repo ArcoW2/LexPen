@@ -70,6 +70,32 @@ public class SettingsFileTests
         Assert.Throws<ArgumentException>(() => SettingsFile.Set(Defaults, null, "wrap", JsonValue.Create("no")));
     }
 
+    const string Family = """{ "openIn.*": "", "wrap": true }""";
+
+    [Fact]
+    public void AFamilyOfSettings()
+    {
+        var merged = SettingsFile.Merge(Family, """{ "openIn.sql": "preview", "openIn.json": 1, "openInsql": "x" }""", "mine");
+        Assert.Equal("preview", Values(merged)["openIn.sql"]!.GetValue<string>());
+        Assert.Equal(["openIn.sql"], merged["user"]!.AsArray().Select(n => n!.GetValue<string>()));
+        Assert.Equal(2, merged["problems"]!.AsArray().Count);   // a number for a text, and no family without the dot
+        var text = SettingsFile.Set(Family, null, "openIn.markdown", JsonValue.Create("split"));
+        Assert.Contains("openIn.markdown", text);
+        Assert.DoesNotContain("openIn", SettingsFile.Set(Family, text, "openIn.markdown", JsonValue.Create("")));   // the default again
+    }
+
+    [Fact]
+    public void ARenamedSettingMovesOver()
+    {
+        var own = JsonNode.Parse(SettingsFile.Upgrade("""{ "openMarkdownIn": "preview", "wrap": false }""")!)!.AsObject();
+        Assert.Equal(["wrap", "openIn.markdown"], own.Select(p => p.Key));
+        Assert.Equal("preview", own["openIn.markdown"]!.GetValue<string>());
+        // A newer choice wins.
+        own = JsonNode.Parse(SettingsFile.Upgrade("""{ "openMarkdownIn": "preview", "openIn.markdown": "edit" }""")!)!.AsObject();
+        Assert.Equal("edit", own["openIn.markdown"]!.GetValue<string>());
+        Assert.Null(SettingsFile.Upgrade("""{ "wrap": false }"""));
+    }
+
     [Fact]
     public void TheShippedDefaultsAreReadable()
     {

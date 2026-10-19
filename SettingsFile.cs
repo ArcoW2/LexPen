@@ -7,7 +7,8 @@ namespace LexPen;
 /// settings.json: your settings. The one in wwwroot holds every setting with its default (and a comment per
 /// setting); the one in the data folder holds only what differs, so it is short and can be edited by hand or
 /// copied to another PC. Comments (//) and trailing commas are allowed in both. A name that is not a setting,
-/// or a value of another kind than the default (text, number, true / false), is reported and skipped.
+/// or a value of another kind than the default (text, number, true / false), is reported and skipped. A default
+/// whose name ends in ".*" stands for a family ("openIn.*": "openIn.markdown", "openIn.sql", ...).
 /// </summary>
 static class SettingsFile
 {
@@ -33,7 +34,7 @@ static class SettingsFile
                     continue;
                 }
                 values[name] = value!.DeepClone();
-                if (!JsonNode.DeepEquals(value, defaultValues[name])) mine.Add(name);
+                if (!JsonNode.DeepEquals(value, Standard(defaultValues, name))) mine.Add(name);
             }
         return new JsonObject { ["values"] = values, ["user"] = mine, ["defaults"] = defaultValues, ["problems"] = problems };
     }
@@ -45,9 +46,33 @@ static class SettingsFile
         var defaultValues = Parse(defaults, Name, new JsonArray()) ?? new JsonObject();
         if (Problem(defaultValues, name, value) is string problem) throw new ArgumentException(problem);
         var own = (user is null ? null : Parse(user, Name, new JsonArray())) ?? new JsonObject();
-        if (JsonNode.DeepEquals(value, defaultValues[name])) own.Remove(name);
+        if (JsonNode.DeepEquals(value, Standard(defaultValues, name))) own.Remove(name);
         else own[name] = value!.DeepClone();
         return own.ToJsonString(Indented);
+    }
+
+    // The default of a setting, also of one of a family ("openIn.sql": the default of "openIn.*").
+    static JsonNode? Standard(JsonObject defaults, string name) =>
+        defaults.TryGetPropertyValue(name, out var v) ? v
+        : name.Contains('.') && defaults.TryGetPropertyValue(name[..name.LastIndexOf('.')] + ".*", out var family) ? family : null;
+
+    // Settings that were renamed: an old name in your file gives its value to the new one (unless that is set
+    // already: a newer choice wins), and goes. Done once when your file is read.
+    static readonly (string Old, string New)[] Renamed = [("openMarkdownIn", "openIn.markdown")];
+
+    /// <summary>Your file with renamed settings moved over; null when nothing had to change (or it cannot be read).</summary>
+    public static string? Upgrade(string? user)
+    {
+        if (user is null || Parse(user, Name, new JsonArray()) is not JsonObject own) return null;
+        var changed = false;
+        foreach (var (old, renamed) in Renamed)
+        {
+            if (!own.TryGetPropertyValue(old, out var value)) continue;
+            own.Remove(old);
+            if (!own.ContainsKey(renamed)) own[renamed] = value?.DeepClone();
+            changed = true;
+        }
+        return changed ? own.ToJsonString(Indented) : null;
     }
 
     static JsonObject? Parse(string text, string source, JsonArray problems)
@@ -63,7 +88,9 @@ static class SettingsFile
 
     static string? Problem(JsonObject defaults, string name, JsonNode? value)
     {
-        if (!defaults.TryGetPropertyValue(name, out var standard)) return $"\"{name}\" is not a setting.";
+        if (!defaults.TryGetPropertyValue(name, out var standard)
+            && !(name.Contains('.') && defaults.TryGetPropertyValue(name[..name.LastIndexOf('.')] + ".*", out standard)))
+            return $"\"{name}\" is not a setting.";
         if (value is null || Kind(value) != Kind(standard)) return $"\"{name}\" needs {Describe(standard)}.";
         return null;
     }
@@ -91,7 +118,11 @@ static class SettingsFile
     {
         var userPath = Path.Combine(dataDir, Name);
         string? user = null;
-        try { if (File.Exists(userPath)) user = File.ReadAllText(userPath); }
+        try
+        {
+            if (File.Exists(userPath)) user = File.ReadAllText(userPath);
+            if (Upgrade(user) is string upgraded) File.WriteAllText(userPath, user = upgraded);
+        }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
         var merged = Merge(File.ReadAllText(DefaultsPath), user, userPath);
         merged["userFile"] = userPath;

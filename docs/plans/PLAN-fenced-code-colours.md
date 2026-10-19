@@ -1,6 +1,6 @@
 # Plan: colours of fenced code blocks in markdown
 
-Status: draft, 2026-10-19, not finished. Created as asked with PLAN-language-packs.md (its Q5): the language
+Status: draft, 2026-10-19, not finished. Created as asked with executed/PLAN-language-packs.md (its Q5): the language
 packs plan keeps highlight.js for fenced code blocks, and is done only when this is resolved or planned here.
 
 ## 1. What this is about
