@@ -22,7 +22,7 @@ const SHORTCUTS = [
     ['Ctrl+P', 'Print / save as PDF'],
   ]],
   ['Tabs and panes', [
-    ['Ctrl+W', 'Close tab (also middle-click the tab)'],
+    ['Ctrl+W / Ctrl+F4', 'Close tab (also middle-click the tab)'],
     ['Ctrl+Shift+T', 'Reopen the last closed tab (also right-click an empty spot of the tab bar)'],
     ['Ctrl+Tab', 'Next tab'],
     ['Ctrl+Shift+Tab', 'Previous tab'],
@@ -2710,7 +2710,7 @@ const commands = {
 
 const shortcuts = {
   'o': 'openFile', 'shift+o': 'openFolder', 'n': 'newFile', 's': 'save', 'shift+s': 'saveAs',
-  'e': 'toggleEdit', 'b': 'sidebar', 't': 'theme', 'w': 'closeTab', 'tab': 'nextTab', 'shift+tab': 'prevTab',
+  'e': 'toggleEdit', 'b': 'sidebar', 't': 'theme', 'w': 'closeTab', 'f4': 'closeTab', 'tab': 'nextTab', 'shift+tab': 'prevTab',
   'shift+l': 'sync', 'shift+h': 'outline', 'shift+f': 'search', 'shift+e': 'focusTree',
   '=': 'zoomIn', '+': 'zoomIn', 'shift++': 'zoomIn', 'shift+=': 'zoomIn', '-': 'zoomOut', 'shift+_': 'zoomOut', 'shift+t': 'reopenTab',
 };

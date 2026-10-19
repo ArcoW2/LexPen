@@ -76,7 +76,7 @@ See [demo.md](demo.md) for a document that exercises every supported element.
 | <kbd>Ctrl</kbd>+<kbd>O</kbd> | Open file |
 | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd> | Open folder |
 | <kbd>Ctrl</kbd>+<kbd>N</kbd> | New file (a draft until saved) |
-| <kbd>Ctrl</kbd>+<kbd>W</kbd> | Close tab (also middle-click) |
+| <kbd>Ctrl</kbd>+<kbd>W</kbd> / <kbd>Ctrl</kbd>+<kbd>F4</kbd> | Close tab (also middle-click) |
 | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> | Reopen the last closed tab (also right-click an empty spot of the tab bar) |
 | <kbd>Ctrl</kbd>+<kbd>Tab</kbd> / <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Tab</kbd> | Next / previous tab |
 | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd> | Scroll both panes together |
