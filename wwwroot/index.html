@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- script-src 'self' also blocks inline scripts/handlers coming from a document's raw HTML. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: http: data: blob:; font-src 'self' data:; media-src https: http:">
+<title>LexPen</title>
+<link rel="icon" href="data:,">
+<script src="theme.js"></script>
+<link rel="stylesheet" href="app.css">
+</head>
+<body data-busy>
+
+<header class="mm-toolbar">
+  <button data-cmd="sidebar" title="Toggle sidebar (Ctrl+B)">&#9776;</button>
+  <span class="mm-menu-wrap">
+    <button data-cmd="openMenu" title="Open a file or folder, also recently used ones">Open &#9662;</button>
+    <div class="mm-menu mm-open-menu" hidden>
+      <button data-cmd="openFile">File...<span class="mm-key">Ctrl+O</span></button>
+      <button data-cmd="openFolder">Folder...<span class="mm-key">Ctrl+Shift+O</span></button>
+      <hr>
+      <div class="mm-sub"><button class="mm-sub-title">Favourite files</button><div class="mm-menu mm-submenu" data-list="favourites"></div></div>
+      <div class="mm-sub"><button class="mm-sub-title">Recently opened files</button><div class="mm-menu mm-submenu" data-list="files"></div></div>
+      <div class="mm-sub"><button class="mm-sub-title">Recently opened folders</button><div class="mm-menu mm-submenu" data-list="folders"></div></div>
+      <div class="mm-sub"><button class="mm-sub-title">Recently closed files</button><div class="mm-menu mm-submenu" data-list="closed"></div></div>
+    </div>
+  </span>
+  <button data-cmd="newFile" title="New file (Ctrl+N)">New</button>
+  <span class="mm-doc-name"></span>
+  <button data-cmd="save" class="mm-save" title="Save (Ctrl+S) &#183; Save as (Ctrl+Shift+S)">Save</button>
+  <button data-cmd="orient" class="mm-orient" title="Panes side by side / above each other (also in the divider's right-click menu)"></button>
+  <span class="mm-modes" title="Toggle read / split (Ctrl+E)">
+    <button data-mode="preview">Read</button>
+    <button data-mode="split">Split</button>
+    <button data-mode="edit">Edit</button>
+  </span>
+  <button data-cmd="outline" class="mm-outline-button" title="Outline: the headings at the right of each pane (Ctrl+Shift+H)">Outline</button>
+  <button data-cmd="theme" class="mm-theme" title="Day / night (Ctrl+T)"></button>
+  <button data-cmd="zoomReset" class="mm-zoom" title="Preview zoom: Ctrl+plus / Ctrl+minus / Ctrl+mouse wheel; click for 100%">100%</button>
+  <span class="mm-menu-wrap">
+    <button data-cmd="menu" title="More">&#8943;</button>
+    <div class="mm-menu mm-more-menu" hidden>
+      <button data-cmd="tabRows" class="mm-check mm-tab-rows" title="Off: one row of tabs that scrolls">Tabs on several rows</button>
+      <button data-cmd="findShared" class="mm-check mm-find-shared" title="Off: each pane has its own search (Ctrl+F). On: one search; F3 in the other pane goes on with it">One search for both panes</button>
+      <button data-cmd="formatBar" class="mm-check mm-format-bar" title="The bar with bold, headings, lists, tables, ... above the editor">Formatting bar</button>
+      <button data-cmd="lineBreaks" class="mm-check mm-line-breaks" title="Off: a single line break joins the lines, as in GitHub files">Single line break starts a new line</button>
+      <hr>
+      <button data-cmd="help">Keyboard shortcuts (F1)</button>
+      <button data-cmd="about">About LexPen</button>
+      <hr>
+      <button data-cmd="exit">Close window</button>
+    </div>
+  </span>
+</header>
+
+<main class="mm-main">
+  <aside class="mm-sidebar">
+    <div class="mm-side-tabs">
+      <button data-cmd="viewFolder" class="mm-side-tab mm-side-folder">Folder</button>
+      <button data-cmd="viewSearch" class="mm-side-tab mm-side-search" title="Search (Ctrl+Shift+F)">Search</button>
+    </div>
+    <div class="mm-folder-view">
+    <div class="mm-tree-head">
+      <span class="mm-tree-title">No folder open</span>
+      <select class="mm-sort" title="Sort by">
+        <option value="name">Name</option>
+        <option value="modified">Modified</option>
+      </select>
+      <button data-cmd="sortDir" class="mm-sort-dir" title="Ascending / descending"></button>
+      <button data-cmd="markdownOnly" class="mm-md-only" title="Show markdown files only">M&#8595;</button>
+      <button data-cmd="refresh" title="Refresh">&#10227;</button>
+    </div>
+    <div class="mm-tree"></div>
+    </div>
+    <div class="mm-search-view">
+      <input class="mm-search-input" type="text" spellcheck="false" placeholder="Search, then Enter"
+        title="Codes: ^p line break (CR, LF or CRLF), ^t tab, ^? any character, ^# digit, ^$ letter, ^w spaces or tabs, ^^ the ^ itself">
+      <div class="mm-search-bar">
+        <button data-opt="case" title="Match case">Aa</button>
+        <button data-opt="word" title="Whole word only">W</button>
+        <button data-opt="regex" title="Regular expression (then the ^ codes do not apply)">.*</button>
+        <select class="mm-search-scope" title="Where to search">
+          <option value="file">Current file</option>
+          <option value="open">Open files</option>
+          <option value="folder">Files in folder</option>
+        </select>
+      </div>
+      <div class="mm-search-status"></div>
+      <div class="mm-search-results"></div>
+    </div>
+  </aside>
+  <div class="mm-splitter"></div>
+  <!-- The two panes are built by app.js around the divider. -->
+  <div class="mm-panes">
+    <div class="mm-divider" hidden title="Drag to resize; right-click for the pane menu (orientation, hide, close)">
+      <button data-cmd="sync" class="mm-sync" title="Scroll both panes together (Ctrl+Shift+L)"></button>
+    </div>
+  </div>
+</main>
+
+<div class="mm-toast" hidden></div>
+
+<div class="mm-menu mm-context mm-tree-menu" hidden>
+  <button data-cmd="copyPath">Copy path</button>
+  <button data-cmd="copyRelativePath">Copy relative path</button>
+  <button data-cmd="treeFavourite" class="mm-fav-item">Add to favourites</button>
+</div>
+
+<div class="mm-menu mm-context mm-tab-menu" hidden>
+  <button data-cmd="tabOtherPane">Move to other pane</button>
+  <button data-cmd="tabNextWindow">Move to next window</button>
+  <button data-cmd="tabNewWindow">Open in new window</button>
+  <hr>
+  <button data-cmd="tabCopyPath">Copy path</button>
+  <button data-cmd="tabShowInTree" class="mm-file-item">Show in folder pane</button>
+  <button data-cmd="tabFavourite" class="mm-fav-item">Add to favourites</button>
+  <button data-cmd="tabClose">Close (Ctrl+W)</button>
+  <button data-cmd="tabCloseOthers">Close other tabs</button>
+  <button data-cmd="tabCloseRight">Close tabs to the right</button>
+  <hr class="mm-pane-sep">
+  <button data-cmd="paneHide" class="mm-pane-item">Hide this pane</button>
+  <button data-cmd="paneHideOther" class="mm-pane-item">Hide other pane</button>
+  <button data-cmd="paneClose" class="mm-pane-item">Close this pane</button>
+  <button data-cmd="paneCloseOther" class="mm-pane-item">Close other pane</button>
+  <button data-cmd="paneShow" class="mm-pane-item">Show hidden pane</button>
+</div>
+
+<div class="mm-menu mm-context mm-strip-menu" hidden>
+  <button data-cmd="stripReopen">Reopen closed tab (Ctrl+Shift+T)</button>
+  <hr class="mm-pane-sep">
+  <button data-cmd="paneHide" class="mm-pane-item">Hide this pane</button>
+  <button data-cmd="paneHideOther" class="mm-pane-item">Hide other pane</button>
+  <button data-cmd="paneClose" class="mm-pane-item">Close this pane</button>
+  <button data-cmd="paneCloseOther" class="mm-pane-item">Close other pane</button>
+  <button data-cmd="paneShow" class="mm-pane-item">Show hidden pane</button>
+</div>
+
+<!-- The button at the right end of a pane's tab strip. -->
+<div class="mm-menu mm-context mm-pane-menu" hidden>
+  <button data-cmd="paneHide" class="mm-pane-item">Hide this pane</button>
+  <button data-cmd="paneHideOther" class="mm-pane-item">Hide other pane</button>
+  <button data-cmd="paneClose" class="mm-pane-item">Close this pane</button>
+  <button data-cmd="paneCloseOther" class="mm-pane-item">Close other pane</button>
+  <button data-cmd="paneShow" class="mm-pane-item">Show hidden pane</button>
+</div>
+
+<!-- Right-click on the divider; the labels follow the orientation (see showDividerMenu). -->
+<div class="mm-menu mm-context mm-divider-menu" hidden>
+  <button data-cmd="orientV" class="mm-check mm-orient-v">Side by side</button>
+  <button data-cmd="orientH" class="mm-check mm-orient-h">Above each other</button>
+  <hr>
+  <button data-cmd="hideFirst" class="mm-first">Hide left pane</button>
+  <button data-cmd="hideSecond" class="mm-second">Hide right pane</button>
+  <button data-cmd="closeFirst" class="mm-first">Close left pane</button>
+  <button data-cmd="closeSecond" class="mm-second">Close right pane</button>
+</div>
+
+<dialog class="mm-about mm-help">
+  <h1>Keyboard shortcuts</h1>
+  <table class="mm-keys"></table>
+  <form method="dialog"><button class="mm-about-ok">OK</button></form>
+</dialog>
+
+<dialog class="mm-about mm-about-dialog">
+  <h1>LexPen</h1>
+  <p class="mm-about-line">Fast, intuitive and flexible text and code editor for Windows, with a built-in viewer.</p>
+  <p class="mm-about-by"><em>Inspired by an idea from Reinier.</em></p>
+  <div class="mm-about-body"></div>
+  <form method="dialog"><button class="mm-about-ok">OK</button></form>
+</dialog>
+
+<script src="vendor/core.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,2804 @@
+'use strict';
+
+const FILE_URL = 'https://file.lexpen.example/';   // served by the host, see MainForm.OnFileRequested
+const MARKDOWN_FILE = /\.(md|markdown|mdown|mkd|mdx|txt)$/i;
+// Other files are shown as code: highlighted for these extensions, plain text otherwise.
+const CODE_LANG = {
+  json: 'json', yaml: 'yaml', yml: 'yaml',
+  ps1: 'powershell', psm1: 'powershell', psd1: 'powershell', cs: 'csharp',
+};
+// The highlight.js language for a file; undefined for markdown (and a draft, which has no file yet).
+const codeLang = path =>
+  !path || MARKDOWN_FILE.test(path) ? undefined : CODE_LANG[path.match(/\.([^.\\]+)$/)?.[1].toLowerCase()] ?? 'plaintext';
+// All shortcuts, by group: shown in the help window (F1) and on the welcome page.
+// Keys are written as "Ctrl+Shift+T"; each part becomes a <kbd>.
+const SHORTCUTS = [
+  ['Files', [
+    ['Ctrl+O', 'Open file'],
+    ['Ctrl+Shift+O', 'Open folder'],
+    ['Ctrl+N', 'New file (kept as a draft until saved)'],
+    ['Ctrl+S', 'Save'],
+    ['Ctrl+Shift+S', 'Save as'],
+    ['Ctrl+P', 'Print / save as PDF'],
+  ]],
+  ['Tabs and panes', [
+    ['Ctrl+W', 'Close tab (also middle-click the tab)'],
+    ['Ctrl+Shift+T', 'Reopen the last closed tab (also right-click an empty spot of the tab bar)'],
+    ['Ctrl+Tab', 'Next tab'],
+    ['Ctrl+Shift+Tab', 'Previous tab'],
+    ['Click', 'A file in the tree: show it in the current tab'],
+    ['Shift+click', 'A file in the tree: open it in a new tab'],
+    ['Ctrl+click', 'A file in the tree: show it in the other pane. A link: open it in a new tab'],
+    ['Ctrl+Shift+click', 'A file in the tree: open it in a new tab in the other pane'],
+    ['Double-click', 'A tab: hide the other pane; with a pane hidden: show it again'],
+    ['Ctrl+Shift+L', 'Scroll both panes together'],
+    ['Alt+Left', 'Back to the tab (and file) shown before, like a browser (also the mouse back button)'],
+    ['Alt+Right', 'Forward again (also the mouse forward button)'],
+  ]],
+  ['View', [
+    ['Ctrl+E', 'Toggle read / split view'],
+    ['Ctrl+B', 'Toggle the sidebar (in the editor: bold)'],
+    ['Ctrl+T', 'Day / night theme'],
+    ['Ctrl+Shift+H', 'Outline (headings) at the right of each pane; click one to go there'],
+    ['Ctrl+plus', 'Zoom the preview in (also Ctrl+mouse wheel)'],
+    ['Ctrl+minus', 'Zoom the preview out'],
+    ['Click', 'The zoom level at the top right: preview at 100%'],
+    ['F1', 'This list'],
+  ]],
+  ['Folder pane', [
+    ['Ctrl+Shift+E', 'Go to the folder pane (or click a row)'],
+    ['Up', 'Previous row (Down: next; Home / End: first / last; PgUp / PgDn: a page)'],
+    ['Right', 'Open a folder, or go to its first entry'],
+    ['Left', 'Close a folder, or go to the folder it is in'],
+    ['Enter', 'Show the file in the current tab, or open / close the folder'],
+    ['Shift+Enter', 'Open the file in a new tab'],
+    ['Ctrl+Enter', 'Show the file in the other pane'],
+    ['Ctrl+Shift+Enter', 'Open the file in a new tab in the other pane'],
+    ['Alt+Up', 'Go up a folder (also Backspace, or the .. row)'],
+    ['Esc', 'Back to the document'],
+  ]],
+  ['Search', [
+    ['Ctrl+Shift+F', 'Search in the current file, the open files or the files in the folder'],
+    ['Enter', 'In the search box: search'],
+    ['^p', 'In a search: a line break (CR, LF or CRLF)'],
+    ['^t', 'In a search: a tab'],
+    ['^?', 'In a search: any character'],
+    ['^#', 'In a search: a digit'],
+    ['^$', 'In a search: a letter'],
+    ['^w', 'In a search: spaces or tabs'],
+    ['^^', 'In a search: the ^ itself'],
+  ]],
+  ['Editor', [
+    ['Ctrl+F', 'Find in this pane: in the editor or the preview, wherever you work (the selection is filled in)'],
+    ['F3', 'Find the next match; with an empty or hidden find bar: show it (also Enter in the find box)'],
+    ['Shift+F3', 'Find the previous match (also Shift+Enter in the find box)'],
+    ['Ctrl+H', 'Find and replace (in the editor)'],
+    ['Ctrl+B', 'Bold. With a selection: the selected text (again: not bold). Without: ** ** with the cursor in between'],
+    ['Ctrl+I', 'Italic (works like bold)'],
+    ['Ctrl+Shift+X', 'Strikethrough'],
+    ['Ctrl+`', 'Inline code'],
+    ['Ctrl+K', 'Link; a URL on the clipboard becomes the target'],
+    ['Ctrl+1', 'Heading 1; Ctrl+2 to Ctrl+6: heading 2 to 6. The same level again: plain text'],
+    ['Ctrl+Shift+8', 'Bulleted list (again: off)'],
+    ['Ctrl+Shift+7', 'Numbered list'],
+    ['Ctrl+Shift+9', 'Task list'],
+    ['Ctrl+Shift+.', 'Quote'],
+    ['Ctrl+Shift+`', 'Code block (the cursor lands after the opening ``` for the language)'],
+    ['Shift+Enter', 'Line break as <br> (also inside a table cell)'],
+    ['Tab', 'In a table: next cell (in the last cell: a new row). Elsewhere: indent'],
+    ['Shift+Tab', 'In a table: previous cell. Elsewhere: indent less'],
+    ['Enter', 'At the end of a table row: a new row. On an empty last row: end the table'],
+    ['Ctrl+V', 'Paste; a picture or an image file becomes an image link (copied next to the document when needed)'],
+    ['Ctrl+Shift+V', 'Paste an image file, asking how to link it (also: drop it with Shift held)'],
+    ['Esc', 'Close a menu, hide the "reloaded" banner'],
+  ]],
+];
+
+const kbd = keys => keys.split('+').map(k => `<kbd>${k}</kbd>`).join('<span class="mm-plus">+</span>');
+const shortcutTable = () => SHORTCUTS.map(([group, rows]) =>
+  `<tr><th colspan="2">${group}</th></tr>` + rows.map(([keys, action]) =>
+    `<tr><td>${kbd(keys)}</td><td>${escapeHtml(action)}</td></tr>`).join('')).join('');
+
+const WELCOME = `<h1>LexPen</h1><p>Open a file or a folder to get started. All shortcuts: <kbd>F1</kbd>, or the More menu.</p>`;
+// Drag and drop between tabs, panes and windows.
+const TAB_TYPE = 'application/x-lexpen-tab';
+const PATH_TYPE = 'application/x-lexpen-path';
+
+const $ = sel => document.querySelector(sel);
+const ui = {
+  tree: $('.mm-tree'), treeTitle: $('.mm-tree-title'), docName: $('.mm-doc-name'),
+  panes: $('.mm-panes'), divider: $('.mm-divider'), sync: $('.mm-sync'),
+  splitter: $('.mm-splitter'), toast: $('.mm-toast'), sort: $('.mm-sort'),
+  menu: $('.mm-more-menu'), openMenu: $('.mm-open-menu'), about: $('.mm-about-dialog'), aboutBody: $('.mm-about-body'), help: $('.mm-help'),
+  treeMenu: $('.mm-tree-menu'), tabMenu: $('.mm-tab-menu'), stripMenu: $('.mm-strip-menu'),
+  paneMenu: $('.mm-pane-menu'), dividerMenu: $('.mm-divider-menu'),
+};
+
+const state = {
+  root: null,           // open folder
+  theme: document.documentElement.dataset.theme,
+  win: 0,               // this window's id at the host
+  primary: true,        // the primary window saves the session
+  activePane: 0,
+  hidden: null,         // the pane hidden with its tabs (0 or 1), or null
+  sync: false,          // scroll both panes together
+  orient: localStorage.orient === 'h' ? 'h' : 'v',   // panes side by side (v) or above each other (h)
+  ratio: +localStorage.ratio || 50,                   // size of the first pane, in percent
+};
+
+// ---------- Host bridge ----------
+const pending = new Map();
+let lastId = 0;
+
+// Shows the busy bar for as long as the promise is pending.
+let busyCount = 0;
+function track(promise) {
+  const update = change => document.body.toggleAttribute('data-busy', (busyCount += change) > 0);
+  update(1);
+  promise.then(() => update(-1), () => update(-1));
+  return promise;
+}
+
+function call(op, args, send) {
+  return new Promise((resolve, reject) => {
+    pending.set(++lastId, { resolve, reject });
+    send({ ...args, id: lastId, op });   // after the arguments: an argument named id or op cannot replace them
+  });
+}
+function host(op, args) {
+  const result = call(op, args, msg => chrome.webview.postMessage(msg));
+  // Not busy while the user is looking at a native dialog, nor for writes in the background.
+  return /^(pick|confirm|close|draft|docText|session)/.test(op) ? result : track(result);
+}
+// Files dropped from Explorer: the host reads their paths from the File objects.
+const hostFiles = (files, op = 'droppedFiles', args = {}) =>
+  track(call(op, args, msg => chrome.webview.postMessageWithAdditionalObjects(msg, files)));
+
+const events = {};   // host -> page, by name; filled further down
+chrome.webview.addEventListener('message', e => {
+  if (e.data.event) return events[e.data.event]?.(e.data);
+  const { id, result, error } = e.data;
+  const pendingCall = pending.get(id);
+  pending.delete(id);
+  error ? pendingCall.reject(new Error(error)) : pendingCall.resolve(result);
+});
+
+// Errors and warnings are red; `info` (a confirmation) is blue.
+function toast(message, info) {
+  ui.toast.textContent = message;
+  ui.toast.classList.toggle('mm-info', !!info);
+  ui.toast.hidden = false;
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => ui.toast.hidden = true, 5000);
+}
+addEventListener('unhandledrejection', e => toast(e.reason?.message || String(e.reason)));
+
+// ---------- Paths ----------
+const dirOf = path => path.slice(0, path.lastIndexOf('\\'));
+const nameOf = path => path.slice(path.lastIndexOf('\\') + 1);
+const isUrl = s => /^[a-z][a-z0-9+.-]+:|^\/\//i.test(s);
+const samePath = (a, b) => !!a && !!b && a.toLowerCase() === b.toLowerCase();
+
+function safeDecode(s) {
+  try { return decodeURIComponent(s); } catch { return s; }
+}
+
+// Resolves a link/image path from a document to an absolute Windows path.
+function resolvePath(dir, rel) {
+  rel = rel.replace(/\//g, '\\');
+  let full = rel;
+  if (!/^[a-z]:\\|^\\\\/i.test(rel))
+    full = rel.startsWith('\\') ? (state.root || dir) + rel : dir + '\\' + rel;
+  const out = [];
+  for (const part of full.split('\\')) {
+    if (part === '..') { if (out.length > 1) out.pop(); }
+    else if (part !== '.' && (part !== '' || out.length < 2)) out.push(part);
+  }
+  return out.join('\\');
+}
+
+// ---------- Markdown ----------
+const escapeHtml = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+const md = markdownit({
+  html: true,
+  linkify: true,
+  highlight(code, lang) {
+    if (lang === 'mermaid') return `<pre class="mermaid">${escapeHtml(code)}</pre>`;
+    if (lang && hljs.getLanguage(lang)) return hljs.highlight(code, { language: lang, ignoreIllegals: true }).value;
+    return '';
+  },
+})
+  .use(markdownItAnchor, {
+    slugify: s => s.trim().toLowerCase().replace(/[^\p{L}\p{N}\s_-]/gu, '').replace(/\s+/g, '-'),
+  })
+  .use(markdownitDeflist)
+  .use(markdownitEmoji)
+  .use(markdownitFootnote)
+  .use(markdownitMark)
+  .use(markdownitSub)
+  .use(markdownitSup)
+  .use(markdownitTaskLists)
+  // Math is only marked here; KaTeX is loaded and run in render() when a document needs it.
+  .use(texmath, {
+    delimiters: 'dollars',
+    engine: {
+      renderToString: (tex, options) =>
+        `<span class="tex"${options.displayMode ? ' data-display' : ''}>${escapeHtml(tex)}</span>`,
+    },
+  });
+
+// The source line of every block, for scrolling the two panes together.
+md.core.ruler.push('source_lines', s => {
+  for (const token of s.tokens)
+    if (token.map && token.nesting >= 0 && token.type !== 'inline') token.attrSet('data-line', token.map[0]);
+});
+
+const scripts = {};
+function loadScript(src) {
+  return scripts[src] ??= new Promise((resolve, reject) => {
+    const el = document.createElement('script');
+    el.src = src;
+    el.onload = resolve;
+    el.onerror = () => reject(new Error('Could not load ' + src));
+    document.head.append(el);
+  });
+}
+function loadCss(href) {
+  if (document.querySelector(`link[href="${href}"]`)) return;
+  const el = document.createElement('link');
+  el.rel = 'stylesheet';
+  el.href = href;
+  document.head.append(el);
+}
+
+// YAML front matter is shown as a code block instead of a stray <hr> and heading (same line count).
+const withFrontMatter = src =>
+  src.replace(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/, (_, yaml) => '```yaml\n' + yaml + '\n```\n');
+
+// ---------- Documents and tabs ----------
+// A document is one file (or draft) in this window; a tab shows a document in a pane, and a
+// document can be in both panes. The text lives in a CodeMirror Doc once the editor has loaded
+// (each tab gets a linked Doc of it); until then in doc.text. Only one tab may edit a file: the
+// first one in this window, and only when this window holds the file's lock (see AppHost.Lock).
+const docs = new Set();
+let lastTabId = 0;
+
+const findDoc = path => [...docs].find(d => samePath(d.path, path));
+const findDraft = id => [...docs].find(d => d.draft === id);
+const docText = doc => doc.cmDoc ? doc.cmDoc.getValue() : doc.text;
+const diskText = doc => doc.cmDoc ? doc.cmDoc.getValue(doc.eol) : doc.text;   // with the file's own line endings
+const eolOf = text => text.includes('\r\n') ? '\r\n' : '\n';
+const docName = doc => doc.path ? nameOf(doc.path) : doc.draft;
+const changed = doc => doc.dirty || doc.draftChanged;
+
+function makeDoc({ path = null, draft = null, text = '' }) {
+  const doc = {
+    path, draft, text, eol: eolOf(text), language: codeLang(path),
+    cmDoc: null, history: null, savedGeneration: 0,
+    dirty: false,          // a file with unsaved edits
+    draftChanged: false,   // a draft edited in this session
+    lock: !path,           // this window may edit it (drafts always)
+    shared: false,         // other windows show it read-only: send them the text
+    disk: 'ok',            // ok | changed | removed: what happened to the file on disk
+    editTab: null,         // the tab that may edit it
+    draftTimer: 0, pushTimer: 0,
+    version: 0,            // counts text changes, for the outline cache
+  };
+  docs.add(doc);
+  return doc;
+}
+
+async function loadDoc(path) {
+  const text = await host('read', { path });
+  const doc = findDoc(path) ?? makeDoc({ path, text });
+  doc.lock = await host('lock', { path });
+  unfresh(path);
+  syncWatchFiles();
+  return doc;
+}
+
+// The document is no longer shown in this window.
+function dropDoc(doc, release = true) {
+  docs.delete(doc);
+  clearTimeout(doc.pushTimer);
+  if (doc.path && release) host('unlock', { path: doc.path });
+  syncWatchFiles();
+}
+
+function makeTab(doc, mode) {
+  const article = document.createElement('article');
+  article.className = 'mm-preview';
+  const tab = {
+    id: ++lastTabId, doc, article,
+    mode: mode ?? (doc.language ? 'edit' : 'preview'),   // markdown opens to read, other files to edit
+    stale: true,         // the preview does not match the text
+    cmDoc: null,         // linked CodeMirror Doc, see tabDoc
+    previewTop: 0,
+    dot: null,           // changed / removed on disk while not looked at
+    lines: null,         // source line -> preview position, see lineMap
+    renderId: 0,
+  };
+  // Images and diagrams change the heights the line map was built from.
+  article.addEventListener('load', () => tab.lines = null, true);
+  doc.editTab ??= tab;
+  return tab;
+}
+
+const panes = [0, 1].map(makePane);
+const allTabs = () => panes.flatMap(p => p.tabs);
+const tabsOf = doc => allTabs().filter(t => t.doc === doc);
+const paneOf = tab => panes.find(p => p.tabs.includes(tab));
+const activeTab = () => panes[state.activePane].active;
+const twoPanes = () => panes[1].tabs.length > 0;
+const bothShown = () => twoPanes() && state.hidden === null;   // two panes, neither hidden
+const editable = tab => tab.doc.lock && tab.doc.editTab === tab;
+
+function makePane(index) {
+  const el = document.createElement('section');
+  el.className = 'mm-pane';
+  el.dataset.mode = 'preview';
+  el.innerHTML = '<div class="mm-tabs-row"><div class="mm-tabs"></div>' +
+    '<button class="mm-pane-button" title="This pane: hide or close it; show a hidden pane">' +
+    '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><path d="M8 2.5v11"/></svg></button></div>' +
+    '<div class="mm-find" hidden></div>' +
+    '<div class="mm-body"><div class="mm-editor-pane"></div><div class="mm-preview-pane"></div>' +
+    '<nav class="mm-outline"><div class="mm-outline-edge" title="Drag to resize"></div><div class="mm-outline-list"></div></nav>' +
+    '<div class="mm-drop" hidden></div><div class="mm-bar" hidden></div></div>';
+  const pane = {
+    index, el, tabs: [], active: null, cm: null, ignoreScroll: false, ignoreEditorScroll: false,
+    tabsEl: el.querySelector('.mm-tabs'), editorEl: el.querySelector('.mm-editor-pane'),
+    previewEl: el.querySelector('.mm-preview-pane'), dropEl: el.querySelector('.mm-drop'), barEl: el.querySelector('.mm-bar'),
+    outlineEl: el.querySelector('.mm-outline-list'),
+  };
+  pane.outlineEl.addEventListener('click', e => {
+    const item = e.target.closest('[data-line]');
+    if (item) goToLine(pane, +item.dataset.line);
+  });
+  el.querySelector('.mm-outline-edge').addEventListener('pointerdown', e => resizeOutline(e));
+  el.querySelector('.mm-pane-button').addEventListener('click', e => {
+    const open = ui.paneMenu.hidden;
+    hideMenus();
+    if (!open) return;
+    menuPaneIndex = index;
+    paneItems(ui.paneMenu);
+    ui.paneMenu.hidden = false;
+    const r = e.currentTarget.getBoundingClientRect();
+    ui.paneMenu.style.left = Math.max(4, r.right - ui.paneMenu.offsetWidth) + 'px';
+    ui.paneMenu.style.top = r.bottom + 2 + 'px';
+  });
+
+  el.addEventListener('pointerdown', () => setActivePane(index), true);
+  pane.previewEl.tabIndex = -1;   // can take the focus (Esc from the tree), so the keys scroll it
+  pane.previewEl.addEventListener('scroll', () => onPreviewScroll(pane));
+  pane.previewEl.addEventListener('wheel', e => {
+    if (!e.ctrlKey) return;
+    e.preventDefault();
+    zoomBy(e.deltaY < 0 ? 1 : -1);
+  }, { passive: false });
+  pane.previewEl.addEventListener('click', e => onPreviewClick(pane, e));
+  pane.barEl.addEventListener('click', e => onBarClick(pane, e));
+
+  const tabOf = e => pane.tabs.find(t => t.id === +e.target.closest('.mm-tab')?.dataset.tab);
+  pane.tabsEl.addEventListener('click', e => {
+    const tab = tabOf(e);
+    if (!tab) return;
+    if (e.target.closest('.mm-tab-close')) return closeTab(tab);
+    // Double-click: the other pane goes out of view (two panes), or comes back (one hidden). The first
+    // click redraws the tab strip, so the browser's dblclick never comes; the click count does.
+    if (e.detail === 2) {
+      if (bothShown()) hidePane(1 - index);
+      else if (state.hidden !== null) showHiddenPane();
+      return;
+    }
+    activate(pane, tab);
+  });
+  pane.tabsEl.addEventListener('mousedown', e => { if (e.button === 1) e.preventDefault(); });   // no autoscroll
+  pane.tabsEl.addEventListener('auxclick', e => {
+    const tab = e.button === 1 && tabOf(e);
+    if (tab) closeTab(tab);
+  });
+  // Right-click a tab: its menu; the empty part of the bar: reopen a closed tab.
+  pane.tabsEl.addEventListener('contextmenu', e => {
+    const tab = tabOf(e);
+    menuPaneIndex = index;
+    if (tab) return showMenu(ui.tabMenu, e, () => {
+      menuTab = tab;
+      paneItems(ui.tabMenu);
+      favouriteItem(ui.tabMenu, tab.doc.path);
+      ui.tabMenu.querySelector('[data-cmd=tabShowInTree]').hidden = !tab.doc.path;
+    });
+    ui.stripMenu.querySelector('button').disabled = !closedTabs.length;
+    showMenu(ui.stripMenu, e, () => { menuPane = pane; paneItems(ui.stripMenu); });
+  });
+  pane.tabsEl.addEventListener('dragstart', e => {
+    const tab = tabOf(e);
+    if (!tab) return;
+    draggedTab = tab;
+    e.dataTransfer.setData(TAB_TYPE, JSON.stringify({ win: state.win, tab: tab.id }));
+    if (tab.doc.path) e.dataTransfer.setData('text/plain', tab.doc.path);
+    e.dataTransfer.effectAllowed = 'move';
+  });
+  // Dropped outside every window: the tab gets a window of its own.
+  pane.tabsEl.addEventListener('dragend', e => {
+    hideDrops();
+    draggedTab = null;
+    const tab = tabOf(e);
+    if (!tab || e.dataTransfer.dropEffect !== 'none') return;
+    const inside = e.screenX >= screenX && e.screenX < screenX + outerWidth && e.screenY >= screenY && e.screenY < screenY + outerHeight;
+    if (!inside) moveTab(tab, 'new', { screenX: Math.round(e.screenX * devicePixelRatio), screenY: Math.round(e.screenY * devicePixelRatio) });
+  });
+
+  el.addEventListener('dragover', e => {
+    // A tab of this window over a tab bar: it goes between the tabs, at the marker.
+    if (draggedTab && e.target.closest('.mm-tabs')) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      hideDrops();
+      const at = stripIndex(pane, e.clientX, e.clientY);
+      pane.tabsEl.children[at]?.classList.add('mm-insert');
+      pane.tabsEl.classList.toggle('mm-insert-end', at === pane.tabs.length);
+      return;
+    }
+    // Images over the editor become links there (CodeMirror shows where): no pane marker.
+    if (e.target.closest('.CodeMirror') && dragHasImages(e.dataTransfer)) return hideDrops();
+    const target = dropTarget(pane, e);
+    if (!target) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = e.dataTransfer.types.includes('Files') ? 'copy' : 'move';
+    hideDrops();
+    pane.dropEl.hidden = false;
+    pane.dropEl.dataset.half = target === pane ? '' : state.orient;
+  });
+  el.addEventListener('dragleave', e => { if (!el.contains(e.relatedTarget)) pane.dropEl.hidden = true; });
+  el.addEventListener('drop', e => {
+    if (e.defaultPrevented) return hideDrops();   // the editor took it (images, see onEditorDrop)
+    if (draggedTab && e.target.closest('.mm-tabs')) {
+      e.preventDefault();
+      hideDrops();
+      return moveToPane(draggedTab, pane, stripIndex(pane, e.clientX, e.clientY));
+    }
+    const target = dropTarget(pane, e);
+    hideDrops();
+    if (!target) return;
+    e.preventDefault();
+    onDrop(e.dataTransfer, target);
+  });
+  return pane;
+}
+ui.panes.prepend(panes[0].el);
+ui.panes.append(panes[1].el);
+
+// ---------- Find in a pane ----------
+// Ctrl+F / Ctrl+H / F3 / Shift+F3 search the pane the user works in (find.js, loaded on first use).
+// They replace CodeMirror's search box and WebView2's own find, which searches the whole window.
+async function findKey(action, pane) {
+  pane ??= panes.find(p => !p.el.hidden && p.el.contains(document.activeElement)) ?? panes[state.activePane];
+  await loadScript('find.js');
+  findCommand(pane, action);
+}
+
+const findKeys = pane => ({
+  'Ctrl-F': () => findKey('open', pane), 'Ctrl-H': () => findKey('replace', pane),
+  'F3': () => findKey('next', pane), 'Shift-F3': () => findKey('prev', pane),
+  'Ctrl-G': () => findKey('next', pane), 'Shift-Ctrl-G': () => findKey('prev', pane),
+  'Shift-Ctrl-R': () => findKey('replace', pane),
+  'Shift-Ctrl-F': () => commands.search(),   // CodeMirror's default would open its replace box
+});
+
+function setFindShared(on) {
+  localStorage.findShared = on ? 'on' : 'off';
+  $('.mm-find-shared').classList.toggle('mm-on', on);
+}
+
+// ---------- Editor ----------
+let editorLoaded;
+function loadEditor() {
+  loadCss('vendor/editor.css');
+  // format.js: the formatting commands and bar; it needs CodeMirror, so it comes second.
+  return editorLoaded ??= loadScript('vendor/editor.js').then(() => loadScript('format.js'));
+}
+
+const EDITOR_MODES = {
+  json: { name: 'javascript', json: true }, yaml: 'yaml', powershell: 'powershell', csharp: 'text/x-csharp',
+  plaintext: 'text/plain',
+};
+const editorMode = doc => doc.language ? EDITOR_MODES[doc.language] : { name: 'gfm', highlightFormatting: true };
+
+// Markdown keys; in code files the key keeps its default (Ctrl+B then toggles the sidebar).
+const markdownOnly = run => editor =>
+  panes.find(p => p.cm === editor)?.active?.doc.language ? CodeMirror.Pass : run(editor);
+
+// The document's own CodeMirror Doc, created when the editor is first needed.
+function materialize(doc) {
+  if (doc.cmDoc) return doc.cmDoc;
+  doc.cmDoc = CodeMirror.Doc(doc.text, editorMode(doc));
+  if (doc.history) doc.cmDoc.setHistory(doc.history);   // moved here from another window
+  doc.history = null;
+  // A file moved here with unsaved edits stays unsaved, even when undone (-1 never matches).
+  doc.savedGeneration = doc.dirty ? -1 : doc.cmDoc.changeGeneration(true);
+  doc.cmDoc.on('change', () => onDocChange(doc));
+  return doc.cmDoc;
+}
+
+// Each tab edits a linked Doc with shared history, so both panes show the same text live.
+const tabDoc = tab => tab.cmDoc ??= materialize(tab.doc).linkedDoc({ sharedHist: true });
+
+function releaseTabDoc(tab) {
+  if (!tab.cmDoc) return;
+  for (const pane of panes) if (pane.cm?.getDoc() === tab.cmDoc) pane.cm.swapDoc(CodeMirror.Doc(''));
+  tab.doc.cmDoc.unlinkDoc(tab.cmDoc);
+  tab.cmDoc = null;
+}
+
+async function ensureEditor(pane) {
+  if (pane.cm) return;
+  await loadEditor();
+  if (pane.cm) return;
+  pane.editorEl.append(makeFormatBar(pane));   // see format.js
+  pane.cm = CodeMirror(pane.editorEl, {
+    value: '',
+    lineNumbers: true,
+    lineWrapping: true,
+    indentUnit: 2,
+    tabSize: 4,
+    extraKeys: { ...formatKeys(), ...findKeys(pane) },
+  });
+  pane.cm.on('cursorActivity', () => refreshFormatBar(pane));
+  pane.cm.on('scroll', () => onEditorScroll(pane));
+  pane.cm.on('paste', (cm, e) => onEditorPaste(pane, e));
+  pane.cm.on('drop', (cm, e) => onEditorDrop(pane, e));
+}
+
+function onDocChange(doc) {
+  const clean = doc.cmDoc.isClean(doc.savedGeneration);
+  const before = changed(doc);
+  if (doc.draft) {
+    doc.draftChanged = !clean;
+    clearTimeout(doc.draftTimer);
+    doc.draftTimer = setTimeout(() => writeDraft(doc), 1000);   // after a second without typing
+  } else doc.dirty = !clean;
+  for (const tab of tabsOf(doc)) {
+    tab.stale = true;
+    tab.lines = null;
+    if (paneOf(tab).active === tab && tab.mode === 'split') scheduleRender(tab);
+  }
+  doc.version++;
+  scheduleOutline();
+  if (doc.shared && doc.lock) {
+    clearTimeout(doc.pushTimer);
+    doc.pushTimer = setTimeout(() => pushText(doc), 300);
+  }
+  if (changed(doc) !== before) {
+    refreshTabs();
+    updateChrome();
+  }
+}
+
+// Replaces the text with what is on disk (or what another window sent); not an edit.
+function setDocText(doc, text) {
+  doc.version++;
+  doc.text = text;
+  doc.eol = eolOf(text);
+  if (doc.cmDoc) {
+    doc.cmDoc.setValue(text);
+    doc.cmDoc.clearHistory();
+    doc.savedGeneration = doc.cmDoc.changeGeneration(true);
+  }
+  doc.dirty = false;
+  doc.disk = 'ok';
+  for (const tab of tabsOf(doc)) {
+    tab.stale = true;
+    tab.lines = null;
+  }
+  if (doc.lock && doc.shared) pushText(doc);
+}
+
+// Same, keeping the scroll positions and the cursor of the panes that show it.
+async function reloadDoc(doc, text) {
+  const keep = panes.filter(p => p.active?.doc === doc).map(p => ({
+    p, top: p.previewEl.scrollTop,
+    editor: p.cm && p.active.cmDoc && { cursor: p.active.cmDoc.getCursor(), top: p.cm.getScrollInfo().top },
+  }));
+  setDocText(doc, text);
+  for (const { p, top, editor } of keep) {
+    p.active.previewTop = top;
+    await showActive(p);
+    p.previewEl.scrollTop = top;
+    if (editor && p.cm) {
+      p.cm.setCursor(editor.cursor);
+      p.cm.scrollTo(null, editor.top);
+    }
+  }
+  refreshTabs();
+  updateChrome();
+}
+
+// ---------- Rendering ----------
+const render = tab => track(renderNow(tab));
+async function renderNow(tab) {
+  const id = ++tab.renderId;
+  tab.stale = false;
+  tab.lines = null;
+  const doc = tab.doc, text = docText(doc), article = tab.article;
+
+  // Built in a <template> so images are not requested before their paths are fixed.
+  const tpl = document.createElement('template');
+  tpl.innerHTML = doc.language
+    ? `<pre><code class="language-${doc.language}">${hljs.highlight(text, { language: doc.language, ignoreIllegals: true }).value}</code></pre>`
+    : md.render(withFrontMatter(text));
+  const content = tpl.content;
+
+  const dir = doc.path ? dirOf(doc.path) : state.root;
+  if (dir) {
+    for (const img of content.querySelectorAll('img[src]')) {
+      const src = img.getAttribute('src');
+      if (!isUrl(src)) img.src = FILE_URL + encodeURIComponent(resolvePath(dir, safeDecode(src.split(/[?#]/)[0])));
+    }
+  }
+
+  // GitHub alerts: > [!NOTE]
+  for (const p of content.querySelectorAll('blockquote > p:first-child')) {
+    const m = p.innerHTML.match(/^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*/);
+    if (!m) continue;
+    const kind = m[1].toLowerCase();
+    p.innerHTML = p.innerHTML.slice(m[0].length);
+    p.parentElement.classList.add('mm-alert', 'mm-alert-' + kind);
+    p.insertAdjacentHTML('beforebegin', `<p class="mm-alert-title">${m[1][0]}${kind.slice(1)}</p>`);
+  }
+
+  article.replaceChildren(content);
+
+  const formulas = article.querySelectorAll('.tex');
+  if (formulas.length) {
+    loadCss('vendor/katex/katex.min.css');
+    await loadScript('vendor/katex/katex.min.js');
+    if (id !== tab.renderId) return;
+    for (const el of formulas)
+      katex.render(el.textContent, el, { displayMode: el.hasAttribute('data-display'), throwOnError: false });
+  }
+
+  const diagrams = article.querySelectorAll('pre.mermaid');
+  if (diagrams.length) {
+    await loadScript('vendor/mermaid.min.js');
+    if (id !== tab.renderId) return;
+    mermaid.initialize({ startOnLoad: false, theme: state.theme === 'dark' ? 'dark' : 'default' });
+    await mermaid.run({ nodes: diagrams, suppressErrors: true });
+  }
+  tab.lines = null;
+}
+
+function scheduleRender(tab) {
+  clearTimeout(tab.renderTimer);
+  tab.renderTimer = setTimeout(() => paneOf(tab)?.active === tab && render(tab), 150);
+}
+
+let welcome;
+function welcomeArticle() {
+  if (!welcome) {
+    welcome = document.createElement('article');
+    welcome.className = 'mm-preview';
+    welcome.innerHTML = WELCOME + `<table class="mm-keys">${shortcutTable()}</table>`;
+  }
+  return welcome;
+}
+
+function scrollToAnchor(pane, id) {
+  pane.previewEl.querySelector('#' + CSS.escape(safeDecode(id)))?.scrollIntoView();
+}
+
+function onPreviewClick(pane, e) {
+  const href = e.target.closest('a')?.getAttribute('href');
+  if (!href) return;
+  const tab = pane.active;
+  if (href.startsWith('#')) {
+    e.preventDefault();
+    scrollToAnchor(pane, href.slice(1));
+  } else if (!isUrl(href)) {
+    // Relative link: open other documents in place (Ctrl+click: in a new tab). Web links fall
+    // through to the host, which opens them in the default browser.
+    e.preventDefault();
+    const [path, anchor] = href.split('#');
+    const target = resolvePath(tab?.doc.path ? dirOf(tab.doc.path) : state.root || '', safeDecode(path));
+    if (codeLang(target) === 'plaintext') return;
+    if (!tab || e.ctrlKey || tab.doc.draft) openFile(target, { pane, anchor });
+    else navigate(tab, target, anchor);
+  }
+}
+
+// ---------- Panes ----------
+function layout() {
+  if (state.hidden !== null && (!twoPanes() || !panes[state.hidden].tabs.length)) state.hidden = null;
+  const two = bothShown();
+  if (!two) state.activePane = state.hidden === 0 ? 1 : 0;   // the one pane that is shown
+  document.body.toggleAttribute('data-two', two);
+  document.body.toggleAttribute('data-pane-hidden', state.hidden !== null);
+  document.body.dataset.orient = state.orient;
+  panes[0].el.hidden = state.hidden === 0;
+  panes[1].el.hidden = !twoPanes() || state.hidden === 1;
+  ui.divider.hidden = !two;
+  ui.panes.style.setProperty('--ratio', `calc(${state.ratio}% - 3px)`);
+  for (const pane of panes) pane.el.classList.toggle('mm-active', pane.index === state.activePane);
+  ui.sync.classList.toggle('mm-on', state.sync);
+}
+
+function setActivePane(index) {
+  if (state.activePane === index || panes[index].el.hidden) return;
+  state.activePane = index;
+  layout();
+  updateChrome();
+  saveSession();
+}
+
+// Hide a pane with its tabs, or show it again. A hidden element loses its scroll position, so the
+// preview goes back to where its tab was.
+function hidePane(index) {
+  if (!bothShown()) return;
+  const pane = panes[index];
+  if (pane.active) pane.active.previewTop = pane.previewEl.scrollTop;
+  state.hidden = index;
+  afterPaneChange();
+}
+
+function showHiddenPane() {
+  const pane = panes[state.hidden];
+  if (!pane) return;
+  state.hidden = null;
+  layout();
+  if (pane.active && pane.active.mode !== 'edit') pane.previewEl.scrollTop = pane.active.previewTop;
+  afterPaneChange();
+}
+
+// Closes the pane's tabs (each asks about unsaved changes, as Ctrl+W). The first pane is the one that
+// always stays, so closing it moves the second pane's tabs into it.
+async function closePane(index) {
+  if (!bothShown()) return;
+  await closeTabs([...panes[index].tabs]);
+  if (panes[index].tabs.length) return;   // a tab was kept
+  if (index === 0) {
+    const active = panes[1].active;
+    for (const tab of [...panes[1].tabs]) await moveToPane(tab, panes[0], panes[0].tabs.length);
+    if (active) await activate(panes[0], active);
+  }
+  afterPaneChange();
+}
+
+function afterPaneChange() {
+  layout();
+  relayout();
+  refreshTabs();
+  updateChrome();
+  saveSession();
+}
+
+// The pane items of a menu, each only where it applies.
+let menuPaneIndex = 0;
+function paneItems(menu) {
+  const two = bothShown();
+  for (const b of menu.querySelectorAll('.mm-pane-item'))
+    b.hidden = b.dataset.cmd === 'paneShow' ? state.hidden === null : !two;
+  const sep = menu.querySelector('.mm-pane-sep');
+  if (sep) sep.hidden = !two && state.hidden === null;
+}
+
+// After a resize: editors measure again, line maps are rebuilt.
+function relayout() {
+  for (const pane of panes) pane.cm?.refresh();
+  for (const tab of allTabs()) tab.lines = null;
+}
+addEventListener('resize', () => { for (const tab of allTabs()) tab.lines = null; });
+
+// Shows the pane's active tab (or the welcome page when it has none).
+async function showActive(pane) {
+  layout();
+  const tab = pane.active;
+  if (!tab) {
+    pane.el.dataset.mode = 'preview';
+    if (pane.index === 0) pane.previewEl.replaceChildren(welcomeArticle());
+    pane.barEl.hidden = true;
+  } else {
+    pane.el.dataset.mode = tab.mode;
+    const swapped = pane.previewEl.firstChild !== tab.article;
+    if (swapped) pane.previewEl.replaceChildren(tab.article);
+    if (tab.mode !== 'edit' && tab.stale) render(tab);   // builds the content before the first await
+    if (swapped) pane.previewEl.scrollTop = tab.previewTop;
+    if (tab.mode !== 'preview') {
+      await track(ensureEditor(pane));
+      if (pane.active !== tab) return;
+      const doc = tabDoc(tab);
+      if (pane.cm.getDoc() !== doc) pane.cm.swapDoc(doc);
+      pane.cm.setOption('mode', editorMode(tab.doc));
+      pane.cm.setOption('readOnly', !editable(tab));
+      if (tab.doc.language) pane.editorEl.dataset.lang = tab.doc.language; else delete pane.editorEl.dataset.lang;
+      pane.cm.refresh();
+      refreshFormatBar(pane);
+    }
+    updateBar(pane);
+  }
+  showOutline(pane);
+  refreshTabs(pane);
+  updateChrome();
+}
+
+const showAll = () => Promise.all(panes.map(showActive));
+
+// Back / forward, like a browser, for the whole window: every switch to another tab and every link
+// followed inside a tab is a step. Entries: { tab: id, path, top }.
+const navHistory = { back: [], forward: [] };
+let goingBack = false;   // a back/forward step itself is not recorded
+
+function remember(tab, path) {
+  if (!started || goingBack || !tab) return;
+  const pane = paneOf(tab);
+  const top = pane?.active === tab ? pane.previewEl.scrollTop : tab.previewTop;
+  const last = navHistory.back.at(-1);
+  if (last?.tab === tab.id && samePath(last.path, path)) last.top = top;
+  else navHistory.back.push({ tab: tab.id, path, top });
+  if (navHistory.back.length > 100) navHistory.back.shift();
+  navHistory.forward.length = 0;
+}
+
+// One step: to the tab of the entry (skipping tabs closed since), showing the entry's file again.
+async function go(from, to) {
+  const here = activeTab();
+  while (from.length) {
+    const entry = from.pop();
+    const tab = allTabs().find(t => t.id === entry.tab);
+    if (!tab || (tab === here && samePath(tab.doc.path, entry.path))) continue;
+    goingBack = true;
+    try {
+      if (here) {
+        const herePane = paneOf(here);
+        to.push({ tab: here.id, path: here.doc.path, top: herePane.active === here ? herePane.previewEl.scrollTop : here.previewTop });
+      }
+      const pane = paneOf(tab);
+      if (!samePath(tab.doc.path, entry.path) && entry.path) {
+        if (!await navigate(tab, entry.path, null, true).catch(() => false)) {
+          to.pop();
+          continue;   // the file is gone (or unsaved changes were kept): the step before that
+        }
+      } else await activate(pane, tab);
+      if (tab.mode !== 'edit') pane.previewEl.scrollTop = tab.previewTop = entry.top;
+    } finally {
+      goingBack = false;
+    }
+    return;
+  }
+}
+
+async function activate(pane, tab) {
+  const before = activeTab();
+  if (before && before !== tab) remember(before, before.doc.path);
+  if (state.hidden === pane.index) showHiddenPane();   // something sent to the hidden pane brings it back
+  if (pane.active && pane.active !== tab) pane.active.previewTop = pane.previewEl.scrollTop;
+  pane.active = tab;
+  if (tab.dot === 'changed') tab.notice = true;   // reloaded while in the background: say so now
+  tab.dot = null;
+  if (tab.doc.path) unfresh(tab.doc.path);
+  state.activePane = pane.index;
+  await showActive(pane);
+  saveSession();
+}
+
+function insertTab(pane, tab) {
+  const at = pane.tabs.indexOf(pane.active);
+  pane.tabs.splice(at < 0 ? pane.tabs.length : at + 1, 0, tab);
+}
+
+// Takes the tab out of its pane; the neighbor becomes active.
+function detachTab(tab) {
+  const pane = paneOf(tab);
+  const at = pane.tabs.indexOf(tab);
+  pane.tabs.splice(at, 1);
+  if (pane.cm?.getDoc() === tab.cmDoc) pane.cm.swapDoc(CodeMirror.Doc(''));
+  if (pane.active === tab) {
+    pane.active = pane.tabs[Math.min(at, pane.tabs.length - 1)] ?? null;
+    if (pane.active) pane.active.dot = null;
+  }
+  // The other tab of the document may edit it now.
+  if (tab.doc.editTab === tab) tab.doc.editTab = tabsOf(tab.doc)[0] ?? null;
+  return pane;
+}
+
+// `index`: the position in the target's tab bar (dropped between tabs); otherwise after the active tab.
+async function moveToPane(tab, target, index) {
+  const from = paneOf(tab);
+  if (from === target) {
+    if (index !== undefined) {
+      const at = from.tabs.indexOf(tab);
+      from.tabs.splice(at, 1);
+      from.tabs.splice(index > at ? index - 1 : index, 0, tab);
+    }
+    return activate(target, tab);
+  }
+  const existing = target.tabs.find(t => t.doc === tab.doc);   // a document is in a pane only once
+  if (existing) return activate(target, existing);
+  tab.previewTop = from.active === tab ? from.previewEl.scrollTop : tab.previewTop;
+  detachTab(tab);
+  tab.doc.editTab ??= tab;   // detachTab found no other tab to hand the editing to: it stays with this one
+  if (index === undefined) insertTab(target, tab); else target.tabs.splice(index, 0, tab);
+  await activate(target, tab);
+  await showAll();
+}
+
+const otherPane = () => panes[1 - state.activePane];   // with one pane: the second, which then appears
+
+// ---------- Tab strips ----------
+function refreshTabs(only) {
+  for (const pane of only ? [only] : panes)
+    pane.tabsEl.replaceChildren(...pane.tabs.map(tab => tabElement(pane, tab)));
+  markTreeActive();
+}
+
+function tabElement(pane, tab) {
+  const doc = tab.doc, el = document.createElement('div');
+  el.className = 'mm-tab' + (tab === pane.active ? ' mm-on' : '') + (changed(doc) ? ' mm-dirty' : '') +
+    (editable(tab) ? '' : ' mm-ro') + (doc.draft ? ' mm-draft' : '');
+  const dot = doc.lock && doc.disk !== 'ok' ? doc.disk : tab.dot;
+  if (dot) el.dataset.dot = dot;
+  el.dataset.tab = tab.id;
+  el.draggable = true;
+  el.title = (doc.path || `Draft ${doc.draft}, not saved as a file yet`) +
+    (editable(tab) ? '' : doc.lock ? '\nRead-only: edited in the other pane' : '\nRead-only: edited in another window');
+  const rule = applyTabStyle(el, doc, tab === pane.active);
+  if (rule) el.title += '\nTab colour: ' + rule;
+  const name = document.createElement('span');
+  name.className = 'mm-tab-name';
+  name.textContent = docName(doc);
+  const close = document.createElement('button');
+  close.className = 'mm-tab-close';
+  close.title = 'Close (Ctrl+W)';
+  el.append(name, close);
+  return el;
+}
+
+// ---------- Tab colours ----------
+// Rules from tab-colours.json in the data folder (the host reads it and sends changes; the format is
+// described at the top of the file, see TabColourFile.cs). The first rule that fits a tab styles it.
+let tabRules = [];
+
+// A file that cannot be read (saved half-way through an edit) keeps the rules that were there.
+function setTabColours(text) {
+  if (text == null) return;
+  let list;
+  try { list = parseJsonc(text); } catch (e) { return toast('tab-colours.json: ' + e.message); }
+  if (!Array.isArray(list)) return toast('tab-colours.json: the file must hold a list [ ... ] of rules.');
+  tabRules = [];
+  const problems = [];
+  list.forEach((rule, n) => {
+    const tests = String(rule?.match ?? '').split(';').map(p => p.trim()).filter(Boolean).map(wildcardTest);
+    if (rule?.regex) {
+      try {
+        const re = new RegExp(rule.regex, 'i');
+        tests.push(path => re.test(path));
+      } catch (e) { return problems.push(`rule ${n + 1}: ${e.message}`); }
+    }
+    if (!tests.length) return problems.push(`rule ${n + 1}: no match or regex`);
+    tabRules.push({ tests, rule, label: [rule.match, rule.regex].filter(Boolean).join(' / ') });
+  });
+  if (problems.length) toast('tab-colours.json: ' + problems.join('; '));
+}
+
+// A wildcard pattern as a test on (path, name): the whole name, or the whole path when the pattern
+// holds a "\". * and ? stay within one folder; ** crosses folders. Not case sensitive.
+function wildcardTest(pattern) {
+  let source = '';
+  for (let i = 0; i < pattern.length; i++) {
+    const c = pattern[i];
+    if (c === '*' && pattern[i + 1] === '*') { source += '.*'; i++; }
+    else if (c === '*') source += '[^\\\\]*';
+    else if (c === '?') source += '[^\\\\]';
+    else source += c.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+  }
+  const re = new RegExp('^' + source + '$', 'i'), onPath = pattern.includes('\\');
+  return (path, name) => re.test(onPath ? path : name);
+}
+
+// JSON with // and /* */ comments and trailing commas (as the pack and settings files allow).
+function parseJsonc(text) {
+  const stringEnd = (t, i) => { for (i++; i < t.length && t[i] !== '"'; i += t[i] === '\\' ? 2 : 1); return i + 1; };
+  let plain = '';
+  for (let i = 0; i < text.length;) {
+    if (text[i] === '"') { const end = stringEnd(text, i); plain += text.slice(i, end); i = end; }
+    else if (text.startsWith('//', i)) { const nl = text.indexOf('\n', i); i = nl < 0 ? text.length : nl; }
+    else if (text.startsWith('/*', i)) { const end = text.indexOf('*/', i + 2); i = end < 0 ? text.length : end + 2; }
+    else plain += text[i++];
+  }
+  let json = '';
+  for (let i = 0; i < plain.length;) {
+    if (plain[i] === '"') { const end = stringEnd(plain, i); json += plain.slice(i, end); i = end; }
+    else if (plain[i] === ',' && /^\s*[\]}]/.test(plain.slice(i + 1))) i++;
+    else json += plain[i++];
+  }
+  return JSON.parse(json);
+}
+
+// Styles a tab element by the first rule that fits; returns that rule's label, or null.
+function applyTabStyle(el, doc, active) {
+  const name = doc.path ? nameOf(doc.path) : String(docName(doc)), path = doc.path || name;
+  const hit = tabRules.find(r => r.tests.some(test => test(path, name)));
+  const base = hit?.rule[state.theme];
+  if (!base) return null;
+  const s = active ? { ...base, ...base.active } : base;
+  const set = (key, value) => { if (value !== undefined && value !== null) el.style.setProperty(key, value); };
+  set('--tab-bg', s.background);
+  set('--tab-fg', s.color);
+  if (s.bold !== undefined) set('--tab-weight', s.bold ? '700' : 'normal');
+  if (s.italic) set('--tab-style', 'italic');
+  if (s.underline) set('--tab-deco', 'underline');
+  if (s.size) set('--tab-size', Math.max(-3, Math.min(3, parseFloat(s.size) || 0)) + 'px');
+  if (active) set('--tab-line', s.line);
+  return hit.label;
+}
+
+function cycleTab(step) {
+  const pane = panes[state.activePane];
+  if (pane.tabs.length < 2) return;
+  const at = pane.tabs.indexOf(pane.active);
+  activate(pane, pane.tabs[(at + step + pane.tabs.length) % pane.tabs.length]);
+}
+
+// ---------- Window chrome ----------
+function updateChrome() {
+  const tab = activeTab(), doc = tab?.doc;
+  document.title = (doc && changed(doc) ? '\u25CF ' : '') + (doc ? docName(doc) + ' - ' : '') + 'LexPen';
+  ui.docName.textContent = ui.docName.title = doc ? doc.path || `${doc.draft} (draft, not saved as a file yet)` : '';
+  // A draft can always be saved as a file.
+  document.body.toggleAttribute('data-dirty', !!doc && (doc.dirty || !!doc.draft));
+  for (const button of document.querySelectorAll('.mm-modes button'))
+    button.classList.toggle('mm-on', !!tab && button.dataset.mode === tab.mode);
+  markTreeActive();
+}
+
+async function setMode(mode) {
+  const pane = panes[state.activePane], tab = pane.active;
+  if (!tab) return;
+  if (tab.mode === 'preview') tab.previewTop = pane.previewEl.scrollTop;
+  tab.mode = mode;
+  await showActive(pane);
+  if (mode !== 'preview') pane.cm.focus();
+  saveSession();
+}
+
+// ---------- Opening and closing ----------
+// Opens a file in a tab of the pane, or activates the tab that already shows it there.
+async function openFile(path, { pane = panes[state.activePane], anchor, mode } = {}) {
+  let tab = pane.tabs.find(t => samePath(t.doc.path, path));
+  if (!tab) {
+    const doc = findDoc(path) ?? await loadDoc(path);
+    tab = pane.tabs.find(t => t.doc === doc) ?? makeTab(doc, mode);
+    if (!pane.tabs.includes(tab)) insertTab(pane, tab);
+  }
+  noteOpened('files', tab.doc.path);
+  await activate(pane, tab);
+  if (pane.index === 1) await showActive(panes[0]);   // the first pane gets its share of the width
+  if (anchor) scrollToAnchor(pane, anchor);
+  return tab;
+}
+
+// A link followed inside a tab: the tab shows the other file, with back / forward.
+// Returns false when the user kept unsaved changes instead. `restoring`: a back/forward step.
+async function navigate(tab, path, anchor, restoring) {
+  const pane = paneOf(tab);
+  if (samePath(tab.doc.path, path)) {
+    if (anchor) scrollToAnchor(pane, anchor);
+    return true;
+  }
+  const already = pane.tabs.find(t => samePath(t.doc.path, path));
+  if (already) {
+    await activate(pane, already);
+    if (anchor) scrollToAnchor(pane, anchor);
+    return true;
+  }
+  const old = tab.doc, last = tabsOf(old).length === 1;
+  if (last && old.dirty && old.lock && !await host('confirm', { text: 'Discard unsaved changes?' })) return false;
+  const doc = findDoc(path) ?? await loadDoc(path);
+
+  if (!restoring && old.path) remember(tab, old.path);
+  releaseTabDoc(tab);
+  if (old.editTab === tab) old.editTab = tabsOf(old).find(t => t !== tab) ?? null;
+  tab.doc = doc;
+  doc.editTab ??= tab;
+  tab.stale = true;
+  tab.previewTop = 0;
+  tab.mode = doc.language ? 'edit' : 'preview';
+  if (last) dropDoc(old);
+  syncWatchFiles();
+  noteOpened('files', path);
+  await activate(pane, tab);
+  pane.previewEl.scrollTop = 0;   // same article element, new content
+  await showAll();   // the other pane may have become editable
+  if (anchor) scrollToAnchor(pane, anchor);
+  return true;
+}
+
+// Returns false when the user kept it. `force`: no questions, the draft stays (moves, "Close" on a removed file).
+async function closeTab(tab, force) {
+  const doc = tab.doc, last = tabsOf(doc).length === 1;
+  if (last && !force) {
+    if (doc.draft) {
+      if (docText(doc).trim() && !await host('confirm', { text: `Discard draft ${doc.draft}?` })) return false;
+    } else if (doc.dirty && doc.lock && !await host('confirm', { text: `Discard unsaved changes to ${nameOf(doc.path)}?` })) return false;
+  }
+  const pane = paneOf(tab);
+  if (!pane) return false;   // closed meanwhile
+  if (doc.path && !force) {
+    noteOpened('closed', doc.path);
+    closedTabs.push({ path: doc.path, pane: pane.index, mode: tab.mode,
+      top: pane.active === tab ? pane.previewEl.scrollTop : tab.previewTop });
+    if (closedTabs.length > 20) closedTabs.shift();
+  }
+  detachTab(tab);
+  releaseTabDoc(tab);
+  if (last) {
+    dropDoc(doc);
+    if (doc.draft && !force) {
+      clearTimeout(doc.draftTimer);
+      host('draftDelete', { draft: doc.draft });
+    }
+  }
+  await showAll();
+  saveSession();
+  return true;
+}
+
+// Files closed in this window, most recent last (drafts are deleted when closed, so not here).
+const closedTabs = [];
+
+// Into `pane` (the tab bar that was right-clicked), or where it was.
+async function reopenTab(pane) {
+  const entry = closedTabs.pop();
+  if (!entry) return toast('No closed tab to reopen.', true);
+  const tab = await openFile(entry.path, { pane: pane ?? panes[entry.pane], mode: entry.mode });
+  const shown = paneOf(tab);
+  if (tab.mode !== 'edit' && shown.active === tab) shown.previewEl.scrollTop = tab.previewTop = entry.top;
+}
+
+async function newFile() {
+  const id = await host('newDraft');
+  const doc = makeDoc({ draft: id });
+  const pane = panes[state.activePane];
+  const tab = makeTab(doc, 'split');
+  insertTab(pane, tab);
+  await activate(pane, tab);
+  pane.cm?.focus();
+}
+
+function writeDraft(doc) {
+  clearTimeout(doc.draftTimer);
+  doc.draftTimer = 0;
+  if (doc.draft) return host('draftWrite', { draft: doc.draft, text: docText(doc) });
+}
+const flushDrafts = () => Promise.all([...docs].filter(d => d.draftTimer).map(writeDraft));
+
+// Returns false when nothing was saved (dialog cancelled, or the file is edited elsewhere).
+async function saveDoc(doc, saveAs) {
+  let path = doc.path;
+  if (!path || saveAs) {
+    path = await host('pickSave', {
+      name: path ? nameOf(path) : doc.draft + '.md',
+      dir: path ? dirOf(path) : state.root || '',
+    });
+    if (!path) return false;
+  }
+  if (!doc.lock && samePath(path, doc.path)) {
+    toast('This file is being edited in another window; save it there.');
+    return false;
+  }
+  await host('write', { path, text: diskText(doc) });
+  if (doc.cmDoc) doc.savedGeneration = doc.cmDoc.changeGeneration(true);
+  if (doc.draft) {
+    clearTimeout(doc.draftTimer);
+    host('draftDelete', { draft: doc.draft });
+    doc.draft = null;
+    doc.draftChanged = false;
+  }
+  if (!samePath(path, doc.path)) {
+    if (doc.path) host('unlock', { path: doc.path });
+    doc.path = path;
+    doc.lock = await host('lock', { path });
+    doc.language = codeLang(path);   // saved as another file type
+    unfresh(path);
+  }
+  doc.dirty = false;
+  doc.disk = 'ok';
+  syncWatchFiles();
+  for (const tab of tabsOf(doc)) tab.stale = true;
+  await showAll();
+  saveSession();
+  return true;
+}
+
+// ---------- Changes on disk ----------
+// The host watches the open folder and files (see MainForm) and reports changes here.
+let watchedRoot = null, watchedFiles = '';
+function syncWatch() {
+  if (state.root === watchedRoot) return;
+  watchedRoot = state.root;
+  host('watch', { root: state.root || '' });
+}
+function syncWatchFiles() {
+  const paths = [...docs].filter(d => d.path).map(d => d.path);
+  const key = paths.join('|');
+  if (key === watchedFiles) return;
+  watchedFiles = key;
+  host('watchFiles', { paths });
+}
+
+events.changed = async ({ tree, git, files, fresh }) => {
+  for (const path of fresh) if (!findDoc(path)) freshPaths.add(path.toLowerCase());
+  if (tree || git) await refreshTree();
+  else if (fresh.length) markFresh();
+  for (const { path, kind } of files) {
+    const doc = findDoc(path);
+    if (doc?.lock) await diskChange(doc, kind);   // read-only copies follow the editing window
+  }
+};
+
+async function diskChange(doc, kind, retry = true) {
+  const path = doc.path;
+  let text = null;
+  if (kind === 'changed') {
+    try {
+      text = await host('read', { path });
+    } catch {
+      // Still being written: try once more.
+      if (retry) setTimeout(() => findDoc(path) === doc && diskChange(doc, kind, false), 500);
+      return;
+    }
+  }
+  if (doc.path !== path) return;
+  const unseen = tab => !document.hasFocus() || paneOf(tab)?.active !== tab;
+  if (kind === 'removed') {
+    doc.disk = 'removed';
+  } else if (text === diskText(doc)) {
+    doc.disk = 'ok';   // our own save, or back as it was
+  } else if (!doc.dirty) {
+    // Nothing to lose: just show it. Unseen, it is announced: a dot, and a banner once the tab is in view.
+    for (const tab of tabsOf(doc)) if (unseen(tab)) {
+      tab.dot = 'changed';
+      if (paneOf(tab).active === tab) tab.notice = true;
+    }
+    await reloadDoc(doc, text);
+  } else {
+    doc.disk = 'changed';
+  }
+  for (const pane of panes) updateBar(pane);
+  refreshTabs();
+}
+
+function updateBar(pane) {
+  const doc = pane.active?.doc;
+  let kind = doc?.lock ? doc.disk : 'ok';
+  if (kind === 'ok' && pane.active?.notice) kind = 'reloaded';
+  pane.barEl.hidden = kind === 'ok';
+  if (kind === 'ok') return;
+  pane.barEl.dataset.kind = kind;
+  const text = document.createElement('span');
+  text.className = 'mm-bar-text';
+  text.textContent = {
+    changed: `${docName(doc)} changed on disk. Reload it, or keep your unsaved changes?`,
+    removed: `${docName(doc)} was removed or renamed on disk.`,
+    reloaded: `${docName(doc)} changed on disk and has been reloaded. (Click anywhere or press Esc to hide this.)`,
+  }[kind];
+  const buttons = {
+    changed: [['reload', 'Reload'], ['keep', 'Keep mine']],
+    removed: [['close', 'Close'], ['save', 'Save it again'], ['draft', 'Keep as draft']],
+    reloaded: [],
+  }[kind];
+  pane.barEl.replaceChildren(text, ...buttons.map(([action, label]) => {
+    const button = document.createElement('button');
+    button.dataset.bar = action;
+    button.textContent = label;
+    return button;
+  }));
+}
+
+async function onBarClick(pane, e) {
+  const action = e.target.closest('[data-bar]')?.dataset.bar, doc = pane.active?.doc;
+  if (!action || !doc) return;
+  if (action === 'reload') await reloadDoc(doc, await host('read', { path: doc.path }));
+  else if (action === 'keep') doc.disk = 'ok';
+  else if (action === 'close') { for (const tab of tabsOf(doc)) await closeTab(tab, true); }
+  else if (action === 'save') await saveDoc(doc);
+  else if (action === 'draft') {
+    host('unlock', { path: doc.path });
+    doc.draft = await host('newDraft');
+    doc.path = null;
+    doc.lock = true;
+    doc.disk = 'ok';
+    doc.dirty = false;
+    doc.draftChanged = true;
+    writeDraft(doc);
+    syncWatchFiles();
+    saveSession();
+  }
+  await showAll();
+}
+
+// Other windows that show this file read-only get its text as it is typed.
+function pushText(doc) {
+  clearTimeout(doc.pushTimer);
+  if (doc.path && doc.lock && doc.shared) host('docText', { path: doc.path, text: docText(doc) });
+}
+events.shared = ({ path, shared }) => {
+  const doc = findDoc(path);
+  if (!doc) return;
+  doc.shared = shared;
+  pushText(doc);
+};
+events.pushText = ({ path }) => { const doc = findDoc(path); if (doc) pushText(doc); };
+events.docText = ({ path, text }) => {
+  const doc = findDoc(path);
+  if (doc && !doc.lock && text !== docText(doc)) reloadDoc(doc, text);
+};
+// The window that edited the file let go of it: this one may edit now, starting from disk.
+events.lock = async ({ path }) => {
+  const doc = findDoc(path);
+  if (!doc) return;
+  doc.lock = true;
+  try { await reloadDoc(doc, await host('read', { path })); }
+  catch { doc.disk = 'removed'; }
+  await showAll();
+};
+
+// ---------- Git status ----------
+// Changed files in the repository around the open folder, keyed by lower-case path.
+// Status is M (modified), A (added), U (untracked), D (deleted), R (renamed) or ! (conflict).
+let git = new Map();
+const GIT_PRIORITY = '!MDRAU';   // a folder shows the most important status inside it
+
+async function loadGit(root) {
+  const entries = await host('gitStatus', { path: root }).catch(() => null) || [];
+  if (state.root === root || !state.root) git = new Map(entries.map(e => [e.path.toLowerCase(), e]));
+}
+
+// Git can take a moment on a large repository, so a folder is shown first and gets its git colours
+// when the status is in. At startup the status is asked for once the documents are shown.
+let gitWaiting = null;
+function loadGitLater(root) {
+  if (!started) return gitWaiting = root;
+  gitWaiting = null;
+  setTimeout(async () => {
+    if (state.root !== root) return;
+    await loadGit(root);
+    if (state.root === root && git.size) await refreshTree(false);
+  }, 100);
+}
+
+function gitStatusOf(item) {
+  const key = item.path.toLowerCase();
+  if (!item.dir) return git.get(key)?.status;
+  let best;
+  for (const [path, { status }] of git)
+    if (path.startsWith(key + '\\') && (!best || GIT_PRIORITY.indexOf(status) < GIT_PRIORITY.indexOf(best))) best = status;
+  return best;
+}
+
+// Deleted files (and folders that held them) are gone from disk, so add them to the listing.
+function deletedIn(dir, items) {
+  const prefix = dir.toLowerCase() + '\\';
+  const names = new Set(items.map(i => i.name.toLowerCase()));
+  const gone = [];
+  for (const [path, entry] of git) {
+    if (entry.status !== 'D' || !path.startsWith(prefix)) continue;
+    const rest = entry.path.slice(prefix.length), cut = rest.indexOf('\\');
+    const name = cut < 0 ? rest : rest.slice(0, cut);
+    if (names.has(name.toLowerCase())) continue;
+    names.add(name.toLowerCase());
+    gone.push({ name, path: entry.path.slice(0, prefix.length) + name, dir: cut >= 0, gone: true });
+  }
+  return gone;
+}
+
+// ---------- Folder tree ----------
+const expanded = new Set();
+// Files that changed while the window was not active (lower case), highlighted until opened.
+const freshPaths = new Set();
+
+// Folders first, then files; each by name or by modified time.
+function sortItems(items) {
+  const desc = localStorage.sortDesc === 'on' ? -1 : 1;
+  const byName = (a, b) => { const x = a.name.toLowerCase(), y = b.name.toLowerCase(); return x < y ? -1 : x > y ? 1 : 0; };
+  const key = localStorage.sort === 'modified' ? (a, b) => a.modified - b.modified || byName(a, b) : byName;
+  return items.sort((a, b) => b.dir - a.dir || desc * key(a, b));
+}
+
+async function fillDir(container, path, depth) {
+  const items = await host('list', { path });
+  container.replaceChildren();
+  for (const item of [...sortItems(items), ...deletedIn(path, items)]) {
+    const row = document.createElement('div');
+    row.className = 'mm-row' + (item.dir ? ' mm-dir' : MARKDOWN_FILE.test(item.name) ? '' : ' mm-other') +
+      (item.gone ? ' mm-gone' : '');
+    row.dataset.path = item.path;
+    row.dataset.depth = depth;
+    row.draggable = !item.dir && !item.gone;
+    row.style.paddingLeft = 8 + depth * 14 + 'px';
+    row.title = item.name;
+    const name = document.createElement('span');
+    name.className = 'mm-name';
+    name.textContent = item.name;
+    row.append(name);
+    const status = gitStatusOf(item);
+    if (status) row.dataset.git = status;
+    container.append(row);
+    if (item.dir && !item.gone) {
+      const children = document.createElement('div');
+      children.hidden = true;
+      container.append(children);
+      if (expanded.has(item.path)) await toggleDir(row);
+    }
+  }
+}
+
+// Rebuilds the tree off screen and swaps it in, so open folders and scroll position stay put.
+// `withGit`: also ask git again (false: the status was just loaded).
+async function refreshTree(withGit = true) {
+  if (!state.root) return;
+  if (withGit) await loadGit(state.root);
+  const fresh = document.createElement('div');
+  await fillDir(fresh, state.root, 0);
+  addUpRow(fresh);
+  const top = ui.tree.scrollTop, cursor = treeCursor()?.dataset.path;
+  ui.tree.replaceChildren(...fresh.childNodes);
+  ui.tree.scrollTop = top;
+  if (cursor) setTreeCursor(treeRows().find(r => r.dataset.path === cursor), false);
+  markFresh();
+  markTreeActive();
+}
+
+// The folder that holds this one; null at a drive or share root.
+function parentOf(path) {
+  const trimmed = path.replace(/\\$/, ''), cut = trimmed.lastIndexOf('\\');
+  if (cut < 0) return null;
+  const parent = trimmed.slice(0, cut);
+  if (/^\\\\[^\\]*$/.test(parent)) return null;   // \\server: no folder above a share
+  return /^[a-z]:$/i.test(parent) ? parent + '\\' : parent;
+}
+
+// ".." at the top of the tree: the folder above the open one.
+function addUpRow(container) {
+  const parent = parentOf(state.root || '');
+  if (!parent) return;
+  const row = document.createElement('div');
+  row.className = 'mm-row mm-dir mm-up';
+  row.dataset.path = parent;
+  row.dataset.depth = 0;
+  row.style.paddingLeft = '8px';
+  row.title = 'Up to ' + parent + ' (Alt+Up)';
+  row.innerHTML = '<span class="mm-name">..</span>';
+  container.prepend(row);
+}
+
+// Opens the folder above as the tree's root, with the folder we came from open and selected.
+async function goUp() {
+  const from = state.root, parent = parentOf(from || '');
+  if (!parent) return;
+  await openFolder(parent);
+  const row = treeRows().find(r => samePath(r.dataset.path, from));
+  if (row) {
+    await toggleDir(row);
+    setTreeCursor(row);
+  }
+}
+
+// ---------- Folder pane keyboard ----------
+// The tree takes the focus (click a row, or Ctrl+Shift+E); the cursor row is where the keys act.
+ui.tree.tabIndex = 0;
+const treeRows = () => [...ui.tree.querySelectorAll('.mm-row')].filter(r => r.offsetParent !== null);
+const treeCursor = () => ui.tree.querySelector('.mm-row.mm-cursor');
+
+function setTreeCursor(row, scroll = true) {
+  if (!row) return;
+  treeCursor()?.classList.remove('mm-cursor');
+  row.classList.add('mm-cursor');
+  if (scroll) row.scrollIntoView({ block: 'nearest' });
+}
+
+function focusTree() {
+  setSidebar(true);
+  setSideView('folder');
+  ui.tree.focus();
+  if (!treeCursor()) setTreeCursor(ui.tree.querySelector('.mm-row.mm-active') || treeRows()[0]);
+}
+
+ui.tree.addEventListener('keydown', async e => {
+  const rows = treeRows(), row = treeCursor() ?? rows[0];
+  if (!row) return;
+  const at = rows.indexOf(row), page = Math.max(1, Math.floor(ui.tree.clientHeight / (row.offsetHeight || 22)) - 1);
+  const move = to => setTreeCursor(rows[Math.max(0, Math.min(rows.length - 1, to))]);
+  const isDir = row.classList.contains('mm-dir') && !row.classList.contains('mm-up');
+  const open = row.classList.contains('mm-open');
+  let handled = true;
+  switch (e.key) {
+    case 'ArrowDown': move(at + 1); break;
+    case 'ArrowUp':
+      if (e.altKey) await goUp(); else move(at - 1);
+      break;
+    case 'Home': move(0); break;
+    case 'End': move(rows.length - 1); break;
+    case 'PageDown': move(at + page); break;
+    case 'PageUp': move(at - page); break;
+    case 'ArrowRight':
+      if (isDir && !open) await toggleDir(row);
+      else if (isDir) move(at + 1);
+      break;
+    case 'ArrowLeft':
+      if (isDir && open) await toggleDir(row);
+      else {
+        // To the folder this row is in.
+        const parent = rows.slice(0, at).reverse().find(r => r.classList.contains('mm-dir') && +r.dataset.depth < +row.dataset.depth);
+        if (parent) move(rows.indexOf(parent));
+      }
+      break;
+    case 'Enter':
+      if (row.classList.contains('mm-up')) await goUp();
+      else if (isDir) await toggleDir(row);
+      else if (!row.classList.contains('mm-gone')) {
+        await openFromTree(row.dataset.path, e);
+        ui.tree.focus();   // keep walking the tree
+      }
+      break;
+    case 'Backspace': await goUp(); break;
+    case 'Escape': {
+      const pane = panes[state.activePane];
+      if (pane.cm && pane.el.dataset.mode !== 'preview') pane.cm.focus(); else pane.previewEl.focus();
+      break;
+    }
+    default: handled = false;
+  }
+  if (handled) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+});
+
+function markTreeActive() {
+  const path = activeTab()?.doc.path;
+  for (const row of ui.tree.querySelectorAll('.mm-row'))
+    row.classList.toggle('mm-active', samePath(row.dataset.path, path));
+}
+
+function markFresh() {
+  for (const row of ui.tree.querySelectorAll('.mm-row:not(.mm-up)')) {
+    const key = row.dataset.path.toLowerCase();
+    row.classList.toggle('mm-fresh', freshPaths.has(key));
+    row.classList.toggle('mm-fresh-dir', row.classList.contains('mm-dir') && [...freshPaths].some(p => p.startsWith(key + '\\')));
+  }
+}
+
+function unfresh(path) {
+  if (freshPaths.delete(path.toLowerCase())) markFresh();
+}
+
+// The file's row in the folder pane: the pane is opened, the folders on the way to the file are opened,
+// the row is selected, scrolled to and lights up. A file outside the open folder: its folder is opened.
+async function showInTree(path) {
+  if (!path) return;
+  setSidebar(true);
+  setSideView('folder');
+  const inside = root => root && path.toLowerCase().startsWith(root.replace(/\\$/, '').toLowerCase() + '\\');
+  if (!inside(state.root)) await openFolder(dirOf(path));
+  if (document.body.dataset.tree === 'md' && !MARKDOWN_FILE.test(path)) {
+    setMarkdownOnly(false);   // the filter would hide it
+    toast('The folder pane shows all files again (not only markdown), so the file can be shown.', true);
+  }
+  const rowOf = p => [...ui.tree.querySelectorAll('.mm-row:not(.mm-up)')].find(r => samePath(r.dataset.path, p));
+  let dir = state.root.replace(/\\$/, '');
+  for (const part of path.slice(dir.length + 1).split('\\').slice(0, -1)) {
+    dir += '\\' + part;
+    const row = rowOf(dir);
+    if (!row) break;
+    if (!row.classList.contains('mm-open')) await toggleDir(row);
+  }
+  const row = rowOf(path);
+  if (!row) return toast(`${nameOf(path)} is not listed in the folder pane.`);
+  setTreeCursor(row, false);
+  row.scrollIntoView({ block: 'center' });
+  ui.tree.focus({ preventScroll: true });
+  row.classList.remove('mm-flash');
+  void row.offsetWidth;   // restart the animation when it is asked for again
+  row.classList.add('mm-flash');
+  row.addEventListener('animationend', () => row.classList.remove('mm-flash'), { once: true });
+}
+
+async function toggleDir(row) {
+  const children = row.nextElementSibling;
+  const open = row.classList.toggle('mm-open');
+  children.hidden = !open;
+  if (open) expanded.add(row.dataset.path); else expanded.delete(row.dataset.path);
+  if (open && !children.childElementCount) {
+    await fillDir(children, row.dataset.path, +row.dataset.depth + 1);
+    markFresh();
+    markTreeActive();
+  }
+}
+
+ui.tree.addEventListener('click', e => {
+  const row = e.target.closest('.mm-row');
+  if (!row) return;
+  setTreeCursor(row, false);
+  if (row.classList.contains('mm-gone')) return;
+  if (row.classList.contains('mm-up')) goUp();
+  else if (row.classList.contains('mm-dir')) toggleDir(row);
+  else openFromTree(row.dataset.path, e);
+});
+
+// A file from the tree: shown in the current tab of the pane (when it is already open there: that tab).
+// Ctrl: the other pane; Shift: a new tab. A draft is never replaced.
+function openFromTree(path, { ctrlKey, shiftKey }) {
+  const pane = ctrlKey ? otherPane() : panes[state.activePane], tab = pane.active;
+  if (shiftKey || !tab || tab.doc.draft || pane.tabs.some(t => samePath(t.doc.path, path))) return openFile(path, { pane });
+  return navigate(tab, path);
+}
+ui.tree.addEventListener('dragstart', e => {
+  const row = e.target.closest('.mm-row');
+  if (!row) return;
+  draggedPathIsImage = IMAGE_FILE.test(row.dataset.path);
+  e.dataTransfer.setData(PATH_TYPE, row.dataset.path);
+  e.dataTransfer.setData('text/plain', row.dataset.path);
+  e.dataTransfer.effectAllowed = 'copyMove';
+});
+
+async function openFolder(path) {
+  expanded.clear();
+  git = new Map();   // no colours of the previous folder meanwhile
+  await fillDir(ui.tree, path, 0);
+  state.root = path;
+  loadGitLater(path);
+  addUpRow(ui.tree);
+  noteOpened('folders', path);
+  ui.treeTitle.textContent = ui.treeTitle.title = nameOf(path) || path;
+  markFresh();
+  markTreeActive();
+  syncWatch();
+  saveSession();
+}
+
+ui.sort.addEventListener('change', () => {
+  localStorage.sort = ui.sort.value;
+  refreshTree();
+});
+
+function showSort() {
+  ui.sort.value = localStorage.sort === 'modified' ? 'modified' : 'name';
+  document.body.toggleAttribute('data-sort-desc', localStorage.sortDesc === 'on');
+}
+
+// ---------- Drag and drop ----------
+// Where a drag over this pane lands: with only one pane, its far half opens the second one.
+function dropTarget(pane, e) {
+  const types = e.dataTransfer.types;
+  if (!types.includes(TAB_TYPE) && !types.includes(PATH_TYPE) && !types.includes('Files')) return null;
+  if (!bothShown()) {
+    const r = pane.el.getBoundingClientRect();
+    const far = state.orient === 'v' ? e.clientX > r.left + r.width / 2 : e.clientY > r.top + r.height / 2;
+    if (far) return panes[1 - pane.index];   // the second pane, or the hidden one
+  }
+  return pane;
+}
+
+function hideDrops() {
+  for (const pane of panes) {
+    pane.dropEl.hidden = true;
+    pane.tabsEl.classList.remove('mm-insert-end');
+    for (const el of pane.tabsEl.querySelectorAll('.mm-insert')) el.classList.remove('mm-insert');
+  }
+}
+
+// The tab being dragged inside this window, for dropping it between other tabs.
+let draggedTab = null;
+
+// Where a tab dropped at x lands in the pane's tab bar: before the first tab whose middle is right of x.
+// With the tabs on several rows the row counts first: above a tab's row, or on it left of its middle.
+function stripIndex(pane, x, y) {
+  const els = [...pane.tabsEl.children];
+  const at = els.findIndex(el => {
+    const r = el.getBoundingClientRect();
+    return y < r.top || (y <= r.bottom && x < r.left + r.width / 2);
+  });
+  return at < 0 ? els.length : at;
+}
+
+async function onDrop(data, pane) {
+  const tab = data.getData(TAB_TYPE);
+  if (tab) {
+    const { win, tab: id } = JSON.parse(tab);
+    if (win !== state.win) return host('pullTab', { win, tab: id, pane: pane.index });   // from another window
+    const moving = allTabs().find(t => t.id === id);
+    if (moving) await moveToPane(moving, pane);
+    return;
+  }
+  const path = data.getData(PATH_TYPE);
+  if (path) return openFile(path, { pane });
+  if (!data.files.length) return;
+  for (const item of await hostFiles([...data.files])) {
+    if (!item.path) continue;
+    if (item.dir) {
+      await openFolder(item.path);
+      setSidebar(true);
+    } else await openFile(item.path, { pane }).catch(e => toast(e.message));
+  }
+}
+
+// ---------- Images ----------
+// Pasted or dropped into the editor, images become links. The host copies them when needed
+// (see ImageLinks): in the document's folder or below it they are linked where they are.
+const IMAGE_FILE = /\.(png|jpe?g|gif|svg|webp|bmp|ico|avif)$/i;
+
+// During a drag only the types are known: files whose type is an image, or a tree row of an image.
+function dragHasImages(data) {
+  const items = [...data.items];
+  return items.some(i => i.kind === 'file' && i.type.startsWith('image/')) ||
+    (data.types.includes(PATH_TYPE) && !items.some(i => i.kind === 'file') && draggedPathIsImage);
+}
+let draggedPathIsImage = false;
+
+// Ctrl+Shift+V: ask how to link (the browser pastes as plain text then, which fires the same event).
+let pasteAsk = false;
+document.addEventListener('keydown', e => { pasteAsk = e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'v'; }, true);
+
+function onEditorPaste(pane, e) {
+  const data = e.clipboardData;
+  // Text wins (copying from Word also puts a picture on the clipboard).
+  if (!data.files.length || data.types.includes('text/plain')) return;
+  if (![...data.files].some(f => f.type.startsWith('image/') || IMAGE_FILE.test(f.name))) return;
+  e.preventDefault();
+  insertImages(pane, [...data.files], [], pasteAsk);
+}
+
+function onEditorDrop(pane, e) {
+  const data = e.dataTransfer, path = data.getData(PATH_TYPE);
+  const files = [...data.files].filter(f => f.type.startsWith('image/') || IMAGE_FILE.test(f.name));
+  if (!data.types.includes(TAB_TYPE) && !path && !data.files.length) return;   // text dragged in the editor
+  e.preventDefault();   // CodeMirror would otherwise paste a dropped file's text into the document
+  if (!files.length && !(path && IMAGE_FILE.test(path))) return onDrop(data, pane);   // open it, as elsewhere in the pane
+  const cm = pane.cm;
+  cm.focus();
+  cm.setCursor(cm.coordsChar({ left: e.clientX, top: e.clientY }));
+  insertImages(pane, files, path ? [path] : [], e.shiftKey);
+}
+
+async function insertImages(pane, files, paths, ask) {
+  const tab = pane.active, doc = tab?.doc;
+  if (!tab || !editable(tab)) return toast('This tab is read-only.');
+  if (doc.language) return toast('Images can only be added to markdown files.');
+  if (doc.draft) {
+    if (!await host('confirm', { text: 'An image link needs the document to be saved as a file first. Save it now?' })) return;
+    if (!await saveDoc(doc, true)) return;
+  }
+  // Files with a path are linked or copied by the host; a picture from the clipboard has no path
+  // and goes over as PNG data.
+  let png = null;
+  for (const file of files) {
+    // WebView2 refuses to pass on a File that is not on disk: that is a picture.
+    const path = await hostFiles([file]).then(found => found[0]?.path, () => '');
+    if (path) paths.push(path);
+    else if (!png && file.type.startsWith('image/')) png = await pngData(file);
+  }
+  const links = await host('placeImages', { doc: doc.path, paths, data: png, ask });
+  if (!links?.length) return;
+  pane.cm.replaceSelection(links.join('\n'));
+  pane.cm.focus();
+}
+
+// Base64 PNG of a pasted picture (converted when it is not a PNG already).
+async function pngData(file) {
+  let blob = file;
+  if (file.type !== 'image/png') {
+    const bitmap = await createImageBitmap(file);
+    const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+    canvas.getContext('2d').drawImage(bitmap, 0, 0);
+    blob = await canvas.convertToBlob({ type: 'image/png' });
+  }
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  let text = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) text += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(text);
+}
+
+// ---------- Tabs between windows ----------
+// Moves the tab to another window: 'next', 'new' or a window id. Text, unsaved changes and undo
+// history go along. A file that is also in the other pane stays here; the other window then gets
+// a read-only copy. A draft always moves as a whole.
+async function moveTab(tab, target, { pane, screenX, screenY } = {}) {
+  const doc = tab.doc;
+  const whole = !!doc.draft || tabsOf(doc).length === 1;
+  if (doc.draftTimer) await writeDraft(doc);
+  const source = paneOf(tab);
+  const payload = {
+    path: doc.path, draft: doc.draft, text: docText(doc), eol: doc.eol,
+    dirty: whole && doc.dirty, draftChanged: doc.draftChanged,
+    history: whole && doc.cmDoc ? doc.cmDoc.getHistory() : null,
+    mode: tab.mode, top: source.active === tab ? source.previewEl.scrollTop : tab.previewTop,
+  };
+  await host('moveTab', {
+    target, tab: payload, pane: pane ?? null,
+    transfer: whole && doc.path && doc.lock ? doc.path : null,   // the other window takes over the edit lock
+    screenX, screenY,
+  });
+  for (const t of whole ? tabsOf(doc) : [tab]) {
+    detachTab(t);
+    releaseTabDoc(t);
+  }
+  if (whole) {
+    clearTimeout(doc.draftTimer);
+    dropDoc(doc, !doc.lock);
+  }
+  await showAll();
+  saveSession();
+  // A secondary window without tabs has done its job.
+  if (!state.primary && !allTabs().length) host('exit');
+}
+
+events.giveTab = ({ tab, to, pane }) => {
+  const moving = allTabs().find(t => t.id === tab);
+  if (moving) moveTab(moving, to, { pane });
+};
+
+events.adoptTab = async ({ tab: p, pane: index }) => {
+  const pane = panes[index ?? state.activePane] ?? panes[0];
+  if (p.history) await track(loadEditor());
+  let doc = p.path ? findDoc(p.path) : findDraft(p.draft);
+  if (!doc) doc = makeDoc({ path: p.path, draft: p.draft, text: p.text });
+  if (p.path) doc.lock = await host('lock', { path: p.path });
+  // Holding the lock now (moved as a whole): the moved text wins, unsaved edits and undo included.
+  if (doc.lock || p.draft) {
+    doc.text = p.text;
+    doc.eol = p.eol;
+    doc.dirty = !!p.dirty;
+    doc.draftChanged = !!p.draftChanged;
+    if (doc.cmDoc) {
+      doc.cmDoc.setValue(p.text);
+      if (p.history) doc.cmDoc.setHistory(p.history); else doc.cmDoc.clearHistory();
+      doc.savedGeneration = doc.dirty ? -1 : doc.cmDoc.changeGeneration(true);
+    } else doc.history = p.history;
+  }
+  let tab = pane.tabs.find(t => t.doc === doc);
+  if (!tab) {
+    tab = makeTab(doc, p.mode);
+    insertTab(pane, tab);
+  }
+  tab.previewTop = p.top;
+  for (const t of tabsOf(doc)) t.stale = true;
+  syncWatchFiles();
+  await activate(pane, tab);
+  await showAll();
+};
+
+// ---------- Search ----------
+// In the current file, the open files (their text as it is, unsaved edits included) or the files in
+// the folder (searched by the host; open ones are searched here instead). One pattern serves both:
+// the ^ codes become regular expression parts that JavaScript and .NET read the same way.
+const SEARCH_CODES = { p: '(?:\\r\\n|\\n|\\r)', t: '\\t', '?': '.', '#': '\\d', '$': '[A-Za-z]', w: '[ \\t]+', '^': '\\^' };
+const searchUi = {
+  input: $('.mm-search-input'), scope: $('.mm-search-scope'),
+  status: $('.mm-search-status'), results: $('.mm-search-results'),
+};
+const searchOptions = { case: false, word: false, regex: false };
+let searchRun = 0, searchHits = [];
+
+// `options`: case / word / regex; the file search's by default, the find bar (find.js) passes its own.
+function searchPattern(text, options = searchOptions) {
+  let source = '';
+  if (options.regex) source = text;
+  else for (let i = 0; i < text.length; i++) {
+    const code = text[i] === '^' && SEARCH_CODES[text[i + 1]?.toLowerCase()];
+    if (code) {
+      source += code;
+      i++;
+    } else source += text[i].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+  return options.word ? `\\b(?:${source})\\b` : source;
+}
+
+// Matches in a text, with lines and columns as CodeMirror counts them.
+function searchText(text, regex) {
+  const starts = [0];
+  for (let i = 0; i < text.length; i++)
+    if (text[i] === '\n' || (text[i] === '\r' && text[i + 1] !== '\n')) starts.push(i + 1);
+  const at = index => {
+    let lo = 0, hi = starts.length - 1;
+    while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (starts[mid] <= index) lo = mid; else hi = mid - 1; }
+    return { line: lo, col: index - starts[lo] };
+  };
+  const matches = [];
+  for (const m of text.matchAll(regex)) {
+    if (!m[0].length) continue;
+    const from = at(m.index), to = at(m.index + m[0].length);
+    const end = from.line + 1 < starts.length ? starts[from.line + 1] : text.length;
+    matches.push({ line: from.line, col: from.col, endLine: to.line, endCol: to.col,
+      text: text.slice(starts[from.line], end).replace(/[\r\n]+$/, '') });
+    if (matches.length >= 2000) break;
+  }
+  return matches;
+}
+
+function searchFolder() {
+  return state.root || (activeDoc()?.path ? dirOf(activeDoc().path) : null);
+}
+
+async function runSearch() {
+  const text = searchUi.input.value;
+  if (!text) return;
+  const run = ++searchRun, scope = searchUi.scope.value;
+  const source = searchPattern(text);
+  let regex;
+  try { regex = new RegExp(source, searchOptions.case ? 'g' : 'gi'); }
+  catch (e) { return searchUi.status.textContent = 'Not a valid regular expression: ' + e.message; }
+  searchUi.status.textContent = 'Searching...';
+  const markdownOnly = document.body.dataset.tree === 'md';
+  const folder = scope === 'folder' ? searchFolder() : null;
+  if (scope === 'folder' && !folder) return searchUi.status.textContent = 'No folder: open a folder or a file first.';
+
+  // Open documents are searched here, so unsaved edits count.
+  let docsHere = scope === 'file' ? [activeDoc()].filter(Boolean) : [...docs];
+  if (folder) docsHere = docsHere.filter(d => d.path && d.path.toLowerCase().startsWith(folder.toLowerCase().replace(/\\$/, '') + '\\') &&
+    (!markdownOnly || MARKDOWN_FILE.test(d.path)));
+  const groups = docsHere.map(doc => ({ path: doc.path, draft: doc.draft, matches: searchText(docText(doc), regex) }))
+    .filter(g => g.matches.length);
+  let truncated = false;
+  if (folder) {
+    try {
+      const found = await host('search', { root: folder, pattern: source, ignoreCase: !searchOptions.case, markdownOnly,
+        skip: docsHere.map(d => d.path) });
+      groups.push(...found.files);
+      truncated = found.truncated;
+    } catch (e) {
+      if (run === searchRun) searchUi.status.textContent = e.message;
+      return;
+    }
+  }
+  if (run !== searchRun) return;   // a newer search started meanwhile
+  groups.sort((a, b) => (a.path || '').toLowerCase() < (b.path || '').toLowerCase() ? -1 : 1);
+  showSearchResults(groups, truncated, folder);
+}
+
+function showSearchResults(groups, truncated, folder) {
+  searchHits = [];
+  const total = groups.reduce((n, g) => n + g.matches.length, 0);
+  searchUi.status.textContent = !total ? 'No matches.' :
+    `${total} match${total === 1 ? '' : 'es'} in ${groups.length} file${groups.length === 1 ? '' : 's'}` +
+    (truncated ? ' (stopped at 2000)' : '') + (folder ? ` - ${folder}` : '');
+  const parts = [];
+  for (const group of groups) {
+    const head = document.createElement('div');
+    head.className = 'mm-result-file';
+    head.title = group.path || `Draft ${group.draft}`;
+    head.innerHTML = `<span class="mm-result-name">${escapeHtml(group.path ? nameOf(group.path) : group.draft)}</span>` +
+      `<span class="mm-result-dir">${escapeHtml(group.path && !samePath(dirOf(group.path), state.root) ? relativePath(dirOf(group.path)) : '')}</span>` +
+      `<span class="mm-result-count">${group.matches.length}</span>`;
+    const list = document.createElement('div');
+    list.className = 'mm-result-list';
+    for (const m of group.matches) {
+      const row = document.createElement('div');
+      row.className = 'mm-result';
+      row.dataset.hit = searchHits.push({ ...m, path: group.path, draft: group.draft }) - 1;
+      const end = m.endLine === m.line ? m.endCol : m.text.length;
+      // Long lines: start a little before the match.
+      const from = Math.max(0, m.col - 30);
+      row.innerHTML = `<span class="mm-result-line">${m.line + 1}</span><span class="mm-result-text">` +
+        (from ? '...' : '') + escapeHtml(m.text.slice(from, m.col)) + `<mark>${escapeHtml(m.text.slice(m.col, end))}</mark>` +
+        escapeHtml(m.text.slice(end, end + 200)) + '</span>';
+      list.append(row);
+    }
+    parts.push(head, list);
+  }
+  searchUi.results.replaceChildren(...parts);
+}
+
+searchUi.results.addEventListener('click', async e => {
+  const head = e.target.closest('.mm-result-file');
+  if (head) return head.classList.toggle('mm-closed');
+  const row = e.target.closest('.mm-result');
+  if (!row) return;
+  for (const on of searchUi.results.querySelectorAll('.mm-result.mm-on')) on.classList.remove('mm-on');
+  row.classList.add('mm-on');
+  const hit = searchHits[+row.dataset.hit];
+  let tab;
+  if (hit.draft) {
+    const doc = findDraft(hit.draft);
+    if (!doc) return toast('That draft is closed.');
+    tab = tabsOf(doc).find(t => paneOf(t).index === state.activePane) ?? tabsOf(doc)[0];
+    await activate(paneOf(tab), tab);
+  } else tab = await openFile(hit.path);
+  const pane = paneOf(tab);
+  if (tab.mode !== 'edit') setPreviewLine(pane, Math.max(0, hit.line - 3));
+  if (tab.mode !== 'preview' && pane.cm) {
+    pane.placed = tab.mode === 'split';
+    pane.cm.setSelection({ line: hit.line, ch: hit.col }, { line: hit.endLine, ch: hit.endCol });
+    pane.cm.scrollIntoView({ from: { line: hit.line, ch: 0 }, to: { line: hit.endLine, ch: hit.endCol } }, 120);
+  }
+});
+
+searchUi.input.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    runSearch();
+  }
+});
+searchUi.scope.addEventListener('change', () => { localStorage.searchScope = searchUi.scope.value; runSearch(); });
+for (const button of document.querySelectorAll('.mm-search-bar [data-opt]')) {
+  button.addEventListener('click', () => {
+    searchOptions[button.dataset.opt] = !searchOptions[button.dataset.opt];
+    button.classList.toggle('mm-on', searchOptions[button.dataset.opt]);
+    runSearch();
+  });
+}
+
+function setSideView(view) {
+  document.body.dataset.side = localStorage.sideView = view;
+}
+
+// Ctrl+Shift+F: the search, filled with the editor's selection when that is one line.
+function startSearch() {
+  setSidebar(true);
+  setSideView('search');
+  const selected = activeTab() && paneOf(activeTab()).cm?.getSelection();
+  if (selected && !selected.includes('\n')) searchUi.input.value = selected;
+  searchUi.input.focus();
+  searchUi.input.select();
+}
+
+// ---------- Preview zoom ----------
+// One level for all previews (the editor keeps its size), in steps of 10%, kept across restarts.
+const ZOOM_MIN = 0.5, ZOOM_MAX = 3;
+
+function setZoom(zoom) {
+  zoom = Math.round(Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoom)) * 10) / 10;
+  // Keep each pane at the line it shows.
+  const at = panes.map(p => p.active && p.el.dataset.mode !== 'edit' ? previewLine(p) : null);
+  document.body.style.setProperty('--zoom', zoom);
+  document.body.toggleAttribute('data-zoomed', zoom !== 1);
+  $('.mm-zoom').textContent = Math.round(zoom * 100) + '%';
+  localStorage.zoom = zoom;
+  for (const tab of allTabs()) tab.lines = null;
+  panes.forEach((p, i) => at[i] !== null && setPreviewLine(p, at[i]));
+}
+const zoomBy = step => setZoom((+localStorage.zoom || 1) + step / 10);
+
+// ---------- Outline ----------
+// The headings of each pane's active tab, at its right. Built from the source (markdown-it's parse),
+// so it also works in the editor; each heading knows its source line.
+function headingsOf(doc) {
+  if (doc.headingsVersion === doc.version && doc.headings) return doc.headings;
+  const tokens = md.parse(withFrontMatter(docText(doc)), {});
+  const headings = [];
+  tokens.forEach((token, i) => {
+    if (token.type !== 'heading_open' || !token.map) return;
+    const text = tokens[i + 1].children?.filter(c => c.type === 'text' || c.type === 'code_inline' || c.type === 'emoji')
+      .map(c => c.content).join('') || tokens[i + 1].content;
+    headings.push({ level: +token.tag.slice(1), text, line: token.map[0] });
+  });
+  doc.headingsVersion = doc.version;
+  return doc.headings = headings;
+}
+
+function setOutline(on) {
+  document.body.toggleAttribute('data-outline', on);
+  localStorage.outline = on ? 'on' : 'off';
+  if (localStorage.outlineWidth) document.body.style.setProperty('--outline-w', localStorage.outlineWidth);
+  for (const pane of panes) showOutline(pane);
+  relayout();
+}
+
+function showOutline(pane) {
+  const doc = pane.active?.doc;
+  const show = document.body.hasAttribute('data-outline') && !!doc && !doc.language;
+  pane.el.toggleAttribute('data-no-outline', !show);
+  if (!show) return;
+  const headings = headingsOf(doc);
+  if (pane.outlineFor === doc && pane.outlineVersion === doc.version) return markOutline(pane);
+  pane.outlineFor = doc;
+  pane.outlineVersion = doc.version;
+  pane.outlineEl.replaceChildren(...headings.map(h => {
+    const item = document.createElement('div');
+    item.className = 'mm-outline-item';
+    item.dataset.line = h.line;
+    item.dataset.level = h.level;
+    item.style.paddingLeft = 8 + (h.level - 1) * 12 + 'px';
+    item.textContent = item.title = h.text;
+    return item;
+  }));
+  if (!headings.length) pane.outlineEl.innerHTML = '<div class="mm-outline-none">No headings</div>';
+  markOutline(pane);
+}
+
+let outlineTimer = 0;
+function scheduleOutline() {
+  clearTimeout(outlineTimer);
+  outlineTimer = setTimeout(() => panes.forEach(showOutline), 300);
+}
+
+// The heading the pane is at: the last one at or above the top line.
+function markOutline(pane) {
+  if (pane.el.hasAttribute('data-no-outline') || !document.body.hasAttribute('data-outline')) return;
+  cancelAnimationFrame(pane.markFrame);
+  pane.markFrame = requestAnimationFrame(() => {
+    const tab = pane.active;
+    if (!tab) return;
+    const line = tab.mode === 'edit' ? (pane.cm ? editorLine(pane.cm) : 0) : previewLine(pane);
+    let current = null;
+    for (const item of pane.outlineEl.children) if (+item.dataset.line <= line + 0.5) current = item;
+    for (const item of pane.outlineEl.querySelectorAll('.mm-on')) if (item !== current) item.classList.remove('mm-on');
+    if (current && !current.classList.contains('mm-on')) {
+      current.classList.add('mm-on');
+      current.scrollIntoView({ block: 'nearest' });
+    }
+  });
+}
+
+// Puts the source line at the top of the pane: preview, editor or both.
+function goToLine(pane, line) {
+  const tab = pane.active;
+  if (!tab) return;
+  if (tab.mode !== 'edit') {
+    const el = tab.article.querySelector(`[data-line="${line}"]`);
+    if (el) pane.previewEl.scrollTop = el.getBoundingClientRect().top - pane.previewEl.getBoundingClientRect().top + pane.previewEl.scrollTop - 8;
+    else setPreviewLine(pane, line);
+  }
+  if (tab.mode !== 'preview' && pane.cm) {
+    pane.placed = tab.mode === 'split';
+    pane.cm.setCursor(line, 0);
+    pane.cm.scrollTo(null, pane.cm.heightAtLine(line, 'local'));
+    pane.cm.focus();
+  }
+}
+
+function resizeOutline(e) {
+  const edge = e.target;
+  edge.setPointerCapture(e.pointerId);
+  const right = edge.parentElement.getBoundingClientRect().right;
+  const move = ev => document.body.style.setProperty('--outline-w', Math.max(120, Math.min(right - ev.clientX, 600)) + 'px');
+  edge.addEventListener('pointermove', move);
+  edge.addEventListener('pointerup', () => {
+    edge.removeEventListener('pointermove', move);
+    localStorage.outlineWidth = document.body.style.getPropertyValue('--outline-w');
+    relayout();
+  }, { once: true });
+}
+
+// ---------- Scrolling both panes together ----------
+// By source line: the line at the top of one pane is brought to the top of the other.
+
+// Source line -> vertical position in the preview, for the blocks that carry data-line.
+function lineMap(pane) {
+  const tab = pane.active;
+  if (tab.lines) return tab.lines;
+  const base = pane.previewEl.getBoundingClientRect().top - pane.previewEl.scrollTop;
+  const map = [];
+  if (tab.doc.language) {
+    // A code file is one <pre>: its lines are evenly spaced.
+    const pre = tab.article.querySelector('pre');
+    if (pre) {
+      const style = getComputedStyle(pre), r = pre.getBoundingClientRect();
+      const top = r.top - base + parseFloat(style.paddingTop);
+      const lines = docText(tab.doc).split('\n').length;
+      map.push({ line: 0, y: top }, { line: lines, y: r.bottom - base - parseFloat(style.paddingBottom) });
+    }
+  } else {
+    let last = { line: -1, y: -1 };
+    for (const el of tab.article.querySelectorAll('[data-line]')) {
+      const line = +el.dataset.line, y = el.getBoundingClientRect().top - base;
+      if (line > last.line && y >= last.y) map.push(last = { line, y });
+    }
+  }
+  return tab.lines = map;
+}
+
+function previewLine(pane) {
+  const map = lineMap(pane), top = pane.previewEl.scrollTop;
+  if (!map.length) return 0;
+  let i = 0;
+  while (i + 1 < map.length && map[i + 1].y <= top) i++;
+  const a = map[i], b = map[i + 1];
+  if (top < a.y) return a.line * Math.max(0, top) / Math.max(1, a.y);
+  if (!b) return a.line;
+  return a.line + (top - a.y) / Math.max(1, b.y - a.y) * (b.line - a.line);
+}
+
+function setPreviewLine(pane, line) {
+  const map = lineMap(pane);
+  if (!map.length) return;
+  let i = 0;
+  while (i + 1 < map.length && map[i + 1].line <= line) i++;
+  const a = map[i], b = map[i + 1];
+  const y = line < a.line ? a.y * line / Math.max(1, a.line)
+    : !b ? a.y : a.y + (line - a.line) / (b.line - a.line) * (b.y - a.y);
+  const el = pane.previewEl, target = Math.max(0, Math.min(Math.round(y), el.scrollHeight - el.clientHeight));
+  if (Math.abs(el.scrollTop - target) < 1) return;
+  pane.ignoreScroll = true;   // not an echo back to the pane that started it
+  el.scrollTop = target;
+}
+
+function editorLine(cm) {
+  const top = cm.getScrollInfo().top, line = cm.lineAtHeight(top, 'local');
+  const a = cm.heightAtLine(line, 'local'), b = cm.heightAtLine(line + 1, 'local');
+  return line + Math.max(0, Math.min(1, (top - a) / Math.max(1, b - a)));
+}
+
+// Lines far away have estimated heights until drawn, so check once more after the scroll.
+function setEditorLine(pane, line, again = true) {
+  const cm = pane.cm, i = Math.floor(line);
+  const a = cm.heightAtLine(i, 'local'), b = cm.heightAtLine(i + 1, 'local');
+  const y = a + (line - i) * (b - a);
+  if (Math.abs(cm.getScrollInfo().top - y) < 1) return;
+  pane.ignoreEditorScroll = true;
+  cm.scrollTo(null, y);
+  if (again) requestAnimationFrame(() => setEditorLine(pane, line, false));
+}
+
+// The other pane, when both are visible and scrolling together.
+function syncPartner(pane) {
+  const other = panes[1 - pane.index];
+  return state.sync && bothShown() && pane.active && other.active ? other : null;
+}
+
+function onPreviewScroll(pane) {
+  markOutline(pane);
+  if (pane.ignoreScroll) return pane.ignoreScroll = false;
+  const other = syncPartner(pane);
+  if (other && other.el.dataset.mode !== 'edit') setPreviewLine(other, previewLine(pane));
+}
+
+function onEditorScroll(pane) {
+  const tab = pane.active;
+  if (!tab) return;
+  markOutline(pane);
+  // Split view: the preview follows the editor proportionally (not when goToLine placed both).
+  if (pane.placed) pane.placed = false;
+  else if (tab.mode === 'split') {
+    const info = pane.cm.getScrollInfo(), el = pane.previewEl;
+    el.scrollTop = info.top / Math.max(1, info.height - info.clientHeight) * (el.scrollHeight - el.clientHeight);
+  }
+  if (pane.ignoreEditorScroll) return pane.ignoreEditorScroll = false;
+  const other = syncPartner(pane);
+  if (other?.cm && other.el.dataset.mode !== 'preview') setEditorLine(other, editorLine(pane.cm));
+}
+
+function setSync(on) {
+  state.sync = on;
+  layout();
+  toast(on ? 'The two panes scroll together.' : 'The panes scroll on their own.', true);
+}
+
+// Dragging the divider resizes the panes; right-click: orientation, hide or close a pane.
+ui.divider.addEventListener('pointerdown', e => {
+  if (e.button !== 0 || e.target.closest('button')) return;
+  ui.divider.setPointerCapture(e.pointerId);
+  const move = ev => {
+    const r = ui.panes.getBoundingClientRect();
+    const at = state.orient === 'v' ? (ev.clientX - r.left) / r.width : (ev.clientY - r.top) / r.height;
+    state.ratio = Math.round(Math.max(.1, Math.min(.9, at)) * 1000) / 10;
+    layout();
+  };
+  ui.divider.addEventListener('pointermove', move);
+  ui.divider.addEventListener('pointerup', () => {
+    ui.divider.removeEventListener('pointermove', move);
+    localStorage.ratio = state.ratio;
+    relayout();
+  }, { once: true });
+});
+ui.divider.addEventListener('contextmenu', e => showMenu(ui.dividerMenu, e, () => {
+  const v = state.orient === 'v', menu = ui.dividerMenu;
+  menu.querySelector('.mm-orient-v').classList.toggle('mm-on', v);
+  menu.querySelector('.mm-orient-h').classList.toggle('mm-on', !v);
+  for (const b of menu.querySelectorAll('.mm-first, .mm-second')) {
+    const side = b.classList.contains('mm-first') ? (v ? 'left' : 'top') : (v ? 'right' : 'bottom');
+    b.textContent = b.textContent.replace(/\w+ pane$/, side + ' pane');
+  }
+}));
+
+// ---------- Session ----------
+// The primary window keeps its folder, tabs and panes in session.json; drafts live in Drafts\.
+function sessionData() {
+  return {
+    root: state.root,
+    activePane: state.activePane,
+    hidden: state.hidden,
+    panes: panes.map(pane => ({
+      active: pane.tabs.indexOf(pane.active),
+      tabs: pane.tabs.map(tab => ({
+        path: tab.doc.path, draft: tab.doc.draft, mode: tab.mode,
+        top: pane.active === tab && !pane.el.hidden ? pane.previewEl.scrollTop : tab.previewTop,
+      })),
+    })),
+  };
+}
+
+let started = false;
+function saveSession() {
+  if (!state.primary || !started) return;
+  clearTimeout(saveSession.timer);
+  saveSession.timer = setTimeout(() => host('session', { data: sessionData() }), 1000);
+}
+
+async function restore(session, drafts) {
+  const waiting = new Map(drafts.map(d => [d.id, d]));
+  const draftDoc = id => {
+    const saved = waiting.get(id);
+    waiting.delete(id);
+    return findDraft(id) ?? (saved && makeDoc({ draft: id, text: saved.text }));
+  };
+  for (const [i, saved] of (session?.panes || []).entries()) {
+    const pane = panes[i];
+    if (!pane) break;
+    for (const t of saved.tabs || []) {
+      let doc;
+      try { doc = t.draft ? draftDoc(t.draft) : findDoc(t.path) ?? await loadDoc(t.path); }
+      catch { continue; }   // gone since
+      if (!doc || pane.tabs.some(x => x.doc === doc)) continue;
+      // A draft is still new: it opens to edit.
+      const tab = makeTab(doc, doc.draft ? (t.mode === 'edit' ? 'edit' : 'split') : t.mode);
+      tab.previewTop = t.top || 0;
+      pane.tabs.push(tab);
+    }
+    pane.active = pane.tabs[saved.active] ?? pane.tabs[0] ?? null;
+  }
+  // Drafts that were not in a tab of the session (left in another window, or a crash).
+  for (const { id } of [...waiting.values()]) {
+    const tab = makeTab(draftDoc(id), 'split');
+    panes[0].tabs.push(tab);
+    panes[0].active ??= tab;
+  }
+  state.hidden = session?.hidden === 0 || session?.hidden === 1 ? session.hidden : null;
+  state.activePane = session?.activePane === 1 && twoPanes() ? 1 : 0;   // layout() moves it off a hidden pane
+}
+
+// Closing: one prompt for unsaved files and changed drafts, then the host closes the window.
+events.closeRequest = async () => {
+  try {
+    const dirty = [...docs].filter(d => d.path && d.dirty && d.lock);
+    const drafts = [...docs].filter(d => d.draft && d.draftChanged && docText(d).trim());
+    if (dirty.length || drafts.length) {
+      const answer = await host('closePrompt', { dirty: dirty.map(d => d.path), drafts: drafts.map(d => d.draft) });
+      if (answer === 'cancel') return host('closeCancel');
+      if (answer === 'save') {
+        for (const doc of dirty) if (!await saveDoc(doc)) return host('closeCancel');
+        for (const doc of drafts) await saveDoc(doc);   // cancelling "Save as" keeps it as a draft
+      }
+    }
+    await flushDrafts();
+    if (state.primary) await host('session', { data: sessionData() });
+    host('closeNow');
+  } catch (e) {
+    host('closeCancel');
+    throw e;
+  }
+};
+
+// ---------- Window role, theme ----------
+function setRole({ primary, index }) {
+  state.primary = primary;
+  document.body.toggleAttribute('data-secondary', !primary);
+  document.body.dataset.window = index;
+  saveSession();
+}
+events.role = setRole;
+
+function applyTheme(theme) {
+  state.theme = document.documentElement.dataset.theme = theme;
+  for (const tab of allTabs()) if (tab.article.querySelector('pre.mermaid, svg[id^=mermaid]')) tab.stale = true;
+  showAll();   // diagrams carry their own colors
+}
+events.theme = ({ theme }) => applyTheme(theme);
+events.tabColours = ({ text }) => {
+  setTabColours(text);
+  refreshTabs();
+};
+
+events.open = async ({ folder, files }) => {
+  if (folder) {
+    await openFolder(folder);
+    setSidebar(true);
+  }
+  for (const path of files || []) await openFile(path).catch(e => toast(e.message));
+};
+
+// The "reloaded" banner and its dot stay until a click anywhere in the window or Esc: switching to the
+// window alone (Alt+Tab, taskbar) is not enough to have seen it.
+function dismissNotices() {
+  const shown = panes.map(p => p.active).filter(t => t?.notice);
+  if (!shown.length) return;
+  for (const tab of shown) tab.notice = false, tab.dot = null;
+  for (const pane of panes) updateBar(pane);
+  refreshTabs();
+}
+document.addEventListener('pointerdown', dismissNotices, true);
+
+// ---------- Context menus ----------
+let contextPath = null, menuTab = null, menuPane = null;
+
+function showMenu(menu, e, remember) {
+  e.preventDefault();
+  hideMenus();
+  remember();
+  menu.hidden = false;
+  menu.style.left = Math.min(e.clientX, innerWidth - menu.offsetWidth - 4) + 'px';
+  menu.style.top = Math.min(e.clientY, innerHeight - menu.offsetHeight - 4) + 'px';
+}
+const hideMenus = () => ui.menu.hidden = ui.openMenu.hidden = ui.treeMenu.hidden = ui.tabMenu.hidden = ui.stripMenu.hidden =
+  ui.paneMenu.hidden = ui.dividerMenu.hidden = true;
+
+// Right-click on a tree row: copy its path, absolute or relative to the open folder.
+document.addEventListener('contextmenu', e => {
+  const row = e.target.closest('.mm-tree .mm-row');
+  if (row) showMenu(ui.treeMenu, e, () => {
+    contextPath = row.dataset.path;
+    favouriteItem(ui.treeMenu, row.classList.contains('mm-dir') ? null : contextPath);
+  });
+  else if (!e.target.closest('.mm-tabs, .mm-divider')) hideMenus();   // those open their own menu
+});
+
+function relativePath(path) {
+  if (!state.root) return path;
+  const base = state.root.replace(/\\$/, '') + '\\';   // the root may be a drive, "D:\"
+  return path.toLowerCase().startsWith(base.toLowerCase()) ? path.slice(base.length) : path;
+}
+
+async function copyText(text) {
+  await navigator.clipboard.writeText(text);
+  toast('Copied ' + text, true);
+}
+
+// Tree filter: all files, or markdown files only (folders always stay).
+function setMarkdownOnly(on) {
+  document.body.dataset.tree = localStorage.tree = on ? 'md' : 'all';
+  $('.mm-md-only').classList.toggle('mm-on', on);
+}
+
+// Off (the default) follows the spec: a single line break inside a paragraph renders as a space.
+// The formatting bar above the editor (format.js); on unless switched off.
+function setFormatBar(on) {
+  document.body.toggleAttribute('data-no-format-bar', !on);
+  localStorage.formatBar = on ? 'on' : 'off';
+  $('.mm-format-bar').classList.toggle('mm-on', on);
+  for (const pane of panes) pane.cm?.refresh();
+}
+
+function setTabRows(on) {
+  document.body.toggleAttribute('data-tab-rows', on);
+  localStorage.tabRows = on ? 'on' : 'off';
+  $('.mm-tab-rows').classList.toggle('mm-on', on);
+  relayout();
+}
+
+// Closes the tabs one by one, each asking about unsaved changes; a kept one stays open.
+async function closeTabs(tabs) {
+  for (const tab of tabs) if (paneOf(tab)) await closeTab(tab);
+}
+
+function setLineBreaks(on) {
+  localStorage.lineBreaks = on ? 'on' : 'off';
+  md.set({ breaks: on });
+  $('.mm-line-breaks').classList.toggle('mm-on', on);
+}
+
+function setSidebar(visible) {
+  document.body.dataset.sidebar = localStorage.sidebar = visible ? 'on' : 'off';
+  relayout();
+}
+
+ui.splitter.addEventListener('pointerdown', e => {
+  ui.splitter.setPointerCapture(e.pointerId);
+  const move = ev => document.body.style.setProperty('--sidebar-w', Math.max(120, Math.min(ev.clientX, innerWidth - 300)) + 'px');
+  ui.splitter.addEventListener('pointermove', move);
+  ui.splitter.addEventListener('pointerup', () => {
+    ui.splitter.removeEventListener('pointermove', move);
+    localStorage.sidebarWidth = document.body.style.getPropertyValue('--sidebar-w');
+    relayout();
+  }, { once: true });
+});
+
+// ---------- Open menu: recently used ----------
+// The host keeps the lists (settings.json), shared by all windows; an entry that is gone is dimmed.
+async function showOpenMenu() {
+  const lists = await host('recent');
+  for (const sub of ui.openMenu.querySelectorAll('.mm-submenu')) {
+    const list = sub.dataset.list, entries = lists[list];
+    sub.replaceChildren(...entries.map(({ path, exists }) => {
+      const button = document.createElement('button');
+      button.dataset.recent = path;
+      button.dataset.list = list;
+      button.title = exists ? path : path + '\nNo longer exists; click to remove it from the list';
+      if (!exists) button.classList.add('mm-missing');
+      const name = document.createElement('span'), dir = document.createElement('span');
+      name.className = 'mm-recent-name';
+      name.textContent = nameOf(path) || path;
+      dir.className = 'mm-recent-dir';
+      dir.textContent = dirOf(path);
+      button.append(name, dir);
+      return button;
+    }));
+    if (!entries.length) {
+      const none = document.createElement('button');
+      none.disabled = true;
+      none.textContent = '(none)';
+      sub.append(none);
+    }
+    if (list === 'favourites') {
+      favourites = entries.map(e => e.path);
+      for (const button of sub.querySelectorAll('[data-recent]')) {
+        const remove = document.createElement('span');
+        remove.className = 'mm-fav-remove';
+        remove.title = 'Remove from favourites';
+        button.append(remove);
+      }
+      const path = activeDoc()?.path, toggle = document.createElement('button');
+      toggle.dataset.cmd = 'favouriteToggle';
+      toggle.disabled = !path;
+      toggle.textContent = path && isFavourite(path) ? 'Remove current file from favourites' : 'Add current file to favourites';
+      sub.prepend(toggle, document.createElement('hr'));
+    }
+  }
+  ui.openMenu.hidden = false;
+}
+
+// ---------- Favourite files ----------
+// Kept by the host (settings, shared by all windows), in the order they were added.
+let favourites = [];
+const isFavourite = path => favourites.some(p => samePath(p, path));
+
+// The "Add to / Remove from favourites" item of a right-click menu; hidden without a file. The list is
+// asked for when the menu opens, so the label follows changes made in other windows.
+function favouriteItem(menu, path) {
+  const item = menu.querySelector('.mm-fav-item');
+  item.hidden = !path;
+  if (!path) return;
+  item.textContent = isFavourite(path) ? 'Remove from favourites' : 'Add to favourites';
+  host('recent').then(lists => {
+    favourites = lists.favourites.map(e => e.path);
+    item.textContent = isFavourite(path) ? 'Remove from favourites' : 'Add to favourites';
+  }, () => {});
+}
+
+async function toggleFavourite(path) {
+  if (!path) return;
+  const on = !isFavourite(path);
+  await host(on ? 'favouriteAdd' : 'favouriteRemove', { path });
+  favourites = on ? [...favourites, path] : favourites.filter(p => !samePath(p, path));
+  toast(on ? `${nameOf(path)} added to favourites.` : `${nameOf(path)} removed from favourites.`, true);
+}
+
+// A favourite that is open somewhere in the window: that tab is selected; else it opens.
+async function openFavourite(path) {
+  const tab = allTabs().find(t => samePath(t.doc.path, path));
+  if (tab) return activate(paneOf(tab), tab);
+  await openFile(path).catch(e => toast(e.message));
+}
+
+// The x of an entry: removed, the menu stays open (and is filled again).
+ui.openMenu.addEventListener('click', async e => {
+  const remove = e.target.closest('.mm-fav-remove');
+  if (!remove) return;
+  e.stopPropagation();
+  await host('favouriteRemove', { path: remove.closest('[data-recent]').dataset.recent });
+  await showOpenMenu();
+}, true);
+
+async function openRecent(list, path, missing) {
+  if (missing) {
+    host(list === 'favourites' ? 'favouriteRemove' : 'recentRemove', { path });
+    return toast(`${path} no longer exists; removed from the list.`, true);
+  }
+  if (list === 'favourites') return openFavourite(path);
+  if (list === 'folders') {
+    await openFolder(path);
+    setSidebar(true);
+  } else await openFile(path).catch(e => toast(e.message));
+}
+
+// Opened by the user (not restored): on top of the recent list.
+const noteOpened = (kind, path) => host('recentAdd', { kind, path }).catch(() => {});
+
+// ---------- About ----------
+async function showAbout() {
+  const info = await host('about');
+  const built = info.built ? new Date(info.built).toLocaleString() : 'unknown';
+  const section = (title, rows) => `<tr><th colspan="2">${title}</th></tr>` +
+    rows.map(([name, value]) => `<tr><td>${escapeHtml(name)}</td><td>${escapeHtml(value)}</td></tr>`).join('');
+  const commit = info.commit ? ` (${escapeHtml(info.commit)})` : '';
+  ui.aboutBody.innerHTML = `<p>Version ${escapeHtml(info.version)}${commit} &middot; built ${escapeHtml(built)}</p><table>` +
+    section('Needed to run (installed)', [
+      ['Windows 10 or 11, x64', info.os],
+      ['.NET 10 Desktop Runtime', info.dotnet],
+      ['Microsoft Edge WebView2 Runtime', info.webView2],
+    ]) +
+    section('Included', [
+      ['WebView2 SDK', info.webView2Sdk],
+      ...Object.entries(info.libraries).map(([name, version]) =>
+        [name === '@highlightjs/cdn-assets' ? 'highlight.js' : name, version]),
+    ]) +
+    '</table>';
+  ui.about.showModal();
+}
+
+// ---------- Commands ----------
+const activeDoc = () => activeTab()?.doc;
+
+const commands = {
+  async openFile() {
+    for (const path of await host('pickFile') || []) await openFile(path).catch(e => toast(e.message));
+  },
+  async openFolder() {
+    const path = await host('pickFolder');
+    if (!path) return;
+    await openFolder(path);
+    setSidebar(true);
+  },
+  newFile,
+  save: () => activeDoc() && saveDoc(activeDoc()),
+  saveAs: () => activeDoc() && saveDoc(activeDoc(), true),
+  toggleEdit: () => activeTab() && setMode(activeTab().mode === 'preview' ? 'split' : 'preview'),
+  sidebar: () => setSidebar(document.body.dataset.sidebar === 'off'),
+  refresh: refreshTree,
+  markdownOnly: () => setMarkdownOnly(document.body.dataset.tree !== 'md'),
+  lineBreaks() {
+    setLineBreaks(localStorage.lineBreaks !== 'on');
+    welcome = null;
+    for (const tab of allTabs()) if (!tab.doc.language) tab.stale = true;
+    showAll();
+  },
+  sortDir() {
+    localStorage.sortDesc = localStorage.sortDesc === 'on' ? 'off' : 'on';
+    showSort();
+    refreshTree();
+  },
+  back: () => go(navHistory.back, navHistory.forward),
+  forward: () => go(navHistory.forward, navHistory.back),
+  closeTab: () => activeTab() && closeTab(activeTab()),
+  nextTab: () => cycleTab(1),
+  prevTab: () => cycleTab(-1),
+  sync: () => setSync(!state.sync),
+  search: startSearch,
+  focusTree,
+  viewSearch: () => { setSideView('search'); searchUi.input.focus(); },
+  viewFolder: () => setSideView('folder'),
+  zoomIn: () => zoomBy(1),
+  zoomOut: () => zoomBy(-1),
+  zoomReset: () => setZoom(1),
+  outline: () => setOutline(!document.body.hasAttribute('data-outline')),
+  orient() {
+    state.orient = localStorage.orient = state.orient === 'v' ? 'h' : 'v';
+    layout();
+    relayout();
+  },
+  tabOtherPane: () => menuTab && moveToPane(menuTab, panes[1 - paneOf(menuTab).index]),
+  tabNextWindow: () => menuTab && moveTab(menuTab, 'next'),
+  tabNewWindow: () => menuTab && moveTab(menuTab, 'new'),
+  tabCopyPath: () => menuTab?.doc.path && copyText(menuTab.doc.path),
+  tabShowInTree: () => menuTab && showInTree(menuTab.doc.path),
+  tabClose: () => menuTab && closeTab(menuTab),
+  tabCloseOthers: () => menuTab && closeTabs(paneOf(menuTab).tabs.filter(t => t !== menuTab)),
+  tabCloseRight: () => menuTab && closeTabs(paneOf(menuTab).tabs.slice(paneOf(menuTab).tabs.indexOf(menuTab) + 1)),
+  tabRows: () => setTabRows(localStorage.tabRows !== 'on'),
+  formatBar: () => setFormatBar(localStorage.formatBar === 'off'),
+  findShared: () => setFindShared(localStorage.findShared !== 'on'),
+  reopenTab: () => reopenTab(),
+  stripReopen: () => reopenTab(menuPane),
+  paneHide: () => hidePane(menuPaneIndex),
+  paneClose: () => closePane(menuPaneIndex),
+  paneHideOther: () => hidePane(1 - menuPaneIndex),
+  paneCloseOther: () => closePane(1 - menuPaneIndex),
+  paneShow: showHiddenPane,
+  hideFirst: () => hidePane(0),
+  hideSecond: () => hidePane(1),
+  closeFirst: () => closePane(0),
+  closeSecond: () => closePane(1),
+  orientV: () => state.orient === 'v' || commands.orient(),
+  orientH: () => state.orient === 'h' || commands.orient(),
+  copyPath: () => copyText(contextPath),
+  copyRelativePath: () => copyText(relativePath(contextPath)),
+  favouriteToggle: () => toggleFavourite(activeDoc()?.path),
+  tabFavourite: () => menuTab && toggleFavourite(menuTab.doc.path),
+  treeFavourite: () => toggleFavourite(contextPath),
+  menu: () => ui.menu.hidden = !ui.menu.hidden,
+  openMenu: () => ui.openMenu.hidden ? showOpenMenu() : ui.openMenu.hidden = true,
+  about: showAbout,
+  help() {
+    ui.help.querySelector('table').innerHTML = shortcutTable();
+    ui.help.showModal();
+    ui.help.scrollTop = 0;   // the OK button takes the focus and scrolls down
+  },
+  exit: () => host('exit'),   // the window still asks about unsaved changes
+  theme() {
+    applyTheme(state.theme === 'dark' ? 'light' : 'dark');
+    host('state', { theme: state.theme });   // the host applies it to every window
+  },
+};
+
+const shortcuts = {
+  'o': 'openFile', 'shift+o': 'openFolder', 'n': 'newFile', 's': 'save', 'shift+s': 'saveAs',
+  'e': 'toggleEdit', 'b': 'sidebar', 't': 'theme', 'w': 'closeTab', 'tab': 'nextTab', 'shift+tab': 'prevTab',
+  'shift+l': 'sync', 'shift+h': 'outline', 'shift+f': 'search', 'shift+e': 'focusTree',
+  '=': 'zoomIn', '+': 'zoomIn', 'shift++': 'zoomIn', 'shift+=': 'zoomIn', '-': 'zoomOut', 'shift+_': 'zoomOut', 'shift+t': 'reopenTab',
+};
+
+document.addEventListener('click', e => {
+  const button = e.target.closest('button');
+  if (button?.classList.contains('mm-sub-title')) return;   // a flyout title: the menu stays open
+  // Any other click closes the menus (except the click that opens one).
+  if (button?.dataset.cmd !== 'menu') ui.menu.hidden = true;
+  if (button?.dataset.cmd !== 'openMenu') ui.openMenu.hidden = true;
+  ui.treeMenu.hidden = ui.tabMenu.hidden = ui.stripMenu.hidden = ui.dividerMenu.hidden = true;
+  if (!button?.classList.contains('mm-pane-button')) ui.paneMenu.hidden = true;   // that one opens it
+  if (button?.dataset.recent) openRecent(button.dataset.list, button.dataset.recent, button.classList.contains('mm-missing'));
+  else if (button?.dataset.cmd) commands[button.dataset.cmd]();
+  else if (button?.dataset.mode) setMode(button.dataset.mode);
+});
+
+// Mouse back / forward buttons.
+document.addEventListener('mouseup', e => {
+  if (e.button !== 3 && e.button !== 4) return;
+  e.preventDefault();
+  commands[e.button === 3 ? 'back' : 'forward']();
+});
+
+document.addEventListener('keydown', e => {
+  // A reload would throw away unsaved text.
+  if (e.key === 'F5' || (e.ctrlKey && e.key.toLowerCase() === 'r')) return e.preventDefault();
+  if (e.key === 'F1') {
+    e.preventDefault();
+    return commands.help();
+  }
+  if (e.key === 'Escape') {
+    hideMenus();
+    dismissNotices();
+  }
+  if (!e.defaultPrevented && !e.altKey) {
+    const key = e.key.toLowerCase();
+    const action = e.key === 'F3' ? (e.shiftKey ? 'prev' : 'next')
+      : e.ctrlKey && !e.shiftKey && key === 'f' ? 'open' : e.ctrlKey && !e.shiftKey && key === 'h' ? 'replace' : null;
+    if (action) {
+      e.preventDefault();   // also keeps WebView2's own find away
+      return findKey(action);
+    }
+  }
+  // Alt+Left / Alt+Right, unless the editor used them (it moves to the line start / end).
+  if (e.altKey && !e.ctrlKey && !e.defaultPrevented && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+    e.preventDefault();
+    return commands[e.key === 'ArrowLeft' ? 'back' : 'forward']();
+  }
+  if (!e.ctrlKey || e.altKey || e.defaultPrevented) return;   // defaultPrevented: the editor used the key
+  const command = shortcuts[(e.shiftKey ? 'shift+' : '') + e.key.toLowerCase()];
+  if (!command) return;
+  e.preventDefault();
+  commands[command]();
+});
+
+// ---------- Startup ----------
+track((async () => {
+  if (localStorage.sidebarWidth) document.body.style.setProperty('--sidebar-w', localStorage.sidebarWidth);
+  setMarkdownOnly(localStorage.tree === 'md');
+  setLineBreaks(localStorage.lineBreaks === 'on');
+  setTabRows(localStorage.tabRows === 'on');
+  setFormatBar(localStorage.formatBar !== 'off');
+  setFindShared(localStorage.findShared === 'on');
+  setOutline(localStorage.outline === 'on');
+  setZoom(+localStorage.zoom || 1);
+  setSideView(localStorage.sideView === 'search' ? 'search' : 'folder');
+  if (['file', 'open', 'folder'].includes(localStorage.searchScope)) searchUi.scope.value = localStorage.searchScope;
+  showSort();
+  layout();
+
+  // The primary window at the first start restores the session; folder and files on the command line come on top.
+  const start = await host('init');
+  state.win = start.id;
+  setRole(start);
+  setTabColours(start.tabColours);
+  if (start.theme !== state.theme) applyTheme(start.theme);
+  const session = start.restore;
+  const root = start.folder ?? session?.root ?? null;
+
+  document.body.dataset.sidebar = root && localStorage.sidebar !== 'off' ? 'on' : 'off';
+  if (root) await openFolder(root).catch(() => {});
+  if (start.restore !== undefined || start.drafts) await restore(session, start.drafts || []);
+  for (const path of start.files) await openFile(path).catch(e => toast(e.message));
+  syncWatch();
+  syncWatchFiles();
+  await showAll();
+  started = true;
+  if (gitWaiting) loadGitLater(gitWaiting);
+  saveSession();
+})());

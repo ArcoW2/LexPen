@@ -1,0 +1,62 @@
+// Tab colours: the first rule that fits a tab's file styles the tab. Saved changes apply at once,
+// in every LexPen window.
+//
+// match: wildcard patterns separated by ";", not case sensitive, each fitting the whole name or
+//   path. A pattern without "\" is matched against the file name only (*.md), one with "\"
+//   against the full path. * is any text and ? one character, neither crossing "\"; ** is any
+//   text including "\" (any depth of folders): D:\\Projects\\Bank_Connect\\**
+// regex: a regular expression on the full path (not case sensitive); [\\/] is one "\".
+//   A rule may have both match and regex: it applies when either fits.
+// light / dark: the style in the day / night theme: background, color, bold, italic, underline,
+//   size ("+2", "-1": pixels larger or smaller, -3 to +3; the tab keeps its height).
+//   "active": the style while the tab is the active one (what it leaves out comes from the
+//   normal style); "line" in it: the colour of the bar on top of the active tab.
+// A draft (not saved as a file yet) is matched by the name on its tab: edit1, edit2, ...
+[
+  // Markdown: yellow
+  { "match": "*.md;*.markdown;*.mdown;*.mkd;*.mdx",
+    "light": { "background": "#fff4c2", "color": "#5c4400",
+               "active": { "background": "#ffe58a", "color": "#3d2e00", "bold": true, "line": "#bf8700" } },
+    "dark":  { "background": "#3d3416", "color": "#f2d98a",
+               "active": { "background": "#5a4a14", "color": "#ffe9a6", "bold": true, "line": "#d29922" } } },
+
+  // Delphi: blue
+  { "match": "*.pas;*.dfm",
+    "light": { "background": "#ddeeff", "color": "#0a3069",
+               "active": { "background": "#b6d7ff", "color": "#032352", "bold": true, "line": "#0969da" } },
+    "dark":  { "background": "#1c2d45", "color": "#a5cdfa",
+               "active": { "background": "#23436b", "color": "#cfe4ff", "bold": true, "line": "#58a6ff" } } },
+
+  // C#: green
+  { "match": "*.cs;*.csx",
+    "light": { "background": "#dcf5e1", "color": "#0f4d22",
+               "active": { "background": "#b4e8c0", "color": "#08361a", "bold": true, "line": "#1a7f37" } },
+    "dark":  { "background": "#1d3524", "color": "#9fe0b0",
+               "active": { "background": "#254d31", "color": "#c7f2d2", "bold": true, "line": "#3fb950" } } },
+
+  // YAML: red
+  { "match": "*.yaml;*.yml",
+    "light": { "background": "#ffe1df", "color": "#7a1a14",
+               "active": { "background": "#ffc2bd", "color": "#5c0f0a", "bold": true, "line": "#cf222e" } },
+    "dark":  { "background": "#43201e", "color": "#f5b3ad",
+               "active": { "background": "#642a26", "color": "#ffd3cf", "bold": true, "line": "#f85149" } } },
+
+  // JSON: purple
+  { "match": "*.json;*.jsonc",
+    "light": { "background": "#efe5ff", "color": "#3f1d7a",
+               "active": { "background": "#dccbff", "color": "#2c1259", "bold": true, "line": "#8250df" } },
+    "dark":  { "background": "#2e2347", "color": "#cdb6fa",
+               "active": { "background": "#45316e", "color": "#e4d6ff", "bold": true, "line": "#a371f7" } } },
+
+  // Examples, not active until the // are removed:
+  // Every file inside a folder named *.sp, at any depth, and .sp files themselves:
+  // { "match": "*.sp;**\\*.sp\\**", "light": { "color": "#8250df" }, "dark": { "color": "#d2a8ff" } },
+  // { "regex": "[\\/]docs[\\/]plans[\\/]", "light": { "italic": true, "size": "+1" }, "dark": { "italic": true, "size": "+1" } },
+
+  // All other tabs: the colours LexPen has always used, the active tab bold. Change them here.
+  { "match": "*",
+    "light": { "background": "#f6f7f9", "color": "#656d76",
+               "active": { "background": "#ffffff", "color": "#1f2328", "bold": true, "line": "#0969da" } },
+    "dark":  { "background": "#25262a", "color": "#8b929c",
+               "active": { "background": "#1e1f22", "color": "#d7dae0", "bold": true, "line": "#58a6ff" } } }
+]

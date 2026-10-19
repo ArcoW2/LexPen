@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <clipPath id="shape"><rect width="256" height="256" rx="56"/></clipPath>
+  <g clip-path="url(#shape)">
+    <rect width="256" height="256" fill="#f3f5f8"/>
+    <polygon points="256,0 256,256 0,256" fill="#1e1f22"/>
+  </g>
+  <g fill="none" stroke="#2f81f7" stroke-width="24" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="48,178 48,80 90,130 132,80 132,178"/>
+    <line x1="190" y1="80" x2="190" y2="170"/>
+    <polyline points="160,142 190,176 220,142"/>
+  </g>
+</svg>

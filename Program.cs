@@ -1,0 +1,62 @@
+using System.IO.Pipes;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Security.Principal;
+using System.Text;
+using System.Text.Json.Nodes;
+
+namespace LexPen;
+
+static class Program
+{
+    [STAThread]
+    static void Main(string[] args)
+    {
+        ApplicationConfiguration.Initialize();
+        var shift = (Control.ModifierKeys & Keys.Shift) != 0;
+        var paths = args.Select(Path.GetFullPath).ToArray();   // against this process's current folder
+
+        // One instance per user and exe: a debug build and the published one do not meet.
+        var exe = Environment.ProcessPath ?? AppContext.BaseDirectory;
+        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(exe.ToLowerInvariant())))[..16];
+        var name = $"LexPen-{WindowsIdentity.GetCurrent().User?.Value}-{hash}";
+
+        using var mutex = new Mutex(true, @"Local\" + name, out var owner);
+        if (!owner)
+        {
+            if (Send(name, paths, shift)) return;
+            // The running instance is closing: wait for it, then take over.
+            try { owner = mutex.WaitOne(TimeSpan.FromSeconds(5)); }
+            catch (AbandonedMutexException) { owner = true; }
+        }
+
+        var app = new AppHost();
+        app.Launch(paths, shift);
+        if (owner) app.Listen(name);
+        Application.Run(app);
+        if (owner) mutex.ReleaseMutex();
+    }
+
+    // Hands the paths to the running instance; false when it does not answer.
+    static bool Send(string name, string[] paths, bool shift)
+    {
+        try
+        {
+            using var client = new NamedPipeClientStream(".", name, PipeDirection.InOut, PipeOptions.CurrentUserOnly);
+            client.Connect(3000);
+            AllowSetForegroundWindow(-1);   // ASFW_ANY: let the running instance bring its window to the front
+            var msg = new JsonObject
+            {
+                ["paths"] = new JsonArray(paths.Select(p => (JsonNode?)p).ToArray()),
+                ["shift"] = shift,
+            };
+            client.Write(Encoding.UTF8.GetBytes(msg.ToJsonString() + "\n"));
+            using var reader = new StreamReader(client);
+            return reader.ReadLine() == "ok";
+        }
+        catch (Exception ex) when (ex is TimeoutException or IOException) { return false; }
+    }
+
+    [DllImport("user32.dll")]
+    static extern bool AllowSetForegroundWindow(int processId);
+}
