@@ -26,7 +26,7 @@ for changes, git status and window/theme settings. The page and the shell talk t
 - **Compare**: the button on the divider (Ctrl+Shift+L) scrolls both panes together, by source line: preview
   with preview, editor with editor.
 - **One instance, more windows**: opening a file while LexPen runs adds it as a tab to the most recently used window.
-  Hold **Shift** while starting it to get a new window instead. Several paths at once: every folder gets a window,
+  Hold **Shift** while starting it, or pass `-n` (`--new-window`), to get a new window instead. Several paths at once: every folder gets a window,
   files go to the window of the folder they are in. A tab can move to another window (right-click a tab, or drag
   it out of the window). Windows other than the first one have a dimmed title bar and toolbar and a number in
   the title. A file open in two windows can only be edited in the first one.
@@ -106,7 +106,8 @@ dotnet run -- path\to\file.md                 # run, optionally opening a file
 dotnet publish -c Release -o publish          # release build into .\publish
 ```
 
-Arguments are files and folders to open (see **One instance, more windows** above).
+Arguments are files and folders to open, plus `-n` / `--new-window` for a new window (see **One instance, more
+windows** above).
 
 ```powershell
 dotnet test tests\LexPen.Tests                    # unit tests: argument routing, drafts

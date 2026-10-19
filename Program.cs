@@ -13,8 +13,9 @@ static class Program
     static void Main(string[] args)
     {
         ApplicationConfiguration.Initialize();
-        var shift = (Control.ModifierKeys & Keys.Shift) != 0;
-        var paths = args.Select(Path.GetFullPath).ToArray();   // against this process's current folder
+        var (newWindow, rest) = ParseArgs(args);
+        var shift = newWindow || (Control.ModifierKeys & Keys.Shift) != 0;
+        var paths = rest.Select(Path.GetFullPath).ToArray();   // against this process's current folder
 
         // One instance per user and exe: a debug build and the published one do not meet.
         var exe = Environment.ProcessPath ?? AppContext.BaseDirectory;
@@ -35,6 +36,13 @@ static class Program
         if (owner) app.Listen(name);
         Application.Run(app);
         if (owner) mutex.ReleaseMutex();
+    }
+
+    // "-n" or "--new-window": a new window, as with Shift held. Everything else is a file or folder.
+    internal static (bool NewWindow, string[] Paths) ParseArgs(string[] args)
+    {
+        static bool IsNewWindow(string a) => a is "-n" or "--new-window";
+        return (args.Any(IsNewWindow), args.Where(a => !IsNewWindow(a)).ToArray());
     }
 
     // Hands the paths to the running instance; false when it does not answer.
