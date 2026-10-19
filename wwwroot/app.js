@@ -2798,6 +2798,11 @@ track((async () => {
   syncWatch();
   syncWatchFiles();
   await showAll();
+  // The keys act on the file shown last right away: the editor, or the preview (arrows scroll it).
+  const pane = panes[state.activePane];
+  if (pane.active) {
+    if (pane.cm && pane.el.dataset.mode !== 'preview') pane.cm.focus(); else pane.previewEl.focus();
+  }
   started = true;
   if (gitWaiting) loadGitLater(gitWaiting);
   saveSession();
