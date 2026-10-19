@@ -1,0 +1,20 @@
+// Reddish: Dark, tinted red; an example to copy from.
+// A theme lists only the colours that differ from its base (light or dark); the names are in the README (Themes).
+{
+  "name": "Reddish",
+  "base": "dark",
+  "colors": {
+    "bg": "#241618",
+    "bgSide": "#2c1b1e",
+    "bgBar": "#332024",
+    "bgCode": "#2e1d20",
+    "bgBarDim": "#1e1214",
+    "fg": "#eedadb",
+    "fgDim": "#b0979a",
+    "border": "#4a2e33",
+    "accent": "#ff7b86",
+    "active": "rgba(255, 123, 134, .18)",
+    "select": "#6a2d36",
+    "paneActive": "#ff7b86"
+  }
+}

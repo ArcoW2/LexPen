@@ -56,13 +56,13 @@ sealed class SettingsForm : Form
         };
         core.NavigationStarting += (_, n) => { if (!n.Uri.StartsWith(AppUrl)) n.Cancel = true; };
         core.NewWindowRequested += (_, n) => n.Handled = true;
-        core.Navigate($"{AppUrl}settings.html?theme={app.Theme}");
+        core.Navigate($"{AppUrl}settings.html?theme={app.Base}");
     }
 
     /// <summary>The caption follows the theme, as the main windows do.</summary>
     public void ApplyTheme()
     {
-        var dark = app.Theme == "dark";
+        var dark = app.Base == "dark";
         BackColor = web.DefaultBackgroundColor = dark ? Color.FromArgb(0x1e, 0x1f, 0x22) : Color.White;
         var on = dark ? 1 : 0;
         DwmSetWindowAttribute(Handle, 20 /* DWMWA_USE_IMMERSIVE_DARK_MODE */, ref on, sizeof(int));
@@ -104,6 +104,7 @@ sealed class SettingsForm : Form
             {
                 var init = (JsonObject)app.Settings.DeepClone();
                 init["defs"] = app.SettingDefs?.DeepClone();
+                init["look"] = app.Look();
                 return init;
             }
 

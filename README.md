@@ -9,6 +9,16 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
 
 ## Features
 
+- **Themes**: Light, Dark, Black (OLED), Greenish, Bluish, Reddish and Yellowish ship in `wwwroot\themes`; your own
+  go in `%LOCALAPPDATA%\LexPen\themes\` (a file with the same name replaces a shipped one) and apply at once.
+  LexPen follows Windows' light / dark mode (a setting, on), with a theme chosen for each mode; Day / night
+  switches until Windows changes mode. The preview can have a theme of its own per mode (a light preview next to
+  a dark editor). A theme file: `{ "name": "Mine", "base": "dark", "colors": { "bg": "#102030" } }`, only what differs
+  from its base. Colour names: `bg`, `bgSide`, `bgBar`, `bgBarDim`, `bgCode`, `fg`, `fgDim`, `border`, `accent`,
+  `hover`, `active`, `select`, `paneActive`; code: `keyword`, `string`, `comment`, `number`, `title`, `attr`;
+  alerts: `note`, `tip`, `important`, `warning`, `caution`; markers: `gitModified`, `gitAdded`, `gitUntracked`,
+  `gitDeleted`, `barChanged`, `barRemoved`; find: `findHit`, `findCurrent`, `findCurrentFg`, `findBox`. Values:
+  `#rrggbb`, `#rgb` or `rgba(r, g, b, a)`. Mistakes show in the settings window.
 - **Settings window** (Options > Settings): every setting in one searchable list with a header per group; a change
   applies at once in every LexPen window, Reset goes back to the default. Your `settings.json` in
   `%LOCALAPPDATA%\LexPen` holds only what you changed (the defaults with a comment each: `wwwroot\settings.json`);
@@ -139,7 +149,7 @@ F1 lists every key and action. The main ones of the default set:
 | Alt+Left / Alt+Right, mouse back / forward | Back / forward to the tab and file shown before, like a browser |
 | Ctrl+E | Show / hide the preview |
 | Ctrl+Shift+H, Ctrl+Shift+B, Ctrl+Shift+E | Outline, sidebar, folder pane |
-| Ctrl+F, F3 / Shift+F3, Ctrl+Shift+R, Ctrl+Shift+F | Find, next / previous, replace, search in files |
+| Ctrl+F, F3 / Shift+F3, Ctrl+Shift+R, Ctrl+Shift+F | Find, next / previous (past the last match: stop, go on from the top, or go on until where the search started; a setting), replace, search in files |
 | Ctrl+PgDn / Ctrl+PgUp | Next / previous section (with Shift: select) |
 | Ctrl+Shift+1 .. 9, Ctrl+Shift+` , Ctrl+Shift+C | Select clipboard 1 to 9, the Windows clipboard, the list |
 | Ctrl+1, S / T / C, Ctrl+1, 1 | Bookmark 1: store, toggle, clear, go to (likewise 2 to 9) |
@@ -232,6 +242,7 @@ PowerShell and C# modes and the search, comment and fold add-ons; loaded when th
 | `Fonts.cs` | The installed fonts for the font settings, monospaced or not |
 | `SettingsFile.cs` | `settings.json`: the defaults merged with yours, problems, only differences written |
 | `SettingsForm.cs` | The settings window (`wwwroot/settings.html`, `settings.js`) |
+| `ThemeFile.cs` | Themes: shipped and yours, checked, colour names from app.css |
 | `DataFolder.cs` | The data folder's layout (`State\`) and the one-time move of an older layout |
 | `MainForm.cs` | One window: WebView2 host, message handling, file access, watchers, git, close prompt |
 | `tests/LexPen.Tests` | Unit tests |
@@ -250,7 +261,7 @@ PowerShell and C# modes and the search, comment and fold add-ons; loaded when th
 | `vendor.ps1` | Rebuilds `wwwroot/vendor` |
 
 `%LOCALAPPDATA%\LexPen` holds what you choose: `settings.json` (only what differs from the defaults), `keys.json`,
-`favourites.json`, `tab-colours.json`. What LexPen remembers by itself is in its `State\` subfolder: `state.json`
+`favourites.json`, `tab-colours.json`, `themes\`. What LexPen remembers by itself is in its `State\` subfolder: `state.json`
 (window position, recent lists), `session.json` (the first window's tabs and panes), `Drafts\`, `clipboards.json`,
 `bookmarks.json` and `EBWebView\` (the browser's own data). An older layout is moved over once at start
 (DataFolder.cs). Set the environment variable `LEXPEN_DATA` to use another folder (for testing).

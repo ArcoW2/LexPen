@@ -3,7 +3,10 @@
 // and copy it to another PC). A changed file applies at once in every window.
 {
   // ---------- General ----------
-  "theme": "light",               // "light" (day) or "dark" (night)
+  "followWindows": true,          // light or dark as Windows is (Settings > Personalization > Colors), at once
+  "themeLight": "light",          // the theme for light mode (a file name in themes\ without .json)
+  "themeDark": "dark",            // the theme for dark mode
+  "theme": "light",               // "light" or "dark": the mode when not following Windows (Day / night)
   "openMarkdownIn": "edit",       // how a markdown file opens: "edit", "split" (editor and preview) or "preview"
 
   // ---------- Editor ----------
@@ -23,6 +26,8 @@
   // ---------- Preview ----------
   "lineBreaks": false,            // a single line break starts a new line (off: joins the lines, as on GitHub)
   "zoom": 1,                      // preview zoom: 1 is 100%, 0.5 to 3
+  "previewThemeLight": "",        // the preview in light mode: "" is the app's theme, else a theme of its own
+  "previewThemeDark": "",         // the preview in dark mode (as "light": a light preview next to a dark editor)
 
   // ---------- Files ----------
   "backup": true,                 // saving keeps the old file as name.ext.bak
@@ -35,6 +40,8 @@
 
   // ---------- Find ----------
   "findShared": false,            // one find for both panes (off: each pane its own)
+  "findWrap": "end",              // past the last match: "end" (stop, with a message), "around" (go on from the top)
+                                  // or "origin" (go on from the top, stop where the search started)
 
   // ---------- App ----------
   "appFont": "",                  // menus, tabs, panes, bars and dialogs; "" is Segoe UI

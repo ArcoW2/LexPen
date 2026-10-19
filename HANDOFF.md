@@ -42,9 +42,9 @@
   (`docs/plans/executed/PLAN-settings-window.md`); pinned and read-only tabs, Close all tabs (`docs/plans/executed/PLAN-pinned-tabs.md`); wrapping, the editor / preview splitter and the heartbeat
   (`docs/plans/executed/PLAN-long-lines.md`); fonts and line height (`docs/plans/executed/PLAN-fonts.md`) and the fix for Ctrl+V with the Windows
   clipboard.
-- Next plan: `docs/plans/PLAN-language-packs.md`. It continues from the keys file and the markdown pack's
-  `actions` part; section 8 holds its open questions.
-- Also ready: `docs/plans/PLAN-themes.md` (fully defined; builds on the settings window).
+- Next plan: `docs/plans/PLAN-language-packs.md` (your answers to Q1-Q8 worked in; Q9, how YAML is read, is open).
+  With it, as drafts: `PLAN-fenced-code-colours.md` (Q5) and `PLAN-formatters.md` (Q7).
+- Themes: `docs/plans/executed/PLAN-themes.md`, on the local branch `themes` until you approve it.
 - Before making the repository public: a name check (GitHub, winget, trademark registers), a
   `THIRD-PARTY-NOTICES.md` for the bundled libraries (licenses verified from `node_modules`), and a
   read-through of `docs/` for internal context.

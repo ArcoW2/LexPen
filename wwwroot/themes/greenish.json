@@ -1,0 +1,21 @@
+// Greenish: Dark, tinted green; an example to copy from.
+// A theme lists only the colours that differ from its base (light or dark); the names are in the README (Themes).
+{
+  "name": "Greenish",
+  "base": "dark",
+  "colors": {
+    "bg": "#15201a",
+    "bgSide": "#1a2820",
+    "bgBar": "#1f2e25",
+    "bgCode": "#1c2a22",
+    "bgBarDim": "#121b16",
+    "fg": "#d6e8d9",
+    "fgDim": "#90a898",
+    "border": "#2f4436",
+    "accent": "#5fd38d",
+    "active": "rgba(95, 211, 141, .18)",
+    "select": "#2b5a3d",
+    "paneActive": "#5fd38d",
+    "title": "#9be7b4"
+  }
+}

@@ -1,0 +1,24 @@
+// Yellowish: Light and warm, like paper.
+// A theme lists only the colours that differ from its base (light or dark); the names are in the README (Themes).
+{
+  "name": "Yellowish",
+  "base": "light",
+  "colors": {
+    "bg": "#fbf6e6",
+    "bgSide": "#f4edd6",
+    "bgBar": "#efe6c9",
+    "bgCode": "#f2ead2",
+    "bgBarDim": "#e6dcbd",
+    "fg": "#2b2618",
+    "fgDim": "#6a614a",
+    "border": "#ddd1ad",
+    "accent": "#8a5c00",
+    "hover": "rgba(0, 0, 0, .06)",
+    "active": "rgba(138, 92, 0, .13)",
+    "select": "#f0dc9a",
+    "paneActive": "#8a5c00",
+    "keyword": "#a8151f",
+    "title": "#6a36b8",
+    "comment": "#5f6872"
+  }
+}

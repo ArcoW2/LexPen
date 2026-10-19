@@ -1,0 +1,18 @@
+// Black (OLED): Pure black backgrounds, slightly brighter text.
+// A theme lists only the colours that differ from its base (light or dark); the names are in the README (Themes).
+{
+  "name": "Black (OLED)",
+  "base": "dark",
+  "colors": {
+    "bg": "#000000",
+    "bgSide": "#0a0a0b",
+    "bgBar": "#111113",
+    "bgCode": "#141416",
+    "bgBarDim": "#070708",
+    "fg": "#e8e8ea",
+    "fgDim": "#9da1a8",
+    "border": "#26272b",
+    "hover": "rgba(255, 255, 255, .08)",
+    "select": "#24476e"
+  }
+}

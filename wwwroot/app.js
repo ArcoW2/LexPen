@@ -636,7 +636,7 @@ async function renderNow(tab) {
   if (diagrams.length) {
     await loadScript('vendor/mermaid.min.js');
     if (id !== tab.renderId) return;
-    mermaid.initialize({ startOnLoad: false, theme: state.theme === 'dark' ? 'dark' : 'default' });
+    mermaid.initialize({ startOnLoad: false, theme: (state.previewBase ?? state.theme) === 'dark' ? 'dark' : 'default' });
     await mermaid.run({ nodes: diagrams, suppressErrors: true });
   }
   tab.lines = null;
@@ -2669,6 +2669,40 @@ function applyTheme(theme) {
   for (const tab of allTabs()) if (tab.article.querySelector('pre.mermaid, svg[id^=mermaid]')) tab.stale = true;
   showAll();   // diagrams carry their own colors
 }
+
+// ---------- The look: themes (wwwroot\themes, your themes\) and light / dark mode ----------
+// The host decides (AppHost.Look): the app's theme, a theme of the preview's own or null, the mode. A theme is
+// its base (light or dark: the colour block in app.css) and its own colours as inline variables.
+let look = null;
+const themedVars = new WeakMap();   // element -> the variables set on it
+
+function setThemeVars(el, vars) {
+  for (const name of themedVars.get(el) ?? []) el.style.removeProperty(name);
+  for (const [name, value] of Object.entries(vars ?? {})) el.style.setProperty(name, value);
+  themedVars.set(el, Object.keys(vars ?? {}));
+}
+
+function applyLook(next) {
+  const before = look;
+  look = next;
+  const root = document.documentElement;
+  root.dataset.mode = look.mode;
+  setThemeVars(root, look.app.vars);
+  const previewBase = (look.preview ?? look.app).base;
+  for (const pane of panes) {
+    pane.previewEl.classList.toggle('mm-themed', !!look.preview);
+    if (look.preview) pane.previewEl.dataset.theme = look.preview.base; else delete pane.previewEl.dataset.theme;
+    setThemeVars(pane.previewEl, look.preview?.vars);
+  }
+  const changed = look.app.base !== state.theme || previewBase !== state.previewBase;
+  state.previewBase = previewBase;
+  if (!before) state.theme = root.dataset.theme = look.app.base;   // at start, before anything is shown
+  else if (changed) applyTheme(look.app.base);   // the base: tab colour rules, diagrams
+  // Another list of themes: the settings window's lists follow.
+  if (before && before.themes.map(t => t.id + t.name).join() !== look.themes.map(t => t.id + t.name).join())
+    host('settingDefs', { defs: settingDefs() });
+}
+events.look = ({ look }) => applyLook(look);
 events.runAction = ({ name }) => runAction(name, [], { from: 'menu' });   // from the settings window
 events.tabColours = ({ text }) => {
   setTabColours(text);
@@ -2796,7 +2830,6 @@ function applySettings() {
   const now = settings.values, was = appliedSettings ?? {};
   appliedSettings = { ...now };
   const changed = name => !(name in was) || was[name] !== now[name];
-  if (now.theme !== state.theme) applyTheme(now.theme);
   if (FONT_SETTINGS.some(changed)) applyFonts();
   if (changed('wrap')) applyWrap(now.wrap);
   if (changed('tabBar')) applyTabBar(now.tabBar);
@@ -2996,7 +3029,8 @@ const commands = {
   treeFavourite: () => toggleFavourite(contextPath),
   about: showAbout,
   exit: () => host('exit'),   // the window still asks about unsaved changes
-  theme: () => setSetting('theme', state.theme === 'dark' ? 'light' : 'dark'),   // the host tells every window
+  // Day / night: following Windows, the other mode until Windows changes mode; else the other mode, kept.
+  theme: () => setting('followWindows') ? host('switchMode') : setSetting('theme', look?.mode === 'dark' ? 'light' : 'dark'),
 };
 
 document.addEventListener('click', e => {
@@ -3043,6 +3077,7 @@ track((async () => {
   Object.assign(settings, await host('settings'));
   if (!settings.pageSettingsMoved) await movePageSettings();
   applySettings();
+  applyLook(await host('look'));
   if (localStorage.sidebarWidth) document.body.style.setProperty('--sidebar-w', localStorage.sidebarWidth);
   setMarkdownOnly(localStorage.tree === 'md');
   setOutline(localStorage.outline === 'on');
@@ -3063,7 +3098,6 @@ track((async () => {
   state.win = start.id;
   setRole(start);
   setTabColours(start.tabColours);
-  if (start.theme !== state.theme) applyTheme(start.theme);
   const session = start.restore;
   const root = start.folder ?? session?.root ?? null;
 

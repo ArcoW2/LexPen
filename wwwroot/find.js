@@ -35,7 +35,7 @@ function findBar(pane) {
   const bar = pane.find = {
     el, input: el.querySelector('.mm-find-input'), with: el.querySelector('.mm-find-with'),
     count: el.querySelector('.mm-find-count'), replaceRow: el.querySelector('.mm-find-replace'),
-    target: null, origin: null, at: null,
+    target: null, origin: null, at: null, lap: null, wrapped: false,
   };
   // Which part of the pane the search works on: the last one that had the focus.
   pane.el.addEventListener('focusin', e => {
@@ -119,7 +119,7 @@ function showBar(pane, focus) {
   const selected = focus && selectedText(pane);
   if (selected) f.query = selected;
   bar.el.hidden = false;
-  bar.origin = null;
+  bar.origin = bar.lap = null;
   syncBar(pane);
   pane.cm?.refresh();
   if (focus) {
@@ -208,14 +208,15 @@ function goEditor(pane, regex, dir, fromOrigin) {
   const cm = pane.cm, bar = pane.find;
   if (!cm) return;
   const matches = editorMatches(pane, regex);
-  if (!matches.length) return showCount(pane, matches, null);
+  if (!matches.length) return notFound(pane, matches, fromOrigin);
   const from = cm.indexFromPos(cm.getCursor('from')), to = cm.indexFromPos(cm.getCursor('to'));
   if (fromOrigin) bar.origin ??= from; else bar.origin = null;
   let i;
   if (fromOrigin) i = matches.findIndex(([s]) => s >= bar.origin);
   else if (dir > 0) i = matches.findIndex(([s]) => s >= to && !(s === from && to > from));
   else i = matches.findLastIndex(([, e]) => e <= from);
-  if (i < 0) i = dir > 0 ? 0 : matches.length - 1;
+  i = pickMatch(pane, matches, i, dir, fromOrigin);
+  if (i < 0) return;
   const [s, e] = matches[i];
   cm.setSelection(cm.posFromIndex(s), cm.posFromIndex(e));
   // The selection is drawn below the other matches' colour, so the current one gets its own mark.
@@ -312,7 +313,7 @@ function previewMatches(pane, regex) {
 
 function goPreview(pane, regex, dir, fromOrigin) {
   const bar = pane.find, matches = previewMatches(pane, regex);
-  if (!matches.length) return showCount(pane, matches, null);
+  if (!matches.length) return notFound(pane, matches, fromOrigin);
   // Start: the current match; else the selection in the preview; else the top of what is visible.
   let start = bar.at;
   if (start === null || fromOrigin) {
@@ -330,13 +331,48 @@ function goPreview(pane, regex, dir, fromOrigin) {
   if (fromOrigin) i = matches.findIndex(([s]) => s >= bar.origin);
   else if (bar.at === null) i = dir > 0 ? matches.findIndex(([s]) => s >= start) : matches.findLastIndex(([s]) => s < start);
   else i = dir > 0 ? matches.findIndex(([s]) => s > start) : matches.findLastIndex(([s]) => s < start);
-  if (i < 0) i = dir > 0 ? 0 : matches.length - 1;
+  i = pickMatch(pane, matches, i, dir, fromOrigin);
+  if (i < 0) return;
   bar.at = matches[i][0];
   const range = previewRange(bar.index, ...matches[i]);
   CSS.highlights.set('mm-find-cur-' + pane.index, new Highlight(range));
   const r = range.getBoundingClientRect(), box = pane.previewEl.getBoundingClientRect();
   if (r.top < box.top + 20 || r.bottom > box.bottom - 20) pane.previewEl.scrollTop += r.top - box.top - box.height / 3;
   showCount(pane, matches, i);
+}
+
+// Past the last match (or before the first, going back), Options > Settings > "At the end of the file" decides:
+// end: stop there, with a message; around: go on from the other end; origin: go on from the other end, and
+// stop when back at the first match of this search (the next F3 starts a new round). -1: stay where you are.
+function pickMatch(pane, matches, i, dir, fromOrigin) {
+  const bar = pane.find, mode = setting('findWrap');
+  if (fromOrigin) bar.lap = null;   // typing: a new search
+  if (i < 0) {
+    if (mode === 'end' && !fromOrigin) {
+      toast(dir > 0 ? 'No more matches below.' : 'No more matches above.', true);
+      return -1;
+    }
+    i = dir > 0 ? 0 : matches.length - 1;
+    if (bar.lap !== null) bar.wrapped = true;
+    if (!fromOrigin) toast(dir > 0 ? 'Went on from the top.' : 'Went on from the bottom.', true);
+  }
+  if (mode === 'origin') {
+    if (bar.lap === null || fromOrigin) {   // the first match of this search: where a round ends
+      bar.lap = matches[i][0];
+      bar.wrapped = false;
+    } else if (bar.wrapped && (dir > 0 ? matches[i][0] >= bar.lap : matches[i][0] <= bar.lap)) {
+      bar.lap = null;
+      toast('No more matches: back where the search started.', true);
+      return -1;
+    }
+  }
+  return i;
+}
+
+// No match at all: the bar says so; from F3 / Enter also a message (not while typing).
+function notFound(pane, matches, fromOrigin) {
+  showCount(pane, matches, null);
+  if (!fromOrigin) toast('Not found: ' + findOf(pane).query, true);
 }
 
 // ---------- Marks ----------

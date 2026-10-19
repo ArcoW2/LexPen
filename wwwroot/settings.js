@@ -28,10 +28,16 @@ chrome.webview.addEventListener('message', e => {
 let settings = null;   // { values, defaults, user, problems, defs }
 const rows = [];       // { def, el, control }
 
-// ---------- Look: the theme and the app font, as the main windows (applyFonts in app.js) ----------
+// ---------- Look: the app's theme (from the host) and the app font, as the main windows (applyFonts in app.js) ----------
+let themeVars = [];
 function applyLook() {
-  const v = settings.values;
-  document.documentElement.dataset.theme = v.theme === 'dark' ? 'dark' : 'light';
+  const v = settings.values, look = settings.look;
+  if (look) {
+    document.documentElement.dataset.theme = look.app.base;
+    for (const name of themeVars) document.documentElement.style.removeProperty(name);
+    for (const [name, value] of Object.entries(look.app.vars)) document.documentElement.style.setProperty(name, value);
+    themeVars = Object.keys(look.app.vars);
+  }
   const root = document.documentElement.style;
   root.setProperty('--app-font', v.appFont ? `"${v.appFont.replace(/["\\]/g, '')}", "Segoe UI", system-ui, sans-serif` : '"Segoe UI", system-ui, sans-serif');
   root.setProperty('--ui-scale', v.appSize ? v.appSize * 96 / 72 / 13 : 1);
@@ -167,8 +173,9 @@ function show() {
     c.show(settings.values[def.name]);
     el.classList.toggle('st-changed', settings.user.includes(def.name));
   }
-  ui.problems.hidden = !settings.problems?.length;
-  ui.problems.textContent = (settings.problems ?? []).join('\n');
+  const problems = [...(settings.problems ?? []), ...(settings.look?.problems ?? [])];
+  ui.problems.hidden = !problems.length;
+  ui.problems.textContent = problems.join('\n');
 }
 
 // As setSetting in app.js: a value set here and not yet confirmed wins over a set the host sent meanwhile.
@@ -188,9 +195,23 @@ function set(name, value) {
 
 events.settings = ({ settings: s }) => {
   const mine = Object.fromEntries([...unconfirmed.keys()].map(n => [n, settings.values[n]]));
-  settings = { ...s, defs: settings.defs };
+  settings = { ...s, defs: settings.defs, look: settings.look };
   Object.assign(settings.values, mine);
   show();
+};
+
+events.look = ({ look }) => {
+  settings.look = look;
+  show();
+};
+// A main window described the rows again (another list of themes).
+events.defs = ({ defs }) => {
+  settings.defs = defs;
+  const search = ui.search.value, focused = document.activeElement?.closest('.st-row')?.dataset.name;
+  build();
+  ui.search.value = search;
+  filter();
+  if (focused) rows.find(r => r.def.name === focused)?.control.focus?.focus();
 };
 
 // ---------- Search ----------

@@ -1,0 +1,20 @@
+// Bluish: Dark, tinted blue; an example to copy from.
+// A theme lists only the colours that differ from its base (light or dark); the names are in the README (Themes).
+{
+  "name": "Bluish",
+  "base": "dark",
+  "colors": {
+    "bg": "#161c27",
+    "bgSide": "#1b2230",
+    "bgBar": "#202839",
+    "bgCode": "#1d2533",
+    "bgBarDim": "#131822",
+    "fg": "#d8e0ee",
+    "fgDim": "#909cb0",
+    "border": "#2e3a50",
+    "accent": "#6aa8ff",
+    "active": "rgba(106, 168, 255, .18)",
+    "select": "#2a4a7a",
+    "paneActive": "#6aa8ff"
+  }
+}

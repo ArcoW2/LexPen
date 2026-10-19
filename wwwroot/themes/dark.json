@@ -1,0 +1,8 @@
+// Dark: Today's night colours: the base for dark themes.
+// A theme lists only the colours that differ from its base (light or dark); the names are in the README (Themes).
+{
+  "name": "Dark",
+  "base": "dark",
+  "colors": {
+  }
+}

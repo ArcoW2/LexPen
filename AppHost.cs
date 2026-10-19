@@ -46,7 +46,130 @@ sealed class AppHost : ApplicationContext
     // Your settings (SettingsFile): the defaults with your settings.json on top.
     JsonObject settings = SettingsFile.Load(DataDir);
     public JsonObject Settings => settings;
-    public string Theme => settings["values"]?["theme"]?.GetValue<string>() == "dark" ? "dark" : "light";
+    string? SettingText(string name) => settings["values"]?[name]?.GetValueKind() == JsonValueKind.String ? settings["values"]![name]!.GetValue<string>() : null;
+    bool SettingFlag(string name) => settings["values"]?[name]?.GetValueKind() == JsonValueKind.True;
+
+    // ---------- Themes (ThemeFile) and light / dark mode ----------
+    static string UserThemesDir => Path.Combine(DataDir, ThemeFile.FolderName);
+    static string ShippedThemesDir => Path.Combine(AppContext.BaseDirectory, "wwwroot", ThemeFile.FolderName);
+    List<ThemeFile.Theme> themes = [];
+    List<string> themeProblems = [];
+    string windowsMode = WindowsMode();
+    string? modeOverride;   // Day / night while following Windows: until Windows changes mode
+
+    /// <summary>light or dark: as Windows is (Follow Windows), else the setting "theme".</summary>
+    public string Mode => SettingFlag("followWindows") ? modeOverride ?? windowsMode : SettingText("theme") == "dark" ? "dark" : "light";
+
+    ThemeFile.Theme ThemeFor(string? id, string mode) =>
+        themes.FirstOrDefault(t => t.Id == id) ?? themes.FirstOrDefault(t => t.Id == mode)
+        ?? new ThemeFile.Theme(mode, mode, mode, new Dictionary<string, string>(), false);
+
+    ThemeFile.Theme AppTheme => ThemeFor(SettingText(Mode == "dark" ? "themeDark" : "themeLight"), Mode);
+
+    /// <summary>The base (light or dark) of the app's theme: the title bars and the first paint follow it.</summary>
+    public string Base => AppTheme.Base;
+
+    /// <summary>What every window shows: the app's theme, the preview's own one (or null: the app's), the mode,
+    /// the list of themes (for the settings) and problems in theme files.</summary>
+    public JsonObject Look()
+    {
+        static JsonObject Json(ThemeFile.Theme t) => new()
+        {
+            ["id"] = t.Id, ["name"] = t.Name, ["base"] = t.Base,
+            ["vars"] = new JsonObject(t.Vars.Select(v => KeyValuePair.Create(v.Key, (JsonNode?)v.Value))),
+        };
+        var app = AppTheme;
+        var previewId = SettingText(Mode == "dark" ? "previewThemeDark" : "previewThemeLight");
+        var problems = new JsonArray(themeProblems.Select(p => (JsonNode?)p).ToArray());
+        foreach (var name in new[] { "themeLight", "themeDark", "previewThemeLight", "previewThemeDark" })
+            if (SettingText(name) is { Length: > 0 } id && themes.All(t => t.Id != id))
+                problems.Add($"settings.json: \"{name}\": there is no theme \"{id}\".");
+        return new JsonObject
+        {
+            ["mode"] = Mode,
+            ["app"] = Json(app),
+            ["preview"] = string.IsNullOrEmpty(previewId) || themes.All(t => t.Id != previewId) ? null : Json(ThemeFor(previewId, app.Base)),
+            ["themes"] = new JsonArray(themes.Select(t => (JsonNode?)new JsonObject
+                { ["id"] = t.Id, ["name"] = t.Name, ["base"] = t.Base, ["mine"] = t.Mine }).ToArray()),
+            ["problems"] = problems,
+        };
+    }
+
+    void LoadThemes()
+    {
+        var problems = new List<string>();
+        var names = ThemeFile.Names(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "wwwroot", "app.css")));
+        themes = ThemeFile.Load(ShippedThemesDir, UserThemesDir, names, problems);
+        themeProblems = problems;
+    }
+
+    /// <summary>The look changed (a setting, a theme file, the Windows mode, Day / night): every window follows.</summary>
+    void SendLook()
+    {
+        var look = Look();
+        foreach (var w in windows)
+        {
+            w.ApplyTheme();
+            w.Post(new JsonObject { ["event"] = "look", ["look"] = look.DeepClone() });
+        }
+        settingsWindow?.ApplyTheme();
+        settingsWindow?.Post(new JsonObject { ["event"] = "look", ["look"] = look.DeepClone() });
+    }
+
+    /// <summary>Day / night while following Windows: the other mode, until Windows changes mode.</summary>
+    public void SwitchMode()
+    {
+        modeOverride = Mode == "dark" ? "light" : "dark";
+        SendLook();
+    }
+
+    static string WindowsMode()
+    {
+        using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
+        return key?.GetValue("AppsUseLightTheme") is int light && light == 0 ? "dark" : "light";
+    }
+
+    // Windows switched light / dark (or another colour setting changed): follow it, a Day / night switch ends.
+    void OnUserPreferenceChanged(object? sender, Microsoft.Win32.UserPreferenceChangedEventArgs e)
+    {
+        var now = WindowsMode();
+        if (now == windowsMode) return;
+        windowsMode = now;
+        modeOverride = null;
+        if (SettingFlag("followWindows")) SendLook();
+    }
+
+    // Your themes folder changed (a theme edited, added or removed): read the themes again.
+    FileSystemWatcher? themesWatcher;
+    readonly System.Windows.Forms.Timer themesTimer = new() { Interval = 200 };
+
+    public void WatchThemes()
+    {
+        LoadThemes();
+        Microsoft.Win32.SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
+        try { Directory.CreateDirectory(UserThemesDir); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return; }
+        themesWatcher = new FileSystemWatcher(UserThemesDir, "*.json")
+        {
+            NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.Size,
+        };
+        void Changed() => windows.FirstOrDefault(w => !w.IsDisposed)?.BeginInvoke(() =>
+        {
+            themesTimer.Stop();
+            themesTimer.Start();
+        });
+        themesWatcher.Changed += (_, _) => Changed();
+        themesWatcher.Created += (_, _) => Changed();
+        themesWatcher.Deleted += (_, _) => Changed();
+        themesWatcher.Renamed += (_, _) => Changed();
+        themesTimer.Tick += (_, _) =>
+        {
+            themesTimer.Stop();
+            LoadThemes();
+            SendLook();
+        };
+        themesWatcher.EnableRaisingEvents = true;
+    }
     /// <summary>The rows of the settings window, as a main window's page describes them (actions.js).</summary>
     public JsonNode? SettingDefs { get; set; }
     SettingsForm? settingsWindow;
@@ -286,16 +409,15 @@ sealed class AppHost : ApplicationContext
     // Also after a hand edit of the file (see WatchSettings).
     void ReloadSettings()
     {
-        var before = Theme;
+        var before = Look().ToJsonString();
         settings = SettingsFile.Load(DataDir);
-        foreach (var w in windows)
-        {
-            if (Theme != before) w.ApplyTheme();
-            w.Post(new JsonObject { ["event"] = "settings", ["settings"] = settings.DeepClone() });
-        }
-        if (Theme != before) settingsWindow?.ApplyTheme();
+        foreach (var w in windows) w.Post(new JsonObject { ["event"] = "settings", ["settings"] = settings.DeepClone() });
         settingsWindow?.Post(new JsonObject { ["event"] = "settings", ["settings"] = settings.DeepClone() });
+        if (Look().ToJsonString() != before) SendLook();
     }
+
+    /// <summary>A main window described the settings' rows again (another list of themes): the settings window follows.</summary>
+    public void DefsChanged() => settingsWindow?.Post(new JsonObject { ["event"] = "defs", ["defs"] = SettingDefs?.DeepClone() });
 
     /// <summary>The settings a page kept in its own storage before settings.json existed, moved over once.</summary>
     public bool PageSettingsMoved => File.Exists(PageSettingsMovedPath);

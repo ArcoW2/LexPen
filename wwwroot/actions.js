@@ -249,6 +249,10 @@ appAction('tabOrder', { title: 'Ctrl+Tab order', hint: 'Recently used, or the or
   checked: ([order]) => setting('tabOrder') === order, run: ([order]) => setSetting('tabOrder', order) });
 appAction('backup', { title: 'Keep a backup when saving', hint: 'The old file becomes name.bak (overwritten at the next save)', group: 'settings',
   checked: () => setting('backup'), run: () => setSetting('backup', !setting('backup')) });
+appAction('findWrap', { title: 'Find: at the end of the file', hint: 'Stop with a message, go on from the top, or go on and stop where the search started', group: 'settings',
+  variants: [['end'], ['around'], ['origin']],
+  variantTitles: { end: 'Find: stop at the end', around: 'Find: go on from the top', origin: 'Find: go on, stop where the search started' },
+  checked: ([mode]) => setting('findWrap') === mode, run: ([mode]) => setSetting('findWrap', mode) });
 appAction('findShared', { title: 'One search for both panes', hint: 'Off: each pane has its own find', group: 'settings',
   checked: () => setting('findShared'), run: () => commands.findShared() });
 appAction('lineBreaks', { title: 'Single line break starts a new line', hint: 'Off: a single line break joins the lines, as in GitHub files', group: 'settings',
@@ -273,10 +277,16 @@ for (const [name, title, hint] of [
 // from the action of the same name where there is one. Sent to the host at start (settingDefs).
 const SETTING_GROUPS = ['General', 'Editor', 'Preview', 'Files', 'Tabs', 'Find', 'App', 'Keys'];
 const SETTING_ROWS = [
-  { name: 'theme', group: 'General', kind: 'choice', title: 'Day / night', hint: 'Light or dark, for all windows',
-    options: () => [['light', 'Day (light)'], ['dark', 'Night (dark)']] },
   { name: 'openMarkdownIn', group: 'General', kind: 'choice',
     options: () => [['edit', 'The editor'], ['split', 'Editor and preview'], ['preview', 'The preview']] },
+  { name: 'followWindows', group: 'General', sub: 'Theme', kind: 'toggle', title: 'Follow Windows',
+    hint: 'Light or dark as Windows is (Settings > Personalization > Colors), at once; Day / night switches until Windows changes' },
+  { name: 'themeLight', group: 'General', sub: 'Theme', kind: 'choice', title: 'Theme for light mode',
+    hint: 'Your own themes: themes\\ in the data folder', options: () => themeOptions() },
+  { name: 'themeDark', group: 'General', sub: 'Theme', kind: 'choice', title: 'Theme for dark mode',
+    hint: 'A theme with a light base works too', options: () => themeOptions() },
+  { name: 'theme', group: 'General', sub: 'Theme', kind: 'choice', title: 'Day / night when not following Windows',
+    hint: 'Also the Day / night button', options: () => [['light', 'Day (light mode)'], ['dark', 'Night (dark mode)']] },
   { name: 'editorFont', group: 'Editor', kind: 'font' },
   { name: 'editorSize', group: 'Editor', kind: 'size', base: () => ptOf(EDITOR_PX) + ' pt' },
   { name: 'editorLine', group: 'Editor', kind: 'choice',
@@ -292,6 +302,11 @@ const SETTING_ROWS = [
       hint: { bookmarks: 'Bookmarks 1 to 9 and unnumbered ones', changes: 'Lines changed since the last save',
         git: 'Lines changed since the last commit (click: the old text)', folds: 'Fold headings, code blocks and braces' }[n] })),
   { name: 'lineBreaks', group: 'Preview', kind: 'toggle' },
+  { name: 'previewThemeLight', group: 'Preview', kind: 'choice', title: 'Theme for the preview in light mode',
+    hint: 'Same as the app, or a theme of its own', options: () => [['', 'Same as the app'], ...themeOptions()] },
+  { name: 'previewThemeDark', group: 'Preview', kind: 'choice', title: 'Theme for the preview in dark mode',
+    hint: 'Same as the app, or a theme of its own (as a light preview next to a dark editor)',
+    options: () => [['', 'Same as the app'], ...themeOptions()] },
   { name: 'zoom', group: 'Preview', kind: 'choice', title: 'Preview zoom', hint: 'Also Ctrl+mouse wheel over a preview',
     options: () => Array.from({ length: 26 }, (_, i) => (5 + i) / 10).map(z => [z, Math.round(z * 100) + '%']) },
   { name: 'backup', group: 'Files', kind: 'toggle' },
@@ -300,12 +315,18 @@ const SETTING_ROWS = [
     options: () => [['scroll', 'One row that scrolls'], ['menu', 'One row, a menu for the tabs out of view'], ['rows', 'Several rows']] },
   { name: 'movePinned', group: 'Tabs', kind: 'toggle' },
   { name: 'findShared', group: 'Find', kind: 'toggle' },
+  { name: 'findWrap', group: 'Find', kind: 'choice', title: 'Search: at the end of the file', hint: 'What find / search next (F3) does past the last match (Shift+F3: before the first)',
+    options: () => [['end', 'Stop, with a message'], ['around', 'Go on from the top'], ['origin', 'Go on from the top, stop where the search started']] },
   { name: 'appFont', group: 'App', kind: 'font' },
   { name: 'appSize', group: 'App', kind: 'size', base: () => ptOf(APP_PX) + ' pt' },
   { name: 'statusFont', group: 'App', kind: 'font' },
   { name: 'statusSize', group: 'App', kind: 'size', base: () => 'as the app' },
   { name: 'keys', group: 'Keys', kind: 'keys', title: 'Keys', hint: 'Every action and its keys: F1. Your own keys go in your keys.json, on top of the defaults.' },
 ];
+
+// The themes from the host (look.themes), light ones first, marked when they are yours.
+const themeOptions = () => [...(look?.themes ?? [])].sort((a, b) => (a.base === 'light' ? 0 : 1) - (b.base === 'light' ? 0 : 1))
+  .map(t => [t.id, `${t.name} (${t.base}${t.mine ? ', yours' : ''})`]);
 
 function settingDefs() {
   return SETTING_ROWS.map(r => {

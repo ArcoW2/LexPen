@@ -1,0 +1,8 @@
+// Light: Today's day colours: the base for light themes.
+// A theme lists only the colours that differ from its base (light or dark); the names are in the README (Themes).
+{
+  "name": "Light",
+  "base": "light",
+  "colors": {
+  }
+}

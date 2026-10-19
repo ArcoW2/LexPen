@@ -1,5 +1,8 @@
 /* ---------- Themes ---------- */
-:root {
+/* The base colours, light and dark: a theme (wwwroot\themes, ThemeFile.cs) sets only what differs, as inline
+   variables. The names of this first block are the colour names a theme may use. A preview with a theme of its
+   own (mm-themed) gets the block of its base and its own variables. */
+:root, .mm-themed[data-theme=light] {
   color-scheme: light;
   --bg: #ffffff; --bg-side: #f6f7f9; --bg-bar: #eef0f3; --bg-code: #f3f4f6;
   --fg: #1f2328; --fg-dim: #656d76; --border: #d8dce2;
@@ -12,7 +15,7 @@
   /* Find: every match, the current one and the box around it (bright red on light). */
   --find-hit: rgba(255, 196, 0, .4); --find-current: rgba(255, 140, 0, .85); --find-current-fg: #000; --find-box: #ff0000;
 }
-:root[data-theme=dark] {
+:root[data-theme=dark], .mm-themed[data-theme=dark] {
   color-scheme: dark;
   --bg: #1e1f22; --bg-side: #25262a; --bg-bar: #2b2d31; --bg-code: #2a2c31;
   --fg: #d7dae0; --fg-dim: #8b929c; --border: #3a3d44;
@@ -74,7 +77,7 @@ body[data-dirty] .mm-save { visibility: visible; }
 .mm-dropdown .mm-arrow::before { content: "\203A"; margin-left: 24px; color: var(--fg-dim); }
 .mm-dropdown .mm-missing { opacity: .45; text-decoration: line-through; }
 .mm-theme::before { content: "\263E  Night"; }
-:root[data-theme=dark] .mm-theme::before { content: "\2600  Day"; }
+:root[data-mode=dark] .mm-theme::before { content: "\2600  Day"; }   /* the mode, not the base of the theme */
 /* Only with two panes: side by side or above each other. */
 .mm-orient { display: none; }
 body[data-two] .mm-orient { display: inline-block; }
@@ -336,6 +339,7 @@ body[data-tab-bar=menu] .mm-tabs { overflow-x: hidden; }
 .mm-body { flex: 1; display: flex; min-height: 0; position: relative; }
 .mm-editor-pane, .mm-preview-pane { flex: 1 1 0; min-width: 0; }
 .mm-preview-pane { overflow: auto; outline: none; }
+.mm-preview-pane.mm-themed { background: var(--bg); color: var(--fg); }
 .mm-pane[data-mode=preview] .mm-editor-pane, .mm-pane[data-mode=edit] .mm-preview-pane { display: none; }
 /* Editor and preview side by side: the splitter between them sets their shares (setSplit). */
 .mm-pane[data-mode=split] .mm-editor-pane { flex-grow: var(--edit-share, .5); }

@@ -35,6 +35,7 @@ static class Program
         if (owner) DataFolder.Migrate(AppHost.DataDir);
         var app = new AppHost();
         app.WatchSettings();
+        app.WatchThemes();
         app.Launch(paths, shift);
         if (owner) app.Listen(name);
         Application.Run(app);

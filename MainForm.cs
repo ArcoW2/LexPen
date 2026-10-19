@@ -222,7 +222,7 @@ sealed class MainForm : Form
     // Secondary windows get a dimmed caption and border (Windows 11; Windows 10 ignores it).
     public void ApplyTheme()
     {
-        var dark = app.Theme == "dark";
+        var dark = app.Base == "dark";
         BackColor = web.DefaultBackgroundColor = dark ? Color.FromArgb(0x1e, 0x1f, 0x22) : Color.White;
         var on = dark ? 1 : 0;
         DwmSetWindowAttribute(Handle, 20 /* DWMWA_USE_IMMERSIVE_DARK_MODE */, ref on, sizeof(int));
@@ -290,7 +290,7 @@ sealed class MainForm : Form
             OpenExternal(n.Uri);
         };
 
-        core.Navigate($"{AppUrl}index.html?theme={app.Theme}");
+        core.Navigate($"{AppUrl}index.html?theme={app.Base}");
     }
 
     static void OpenExternal(string uri)
@@ -359,7 +359,7 @@ sealed class MainForm : Form
                     ["id"] = Id,
                     ["primary"] = Primary,
                     ["index"] = app.IndexOf(this),
-                    ["theme"] = app.Theme,
+                    ["theme"] = app.Base,
                     ["tabColours"] = app.TabColours(),
                     ["folder"] = start.Folder,
                     ["files"] = new JsonArray(start.Files.Select(f => (JsonNode?)f).ToArray()),
@@ -543,6 +543,15 @@ sealed class MainForm : Form
 
             case "settingDefs":
                 app.SettingDefs = msg["defs"]?.DeepClone();
+                app.DefsChanged();
+                return null;
+
+            // The look (themes, light / dark mode); Day / night while following Windows.
+            case "look":
+                return app.Look();
+
+            case "switchMode":
+                app.SwitchMode();
                 return null;
 
             case "openSettings":
