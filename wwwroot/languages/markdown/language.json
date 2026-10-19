@@ -1,0 +1,36 @@
+// Markdown. For now only what the editor-first plan needs: the comment markers and the actions.
+// The language packs plan adds the rest (extensions, colouring, the bar, and the action kinds linePrefix,
+// wrap and insert). Action kinds so far:
+//   command    a built-in command by name (format.js, EDIT_COMMANDS); parameters come from the key
+//   jump       to the next / previous line matching "line" ("token": with that editor token type there;
+//              "after": the line before matches this)
+{
+  "name": "Markdown",
+  "comments": { "block": ["<!--", "-->"] },
+  "actions": {
+    "bold": { "title": "Bold", "hint": "The selection, or ** ** with the cursor in between; again: not bold", "command": "bold" },
+    "italic": { "title": "Italic", "hint": "Works like bold", "command": "italic" },
+    "strikethrough": { "title": "Strikethrough", "hint": "~~ ~~", "command": "strikethrough" },
+    "inlineCode": { "title": "Inline code", "hint": "` `", "command": "inlineCode" },
+    "link": { "title": "Insert link", "hint": "A URL on the clipboard becomes the target", "command": "link" },
+    "imageFromClipboard": { "title": "Insert image from clipboard", "hint": "A picture or image files on the clipboard; copied next to the document when needed", "command": "imageFromClipboard" },
+    "imageFromFile": { "title": "Insert image from file...", "hint": "Pick image files", "command": "imageFromFile" },
+    "heading": { "title": "Heading", "hint": "The same level again: plain text", "command": "heading",
+      "variants": [[1], [2], [3], [4], [5], [6]] },
+    "paragraph": { "title": "Plain paragraph", "hint": "Removes a heading, list, task or quote marker", "command": "paragraph" },
+    "bulletList": { "title": "Bulleted list", "hint": "Again: off", "command": "bulletList" },
+    "numberList": { "title": "Numbered list", "hint": "Again: off", "command": "numberList" },
+    "taskList": { "title": "Task list item", "hint": "Again: off", "command": "taskList" },
+    "quote": { "title": "Quote", "hint": "Again: off", "command": "quote" },
+    "codeBlock": { "title": "Code block", "hint": "The cursor lands after the opening ``` for the language", "command": "codeBlock" },
+    "rule": { "title": "Horizontal rule", "hint": "---", "command": "rule" },
+    "table": { "title": "Insert table", "hint": "Columns and rows", "command": "table", "variants": [[3, 2]] },
+    "tableFormat": { "title": "Format table", "hint": "Line up the columns", "command": "tableFormat" },
+    "tableAddRow": { "title": "Add table row", "hint": "Below the cursor", "command": "tableAddRow" },
+    "tableAddColumn": { "title": "Add table column", "hint": "Right of the cursor", "command": "tableAddColumn" },
+    "tableDeleteRow": { "title": "Delete table row", "command": "tableDeleteRow" },
+    "tableDeleteColumn": { "title": "Delete table column", "command": "tableDeleteColumn" },
+    "section": { "title": "Section", "hint": "To the next / previous heading", "jump": { "line": "^#{1,6}\\s", "token": "header" },
+      "variants": [[1], [-1]], "variantTitles": { "1": "Next section", "-1": "Previous section" } }
+  }
+}

@@ -31,7 +31,10 @@ static class Program
             catch (AbandonedMutexException) { owner = true; }
         }
 
+        // The first LexPen process moves an older data folder layout over, before any window or browser starts.
+        if (owner) DataFolder.Migrate(AppHost.DataDir);
         var app = new AppHost();
+        app.WatchSettings();
         app.Launch(paths, shift);
         if (owner) app.Listen(name);
         Application.Run(app);

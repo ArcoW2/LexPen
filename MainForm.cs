@@ -222,7 +222,7 @@ sealed class MainForm : Form
     // Secondary windows get a dimmed caption and border (Windows 11; Windows 10 ignores it).
     public void ApplyTheme()
     {
-        var dark = app.Settings.Theme == "dark";
+        var dark = app.Theme == "dark";
         BackColor = web.DefaultBackgroundColor = dark ? Color.FromArgb(0x1e, 0x1f, 0x22) : Color.White;
         var on = dark ? 1 : 0;
         DwmSetWindowAttribute(Handle, 20 /* DWMWA_USE_IMMERSIVE_DARK_MODE */, ref on, sizeof(int));
@@ -243,6 +243,11 @@ sealed class MainForm : Form
         var core = web.CoreWebView2;
 
         core.Settings.IsStatusBarEnabled = false;
+#if !DEBUG
+        // Ctrl+Shift+C is the clipboard list, not the DevTools element picker (nor F12 / Ctrl+Shift+I).
+        // The debug build keeps them: the tests drive the page through the debugging port.
+        core.Settings.AreDevToolsEnabled = false;
+#endif
         // The page zooms its previews itself (Ctrl+plus/minus/wheel); the browser zoom would scale everything.
         core.Settings.IsZoomControlEnabled = false;
         core.SetVirtualHostNameToFolderMapping("lexpen.example",
@@ -264,6 +269,11 @@ sealed class MainForm : Form
             }).ToArray();
             BeginInvoke(() => OnMessage(json, files));
         };
+        // Printing is not a LexPen feature: the browser's right-click menu loses its Print item.
+        core.ContextMenuRequested += (_, m) =>
+        {
+            foreach (var item in m.MenuItems.Where(i => i.Name == "print").ToList()) m.MenuItems.Remove(item);
+        };
         core.DocumentTitleChanged += (_, _) => UpdateTitle();
         core.DOMContentLoaded += (_, _) => loading.Hide();
 
@@ -280,7 +290,7 @@ sealed class MainForm : Form
             OpenExternal(n.Uri);
         };
 
-        core.Navigate($"{AppUrl}index.html?theme={(app.Settings.Theme == "dark" ? "dark" : "light")}");
+        core.Navigate($"{AppUrl}index.html?theme={app.Theme}");
     }
 
     static void OpenExternal(string uri)
@@ -320,6 +330,7 @@ sealed class MainForm : Form
             {
                 "search" => await Task.Run(() => Search(msg)),
                 "gitStatus" => await Task.Run(() => GitStatus(msg["path"]!.GetValue<string>())),
+                "gitHead" => await Task.Run(() => GitHead(msg["path"]!.GetValue<string>())),
                 _ => Dispatch(msg, files),
             };
         }
@@ -348,7 +359,7 @@ sealed class MainForm : Form
                     ["id"] = Id,
                     ["primary"] = Primary,
                     ["index"] = app.IndexOf(this),
-                    ["theme"] = app.Settings.Theme,
+                    ["theme"] = app.Theme,
                     ["tabColours"] = app.TabColours(),
                     ["folder"] = start.Folder,
                     ["files"] = new JsonArray(start.Files.Select(f => (JsonNode?)f).ToArray()),
@@ -386,9 +397,72 @@ sealed class MainForm : Form
                     : null;
             }
 
-            // Ctrl+K: a URL on the clipboard becomes the link target (from the page, reading it may ask for permission).
+            // Insert link: a URL on the clipboard becomes the link target (from the page, reading it may ask for permission).
             case "clipboardText":
                 return Clipboard.ContainsText() ? Clipboard.GetText() : null;
+
+            // Edit > Copy / Cut with the Windows clipboard active (the keys copy in the page itself).
+            case "clipboardSetText":
+                if (Arg("text").Length > 0) Clipboard.SetText(Arg("text"));
+                return null;
+
+            // Insert image from the clipboard: image files copied in Explorer, or a picture (as base64 PNG).
+            case "clipboardImage":
+            {
+                var result = new JsonObject();
+                if (Clipboard.ContainsFileDropList())
+                    result["paths"] = new JsonArray(Clipboard.GetFileDropList().Cast<string>()
+                        .Where(ImageLinks.IsImage).Select(p => (JsonNode?)p).ToArray());
+                else if (Clipboard.GetImage() is Image image)
+                {
+                    using (image)
+                    using (var png = new MemoryStream())
+                    {
+                        image.Save(png, System.Drawing.Imaging.ImageFormat.Png);
+                        result["png"] = Convert.ToBase64String(png.ToArray());
+                    }
+                }
+                return result;
+            }
+
+            case "keys":
+                return KeysFile.Load(AppHost.DataDir);
+
+            case "fonts":
+                return new JsonArray(Fonts.List().Select(f => (JsonNode)new JsonObject { ["name"] = f.Name, ["mono"] = f.Mono }).ToArray());
+
+            // The numbered clipboards (ClipboardStore), shared by all windows; 0 is the Windows clipboard.
+            case "clipState":
+            {
+                var state = app.Clipboards.State();
+                state["previews"]![0] = Clipboard.ContainsText() ? ClipboardStore.Preview(Clipboard.GetText()) : "";
+                return state;
+            }
+
+            case "clipSelect":
+                app.Clipboards.Select(msg["n"]!.GetValue<int>());
+                app.ClipboardsChanged();
+                return null;
+
+            case "clipSet":
+                app.Clipboards.Set(msg["n"]!.GetValue<int>(), Arg("text"));
+                app.ClipboardsChanged();
+                return null;
+
+            case "clipGet":
+                return app.Clipboards.Get(msg["n"]!.GetValue<int>());
+
+            // Bookmarks of a file or draft (BookmarkStore), placed in its current text.
+            case "bookmarksGet":
+                return BookmarkStore.Resolve(app.Bookmarks.Get(BookmarkStore.Key(msg["path"]?.GetValue<string>(), msg["draft"]?.GetValue<string>())), Arg("text"));
+
+            case "bookmarksSet":
+                app.Bookmarks.Set(BookmarkStore.Key(msg["path"]?.GetValue<string>(), msg["draft"]?.GetValue<string>()), msg["list"]!.AsArray());
+                return null;
+
+            // After a reload from disk: the bookmarks the file had, placed in its new text.
+            case "bookmarksResolve":
+                return BookmarkStore.Resolve(msg["list"]!.AsArray(), Arg("text"));
 
             case "pickFolder":
             {
@@ -417,11 +491,18 @@ sealed class MainForm : Form
                 return List(Arg("path"));
 
             case "read":
-                return ReadText(Arg("path"));
+            {
+                var (text, encoding) = ReadText(Arg("path"));
+                // Read-only on disk: the tab opens read-only (it cannot be saved anyway).
+                var readOnly = (File.GetAttributes(Arg("path")) & FileAttributes.ReadOnly) != 0;
+                return new JsonObject { ["text"] = text, ["encoding"] = encoding, ["readOnly"] = readOnly };
+            }
 
+            // In the encoding the file was read in; `backup`: the old file becomes name.bak.
             case "write":
                 ownWrites[Arg("path")] = DateTime.UtcNow;
-                File.WriteAllText(Arg("path"), Arg("text"));
+                TextFile.Write(Arg("path"), Arg("text"), msg["encoding"]?.GetValue<string>() ?? TextFile.Utf8,
+                    msg["backup"]?.GetValue<bool>() == true);
                 return true;
 
             case "watch":
@@ -444,8 +525,28 @@ sealed class MainForm : Form
                 return MessageBox.Show(this, Arg("text"), "LexPen",
                     MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes;
 
-            case "state":
-                app.SetTheme(Arg("theme"), this);
+            // Settings (SettingsFile): read, change one (every window follows), the rows of the settings window.
+            case "settings":
+            {
+                var merged = (JsonObject)app.Settings.DeepClone();
+                merged["pageSettingsMoved"] = app.PageSettingsMoved;
+                return merged;
+            }
+
+            case "settingSet":
+                app.SetSetting(Arg("name"), msg["value"]?.DeepClone());
+                return null;
+
+            case "settingsImport":
+                app.ImportPageSettings(msg["values"]!.AsObject());
+                return null;
+
+            case "settingDefs":
+                app.SettingDefs = msg["defs"]?.DeepClone();
+                return null;
+
+            case "openSettings":
+                app.OpenSettings(this);
                 return null;
 
             case "newDraft":
@@ -626,7 +727,7 @@ sealed class MainForm : Form
     }
 
     // The tree lists every file, so refuse what cannot be shown as text.
-    static string ReadText(string path)
+    static (string Text, string Encoding) ReadText(string path)
     {
         if (new FileInfo(path).Length > MaxFileSize)
             throw new IOException($"{Path.GetFileName(path)} is too large to open (over {MaxFileSize / 1024 / 1024} MB).");
@@ -635,8 +736,7 @@ sealed class MainForm : Form
         var utf16 = bytes is [0xFF, 0xFE, ..] or [0xFE, 0xFF, ..];
         if (!utf16 && Array.IndexOf(bytes, (byte)0, 0, Math.Min(bytes.Length, 8000)) >= 0)
             throw new IOException($"{Path.GetFileName(path)} is not a text file.");
-        using var reader = new StreamReader(new MemoryStream(bytes), Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
-        return reader.ReadToEnd();
+        return TextFile.Decode(bytes);
     }
 
     // What the About window shows: this build, the platform it runs on and the bundled libraries.
@@ -690,6 +790,11 @@ sealed class MainForm : Form
         }
         return result;
     }
+
+    // The file as it is in the last commit (the git markers in the gutter compare with it). Null when the
+    // file is not in a repository, not committed yet, or git is not installed.
+    static string? GitHead(string path) =>
+        Path.GetDirectoryName(path) is string dir ? Git(dir, "show", "HEAD:./" + Path.GetFileName(path)) : null;
 
     static string? Git(string folder, params string[] args)
     {

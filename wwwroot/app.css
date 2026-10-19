@@ -9,6 +9,8 @@
   --note: #0969da; --tip: #1a7f37; --important: #8250df; --warning: #9a6700; --caution: #cf222e;
   --git-modified: #895503; --git-added: #587c0c; --git-untracked: #007100; --git-deleted: #ad0707;
   --pane-active: #0969da; --bar-changed: #0969da; --bar-removed: #cf222e; --bg-bar-dim: #dcdfe4;
+  /* Find: every match, the current one and the box around it (bright red on light). */
+  --find-hit: rgba(255, 196, 0, .4); --find-current: rgba(255, 140, 0, .85); --find-current-fg: #000; --find-box: #ff0000;
 }
 :root[data-theme=dark] {
   color-scheme: dark;
@@ -20,6 +22,14 @@
   --note: #58a6ff; --tip: #3fb950; --important: #a371f7; --warning: #d29922; --caution: #f85149;
   --git-modified: #e2c08d; --git-added: #81b88b; --git-untracked: #73c991; --git-deleted: #c74e39;
   --pane-active: #d29922; --bar-changed: #1f6feb; --bar-removed: #da3633; --bg-bar-dim: #222327;
+  /* Find: the box bright yellow on dark. */
+  --find-hit: rgba(255, 196, 0, .4); --find-current: rgba(255, 140, 0, .85); --find-current-fg: #000; --find-box: #ffff00;
+}
+
+/* Fonts (Options > Settings > Fonts, see setFonts): the editor's, and the app's with a scale for its sizes. */
+:root {
+  --editor-font: Consolas, "Cascadia Mono", monospace; --editor-size: 14px; --editor-line: 1.3;
+  --app-font: "Segoe UI", system-ui, sans-serif; --ui-scale: 1;
 }
 
 /* ---------- Layout ---------- */
@@ -27,7 +37,7 @@
 html, body { height: 100%; margin: 0; }
 body {
   display: flex; flex-direction: column; overflow: hidden;
-  font: 13px "Segoe UI", system-ui, sans-serif;
+  font: calc(13px * var(--ui-scale)) var(--app-font);
   background: var(--bg); color: var(--fg);
 }
 button {
@@ -46,9 +56,23 @@ button:hover { background: var(--hover); }
 }
 .mm-save { visibility: hidden; color: var(--accent); font-weight: 600; }
 body[data-dirty] .mm-save { visibility: visible; }
-.mm-modes { display: flex; margin: 0 6px; border: 1px solid var(--border); border-radius: 5px; overflow: hidden; }
-.mm-modes button { border-radius: 0; border: 0; }
-.mm-modes button.mm-on { background: var(--active); color: var(--accent); }
+.mm-switches { display: flex; margin: 0 6px; border: 1px solid var(--border); border-radius: 5px; overflow: hidden; }
+.mm-switches button { border-radius: 0; border: 0; }
+.mm-switches button.mm-on { background: var(--active); color: var(--accent); }
+
+/* The menu bar (menus.js) and its menus, placed at the menu title or the item they open from. */
+.mm-menubar { display: flex; margin-left: 4px; }
+.mm-menutitle { padding: 3px 8px; }
+.mm-menutitle.mm-on { background: var(--active); color: var(--accent); }
+.mm-menu.mm-dropdown { position: fixed; right: auto; top: 0; min-width: 240px; max-height: 80vh; overflow-y: auto; }
+.mm-dropdown button { display: flex; align-items: baseline; gap: 4px; }
+.mm-dropdown button.mm-sel:not(:disabled) { background: var(--hover); }
+.mm-dropdown .mm-mark { flex: none; width: 1.2em; }
+.mm-dropdown .mm-checked .mm-mark::before { content: "\2713"; }
+.mm-dropdown .mm-label { flex: 1; }
+.mm-dropdown .mm-key { float: none; max-width: 360px; overflow: hidden; text-overflow: ellipsis; }
+.mm-dropdown .mm-arrow::before { content: "\203A"; margin-left: 24px; color: var(--fg-dim); }
+.mm-dropdown .mm-missing { opacity: .45; text-decoration: line-through; }
 .mm-theme::before { content: "\263E  Night"; }
 :root[data-theme=dark] .mm-theme::before { content: "\2600  Day"; }
 /* Only with two panes: side by side or above each other. */
@@ -71,22 +95,8 @@ body[data-secondary] .mm-toolbar { background: var(--bg-bar-dim); color: var(--f
 .mm-check.mm-on::before { content: "\2713"; }
 .mm-menu hr { margin: 4px 0; border: 0; border-top: 1px solid var(--border); }
 .mm-menu button:disabled { opacity: .45; cursor: default; background: none; }
-.mm-menu .mm-key { margin-left: 24px; float: right; color: var(--fg-dim); font-size: 12px; }
+.mm-menu .mm-key { margin-left: 24px; float: right; color: var(--fg-dim); font-size: calc(12px * var(--ui-scale)); }
 
-/* The Open menu: left aligned, with flyouts for the recent lists. */
-.mm-open-menu { left: 0; right: auto; }
-.mm-sub { position: relative; }
-.mm-sub-title { width: 100%; display: flex; justify-content: space-between; }
-.mm-sub-title::after { content: "\203A"; margin-left: 24px; color: var(--fg-dim); }
-.mm-submenu { display: none; left: 100%; right: auto; top: -5px; max-width: 560px; max-height: 70vh; overflow-y: auto; }
-.mm-sub:hover > .mm-submenu, .mm-sub:focus-within > .mm-submenu { display: flex; }
-.mm-submenu button { display: flex; gap: 12px; overflow: hidden; }
-.mm-submenu .mm-recent-name { flex: none; }
-.mm-submenu .mm-recent-dir { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--fg-dim); font-size: 12px; }
-.mm-submenu .mm-missing { opacity: .45; text-decoration: line-through; }
-.mm-submenu .mm-fav-remove { flex: none; margin-left: auto; padding: 0 4px; border-radius: 3px; color: var(--fg-dim); }
-.mm-submenu .mm-fav-remove::before { content: "\2715"; font-size: 10px; }
-.mm-submenu .mm-fav-remove:hover { background: var(--hover); color: var(--fg); }
 .mm-context { position: fixed; right: auto; }   /* right-click menus, placed at the pointer */
 
 .mm-about {
@@ -94,14 +104,14 @@ body[data-secondary] .mm-toolbar { background: var(--bg-bar-dim); color: var(--f
   border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 30px rgba(0, 0, 0, .3);
 }
 .mm-about::backdrop { background: rgba(0, 0, 0, .35); }
-.mm-about h1 { margin: 0 0 2px; font-size: 20px; font-weight: 600; }
+.mm-about h1 { margin: 0 0 2px; font-size: calc(20px * var(--ui-scale)); font-weight: 600; }
 .mm-about p { margin: 0 0 8px; color: var(--fg-dim); }
-.mm-about .mm-about-line { margin-bottom: 12px; font-size: 12px; }
+.mm-about .mm-about-line { margin-bottom: 12px; font-size: calc(12px * var(--ui-scale)); }
 .mm-about .mm-about-created { color: var(--fg); }
 .mm-about .mm-about-by { margin-bottom: 14px; }
 .mm-about table { width: 100%; border-collapse: collapse; }
 .mm-about th {
-  padding: 12px 0 4px; text-align: left; font-size: 11px; font-weight: 600;
+  padding: 12px 0 4px; text-align: left; font-size: calc(11px * var(--ui-scale)); font-weight: 600;
   letter-spacing: .05em; text-transform: uppercase; color: var(--fg-dim);
 }
 .mm-about td { padding: 2px 0; }
@@ -109,19 +119,52 @@ body[data-secondary] .mm-toolbar { background: var(--bg-bar-dim); color: var(--f
 .mm-about form { margin-top: 18px; text-align: right; }
 .mm-about-ok { padding: 4px 20px; border-color: var(--border); }
 
-/* Shortcut list: help window (F1) and welcome page. */
-.mm-help { width: min(720px, 90vw); max-height: 85vh; }
-.mm-help .mm-keys td:first-child { white-space: nowrap; color: var(--fg); font-family: inherit; }
-.mm-keys td + td { color: var(--fg); font-family: inherit; }
-.mm-keys .mm-plus { margin: 0 2px; color: var(--fg-dim); }
-.mm-keys kbd {
+/* F1: every action with its key, searchable; Enter runs the selected one (palette.js). */
+.mm-palette { width: min(860px, 92vw); height: 80vh; padding: 12px 16px; display: none; }
+.mm-palette[open] { display: flex; flex-direction: column; }
+.mm-pal-search {
+  flex: none; padding: 6px 8px; font: inherit; font-size: calc(14px * var(--ui-scale)); color: var(--fg); background: var(--bg);
+  border: 1px solid var(--border); border-radius: 5px; outline: none;
+}
+.mm-pal-search:focus { border-color: var(--accent); }
+.mm-pal-list { flex: 1; min-height: 0; overflow: auto; margin-top: 8px; }
+.mm-palette table { width: 100%; }
+.mm-palette th { position: sticky; top: 0; background: var(--bg); }
+.mm-palette td { padding: 3px 8px 3px 0; vertical-align: top; color: var(--fg); font-family: inherit; }
+.mm-palette td:first-child { white-space: nowrap; width: 1%; font-family: Consolas, "Cascadia Mono", monospace; font-size: calc(12px * var(--ui-scale)); padding-top: 4px; }
+.mm-palette td + td { font-family: inherit; color: var(--fg); }   /* not the About window's monospace */
+.mm-palette td i { color: var(--fg-dim); font-family: var(--app-font); }
+.mm-pal-row { cursor: pointer; }
+.mm-pal-row:hover td { background: var(--hover); }
+.mm-pal-row.mm-pal-sel td { background: var(--active); }
+.mm-pal-off td { opacity: .45; }
+.mm-pal-hint { display: block; color: var(--fg-dim); font-size: calc(12px * var(--ui-scale)); }
+.mm-palette td.mm-pal-name { width: 1%; white-space: nowrap; color: var(--fg-dim); font: calc(11px * var(--ui-scale)) Consolas, monospace; padding-top: 4px; }
+.mm-pal-mine { color: var(--accent); font-weight: 600; }
+.mm-pal-replaced { color: var(--fg-dim); }
+.mm-pal-fixed td { color: var(--fg-dim); }
+.mm-palette mark { background: rgba(255, 200, 0, .45); color: inherit; border-radius: 2px; }
+.mm-pal-foot { flex: none; margin: 8px 0 0; font-size: calc(12px * var(--ui-scale)); }
+.mm-preview kbd, .mm-palette kbd {
   padding: 1px 5px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 4px;
   background: var(--bg-code); font: .85em Consolas, monospace;
 }
-.mm-preview .mm-keys { display: table; width: auto; }
-.mm-preview .mm-keys th { background: none; border: 0; padding: 14px 0 4px; text-align: left; font-size: 11px;
-  letter-spacing: .05em; text-transform: uppercase; color: var(--fg-dim); }
-.mm-preview .mm-keys td { border: 0; padding: 2px 20px 2px 0; background: none !important; }
+
+/* Bottom bar: the active pane's file. */
+.mm-status {
+  flex: none; display: flex; align-items: center; gap: 2px; padding: 1px 8px;
+  font-family: var(--status-font, inherit); font-size: var(--status-size, calc(12px * var(--ui-scale)));
+  color: var(--fg-dim); background: var(--bg-bar); border-top: 1px solid var(--border); user-select: none;
+}
+.mm-status > * { padding: 1px 8px; white-space: nowrap; }
+.mm-status > :empty { display: none; }
+.mm-status button { border: 0; border-radius: 3px; font-size: inherit; }
+.mm-st-fill { flex: 1; display: block !important; }
+.mm-st-chord { color: var(--accent); font-weight: 600; }
+.mm-st-ins.mm-on { color: var(--accent); font-weight: 600; }
+.mm-st-long { color: var(--warning); }
+.mm-st-alive { width: 1ch; font-family: Consolas, monospace; color: var(--fg-dim); text-align: center; }
+.mm-st-clip.mm-on { color: #fff; background: var(--accent); font-weight: 600; }   /* not the Windows clipboard */
 
 .mm-main { flex: 1; display: flex; min-height: 0; }
 .mm-sidebar {
@@ -136,7 +179,7 @@ body[data-sidebar=off] .mm-sidebar, body[data-sidebar=off] .mm-splitter { displa
 
 /* Sidebar views: the folder tree or the search. */
 .mm-side-tabs { flex: none; display: flex; gap: 2px; padding: 6px 8px 0; border-bottom: 1px solid var(--border); }
-.mm-side-tab { border-radius: 4px 4px 0 0; color: var(--fg-dim); font-size: 12px; }
+.mm-side-tab { border-radius: 4px 4px 0 0; color: var(--fg-dim); font-size: calc(12px * var(--ui-scale)); }
 body:not([data-side=search]) .mm-side-folder, body[data-side=search] .mm-side-search {
   color: var(--fg); background: var(--bg); border-color: var(--border); border-bottom-color: var(--bg); margin-bottom: -1px;
 }
@@ -148,24 +191,24 @@ body[data-side=search] .mm-folder-view, body:not([data-side=search]) .mm-search-
 }
 .mm-search-input:focus { border-color: var(--accent); }
 .mm-search-bar { display: flex; align-items: center; gap: 2px; padding: 0 8px 4px; }
-.mm-search-bar [data-opt] { padding: 2px 7px; font-size: 12px; font-family: Consolas, monospace; }
+.mm-search-bar [data-opt] { padding: 2px 7px; font-size: calc(12px * var(--ui-scale)); font-family: Consolas, monospace; }
 .mm-search-bar [data-opt].mm-on { background: var(--active); color: var(--accent); border-color: var(--accent); }
-.mm-search-scope { margin-left: auto; font: inherit; font-size: 12px; color: var(--fg); background: var(--bg-side); border: 1px solid var(--border); border-radius: 4px; }
-.mm-search-status { padding: 2px 12px 6px; font-size: 12px; color: var(--fg-dim); }
+.mm-search-scope { margin-left: auto; font: inherit; font-size: calc(12px * var(--ui-scale)); color: var(--fg); background: var(--bg-side); border: 1px solid var(--border); border-radius: 4px; }
+.mm-search-status { padding: 2px 12px 6px; font-size: calc(12px * var(--ui-scale)); color: var(--fg-dim); }
 .mm-search-results { flex: 1; overflow: auto; padding-bottom: 12px; user-select: none; }
 .mm-result-file { display: flex; gap: 6px; padding: 4px 8px; cursor: pointer; white-space: nowrap; overflow: hidden; }
 .mm-result-file:hover { background: var(--hover); }
-.mm-result-file .mm-result-dir { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--fg-dim); font-size: 12px; }
-.mm-result-file .mm-result-count { color: var(--fg-dim); font-size: 11px; }
+.mm-result-file .mm-result-dir { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--fg-dim); font-size: calc(12px * var(--ui-scale)); }
+.mm-result-file .mm-result-count { color: var(--fg-dim); font-size: calc(11px * var(--ui-scale)); }
 .mm-result-file.mm-closed + .mm-result-list { display: none; }
 .mm-result { display: flex; gap: 8px; padding: 2px 8px 2px 22px; cursor: pointer; white-space: nowrap; overflow: hidden; }
 .mm-result:hover { background: var(--hover); }
 .mm-result.mm-on { background: var(--active); }
-.mm-result-line { flex: none; min-width: 28px; text-align: right; color: var(--fg-dim); font-size: 11px; padding-top: 1px; }
+.mm-result-line { flex: none; min-width: 28px; text-align: right; color: var(--fg-dim); font-size: calc(11px * var(--ui-scale)); padding-top: 1px; }
 .mm-result-text { overflow: hidden; text-overflow: ellipsis; }
 .mm-result-text mark { background: rgba(255, 200, 0, .45); color: inherit; border-radius: 2px; }
 .mm-tree-title {
-  flex: 1; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+  flex: 1; font-size: calc(11px * var(--ui-scale)); font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
   color: var(--fg-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .mm-tree { flex: 1; overflow: auto; padding-bottom: 12px; }
@@ -185,7 +228,7 @@ body[data-side=search] .mm-folder-view, body:not([data-side=search]) .mm-search-
 
 /* Sort by name or modified time; folders stay first. */
 .mm-sort {
-  font: inherit; font-size: 11px; color: var(--fg-dim); background: var(--bg-side);
+  font: inherit; font-size: calc(11px * var(--ui-scale)); color: var(--fg-dim); background: var(--bg-side);
   border: 1px solid transparent; border-radius: 4px; padding: 1px 2px;
 }
 .mm-sort:hover { border-color: var(--border); }
@@ -200,7 +243,7 @@ body[data-sort-desc] .mm-sort-dir::before { content: "\2193"; }
 /* Markdown files stand out: other files are dimmed (git colors still win), or hidden with the M↓ toggle. */
 .mm-other { color: var(--fg-dim); }
 body[data-tree=md] .mm-other { display: none; }
-.mm-md-only { font-size: 11px; font-weight: 600; }
+.mm-md-only { font-size: calc(11px * var(--ui-scale)); font-weight: 600; }
 .mm-md-only.mm-on { background: var(--active); color: var(--accent); }
 
 /* Git status, like VS Code: colored name plus a letter (files) or a dot (folders with changes inside). */
@@ -234,7 +277,7 @@ body[data-two] .mm-pane.mm-active::after {
 body[data-orient=h] .mm-divider { width: auto; height: 6px; cursor: row-resize; border-width: 1px 0; }
 .mm-sync {
   position: absolute; width: 24px; height: 24px; padding: 0; border-radius: 50%; cursor: pointer;
-  background: var(--bg-bar); border: 1px solid var(--border); color: var(--fg-dim); font-size: 13px; line-height: 1;
+  background: var(--bg-bar); border: 1px solid var(--border); color: var(--fg-dim); font-size: calc(13px * var(--ui-scale)); line-height: 1;
 }
 .mm-sync::before { content: "\21C5"; }
 body[data-orient=h] .mm-sync::before { content: "\21C4"; }
@@ -248,8 +291,16 @@ body[data-orient=h] .mm-sync::before { content: "\21C4"; }
 body[data-two] .mm-pane-button, body[data-pane-hidden] .mm-pane-button { display: block; }
 .mm-pane-button svg { display: block; }
 /* Option: all tabs visible, wrapped over several rows. */
-body[data-tab-rows] .mm-tabs { flex-wrap: wrap; overflow-x: visible; }
-body[data-tab-rows] .mm-tab { border-bottom: 1px solid var(--border); margin-bottom: -1px; }
+body[data-tab-bar=rows] .mm-tabs { flex-wrap: wrap; overflow-x: visible; }
+body[data-tab-bar=rows] .mm-tab { border-bottom: 1px solid var(--border); margin-bottom: -1px; }
+/* Tab bar "menu": no scroll bar; the button at the end lists the tabs out of view (with their number). */
+body[data-tab-bar=menu] .mm-tabs { overflow-x: hidden; }
+.mm-tabs-more {
+  flex: none; align-self: center; min-width: 26px; margin: 0 2px; padding: 1px 6px; border-radius: 10px;
+  color: var(--fg-dim); background: var(--bg-bar); border: 1px solid var(--border); font-size: calc(11px * var(--ui-scale));
+}
+.mm-tabs-more::after { content: " \25BE"; }
+.mm-tabs-more:hover { color: var(--fg); border-color: var(--accent); }
 /* The --tab-* values come from tab-colours.json (see applyTabStyle); without them, the theme's colours. */
 .mm-tab {
   flex: none; display: flex; align-items: center; gap: 5px; max-width: 240px; padding: 4px 4px 4px 10px;
@@ -272,12 +323,13 @@ body[data-tab-rows] .mm-tab { border-bottom: 1px solid var(--border); margin-bot
 }
 /* Drafts (never saved) and read-only copies (edited in the other pane or window) are italic. */
 .mm-draft .mm-tab-name, .mm-ro .mm-tab-name { font-style: italic; }
+.mm-pin { flex: none; margin-right: -2px; opacity: .8; }   /* a pinned tab */
 .mm-ro .mm-tab-name::after { content: " (read-only)"; color: var(--fg-dim); }
 .mm-tab-close { flex: none; width: 20px; padding: 0; border: 0; line-height: 18px; visibility: hidden; }
-.mm-tab-close::before { content: "\2715"; font-size: 10px; }
+.mm-tab-close::before { content: "\2715"; font-size: calc(10px * var(--ui-scale)); }
 .mm-tab:hover .mm-tab-close, .mm-tab.mm-on .mm-tab-close, .mm-tab.mm-dirty .mm-tab-close { visibility: visible; }
-.mm-tab.mm-dirty .mm-tab-close::before { content: "\25CF"; font-size: 11px; }   /* unsaved: a dot until hovered */
-.mm-tab.mm-dirty .mm-tab-close:hover::before { content: "\2715"; font-size: 10px; }
+.mm-tab.mm-dirty .mm-tab-close::before { content: "\25CF"; font-size: calc(11px * var(--ui-scale)); }   /* unsaved: a dot until hovered */
+.mm-tab.mm-dirty .mm-tab-close:hover::before { content: "\2715"; font-size: calc(10px * var(--ui-scale)); }
 /* Changed or removed on disk while not looked at. */
 .mm-tab[data-dot]::before { content: ""; flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--bar-changed); }
 .mm-tab[data-dot=removed]::before { background: var(--bar-removed); }
@@ -286,7 +338,12 @@ body[data-tab-rows] .mm-tab { border-bottom: 1px solid var(--border); margin-bot
 .mm-editor-pane, .mm-preview-pane { flex: 1 1 0; min-width: 0; }
 .mm-preview-pane { overflow: auto; outline: none; }
 .mm-pane[data-mode=preview] .mm-editor-pane, .mm-pane[data-mode=edit] .mm-preview-pane { display: none; }
-.mm-pane[data-mode=split] .mm-editor-pane { border-right: 1px solid var(--border); }
+/* Editor and preview side by side: the splitter between them sets their shares (setSplit). */
+.mm-pane[data-mode=split] .mm-editor-pane { flex-grow: var(--edit-share, .5); }
+.mm-pane[data-mode=split] .mm-preview-pane { flex-grow: calc(1 - var(--edit-share, .5)); }
+.mm-split { flex: none; width: 5px; cursor: col-resize; border-left: 1px solid var(--border); }
+.mm-split:hover { background: var(--hover); }
+.mm-pane:not([data-mode=split]) .mm-split { display: none; }
 
 /* Outline: the headings of the pane's tab, at its right. */
 .mm-outline { display: none; flex: none; width: var(--outline-w, 220px); position: relative; border-left: 1px solid var(--border); background: var(--bg-side); }
@@ -345,12 +402,37 @@ body[data-busy]::after {
 .mm-editor-pane { display: flex; flex-direction: column; }
 .mm-editor-pane .CodeMirror {
   flex: 1 1 0; min-height: 0; height: auto; background: var(--bg); color: var(--fg);
-  font: 14px/1.6 Consolas, "Cascadia Mono", monospace;
+  font: var(--editor-size)/var(--editor-line) var(--editor-font);
 }
 .mm-editor-pane .CodeMirror-lines { padding: 12px 0 40vh; }
 .mm-editor-pane .CodeMirror pre.CodeMirror-line { padding: 0 16px 0 10px; }
 .mm-editor-pane .CodeMirror-gutters { background: var(--bg); border-right: 0; }
+/* The square between the two scrollbars (and below the gutter): CodeMirror makes it white. */
+.mm-editor-pane .CodeMirror-scrollbar-filler, .mm-editor-pane .CodeMirror-gutter-filler { background: var(--bg); }
 .mm-editor-pane .CodeMirror-linenumber { color: var(--fg-dim); opacity: .6; }
+.mm-editor-pane .mm-cursor-number .CodeMirror-linenumber { font-style: italic; opacity: 1; }   /* relative numbers: the cursor line's own */
+/* Gutter: bookmarks (bookmarks.js), right of the line numbers. */
+.mm-editor-pane .mm-bookmarks { width: 18px; cursor: pointer; }
+.mm-bm { display: inline-block; min-width: 9px; margin-left: 2px; padding: 0 2px; border-radius: 3px; text-align: center;
+  font: 600 10px/14px "Segoe UI", sans-serif; color: #fff; background: var(--accent); }
+/* Change markers (not saved) and git markers (since the last commit), as in VS Code. */
+.mm-editor-pane .mm-changes, .mm-editor-pane .mm-git { width: 5px; }
+.mm-editor-pane .mm-git { cursor: pointer; }
+.mm-mark-added, .mm-mark-changed { display: block; width: 3px; height: 100%; min-height: 1.6em; }
+.mm-changes .mm-mark-added, .mm-changes .mm-mark-changed { background: var(--warning); }
+.mm-git .mm-mark-added { background: var(--git-added); }
+.mm-git .mm-mark-changed { background: var(--git-modified); }
+.mm-mark-removed { display: block; width: 0; height: 0; margin-top: -4px; border: 4px solid transparent; border-left-color: var(--git-deleted); }
+.mm-git-change {
+  position: fixed; z-index: 26; max-width: 70vw; max-height: 50vh; overflow: auto; padding: 8px 10px;
+  background: var(--bg-bar); border: 1px solid var(--border); border-radius: 6px; box-shadow: 0 4px 14px rgba(0, 0, 0, .2);
+}
+.mm-git-head { color: var(--fg-dim); font-size: calc(12px * var(--ui-scale)); margin-bottom: 4px; }
+.mm-git-change pre { margin: 0 0 8px; padding: 6px 8px; background: var(--bg-code); font: 13px Consolas, monospace; white-space: pre-wrap; }
+.mm-git-change button { border-color: var(--border); }
+.mm-editor-pane .CodeMirror-foldgutter { width: 14px; }
+.mm-editor-pane .CodeMirror-foldgutter-open, .mm-editor-pane .CodeMirror-foldgutter-folded { color: var(--fg-dim); }
+.mm-bm-free { min-width: 6px; height: 10px; padding: 0; border-radius: 1px 1px 0 0; clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 70%, 0 100%); }
 .mm-editor-pane .CodeMirror-cursor { border-left: 2px solid var(--accent); }
 /* Scoped to the pane so it beats editor.css (loaded later), which sets a light color for these. */
 .mm-editor-pane .CodeMirror-selected, .mm-editor-pane .CodeMirror-focused .CodeMirror-selected { background: var(--select); }
@@ -358,7 +440,7 @@ body[data-busy]::after {
 .mm-editor-pane .CodeMirror-line > span > span::selection { background: var(--select); }
 .mm-editor-pane .CodeMirror-dialog { background: var(--bg-bar); color: var(--fg); border-color: var(--border); padding: 6px 12px; }
 .mm-editor-pane .CodeMirror-dialog input { color: inherit; font: inherit; }
-.mm-editor-pane .CodeMirror .cm-searching { background: rgba(255, 200, 0, .4); }
+.mm-editor-pane .CodeMirror .cm-searching { background: var(--find-hit); }
 
 .mm-editor-pane .CodeMirror .cm-header { color: var(--accent); font-weight: 700; }
 .mm-editor-pane .CodeMirror .cm-strong { font-weight: 700; }
@@ -402,18 +484,22 @@ body[data-busy]::after {
 .mm-find input:focus { border-color: var(--accent); }
 .mm-find button { display: inline-flex; align-items: center; min-width: 24px; height: 24px; padding: 0 5px; justify-content: center; }
 .mm-find button svg { display: block; }
-.mm-find-opt { font-size: 12px; font-weight: 600; color: var(--fg-dim); }
+.mm-find-opt { font-size: calc(12px * var(--ui-scale)); font-weight: 600; color: var(--fg-dim); }
 .mm-find-opt.mm-on { background: var(--active); color: var(--accent); }
 .mm-find-toggle svg { transition: transform .1s; }
 .mm-find-toggle.mm-open svg { transform: rotate(90deg); }
 .mm-find-indent { flex: none; width: 26px; }
-.mm-find-count { flex: none; min-width: 70px; padding: 0 6px; color: var(--fg-dim); font-size: 12px; white-space: nowrap; }
+.mm-find-count { flex: none; min-width: 70px; padding: 0 6px; color: var(--fg-dim); font-size: calc(12px * var(--ui-scale)); white-space: nowrap; }
 .mm-find-count.mm-none { color: var(--bar-removed); }
-.mm-find-close::before { content: "\2715"; font-size: 11px; }
+.mm-find-close::before { content: "\2715"; font-size: calc(11px * var(--ui-scale)); }
 /* Matches: all of them, and the current one in the preview (the editor selects it). */
-.cm-mm-find-hit { background: rgba(255, 196, 0, .4); border-radius: 2px; }
-::highlight(mm-find-0), ::highlight(mm-find-1) { background-color: rgba(255, 196, 0, .4); }
-::highlight(mm-find-cur-0), ::highlight(mm-find-cur-1) { background-color: rgba(255, 140, 0, .85); color: #000; }
+.cm-mm-find-hit { background: var(--find-hit); border-radius: 2px; }
+::highlight(mm-find-0), ::highlight(mm-find-1) { background-color: var(--find-hit); }
+::highlight(mm-find-cur-0), ::highlight(mm-find-cur-1) { background-color: var(--find-current); color: var(--find-current-fg); }
+/* The current match in the editor: as in the preview, and a box around it. */
+.CodeMirror .mm-find-current, .CodeMirror .cm-mm-find-hit.mm-find-current {
+  background: var(--find-current); color: var(--find-current-fg); outline: 2px solid var(--find-box); border-radius: 2px;
+}
 
 /* Formatting bar above the editor (format.js): markdown only, switchable in the More menu. */
 .mm-format {
@@ -422,7 +508,7 @@ body[data-busy]::after {
 }
 body[data-no-format-bar] .mm-format, .mm-editor-pane[data-lang] .mm-format { display: none; }
 .mm-format[data-disabled] { opacity: .45; pointer-events: none; }
-.mm-fmt { display: inline-flex; align-items: center; justify-content: center; gap: 2px; min-width: 28px; height: 26px; padding: 0 5px; font-size: 14px; }
+.mm-fmt { display: inline-flex; align-items: center; justify-content: center; gap: 2px; min-width: 28px; height: 26px; padding: 0 5px; font-size: calc(14px * var(--ui-scale)); }
 .mm-fmt svg { display: block; }
 .mm-fmt.mm-on { background: var(--active); color: var(--accent); }
 .mm-fmt-h { font-weight: 700; min-width: 1.4em; text-align: center; }
@@ -437,7 +523,7 @@ body[data-no-format-bar] .mm-format, .mm-editor-pane[data-lang] .mm-format { dis
 .mm-fmt-grid { display: grid; grid-template-columns: repeat(var(--cols), 16px); gap: 3px; padding: 6px 8px 2px; }
 .mm-fmt-grid span { height: 16px; border: 1px solid var(--border); border-radius: 2px; background: var(--bg); cursor: pointer; }
 .mm-fmt-grid span.mm-on { background: var(--active); border-color: var(--accent); }
-.mm-fmt-size { padding: 4px 8px; color: var(--fg-dim); font-size: 12px; white-space: nowrap; }
+.mm-fmt-size { padding: 4px 8px; color: var(--fg-dim); font-size: calc(12px * var(--ui-scale)); white-space: nowrap; }
 
 /* ---------- Rendered markdown ---------- */
 .mm-preview {
@@ -481,6 +567,8 @@ body[data-no-format-bar] .mm-format, .mm-editor-pane[data-lang] .mm-format { dis
   font: .88em Consolas, "Cascadia Mono", monospace;
 }
 .mm-preview pre { padding: 14px 16px; overflow: auto; border-radius: 6px; background: var(--bg-code); line-height: 1.5; }
+/* Wrap long lines (setWrap); a very long line always wraps, see LONG_LINE. */
+body:not([data-nowrap]) .mm-preview pre, .mm-preview pre.mm-long-line { white-space: pre-wrap; overflow-wrap: anywhere; }
 .mm-preview pre code { padding: 0; background: none; font-size: 13px; }
 .mm-preview pre.mermaid { background: none; text-align: center; }
 
@@ -510,18 +598,3 @@ body[data-no-format-bar] .mm-format, .mm-editor-pane[data-lang] .mm-format { dis
 .hljs-attr, .hljs-attribute, .hljs-property, .hljs-params { color: var(--hl-attr); }
 .hljs-emphasis { font-style: italic; }
 .hljs-strong { font-weight: 700; }
-
-/* ---------- Print: just the document ---------- */
-@media print {
-  :root[data-theme=dark] {
-    --bg: #fff; --bg-side: #f6f7f9; --bg-code: #f3f4f6; --fg: #1f2328; --fg-dim: #656d76; --border: #d8dce2;
-    --accent: #0969da; --hl-keyword: #cf222e; --hl-string: #0a3069; --hl-comment: #6e7781;
-    --hl-number: #0550ae; --hl-title: #8250df; --hl-attr: #116329;
-  }
-  .mm-toolbar, .mm-sidebar, .mm-splitter, .mm-editor-pane, .mm-toast, .mm-tabs-row, .mm-bar, .mm-divider, .mm-outline,
-  .mm-pane:not(.mm-active) { display: none !important; }
-  html, body { height: auto; }
-  body::after, .mm-pane::after { display: none !important; }
-  body, .mm-main, .mm-panes, .mm-pane, .mm-body, .mm-preview-pane { display: block !important; overflow: visible; }
-  .mm-preview { max-width: none; padding: 0; }
-}

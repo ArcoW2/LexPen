@@ -42,9 +42,15 @@ Join-Files @(
     'codemirror\addon\edit\continuelist.js',
     'codemirror\addon\dialog\dialog.js',
     'codemirror\addon\search\searchcursor.js',
-    'codemirror\addon\search\search.js'
+    'codemirror\addon\search\search.js',
+    'codemirror\addon\comment\comment.js',
+    'codemirror\addon\fold\foldcode.js',
+    'codemirror\addon\fold\foldgutter.js',
+    'codemirror\addon\fold\brace-fold.js',
+    'codemirror\addon\fold\indent-fold.js',
+    'codemirror\addon\fold\markdown-fold.js'
 ) 'editor.js' ";`n"
-Join-Files @('codemirror\lib\codemirror.css', 'codemirror\addon\dialog\dialog.css') 'editor.css' "`n"
+Join-Files @('codemirror\lib\codemirror.css', 'codemirror\addon\dialog\dialog.css', 'codemirror\addon\fold\foldgutter.css') 'editor.css' "`n"
 
 # Loaded only when a document contains math / diagrams.
 Copy-Item "$m\katex\dist\katex.min.js", "$m\katex\dist\katex.min.css" "$out\katex"

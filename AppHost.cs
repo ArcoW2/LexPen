@@ -9,19 +9,24 @@ namespace LexPen;
 /// <summary>
 /// Owns all windows of the one running instance. Later launches send their arguments over a named
 /// pipe (see Program); this class routes them to windows (see Router). It also holds what the windows
-/// share: settings, the session, drafts, the edit lock per file and the WebView2 environment.
+/// share: settings (and the one settings window), state, the session, drafts, the edit lock per file and
+/// the WebView2 environment. The data folder's layout: see DataFolder.
 /// </summary>
 sealed class AppHost : ApplicationContext
 {
     // LEXPEN_DATA points a test run somewhere else, away from the real session and drafts.
     public static readonly string DataDir = System.Environment.GetEnvironmentVariable("LEXPEN_DATA") is { Length: > 0 } dir ? dir
         : Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData), "LexPen");
-    static readonly string SettingsPath = Path.Combine(DataDir, "settings.json");
-    static readonly string SessionPath = Path.Combine(DataDir, "session.json");
+    // State lives in State\ (DataFolder); after a failed move a file is used where it still is.
+    static string StatePath => Path.Combine(DataFolder.StateDir(DataDir), "state.json");
+    static string SessionPath => DataFolder.StatePath(DataDir, "session.json");
+    static string FavouritesPath => Path.Combine(DataDir, DataFolder.FavouritesName);
+    // Settings that were kept in the page's storage go to settings.json once; this file says it happened.
+    static string PageSettingsMovedPath => Path.Combine(DataFolder.StateDir(DataDir), "page-settings-moved");
 
-    public sealed class AppSettings
+    /// <summary>What LexPen remembers by itself: window position and size, the recent lists.</summary>
+    public sealed class AppState
     {
-        public string Theme { get; set; } = "light";
         public int X { get; set; }
         public int Y { get; set; }
         public int Width { get; set; }
@@ -30,11 +35,21 @@ sealed class AppHost : ApplicationContext
         public List<string> RecentFiles { get; set; } = [];
         public List<string> RecentFolders { get; set; } = [];
         public List<string> ClosedFiles { get; set; } = [];
-        public List<string> FavouriteFiles { get; set; } = [];
     }
 
-    public AppSettings Settings { get; } = LoadSettings();
-    public DraftStore Drafts { get; } = new(Path.Combine(DataDir, "Drafts"));
+    public AppState State { get; } = LoadState();
+    List<string> favourites = LoadFavourites();
+    public DraftStore Drafts { get; } = new(DataFolder.StatePath(DataDir, "Drafts"));
+    public ClipboardStore Clipboards { get; } = new(DataFolder.StatePath(DataDir, "clipboards.json"));
+    public BookmarkStore Bookmarks { get; } = new(DataFolder.StatePath(DataDir, "bookmarks.json"));
+
+    // Your settings (SettingsFile): the defaults with your settings.json on top.
+    JsonObject settings = SettingsFile.Load(DataDir);
+    public JsonObject Settings => settings;
+    public string Theme => settings["values"]?["theme"]?.GetValue<string>() == "dark" ? "dark" : "light";
+    /// <summary>The rows of the settings window, as a main window's page describes them (actions.js).</summary>
+    public JsonNode? SettingDefs { get; set; }
+    SettingsForm? settingsWindow;
 
     readonly List<MainForm> windows = [];   // opening order: "next window" and the [n] in the title
     readonly List<MainForm> recent = [];    // most recently active first
@@ -56,7 +71,9 @@ sealed class AppHost : ApplicationContext
         // a second for a real DNS lookup of the made-up names to fail, on every start.
         var options = new CoreWebView2EnvironmentOptions(
             "--host-resolver-rules=\"MAP lexpen.example 127.0.0.1, MAP file.lexpen.example 127.0.0.1\"");
-        return environment ??= CoreWebView2Environment.CreateAsync(null, DataDir, options);
+        // The browser's data folder (EBWebView) goes in State\, unless it is still at the top (not moved yet).
+        var parent = Path.GetDirectoryName(DataFolder.StatePath(DataDir, "EBWebView"))!;
+        return environment ??= CoreWebView2Environment.CreateAsync(null, parent, options);
     }
 
     // ---------- Launch ----------
@@ -90,10 +107,10 @@ sealed class AppHost : ApplicationContext
         var w = new MainForm(this, ++lastId, start);
         if (windows.Count == 0)
         {
-            var saved = new Rectangle(Settings.X, Settings.Y, Settings.Width, Settings.Height);
+            var saved = new Rectangle(State.X, State.Y, State.Width, State.Height);
             if (saved.Width > 200 && Screen.AllScreens.Any(s => s.WorkingArea.IntersectsWith(saved)))
-                w.Place(saved, Settings.Maximized);
-            else if (Settings.Maximized)
+                w.Place(saved, State.Maximized);
+            else if (State.Maximized)
                 w.Place(null, true);
         }
         else
@@ -145,6 +162,7 @@ sealed class AppHost : ApplicationContext
         foreach (var other in windows) other.UpdateRole();   // the [n] numbers shift
         if (windows.Count == 0)
         {
+            settingsWindow?.Close();
             Drafts.Flush();
             ExitThread();
         }
@@ -235,12 +253,14 @@ sealed class AppHost : ApplicationContext
 
     // ---------- Tabs between windows ----------
 
-    /// <summary><paramref name="target"/>: "next", "new" or a window id.</summary>
+    /// <summary><paramref name="target"/>: "next", "new", "primary" or a window id.</summary>
     public void MoveTab(MainForm from, JsonNode target, JsonNode tab, int? pane, string? transfer, Point? at)
     {
         MainForm to;
         if (target.GetValueKind() == JsonValueKind.Number)
             to = Find(target.GetValue<int>()) ?? throw new InvalidOperationException("That window is closed.");
+        else if (target.GetValue<string>() == "primary" && primary is not null && primary != from)
+            to = primary;
         else if (target.GetValue<string>() == "next" && windows.Count > 1)
             to = windows[(windows.IndexOf(from) + 1) % windows.Count];
         else
@@ -253,26 +273,114 @@ sealed class AppHost : ApplicationContext
 
     // ---------- Theme, settings, session ----------
 
-    public void SetTheme(string theme, MainForm from)
+    // ---------- Settings, shared by all windows ----------
+
+    /// <summary>One setting changed (settings window, a menu, a key): written to your settings.json, then every
+    /// window and the settings window get the new set at once.</summary>
+    public void SetSetting(string name, JsonNode? value)
     {
-        if (theme == Settings.Theme) return;
-        Settings.Theme = theme;
+        SettingsFile.Write(DataDir, name, value);
+        ReloadSettings();
+    }
+
+    // Also after a hand edit of the file (see WatchSettings).
+    void ReloadSettings()
+    {
+        var before = Theme;
+        settings = SettingsFile.Load(DataDir);
         foreach (var w in windows)
         {
-            w.ApplyTheme();
-            if (w != from) w.Post(new JsonObject { ["event"] = "theme", ["theme"] = theme });
+            if (Theme != before) w.ApplyTheme();
+            w.Post(new JsonObject { ["event"] = "settings", ["settings"] = settings.DeepClone() });
         }
-        SaveSettings();
+        if (Theme != before) settingsWindow?.ApplyTheme();
+        settingsWindow?.Post(new JsonObject { ["event"] = "settings", ["settings"] = settings.DeepClone() });
     }
+
+    /// <summary>The settings a page kept in its own storage before settings.json existed, moved over once.</summary>
+    public bool PageSettingsMoved => File.Exists(PageSettingsMovedPath);
+
+    public void ImportPageSettings(JsonObject values)
+    {
+        if (PageSettingsMoved) return;
+        foreach (var (name, value) in values)
+            try { SettingsFile.Write(DataDir, name, value?.DeepClone()); }
+            catch (ArgumentException) { }   // not a setting (any more): skipped
+        File.WriteAllText(PageSettingsMovedPath, "");
+        ReloadSettings();
+    }
+
+    // Your settings.json changed on disk (a hand edit, another LexPen copy): read again, every window follows.
+    FileSystemWatcher? settingsWatcher;
+    readonly System.Windows.Forms.Timer settingsTimer = new() { Interval = 200 };
+    string? settingsText;
+
+    public void WatchSettings()
+    {
+        if (settingsWatcher is not null) return;
+        Directory.CreateDirectory(DataDir);
+        settingsText = ReadOrNull(Path.Combine(DataDir, SettingsFile.Name));
+        settingsWatcher = new FileSystemWatcher(DataDir, SettingsFile.Name)
+        {
+            NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.Size,
+        };
+        void Changed() => windows.FirstOrDefault(w => !w.IsDisposed)?.BeginInvoke(() =>
+        {
+            settingsTimer.Stop();
+            settingsTimer.Start();
+        });
+        settingsWatcher.Changed += (_, _) => Changed();
+        settingsWatcher.Created += (_, _) => Changed();
+        settingsWatcher.Deleted += (_, _) => Changed();
+        settingsWatcher.Renamed += (_, _) => Changed();
+        settingsTimer.Tick += (_, _) =>
+        {
+            settingsTimer.Stop();
+            var text = ReadOrNull(Path.Combine(DataDir, SettingsFile.Name));
+            if (text == settingsText) return;
+            settingsText = text;
+            ReloadSettings();
+        };
+        settingsWatcher.EnableRaisingEvents = true;
+    }
+
+    static string? ReadOrNull(string path)
+    {
+        try { return File.Exists(path) ? File.ReadAllText(path) : null; }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return null; }
+    }
+
+    /// <summary>Options > Settings: the one settings window, owned by the window it was asked from.</summary>
+    public void OpenSettings(MainForm from)
+    {
+        if (settingsWindow is { IsDisposed: false })
+        {
+            BringToFront(settingsWindow);
+            return;
+        }
+        settingsWindow = new SettingsForm(this, from);
+        settingsWindow.FormClosed += (_, _) => settingsWindow = null;
+        settingsWindow.Show(from);
+    }
+
+    /// <summary>From the settings window: a window of LexPen to work in (the most recently active one).</summary>
+    public MainForm? LastActive => recent.FirstOrDefault(w => !w.IsDisposed);
 
     public void SaveBounds(Rectangle bounds, bool maximized)
     {
-        (Settings.X, Settings.Y, Settings.Width, Settings.Height) = (bounds.X, bounds.Y, bounds.Width, bounds.Height);
-        Settings.Maximized = maximized;
-        SaveSettings();
+        (State.X, State.Y, State.Width, State.Height) = (bounds.X, bounds.Y, bounds.Width, bounds.Height);
+        State.Maximized = maximized;
+        SaveState();
     }
 
-    // ---------- Recent lists (the Open menu), shared by all windows ----------
+    /// <summary>A clipboard was chosen or filled: every window shows it (bottom bar, clipboard list).</summary>
+    public void ClipboardsChanged()
+    {
+        var state = Clipboards.State();
+        foreach (var w in windows) w.Post(new JsonObject { ["event"] = "clipboards", ["state"] = state.DeepClone() });
+    }
+
+    // ---------- Recent lists (the File menu), shared by all windows ----------
 
     /// <summary>files | folders | closed, newest first; favourites in the order they were added. Each with
     /// whether it still exists.</summary>
@@ -282,10 +390,10 @@ sealed class AppHost : ApplicationContext
             { ["path"] = p, ["exists"] = folders ? Directory.Exists(p) : File.Exists(p) }).ToArray());
         return new JsonObject
         {
-            ["files"] = Entries(Settings.RecentFiles, false),
-            ["folders"] = Entries(Settings.RecentFolders, true),
-            ["closed"] = Entries(Settings.ClosedFiles, false),
-            ["favourites"] = Entries(Settings.FavouriteFiles, false),
+            ["files"] = Entries(State.RecentFiles, false),
+            ["folders"] = Entries(State.RecentFolders, true),
+            ["closed"] = Entries(State.ClosedFiles, false),
+            ["favourites"] = Entries(favourites, false),
         };
     }
 
@@ -295,35 +403,35 @@ sealed class AppHost : ApplicationContext
         switch (kind)
         {
             case "files":
-                Settings.RecentFiles = RecentList.Push(Settings.RecentFiles, path);
-                Settings.ClosedFiles = RecentList.Remove(Settings.ClosedFiles, path);
+                State.RecentFiles = RecentList.Push(State.RecentFiles, path);
+                State.ClosedFiles = RecentList.Remove(State.ClosedFiles, path);
                 break;
-            case "folders": Settings.RecentFolders = RecentList.Push(Settings.RecentFolders, path); break;
-            case "closed": Settings.ClosedFiles = RecentList.Push(Settings.ClosedFiles, path); break;
+            case "folders": State.RecentFolders = RecentList.Push(State.RecentFolders, path); break;
+            case "closed": State.ClosedFiles = RecentList.Push(State.ClosedFiles, path); break;
             default: throw new ArgumentException($"Unknown list '{kind}'.");
         }
-        SaveSettings();
+        SaveState();
     }
 
     public void RecentRemove(string path)
     {
-        Settings.RecentFiles = RecentList.Remove(Settings.RecentFiles, path);
-        Settings.RecentFolders = RecentList.Remove(Settings.RecentFolders, path);
-        Settings.ClosedFiles = RecentList.Remove(Settings.ClosedFiles, path);
-        SaveSettings();
+        State.RecentFiles = RecentList.Remove(State.RecentFiles, path);
+        State.RecentFolders = RecentList.Remove(State.RecentFolders, path);
+        State.ClosedFiles = RecentList.Remove(State.ClosedFiles, path);
+        SaveState();
     }
 
     // Favourite files: kept until removed, in the order they were added.
     public void FavouriteAdd(string path)
     {
-        Settings.FavouriteFiles = RecentList.Append(Settings.FavouriteFiles, path);
-        SaveSettings();
+        favourites = RecentList.Append(favourites, path);
+        SaveFavourites();
     }
 
     public void FavouriteRemove(string path)
     {
-        Settings.FavouriteFiles = RecentList.Remove(Settings.FavouriteFiles, path);
-        SaveSettings();
+        favourites = RecentList.Remove(favourites, path);
+        SaveFavourites();
     }
 
     // ---------- Tab colours, shared by all windows ----------
@@ -361,21 +469,34 @@ sealed class AppHost : ApplicationContext
         return TabColourFile.Read(DataDir);
     }
 
-    void SaveSettings()
+    void SaveState()
     {
-        Directory.CreateDirectory(DataDir);
-        File.WriteAllText(SettingsPath, JsonSerializer.Serialize(Settings));
+        Directory.CreateDirectory(Path.GetDirectoryName(StatePath)!);
+        File.WriteAllText(StatePath, JsonSerializer.Serialize(State));
     }
 
-    static AppSettings LoadSettings()
+    static AppState LoadState()
     {
-        try { return JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(SettingsPath)) ?? new(); }
+        try { return JsonSerializer.Deserialize<AppState>(File.ReadAllText(StatePath)) ?? new(); }
         catch { return new(); }
+    }
+
+    // Favourite files: a choice you make, so a file next to settings.json (a list of paths).
+    void SaveFavourites()
+    {
+        Directory.CreateDirectory(DataDir);
+        File.WriteAllText(FavouritesPath, JsonSerializer.Serialize(favourites));
+    }
+
+    static List<string> LoadFavourites()
+    {
+        try { return JsonSerializer.Deserialize<List<string>>(File.ReadAllText(FavouritesPath)) ?? []; }
+        catch { return []; }
     }
 
     public void SaveSession(JsonNode data)
     {
-        Directory.CreateDirectory(DataDir);
+        Directory.CreateDirectory(Path.GetDirectoryName(SessionPath)!);
         File.WriteAllText(SessionPath, data.ToJsonString());
     }
 

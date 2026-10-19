@@ -10,96 +10,8 @@ const CODE_LANG = {
 // The highlight.js language for a file; undefined for markdown (and a draft, which has no file yet).
 const codeLang = path =>
   !path || MARKDOWN_FILE.test(path) ? undefined : CODE_LANG[path.match(/\.([^.\\]+)$/)?.[1].toLowerCase()] ?? 'plaintext';
-// All shortcuts, by group: shown in the help window (F1) and on the welcome page.
-// Keys are written as "Ctrl+Shift+T"; each part becomes a <kbd>.
-const SHORTCUTS = [
-  ['Files', [
-    ['Ctrl+O', 'Open file'],
-    ['Ctrl+Shift+O', 'Open folder'],
-    ['Ctrl+N', 'New file (kept as a draft until saved)'],
-    ['Ctrl+S', 'Save'],
-    ['Ctrl+Shift+S', 'Save as'],
-    ['Ctrl+P', 'Print / save as PDF'],
-  ]],
-  ['Tabs and panes', [
-    ['Ctrl+W / Ctrl+F4', 'Close tab (also middle-click the tab)'],
-    ['Ctrl+Shift+T', 'Reopen the last closed tab (also right-click an empty spot of the tab bar)'],
-    ['Ctrl+Tab', 'Next tab'],
-    ['Ctrl+Shift+Tab', 'Previous tab'],
-    ['Click', 'A file in the tree: show it in the current tab'],
-    ['Shift+click', 'A file in the tree: open it in a new tab'],
-    ['Ctrl+click', 'A file in the tree: show it in the other pane. A link: open it in a new tab'],
-    ['Ctrl+Shift+click', 'A file in the tree: open it in a new tab in the other pane'],
-    ['Double-click', 'A tab: hide the other pane; with a pane hidden: show it again'],
-    ['Ctrl+Shift+L', 'Scroll both panes together'],
-    ['Alt+Left', 'Back to the tab (and file) shown before, like a browser (also the mouse back button)'],
-    ['Alt+Right', 'Forward again (also the mouse forward button)'],
-  ]],
-  ['View', [
-    ['Ctrl+E', 'Toggle read / split view'],
-    ['Ctrl+B', 'Toggle the sidebar (in the editor: bold)'],
-    ['Ctrl+T', 'Day / night theme'],
-    ['Ctrl+Shift+H', 'Outline (headings) at the right of each pane; click one to go there'],
-    ['Ctrl+plus', 'Zoom the preview in (also Ctrl+mouse wheel)'],
-    ['Ctrl+minus', 'Zoom the preview out'],
-    ['Click', 'The zoom level at the top right: preview at 100%'],
-    ['F1', 'This list'],
-  ]],
-  ['Folder pane', [
-    ['Ctrl+Shift+E', 'Go to the folder pane (or click a row)'],
-    ['Up', 'Previous row (Down: next; Home / End: first / last; PgUp / PgDn: a page)'],
-    ['Right', 'Open a folder, or go to its first entry'],
-    ['Left', 'Close a folder, or go to the folder it is in'],
-    ['Enter', 'Show the file in the current tab, or open / close the folder'],
-    ['Shift+Enter', 'Open the file in a new tab'],
-    ['Ctrl+Enter', 'Show the file in the other pane'],
-    ['Ctrl+Shift+Enter', 'Open the file in a new tab in the other pane'],
-    ['Alt+Up', 'Go up a folder (also Backspace, or the .. row)'],
-    ['Esc', 'Back to the document'],
-  ]],
-  ['Search', [
-    ['Ctrl+Shift+F', 'Search in the current file, the open files or the files in the folder'],
-    ['Enter', 'In the search box: search'],
-    ['^p', 'In a search: a line break (CR, LF or CRLF)'],
-    ['^t', 'In a search: a tab'],
-    ['^?', 'In a search: any character'],
-    ['^#', 'In a search: a digit'],
-    ['^$', 'In a search: a letter'],
-    ['^w', 'In a search: spaces or tabs'],
-    ['^^', 'In a search: the ^ itself'],
-  ]],
-  ['Editor', [
-    ['Ctrl+F', 'Find in this pane: in the editor or the preview, wherever you work (the selection is filled in)'],
-    ['F3', 'Find the next match; with an empty or hidden find bar: show it (also Enter in the find box)'],
-    ['Shift+F3', 'Find the previous match (also Shift+Enter in the find box)'],
-    ['Ctrl+H', 'Find and replace (in the editor)'],
-    ['Ctrl+B', 'Bold. With a selection: the selected text (again: not bold). Without: ** ** with the cursor in between'],
-    ['Ctrl+I', 'Italic (works like bold)'],
-    ['Ctrl+Shift+X', 'Strikethrough'],
-    ['Ctrl+`', 'Inline code'],
-    ['Ctrl+K', 'Link; a URL on the clipboard becomes the target'],
-    ['Ctrl+1', 'Heading 1; Ctrl+2 to Ctrl+6: heading 2 to 6. The same level again: plain text'],
-    ['Ctrl+Shift+8', 'Bulleted list (again: off)'],
-    ['Ctrl+Shift+7', 'Numbered list'],
-    ['Ctrl+Shift+9', 'Task list'],
-    ['Ctrl+Shift+.', 'Quote'],
-    ['Ctrl+Shift+`', 'Code block (the cursor lands after the opening ``` for the language)'],
-    ['Shift+Enter', 'Line break as <br> (also inside a table cell)'],
-    ['Tab', 'In a table: next cell (in the last cell: a new row). Elsewhere: indent'],
-    ['Shift+Tab', 'In a table: previous cell. Elsewhere: indent less'],
-    ['Enter', 'At the end of a table row: a new row. On an empty last row: end the table'],
-    ['Ctrl+V', 'Paste; a picture or an image file becomes an image link (copied next to the document when needed)'],
-    ['Ctrl+Shift+V', 'Paste an image file, asking how to link it (also: drop it with Shift held)'],
-    ['Esc', 'Close a menu, hide the "reloaded" banner'],
-  ]],
-];
-
-const kbd = keys => keys.split('+').map(k => `<kbd>${k}</kbd>`).join('<span class="mm-plus">+</span>');
-const shortcutTable = () => SHORTCUTS.map(([group, rows]) =>
-  `<tr><th colspan="2">${group}</th></tr>` + rows.map(([keys, action]) =>
-    `<tr><td>${kbd(keys)}</td><td>${escapeHtml(action)}</td></tr>`).join('')).join('');
-
-const WELCOME = `<h1>LexPen</h1><p>Open a file or a folder to get started. All shortcuts: <kbd>F1</kbd>, or the More menu.</p>`;
+const WELCOME = `<h1>LexPen</h1><p>Open a file or a folder to get started (File menu).</p>
+<p>All commands and their keys: <kbd>F1</kbd>.</p>`;
 // Drag and drop between tabs, panes and windows.
 const TAB_TYPE = 'application/x-lexpen-tab';
 const PATH_TYPE = 'application/x-lexpen-path';
@@ -109,7 +21,7 @@ const ui = {
   tree: $('.mm-tree'), treeTitle: $('.mm-tree-title'), docName: $('.mm-doc-name'),
   panes: $('.mm-panes'), divider: $('.mm-divider'), sync: $('.mm-sync'),
   splitter: $('.mm-splitter'), toast: $('.mm-toast'), sort: $('.mm-sort'),
-  menu: $('.mm-more-menu'), openMenu: $('.mm-open-menu'), about: $('.mm-about-dialog'), aboutBody: $('.mm-about-body'), help: $('.mm-help'),
+  about: $('.mm-about-dialog'), aboutBody: $('.mm-about-body'),
   treeMenu: $('.mm-tree-menu'), tabMenu: $('.mm-tab-menu'), stripMenu: $('.mm-strip-menu'),
   paneMenu: $('.mm-pane-menu'), dividerMenu: $('.mm-divider-menu'),
 };
@@ -155,6 +67,34 @@ const hostFiles = (files, op = 'droppedFiles', args = {}) =>
   track(call(op, args, msg => chrome.webview.postMessageWithAdditionalObjects(msg, files)));
 
 const events = {};   // host -> page, by name; filled further down
+
+// ---------- Settings (settings.json, see SettingsFile.cs) ----------
+// Every window holds the merged set (the defaults with your settings.json on top). A change goes to the host,
+// which writes your file and sends the new set to every window (events.settings), this one included; the
+// settings window (settings.html) and a hand edit of the file arrive the same way.
+const settings = { values: {}, defaults: {}, user: [] };
+const setting = name => settings.values[name];
+
+// A value set here and not yet confirmed by the host wins over a set the host sent meanwhile: two quick
+// changes would otherwise flicker back (the host's set after the first change arrives after the second).
+const unconfirmed = new Map();   // name -> count of writes on their way
+
+function setSetting(name, value) {
+  if (settings.values[name] === value) return;
+  settings.values[name] = value;
+  applySettings();
+  unconfirmed.set(name, (unconfirmed.get(name) ?? 0) + 1);
+  host('settingSet', { name, value }).finally(() => {
+    if (unconfirmed.get(name) > 1) unconfirmed.set(name, unconfirmed.get(name) - 1);
+    else unconfirmed.delete(name);
+  });
+}
+events.settings = ({ settings: s }) => {
+  const mine = Object.fromEntries([...unconfirmed.keys()].map(n => [n, settings.values[n]]));
+  Object.assign(settings, s);
+  Object.assign(settings.values, mine);
+  applySettings();
+};
 chrome.webview.addEventListener('message', e => {
   if (e.data.event) return events[e.data.event]?.(e.data);
   const { id, result, error } = e.data;
@@ -272,9 +212,11 @@ const eolOf = text => text.includes('\r\n') ? '\r\n' : '\n';
 const docName = doc => doc.path ? nameOf(doc.path) : doc.draft;
 const changed = doc => doc.dirty || doc.draftChanged;
 
-function makeDoc({ path = null, draft = null, text = '' }) {
+function makeDoc({ path = null, draft = null, text = '', encoding = 'UTF-8' }) {
   const doc = {
     path, draft, text, eol: eolOf(text), language: codeLang(path),
+    encoding,              // as read from disk (see TextFile.cs); saving writes it back the same way
+    savedText: text,       // as last read or saved: the change markers compare with it (gutter.js)
     cmDoc: null, history: null, savedGeneration: 0,
     dirty: false,          // a file with unsaved edits
     draftChanged: false,   // a draft edited in this session
@@ -282,6 +224,7 @@ function makeDoc({ path = null, draft = null, text = '' }) {
     shared: false,         // other windows show it read-only: send them the text
     disk: 'ok',            // ok | changed | removed: what happened to the file on disk
     editTab: null,         // the tab that may edit it
+    diskReadOnly: false,   // the file has the read-only attribute: every tab of it is read-only
     draftTimer: 0, pushTimer: 0,
     version: 0,            // counts text changes, for the outline cache
   };
@@ -290,8 +233,9 @@ function makeDoc({ path = null, draft = null, text = '' }) {
 }
 
 async function loadDoc(path) {
-  const text = await host('read', { path });
-  const doc = findDoc(path) ?? makeDoc({ path, text });
+  const { text, encoding, readOnly } = await host('read', { path });
+  const doc = findDoc(path) ?? makeDoc({ path, text, encoding });
+  doc.diskReadOnly = readOnly;
   doc.lock = await host('lock', { path });
   unfresh(path);
   syncWatchFiles();
@@ -301,27 +245,33 @@ async function loadDoc(path) {
 // The document is no longer shown in this window.
 function dropDoc(doc, release = true) {
   docs.delete(doc);
+  if (doc.marks) saveBookmarks(doc);
   clearTimeout(doc.pushTimer);
   if (doc.path && release) host('unlock', { path: doc.path });
   syncWatchFiles();
 }
+
+// Markdown opens as the setting says (Options > Settings > Open markdown in); other files in the editor.
+const openMode = doc => doc.language ? 'edit' : ['edit', 'split', 'preview'].includes(setting('openMarkdownIn')) ? setting('openMarkdownIn') : 'edit';
 
 function makeTab(doc, mode) {
   const article = document.createElement('article');
   article.className = 'mm-preview';
   const tab = {
     id: ++lastTabId, doc, article,
-    mode: mode ?? (doc.language ? 'edit' : 'preview'),   // markdown opens to read, other files to edit
+    mode: mode ?? openMode(doc),
     stale: true,         // the preview does not match the text
     cmDoc: null,         // linked CodeMirror Doc, see tabDoc
     previewTop: 0,
     dot: null,           // changed / removed on disk while not looked at
     lines: null,         // source line -> preview position, see lineMap
     renderId: 0,
+    pinned: false,       // closing it alone asks first; closing several leaves it open (tab menu: Pin tab)
+    readOnly: false,     // set by the user (tab menu: Read-only)
   };
   // Images and diagrams change the heights the line map was built from.
   article.addEventListener('load', () => tab.lines = null, true);
-  doc.editTab ??= tab;
+  if (!doc.editTab || doc.editTab.readOnly) doc.editTab = tab;   // a read-only tab hands the editing on
   return tab;
 }
 
@@ -332,17 +282,19 @@ const paneOf = tab => panes.find(p => p.tabs.includes(tab));
 const activeTab = () => panes[state.activePane].active;
 const twoPanes = () => panes[1].tabs.length > 0;
 const bothShown = () => twoPanes() && state.hidden === null;   // two panes, neither hidden
-const editable = tab => tab.doc.lock && tab.doc.editTab === tab;
+const editable = tab => tab.doc.lock && tab.doc.editTab === tab && !tab.readOnly && !tab.doc.diskReadOnly;
 
 function makePane(index) {
   const el = document.createElement('section');
   el.className = 'mm-pane';
   el.dataset.mode = 'preview';
   el.innerHTML = '<div class="mm-tabs-row"><div class="mm-tabs"></div>' +
+    '<button class="mm-tabs-more" title="Tabs out of view" hidden></button>' +
     '<button class="mm-pane-button" title="This pane: hide or close it; show a hidden pane">' +
     '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><path d="M8 2.5v11"/></svg></button></div>' +
     '<div class="mm-find" hidden></div>' +
-    '<div class="mm-body"><div class="mm-editor-pane"></div><div class="mm-preview-pane"></div>' +
+    '<div class="mm-body"><div class="mm-editor-pane"></div>' +
+    '<div class="mm-split" title="Drag: the widths of editor and preview; double-click: half and half"></div><div class="mm-preview-pane"></div>' +
     '<nav class="mm-outline"><div class="mm-outline-edge" title="Drag to resize"></div><div class="mm-outline-list"></div></nav>' +
     '<div class="mm-drop" hidden></div><div class="mm-bar" hidden></div></div>';
   const pane = {
@@ -356,6 +308,10 @@ function makePane(index) {
     if (item) goToLine(pane, +item.dataset.line);
   });
   el.querySelector('.mm-outline-edge').addEventListener('pointerdown', e => resizeOutline(e));
+  el.querySelector('.mm-split').addEventListener('pointerdown', e => resizeSplit(e));
+  el.querySelector('.mm-split').addEventListener('dblclick', () => setSplit(null));
+  el.querySelector('.mm-tabs-more').addEventListener('click', e => showTabsMore(pane, e.currentTarget));
+  el.querySelector('.mm-tabs').addEventListener('scroll', () => updateTabsMore(pane));
   el.querySelector('.mm-pane-button').addEventListener('click', e => {
     const open = ui.paneMenu.hidden;
     hideMenus();
@@ -406,9 +362,12 @@ function makePane(index) {
       menuTab = tab;
       paneItems(ui.tabMenu);
       favouriteItem(ui.tabMenu, tab.doc.path);
+      ui.tabMenu.querySelector('[data-cmd=tabPin]').textContent = tab.pinned ? 'Unpin tab' : 'Pin tab';
+      ui.tabMenu.querySelector('[data-cmd=tabReadOnly]').classList.toggle('mm-on', tab.readOnly || tab.doc.diskReadOnly);
       ui.tabMenu.querySelector('[data-cmd=tabShowInTree]').hidden = !tab.doc.path;
     });
     ui.stripMenu.querySelector('button').disabled = !closedTabs.length;
+    ui.stripMenu.querySelector('[data-cmd=stripCloseAll]').disabled = !pane.tabs.length;
     showMenu(ui.stripMenu, e, () => { menuPane = pane; paneItems(ui.stripMenu); });
   });
   pane.tabsEl.addEventListener('dragstart', e => {
@@ -470,7 +429,7 @@ ui.panes.prepend(panes[0].el);
 ui.panes.append(panes[1].el);
 
 // ---------- Find in a pane ----------
-// Ctrl+F / Ctrl+H / F3 / Shift+F3 search the pane the user works in (find.js, loaded on first use).
+// Find / find next / previous / replace search the pane the user works in (find.js, loaded on first use).
 // They replace CodeMirror's search box and WebView2's own find, which searches the whole window.
 async function findKey(action, pane) {
   pane ??= panes.find(p => !p.el.hidden && p.el.contains(document.activeElement)) ?? panes[state.activePane];
@@ -478,25 +437,13 @@ async function findKey(action, pane) {
   findCommand(pane, action);
 }
 
-const findKeys = pane => ({
-  'Ctrl-F': () => findKey('open', pane), 'Ctrl-H': () => findKey('replace', pane),
-  'F3': () => findKey('next', pane), 'Shift-F3': () => findKey('prev', pane),
-  'Ctrl-G': () => findKey('next', pane), 'Shift-Ctrl-G': () => findKey('prev', pane),
-  'Shift-Ctrl-R': () => findKey('replace', pane),
-  'Shift-Ctrl-F': () => commands.search(),   // CodeMirror's default would open its replace box
-});
-
-function setFindShared(on) {
-  localStorage.findShared = on ? 'on' : 'off';
-  $('.mm-find-shared').classList.toggle('mm-on', on);
-}
-
 // ---------- Editor ----------
 let editorLoaded;
 function loadEditor() {
   loadCss('vendor/editor.css');
   // format.js: the formatting commands and bar; it needs CodeMirror, so it comes second.
-  return editorLoaded ??= loadScript('vendor/editor.js').then(() => loadScript('format.js'));
+  return editorLoaded ??= loadScript('vendor/editor.js').then(() => loadScript('format.js'))
+    .then(() => loadScript('bookmarks.js')).then(() => loadScript('gutter.js'));
 }
 
 const EDITOR_MODES = {
@@ -505,7 +452,7 @@ const EDITOR_MODES = {
 };
 const editorMode = doc => doc.language ? EDITOR_MODES[doc.language] : { name: 'gfm', highlightFormatting: true };
 
-// Markdown keys; in code files the key keeps its default (Ctrl+B then toggles the sidebar).
+// Markdown keys (Enter, Tab in tables); in code files the key keeps its editor default.
 const markdownOnly = run => editor =>
   panes.find(p => p.cm === editor)?.active?.doc.language ? CodeMirror.Pass : run(editor);
 
@@ -539,15 +486,36 @@ async function ensureEditor(pane) {
   pane.cm = CodeMirror(pane.editorEl, {
     value: '',
     lineNumbers: true,
-    lineWrapping: true,
+    lineWrapping: setting('wrap'),
     indentUnit: 2,
     tabSize: 4,
-    extraKeys: { ...formatKeys(), ...findKeys(pane) },
+    extraKeys: formatKeys(),
+    gutters: ['CodeMirror-linenumbers', BM_GUTTER],   // all columns: setupGutter (gutter.js)
   });
-  pane.cm.on('cursorActivity', () => refreshFormatBar(pane));
+  pane.cm.on('gutterClick', (cm, line, gutter) => {
+    if (gutter === BM_GUTTER && pane.active) toggleFreeBookmark(pane, line, 0);
+    if (gutter === GIT_GUTTER && pane.active) showGitChange(pane, line);
+  });
+  // Bookmarks move with the text; a removed line can put two on one line: draw them again. The change
+  // and git markers follow the text too.
+  pane.cm.on('changes', () => {
+    clearTimeout(pane.bookmarkTimer);
+    pane.bookmarkTimer = setTimeout(() => paintBookmarks(pane), 150);
+    scheduleGutter(pane);
+  });
+  pane.cm.on('cursorActivity', () => {
+    updateRelativeNumbers(pane);
+    refreshFormatBar(pane);
+    if (pane.index === state.activePane) updateStatus();
+  });
   pane.cm.on('scroll', () => onEditorScroll(pane));
   pane.cm.on('paste', (cm, e) => onEditorPaste(pane, e));
   pane.cm.on('drop', (cm, e) => onEditorDrop(pane, e));
+  pane.cm.getWrapperElement().addEventListener('wheel', e => {   // Ctrl+wheel: the editor font size
+    if (!e.ctrlKey) return;
+    e.preventDefault();
+    editorSizeBy(e.deltaY < 0 ? 1 : -1);
+  }, { passive: false });
 }
 
 function onDocChange(doc) {
@@ -576,12 +544,15 @@ function onDocChange(doc) {
 }
 
 // Replaces the text with what is on disk (or what another window sent); not an edit.
-function setDocText(doc, text) {
+function setDocText(doc, text, encoding) {
   doc.version++;
-  doc.text = text;
+  doc.text = doc.savedText = text;
+  if (encoding) doc.encoding = encoding;
   doc.eol = eolOf(text);
   if (doc.cmDoc) {
+    const kept = doc.marks && bookmarkList(doc);
     doc.cmDoc.setValue(text);
+    if (kept) reloadBookmarks(doc, kept);
     doc.cmDoc.clearHistory();
     doc.savedGeneration = doc.cmDoc.changeGeneration(true);
   }
@@ -595,12 +566,12 @@ function setDocText(doc, text) {
 }
 
 // Same, keeping the scroll positions and the cursor of the panes that show it.
-async function reloadDoc(doc, text) {
+async function reloadDoc(doc, text, encoding) {
   const keep = panes.filter(p => p.active?.doc === doc).map(p => ({
     p, top: p.previewEl.scrollTop,
     editor: p.cm && p.active.cmDoc && { cursor: p.active.cmDoc.getCursor(), top: p.cm.getScrollInfo().top },
   }));
-  setDocText(doc, text);
+  setDocText(doc, text, encoding);
   for (const { p, top, editor } of keep) {
     p.active.previewTop = top;
     await showActive(p);
@@ -647,6 +618,9 @@ async function renderNow(tab) {
     p.insertAdjacentHTML('beforebegin', `<p class="mm-alert-title">${m[1][0]}${kind.slice(1)}</p>`);
   }
 
+  for (const code of content.querySelectorAll('pre > code'))
+    if (hasLongLine(code.textContent)) code.parentElement.classList.add('mm-long-line');
+
   article.replaceChildren(content);
 
   const formulas = article.querySelectorAll('.tex');
@@ -678,7 +652,7 @@ function welcomeArticle() {
   if (!welcome) {
     welcome = document.createElement('article');
     welcome.className = 'mm-preview';
-    welcome.innerHTML = WELCOME + `<table class="mm-keys">${shortcutTable()}</table>`;
+    welcome.innerHTML = WELCOME;
   }
   return welcome;
 }
@@ -727,6 +701,7 @@ function setActivePane(index) {
   state.activePane = index;
   layout();
   updateChrome();
+  updateStatus();
   saveSession();
 }
 
@@ -751,16 +726,32 @@ function showHiddenPane() {
 
 // Closes the pane's tabs (each asks about unsaved changes, as Ctrl+W). The first pane is the one that
 // always stays, so closing it moves the second pane's tabs into it.
+// Pinned tabs stay: in the main pane they stay where they are, the second pane's go to the main pane
+// (Options > Settings > Move pinned tabs; off, they keep the second pane open).
 async function closePane(index) {
   if (!bothShown()) return;
   await closeTabs([...panes[index].tabs]);
-  if (panes[index].tabs.length) return;   // a tab was kept
+  const kept = panes[index].tabs;
+  if (kept.some(t => !t.pinned)) return;   // kept for its unsaved changes
+  if (index === 1 && kept.length) {
+    if (!setting('movePinned')) return;
+    for (const tab of [...kept]) await intoMainPane(tab);
+  }
   if (index === 0) {
     const active = panes[1].active;
-    for (const tab of [...panes[1].tabs]) await moveToPane(tab, panes[0], panes[0].tabs.length);
-    if (active) await activate(panes[0], active);
+    for (const tab of [...panes[1].tabs]) await intoMainPane(tab);
+    if (active && paneOf(active)) await activate(panes[0], active);
   }
   afterPaneChange();
+}
+
+// To the end of the main pane; a file the main pane already shows is not shown twice.
+async function intoMainPane(tab) {
+  const there = panes[0].tabs.find(t => t.doc === tab.doc);
+  if (!there) return moveToPane(tab, panes[0], panes[0].tabs.length);
+  there.pinned ||= tab.pinned;
+  detachTab(tab);
+  releaseTabDoc(tab);
 }
 
 function afterPaneChange() {
@@ -807,7 +798,14 @@ async function showActive(pane) {
       if (pane.active !== tab) return;
       const doc = tabDoc(tab);
       if (pane.cm.getDoc() !== doc) pane.cm.swapDoc(doc);
-      pane.cm.setOption('mode', editorMode(tab.doc));
+      setupGutter(pane);
+      loadBookmarks(tab.doc).then(() => pane.active === tab && paintBookmarks(pane));
+      if (tab.doc.gitHead === undefined) loadGitHead(tab.doc).then(() => pane.active === tab && paintGit(pane));
+      const mode = editorMode(tab.doc), modeKey = JSON.stringify(mode);
+      if (pane.modeKey !== modeKey) {   // setting the mode re-colours the whole file, even when it is the same
+        pane.modeKey = modeKey;
+        pane.cm.setOption('mode', mode);
+      }
       pane.cm.setOption('readOnly', !editable(tab));
       if (tab.doc.language) pane.editorEl.dataset.lang = tab.doc.language; else delete pane.editorEl.dataset.lang;
       pane.cm.refresh();
@@ -818,6 +816,7 @@ async function showActive(pane) {
   showOutline(pane);
   refreshTabs(pane);
   updateChrome();
+  if (pane.index === state.activePane) updateStatus();
 }
 
 const showAll = () => Promise.all(panes.map(showActive));
@@ -872,6 +871,7 @@ async function activate(pane, tab) {
   if (state.hidden === pane.index) showHiddenPane();   // something sent to the hidden pane brings it back
   if (pane.active && pane.active !== tab) pane.active.previewTop = pane.previewEl.scrollTop;
   pane.active = tab;
+  noteActive(tab);
   if (tab.dot === 'changed') tab.notice = true;   // reloaded while in the background: say so now
   tab.dot = null;
   if (tab.doc.path) unfresh(tab.doc.path);
@@ -895,8 +895,8 @@ function detachTab(tab) {
     pane.active = pane.tabs[Math.min(at, pane.tabs.length - 1)] ?? null;
     if (pane.active) pane.active.dot = null;
   }
-  // The other tab of the document may edit it now.
-  if (tab.doc.editTab === tab) tab.doc.editTab = tabsOf(tab.doc)[0] ?? null;
+  // The other tab of the document may edit it now (unless it is read-only).
+  if (tab.doc.editTab === tab) tab.doc.editTab = tabsOf(tab.doc).find(t => !t.readOnly) ?? tabsOf(tab.doc)[0] ?? null;
   return pane;
 }
 
@@ -925,9 +925,36 @@ const otherPane = () => panes[1 - state.activePane];   // with one pane: the sec
 
 // ---------- Tab strips ----------
 function refreshTabs(only) {
-  for (const pane of only ? [only] : panes)
+  for (const pane of only ? [only] : panes) {
     pane.tabsEl.replaceChildren(...pane.tabs.map(tab => tabElement(pane, tab)));
+    if (setting('tabBar') === 'menu') pane.tabsEl.querySelector('.mm-tab.mm-on')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    updateTabsMore(pane);
+  }
   markTreeActive();
+}
+
+// Tab bar "menu": the tabs not (fully) in view, and the button that lists them (with their number).
+function hiddenTabs(pane) {
+  const box = pane.tabsEl.getBoundingClientRect();
+  return pane.tabs.filter(tab => {
+    const r = pane.tabsEl.querySelector(`[data-tab="${tab.id}"]`)?.getBoundingClientRect();
+    return r && (r.left < box.left - 1 || r.right > box.right + 1);
+  });
+}
+
+function updateTabsMore(pane) {
+  const button = pane.el.querySelector('.mm-tabs-more'), hidden = setting('tabBar') === 'menu' ? hiddenTabs(pane) : [];
+  button.hidden = !hidden.length;
+  button.textContent = hidden.length;
+}
+addEventListener('resize', () => panes.forEach(updateTabsMore));
+
+function showTabsMore(pane, button) {
+  const r = button.getBoundingClientRect();
+  closeMenus();
+  hideMenus();
+  openMenuLevel(hiddenTabs(pane).map(tab => ({ label: docName(tab.doc), plain: true, key: tab.doc.path ? dirOf(tab.doc.path) : '',
+    run: () => activate(pane, tab) })), Math.max(4, r.right - 320), r.bottom + 2, true);
 }
 
 function tabElement(pane, tab) {
@@ -938,8 +965,10 @@ function tabElement(pane, tab) {
   if (dot) el.dataset.dot = dot;
   el.dataset.tab = tab.id;
   el.draggable = true;
-  el.title = (doc.path || `Draft ${doc.draft}, not saved as a file yet`) +
-    (editable(tab) ? '' : doc.lock ? '\nRead-only: edited in the other pane' : '\nRead-only: edited in another window');
+  el.title = (doc.path || `Draft ${doc.draft}, not saved as a file yet`) + (tab.pinned ? '\nPinned: asks before closing' : '') +
+    (editable(tab) ? '' : tab.readOnly ? '\nRead-only (set by you)' : doc.diskReadOnly ? '\nRead-only file on disk'
+      : doc.lock ? '\nRead-only: edited in the other pane' : '\nRead-only: edited in another window');
+  if (tab.pinned) el.classList.add('mm-pinned');
   const rule = applyTabStyle(el, doc, tab === pane.active);
   if (rule) el.title += '\nTab colour: ' + rule;
   const name = document.createElement('span');
@@ -947,10 +976,15 @@ function tabElement(pane, tab) {
   name.textContent = docName(doc);
   const close = document.createElement('button');
   close.className = 'mm-tab-close';
-  close.title = 'Close (Ctrl+W)';
+  close.title = withKey('Close', 'closeTab');
+  if (tab.pinned) el.insertAdjacentHTML('beforeend', PIN_ICON);
   el.append(name, close);
   return el;
 }
+
+// A pinned tab: a pin before the name.
+const PIN_ICON = '<svg class="mm-pin" viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-label="Pinned">' +
+  '<path d="M9.8 1.5l4.7 4.7-1.4 1.4-.7-.7-2.6 2.6.3 3-1.4 1.4-2.9-2.9-3.6 3.6-.7-.7 3.6-3.6-2.9-2.9 1.4-1.4 3 .3 2.6-2.6-.7-.7z"/></svg>';
 
 // ---------- Tab colours ----------
 // Rules from tab-colours.json in the data folder (the host reads it and sends changes; the format is
@@ -1045,8 +1079,9 @@ function updateChrome() {
   ui.docName.textContent = ui.docName.title = doc ? doc.path || `${doc.draft} (draft, not saved as a file yet)` : '';
   // A draft can always be saved as a file.
   document.body.toggleAttribute('data-dirty', !!doc && (doc.dirty || !!doc.draft));
-  for (const button of document.querySelectorAll('.mm-modes button'))
-    button.classList.toggle('mm-on', !!tab && button.dataset.mode === tab.mode);
+  $('.mm-switch-editor').classList.toggle('mm-on', !!tab && tab.mode !== 'preview');
+  $('.mm-switch-preview').classList.toggle('mm-on', !!tab && tab.mode !== 'edit');
+  $('.mm-outline-button').disabled = !!doc?.language;   // the outline lists markdown headings
   markTreeActive();
 }
 
@@ -1059,6 +1094,110 @@ async function setMode(mode) {
   if (mode !== 'preview') pane.cm.focus();
   saveSession();
 }
+
+// Ctrl+E: the preview next to the editor on or off; with the preview alone, the editor comes back.
+function togglePreview() {
+  const tab = activeTab();
+  if (tab) setMode(tab.mode === 'split' ? 'edit' : 'split');
+}
+
+// The Editor and Preview switches: at least one stays on, so switching off the last one switches on the other.
+function setSwitch(part) {
+  const tab = activeTab();
+  if (!tab) return;
+  const editor = tab.mode !== 'preview', preview = tab.mode !== 'edit';
+  const [e, p] = part === 'editor' ? [!editor, preview || editor] : [editor || preview, !preview];
+  setMode(e && p ? 'split' : e ? 'edit' : 'preview');
+}
+
+// ---------- Next document: Ctrl+Tab ----------
+// Recently used order (the default) or tab bar order (Options > Settings > Ctrl+Tab order). In recently
+// used order, holding Ctrl and pressing Tab again goes further back; letting go of Ctrl makes the
+// document reached the most recent one.
+const recentTabs = [];   // tab ids, most recently active first
+let tabWalk = null;      // { list, at } while Ctrl is held
+
+function noteActive(tab) {
+  if (tabWalk) return;
+  const at = recentTabs.indexOf(tab.id);
+  if (at >= 0) recentTabs.splice(at, 1);
+  recentTabs.unshift(tab.id);
+}
+
+function nextDocument(step, held = true) {
+  if (setting('tabOrder') === 'tabs') return cycleTab(step);
+  const tabs = allTabs(), byId = id => tabs.find(t => t.id === id);
+  if (!tabWalk) {
+    const list = [...recentTabs.map(byId).filter(Boolean), ...tabs.filter(t => !recentTabs.includes(t.id))];
+    if (list.length < 2) return;
+    tabWalk = { list, at: 0 };
+  }
+  const { list } = tabWalk;
+  tabWalk.at = (tabWalk.at + step + list.length) % list.length;
+  const tab = list[tabWalk.at];
+  activate(paneOf(tab), tab);
+  if (!held) endTabWalk();
+}
+
+function endTabWalk() {
+  if (!tabWalk) return;
+  const tab = tabWalk.list[tabWalk.at];
+  tabWalk = null;
+  if (paneOf(tab)) noteActive(tab);
+}
+addEventListener('keyup', e => { if (e.key === 'Control') endTabWalk(); });
+addEventListener('blur', endTabWalk);
+
+// ---------- Bottom bar ----------
+// The active pane's file: cursor, insert / overwrite, encoding, line endings, language, a pending chord.
+const statusUi = {
+  chord: $('.mm-st-chord'), pos: $('.mm-st-pos'), ins: $('.mm-st-ins'), enc: $('.mm-st-enc'),
+  eol: $('.mm-st-eol'), lang: $('.mm-st-lang'), clip: $('.mm-st-clip'), alive: $('.mm-st-alive'), long: $('.mm-st-long'),
+};
+
+// The heartbeat at the right of the bottom bar: turned by the page itself, so it stands still exactly
+// while the page is stuck (a CSS animation would keep turning on its own thread).
+const ALIVE = ['-', '\\', '|', '/'];
+let aliveStep = 0;
+setInterval(() => statusUi.alive.textContent = ALIVE[aliveStep = (aliveStep + 1) % ALIVE.length], 250);
+
+function updateStatus() {
+  const pane = panes[state.activePane], tab = pane.active, doc = tab?.doc;
+  const cm = tab && pane.cm && pane.el.dataset.mode !== 'preview' ? pane.cm : null;
+  let pos = '';
+  if (cm) {
+    const head = cm.getCursor('head'), selected = cm.getSelection();
+    pos = `Ln ${head.line + 1}, Col ${head.ch + 1}`;
+    if (selected) {
+      const lines = selected.split('\n').length;
+      pos += ` (${selected.length} selected${lines > 1 ? `, ${lines} lines` : ''})`;
+    }
+  }
+  statusUi.pos.textContent = pos;
+  statusUi.ins.textContent = cm ? (cm.state.overwrite ? 'OVR' : 'INS') : '';
+  statusUi.ins.classList.toggle('mm-on', !!cm?.state.overwrite);
+  statusUi.enc.textContent = doc ? doc.encoding : '';
+  statusUi.eol.textContent = doc ? (doc.eol === '\r\n' ? 'CRLF' : 'LF') : '';
+  statusUi.lang.textContent = doc ? languageTitle(doc) : '';
+  statusUi.long.hidden = !(cm && longLineIn(doc));
+  statusUi.clip.textContent = 'Clip: ' + (clips.active === 0 ? 'Win' : clips.active);
+  statusUi.clip.classList.toggle('mm-on', clips.active !== 0);
+  statusUi.clip.title = clips.active === 0 ? 'The Windows clipboard is active (click: the clipboards)'
+    : `Clipboard ${clips.active} is active: ${clips.previews[clips.active] || '(empty)'} (click: the clipboards)`;
+}
+
+events.clipboards = ({ state }) => {
+  Object.assign(clips, state);
+  updateStatus();
+};
+
+function showChord(stroke) {
+  statusUi.chord.textContent = stroke ? stroke + ', ...' : '';
+}
+
+statusUi.ins.addEventListener('click', () => runAction('overwrite', [], { from: 'bar' }));
+statusUi.clip.addEventListener('mousedown', e => e.preventDefault());   // the focus stays in the editor
+statusUi.clip.addEventListener('click', () => showClipboardList());
 
 // ---------- Opening and closing ----------
 // Opens a file in a tab of the pane, or activates the tab that already shows it there.
@@ -1101,7 +1240,7 @@ async function navigate(tab, path, anchor, restoring) {
   doc.editTab ??= tab;
   tab.stale = true;
   tab.previewTop = 0;
-  tab.mode = doc.language ? 'edit' : 'preview';
+  tab.mode = openMode(doc);
   if (last) dropDoc(old);
   syncWatchFiles();
   noteOpened('files', path);
@@ -1112,9 +1251,15 @@ async function navigate(tab, path, anchor, restoring) {
   return true;
 }
 
-// Returns false when the user kept it. `force`: no questions, the draft stays (moves, "Close" on a removed file).
-async function closeTab(tab, force) {
+// Returns false when the user kept it. `force`: no questions about unsaved changes, the draft stays ("Close"
+// on a removed file). `bulk`: one of several (other tabs, all tabs, a pane): a pinned tab stays, unasked;
+// alone, a pinned tab asks first.
+async function closeTab(tab, force, bulk) {
   const doc = tab.doc, last = tabsOf(doc).length === 1;
+  if (tab.pinned) {
+    if (bulk) return false;
+    if (!await host('confirm', { text: `${docName(doc)} is pinned. Close it anyway?` })) return false;
+  }
   if (last && !force) {
     if (doc.draft) {
       if (docText(doc).trim() && !await host('confirm', { text: `Discard draft ${doc.draft}?` })) return false;
@@ -1158,7 +1303,7 @@ async function newFile() {
   const id = await host('newDraft');
   const doc = makeDoc({ draft: id });
   const pane = panes[state.activePane];
-  const tab = makeTab(doc, 'split');
+  const tab = makeTab(doc, openMode(doc) === 'preview' ? 'split' : openMode(doc));   // a new file is for typing
   insertTab(pane, tab);
   await activate(pane, tab);
   pane.cm?.focus();
@@ -1185,13 +1330,20 @@ async function saveDoc(doc, saveAs) {
     toast('This file is being edited in another window; save it there.');
     return false;
   }
-  await host('write', { path, text: diskText(doc) });
+  // Save as another name turns an ANSI file into UTF-8 (the way out when it cannot hold a character).
+  const encoding = !samePath(path, doc.path) && doc.encoding === 'ANSI' ? 'UTF-8' : doc.encoding;
+  await host('write', { path, text: diskText(doc), encoding, backup: setting('backup') });
+  doc.encoding = encoding;
   if (doc.cmDoc) doc.savedGeneration = doc.cmDoc.changeGeneration(true);
   if (doc.draft) {
     clearTimeout(doc.draftTimer);
     host('draftDelete', { draft: doc.draft });
     doc.draft = null;
     doc.draftChanged = false;
+  }
+  if (!samePath(path, doc.path) && doc.marks) {
+    host('bookmarksSet', { path: doc.path, draft: doc.draft, list: [] }).catch(() => {});
+    saveBookmarks(doc, { path });
   }
   if (!samePath(path, doc.path)) {
     if (doc.path) host('unlock', { path: doc.path });
@@ -1202,7 +1354,11 @@ async function saveDoc(doc, saveAs) {
   }
   doc.dirty = false;
   doc.disk = 'ok';
+  doc.savedText = docText(doc);
   syncWatchFiles();
+  updateStatus();
+  if (doc.marks) saveBookmarks(doc);
+  for (const pane of panes) if (pane.active?.doc === doc && pane.cm) paintGutter(pane);
   for (const tab of tabsOf(doc)) tab.stale = true;
   await showAll();
   saveSession();
@@ -1227,6 +1383,10 @@ function syncWatchFiles() {
 
 events.changed = async ({ tree, git, files, fresh }) => {
   for (const path of fresh) if (!findDoc(path)) freshPaths.add(path.toLowerCase());
+  if (git && typeof loadGitHead === 'function') {
+    for (const doc of docs) if (doc.gitHead !== undefined) await loadGitHead(doc);
+    for (const pane of panes) if (pane.cm && pane.active) paintGit(pane);
+  }
   if (tree || git) await refreshTree();
   else if (fresh.length) markFresh();
   for (const { path, kind } of files) {
@@ -1237,10 +1397,12 @@ events.changed = async ({ tree, git, files, fresh }) => {
 
 async function diskChange(doc, kind, retry = true) {
   const path = doc.path;
-  let text = null;
+  let text = null, encoding;
   if (kind === 'changed') {
     try {
-      text = await host('read', { path });
+      let readOnly;
+      ({ text, encoding, readOnly } = await host('read', { path }));
+      doc.diskReadOnly = readOnly;
     } catch {
       // Still being written: try once more.
       if (retry) setTimeout(() => findDoc(path) === doc && diskChange(doc, kind, false), 500);
@@ -1259,7 +1421,7 @@ async function diskChange(doc, kind, retry = true) {
       tab.dot = 'changed';
       if (paneOf(tab).active === tab) tab.notice = true;
     }
-    await reloadDoc(doc, text);
+    await reloadDoc(doc, text, encoding);
   } else {
     doc.disk = 'changed';
   }
@@ -1297,7 +1459,11 @@ function updateBar(pane) {
 async function onBarClick(pane, e) {
   const action = e.target.closest('[data-bar]')?.dataset.bar, doc = pane.active?.doc;
   if (!action || !doc) return;
-  if (action === 'reload') await reloadDoc(doc, await host('read', { path: doc.path }));
+  if (action === 'reload') {
+    const { text, encoding, readOnly } = await host('read', { path: doc.path });
+    doc.diskReadOnly = readOnly;
+    await reloadDoc(doc, text, encoding);
+  }
   else if (action === 'keep') doc.disk = 'ok';
   else if (action === 'close') { for (const tab of tabsOf(doc)) await closeTab(tab, true); }
   else if (action === 'save') await saveDoc(doc);
@@ -1337,7 +1503,11 @@ events.lock = async ({ path }) => {
   const doc = findDoc(path);
   if (!doc) return;
   doc.lock = true;
-  try { await reloadDoc(doc, await host('read', { path })); }
+  try {
+    const { text, encoding, readOnly } = await host('read', { path });
+    doc.diskReadOnly = readOnly;
+    await reloadDoc(doc, text, encoding);
+  }
   catch { doc.disk = 'removed'; }
   await showAll();
 };
@@ -1496,6 +1666,17 @@ function setTreeCursor(row, scroll = true) {
   if (scroll) row.scrollIntoView({ block: 'nearest' });
 }
 
+// The keys go to the pane's file: the editor, or the preview (arrows scroll it).
+function focusPane(pane) {
+  if (pane.cm && pane.el.dataset.mode !== 'preview') pane.cm.focus(); else pane.previewEl.focus();
+}
+
+// The clicked Save button hides itself once saved, which would leave the focus nowhere: back to the file.
+function refocus() {
+  const el = document.activeElement;
+  if (el === document.body || el?.matches('.mm-save')) focusPane(panes[state.activePane]);
+}
+
 function focusTree() {
   setSidebar(true);
   setSideView('folder');
@@ -1541,11 +1722,7 @@ ui.tree.addEventListener('keydown', async e => {
       }
       break;
     case 'Backspace': await goUp(); break;
-    case 'Escape': {
-      const pane = panes[state.activePane];
-      if (pane.cm && pane.el.dataset.mode !== 'preview') pane.cm.focus(); else pane.previewEl.focus();
-      break;
-    }
+    case 'Escape': focusPane(panes[state.activePane]); break;
     default: handled = false;
   }
   if (handled) {
@@ -1760,7 +1937,7 @@ function onEditorDrop(pane, e) {
   insertImages(pane, files, path ? [path] : [], e.shiftKey);
 }
 
-async function insertImages(pane, files, paths, ask) {
+async function insertImages(pane, files, paths, ask, picture = null) {
   const tab = pane.active, doc = tab?.doc;
   if (!tab || !editable(tab)) return toast('This tab is read-only.');
   if (doc.language) return toast('Images can only be added to markdown files.');
@@ -1770,7 +1947,7 @@ async function insertImages(pane, files, paths, ask) {
   }
   // Files with a path are linked or copied by the host; a picture from the clipboard has no path
   // and goes over as PNG data.
-  let png = null;
+  let png = picture;
   for (const file of files) {
     // WebView2 refuses to pass on a File that is not on disk: that is a picture.
     const path = await hostFiles([file]).then(found => found[0]?.path, () => '');
@@ -1802,16 +1979,18 @@ async function pngData(file) {
 // Moves the tab to another window: 'next', 'new' or a window id. Text, unsaved changes and undo
 // history go along. A file that is also in the other pane stays here; the other window then gets
 // a read-only copy. A draft always moves as a whole.
-async function moveTab(tab, target, { pane, screenX, screenY } = {}) {
+async function moveTab(tab, target, { pane, screenX, screenY, closing } = {}) {
   const doc = tab.doc;
   const whole = !!doc.draft || tabsOf(doc).length === 1;
   if (doc.draftTimer) await writeDraft(doc);
   const source = paneOf(tab);
   const payload = {
-    path: doc.path, draft: doc.draft, text: docText(doc), eol: doc.eol,
+    path: doc.path, draft: doc.draft, text: docText(doc), eol: doc.eol, encoding: doc.encoding,
     dirty: whole && doc.dirty, draftChanged: doc.draftChanged,
     history: whole && doc.cmDoc ? doc.cmDoc.getHistory() : null,
     mode: tab.mode, top: source.active === tab ? source.previewEl.scrollTop : tab.previewTop,
+    bookmarks: doc.marks ? bookmarkList(doc) : doc.bmList ?? null,
+    pinned: tab.pinned, readOnly: tab.readOnly,
   };
   await host('moveTab', {
     target, tab: payload, pane: pane ?? null,
@@ -1829,7 +2008,7 @@ async function moveTab(tab, target, { pane, screenX, screenY } = {}) {
   await showAll();
   saveSession();
   // A secondary window without tabs has done its job.
-  if (!state.primary && !allTabs().length) host('exit');
+  if (!state.primary && !allTabs().length && !closing) host('exit');
 }
 
 events.giveTab = ({ tab, to, pane }) => {
@@ -1841,12 +2020,17 @@ events.adoptTab = async ({ tab: p, pane: index }) => {
   const pane = panes[index ?? state.activePane] ?? panes[0];
   if (p.history) await track(loadEditor());
   let doc = p.path ? findDoc(p.path) : findDraft(p.draft);
-  if (!doc) doc = makeDoc({ path: p.path, draft: p.draft, text: p.text });
+  if (!doc) doc = makeDoc({ path: p.path, draft: p.draft, text: p.text, encoding: p.encoding });
   if (p.path) doc.lock = await host('lock', { path: p.path });
   // Holding the lock now (moved as a whole): the moved text wins, unsaved edits and undo included.
   if (doc.lock || p.draft) {
     doc.text = p.text;
     doc.eol = p.eol;
+    doc.encoding = p.encoding;
+    doc.savedText = p.dirty ? undefined : p.text;   // with unsaved edits the saved text is not known here
+    if (p.bookmarks) {
+      if (doc.marks) setMarks(doc, p.bookmarks); else doc.bmList = p.bookmarks;
+    }
     doc.dirty = !!p.dirty;
     doc.draftChanged = !!p.draftChanged;
     if (doc.cmDoc) {
@@ -1861,6 +2045,9 @@ events.adoptTab = async ({ tab: p, pane: index }) => {
     insertTab(pane, tab);
   }
   tab.previewTop = p.top;
+  tab.pinned ||= !!p.pinned;
+  tab.readOnly ||= !!p.readOnly;
+  if (p.path && doc.lock) doc.diskReadOnly = (await host('read', { path: p.path }).catch(() => ({}))).readOnly ?? false;
   for (const t of tabsOf(doc)) t.stale = true;
   syncWatchFiles();
   await activate(pane, tab);
@@ -2045,18 +2232,80 @@ function startSearch() {
 // One level for all previews (the editor keeps its size), in steps of 10%, kept across restarts.
 const ZOOM_MIN = 0.5, ZOOM_MAX = 3;
 
-function setZoom(zoom) {
-  zoom = Math.round(Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoom)) * 10) / 10;
+const setZoom = zoom => setSetting('zoom', Math.round(Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoom)) * 10) / 10);
+
+function applyZoom(zoom) {
   // Keep each pane at the line it shows.
   const at = panes.map(p => p.active && p.el.dataset.mode !== 'edit' ? previewLine(p) : null);
   document.body.style.setProperty('--zoom', zoom);
   document.body.toggleAttribute('data-zoomed', zoom !== 1);
   $('.mm-zoom').textContent = Math.round(zoom * 100) + '%';
-  localStorage.zoom = zoom;
   for (const tab of allTabs()) tab.lines = null;
   panes.forEach((p, i) => at[i] !== null && setPreviewLine(p, at[i]));
 }
-const zoomBy = step => setZoom((+localStorage.zoom || 1) + step / 10);
+const zoomBy = step => setZoom(setting('zoom') + step / 10);
+
+// ---------- Fonts (Options > Settings > Fonts) ----------
+// The editor font and the app font, each with a size in points (as Windows shows them). Not chosen:
+// Consolas 14 px in the editor, Segoe UI 13 px for the app. The editor also has a line height (times
+// the font size). The app's smaller texts scale along (--ui-scale in app.css). Settings in settings.json
+// (0 or "": the default), so every window follows a change.
+const EDITOR_FONT = 'Consolas, "Cascadia Mono", monospace', APP_FONT = '"Segoe UI", system-ui, sans-serif';
+const EDITOR_PX = 14, APP_PX = 13, FONT_SIZES = [8, 9, 10, 11, 12, 13, 14, 16, 18, 20, 24];
+const FONT_SETTINGS = ['editorFont', 'editorSize', 'editorLine', 'appFont', 'appSize', 'statusFont', 'statusSize'];
+const EDITOR_LINE = 1.3, LINE_HEIGHTS = [1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.8, 2];   // editorLine: times the font size
+const ptOf = px => px * 72 / 96, pxOf = pt => pt * 96 / 72;
+
+const fontSetting = name => setting(name);
+const setFontSetting = (name, value) => setSetting(name, value || settings.defaults[name]);
+
+function applyFonts() {
+  const font = (name, rest) => name ? `"${name.replace(/["\\]/g, '')}", ${rest}` : rest;
+  const root = document.documentElement.style;
+  root.setProperty('--editor-font', font(fontSetting('editorFont'), EDITOR_FONT));
+  root.setProperty('--editor-size', (fontSetting('editorSize') ? pxOf(fontSetting('editorSize')) : EDITOR_PX) + 'px');
+  root.setProperty('--editor-line', fontSetting('editorLine') || EDITOR_LINE);
+  root.setProperty('--app-font', font(fontSetting('appFont'), APP_FONT));
+  root.setProperty('--ui-scale', fontSetting('appSize') ? pxOf(fontSetting('appSize')) / APP_PX : 1);
+  // The bottom bar: its own font and size, else the app's (app.css).
+  if (fontSetting('statusFont')) root.setProperty('--status-font', font(fontSetting('statusFont'), APP_FONT));
+  else root.removeProperty('--status-font');
+  if (fontSetting('statusSize')) root.setProperty('--status-size', pxOf(fontSetting('statusSize')) + 'px');
+  else root.removeProperty('--status-size');
+  relayout();
+}
+
+// ---------- Wrap long lines (View menu, Alt+Z) ----------
+// The editor and the code in the preview (code files and fenced blocks). Off, a line longer than
+// LONG_LINE characters is still wrapped in the preview: one long coloured line takes the browser seconds
+// to find what is under the mouse (measured on a 241,477-character JSON line), wrapped it does not.
+const LONG_LINE = 10000;   // also where the editor stops colouring a line (CodeMirror's maxHighlightLength)
+
+const setWrap = on => setSetting('wrap', on);
+
+function applyWrap(on) {
+  document.body.toggleAttribute('data-nowrap', !on);
+  for (const pane of panes) pane.cm?.setOption('lineWrapping', on);
+  relayout();
+}
+
+// Per file, checked again only when the text changed (the bottom bar asks on every cursor move).
+function longLineIn(doc) {
+  if (doc.longLineVersion !== doc.version) {
+    doc.longLineVersion = doc.version;
+    doc.longLine = hasLongLine(docText(doc));
+  }
+  return doc.longLine;
+}
+
+const hasLongLine = text => text.length > LONG_LINE && text.split('\n').some(line => line.length > LONG_LINE);
+
+// Ctrl+mouse wheel and the zoom keys in the editor: a point bigger or smaller, from 6 to 48.
+function editorSizeBy(step) {
+  const pt = fontSetting('editorSize') || ptOf(EDITOR_PX);
+  setFontSetting('editorSize', Math.max(6, Math.min(48, step > 0 ? Math.floor(pt) + 1 : Math.ceil(pt) - 1)));
+  toast(`Editor font ${fontSetting('editorSize')} pt`, true);
+}
 
 // ---------- Outline ----------
 // The headings of each pane's active tab, at its right. Built from the source (markdown-it's parse),
@@ -2156,6 +2405,28 @@ function resizeOutline(e) {
     edge.removeEventListener('pointermove', move);
     localStorage.outlineWidth = document.body.style.getPropertyValue('--outline-w');
     relayout();
+  }, { once: true });
+}
+
+// Editor and preview side by side: the editor's share of the width, 0.1 to 0.9 (half and half when not
+// set). One value for all panes, kept across restarts.
+function setSplit(share) {
+  if (share) localStorage.editShare = share;
+  else delete localStorage.editShare;
+  document.body.style.setProperty('--edit-share', share || 0.5);
+  relayout();
+}
+
+function resizeSplit(e) {
+  const edge = e.target;
+  edge.setPointerCapture(e.pointerId);
+  const box = edge.parentElement.getBoundingClientRect();
+  const share = ev => Math.round(Math.max(0.1, Math.min(0.9, (ev.clientX - box.left) / box.width)) * 1000) / 1000;
+  const move = ev => document.body.style.setProperty('--edit-share', share(ev));
+  edge.addEventListener('pointermove', move);
+  edge.addEventListener('pointerup', ev => {
+    edge.removeEventListener('pointermove', move);
+    setSplit(share(ev));
   }, { once: true });
 }
 
@@ -2302,6 +2573,7 @@ function sessionData() {
       tabs: pane.tabs.map(tab => ({
         path: tab.doc.path, draft: tab.doc.draft, mode: tab.mode,
         top: pane.active === tab && !pane.el.hidden ? pane.previewEl.scrollTop : tab.previewTop,
+        ...(tab.pinned && { pinned: true }), ...(tab.readOnly && { readOnly: true }),
       })),
     })),
   };
@@ -2332,6 +2604,8 @@ async function restore(session, drafts) {
       // A draft is still new: it opens to edit.
       const tab = makeTab(doc, doc.draft ? (t.mode === 'edit' ? 'edit' : 'split') : t.mode);
       tab.previewTop = t.top || 0;
+      tab.pinned = !!t.pinned;
+      tab.readOnly = !!t.readOnly;
       pane.tabs.push(tab);
     }
     pane.active = pane.tabs[saved.active] ?? pane.tabs[0] ?? null;
@@ -2349,6 +2623,8 @@ async function restore(session, drafts) {
 // Closing: one prompt for unsaved files and changed drafts, then the host closes the window.
 events.closeRequest = async () => {
   try {
+    if (!state.primary && setting('movePinned'))
+      for (const tab of allTabs().filter(t => t.pinned)) if (paneOf(tab)) await moveTab(tab, 'primary', { closing: true });
     const dirty = [...docs].filter(d => d.path && d.dirty && d.lock);
     const drafts = [...docs].filter(d => d.draft && d.draftChanged && docText(d).trim());
     if (dirty.length || drafts.length) {
@@ -2360,6 +2636,7 @@ events.closeRequest = async () => {
       }
     }
     await flushDrafts();
+    await Promise.all([...docs].filter(d => d.marks).map(d => saveBookmarks(d)));
     if (state.primary) await host('session', { data: sessionData() });
     host('closeNow');
   } catch (e) {
@@ -2382,7 +2659,7 @@ function applyTheme(theme) {
   for (const tab of allTabs()) if (tab.article.querySelector('pre.mermaid, svg[id^=mermaid]')) tab.stale = true;
   showAll();   // diagrams carry their own colors
 }
-events.theme = ({ theme }) => applyTheme(theme);
+events.runAction = ({ name }) => runAction(name, [], { from: 'menu' });   // from the settings window
 events.tabColours = ({ text }) => {
   setTabColours(text);
   refreshTabs();
@@ -2418,7 +2695,7 @@ function showMenu(menu, e, remember) {
   menu.style.left = Math.min(e.clientX, innerWidth - menu.offsetWidth - 4) + 'px';
   menu.style.top = Math.min(e.clientY, innerHeight - menu.offsetHeight - 4) + 'px';
 }
-const hideMenus = () => ui.menu.hidden = ui.openMenu.hidden = ui.treeMenu.hidden = ui.tabMenu.hidden = ui.stripMenu.hidden =
+const hideMenus = () => ui.treeMenu.hidden = ui.tabMenu.hidden = ui.stripMenu.hidden =
   ui.paneMenu.hidden = ui.dividerMenu.hidden = true;
 
 // Right-click on a tree row: copy its path, absolute or relative to the open folder.
@@ -2450,30 +2727,100 @@ function setMarkdownOnly(on) {
 
 // Off (the default) follows the spec: a single line break inside a paragraph renders as a space.
 // The formatting bar above the editor (format.js); on unless switched off.
-function setFormatBar(on) {
+function applyFormatBar(on) {
   document.body.toggleAttribute('data-no-format-bar', !on);
-  localStorage.formatBar = on ? 'on' : 'off';
-  $('.mm-format-bar').classList.toggle('mm-on', on);
   for (const pane of panes) pane.cm?.refresh();
 }
 
-function setTabRows(on) {
-  document.body.toggleAttribute('data-tab-rows', on);
-  localStorage.tabRows = on ? 'on' : 'off';
-  $('.mm-tab-rows').classList.toggle('mm-on', on);
+// The tab bar: scroll | menu | rows (the setting tabBar). With "menu", a button at the end of the row lists the
+// tabs out of view.
+function applyTabBar(kind) {
+  document.body.dataset.tabBar = kind;
+  for (const pane of panes) updateTabsMore(pane);
   relayout();
 }
 
 // Closes the tabs one by one, each asking about unsaved changes; a kept one stays open.
 async function closeTabs(tabs) {
-  for (const tab of tabs) if (paneOf(tab)) await closeTab(tab);
+  for (const tab of tabs) if (paneOf(tab)) await closeTab(tab, false, true);
 }
 
-function setLineBreaks(on) {
-  localStorage.lineBreaks = on ? 'on' : 'off';
-  md.set({ breaks: on });
-  $('.mm-line-breaks').classList.toggle('mm-on', on);
+// ---------- Pin and read-only (tab menu) ----------
+function togglePin(tab) {
+  tab.pinned = !tab.pinned;
+  refreshTabs();
+  saveSession();
 }
+
+// Read-only on: another tab of the file may edit it; with every tab of it here read-only and another window
+// showing it, that window gets the editing. Off: only when no other tab or window edits it, and the file is
+// not read-only on disk.
+async function setReadOnly(tab, on) {
+  const doc = tab.doc;
+  if (on) {
+    tab.readOnly = true;
+    if (doc.editTab === tab) doc.editTab = tabsOf(doc).find(t => !t.readOnly) ?? tab;
+    if (doc.path && doc.lock && doc.shared && !doc.dirty && tabsOf(doc).every(t => t.readOnly)) {
+      await host('unlock', { path: doc.path });
+      doc.lock = await host('lock', { path: doc.path });   // back in line, after the window that edits it now
+    }
+  } else {
+    if (doc.diskReadOnly) return toast(`${docName(doc)} is read-only on disk.`);
+    if (tabsOf(doc).some(t => t !== tab && editable(t)))
+      return toast(`${docName(doc)} is edited in the other pane; set that one read-only first.`);
+    if (!doc.lock) return toast(`${docName(doc)} is edited in another window; set that one read-only first.`);
+    tab.readOnly = false;
+    doc.editTab = tab;
+  }
+  await showAll();
+  saveSession();
+}
+
+function applyLineBreaks(on) {
+  md.set({ breaks: on });
+}
+
+// Applies the settings that changed since the last time (at start: all of them).
+let appliedSettings = null;
+function applySettings() {
+  const now = settings.values, was = appliedSettings ?? {};
+  appliedSettings = { ...now };
+  const changed = name => !(name in was) || was[name] !== now[name];
+  if (now.theme !== state.theme) applyTheme(now.theme);
+  if (FONT_SETTINGS.some(changed)) applyFonts();
+  if (changed('wrap')) applyWrap(now.wrap);
+  if (changed('tabBar')) applyTabBar(now.tabBar);
+  if (changed('formatBar')) applyFormatBar(now.formatBar);
+  if (changed('zoom')) applyZoom(now.zoom);
+  if (changed('lineBreaks')) {
+    applyLineBreaks(now.lineBreaks);
+    if ('lineBreaks' in was) {
+      welcome = null;
+      for (const tab of allTabs()) if (!tab.doc.language) tab.stale = true;
+      showAll();
+    }
+  }
+  if (Object.keys(now).some(n => (n.startsWith('gutter.') || n === 'lineNumbers' || n === 'lineNumberCount') && changed(n)) && typeof setupGutter === 'function')
+    for (const pane of panes) if (pane.cm && pane.active) setupGutter(pane);
+}
+
+// Settings this page kept in its own storage before settings.json existed: moved there once (the host
+// remembers that it happened), then gone from the page's storage.
+async function movePageSettings() {
+  const ls = localStorage, values = {};
+  const was = (name, on) => { if (ls[name] !== undefined) values[name] = ls[name] === on; };
+  const notOff = name => { if (ls[name] !== undefined) values[name] = ls[name] !== 'off'; };
+  for (const name of ['openMarkdownIn', 'tabOrder', 'editorFont', 'appFont']) if (ls[name]) values[name] = ls[name];
+  for (const name of ['editorSize', 'editorLine', 'appSize', 'zoom']) if (+ls[name]) values[name] = +ls[name];
+  for (const name of ['findShared', 'lineBreaks']) was(name, 'on');
+  if (ls.tabRows === 'on') values.tabBar = 'rows';
+  if (ls['gutter.lineNumbers'] === 'off') values.lineNumbers = 'none';
+  for (const name of ['backup', 'wrap', 'movePinned', 'formatBar', ...GUTTER_NAMES.map(n => 'gutter.' + n)]) notOff(name);
+  await host('settingsImport', { values });
+  for (const name of [...Object.keys(values), 'tabRows', 'gutter.lineNumbers']) delete ls[name];
+  Object.assign(settings, await host('settings'));
+}
+const GUTTER_NAMES = ['bookmarks', 'changes', 'git', 'folds'];
 
 function setSidebar(visible) {
   document.body.dataset.sidebar = localStorage.sidebar = visible ? 'on' : 'off';
@@ -2490,50 +2837,6 @@ ui.splitter.addEventListener('pointerdown', e => {
     relayout();
   }, { once: true });
 });
-
-// ---------- Open menu: recently used ----------
-// The host keeps the lists (settings.json), shared by all windows; an entry that is gone is dimmed.
-async function showOpenMenu() {
-  const lists = await host('recent');
-  for (const sub of ui.openMenu.querySelectorAll('.mm-submenu')) {
-    const list = sub.dataset.list, entries = lists[list];
-    sub.replaceChildren(...entries.map(({ path, exists }) => {
-      const button = document.createElement('button');
-      button.dataset.recent = path;
-      button.dataset.list = list;
-      button.title = exists ? path : path + '\nNo longer exists; click to remove it from the list';
-      if (!exists) button.classList.add('mm-missing');
-      const name = document.createElement('span'), dir = document.createElement('span');
-      name.className = 'mm-recent-name';
-      name.textContent = nameOf(path) || path;
-      dir.className = 'mm-recent-dir';
-      dir.textContent = dirOf(path);
-      button.append(name, dir);
-      return button;
-    }));
-    if (!entries.length) {
-      const none = document.createElement('button');
-      none.disabled = true;
-      none.textContent = '(none)';
-      sub.append(none);
-    }
-    if (list === 'favourites') {
-      favourites = entries.map(e => e.path);
-      for (const button of sub.querySelectorAll('[data-recent]')) {
-        const remove = document.createElement('span');
-        remove.className = 'mm-fav-remove';
-        remove.title = 'Remove from favourites';
-        button.append(remove);
-      }
-      const path = activeDoc()?.path, toggle = document.createElement('button');
-      toggle.dataset.cmd = 'favouriteToggle';
-      toggle.disabled = !path;
-      toggle.textContent = path && isFavourite(path) ? 'Remove current file from favourites' : 'Add current file to favourites';
-      sub.prepend(toggle, document.createElement('hr'));
-    }
-  }
-  ui.openMenu.hidden = false;
-}
 
 // ---------- Favourite files ----------
 // Kept by the host (settings, shared by all windows), in the order they were added.
@@ -2567,15 +2870,6 @@ async function openFavourite(path) {
   if (tab) return activate(paneOf(tab), tab);
   await openFile(path).catch(e => toast(e.message));
 }
-
-// The x of an entry: removed, the menu stays open (and is filled again).
-ui.openMenu.addEventListener('click', async e => {
-  const remove = e.target.closest('.mm-fav-remove');
-  if (!remove) return;
-  e.stopPropagation();
-  await host('favouriteRemove', { path: remove.closest('[data-recent]').dataset.recent });
-  await showOpenMenu();
-}, true);
 
 async function openRecent(list, path, missing) {
   if (missing) {
@@ -2628,18 +2922,12 @@ const commands = {
     setSidebar(true);
   },
   newFile,
-  save: () => activeDoc() && saveDoc(activeDoc()),
-  saveAs: () => activeDoc() && saveDoc(activeDoc(), true),
-  toggleEdit: () => activeTab() && setMode(activeTab().mode === 'preview' ? 'split' : 'preview'),
+  save: () => activeDoc() && saveDoc(activeDoc()).then(refocus),
+  saveAs: () => activeDoc() && saveDoc(activeDoc(), true).then(refocus),
   sidebar: () => setSidebar(document.body.dataset.sidebar === 'off'),
   refresh: refreshTree,
   markdownOnly: () => setMarkdownOnly(document.body.dataset.tree !== 'md'),
-  lineBreaks() {
-    setLineBreaks(localStorage.lineBreaks !== 'on');
-    welcome = null;
-    for (const tab of allTabs()) if (!tab.doc.language) tab.stale = true;
-    showAll();
-  },
+  lineBreaks: () => setSetting('lineBreaks', !setting('lineBreaks')),
   sortDir() {
     localStorage.sortDesc = localStorage.sortDesc === 'on' ? 'off' : 'on';
     showSort();
@@ -2672,11 +2960,14 @@ const commands = {
   tabClose: () => menuTab && closeTab(menuTab),
   tabCloseOthers: () => menuTab && closeTabs(paneOf(menuTab).tabs.filter(t => t !== menuTab)),
   tabCloseRight: () => menuTab && closeTabs(paneOf(menuTab).tabs.slice(paneOf(menuTab).tabs.indexOf(menuTab) + 1)),
-  tabRows: () => setTabRows(localStorage.tabRows !== 'on'),
-  formatBar: () => setFormatBar(localStorage.formatBar === 'off'),
-  findShared: () => setFindShared(localStorage.findShared !== 'on'),
+  tabCloseAll: () => menuTab && closeTabs([...paneOf(menuTab).tabs]),
+  tabPin: () => menuTab && togglePin(menuTab),
+  tabReadOnly: () => menuTab && setReadOnly(menuTab, !menuTab.readOnly),
+  formatBar: () => setSetting('formatBar', !setting('formatBar')),
+  findShared: () => setSetting('findShared', !setting('findShared')),
   reopenTab: () => reopenTab(),
   stripReopen: () => reopenTab(menuPane),
+  stripCloseAll: () => menuPane && closeTabs([...menuPane.tabs]),
   paneHide: () => hidePane(menuPaneIndex),
   paneClose: () => closePane(menuPaneIndex),
   paneHideOther: () => hidePane(1 - menuPaneIndex),
@@ -2693,39 +2984,19 @@ const commands = {
   favouriteToggle: () => toggleFavourite(activeDoc()?.path),
   tabFavourite: () => menuTab && toggleFavourite(menuTab.doc.path),
   treeFavourite: () => toggleFavourite(contextPath),
-  menu: () => ui.menu.hidden = !ui.menu.hidden,
-  openMenu: () => ui.openMenu.hidden ? showOpenMenu() : ui.openMenu.hidden = true,
   about: showAbout,
-  help() {
-    ui.help.querySelector('table').innerHTML = shortcutTable();
-    ui.help.showModal();
-    ui.help.scrollTop = 0;   // the OK button takes the focus and scrolls down
-  },
   exit: () => host('exit'),   // the window still asks about unsaved changes
-  theme() {
-    applyTheme(state.theme === 'dark' ? 'light' : 'dark');
-    host('state', { theme: state.theme });   // the host applies it to every window
-  },
-};
-
-const shortcuts = {
-  'o': 'openFile', 'shift+o': 'openFolder', 'n': 'newFile', 's': 'save', 'shift+s': 'saveAs',
-  'e': 'toggleEdit', 'b': 'sidebar', 't': 'theme', 'w': 'closeTab', 'f4': 'closeTab', 'tab': 'nextTab', 'shift+tab': 'prevTab',
-  'shift+l': 'sync', 'shift+h': 'outline', 'shift+f': 'search', 'shift+e': 'focusTree',
-  '=': 'zoomIn', '+': 'zoomIn', 'shift++': 'zoomIn', 'shift+=': 'zoomIn', '-': 'zoomOut', 'shift+_': 'zoomOut', 'shift+t': 'reopenTab',
+  theme: () => setSetting('theme', state.theme === 'dark' ? 'light' : 'dark'),   // the host tells every window
 };
 
 document.addEventListener('click', e => {
   const button = e.target.closest('button');
   if (button?.classList.contains('mm-sub-title')) return;   // a flyout title: the menu stays open
   // Any other click closes the menus (except the click that opens one).
-  if (button?.dataset.cmd !== 'menu') ui.menu.hidden = true;
-  if (button?.dataset.cmd !== 'openMenu') ui.openMenu.hidden = true;
   ui.treeMenu.hidden = ui.tabMenu.hidden = ui.stripMenu.hidden = ui.dividerMenu.hidden = true;
   if (!button?.classList.contains('mm-pane-button')) ui.paneMenu.hidden = true;   // that one opens it
-  if (button?.dataset.recent) openRecent(button.dataset.list, button.dataset.recent, button.classList.contains('mm-missing'));
-  else if (button?.dataset.cmd) commands[button.dataset.cmd]();
-  else if (button?.dataset.mode) setMode(button.dataset.mode);
+  if (button?.dataset.cmd) commands[button.dataset.cmd]();
+  else if (button?.dataset.action && !button.closest('.mm-format, .mm-dropdown')) runAction(button.dataset.action, [], { from: 'menu' });
 });
 
 // Mouse back / forward buttons.
@@ -2735,48 +3006,37 @@ document.addEventListener('mouseup', e => {
   commands[e.button === 3 ? 'back' : 'forward']();
 });
 
+// The keys themselves are in keys.js (keys.json). Here: what is not an action.
 document.addEventListener('keydown', e => {
   // A reload would throw away unsaved text.
   if (e.key === 'F5' || (e.ctrlKey && e.key.toLowerCase() === 'r')) return e.preventDefault();
-  if (e.key === 'F1') {
-    e.preventDefault();
-    return commands.help();
-  }
   if (e.key === 'Escape') {
     hideMenus();
     dismissNotices();
   }
-  if (!e.defaultPrevented && !e.altKey) {
-    const key = e.key.toLowerCase();
-    const action = e.key === 'F3' ? (e.shiftKey ? 'prev' : 'next')
-      : e.ctrlKey && !e.shiftKey && key === 'f' ? 'open' : e.ctrlKey && !e.shiftKey && key === 'h' ? 'replace' : null;
-    if (action) {
-      e.preventDefault();   // also keeps WebView2's own find away
-      return findKey(action);
-    }
-  }
-  // Alt+Left / Alt+Right, unless the editor used them (it moves to the line start / end).
-  if (e.altKey && !e.ctrlKey && !e.defaultPrevented && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
-    e.preventDefault();
-    return commands[e.key === 'ArrowLeft' ? 'back' : 'forward']();
-  }
-  if (!e.ctrlKey || e.altKey || e.defaultPrevented) return;   // defaultPrevented: the editor used the key
-  const command = shortcuts[(e.shiftKey ? 'shift+' : '') + e.key.toLowerCase()];
-  if (!command) return;
-  e.preventDefault();
-  commands[command]();
 });
+
+// Buttons with data-action get their action's title and key as tooltip; context menu items with
+// data-key-of show the key of that action.
+function showKeys() {
+  for (const el of document.querySelectorAll('.mm-toolbar [data-action]'))
+    el.title = withKey(el.dataset.title || actionTitle(el.dataset.action), el.dataset.keyAction || el.dataset.action);
+  for (const el of document.querySelectorAll('[data-key-of]')) {
+    el.querySelector('.mm-key')?.remove();
+    const key = keyText(el.dataset.keyOf);
+    if (key) el.insertAdjacentHTML('beforeend', `<span class="mm-key">${escapeHtml(key)}</span>`);
+  }
+}
 
 // ---------- Startup ----------
 track((async () => {
+  Object.assign(settings, await host('settings'));
+  if (!settings.pageSettingsMoved) await movePageSettings();
+  applySettings();
   if (localStorage.sidebarWidth) document.body.style.setProperty('--sidebar-w', localStorage.sidebarWidth);
   setMarkdownOnly(localStorage.tree === 'md');
-  setLineBreaks(localStorage.lineBreaks === 'on');
-  setTabRows(localStorage.tabRows === 'on');
-  setFormatBar(localStorage.formatBar !== 'off');
-  setFindShared(localStorage.findShared === 'on');
   setOutline(localStorage.outline === 'on');
-  setZoom(+localStorage.zoom || 1);
+  setSplit(+localStorage.editShare || null);
   setSideView(localStorage.sideView === 'search' ? 'search' : 'folder');
   if (['file', 'open', 'folder'].includes(localStorage.searchScope)) searchUi.scope.value = localStorage.searchScope;
   showSort();
@@ -2784,6 +3044,12 @@ track((async () => {
 
   // The primary window at the first start restores the session; folder and files on the command line come on top.
   const start = await host('init');
+  await loadLanguages();   // first: the keys name their actions
+  setKeys(await host('keys'));
+  host('settingDefs', { defs: settingDefs() });   // the rows of the settings window
+  Object.assign(clips, await host('clipState'));
+  buildMenuBar();
+  showKeys();
   state.win = start.id;
   setRole(start);
   setTabColours(start.tabColours);
@@ -2798,11 +3064,8 @@ track((async () => {
   syncWatch();
   syncWatchFiles();
   await showAll();
-  // The keys act on the file shown last right away: the editor, or the preview (arrows scroll it).
-  const pane = panes[state.activePane];
-  if (pane.active) {
-    if (pane.cm && pane.el.dataset.mode !== 'preview') pane.cm.focus(); else pane.previewEl.focus();
-  }
+  // The keys act on the file shown last right away.
+  if (panes[state.activePane].active) focusPane(panes[state.activePane]);
   started = true;
   if (gitWaiting) loadGitLater(gitWaiting);
   saveSession();

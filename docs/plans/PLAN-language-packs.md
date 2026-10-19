@@ -1,6 +1,8 @@
 # Plan: language packs (more file types, colouring and editor help per language)
 
-Status: plan only, nothing built. Section 8 lists the questions to answer before building.
+Status: plan only, nothing built. Section 8 lists the questions to answer before building. Runs after
+`PLAN-editor-first.md`, which already delivers the keys file and the markdown pack's `actions` part
+(its section 3.9); this plan continues from those.
 
 ## 1. What this is about
 
@@ -19,8 +21,10 @@ and the formatting bar is markdown only. Asked for:
 ## 2. The solution, in brief
 
 A language is a folder: `languages\<name>\` with a `language.json` (file extensions, comment and quote
-characters, brackets, indent rules, colouring rules with reserved words, colours) and a `bar.json`
-(the helper buttons: icon file, tooltip, shortcut, what it inserts), plus the icons. One colouring
+characters, brackets, indent rules, colouring rules with reserved words, colours, and the named actions
+of the language) and a `bar.json` (the helper buttons: icon file, tooltip, which action), plus the icons.
+Keys are not in a pack: one global `keys.json` maps keys to action names (`PLAN-editor-first.md` 3.9),
+so a key means the same in every language and the pack only decides what the action does. One colouring
 definition drives both views: the editor highlights with it while typing, and Read mode renders the
 same definition read-only, so the two never disagree. The language of a tab follows its extension and
 can be changed from a selector in the top bar. Markdown becomes a pack too, keeping its own renderer
@@ -32,7 +36,7 @@ Nothing of this loads when LexPen starts on a markdown file in Read mode.
 ```
 languages\
   csharp\
-    language.json     name, extensions, comments, quotes, brackets, indent, colouring rules, colours
+    language.json     name, extensions, comments, quotes, brackets, indent, colouring rules, colours, actions
     bar.json          helper buttons for this language
     icons\*.svg       the button icons (single colour, follow the theme)
   sql\ ...
@@ -51,20 +55,26 @@ languages\
 | `caseSensitive` | SQL and Pascal are not | keyword matching |
 | `words` | named lists: keywords, types, built-ins, constants | colouring |
 | `rules` | ordered patterns per state (start, in-block-comment, in-string, ...) giving a token type | colouring of everything the lists do not cover: numbers, attributes, preprocessor lines, here-strings |
-| `colors` | per token type, light and dark: `keyword`, `string`, `comment`, `number`, `type`, `function`, `attribute`, `operator`, `meta`, ... | colouring. Optional: without it the app theme's colours apply, so packs look alike by default |
+| `actions` | named actions of this language (`heading1`, `toggleComment`, `codeBlock`, ...), each one of the kinds below, with a `title` (menu text) and a `hint` (one line, for tooltips and F1) | what a key (`keys.json`) or a bar button does in this language; an action a language lacks greys out |
+| `outline` | one or more patterns (regular expressions) that find the entries of the outline, each with a level and the group that holds the name: markdown `^(#{1,6})\s+(.*)` (level from the number of `#`), SQL `^\s*create\s+(or\s+replace\s+)?(procedure|function|view|trigger)\s+([\w.\[\]"]+)` (the name after `create [or replace] procedure|function ...`), Pascal `^\s*(procedure|function|constructor|destructor)\s+([\w.]+)`, C# classes and methods | the outline at the right of a pane (today: markdown headings only; a language without `outline` has its Outline button greyed out) |
+| `colors` | per token type, light and dark: `keyword`, `string`, `comment`, `number`, `type`, `function`, `attribute`, `operator`, `meta`, ... | colouring. Optional: without it the theme's colours apply, so packs look alike by default. With it: keyed by theme name, then by base (`light` / `dark`), see PLAN-themes.md 3.4. Each entry may also set `bold`, `italic`, `underline`, `strikethrough` (styles of the editor font, see executed/PLAN-fonts.md) |
 
-`bar.json`: a list of buttons and separators. Each button: `icon` (file in `icons\`), `title`,
-optional `key` (shortcut), and one action:
+`bar.json`: a list of buttons and separators. Each button: `icon` (file in `icons\`), `title` and the
+name of an action from `actions`. No key: the tooltip shows the key that `keys.json` gives that action.
+
+The action kinds, for the entries in `actions`:
 
 | Action | Example |
 |---|---|
 | `wrap`: text before / after the selection, cursor between when empty | SQL `/* */`, PowerShell `$( )` |
 | `linePrefix`: toggled on every selected line | comment lines with `//` or `--` |
 | `insert`: a snippet with a cursor marker | C# `try { | } catch (Exception ex) { }`, SQL `SELECT | FROM  WHERE ` |
+| `jump`: go to the next / previous line matching a pattern (the key gives the direction) | section moves on Ctrl+PgDn / Ctrl+PgUp: markdown headings, SQL `CREATE PROCEDURE`, Pascal `procedure` / `begin`, C# `{` |
 | `command`: a built-in command by name | `toggleComment`, `indent`, `outdent`, `format` (where a pack offers one), markdown's table commands |
 
-The markdown pack's `bar.json` lists today's bar (bold, headings, lists, table, ...) with `wrap`,
-`linePrefix` and `command`, so the bar code is the same for every language.
+The markdown pack's `actions` hold today's format commands (bold, headings, lists, table, ...) with
+`wrap`, `linePrefix` and `command`, and its `bar.json` lists them, so the bar code is the same for every
+language. The `actions` part already exists when this plan starts (`PLAN-editor-first.md` 3.9).
 
 ## 4. Choosing the language of a file
 
@@ -73,6 +83,11 @@ The markdown pack's `bar.json` lists today's bar (bold, headings, lists, table, 
   re-colours the tab and swaps the bar. The choice is kept per file in the session and in the recent
   lists' data, so the file opens with it next time.
 - Drafts (new files) start as markdown, as now; the selector makes them anything else.
+- How a file opens is a setting per language (asked on 2026-10-19), replacing today's single "Open markdown in":
+  `openIn.<language>` in settings.json (`openIn.markdown`, `openIn.json`, ...): "edit", "split" (editor and
+  preview) or "preview". Defaults: markdown "edit" (today's default), every other language "edit". The settings
+  window shows one row per language under General > Open in; a pack added later gets its row from its name.
+  Today's `openMarkdownIn` becomes `openIn.markdown` (moved over once, as the page's storage was).
 
 ## 5. How it is built
 
@@ -122,7 +137,7 @@ The markdown pack's `bar.json` lists today's bar (bold, headings, lists, table, 
 
 | # | Question | Proposal |
 |---|---|---|
-| Q1 | Which languages, beyond JSON, YAML, PowerShell and C#? Your work suggests Delphi / Pascal (`.pas`, `.dpr`, `.dfm`), SQL, XML (`.csproj`, `.config`, `.xml`), JavaScript / TypeScript; you also named Perl and PostScript | Delphi, SQL, XML, JavaScript first; the rest from the template when needed |
+| Q1 | Which languages, beyond JSON, YAML, PowerShell and C#? Your work suggests Delphi / Pascal (`.pas`, `.dpr`, `.dfm`), SQL, XML (`.csproj`, `.config`, `.xml`), JavaScript / TypeScript; you also named Perl and PostScript, and CMD / TCC batch files (`.bat`, `.cmd`, `.btm`; comments `REM` and `::`) | Delphi, SQL, XML, JavaScript first; the rest from the template when needed |
 | Q2 | Pack file format: JSON is parsed natively; YAML is nicer to edit by hand but needs a parser added | JSON, comments allowed (`//`), so the files can explain themselves |
 | Q3 | Colours per pack, or only token types with the app theme's colours? | Token types, with optional colours per pack (both light and dark) |
 | Q4 | Where packs live: app folder only, or also a user folder that overrides? | Both: shipped packs in the app folder, your own / changed ones in the user folder, so an update does not overwrite them |

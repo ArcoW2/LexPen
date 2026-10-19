@@ -1,0 +1,115 @@
+// LexPen keys: which key runs which action. This is the default set.
+//
+// Your own keys go in keys.json in %LOCALAPPDATA%\LexPen (create it; same layout). It overrides this
+// file key by key, so an update of LexPen does not overwrite your keys. "Ctrl+T": null takes a key away.
+//
+// A key:     "Ctrl+Shift+S". Modifiers Ctrl, Alt, Shift; then a letter, digit, F1-F12, ` - = [ ] \ ; ' . /,
+//            or Tab Enter Esc Space Backspace Ins Del Home End PgUp PgDn Left Right Up Down Num0-Num9
+//            NumPlus NumMinus. Keys are the physical keys of a US keyboard.
+// A chord:   "Ctrl+K, K": the first key, then the second. While it waits, the bottom bar shows the first.
+// An action: its name ("save"), or its name with parameters (["heading", 2]). F1 lists every action
+//            with its name, also the ones without a key.
+// Moves (section, go to bookmark, ...) select when Shift is added to their key, without an entry here.
+{
+  // ---------- Files ----------
+  "Ctrl+S": "save",
+  "Ctrl+Shift+S": "saveAs",
+
+  // ---------- Tabs and documents ----------
+  "Ctrl+Tab": "nextDocument",
+  "Ctrl+Shift+Tab": "previousDocument",
+  "Ctrl+W": "closeTab",
+  "Ctrl+F4": "closeTab",
+  "Ctrl+Shift+T": "reopenTab",
+  "Alt+Z": "wrap",
+  "Alt+Left": "back",
+  "Alt+Right": "forward",
+
+  // ---------- View ----------
+  "Ctrl+E": "togglePreview",
+  "Ctrl+Shift+H": "outline",
+  "Ctrl+Shift+B": "sidebar",
+  "Ctrl+Shift+E": "folders",
+  "Ctrl+Shift+F": "searchInFiles",
+  "Ctrl+=": "zoomIn",
+  "Ctrl+Shift+=": "zoomIn",
+  "Ctrl+NumPlus": "zoomIn",
+  "Ctrl+-": "zoomOut",
+  "Ctrl+NumMinus": "zoomOut",
+  "F1": "commands",
+
+  // ---------- Edit and find ----------
+  "Ctrl+F": "find",
+  "F3": "findNext",
+  "Shift+F3": "findPrevious",
+  "Ctrl+G": "findNext",
+  "Ctrl+Shift+G": "findPrevious",
+  "Ctrl+Shift+R": "replace",
+  "Ctrl+PgDn": ["section", 1],
+  "Ctrl+PgUp": ["section", -1],
+  "Ins": "overwrite",
+
+  // ---------- Clipboards: 0 (Ctrl+Shift+`) is the Windows clipboard, 1 to 9 are LexPen's own ----------
+  "Ctrl+C": "copy",
+  "Ctrl+X": "cut",
+  "Ctrl+V": "paste",
+  "Ctrl+Shift+`": ["clipboardSelect", 0],
+  "Ctrl+Shift+1": ["clipboardSelect", 1],
+  "Ctrl+Shift+2": ["clipboardSelect", 2],
+  "Ctrl+Shift+3": ["clipboardSelect", 3],
+  "Ctrl+Shift+4": ["clipboardSelect", 4],
+  "Ctrl+Shift+5": ["clipboardSelect", 5],
+  "Ctrl+Shift+6": ["clipboardSelect", 6],
+  "Ctrl+Shift+7": ["clipboardSelect", 7],
+  "Ctrl+Shift+8": ["clipboardSelect", 8],
+  "Ctrl+Shift+9": ["clipboardSelect", 9],
+  "Ctrl+Shift+C": "clipboardList",
+
+  // ---------- Bookmarks: Ctrl+1 .. Ctrl+9 for bookmark 1 to 9, and the WordStar / Delphi keys ----------
+  "Ctrl+1, S": ["bookmarkStore", 1], "Ctrl+1, T": ["bookmarkToggle", 1], "Ctrl+1, C": ["bookmarkClear", 1],
+  "Ctrl+1, 1": ["bookmarkGo", 1], "Ctrl+1, Ctrl+1": ["bookmarkGo", 1], "Ctrl+K, 1": ["bookmarkToggle", 1], "Ctrl+Q, 1": ["bookmarkGo", 1],
+  "Ctrl+2, S": ["bookmarkStore", 2], "Ctrl+2, T": ["bookmarkToggle", 2], "Ctrl+2, C": ["bookmarkClear", 2],
+  "Ctrl+2, 2": ["bookmarkGo", 2], "Ctrl+2, Ctrl+2": ["bookmarkGo", 2], "Ctrl+K, 2": ["bookmarkToggle", 2], "Ctrl+Q, 2": ["bookmarkGo", 2],
+  "Ctrl+3, S": ["bookmarkStore", 3], "Ctrl+3, T": ["bookmarkToggle", 3], "Ctrl+3, C": ["bookmarkClear", 3],
+  "Ctrl+3, 3": ["bookmarkGo", 3], "Ctrl+3, Ctrl+3": ["bookmarkGo", 3], "Ctrl+K, 3": ["bookmarkToggle", 3], "Ctrl+Q, 3": ["bookmarkGo", 3],
+  "Ctrl+4, S": ["bookmarkStore", 4], "Ctrl+4, T": ["bookmarkToggle", 4], "Ctrl+4, C": ["bookmarkClear", 4],
+  "Ctrl+4, 4": ["bookmarkGo", 4], "Ctrl+4, Ctrl+4": ["bookmarkGo", 4], "Ctrl+K, 4": ["bookmarkToggle", 4], "Ctrl+Q, 4": ["bookmarkGo", 4],
+  "Ctrl+5, S": ["bookmarkStore", 5], "Ctrl+5, T": ["bookmarkToggle", 5], "Ctrl+5, C": ["bookmarkClear", 5],
+  "Ctrl+5, 5": ["bookmarkGo", 5], "Ctrl+5, Ctrl+5": ["bookmarkGo", 5], "Ctrl+K, 5": ["bookmarkToggle", 5], "Ctrl+Q, 5": ["bookmarkGo", 5],
+  "Ctrl+6, S": ["bookmarkStore", 6], "Ctrl+6, T": ["bookmarkToggle", 6], "Ctrl+6, C": ["bookmarkClear", 6],
+  "Ctrl+6, 6": ["bookmarkGo", 6], "Ctrl+6, Ctrl+6": ["bookmarkGo", 6], "Ctrl+K, 6": ["bookmarkToggle", 6], "Ctrl+Q, 6": ["bookmarkGo", 6],
+  "Ctrl+7, S": ["bookmarkStore", 7], "Ctrl+7, T": ["bookmarkToggle", 7], "Ctrl+7, C": ["bookmarkClear", 7],
+  "Ctrl+7, 7": ["bookmarkGo", 7], "Ctrl+7, Ctrl+7": ["bookmarkGo", 7], "Ctrl+K, 7": ["bookmarkToggle", 7], "Ctrl+Q, 7": ["bookmarkGo", 7],
+  "Ctrl+8, S": ["bookmarkStore", 8], "Ctrl+8, T": ["bookmarkToggle", 8], "Ctrl+8, C": ["bookmarkClear", 8],
+  "Ctrl+8, 8": ["bookmarkGo", 8], "Ctrl+8, Ctrl+8": ["bookmarkGo", 8], "Ctrl+K, 8": ["bookmarkToggle", 8], "Ctrl+Q, 8": ["bookmarkGo", 8],
+  "Ctrl+9, S": ["bookmarkStore", 9], "Ctrl+9, T": ["bookmarkToggle", 9], "Ctrl+9, C": ["bookmarkClear", 9],
+  "Ctrl+9, 9": ["bookmarkGo", 9], "Ctrl+9, Ctrl+9": ["bookmarkGo", 9], "Ctrl+K, 9": ["bookmarkToggle", 9], "Ctrl+Q, 9": ["bookmarkGo", 9],
+  "Ctrl+K, K": "bookmarkToggleFree",
+  "Ctrl+K, N": ["bookmarkNext", 1],
+  "Ctrl+K, P": ["bookmarkNext", -1],
+  "Ctrl+K, L": "bookmarkList",
+
+  // ---------- Format (what they do depends on the language of the file) ----------
+  "Ctrl+/": "toggleComment",
+  "Ctrl+Shift+/": "blockComment",
+  "Ctrl+B": "bold",
+  "Ctrl+I": "italic",
+  "Ctrl+Shift+X": "strikethrough",
+  "Ctrl+`": "inlineCode",
+  "Ctrl+T, L": "link",
+  "Ctrl+T, I": "imageFromClipboard",
+  "Ctrl+H, 1": ["heading", 1],
+  "Ctrl+H, 2": ["heading", 2],
+  "Ctrl+H, 3": ["heading", 3],
+  "Ctrl+H, 4": ["heading", 4],
+  "Ctrl+H, 5": ["heading", 5],
+  "Ctrl+H, 6": ["heading", 6],
+  "Ctrl+H, 0": "paragraph",
+  "Ctrl+P, B": "bulletList",
+  "Ctrl+P, N": "numberList",
+  "Ctrl+P, T": "taskList",
+  "Ctrl+P, Q": "quote",
+  "Ctrl+P, C": "codeBlock",
+  "Ctrl+P, 0": "paragraph",
+  "Ctrl+P, P": "paragraph",
+}

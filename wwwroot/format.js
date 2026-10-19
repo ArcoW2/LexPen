@@ -1,9 +1,11 @@
 'use strict';
-// Formatting commands for the markdown editor, and the formatting bar above it.
+// The editor's commands: markdown formatting, comments and section moves (run by the language actions, see
+// actions.js), and the formatting bar above the editor.
 // Loaded together with the editor (see loadEditor): starting in Read mode loads and runs none of this.
 
 const Pos = CodeMirror.Pos;
 const fmtPane = cm => panes.find(p => p.cm === cm);
+const fmtDoc = cm => fmtPane(cm)?.active?.doc;
 
 // Runs `edit(from, to, empty)` for every selection, last first; it returns the new [from, to].
 // These are kept as bookmarks, so the edits for the other selections move them along. One undo step.
@@ -121,11 +123,20 @@ async function insertLink(cm) {
   });
 }
 
-async function insertImage(cm) {
+async function insertImageFromFile(cm) {
   const pane = fmtPane(cm);
   if (!pane || cm.getOption('readOnly')) return;
   const paths = await host('pickImage');
   if (paths?.length) await insertImages(pane, [], paths, false);
+}
+
+// A picture on the Windows clipboard, or image files copied in Explorer (whatever clipboard is active).
+async function insertImageFromClipboard(cm) {
+  const pane = fmtPane(cm);
+  if (!pane || cm.getOption('readOnly')) return;
+  const found = await host('clipboardImage');
+  if (!found.paths?.length && !found.png) return toast('No picture or image file on the Windows clipboard.');
+  await insertImages(pane, [], found.paths || [], false, found.png);
 }
 
 // ---------- Line commands: headings, lists, quote ----------
@@ -420,56 +431,125 @@ function tableCommand(cm, op) {
   });
 }
 
-// ---------- Keys ----------
-// Markdown only (in code files the keys keep their meaning); nothing happens in a read-only tab.
+// ---------- Comments ----------
+// The language's comment markers: its pack's "comments", else those of its editor mode.
+function commentMarkers(doc) {
+  const own = packs[languageOf(doc)]?.comments;
+  const mode = CodeMirror.getMode(CodeMirror.defaults, editorMode(doc));
+  const line = own ? own.line : mode.lineComment;
+  const block = own ? own.block : mode.blockCommentStart && [mode.blockCommentStart, mode.blockCommentEnd];
+  return { line, block, any: line || block };
+}
+
+const COMMENT_COMMANDS = ['toggleComment', 'blockComment', 'removeBlockComment'];
+
+// Comments the selected lines, or uncomments them (CodeMirror's comment add-on). Without a line comment
+// (markdown, XML) each line goes into a block comment.
+function toggleComment(cm) {
+  const doc = fmtDoc(cm), m = commentMarkers(doc);
+  if (!m.any) return toast(`${languageTitle(doc)} has no comments.`);
+  cm.toggleComment({ lineComment: m.line, blockCommentStart: m.block?.[0], blockCommentEnd: m.block?.[1], indent: true });
+}
+
+// The block comment around the cursor: [start, end] (text index of the markers), or null.
+function enclosingComment(cm, open, close) {
+  const text = cm.getValue(), at = cm.indexFromPos(cm.getCursor('from'));
+  const start = text.lastIndexOf(open, at);
+  if (start < 0) return null;
+  const end = text.indexOf(close, start + open.length);
+  return end < 0 || end + close.length < at ? null : [start, end];   // closed before the cursor: not in it
+}
+
+// Takes the markers of the block comment around the cursor away (with the space next to each). False
+// when the cursor is not in one.
+function removeBlockComment(cm, quiet) {
+  const doc = fmtDoc(cm), block = commentMarkers(doc).block, found = block && enclosingComment(cm, ...block);
+  if (!found) {
+    if (!quiet) toast(block ? 'The cursor is not in a block comment.' : `${languageTitle(doc)} has no block comments.`);
+    return false;
+  }
+  const text = cm.getValue(), [start, end] = found;
+  const closeFrom = text[end - 1] === ' ' ? end - 1 : end, closeTo = end + block[1].length;
+  const openFrom = start, openTo = start + block[0].length + (text[start + block[0].length] === ' ' && start + block[0].length < closeFrom ? 1 : 0);
+  cm.operation(() => {
+    cm.replaceRange('', cm.posFromIndex(closeFrom), cm.posFromIndex(closeTo));
+    cm.replaceRange('', cm.posFromIndex(openFrom), cm.posFromIndex(openTo));
+  });
+  return true;
+}
+
+// Inside a block comment: removes it. Else the selection goes into one (without a selection: an empty
+// one with the cursor in it).
+function blockComment(cm) {
+  const doc = fmtDoc(cm), block = commentMarkers(doc).block;
+  if (!block) return toast(`${languageTitle(doc)} has no block comments.`);
+  if (removeBlockComment(cm, true)) return;
+  const [open, close] = block;
+  eachRange(cm, (from, to) => {
+    const length = cm.indexFromPos(to) - cm.indexFromPos(from);
+    cm.replaceRange(' ' + close, to);
+    cm.replaceRange(open + ' ', from);
+    const a = shift(cm, from, open.length + 1);
+    return [a, shift(cm, a, length)];
+  });
+}
+
+// ---------- Sections ----------
+// To the next (dir 1) or previous (-1) line the language calls a section start (`spec` from its pack:
+// "line" pattern, "after": the line before matches, "token": the editor's token type there). None
+// further: the end or the start of the text. `extend`: select from where the cursor was.
+function jumpTo(cm, spec, dir, extend) {
+  const line = new RegExp(spec.line), after = spec.after && new RegExp(spec.after);
+  const hit = l => line.test(cm.getLine(l)) && (!after || l === 0 || after.test(cm.getLine(l - 1))) &&
+    (!spec.token || (cm.getTokenTypeAt(Pos(l, 1)) || '').split(' ').includes(spec.token));
+  const last = cm.lastLine();
+  let l = cm.getCursor('head').line + dir;
+  while (l >= 0 && l <= last && !hit(l)) l += dir;
+  const to = l < 0 ? Pos(0, 0) : l > last ? Pos(last, cm.getLine(last).length) : Pos(l, 0);
+  if (extend) cm.setSelection(cm.getCursor('anchor'), to); else cm.setCursor(to);
+  cm.scrollIntoView(to, 80);
+}
+
+// ---------- Keys that type ----------
+// Enter and Tab stay editor keys (in a table they move between cells); everything else is an action.
 const mdKey = run => markdownOnly(cm => { if (!cm.getOption('readOnly')) run(cm); });
 
 function formatKeys() {
-  const keys = {
+  return {
     'Enter': markdownOnly(cm => { if (!enterInTable(cm)) cm.execCommand('newlineAndIndentContinueMarkdownList'); }),
     'Shift-Enter': mdKey(cm => cm.replaceSelection('<br>')),
     'Tab': cm => { if (cm.getOption('mode').name !== 'gfm' || !moveCell(cm, 1)) cm.execCommand('indentMore'); },
     'Shift-Tab': cm => { if (cm.getOption('mode').name !== 'gfm' || !moveCell(cm, -1)) cm.execCommand('indentLess'); },
   };
-  for (const [key, name] of Object.entries(FORMAT_KEYS)) keys[key] = mdKey(cm => runFormat(cm, name));
-  return keys;
 }
 
-// CodeMirror key names: Shift comes before Ctrl.
-const FORMAT_KEYS = {
-  'Ctrl-B': 'bold', 'Ctrl-I': 'italic', 'Shift-Ctrl-X': 'strike', 'Ctrl-`': 'code', 'Ctrl-K': 'link',
-  'Ctrl-1': 'h1', 'Ctrl-2': 'h2', 'Ctrl-3': 'h3', 'Ctrl-4': 'h4', 'Ctrl-5': 'h5', 'Ctrl-6': 'h6',
-  'Shift-Ctrl-8': 'bullet', 'Shift-Ctrl-7': 'number', 'Shift-Ctrl-9': 'task', 'Shift-Ctrl-.': 'quote',
-  'Shift-Ctrl-`': 'codeBlock',
-};
-
-const FORMATS = {
+// The commands the language packs name ("command" in an action); parameters come from the key.
+const EDIT_COMMANDS = {
   bold: cm => toggleInline(cm, '**'),
   italic: cm => toggleInline(cm, '*'),
-  strike: cm => toggleInline(cm, '~~'),
-  code: cm => toggleInline(cm, '`'),
+  strikethrough: cm => toggleInline(cm, '~~'),
+  inlineCode: cm => toggleInline(cm, '`'),
   link: insertLink,
-  image: insertImage,
-  h1: cm => setLineKind(cm, 'h1'), h2: cm => setLineKind(cm, 'h2'), h3: cm => setLineKind(cm, 'h3'),
-  h4: cm => setLineKind(cm, 'h4'), h5: cm => setLineKind(cm, 'h5'), h6: cm => setLineKind(cm, 'h6'),
-  plain: cm => setLineKind(cm, ''),
-  bullet: cm => setLineKind(cm, 'bullet'),
-  number: cm => setLineKind(cm, 'number'),
-  task: cm => setLineKind(cm, 'task'),
+  imageFromFile: insertImageFromFile,
+  imageFromClipboard: insertImageFromClipboard,
+  heading: (cm, level) => setLineKind(cm, 'h' + Math.max(1, Math.min(6, level | 0))),
+  paragraph: cm => setLineKind(cm, ''),
+  bulletList: cm => setLineKind(cm, 'bullet'),
+  numberList: cm => setLineKind(cm, 'number'),
+  taskList: cm => setLineKind(cm, 'task'),
   quote: toggleQuote,
   codeBlock: toggleCodeBlock,
   rule: insertRule,
+  table: (cm, cols = 3, rows = 2) => insertTable(cm, cols, rows),
   tableFormat: cm => tableCommand(cm, 'format'),
   tableAddRow: cm => tableCommand(cm, 'addRow'),
   tableAddColumn: cm => tableCommand(cm, 'addColumn'),
   tableDeleteRow: cm => tableCommand(cm, 'deleteRow'),
   tableDeleteColumn: cm => tableCommand(cm, 'deleteColumn'),
+  toggleComment,
+  blockComment,
+  removeBlockComment: cm => { removeBlockComment(cm); },
 };
-
-function runFormat(cm, name) {
-  if (cm.getOption('readOnly')) return;
-  FORMATS[name](cm);
-}
 
 // ---------- The formatting bar ----------
 const svg = body => `<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
@@ -487,43 +567,51 @@ const ICONS = {
   rule: svg('<path d="M2 8h12" stroke-width="2"/><path d="M2 4h12M2 12h12" opacity=".35"/>'),
 };
 
-const button = (name, title, content) => `<button class="mm-fmt" data-fmt="${name}" title="${title}" tabindex="-1">${content}</button>`;
+// A bar button runs an action (with parameters: data-params); its tooltip shows the action's key.
+function button(name, content, params = []) {
+  const title = escapeHtml(withKey(actionTitle(name, params), name, ...params));
+  return `<button class="mm-fmt" data-action="${name}" data-params="${params.join(' ')}" title="${title}" tabindex="-1">${content}</button>`;
+}
+const menuButton = (menu, title, content) =>
+  `<button class="mm-fmt" data-menu-open="${menu}" title="${title}" tabindex="-1">${content}</button>`;
+const menuItem = (name, label, params = [], cls = '') =>
+  `<button data-action="${name}" data-params="${params.join(' ')}" class="mm-fmt-item ${cls}">${label}<span class="mm-key">${keyText(name, ...params)}</span></button>`;
 const GRID_COLS = 8, GRID_ROWS = 6;
 
-const BAR_HTML =
-  button('bold', 'Bold (Ctrl+B)', '<b>B</b>') +
-  button('italic', 'Italic (Ctrl+I)', '<i>I</i>') +
-  button('strike', 'Strikethrough (Ctrl+Shift+X)', '<s>S</s>') +
-  button('code', 'Inline code (Ctrl+`)', ICONS.code) +
+const barHtml = () =>
+  button('bold', '<b>B</b>') +
+  button('italic', '<i>I</i>') +
+  button('strikethrough', '<s>S</s>') +
+  button('inlineCode', ICONS.code) +
   '<span class="mm-fmt-sep"></span>' +
-  `<span class="mm-fmt-wrap">${button('headingMenu', 'Heading (Ctrl+1 to Ctrl+6)', '<span class="mm-fmt-h">H</span>' + CARET)}` +
+  `<span class="mm-fmt-wrap">${menuButton('headingMenu', 'Heading', '<span class="mm-fmt-h">H</span>' + CARET)}` +
   '<div class="mm-menu mm-fmt-menu" data-menu="headingMenu" hidden>' +
-  [1, 2, 3, 4, 5, 6].map(n => `<button data-fmt="h${n}" class="mm-fmt-item mm-fmt-h${n}">Heading ${n}<span class="mm-key">Ctrl+${n}</span></button>`).join('') +
-  '<hr><button data-fmt="plain" class="mm-fmt-item">Plain text</button></div></span>' +
-  button('bullet', 'Bulleted list (Ctrl+Shift+8)', ICONS.bullet) +
-  button('number', 'Numbered list (Ctrl+Shift+7)', ICONS.number) +
-  button('task', 'Task list (Ctrl+Shift+9)', ICONS.task) +
-  button('quote', 'Quote (Ctrl+Shift+.)', ICONS.quote) +
+  [1, 2, 3, 4, 5, 6].map(n => menuItem('heading', 'Heading ' + n, [n], 'mm-fmt-h' + n)).join('') +
+  '<hr>' + menuItem('paragraph', 'Plain paragraph') + '</div></span>' +
+  button('bulletList', ICONS.bullet) +
+  button('numberList', ICONS.number) +
+  button('taskList', ICONS.task) +
+  button('quote', ICONS.quote) +
   '<span class="mm-fmt-sep"></span>' +
-  button('link', 'Link (Ctrl+K; a URL on the clipboard is filled in)', ICONS.link) +
-  button('image', 'Image from a file', ICONS.image) +
-  `<span class="mm-fmt-wrap">${button('tableMenu', 'Table', ICONS.table + CARET)}` +
+  button('link', ICONS.link) +
+  button('imageFromFile', ICONS.image) +
+  `<span class="mm-fmt-wrap">${menuButton('tableMenu', 'Table', ICONS.table + CARET)}` +
   '<div class="mm-menu mm-fmt-menu" data-menu="tableMenu" hidden>' +
   `<div class="mm-fmt-grid" style="--cols:${GRID_COLS}">` +
   Array.from({ length: GRID_COLS * GRID_ROWS }, (_, i) => `<span data-c="${i % GRID_COLS + 1}" data-r="${(i / GRID_COLS | 0) + 1}"></span>`).join('') +
   '</div><div class="mm-fmt-size">Insert a table</div><hr>' +
-  '<button data-fmt="tableFormat" class="mm-fmt-item mm-fmt-in-table">Format table (line up the columns)</button>' +
-  '<button data-fmt="tableAddRow" class="mm-fmt-item mm-fmt-in-table">Add row below</button>' +
-  '<button data-fmt="tableAddColumn" class="mm-fmt-item mm-fmt-in-table">Add column right</button>' +
-  '<button data-fmt="tableDeleteRow" class="mm-fmt-item mm-fmt-in-table">Delete row</button>' +
-  '<button data-fmt="tableDeleteColumn" class="mm-fmt-item mm-fmt-in-table">Delete column</button></div></span>' +
-  button('codeBlock', 'Code block (Ctrl+Shift+`)', ICONS.codeBlock) +
-  button('rule', 'Horizontal rule', ICONS.rule);
+  menuItem('tableFormat', 'Format table (line up the columns)', [], 'mm-fmt-in-table') +
+  menuItem('tableAddRow', 'Add row below', [], 'mm-fmt-in-table') +
+  menuItem('tableAddColumn', 'Add column right', [], 'mm-fmt-in-table') +
+  menuItem('tableDeleteRow', 'Delete row', [], 'mm-fmt-in-table') +
+  menuItem('tableDeleteColumn', 'Delete column', [], 'mm-fmt-in-table') + '</div></span>' +
+  button('codeBlock', ICONS.codeBlock) +
+  button('rule', ICONS.rule);
 
 function makeFormatBar(pane) {
   const bar = document.createElement('div');
   bar.className = 'mm-format';
-  bar.innerHTML = BAR_HTML;
+  bar.innerHTML = barHtml();
   pane.formatBar = bar;
   const menus = [...bar.querySelectorAll('.mm-fmt-menu')];
   const closeMenus = () => { for (const menu of menus) menu.hidden = true; };
@@ -531,8 +619,8 @@ function makeFormatBar(pane) {
   bar.addEventListener('mousedown', e => e.preventDefault());
   bar.addEventListener('click', e => {
     const cell = e.target.closest('.mm-fmt-grid span');
-    const name = cell ? null : e.target.closest('[data-fmt]')?.dataset.fmt;
-    const menu = name && menus.find(m => m.dataset.menu === name);
+    const opener = e.target.closest('[data-menu-open]');
+    const menu = opener && menus.find(m => m.dataset.menu === opener.dataset.menuOpen);
     if (menu) {
       const open = menu.hidden;
       closeMenus();
@@ -542,8 +630,9 @@ function makeFormatBar(pane) {
     }
     closeMenus();
     if (!pane.cm) return;
-    if (cell) insertTable(pane.cm, +cell.dataset.c, +cell.dataset.r);
-    else if (name) runFormat(pane.cm, name);
+    const item = !cell && e.target.closest('[data-action]');
+    if (cell) runAction('table', [+cell.dataset.c, +cell.dataset.r], { from: 'bar' });
+    else if (item) runAction(item.dataset.action, item.dataset.params ? item.dataset.params.split(' ').map(Number) : [], { from: 'bar' });
     pane.cm.focus();
   });
   // The table grid: the hovered size is shown and inserted on a click.
@@ -572,12 +661,12 @@ function refreshFormatBar(pane) {
   const line = parseLine(cm.getLine(pos.line));
   const inTable = !!tableAt(cm, pos.line);
   const on = {
-    bold: /\bstrong\b/.test(type), italic: /\bem\b/.test(type), strike: /\bstrikethrough\b/.test(type),
-    code: /\bcomment\b/.test(type) && !/\bformatting-code-block\b/.test(type),
-    headingMenu: line.kind.startsWith('h'), bullet: line.kind === 'bullet', number: line.kind === 'number',
-    task: line.kind === 'task', quote: !!line.quote, tableMenu: inTable,
+    bold: /\bstrong\b/.test(type), italic: /\bem\b/.test(type), strikethrough: /\bstrikethrough\b/.test(type),
+    inlineCode: /\bcomment\b/.test(type) && !/\bformatting-code-block\b/.test(type),
+    headingMenu: line.kind.startsWith('h'), bulletList: line.kind === 'bullet', numberList: line.kind === 'number',
+    taskList: line.kind === 'task', quote: !!line.quote, tableMenu: inTable,
   };
-  for (const b of bar.querySelectorAll('button.mm-fmt')) b.classList.toggle('mm-on', !!on[b.dataset.fmt]);
+  for (const b of bar.querySelectorAll('button.mm-fmt')) b.classList.toggle('mm-on', !!on[b.dataset.action || b.dataset.menuOpen]);
   bar.querySelector('.mm-fmt-h').textContent = line.kind.startsWith('h') ? 'H' + line.kind[1] : 'H';
   for (const b of bar.querySelectorAll('.mm-fmt-in-table')) b.disabled = !inTable;
   bar.toggleAttribute('data-disabled', !!cm.getOption('readOnly'));

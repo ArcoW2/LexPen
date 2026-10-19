@@ -88,8 +88,7 @@ static class FolderSearch
             var bytes = File.ReadAllBytes(path);
             var utf16 = bytes is [0xFF, 0xFE, ..] or [0xFE, 0xFF, ..];
             if (!utf16 && Array.IndexOf(bytes, (byte)0, 0, Math.Min(bytes.Length, 8000)) >= 0) return null;
-            using var reader = new StreamReader(new MemoryStream(bytes), Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
-            return reader.ReadToEnd();
+            return TextFile.Decode(bytes).Text;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return null; }
     }

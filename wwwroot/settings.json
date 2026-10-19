@@ -1,0 +1,44 @@
+// LexPen's settings with their defaults. Do not change this file: your own settings.json in
+// %LOCALAPPDATA%\LexPen holds only what you changed (Options > Settings writes it; you may edit it by hand,
+// and copy it to another PC). A changed file applies at once in every window.
+{
+  // ---------- General ----------
+  "theme": "light",               // "light" (day) or "dark" (night)
+  "openMarkdownIn": "edit",       // how a markdown file opens: "edit", "split" (editor and preview) or "preview"
+
+  // ---------- Editor ----------
+  "editorFont": "",               // a font name; "" is Consolas
+  "editorSize": 0,                // in points; 0 is 10.5 pt (also Ctrl+mouse wheel in the editor)
+  "editorLine": 0,                // line height, times the font size; 0 is 1.3
+  "wrap": true,                   // wrap long lines (also code in the preview); Alt+Z
+  "lineNumbers": "all",           // the gutter (View > Gutter): line numbers "none", "tens" (a number every 10 lines,
+                                  // a dash at 5, a dot on the other lines) or "all"
+  "lineNumberCount": "absolute",  // "absolute", or "relative" to the cursor line (that line shows its own number)
+  "gutter.bookmarks": true,       // the other gutter columns left of the text
+  "gutter.changes": true,         // lines changed since the last save
+  "gutter.git": true,             // lines changed since the last commit
+  "gutter.folds": true,
+  "formatBar": true,              // the bar with bold, headings, lists, ... above the editor
+
+  // ---------- Preview ----------
+  "lineBreaks": false,            // a single line break starts a new line (off: joins the lines, as on GitHub)
+  "zoom": 1,                      // preview zoom: 1 is 100%, 0.5 to 3
+
+  // ---------- Files ----------
+  "backup": true,                 // saving keeps the old file as name.ext.bak
+
+  // ---------- Tabs ----------
+  "tabOrder": "recent",           // Ctrl+Tab order: "recent" (recently used) or "tabs" (the tab bar)
+  "tabBar": "scroll",             // tabs that do not fit: "scroll" (one row that scrolls), "menu" (one row, a menu
+                                  // lists the tabs out of view) or "rows" (several rows, all tabs visible)
+  "movePinned": true,             // closing a pane or window moves its pinned tabs to the main pane / window
+
+  // ---------- Find ----------
+  "findShared": false,            // one find for both panes (off: each pane its own)
+
+  // ---------- App ----------
+  "appFont": "",                  // menus, tabs, panes, bars and dialogs; "" is Segoe UI
+  "appSize": 0,                   // in points; 0 is 9.75 pt
+  "statusFont": "",               // the bottom bar; "" is the app font
+  "statusSize": 0                 // in points; 0 is the app's size for small texts
+}

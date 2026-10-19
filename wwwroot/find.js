@@ -1,25 +1,25 @@
 'use strict';
 // Find (and replace) inside one pane: the editor or the preview, whichever the user works in.
-// Loaded on the first Ctrl+F / Ctrl+H / F3 (see findKey in app.js), so startup does not pay for it.
+// Loaded on the first find (see findKey in app.js), so startup does not pay for it.
 // Per pane by default; with "One search for both panes" (More menu) both panes share one search.
 
 const newFind = () => ({ query: '', replace: '', case: false, word: false, regex: false });
 const finds = [newFind(), newFind()];
-const findOf = pane => localStorage.findShared === 'on' ? finds[0] : finds[pane.index];
+const findOf = pane => setting('findShared') ? finds[0] : finds[pane.index];
 const FIND_LIMIT = 5000;   // matches counted / highlighted; more is shown as "5000+"
 
 // ---------- The bar ----------
 const chevron = d => `<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`;
 const FIND_HTML =
   '<div class="mm-find-row">' +
-  '<button class="mm-find-toggle" data-find="replaceRow" title="Replace (Ctrl+H; editor only)">' + chevron('M6 4l4 4-4 4') + '</button>' +
+  `<button class="mm-find-toggle" data-find="replaceRow" title="${withKey('Replace (editor only)', 'replace')}">` + chevron('M6 4l4 4-4 4') + '</button>' +
   '<input class="mm-find-input" type="text" spellcheck="false" placeholder="Find" title="Enter / F3: next; Shift+Enter / Shift+F3: previous; Esc: close. Codes as in the file search: ^p line break, ^t tab, ...">' +
   '<span class="mm-find-count"></span>' +
   '<button data-find="case" class="mm-find-opt" title="Match case">Aa</button>' +
   '<button data-find="word" class="mm-find-opt" title="Whole word only">W</button>' +
   '<button data-find="regex" class="mm-find-opt" title="Regular expression (then the ^ codes do not apply)">.*</button>' +
-  '<button data-find="prev" title="Previous (Shift+F3)">' + chevron('M4 10l4-4 4 4') + '</button>' +
-  '<button data-find="next" title="Next (F3)">' + chevron('M4 6l4 4 4-4') + '</button>' +
+  `<button data-find="prev" title="${withKey('Previous', 'findPrevious')}">` + chevron('M4 10l4-4 4 4') + '</button>' +
+  `<button data-find="next" title="${withKey('Next', 'findNext')}">` + chevron('M4 6l4 4 4-4') + '</button>' +
   '<button data-find="close" class="mm-find-close" title="Close (Esc)"></button>' +
   '</div><div class="mm-find-row mm-find-replace" hidden>' +
   '<span class="mm-find-indent"></span>' +
@@ -53,8 +53,8 @@ function findBar(pane) {
       refresh(pane, true);
     } else if (action === 'replaceRow') showReplace(pane, bar.replaceRow.hidden);
     else if (action === 'close') closeFind(pane);
-    else if (action === 'next') go(pane, 1);
-    else if (action === 'prev') go(pane, -1);
+    else if (action === 'next') findGo(pane, 1);
+    else if (action === 'prev') findGo(pane, -1);
     else if (action === 'replaceOne') replaceOne(pane);
     else if (action === 'replaceAll') replaceAll(pane);
   });
@@ -67,7 +67,7 @@ function findBar(pane) {
     if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeFind(pane, true); }
     else if (e.key === 'Enter') {
       e.preventDefault();
-      if (input === bar.with && !e.shiftKey) replaceOne(pane); else go(pane, e.shiftKey ? -1 : 1);
+      if (input === bar.with && !e.shiftKey) replaceOne(pane); else findGo(pane, e.shiftKey ? -1 : 1);
     }
   });
   return bar;
@@ -104,11 +104,11 @@ function findTarget(pane) {
 function findCommand(pane, action) {
   if (!pane?.active) return;
   const bar = findBar(pane), f = findOf(pane), shown = !bar.el.hidden;
-  const shared = localStorage.findShared === 'on';
+  const shared = setting('findShared');
   syncBar(pane);   // shared: the other pane may have changed the search
   if ((action === 'next' || action === 'prev') && f.query && (shown || shared)) {
     if (!shown) showBar(pane, false);
-    return go(pane, action === 'next' ? 1 : -1);
+    return findGo(pane, action === 'next' ? 1 : -1);
   }
   showBar(pane, true);
   if (action === 'replace') showReplace(pane, findTarget(pane) === 'editor');
@@ -179,7 +179,7 @@ function refresh(pane, moving) {
   const where = findTarget(pane);
   const matches = where === 'editor' ? editorMatches(pane, regex) : previewMatches(pane, regex);
   mark(pane, where, regex, matches);
-  if (moving && matches.length) go(pane, 1, true);
+  if (moving && matches.length) findGo(pane, 1, true);
   else showCount(pane, matches, null);
 }
 
@@ -190,8 +190,9 @@ function showCount(pane, matches, current) {
 }
 
 // To the next (dir 1) or previous (-1) match, from the cursor; at the end it wraps around.
+// Not named go: that is back / forward in app.js, and a second global function of that name replaced it.
 // `fromOrigin`: as you type, from where the search started instead.
-function go(pane, dir, fromOrigin) {
+function findGo(pane, dir, fromOrigin) {
   const bar = pane.find, regex = findRegex(pane);
   if (!regex || regex instanceof Error) return;
   const where = findTarget(pane);
@@ -217,6 +218,9 @@ function goEditor(pane, regex, dir, fromOrigin) {
   if (i < 0) i = dir > 0 ? 0 : matches.length - 1;
   const [s, e] = matches[i];
   cm.setSelection(cm.posFromIndex(s), cm.posFromIndex(e));
+  // The selection is drawn below the other matches' colour, so the current one gets its own mark.
+  pane.findCurrent?.clear();
+  pane.findCurrent = cm.markText(cm.posFromIndex(s), cm.posFromIndex(e), { className: 'mm-find-current' });
   cm.scrollIntoView({ from: cm.posFromIndex(s), to: cm.posFromIndex(e) }, 80);
   showCount(pane, matches, i);
 }
@@ -245,7 +249,7 @@ function replaceOne(pane) {
   const selected = cm.getSelection();
   if (selected && whole.test(selected))
     cm.replaceSelection(f.regex ? selected.replace(whole, f.replace) : f.replace, 'start');
-  go(pane, 1);
+  findGo(pane, 1);
   refreshMarks(pane);
 }
 
@@ -346,6 +350,8 @@ function clearMarks(pane) {
   if (pane.findOverlay) pane.cm?.removeOverlay(pane.findOverlay);
   pane.findOverlay = null;
   CSS.highlights.delete('mm-find-' + pane.index);
+  pane.findCurrent?.clear();
+  pane.findCurrent = null;
   if (pane.find) pane.find.at = pane.find.marked = null;
   CSS.highlights.delete('mm-find-cur-' + pane.index);
 }

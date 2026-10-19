@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:">
+<title>Settings - LexPen</title>
+<link rel="icon" href="data:,">
+<script src="theme.js"></script>
+<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="settings.css">
+</head>
+<body class="st-body">
+<header class="st-top">
+  <input class="st-search" type="search" placeholder="Search settings" spellcheck="false" aria-label="Search settings">
+  <span class="st-count"></span>
+</header>
+<div class="st-problems" hidden></div>
+<main class="st-list" tabindex="-1"></main>
+<footer class="st-foot">
+  A change applies at once in every LexPen window. Your settings file holds only what you changed:
+  <button class="st-link" data-open="settings">open settings.json</button>
+</footer>
+<script src="fontlist.js"></script>
+<script src="settings.js"></script>
+</body>
+</html>

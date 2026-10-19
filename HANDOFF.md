@@ -5,20 +5,25 @@
 **Repository**
 - GitHub: `https://github.com/ArcoW2/LexPen` (private, MIT license, Visual Studio `.gitignore`).
 - Local folder: `D:\prive\SynologyDrive\Projects\LexPen`.
-- `main` is committed locally and **not pushed yet**. Push only `main` (`git push -u origin main`, never
-  `--all`), then check `git ls-remote origin` shows only `main`.
+- `main` is on GitHub (pushed 2026-10-19 at `624f0b0`; `git ls-remote origin` showed only `main`).
+- Branch `editor-first`: the editor-first plan, executed on 2026-10-19. Local only: **not merged, not pushed**.
+  Push it, or merge it into `main`, only when asked.
 - Local branch `scratch` holds the raw copy from before the cleanup, under the old name. It must **never be
-  pushed**; delete it (`git branch -D scratch`) once `main` is on GitHub and nothing is missing.
+  pushed**; delete it (`git branch -D scratch`) once you have checked nothing is missing on GitHub.
 - Commits use only the GitHub noreply address: `user.email` is set in this repository's own config
   (`147609951+ArcoW2@users.noreply.github.com`). The global `user.email` is a different address, so any
   new personal repository needs its own `user.email` too. GitHub blocks pushes that expose a private email.
 - Git credentials: the global config has per-host entries; `https://github.com` uses the GitHub username
-  (not an email) and no `usehttppath`, so the browser login is asked once.
+  `ArcoW2` (not an email; set on 2026-10-19, before that every push opened the browser) and no
+  `usehttppath`, so the stored login is used.
 - Synology Drive: exclude `bin`, `obj`, `.vs`, `publish`, `node_modules` from syncing (and preferably
   `.git`); work in this folder from one machine only.
 
 **Name and icon**
-- Name: LexPen. Names considered and rejected, with the reason, are in `docs/plans/PLAN-editor-first.md` 3.8.
+- Name: LexPen. One web search per name: no product found with that exact name; the nearest is Lex (an AI
+  word processor). Rejected on the way: LexEdit (Brazilian legislative drafting system, Italian 1990
+  prototype), Lexed (PyPI editor), Lexory, Lexemo, Lexora (all in use), Lexwerk (close to Lexwork and
+  Lexware), Lexit (sounds like exit).
 - Repo description: "Fast, intuitive and flexible text and code editor for Windows, with a built-in viewer."
   (also in About, README and `register.ps1`).
 - Icon: `img/icon/lexpen.svg` is the source: an L drawn as an I-beam cursor, dark blue `#1f3a5f` on a
@@ -29,9 +34,19 @@
 - Explorer caches icons: a pinned shortcut may show an old icon until it is pinned again.
 
 **Next**
-- The plan for this phase: `docs/plans/PLAN-editor-first.md` (editor first, chord keys Ctrl+H / Ctrl+K /
-  Ctrl+Q, bookmarks, gutter, multi-clipboard). Open questions are in its section 4; first one: which
-  features to strip (3.7).
+- `docs/plans/executed/PLAN-editor-first.md` is done on the branch `editor-first`: editor first, keys file with
+  chords, menu bar, F1 as command palette, bookmarks, numbered clipboards, gutter (change, git and fold markers),
+  bottom bar, encodings, backup on save. Its section 5 lists every decision taken during the run.
+- When you approve the branch: squash-merge it into `main` (`git merge --squash editor-first`, one commit with the
+  time of the merge, so the branch's own commit times stay on this PC), then push `main` only. Wanted by you on
+  2026-10-19: the commit times of the work should not be visible on GitHub.
+- Also on `editor-first`: the settings window and settings.json, the data folder's `State\` subfolder
+  (`docs/plans/executed/PLAN-settings-window.md`); pinned and read-only tabs, Close all tabs (`docs/plans/executed/PLAN-pinned-tabs.md`); wrapping, the editor / preview splitter and the heartbeat
+  (`docs/plans/executed/PLAN-long-lines.md`); fonts and line height (`docs/plans/executed/PLAN-fonts.md`) and the fix for Ctrl+V with the Windows
+  clipboard.
+- Next plan: `docs/plans/PLAN-language-packs.md`. It continues from the keys file and the markdown pack's
+  `actions` part; section 8 holds its open questions.
+- Also ready: `docs/plans/PLAN-themes.md` (fully defined; builds on the settings window).
 - Before making the repository public: a name check (GitHub, winget, trademark registers), a
   `THIRD-PARTY-NOTICES.md` for the bundled libraries (licenses verified from `node_modules`), and a
   read-through of `docs/` for internal context.
@@ -63,6 +78,9 @@ execution" table with every decision taken without asking and every bug found).
 | Outline in narrow panes | Suggested, not asked: with two panes side by side the 220 px outline leaves a narrow text column. Option: hide the outline automatically below a pane width |
 | Recent list on the welcome page | Proposed earlier; you chose the Open menu instead. Not built |
 | Spell check / line numbers settings in the More menu | Would come with the two items above |
+| Column mode (idea, 2026-10-19) | Select a rectangle and copy / paste it as a column. CodeMirror 5 already selects a rectangle with Alt+drag; missing: copy and paste as a column (paste puts each line of the clipboard on the next line, same column), keys and menu items |
+| Hex view (idea, 2026-10-19) | A hex layout of the file: the bytes in hex on the left, the characters on the right. Not planned yet |
+| Multi-cursor (idea, 2026-10-19) | Several cursors, typing goes to all of them. CodeMirror 5 already adds a cursor with Ctrl+click; missing: adding cursors from the keyboard (next match, line above / below), keys and menu items |
 | Declined by you (listed so they are not proposed again) | Quick open by file name (xplorer2 is as fast); file actions in the tree (new, rename, delete); replace in search |
 
 ## 3. Built but not verified
@@ -89,6 +107,20 @@ desktop, or a real mouse drag across windows / from Explorer is needed). Worth a
   (`docs/plans/executed/PLAN-tabs-panes-windows.md`, item 22).
 - A page reload would leave the host's edit locks of that window in place; not reachable (F5 / Ctrl+R are blocked).
 
+## 4b. Editor first: things to know
+
+- Keys are matched by physical key: a key name in keys.json means that key's place on a US keyboard.
+- On this PC PowerToys takes Ctrl+Shift+C (clipboard list) and Ctrl+` (inline code); Windows takes Ctrl+Shift+0
+  (an input language hotkey). Your own `%LOCALAPPDATA%\LexPen\keys.json` can move them.
+- The release build has the WebView2 DevTools switched off (their element picker sits on Ctrl+Shift+C); the
+  debug build keeps them, the tests need the debugging port.
+- Tab, Shift+Tab, Enter and Shift+Enter are fixed editor keys, not in keys.json.
+- One very long coloured line (thousands of coloured pieces) makes the browser take seconds to find what is
+  under the mouse; it only shows with the real mouse, not with synthetic moves through the debugging port.
+  Wrapping avoids it (docs/plans/executed/PLAN-long-lines.md).
+- The comment and fold add-ons of CodeMirror and the line diff were added without Node.js: see section 5 of the
+  editor-first plan before running `vendor.ps1`.
+
 ## 5. How it was tested (to repeat later)
 
 - Unit tests: `dotnet test tests\LexPen.Tests` (routing, drafts, image links, recent lists, folder search).
@@ -97,7 +129,16 @@ desktop, or a real mouse drag across windows / from Explorer is needed). Worth a
   (keeps the real session, drafts and settings in `%LOCALAPPDATA%\LexPen` untouched), then use
   `http://127.0.0.1:9222/json` and CDP (`Runtime.evaluate`, `Input.dispatchKeyEvent`,
   `Input.dispatchMouseEvent`, `Page.captureScreenshot`). The helper scripts lived in the session scratchpad
-  and are not in the repository.
+  and are not in the repository. In the editor-first run: a PowerShell module with Start-LexPen / Eval / Key /
+  Check over CDP, one test script per step; checks include that every key in keys.json has an action.
+- Keys that only a real keyboard can show (Windows, WebView2 or tools like PowerToys taking them first): the
+  debug build with an on-screen key log injected through the debugging port; you press the keys, the log is
+  read back. SendKeys only reaches the window in front, so it is not used.
+- Use a port of its own for test copies (9333 in the last run) and refuse to start when it is taken: with
+  9222 open on your own LexPen, a test copy cannot get it and the tests drive your LexPen instead.
+- Problems that only the real mouse shows (see 4b): attach to your LexPen started with the port, run a
+  recorder (page answer times, long tasks, CPU per process), a CPU profile or a browser trace
+  (`Tracing.start`, category devtools.timeline) while you reproduce it.
 - After changing files in `wwwroot` while the debug build runs: copy them to `bin\...\wwwroot` and reload
   with the cache ignored (`Page.reload` with `ignoreCache`), or the old `app.js` keeps running.
 - Close the test app before `dotnet build` (it locks `LexPen.exe`).

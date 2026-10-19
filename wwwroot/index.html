@@ -2,8 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<!-- script-src 'self' also blocks inline scripts/handlers coming from a document's raw HTML. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: http: data: blob:; font-src 'self' data:; media-src https: http:">
+<!-- script-src 'self' also blocks inline scripts/handlers coming from a document's raw HTML.
+     connect-src 'self': the page reads its own files (the language packs). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: http: data: blob:; font-src 'self' data:; media-src https: http:; connect-src 'self'">
 <title>LexPen</title>
 <link rel="icon" href="data:,">
 <script src="theme.js"></script>
@@ -11,53 +12,28 @@
 </head>
 <body data-busy>
 
+<!-- Buttons with data-action run that action; their tooltip shows its key (see showKeys). -->
 <header class="mm-toolbar">
-  <button data-cmd="sidebar" title="Toggle sidebar (Ctrl+B)">&#9776;</button>
-  <span class="mm-menu-wrap">
-    <button data-cmd="openMenu" title="Open a file or folder, also recently used ones">Open &#9662;</button>
-    <div class="mm-menu mm-open-menu" hidden>
-      <button data-cmd="openFile">File...<span class="mm-key">Ctrl+O</span></button>
-      <button data-cmd="openFolder">Folder...<span class="mm-key">Ctrl+Shift+O</span></button>
-      <hr>
-      <div class="mm-sub"><button class="mm-sub-title">Favourite files</button><div class="mm-menu mm-submenu" data-list="favourites"></div></div>
-      <div class="mm-sub"><button class="mm-sub-title">Recently opened files</button><div class="mm-menu mm-submenu" data-list="files"></div></div>
-      <div class="mm-sub"><button class="mm-sub-title">Recently opened folders</button><div class="mm-menu mm-submenu" data-list="folders"></div></div>
-      <div class="mm-sub"><button class="mm-sub-title">Recently closed files</button><div class="mm-menu mm-submenu" data-list="closed"></div></div>
-    </div>
-  </span>
-  <button data-cmd="newFile" title="New file (Ctrl+N)">New</button>
+  <button data-action="sidebar">&#9776;</button>
+  <nav class="mm-menubar"></nav>
   <span class="mm-doc-name"></span>
-  <button data-cmd="save" class="mm-save" title="Save (Ctrl+S) &#183; Save as (Ctrl+Shift+S)">Save</button>
+  <button data-action="save" class="mm-save">Save</button>
   <button data-cmd="orient" class="mm-orient" title="Panes side by side / above each other (also in the divider's right-click menu)"></button>
-  <span class="mm-modes" title="Toggle read / split (Ctrl+E)">
-    <button data-mode="preview">Read</button>
-    <button data-mode="split">Split</button>
-    <button data-mode="edit">Edit</button>
+  <span class="mm-switches">
+    <button data-action="editorSwitch" class="mm-switch-editor">Editor</button>
+    <button data-action="previewSwitch" class="mm-switch-preview" data-key-action="togglePreview"
+      data-title="Preview (with the editor: show / hide it next to the editor)">Preview</button>
   </span>
-  <button data-cmd="outline" class="mm-outline-button" title="Outline: the headings at the right of each pane (Ctrl+Shift+H)">Outline</button>
-  <button data-cmd="theme" class="mm-theme" title="Day / night (Ctrl+T)"></button>
-  <button data-cmd="zoomReset" class="mm-zoom" title="Preview zoom: Ctrl+plus / Ctrl+minus / Ctrl+mouse wheel; click for 100%">100%</button>
-  <span class="mm-menu-wrap">
-    <button data-cmd="menu" title="More">&#8943;</button>
-    <div class="mm-menu mm-more-menu" hidden>
-      <button data-cmd="tabRows" class="mm-check mm-tab-rows" title="Off: one row of tabs that scrolls">Tabs on several rows</button>
-      <button data-cmd="findShared" class="mm-check mm-find-shared" title="Off: each pane has its own search (Ctrl+F). On: one search; F3 in the other pane goes on with it">One search for both panes</button>
-      <button data-cmd="formatBar" class="mm-check mm-format-bar" title="The bar with bold, headings, lists, tables, ... above the editor">Formatting bar</button>
-      <button data-cmd="lineBreaks" class="mm-check mm-line-breaks" title="Off: a single line break joins the lines, as in GitHub files">Single line break starts a new line</button>
-      <hr>
-      <button data-cmd="help">Keyboard shortcuts (F1)</button>
-      <button data-cmd="about">About LexPen</button>
-      <hr>
-      <button data-cmd="exit">Close window</button>
-    </div>
-  </span>
+  <button data-action="outline" class="mm-outline-button">Outline</button>
+  <button data-action="theme" class="mm-theme"></button>
+  <button data-action="zoomReset" class="mm-zoom" data-key-action="zoomIn" data-title="Preview zoom: click for 100%. Zoom in / out">100%</button>
 </header>
 
 <main class="mm-main">
   <aside class="mm-sidebar">
     <div class="mm-side-tabs">
       <button data-cmd="viewFolder" class="mm-side-tab mm-side-folder">Folder</button>
-      <button data-cmd="viewSearch" class="mm-side-tab mm-side-search" title="Search (Ctrl+Shift+F)">Search</button>
+      <button data-cmd="viewSearch" class="mm-side-tab mm-side-search">Search</button>
     </div>
     <div class="mm-folder-view">
     <div class="mm-tree-head">
@@ -93,10 +69,24 @@
   <!-- The two panes are built by app.js around the divider. -->
   <div class="mm-panes">
     <div class="mm-divider" hidden title="Drag to resize; right-click for the pane menu (orientation, hide, close)">
-      <button data-cmd="sync" class="mm-sync" title="Scroll both panes together (Ctrl+Shift+L)"></button>
+      <button data-cmd="sync" class="mm-sync" title="Scroll both panes together"></button>
     </div>
   </div>
 </main>
+
+<!-- Bottom bar: the active pane's file (see updateStatus). -->
+<footer class="mm-status">
+  <span class="mm-st-chord"></span>
+  <span class="mm-st-fill"></span>
+  <span class="mm-st-pos"></span>
+  <button class="mm-st-ins" title="Insert / overwrite (Ins)"></button>
+  <span class="mm-st-long" title="The editor colours only the first 10,000 characters of a line; the rest is plain text" hidden>Long line: colour stops at 10,000 characters</span>
+  <span class="mm-st-enc" title="Encoding: the file is saved the way it was read"></span>
+  <span class="mm-st-eol" title="Line endings"></span>
+  <span class="mm-st-lang" title="Language"></span>
+  <button class="mm-st-clip" title="The active clipboard">Clip: Win</button>
+  <span class="mm-st-alive" title="Turns while LexPen responds; when it stands still, LexPen is busy"></span>
+</footer>
 
 <div class="mm-toast" hidden></div>
 
@@ -114,9 +104,13 @@
   <button data-cmd="tabCopyPath">Copy path</button>
   <button data-cmd="tabShowInTree" class="mm-file-item">Show in folder pane</button>
   <button data-cmd="tabFavourite" class="mm-fav-item">Add to favourites</button>
-  <button data-cmd="tabClose">Close (Ctrl+W)</button>
+  <button data-cmd="tabPin" data-key-of="pinTab">Pin tab</button>
+  <button data-cmd="tabReadOnly" data-key-of="readOnly" class="mm-check">Read-only</button>
+  <hr>
+  <button data-cmd="tabClose" data-key-of="closeTab">Close</button>
   <button data-cmd="tabCloseOthers">Close other tabs</button>
   <button data-cmd="tabCloseRight">Close tabs to the right</button>
+  <button data-cmd="tabCloseAll" data-key-of="closeAllTabs">Close all tabs</button>
   <hr class="mm-pane-sep">
   <button data-cmd="paneHide" class="mm-pane-item">Hide this pane</button>
   <button data-cmd="paneHideOther" class="mm-pane-item">Hide other pane</button>
@@ -126,7 +120,8 @@
 </div>
 
 <div class="mm-menu mm-context mm-strip-menu" hidden>
-  <button data-cmd="stripReopen">Reopen closed tab (Ctrl+Shift+T)</button>
+  <button data-cmd="stripReopen" data-key-of="reopenTab">Reopen closed tab</button>
+  <button data-cmd="stripCloseAll" data-key-of="closeAllTabs">Close all tabs</button>
   <hr class="mm-pane-sep">
   <button data-cmd="paneHide" class="mm-pane-item">Hide this pane</button>
   <button data-cmd="paneHideOther" class="mm-pane-item">Hide other pane</button>
@@ -155,10 +150,11 @@
   <button data-cmd="closeSecond" class="mm-second">Close right pane</button>
 </div>
 
-<dialog class="mm-about mm-help">
-  <h1>Keyboard shortcuts</h1>
-  <table class="mm-keys"></table>
-  <form method="dialog"><button class="mm-about-ok">OK</button></form>
+<!-- F1: every action with its key; Enter runs the selected one (palette.js). -->
+<dialog class="mm-about mm-palette">
+  <input class="mm-pal-search" type="text" spellcheck="false" placeholder="Search a command, key or name; Enter runs it">
+  <div class="mm-pal-list"></div>
+  <p class="mm-pal-foot"></p>
 </dialog>
 
 <dialog class="mm-about mm-about-dialog">
@@ -171,6 +167,11 @@
 </dialog>
 
 <script src="vendor/core.js"></script>
+<script src="keys.js"></script>
+<script src="actions.js"></script>
+<script src="palette.js"></script>
+<script src="fontlist.js"></script>
+<script src="menus.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

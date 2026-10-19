@@ -1,0 +1,13 @@
+// Plain text, and the base for every language: an action a language does not have itself is taken from
+// here. The comment actions work in every language that has comment markers (its own "comments", or those
+// of its editor mode); plain text has none, so there they are greyed out.
+{
+  "name": "Plain text",
+  "actions": {
+    "toggleComment": { "title": "Toggle comment", "hint": "Comments the selected lines, or uncomments them when they are", "command": "toggleComment" },
+    "blockComment": { "title": "Toggle block comment", "hint": "Around the selection; inside a block comment: removes it", "command": "blockComment" },
+    "removeBlockComment": { "title": "Remove block comment", "hint": "The block comment the cursor is in", "command": "removeBlockComment" },
+    "section": { "title": "Section", "hint": "To the next / previous paragraph", "jump": { "line": "\\S", "after": "^\\s*$" },
+      "variants": [[1], [-1]], "variantTitles": { "1": "Next section", "-1": "Previous section" } }
+  }
+}
