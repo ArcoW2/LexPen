@@ -5,7 +5,7 @@
 **Repository**
 - GitHub: `https://github.com/ArcoW2/LexPen` (private, MIT license, Visual Studio `.gitignore`).
 - Local folder: `D:\prive\SynologyDrive\Projects\LexPen`.
-- `main` is on GitHub (pushed 2026-10-19 at `7933b15`; `git ls-remote origin` showed only `main`).
+- `main` is on GitHub (pushed 2026-10-19, last at `caa3f7b`; `git ls-remote origin` showed only `main`).
 - Work is done on a local branch and squash-merged into `main` when you approve it (`git merge --squash`, one
   commit with the time of the merge), then only `main` is pushed: the commit times of the work stay on this PC
   (your wish, 2026-10-19). Branch `editor-first` was merged that way into `7933b15`; it stays local, never pushed.
@@ -44,7 +44,8 @@
   clipboard.
 - Next plan: `docs/plans/PLAN-language-packs.md` (your answers to Q1-Q8 worked in; Q9, how YAML is read, is open).
   With it, as drafts: `PLAN-fenced-code-colours.md` (Q5) and `PLAN-formatters.md` (Q7).
-- Themes: `docs/plans/executed/PLAN-themes.md`, on the local branch `themes` until you approve it.
+- Merged into `main` (`caa3f7b`): themes (`docs/plans/executed/PLAN-themes.md`), the preview theme per mode and
+  find at the end of the file; the padlock for read-only tabs (`752eb7c`).
 - Before making the repository public: a name check (GitHub, winget, trademark registers), a
   `THIRD-PARTY-NOTICES.md` for the bundled libraries (licenses verified from `node_modules`), and a
   read-through of `docs/` for internal context.
