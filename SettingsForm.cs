@@ -7,7 +7,7 @@ namespace LexPen;
 
 /// <summary>
 /// Options > Settings: one window for the whole app, owned by the window it was opened from, not modal. Its page
-/// (wwwroot\settings.html) shows every setting as a row; a change goes to AppHost.SetSetting at once, and every
+/// (web\settings.html, WebFiles) shows every setting as a row; a change goes to AppHost.SetSetting at once, and every
 /// LexPen window follows. The rows come from a main window's page (AppHost.SettingDefs), so a setting is
 /// described in one place (actions.js).
 /// </summary>
@@ -47,8 +47,7 @@ sealed class SettingsForm : Form
         core.Settings.AreDevToolsEnabled = false;
 #endif
         core.Settings.IsZoomControlEnabled = false;
-        core.SetVirtualHostNameToFolderMapping("lexpen.example",
-            Path.Combine(AppContext.BaseDirectory, "wwwroot"), CoreWebView2HostResourceAccessKind.Deny);
+        WebFiles.Serve(core);
         core.WebMessageReceived += (_, m) =>
         {
             var json = m.WebMessageAsJson;

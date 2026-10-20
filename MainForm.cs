@@ -10,7 +10,7 @@ using Microsoft.Web.WebView2.WinForms;
 namespace LexPen;
 
 /// <summary>
-/// Native shell: one window hosting a WebView2 that runs the UI in wwwroot.
+/// Native shell: one window hosting a WebView2 that runs the UI (the page's files: WebFiles).
 /// The page talks to this class through JSON messages (see OnMessage) for
 /// everything that needs the file system or a native dialog. What windows share
 /// (settings, drafts, edit locks, moving tabs) goes through AppHost.
@@ -283,8 +283,7 @@ sealed class MainForm : Form
 #endif
         // The page zooms its previews itself (Ctrl+plus/minus/wheel); the browser zoom would scale everything.
         core.Settings.IsZoomControlEnabled = false;
-        core.SetVirtualHostNameToFolderMapping("lexpen.example",
-            Path.Combine(AppContext.BaseDirectory, "wwwroot"), CoreWebView2HostResourceAccessKind.Deny);
+        WebFiles.Serve(core);
 
         core.AddWebResourceRequestedFilter(FileUrl + "*", CoreWebView2WebResourceContext.All);
         core.WebResourceRequested += OnFileRequested;
@@ -336,6 +335,7 @@ sealed class MainForm : Form
 
     void OnFileRequested(object? sender, CoreWebView2WebResourceRequestedEventArgs e)
     {
+        if (!e.Request.Uri.StartsWith(FileUrl, StringComparison.OrdinalIgnoreCase)) return;   // the page's own files: WebFiles
         var path = Uri.UnescapeDataString(e.Request.Uri[FileUrl.Length..].Split('?', '#')[0]);
         var env = web.CoreWebView2.Environment;
         e.Response = ImageTypes.TryGetValue(Path.GetExtension(path), out var type) && File.Exists(path)
@@ -856,8 +856,7 @@ sealed class MainForm : Form
             ["dotnet"] = RuntimeInformation.FrameworkDescription,
             ["webView2"] = web.CoreWebView2.Environment.BrowserVersionString,
             ["webView2Sdk"] = typeof(CoreWebView2).Assembly.GetName().Version!.ToString(),
-            ["libraries"] = JsonNode.Parse(File.ReadAllText(
-                Path.Combine(AppContext.BaseDirectory, "wwwroot", "vendor", "versions.json"))),
+            ["libraries"] = JsonNode.Parse(WebFiles.ReadText("vendor/versions.json")),
         };
     }
 

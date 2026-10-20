@@ -1,7 +1,7 @@
 {
   "name": "lexpen-vendor",
   "private": true,
-  "description": "Front-end libraries for LexPen. Run vendor.ps1 to copy them into wwwroot/vendor.",
+  "description": "Front-end libraries for LexPen. Run vendor.ps1 to copy them into web/vendor.",
   "dependencies": {
     "@highlightjs/cdn-assets": "^11.10.0",
     "codemirror": "^5.65.18",

@@ -4,7 +4,7 @@ namespace LexPen.Tests;
 
 public class LanguagePacksTests : IDisposable
 {
-    static readonly string Shipped = Path.Combine(AppContext.BaseDirectory, "wwwroot", "languages");
+    static readonly string Shipped = Path.Combine(AppContext.BaseDirectory, AppHost.DefaultsFolder, "languages");
     readonly string dir = Path.Combine(Path.GetTempPath(), "lexpen-packs-" + Guid.NewGuid().ToString("N"));
 
     public LanguagePacksTests() => Directory.CreateDirectory(dir);
@@ -82,13 +82,13 @@ public class LanguagePacksTests : IDisposable
     }
 
     [Fact]
-    public void ADebugBuildFindsTheProjectsWwwroot()
+    public void ADebugBuildFindsTheProjectsFolders()
     {
         var bin = Path.Combine(dir, "project", "bin", "Debug", "net10.0-windows");
         Directory.CreateDirectory(bin);
         File.WriteAllText(Path.Combine(dir, "project", "LexPen.csproj"), "<Project />");
-        Assert.Equal(Path.Combine(dir, "project", "wwwroot"), AppHost.FindProjectWwwroot(bin));
-        Assert.Null(AppHost.FindProjectWwwroot(Path.Combine(dir, "none")));
+        Assert.Equal(Path.Combine(dir, "project", "defaults"), AppHost.FindProjectFolder(bin, "defaults"));
+        Assert.Null(AppHost.FindProjectFolder(Path.Combine(dir, "none"), "web"));
     }
 
     [Fact]

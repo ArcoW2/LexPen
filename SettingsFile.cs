@@ -4,7 +4,7 @@ using System.Text.Json.Nodes;
 namespace LexPen;
 
 /// <summary>
-/// settings.json: your settings. The one in wwwroot holds every setting with its default (and a comment per
+/// settings.json: your settings. The one in defaults holds every setting with its default (and a comment per
 /// setting); the one in the data folder holds only what differs, so it is short and can be edited by hand or
 /// copied to another PC. Comments (//) and trailing commas are allowed in both. A name that is not a setting,
 /// or a value of another kind than the default (text, number, true / false), is reported and skipped. A default
@@ -111,9 +111,9 @@ static class SettingsFile
         var k => k,
     };
 
-    public static string DefaultsPath => Path.Combine(AppContext.BaseDirectory, "wwwroot", Name);
+    public static string DefaultsPath => Path.Combine(AppContext.BaseDirectory, AppHost.DefaultsFolder, Name);
 
-    /// <summary>The merged settings for this installation: wwwroot\settings.json and yours in the data folder.</summary>
+    /// <summary>The merged settings for this installation: defaults\settings.json and yours in the data folder.</summary>
     public static JsonObject Load(string dataDir)
     {
         var userPath = Path.Combine(dataDir, Name);

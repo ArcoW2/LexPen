@@ -1,6 +1,7 @@
 # Plan: one LexPen.exe and a folder of defaults (the page's code and the .NET files hidden)
 
-Status: plan, 2026-10-20; answers of 2026-10-20 worked in (4.1 to 4.3). No open questions.
+Status: executed 2026-10-20 (branch `app-files`); answers of 2026-10-20 worked in (4.1 to 4.3). What was decided
+while building, and the start-up measurements: section 5.
 
 ## 1. What this is about
 
@@ -118,3 +119,34 @@ The test scripts' note "rebuild after a wwwroot edit" no longer applies to the p
 ## 4. Open questions
 
 None.
+
+## 5. Resolved during execution
+
+| Thing | Solution implemented |
+|---|---|
+| The image handler answered every request | MainForm's handler for pictures in the preview (`https://file.lexpen.example/`) runs for every intercepted request, and answered the page's own files with 404 (the release page did not load). It now leaves other addresses alone. |
+| Resource names | `web\app.js`, `web\vendor\katex\katex.min.css` (LexPen.csproj); a URL path finds them in any case (`WebFiles`). |
+| The debug build | Serves the project's `web\` with the folder mapping, and reads the project's `defaults\`; the resources are in the debug build too (the unit tests read them). |
+| The publish folder | `LexPen.exe` (8.0M, `du -sh`), `WebView2Loader.dll`, `defaults\` (494K): checked by `find -maxdepth 1` on the publish folder. Before: eight files and `wwwroot` (5.9M). |
+| A warning that was there before | `ProjectDefaults is null` in a release build is always true (CS8520), as `ProjectWwwroot` was. |
+| Tests | Unit: `WebFilesTests` (every file of `web\` in the exe with its size, names a URL asks for, unknown names, content types, the defaults next to the exe and no page folder); the tests that read the shipped keys, settings, packs and themes read `defaults\`. All 181 pass. In-app (debug): t53, t54, t55, t56, t52, t48, t28, t3, t4, t22, t9, t25: no failures. Release: t58 (the page from the exe; the editor, KaTeX with its fonts, Mermaid, About's versions, themes and keys from defaults, a .json and an .xml file get their language and Format works, the settings window): 11 of 11 pass. |
+
+### 5.1 Start-up, before and after
+
+Measured with the release build of each (published to a test folder), a test data folder, a markdown file with a
+formula and a Mermaid diagram opened in editor and preview (so the editor, KaTeX and Mermaid all load). Per start
+(t57-startup.ps1): **host** = process start to WebView2 navigating to the page; **page** = navigation to the load
+event (index.html and its scripts); **ready** = navigation to the last file the page fetched; **total** = host +
+ready. One warm-up start first; each start its own process. Medians, in ms (min - max):
+
+| Run | Starts | host | page | ready | total |
+|---|---|---|---|---|---|
+| Before, alone | 15 | 948 (869 - 2578) | 104 (92 - 126) | 317 (209 - 415) | 1256 (1115 - 2822) |
+| After, alone | 15 | 884 (860 - 1043) | 133 (118 - 163) | 400 (365 - 446) | 1286 (1247 - 1489) |
+| Before, interleaved | 12 | 900 (848 - 966) | 104 (94 - 121) | 320 (292 - 345) | 1220 (1144 - 1299) |
+| After, interleaved | 12 | 888 (844 - 914) | 133 (111 - 362) | 402 (355 - 616) | 1284 (1227 - 1493) |
+
+The interleaved runs (before, after, before, ...) are the fair comparison: total +64 ms on the median. The host
+part is the same (the single file costs nothing measurable); the page's files cost more, because each answer goes
+through .NET instead of WebView2 reading a file: +29 ms to the load event, +82 ms until the last file (KaTeX and
+Mermaid, which load only for a document with math or diagrams).

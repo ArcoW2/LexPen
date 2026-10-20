@@ -19,11 +19,17 @@
     <CopyOutputSymbolsToPublishDirectory>false</CopyOutputSymbolsToPublishDirectory>
     <PublishReferencesDocumentationFiles>false</PublishReferencesDocumentationFiles>
     <WebView2NeverCopyLoaderDllToOutputDirectory>true</WebView2NeverCopyLoaderDllToOutputDirectory>
+    <!-- One exe: LexPen.dll, its .NET json files and the libraries inside; WebView2Loader.dll (native) stays next to
+         it, so nothing is unpacked to a temp folder. -->
+    <PublishSingleFile>true</PublishSingleFile>
     <DefaultItemExcludes>$(DefaultItemExcludes);node_modules\**;publish\**;tests\**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="wwwroot\**" CopyToOutputDirectory="PreserveNewest" />
+    <!-- What you may read and copy (keys, settings, language packs, themes): next to the exe. -->
+    <Content Include="defaults\**" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The page's files: inside the exe (WebFiles). -->
+    <EmbeddedResource Include="web\**" LogicalName="web\%(RecursiveDir)%(Filename)%(Extension)" />
     <EmbeddedResource Include="$(ApplicationIcon)" LogicalName="app.ico" />
     <!-- Written to the data folder the first time; the file in docs\examples is the one source. -->
     <EmbeddedResource Include="docs\examples\tab-colours.json" LogicalName="tab-colours.json" />

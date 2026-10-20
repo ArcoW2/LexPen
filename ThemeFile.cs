@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 namespace LexPen;
 
 /// <summary>
-/// Themes: wwwroot\themes\*.json ships with LexPen, your own go in themes\ in the data folder (a file with the same
+/// Themes: defaults\themes\*.json ships with LexPen, your own go in themes\ in the data folder (a file with the same
 /// name replaces a shipped one). A theme has a name, optionally a base (any other theme: its colours, through its
 /// own base and so on) and only the colours that differ from its base. Light and Dark set every colour: the roots.
 /// A theme is not light or dark: the mode that chose it is (AppHost.Mode). A colour nothing in the chain sets comes

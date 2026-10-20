@@ -1,8 +1,8 @@
-# Rebuilds wwwroot/vendor from node_modules. Run `npm.cmd install` first.
+# Rebuilds web/vendor from node_modules. Run `npm.cmd install` first.
 # Only needed when upgrading a library; the output is kept in the project.
 $ErrorActionPreference = 'Stop'
 $m = Join-Path $PSScriptRoot 'node_modules'
-$out = Join-Path $PSScriptRoot 'wwwroot\vendor'
+$out = Join-Path $PSScriptRoot 'web\vendor'
 
 function Join-Files([string[]]$files, [string]$target, [string]$sep) {
     $parts = foreach ($f in $files) { Get-Content (Join-Path $m $f) -Raw }

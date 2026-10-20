@@ -52,10 +52,12 @@
 - Merged into `main` (`b207422`) and pushed: conversions, pretty print (JSON, XML), trailing whitespace on save,
   tab and indent stops, the Format menu from the bars (`docs/plans/executed/PLAN-formatters.md`). Plan waiting:
   `PLAN-virtual-space.md` (cursor past the end of the line; no questions left).
+- On the local branch `app-files`: one `LexPen.exe` and a folder `defaults` (the page in the exe, served from
+  there; `docs/plans/executed/PLAN-app-files.md`, with the start-up measurements).
 - Earlier, on `theme-inheritance` (now merged): theme inheritance
   (`docs/plans/executed/PLAN-theme-inheritance.md`), the language set from the UltraEdit word files and the debug
   build reading packs and themes from the project (`docs/plans/executed/PLAN-language-set.md`), Esc closing the
-  find bar / sidebar search first, File > Open on All files, the languages guide (`wwwroot/languages/README.md`).
+  find bar / sidebar search first, File > Open on All files, the languages guide (`defaults/languages/README.md`).
 - Before making the repository public, also: YamlDotNet (MIT) in THIRD-PARTY-NOTICES.
 - Merged into `main` (`caa3f7b`): themes (`docs/plans/executed/PLAN-themes.md`), the preview theme per mode and
   find at the end of the file; the padlock for read-only tabs (`752eb7c`).
@@ -150,8 +152,9 @@ desktop, or a real mouse drag across windows / from Explorer is needed). Worth a
 - Problems that only the real mouse shows (see 4b): attach to your LexPen started with the port, run a
   recorder (page answer times, long tasks, CPU per process), a CPU profile or a browser trace
   (`Tracing.start`, category devtools.timeline) while you reproduce it.
-- After changing files in `wwwroot` while the debug build runs: copy them to `bin\...\wwwroot` and reload
-  with the cache ignored (`Page.reload` with `ignoreCache`), or the old `app.js` keeps running.
+- After changing files in `web` while the debug build runs: the debug build serves the project's `web` itself;
+  reload with the cache ignored (`Page.reload` with `ignoreCache`), or the old `app.js` keeps running. The
+  release build serves the page from the exe (WebFiles.cs).
 - Close the test app before `dotnet build` (it locks `LexPen.exe`).
 
 ## 6. Your working rules that applied (from CLAUDE.md and this session)

@@ -5,8 +5,8 @@ namespace LexPen.Tests;
 
 public class ThemeFileTests : IDisposable
 {
-    static readonly string Wwwroot = Path.Combine(AppContext.BaseDirectory, "wwwroot");
-    static readonly string Css = File.ReadAllText(Path.Combine(Wwwroot, "app.css"));
+    static readonly string Defaults = Path.Combine(AppContext.BaseDirectory, AppHost.DefaultsFolder);
+    static readonly string Css = new StreamReader(WebFiles.Resource("app.css")!).ReadToEnd();
     static readonly Dictionary<string, string> Names = ThemeFile.Names(Css);
     readonly string dir = Path.Combine(Path.GetTempPath(), "lexpen-themes-" + Guid.NewGuid().ToString("N"));
 
@@ -70,7 +70,7 @@ public class ThemeFileTests : IDisposable
     List<ThemeFile.Theme> Mine(List<string> problems, params (string Id, string Json)[] files)
     {
         foreach (var (id, json) in files) File.WriteAllText(Path.Combine(dir, id + ".json"), json);
-        return ThemeFile.Load(Path.Combine(Wwwroot, "themes"), dir, Names, problems);
+        return ThemeFile.Load(Path.Combine(Defaults, "themes"), dir, Names, problems);
     }
 
     [Fact]
@@ -140,7 +140,7 @@ public class ThemeFileTests : IDisposable
     [Fact]
     public void LightAndDarkSetEveryName()
     {
-        var themes = ThemeFile.Load(Path.Combine(Wwwroot, "themes"), Path.Combine(dir, "none"), Names, []);
+        var themes = ThemeFile.Load(Path.Combine(Defaults, "themes"), Path.Combine(dir, "none"), Names, []);
         foreach (var id in new[] { "light", "dark" })
         {
             var t = themes.Single(t => t.Id == id);
@@ -163,7 +163,7 @@ public class ThemeFileTests : IDisposable
     {
         File.WriteAllText(Path.Combine(dir, "dark.json"), """{ "name": "My dark", "base": "dark", "colors": { "bg": "#000000" } }""");
         File.WriteAllText(Path.Combine(dir, "zebra.json"), """{ "name": "Zebra", "base": "light" }""");
-        var themes = ThemeFile.Load(Path.Combine(Wwwroot, "themes"), dir, Names, []);
+        var themes = ThemeFile.Load(Path.Combine(Defaults, "themes"), dir, Names, []);
         Assert.Equal(["light", "dark"], themes.Take(2).Select(t => t.Id));
         var dark = themes.Single(t => t.Id == "dark");
         Assert.True(dark.Mine);
@@ -175,7 +175,7 @@ public class ThemeFileTests : IDisposable
     public void TheShippedThemesLoadWithoutProblems()
     {
         var problems = new List<string>();
-        var themes = ThemeFile.Load(Path.Combine(Wwwroot, "themes"), Path.Combine(dir, "none"), Names, problems);
+        var themes = ThemeFile.Load(Path.Combine(Defaults, "themes"), Path.Combine(dir, "none"), Names, problems);
         Assert.Empty(problems);
         Assert.Equal(["light", "dark", "black", "bluish", "greenish", "reddish", "yellowish"], themes.Select(t => t.Id));
         Assert.Equal([null, null, "dark", "dark", "dark", "dark", "light"], themes.Select(t => t.BaseId));
@@ -183,14 +183,14 @@ public class ThemeFileTests : IDisposable
 
     // ---------- Readable contrast (WCAG 2): text 7:1, dim text and code colours 4.5:1, comments and the accent 3:1 ----------
 
-    public static TheoryData<string> ShippedThemes() => new(Directory.GetFiles(Path.Combine(Wwwroot, "themes"), "*.json")
+    public static TheoryData<string> ShippedThemes() => new(Directory.GetFiles(Path.Combine(Defaults, "themes"), "*.json")
         .Select(p => Path.GetFileNameWithoutExtension(p)));
 
     [Theory]
     [MemberData(nameof(ShippedThemes))]
     public void ShippedThemesAreReadable(string id)
     {
-        var theme = ThemeFile.Load(Path.Combine(Wwwroot, "themes"), Path.Combine(dir, "none"), Names, []).Single(t => t.Id == id);
+        var theme = ThemeFile.Load(Path.Combine(Defaults, "themes"), Path.Combine(dir, "none"), Names, []).Single(t => t.Id == id);
         // Resolved through its chain; the fallback never shows (Light and Dark set every name).
         var colours = ThemeFile.Complete(theme, ThemeFile.Fallback(Css, "light"));
         var bg = colours["--bg"];

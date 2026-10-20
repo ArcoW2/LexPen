@@ -2957,7 +2957,7 @@ function applyTheme(theme) {
   showAll();   // diagrams carry their own colors
 }
 
-// ---------- The look: themes (wwwroot\themes, your themes\) and light / dark mode ----------
+// ---------- The look: themes (defaults\themes, your themes\) and light / dark mode ----------
 // The host decides (AppHost.Look): the app's theme, a theme of the preview's own or null, the mode. A theme comes
 // with all its colours (through its bases), set as inline variables; light or dark is the mode (data-theme), which
 // picks the app.css fallback, color-scheme, the tab colour rules and the diagrams.

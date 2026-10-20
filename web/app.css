@@ -1,5 +1,5 @@
 /* ---------- Themes ---------- */
-/* Fallbacks only: the themes are in wwwroot\themes (Light and Dark set every colour; ThemeFile.cs). A page gets
+/* Fallbacks only: the themes are in defaults\themes (Light and Dark set every colour; ThemeFile.cs). A page gets
    its theme's colours as inline variables; these blocks show only for a colour nothing in the theme's chain sets,
    the block of the mode (data-theme: light or dark). The names of this first block are the colour names a theme
    may use. */

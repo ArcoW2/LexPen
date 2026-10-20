@@ -75,7 +75,7 @@ public class KeysFileTests
     [Fact]
     public void TheShippedFileParsesWithoutProblems()
     {
-        var path = Path.Combine(AppContext.BaseDirectory, "wwwroot", KeysFile.Name);
+        var path = Path.Combine(AppContext.BaseDirectory, AppHost.DefaultsFolder, KeysFile.Name);
         var merged = KeysFile.Merge(File.ReadAllText(path), null);
         Assert.Empty(merged["problems"]!.AsArray());
         Assert.True(Keys(merged).Count > 0);

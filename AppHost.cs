@@ -53,20 +53,22 @@ sealed class AppHost : ApplicationContext
     static string UserLanguagesDir => Path.Combine(DataDir, LanguagePacks.FolderName);
     static string ShippedLanguagesDir => ShippedDir(LanguagePacks.FolderName);
 
-    // The shipped language packs and themes: wwwroot next to the exe. A debug build reads (and watches) the project's
-    // own wwwroot instead, so an edit there applies at once, without a build.
-    static string ShippedDir(string folder) => Path.Combine(ProjectWwwroot ?? Path.Combine(AppContext.BaseDirectory, "wwwroot"), folder);
+    // The shipped language packs and themes: defaults next to the exe. A debug build reads (and watches) the project's
+    // own defaults instead, so an edit there applies at once, without a build.
+    static string ShippedDir(string folder) => Path.Combine(ProjectDefaults ?? Path.Combine(AppContext.BaseDirectory, DefaultsFolder), folder);
+    public const string DefaultsFolder = "defaults";
 #if DEBUG
-    static readonly string? ProjectWwwroot = FindProjectWwwroot(AppContext.BaseDirectory);
+    static readonly string? ProjectDefaults = FindProjectFolder(AppContext.BaseDirectory, DefaultsFolder);
 #else
-    const string? ProjectWwwroot = null;
+    const string? ProjectDefaults = null;
 #endif
 
-    /// <summary>The wwwroot of the project the exe was built from: up from `from` to the folder with LexPen.csproj.</summary>
-    internal static string? FindProjectWwwroot(string from)
+    /// <summary>A folder of the project the exe was built from (defaults, web): up from `from` to the folder with
+    /// LexPen.csproj.</summary>
+    internal static string? FindProjectFolder(string from, string folder)
     {
         for (var dir = new DirectoryInfo(from); dir is not null; dir = dir.Parent)
-            if (File.Exists(Path.Combine(dir.FullName, "LexPen.csproj"))) return Path.Combine(dir.FullName, "wwwroot");
+            if (File.Exists(Path.Combine(dir.FullName, "LexPen.csproj"))) return Path.Combine(dir.FullName, folder);
         return null;
     }
 
@@ -173,7 +175,7 @@ sealed class AppHost : ApplicationContext
             languagesTimer.Stop();
             languagesTimer.Start();
         }
-        foreach (var dir in ProjectWwwroot is null ? [UserLanguagesDir] : new[] { UserLanguagesDir, ShippedLanguagesDir })
+        foreach (var dir in ProjectDefaults is null ? [UserLanguagesDir] : new[] { UserLanguagesDir, ShippedLanguagesDir })
             if (Watch(dir, "*", true, Changed) is { } watcher) languagesWatchers.Add(watcher);
         languagesTimer.Tick += (_, _) =>
         {
@@ -257,7 +259,7 @@ sealed class AppHost : ApplicationContext
     void LoadThemes()
     {
         var problems = new List<string>();
-        var css = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "wwwroot", "app.css"));
+        var css = WebFiles.ReadText("app.css");
         (fallbackLight, fallbackDark) = (ThemeFile.Fallback(css, "light"), ThemeFile.Fallback(css, "dark"));
         themes = ThemeFile.Load(ShippedThemesDir, UserThemesDir, ThemeFile.Names(css), problems);
         themeProblems = problems;
@@ -315,7 +317,7 @@ sealed class AppHost : ApplicationContext
             themesTimer.Stop();
             themesTimer.Start();
         }
-        foreach (var dir in ProjectWwwroot is null ? [UserThemesDir] : new[] { UserThemesDir, ShippedThemesDir })
+        foreach (var dir in ProjectDefaults is null ? [UserThemesDir] : new[] { UserThemesDir, ShippedThemesDir })
             if (Watch(dir, "*.json", false, Changed) is { } watcher) themesWatchers.Add(watcher);
         themesTimer.Tick += (_, _) =>
         {

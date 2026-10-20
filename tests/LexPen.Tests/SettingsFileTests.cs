@@ -99,7 +99,7 @@ public class SettingsFileTests
     [Fact]
     public void TheShippedDefaultsAreReadable()
     {
-        var merged = SettingsFile.Merge(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "wwwroot", SettingsFile.Name)), null);
+        var merged = SettingsFile.Merge(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, AppHost.DefaultsFolder, SettingsFile.Name)), null);
         Assert.Empty(merged["problems"]!.AsArray());
         Assert.Equal("light", Values(merged)["theme"]!.GetValue<string>());
     }

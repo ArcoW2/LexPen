@@ -18,8 +18,8 @@ starting with `_` is not loaded (`_template`).
 
 | Place | What | Changes apply |
 |---|---|---|
-| `wwwroot\languages` in the project | The shipped packs: the source, in git, distributed with LexPen | A debug build reads this folder itself: at once, in every window |
-| `wwwroot\languages` next to `LexPen.exe` (the install folder; a publish copies the project's there) | The copy a release build reads | When LexPen starts |
+| `defaults\languages` in the project | The shipped packs: the source, in git, distributed with LexPen | A debug build reads this folder itself: at once, in every window |
+| `defaults\languages` next to `LexPen.exe` (the install folder; a publish copies the project's there) | The copy a release build reads | When LexPen starts |
 | `%LOCALAPPDATA%\LexPen\languages` (or `languages` in `LEXPEN_DATA`) | Your own packs | At once, in every LexPen window |
 
 - A pack of your own with the name of a shipped one replaces that one as a whole (not part by part).
@@ -28,7 +28,7 @@ starting with `_` is not loaded (`_template`).
 - A pack meant for everyone belongs in the project: work on it there with a debug build running. Your own folder
   is for what is only yours; a copy of a shipped pack there keeps winning over the shipped one, so delete it when
   done.
-- Themes (`wwwroot\themes`) work the same way: a debug build reads and watches the project's folder.
+- Themes (`defaults\themes`) work the same way: a debug build reads and watches the project's folder.
 
 ## Making a pack
 
@@ -82,7 +82,7 @@ One flow, for every language:
    A type of your own without a look looks like text: give it one (`label: { like: def, bold: true }`).
    Prefer `theme` and `like` over fixed colours: the pack then fits every theme, also ones made later.
 
-The theme files (`wwwroot\themes`) know nothing of languages: they only hold the colours (`keyword`, `string`,
+The theme files (`defaults\themes`) know nothing of languages: they only hold the colours (`keyword`, `string`,
 ...) that the looks point at.
 
 ## A language inside a language: embedded, aliases

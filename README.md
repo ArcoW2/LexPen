@@ -3,27 +3,27 @@
 Fast, intuitive and flexible text and code editor for Windows, with a built-in viewer.
 
 LexPen is a small WinForms app that hosts a WebView2 control. The whole UI is a local web page
-(`wwwroot`): CodeMirror 5 for editing, markdown-it for the preview. The native shell (`MainForm.cs`) handles
+(`web`, built into the exe): CodeMirror 5 for editing, markdown-it for the preview. The native shell (`MainForm.cs`) handles
 everything the page can't do itself: file and folder dialogs, reading and writing files, watching
 for changes, git, the clipboard and window/theme settings. The page and the shell talk through JSON messages.
 
 ## Features
 
-- **Languages**: a language pack per language (`wwwroot\languages\<name>\language.yaml`, `bar.yaml`, icons):
+- **Languages**: a language pack per language (`defaults\languages\<name>\language.yaml`, `bar.yaml`, icons):
   markdown, plain text, C#, JSON, YAML, PowerShell, XML, JavaScript, SQL, Delphi / Pascal, and from the UltraEdit
   word files AutoHotkey, Sybase ASA SQL, Batch, C / C++, CSS, HTML, Java, Perl, PHP, Python, Ruby, Shell,
   VBScript and Visual Basic ship. A language inside a language: blocks of whole lines between marker lines (ASA's
   JSON API block, markdown fences coloured by their pack, HTML's script / style / php), and lines you give a
   language yourself (select them, then the language in the bottom bar); inside, the inner language's colours,
-  comments, indent and bar (over the top row), and a tinted gutter. A debug build reads them (and the themes) from the project's `wwwroot` and
+  comments, indent and bar (over the top row), and a tinted gutter. A debug build reads them (and the themes) from the project's `defaults` and
   picks up a change at once. A pack gives the extensions, how the file opens, the colouring (a built-in mode, or word lists and patterns as SQL and
   Pascal), comments, the outline (procedures, classes, ...), actions and snippets and the buttons above the
   editor. The preview of a code file is coloured as the editor (not above 2 MB). The language in the bottom bar
   is a selector (also View > Language...); the choice is kept per file. Your own packs go in
-  `%LOCALAPPDATA%\LexPen\languages\` (start from `wwwroot\languages\_template`; the guide: `wwwroot\languages\README.md`; a
+  `%LOCALAPPDATA%\LexPen\languages\` (start from `defaults\languages\_template`; the guide: `defaults\languages\README.md`; a
   folder with a shipped name replaces it) and apply at once; mistakes show in the settings window. How a file
   opens: per language, the pack's choice unless you set it (settings window, General > Open in).
-- **Themes**: Light, Dark, Black (OLED), Greenish, Bluish, Reddish and Yellowish ship in `wwwroot\themes`; your own
+- **Themes**: Light, Dark, Black (OLED), Greenish, Bluish, Reddish and Yellowish ship in `defaults\themes`; your own
   go in `%LOCALAPPDATA%\LexPen\themes\` (a file with the same name replaces a shipped one) and apply at once.
   LexPen follows Windows' light / dark mode (a setting, on), with a theme chosen for each mode; Day / night
   switches until Windows changes mode. The preview can have a theme of its own per mode (a light preview next to
@@ -38,7 +38,7 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   `#rrggbb`, `#rgb` or `rgba(r, g, b, a)`. Mistakes show in the settings window.
 - **Settings window** (Options > Settings): every setting in one searchable list with a header per group; a change
   applies at once in every LexPen window, Reset goes back to the default. Your `settings.json` in
-  `%LOCALAPPDATA%\LexPen` holds only what you changed (the defaults with a comment each: `wwwroot\settings.json`);
+  `%LOCALAPPDATA%\LexPen` holds only what you changed (the defaults with a comment each: `defaults\settings.json`);
   edit it by hand or copy it to another PC, a change in it applies at once. Problems in it show in the window.
 - **Editor first**: files open in the editor. Markdown opens as the setting **Open markdown in** says
   (editor, editor and preview, or preview). **Editor** and **Preview** in the toolbar (and the View menu) are
@@ -60,14 +60,14 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
 - **Menus**: File, Edit, Format, View and Options in the toolbar row. Every item shows its key; Alt+letter opens a
   menu, the arrow keys move, Enter runs, Esc closes one level, an underlined letter runs its item. The focus stays
   in the editor, so a menu item works on the cursor and the selection there.
-- **Keys you can change**: every key runs an action, and every menu item is an action. `wwwroot\keys.json` is the
+- **Keys you can change**: every key runs an action, and every menu item is an action. `defaults\keys.json` is the
   default set; a `keys.json` in `%LOCALAPPDATA%\LexPen` overrides it key by key (`"Ctrl+T": null` takes a key
   away). Chords like `Ctrl+K, K`: the first key waits in the bottom bar for the second. A move (section,
   bookmark) selects when Shift is added to its key.
 - **F1**: every action with its key, grouped and searchable (on key, title, hint or action name). Enter runs the
   selected one, so F1 is also a command palette and the way to actions without a key. Your own keys are marked;
   a default you replaced is shown struck through.
-- **Language actions**: what Format does depends on the language of the file (`wwwroot\languages\<name>\language.yaml`).
+- **Language actions**: what Format does depends on the language of the file (`defaults\languages\<name>\language.yaml`).
   Markdown has the formatting; every language with comment markers has Toggle comment (Ctrl+/), Toggle block
   comment (Ctrl+Shift+/) and Remove block comment; Ctrl+PgDn / Ctrl+PgUp (or Alt+Right / Alt+Left) go to the next / previous section
   (a heading in markdown, a paragraph in plain text).
@@ -263,9 +263,12 @@ windows** above).
 dotnet test tests\LexPen.Tests                # unit tests
 ```
 
-`publish` holds exactly what is needed to run the app (no symbols or documentation files), so the whole
-folder can be zipped and handed out. Delete it before publishing, because publish doesn't remove files left
-over from earlier runs. The other user needs the .NET 10 Desktop Runtime installed. The release build has the
+`publish` holds exactly what is needed to run the app: `LexPen.exe` (one file: the app, its libraries and the
+page), `WebView2Loader.dll` (native, next to it) and `defaults\` (the default keys and settings, the language
+packs and themes: to read and copy, not to change). The whole folder can be zipped and handed out. Delete it
+before publishing, because publish doesn't remove files left over from earlier runs; for the same reason, when
+copying a new version over an older install, delete the older files first (`LexPen.dll`, `LexPen.deps.json`,
+`LexPen.runtimeconfig.json`, `Microsoft.Web.WebView2.*.dll`, `YamlDotNet.dll`, `wwwroot\`). The other user needs the .NET 10 Desktop Runtime installed. The release build has the
 WebView2 developer tools switched off; the debug build keeps them.
 
 ### Versioning
@@ -290,12 +293,12 @@ opens **Settings > Default apps** where you pick LexPen.
 
 ## Front-end libraries
 
-The libraries in `wwwroot/vendor` are checked in, so a normal build needs no Node.js.
+The libraries in `web/vendor` are checked in, so a normal build needs no Node.js.
 To upgrade them:
 
 ```powershell
 npm.cmd install           # versions come from package.json
-.\vendor.ps1              # rebuilds wwwroot\vendor from node_modules
+.\vendor.ps1              # rebuilds web\vendor from node_modules
 ```
 
 `vendor.ps1` bundles the files into a few loads: `core.js` (markdown-it, plugins, highlight.js with its common
@@ -320,27 +323,29 @@ PowerShell and C# modes and the search, comment and fold add-ons; loaded when th
 | `BookmarkStore.cs` | Bookmarks of closed files (`bookmarks.json`), found again by their line text |
 | `Fonts.cs` | The installed fonts for the font settings, monospaced or not |
 | `SettingsFile.cs` | `settings.json`: the defaults merged with yours, problems, only differences written |
-| `SettingsForm.cs` | The settings window (`wwwroot/settings.html`, `settings.js`) |
+| `SettingsForm.cs` | The settings window (`web/settings.html`, `settings.js`) |
+| `WebFiles.cs` | The page's files: served from the exe (a debug build: from the project's `web`) |
 | `LanguagePacks.cs` | Language packs: shipped and yours, YAML read with YamlDotNet, given to the page as JSON |
 | `ThemeFile.cs` | Themes: shipped and yours, checked, bases followed; colour names and fallbacks from app.css |
 | `DataFolder.cs` | The data folder's layout (`State\`) and the one-time move of an older layout |
 | `MainForm.cs` | One window: WebView2 host, message handling, file access, watchers, git, close prompt |
 | `Formatters.cs` | Pretty print: JSON (a formatter of its own) and XML (unit tested) |
 | `tests/LexPen.Tests` | Unit tests |
-| `wwwroot/index.html` | The UI page and its Content Security Policy |
-| `wwwroot/app.js` | Documents, tabs and panes, rendering, editor, sidebar, bottom bar |
-| `wwwroot/keys.js`, `keys.json` | Key presses, chords and the default keys |
-| `wwwroot/actions.js` | The actions; the language packs |
-| `wwwroot/menus.js`, `palette.js` | The menu bar; F1 |
-| `wwwroot/format.js`, `bookmarks.js`, `gutter.js`, `find.js` | Editor commands and the bars; bookmarks; the gutter; find in a pane |
-| `wwwroot/tabs.js`, `convert.js`, `column.js` | Tab and indent stops; conversions, trim on save and pretty print; column mode |
-| `wwwroot/languages/` | Language packs: markdown and plain text (the actions part) |
-| `wwwroot/app.css` | Styling; fallback theme colours |
-| `wwwroot/vendor/` | Bundled third-party libraries (generated by `vendor.ps1`) |
+| `web/` | The page (built into the exe as resources; a debug build serves this folder, so an edit applies on a reload) |
+| `web/index.html` | The UI page and its Content Security Policy |
+| `web/app.js` | Documents, tabs and panes, rendering, editor, sidebar, bottom bar |
+| `web/keys.js` | Key presses and chords |
+| `web/actions.js` | The actions; the language packs |
+| `web/menus.js`, `palette.js` | The menu bar; F1 |
+| `web/format.js`, `bookmarks.js`, `gutter.js`, `find.js` | Editor commands and the bars; bookmarks; the gutter; find in a pane |
+| `web/tabs.js`, `convert.js`, `column.js` | Tab and indent stops; conversions, trim on save and pretty print; column mode |
+| `web/app.css` | Styling; fallback theme colours |
+| `web/vendor/` | Bundled third-party libraries (generated by `vendor.ps1`) |
+| `defaults/` | Copied next to the exe: `keys.json` and `settings.json` (the defaults), `languages/` (the language packs), `themes/` |
 | `img/icon/` | App icon: `lexpen.ico` (`lexpen.svg` is its source, `make-ico.ps1` rebuilds `lexpen.ico` and `lexpen.png`) |
 | `demo.md` | Formatting showcase |
 | `register.ps1` | `.md` file association |
-| `vendor.ps1` | Rebuilds `wwwroot/vendor` |
+| `vendor.ps1` | Rebuilds `web/vendor` |
 
 `%LOCALAPPDATA%\LexPen` holds what you choose: `settings.json` (only what differs from the defaults), `keys.json`,
 `favourites.json`, `tab-colours.json`, `themes\`, `languages\`. What LexPen remembers by itself is in its `State\` subfolder: `state.json`

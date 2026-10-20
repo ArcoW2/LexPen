@@ -4,7 +4,7 @@ using System.Text.Json.Nodes;
 namespace LexPen;
 
 /// <summary>
-/// keys.json: which key runs which action. The one in wwwroot is the default set; a keys.json in the data
+/// keys.json: which key runs which action. The one in defaults is the default set; a keys.json in the data
 /// folder overrides it key by key (null takes a key away). Keys are written as "Ctrl+Shift+S", a chord as
 /// "Ctrl+K, K"; an action is its name, or a list of its name and parameters: ["bookmarkGo", 1].
 /// Comments (//) and trailing commas are allowed. The page gets the merged set with the keys in one
@@ -103,10 +103,10 @@ static class KeysFile
         }
     }
 
-    /// <summary>The merged set for this installation: wwwroot\keys.json and the user's file in the data folder.</summary>
+    /// <summary>The merged set for this installation: defaults\keys.json and the user's file in the data folder.</summary>
     public static JsonObject Load(string dataDir)
     {
-        var defaults = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "wwwroot", Name));
+        var defaults = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, AppHost.DefaultsFolder, Name));
         var userPath = Path.Combine(dataDir, Name);
         string? user = null;
         try { if (File.Exists(userPath)) user = File.ReadAllText(userPath); }

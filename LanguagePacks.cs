@@ -9,7 +9,7 @@ namespace LexPen;
 /// <summary>
 /// Language packs: a folder per language, languages\&lt;id&gt;\ with language.yaml (extensions, how files open,
 /// comments, quotes, words, colouring rules, outline, actions, colours), bar.yaml (the helper buttons) and
-/// icons\*.svg. The shipped packs are in wwwroot\languages; yours in languages\ in the data folder, where a
+/// icons\*.svg. The shipped packs are in defaults\languages; yours in languages\ in the data folder, where a
 /// folder with the same name replaces a shipped one. The page gets every pack as JSON (YAML is read here):
 /// { packs: { id: { ...language, bar, icons } }, extensions: { ".cs": "csharp" }, problems: [...] }.
 /// A pack that cannot be read is left out and reported; the others still load.
