@@ -601,6 +601,7 @@ async function ensureEditor(pane) {
   });
   pane.cm.on('scroll', () => onEditorScroll(pane));
   pane.cm.on('paste', (cm, e) => onEditorPaste(pane, e));
+  setupColumn(pane);   // column mode and blocks (column.js); its paste handler comes after the picture one
   pane.cm.on('drop', (cm, e) => onEditorDrop(pane, e));
   pane.cm.getWrapperElement().addEventListener('wheel', e => {   // Ctrl+wheel: the editor font size
     if (!e.ctrlKey) return;
@@ -1322,7 +1323,7 @@ addEventListener('blur', endTabWalk);
 // The active pane's file: cursor, insert / overwrite, encoding, line endings, language, a pending chord.
 const statusUi = {
   chord: $('.mm-st-chord'), pos: $('.mm-st-pos'), ins: $('.mm-st-ins'), enc: $('.mm-st-enc'),
-  eol: $('.mm-st-eol'), lang: $('.mm-st-lang'), clip: $('.mm-st-clip'), alive: $('.mm-st-alive'), long: $('.mm-st-long'),
+  eol: $('.mm-st-eol'), lang: $('.mm-st-lang'), col: $('.mm-st-col'), clip: $('.mm-st-clip'), alive: $('.mm-st-alive'), long: $('.mm-st-long'),
 };
 
 // The heartbeat at the right of the bottom bar: turned by the page itself, so it stands still exactly
@@ -1336,15 +1337,17 @@ function updateStatus() {
   const cm = tab && pane.cm && pane.el.dataset.mode !== 'preview' ? pane.cm : null;
   let pos = '';
   if (cm) {
-    const head = cm.getCursor('head'), selected = cm.getSelection();
+    const head = cm.getCursor('head'), selected = cm.getSelection(), block = blockSize(cm);
     pos = `Ln ${head.line + 1}, Col ${head.ch + 1}`;
-    if (selected) {
+    if (block) pos += ` (Block ${block})`;
+    else if (selected) {
       const lines = selected.split('\n').length;
       pos += ` (${selected.length} selected${lines > 1 ? `, ${lines} lines` : ''})`;
     }
   }
   statusUi.pos.textContent = pos;
   statusUi.ins.textContent = cm ? (cm.state.overwrite ? 'OVR' : 'INS') : '';
+  statusUi.col.hidden = !column.on;
   statusUi.ins.classList.toggle('mm-on', !!cm?.state.overwrite);
   statusUi.enc.textContent = doc ? doc.encoding : '';
   statusUi.eol.textContent = doc ? (doc.eol === '\r\n' ? 'CRLF' : 'LF') : '';
@@ -1371,6 +1374,9 @@ function showChord(stroke) {
 }
 
 statusUi.ins.addEventListener('click', () => runAction('overwrite', [], { from: 'bar' }));
+statusUi.col.addEventListener('mousedown', e => e.preventDefault());   // the focus stays in the editor
+statusUi.col.addEventListener('click', () => setColumnMode(false));
+events.clipboardColumn = ({ column: marked }) => { clips.windowsColumn = marked; };
 statusUi.clip.addEventListener('mousedown', e => e.preventDefault());   // the focus stays in the editor
 statusUi.clip.addEventListener('click', () => showClipboardList());
 
@@ -2461,6 +2467,7 @@ function applyFonts() {
   if (fontSetting('statusSize')) root.setProperty('--status-size', pxOf(fontSetting('statusSize')) + 'px');
   else root.removeProperty('--status-size');
   relayout();
+  columnFontChanged();
 }
 
 // ---------- Wrap long lines (View menu, Alt+Z) ----------

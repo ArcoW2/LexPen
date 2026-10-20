@@ -22,6 +22,7 @@ const MENUS = [
     ['&Undo', 'undo'], ['&Redo', 'redo'], '-',
     ['Cu&t', 'cut'], ['&Copy', 'copy'], ['&Paste', 'paste'], ['Paste &image (asks how to link it)...', 'pasteImage'],
     { label: 'Select c&lipboard', fill: () => clipboardItems() }, '-',
+    ['Col&umn mode', 'columnMode'], '-',
     ['&Find', 'find'], ['R&eplace', 'replace'], ['&Search in files', 'searchInFiles'], '-',
     ['Next secti&on', 'section', 1], ['Pre&vious section', 'section', -1], '-',
     { label: '&Go to bookmark', fill: () => bookmarkItems('go') }, { label: 'Store &bookmark', fill: () => bookmarkItems('store') },
@@ -243,7 +244,7 @@ async function clipboardItems() {
   Object.assign(clips, await host('clipState'));
   return Array.from({ length: 10 }, (_, n) => ({
     label: n === 0 ? '&Windows clipboard' : `Clipboard &${n}`, action: 'clipboardSelect', params: [n],
-    key: clips.previews[n] || '(empty)', title: keyText('clipboardSelect', n),
+    key: (clips.columns?.[n] ? '[block] ' : '') + (clips.previews[n] || '(empty)'), title: keyText('clipboardSelect', n),
   }));
 }
 

@@ -21,6 +21,9 @@ sealed class MainForm : Form
     // Local images referenced by a document are served from this fake host.
     const string FileUrl = "https://file.lexpen.example/";
 
+    // The clipboard format that marks a text as a block (column), as Visual Studio and Notepad++ write and read it.
+    const string ColumnFormat = "MSDEVColumnSelect";
+
     // Larger files are not opened.
     const long MaxFileSize = 10 * 1024 * 1024;
 
@@ -434,10 +437,23 @@ sealed class MainForm : Form
             case "clipboardText":
                 return Clipboard.ContainsText() ? Clipboard.GetText() : null;
 
-            // Edit > Copy / Cut with the Windows clipboard active (the keys copy in the page itself).
+            // Edit > Copy / Cut with the Windows clipboard active (the keys copy in the page itself), and every copy
+            // of a block (column: the text plus the MSDEVColumnSelect marker Visual Studio and Notepad++ use).
             case "clipboardSetText":
-                if (Arg("text").Length > 0) Clipboard.SetText(Arg("text"));
+                if (Arg("text").Length == 0) return null;
+                if (msg["column"]?.GetValue<bool>() == true)
+                {
+                    var data = new DataObject();
+                    data.SetText(Arg("text"));
+                    data.SetData(ColumnFormat, new MemoryStream(new byte[1]));
+                    Clipboard.SetDataObject(data, true);
+                }
+                else Clipboard.SetText(Arg("text"));
                 return null;
+
+            // Is the text on the Windows clipboard a block (column)? Paste then puts it in as a column.
+            case "clipboardColumn":
+                return Clipboard.ContainsText() && Clipboard.GetDataObject()?.GetDataPresent(ColumnFormat) == true;
 
             // Insert image from the clipboard: image files copied in Explorer, or a picture (as base64 PNG).
             case "clipboardImage":
@@ -478,7 +494,7 @@ sealed class MainForm : Form
                 return null;
 
             case "clipSet":
-                app.Clipboards.Set(msg["n"]!.GetValue<int>(), Arg("text"));
+                app.Clipboards.Set(msg["n"]!.GetValue<int>(), Arg("text"), msg["column"]?.GetValue<bool>() == true);
                 app.ClipboardsChanged();
                 return null;
 
@@ -879,6 +895,43 @@ sealed class MainForm : Form
             return git.ExitCode == 0 ? output : null;
         }
         catch (Win32Exception) { return null; }   // git not installed
+    }
+
+    // Whether the Windows clipboard holds a block (column) must be known in the page at once: a paste does not wait for
+    // the host. Windows says when the clipboard changes; the page is told (and once at the start).
+    const int WM_CLIPBOARDUPDATE = 0x031D;
+
+    [DllImport("user32.dll", SetLastError = true)]
+    static extern bool AddClipboardFormatListener(IntPtr hwnd);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    static extern bool RemoveClipboardFormatListener(IntPtr hwnd);
+
+    protected override void OnHandleCreated(EventArgs e)
+    {
+        base.OnHandleCreated(e);
+        AddClipboardFormatListener(Handle);
+        PostClipboardColumn();
+    }
+
+    protected override void OnHandleDestroyed(EventArgs e)
+    {
+        RemoveClipboardFormatListener(Handle);
+        base.OnHandleDestroyed(e);
+    }
+
+    protected override void WndProc(ref Message m)
+    {
+        if (m.Msg == WM_CLIPBOARDUPDATE) PostClipboardColumn();
+        base.WndProc(ref m);
+    }
+
+    void PostClipboardColumn()
+    {
+        bool column;
+        try { column = Clipboard.ContainsText() && Clipboard.GetDataObject()?.GetDataPresent(ColumnFormat) == true; }
+        catch (ExternalException) { return; }   // another program holds the clipboard just now
+        Post(new JsonObject { ["event"] = "clipboardColumn", ["column"] = column });
     }
 
     // Its place and desktop are kept with the window's session (AppHost.WindowPlaceChanged), once it is shown.

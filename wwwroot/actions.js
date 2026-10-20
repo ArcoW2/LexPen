@@ -184,45 +184,56 @@ appAction('replace', { title: 'Replace', hint: 'Find and replace, in the editor'
 // the input it is pressed in (they copy and paste themselves); the menu goes through the host, which reads
 // and writes the clipboard without the page having to ask for permission. A find box or the search
 // always uses the Windows clipboard.
-const clips = { active: 0, previews: Array(10).fill('') };
+// columns: which numbered clipboards hold a block; windowsColumn: the Windows clipboard does (the host says so on every
+// change, so a paste knows at once; column.js).
+const clips = { active: 0, previews: Array(10).fill(''), columns: Array(10).fill(false), windowsColumn: false };
 const inInput = () => !!document.activeElement?.matches('input, textarea, select') && !document.activeElement.closest('.CodeMirror');
 const focusedEditor = () => panes.find(p => p.cm?.hasFocus() && p.active && p.el.dataset.mode !== 'preview') ?? null;
 
-// What to copy: the editor's selection (nothing selected: the cursor's line, as the editor does), else the
-// selection in the preview.
+// What to copy: a block (column.js), the editor's selection (nothing selected: the cursor's line, as the editor does),
+// else the selection in the preview.
 function textToCopy(pane) {
   if (!pane) return getSelection().toString();
   const cm = pane.cm;
+  if (blockOf(cm)) return blockText(cm, pane.active.doc.eol);
   return cm.getSelection() || cm.getLine(cm.getCursor().line) + '\n';
 }
 
-function putOnClipboard(text) {
+// A block goes on the clipboard marked as one (the Windows clipboard: MSDEVColumnSelect), so paste puts it back as a column.
+function putOnClipboard(text, column = false) {
   if (!text) return;
-  if (clips.active === 0) host('clipboardSetText', { text });
-  else host('clipSet', { n: clips.active, text });
+  if (clips.active === 0) host('clipboardSetText', { text, column });
+  else host('clipSet', { n: clips.active, text, column });
 }
 
+// A key with the Windows clipboard is left to the editor, except on a block: the marker needs the host.
+const editorCopies = (ctx, pane) => ctx.from === 'key' && clips.active === 0 && !(pane?.cm && blockOf(pane.cm));
+
 appAction('copy', { title: 'Copy', hint: 'To the active clipboard', group: 'edit', run: (_, ctx) => {
-  if (ctx.from === 'key' && (clips.active === 0 || inInput())) return PASS;
-  putOnClipboard(textToCopy(ctx.from === 'key' ? focusedEditor() : editorPane(ctx)));
+  const pane = ctx.from === 'key' ? focusedEditor() : editorPane(ctx);
+  if (ctx.from === 'key' && inInput() || editorCopies(ctx, pane)) return PASS;
+  putOnClipboard(textToCopy(pane), !!(pane?.cm && blockOf(pane.cm)));
 } });
 appAction('cut', { title: 'Cut', hint: 'To the active clipboard', group: 'edit', editor: true, run: (_, ctx) => {
-  if (ctx.from === 'key' && clips.active === 0) return PASS;
+  if (editorCopies(ctx, ctx.pane)) return PASS;
   const cm = ctx.pane.cm;
   if (cm.getOption('readOnly')) return;
-  putOnClipboard(textToCopy(ctx.pane));
-  if (cm.somethingSelected()) cm.replaceSelection('');
+  const block = !!blockOf(cm);
+  putOnClipboard(textToCopy(ctx.pane), block);
+  if (block) clearBlock(cm);
+  else if (cm.somethingSelected()) cm.replaceSelection('');
   else {
     const line = cm.getCursor().line;
     cm.replaceRange('', CodeMirror.Pos(line, 0), line < cm.lastLine() ? CodeMirror.Pos(line + 1, 0) : CodeMirror.Pos(line));
   }
 } });
-// Not async: the key handler must see PASS itself, not a promise of it.
+// Not async: the key handler must see PASS itself, not a promise of it. The key with the Windows clipboard is the
+// editor's own paste (a block or column mode: onNativePaste, column.js). As a column, or a line per selection: pasteText.
 appAction('paste', { title: 'Paste', hint: 'From the active clipboard', group: 'edit', editor: true, run: (_, ctx) => {
   if (ctx.from === 'key' && clips.active === 0) return PASS;
   return (async () => {
-    const text = clips.active === 0 ? await host('clipboardText') : await host('clipGet', { n: clips.active });
-    if (text && !ctx.pane.cm.getOption('readOnly')) ctx.pane.cm.replaceSelection(text);
+    const n = clips.active, text = n === 0 ? await host('clipboardText') : await host('clipGet', { n });
+    pasteText(ctx.pane.cm, text, n === 0 ? clips.windowsColumn : clips.columns[n]);
   })();
 },
   // In a text field (find, the search, ...): the Windows clipboard by the field's own paste, another one inserted
@@ -248,6 +259,14 @@ appAction('pasteImage', { title: 'Paste image', hint: 'A picture or image files 
   } });
 appAction('undo', { title: 'Undo', group: 'edit', editor: true, run: (_, { pane }) => pane.cm.undo() });
 appAction('redo', { title: 'Redo', group: 'edit', editor: true, run: (_, { pane }) => pane.cm.redo() });
+// ---------- Column mode and blocks (column.js) ----------
+appAction('columnMode', { title: 'Column mode', hint: 'A drag and Shift+arrows select a block; typing, Backspace and Delete work on every line of it; paste goes in as a column (COL in the bottom bar)',
+  group: 'edit', editor: true, checked: () => column.on, run: () => setColumnMode(!column.on) });
+appAction('blockSelect', { title: 'Select a block', hint: 'Grows or shrinks a block (a column selection) from the cursor, also without column mode',
+  group: 'edit', editor: true, variants: [['up'], ['down'], ['left'], ['right']],
+  variantTitles: { up: 'Select a block: up', down: 'Select a block: down', left: 'Select a block: left', right: 'Select a block: right' },
+  run: ([dir], { pane }) => editorMonospaced() ? extendBlock(pane.cm, dir)
+    : toast('A block needs a monospaced editor font (Options > Settings > Editor).') });
 appAction('overwrite', { title: 'Insert / overwrite', hint: 'Typing replaces the character at the cursor (OVR in the bottom bar)', group: 'edit', editor: true,
   run: (_, { pane }) => { pane.cm.toggleOverwrite(); updateStatus(); } });
 

@@ -1,29 +1,34 @@
-# Plan: text conversions and formatters (tabs, case, pretty print JSON / XML)
+# Plan: text conversions and formatters (case, tabs, trailing whitespace, pretty print, the Format menu)
 
-Status: plan, 2026-10-20. Replaces the draft of 2026-10-19 (formatters, Q7 of executed/PLAN-language-packs.md).
+Status: plan, 2026-10-20; answers of 2026-10-20 worked in (4.2 to 4.13). Replaces the draft of 2026-10-19
+(formatters, Q7 of executed/PLAN-language-packs.md).
 
 ## 1. What this is about
 
-Text cannot be tidied in LexPen. Asked for:
+Text cannot be tidied in LexPen, and the Format menu does not fit the language you are in. Asked for:
 
-- **Conversions**, in every language: tabs to spaces; the case of the selected text: upper, lower, smart
-  capitalize (after `.` and `:`), snake_case, and the like. As actions (keys, F1) and on the bar above the editor.
+- **Conversions**, in every language: the case of the text (upper, lower, smart capitalize after `.` and `:`,
+  snake_case, camelCase, PascalCase, kebab-case, CONSTANT_CASE), tabs to spaces and spaces to tabs, trailing
+  whitespace removed (also on save). As actions (keys, F1), on the bar above the editor and in the Format menu.
 - **Pretty print (reformat)** for JSON and XML: a minified response (one line of 241,477 characters was the
-  example in the draft) indented and readable.
-- Both on the selection when there is one, else on the whole file.
-- **The Format menu** shows the markdown items always, whatever the language. Asked (2026-10-20): the Format menu
-  holds what the bar holds, for the language you are in, plus the conversions (case and the like).
+  example in the draft) indented and readable; JSON comments kept when you want them.
+- **The Format menu** shows the markdown items always, whatever the language. It should hold what the bar holds,
+  for the language you are in (with the icons), plus the conversions; an embedded language's items in a submenu.
+- **Tab**: always shifts the whole line (a tab cannot be put halfway a line), and always as spaces, while some
+  languages need a real tab. The tab size should be a setting.
 
 ## 2. The solution, in brief
 
-The conversions are actions of the plain text pack, so every language has them; the bar gets one "Convert" button
-that opens a short menu with them (all bars: code and markdown). Pretty print is an action per language, `format`,
-which JSON and XML have; the host does the work (the .NET JSON and XML readers), keeps every value exactly as
-written, and changes nothing when the text does not parse. Every conversion and format is one undo step.
+The conversions are actions of the plain text pack, so every language has them; every bar gets a "Convert" button
+with a short menu of them, at the end unless the pack places it. Pretty print is an action per language, `format`,
+which JSON and XML have; the host does the work, keeps every value exactly as written, asks whether to keep JSON
+comments, and changes nothing when the text does not parse. Every conversion and format is one undo step.
 
-The Format menu is built when it opens, from the file's language bar: markdown's items in markdown, a pack's
-`bar.yaml` items in code, then the conversions and Format. Comments stay at the top for every language. On a line
-of another language its bar's items come in a submenu under that language's name (`JSON`).
+The Format menu is built when it opens from the same list as the bar, icons included: the comment group, the
+file's language bar items, Convert and Format; on a line of another language its items follow in a submenu under
+that language's name. Ctrl+Alt+F opens the same menu at the cursor. Tab size and indent size become two settings,
+a language can ask for real tabs; Tab in a line's indentation goes to the next indent stop, Tab after text to the
+next tab stop.
 
 ## 3. Details
 
@@ -33,20 +38,25 @@ Actions of the plain text pack, so a language inherits them (and can override on
 
 | Action | Does |
 |---|---|
-| `tabsToSpaces` | Every tab to spaces, to the next tab stop (tab size 4, the editor's) |
-| `trimTrailing` | Spaces and tabs at the end of the lines removed (3.1.2) |
-| `upperCase` | UPPER CASE |
-| `lowerCase` | lower case |
-| `capitalize` | Smart capitalize: the first letter of a word after `.` or `:` upper, and of the first word when nothing comes before it or a `.` or `:` does; the rest unchanged (3.1.1) |
+| `upperCase` | UPPER CASE (key Ctrl+Shift+U) |
+| `lowerCase` | lower case (key Ctrl+U) |
+| `capitalize` | Smart capitalize (3.1.1) |
 | `snakeCase` | snake_case: words split at spaces, `-`, `_` and lower-to-upper (`fileName` -> `file_name`) |
-| more | per question 4.2: camelCase, PascalCase, kebab-case, CONSTANT_CASE |
+| `camelCase` | camelCase (`file name` -> `fileName`) |
+| `pascalCase` | PascalCase (`file name` -> `FileName`) |
+| `kebabCase` | kebab-case (`fileName` -> `file-name`) |
+| `constantCase` | CONSTANT_CASE (`fileName` -> `FILE_NAME`) |
+| `tabsToSpaces` | Every tab to spaces, as wide as it is shown (3.4: in the indentation to the next indent stop, after text to the next tab stop) |
+| `spacesToTabs` | The indentation at the start of each line to tabs, one tab per whole indent step (3.4); the rest stays spaces. Spaces inside a line are left alone (they line things up, a tab would not) |
+| `trimTrailing` | Spaces and tabs at the end of the lines removed (3.1.2) |
 
-- With a selection: the selected text (several selections: each). Without one: tabs to spaces does the whole
-  file; the case actions do the word at the cursor (question 4.3).
+- With a selection: the selected text (several selections, or a block of column mode: each). Without one: the
+  case actions do the word at the cursor; tabs to spaces, spaces to tabs and trim do the whole file.
 - The selection stays on the converted text.
 - A read-only tab: nothing changes, the usual message.
-- A new action kind in the packs, `convert: upper` (and so on), so a pack can put them on its bar or give them a
-  key like the other kinds (README in languages\).
+- Keys: Ctrl+Shift+U and Ctrl+U; the others have no key (the Convert menu, the Format menu, Ctrl+Alt+F, F1).
+- A new action kind in the packs, `convert: upper` (and so on), so a pack can put one on its bar on its own or
+  give it a key like the other kinds (README in languages\).
 
 ### 3.1.1 Smart capitalize
 
@@ -65,52 +75,93 @@ Actions of the plain text pack, so a language inherits them (and can override on
 
 - **The action** `trimTrailing` ("Remove whitespace at line ends"): spaces and tabs at the end of every line of the
   selection (the lines it touches, whole), or of the whole file without one. One undo step; the cursor and the
-  selection stay on the same text. In the Convert menu (3.2), F1 and with a key.
-- **On save** (setting `trimOnSave`, Options > Settings > Editor, default on): the same for the whole file just
-  before it is written, as part of the save (one undo step of its own, so Ctrl+Z after a save gives the spaces back
-  without undoing anything else). Drafts and Save as too.
+  selection stay on the same text. In the Convert menu, the Format menu, F1, and with a key of your own.
+- **On save** (setting `trimTrailing`, Options > Settings > Editor, default on): on, the same for the **whole
+  file** just before it is written, as part of the save (one undo step of its own, so Ctrl+Z after a save gives the
+  spaces back without undoing anything else); drafts and Save as too. Off: every space is kept.
+- **Per language** (`language.yaml`, `trimTrailing`):
+  - `mode`: `setting` (the default: on save as the setting says), `true` (always trimmed on save, whatever the
+    setting), `false` (never trimmed, not on save and not by the action, which says so).
+  - `keep: N`: at most N spaces or tabs are left at a line's end, as they were written (more become N; fewer stay).
+    Without it all go.
+  - Short forms: `trimTrailing: false` / `trimTrailing: true` set the mode only; `trimTrailing: { keep: 2 }` keeps
+    the mode `setting`.
+  - Markdown ships with `trimTrailing: { keep: 2 }`: two spaces at a line's end are a hard line break there
+    (CommonMark, GitHub), so someone else's file keeps its line breaks. Your own pack can set `keep` off.
 - Line ends (CRLF / LF) and a missing or present line break at the end of the file stay as they are; only the
   spaces and tabs before them go.
 - A read-only tab is never changed; a file that only differs by trailing whitespace is still saved (its timestamp
   changes, as with any save).
-- Markdown, where two spaces at a line's end are a hard line break: question 4.9. Lines you did not touch:
-  question 4.10.
 
 ### 3.2 The bar
 
-- One button, "Convert" (an `Aa` icon), opens a menu with the conversions and their keys, as the formatting bar's
-  heading and list buttons do now. It goes on every bar: the code bar of every pack (from plain text, so the
-  packs' `bar.yaml` files do not each need it) and the markdown formatting bar.
+- One button, "Convert" (an `Aa` icon), opens a menu with the conversions of 3.1 and their keys, as the
+  formatting bar's heading and list buttons do now. It goes on every bar: the code bar of every pack and the
+  markdown bar.
 - A pack with `format` gets a "Format" button next to it (JSON, XML).
-- `bar.yaml` gets a way to place them: `- { action: convert, icon: case }` for the menu; without it they go at the
-  end of the bar (question 4.4).
+- **Place**: at the end of the bar by default. A pack's `bar.yaml` places them itself by naming them:
+  `- { action: convert, icon: case }`, `- { action: format, icon: format }`; then they are not added at the end.
+- The Format menu (3.6) follows the bar's order, so a pack that moves Convert moves it in the menu too.
 
 ### 3.3 Pretty print (JSON, XML)
 
-- An action `format` in the json and xml packs (kind `format: json` / `format: xml`), on their bar, in F1, and a
-  key (proposal Ctrl+Alt+F; question 4.5).
+- An action `format` in the json and xml packs (kind `format: json` / `format: xml`): on their bar, in the Format
+  menu, in F1. No key of its own: Ctrl+Alt+F opens the menu with every formatting option (3.6).
 - The page sends the text (selection or whole file) to the host; the host returns the formatted text or an error.
   Off the page, so a large file does not hold up the window.
-- **JSON**: `System.Text.Json` (`JsonDocument`, written back indented by `Utf8JsonWriter`). Numbers and strings
-  are written as they were: `1.0` stays `1.0`, a long number keeps its digits, `\u00e9` and `"` stay as written
-  (the relaxed encoder, checked by tests). Key order kept. Comments: question 4.6.
+- **JSON**: a formatter of LexPen's own (C#): it reads the text as tokens (strings, numbers, `true` / `false` /
+  `null`, brackets, commas, colons, `//` and `/* */` comments) and writes them back indented. Every token is
+  copied as written: `1.0` stays `1.0`, a long number keeps its digits, the escape `\u00e9` and `"` stay as written, key
+  order is kept. It checks the structure as it goes (brackets, commas, colons), so a mistake gives its line and
+  column.
+- **JSON comments**: when the text has comments, LexPen asks first: "Keep the comments?" Yes keeps them (each on
+  its own line at the indentation of what follows, or after the value on the same line when it was there), No
+  removes them, Cancel changes nothing. Without comments: no question.
 - **XML**: `XDocument` (or a fragment for a selection), written back by `XmlWriter` with indenting. Comments,
   processing instructions and CDATA kept; the declaration kept when there was one. Text inside an element with
   mixed content (text and elements) is not re-indented, so text does not change.
-- **Indent**: 2 spaces, or a tab when the file is indented with tabs (question 4.7).
+- **Indent**: one indent step of the language (3.4): a tab where the language uses tabs, else the indent size in
+  spaces.
 - **Selection**: formatted when it is a whole JSON value / whole XML elements on its own; the lines keep the
   indentation the selection started at. A selection that does not parse on its own: nothing changes, message.
 - **Errors**: the text is not changed; the message says where it failed (line and column of the selection or
   file), and the cursor goes there.
 - Line ends: the file's own (CRLF or LF).
 
+### 3.4 Tab and indent
+
+- **Two settings** (Options > Settings > Editor): `tabSize`, where the tab stops are, and `indentSize`, where the
+  indent stops are (defaults 4 and 2, as today). A pack can set its own (`tabSize: 8`, `indentSize: 2` in
+  `language.yaml`), which wins for that language.
+- **Indent stops in the indentation, tab stops after text.** In a line's indentation (only spaces and tabs before
+  it) the stops are indent stops; after the first other character they are tab stops. This holds for the Tab key
+  and for showing a tab: a tab in the indentation is shown up to the next indent stop, a tab after text up to the
+  next tab stop.
+- **Tabs or spaces**: a pack says `useTabs: true` for a language that needs real tabs (Makefile, Go, tab-separated
+  files); then Tab, indent and pretty print write a tab. Without it: spaces, as now, as many as reach the stop
+  (indentation of 2 with indent size 4: Tab adds 2).
+- **The Tab key**:
+  - Cursor in the indentation (or at the start of the line): the line is indented to the next indent stop; Shift+Tab
+    outdents it to the one before.
+  - Cursor after text: a tab, or spaces to the next tab stop, at the cursor, also halfway a line.
+  - Lines selected: Tab / Shift+Tab indent / outdent them one indent step (as now).
+  - Markdown keeps Tab in a table moving to the next cell, and in a list item indenting the item.
+- **Showing a tab two ways**: CodeMirror 5 draws every tab with one width (its `tabSize`). A tab in the
+  indentation drawn to the indent stop needs LexPen's own drawing of those tabs, and everything that counts columns
+  (the column in the bottom bar, column mode, tabs to spaces) has to count with the same rule. Where indent size
+  and tab size are equal nothing changes. This is the part of the plan with the most risk; it is built and tested
+  first.
+
 ### 3.6 The Format menu
 
 - Filled when it opens (as Projects is): the file's language gives the items; the language of the cursor's line
   (`lineLanguage`) adds a submenu when it is another one.
 - **Order**: Toggle comment, Toggle block comment, Remove block comment (every language, as now; they already act
-  in the cursor line's language); a line; the file's language bar items; a line; Convert (a submenu with the
-  conversions of 3.1); Format (3.3) when the language has it.
+  in the cursor line's language); a line; the file's language bar items, in the bar's order, Convert and Format
+  among them where the bar has them (3.2: at the end unless the pack placed them). Convert is a submenu with the
+  conversions of 3.1.
+- **Icons**: each item shows its bar icon in front of the title (the same SVG as the button), so you recognise it
+  from the bar. Items without an icon (a label only) show none.
 - **On a line of another language** (a block, a fence, lines you set): after the file's items a submenu named
   after the inner language (`JSON`, `SQL`), the same name as the inner bar shows. It holds that language's bar
   items, built the same way, and they act in that language (`runAction` with `ctx.language`, as the inner bar's
@@ -122,73 +173,47 @@ Actions of the plain text pack, so a language inherits them (and can override on
   fixed Format list. A change to a bar then shows in the menu by itself.
 - **Markdown**: the same items as now (bold ... table), in the bar's order; Heading and Table as submenus (the
   table grid stays bar-only; the menu keeps Insert table 3 x 2 as now).
-- **Code**: each `bar.yaml` item as a menu item with the action's title and key; `'-'` becomes a line. Items
-  that are already in the comment group are left out (most bars start with Toggle comment). A language without
-  `bar.yaml`: the comment group and Convert only.
+- **Code**: each `bar.yaml` item as a menu item with the action's title, icon and key; `'-'` becomes a line.
+  Items that are already in the comment group are left out (most bars start with Toggle comment). A language
+  without `bar.yaml`: the comment group and Convert only.
+- **Only the bar's items**: an action of a pack with a key but no bar button (a snippet, say) is not in the
+  menu; F1 lists every action.
 - **Preview**: the menu as for the file's language; the items are dimmed (the editor is not active), as now.
-- Letters (`&`): fixed ones for the comment group, Convert and Format; the bar items get the first free letter
-  of their title (question 4.12).
+- **Letters** (`&`): fixed ones for the comment group, Convert and Format; a bar item gets the first free letter
+  of its title, or the one `bar.yaml` gives it (`letter: s`), which wins.
+- **Ctrl+Alt+F**: the same menu as a popup at the cursor (every formatting option for where you are, the inner
+  language's submenu included).
 
-### 3.4 Tests
+### 3.7 Tests
 
-- Unit (host): JSON with long numbers, `1.0`, escapes, unicode, nested empty arrays and objects, comments (per
-  4.6); invalid JSON gives line and column. XML with comments, CDATA, mixed content, a declaration; a fragment.
-- In-app (trailing whitespace): the action on a selection and on the whole file; save with `trimOnSave` on and off;
-  Ctrl+Z after the save gives the spaces back; CRLF and LF kept; markdown per 4.9.
-- In-app (Format menu): markdown shows its items; a .sql file shows the asa bar items and no markdown items; the
-  cursor in the JSON block of a .sql file adds a submenu `JSON` with the json bar items, which act as JSON, and
-  outside the block that submenu is gone; Convert opens its submenu; an item runs its action.
-- In-app: each conversion on a selection, on several selections and without one; one undo restores; read-only
-  tab untouched; the Convert menu on a code bar and the markdown bar; Format on a minified JSON file and on a
-  selection inside it; the error message and cursor on broken JSON.
+- Unit (host): JSON with long numbers, `1.0`, escapes, unicode, nested empty arrays and objects; comments kept
+  (line and block, before and after a value) and removed; invalid JSON gives line and column. XML with comments,
+  CDATA, mixed content, a declaration; a fragment.
+- In-app (trailing whitespace): the action on a selection and on the whole file; save with the `trimTrailing` setting on and off;
+  Ctrl+Z after the save gives the spaces back; CRLF and LF kept; the setting off keeps all; the language modes
+  `setting`, `true`, `false`; `{ keep: 2 }` with spaces and with tabs.
+- In-app (Format menu): markdown shows its items with icons; a .sql file shows the asa bar items and no markdown
+  items; the cursor in the JSON block of a .sql file adds a submenu `JSON` with the json bar items, which act as
+  JSON, and outside the block that submenu is gone; Convert opens its submenu; an item runs its action; a pack
+  that places Convert gets it there in bar and menu; `letter:`; Ctrl+Alt+F opens the menu at the cursor.
+- In-app (conversions): each on a selection, on several selections, on a block and without one; one undo restores;
+  read-only tab untouched; tabs to spaces and spaces to tabs with tab size 4 and 2.
+- In-app (pretty print): a minified JSON file, a selection inside it, JSON with comments (the question, both
+  answers), the error message and cursor on broken JSON; XML.
+- In-app (Tab): Tab in the indentation goes to the next indent stop, after text to the next tab stop, with spaces
+  and with `useTabs: true`; Shift+Tab in the indentation; lines selected; a tab in the indentation and one after
+  text shown at their widths with indent size 2 and tab size 4; the bottom bar column and column mode count the
+  same; the pack's own sizes win over the settings.
 
-### 3.5 Docs
+### 3.8 Docs
 
-README (Editing), languages\README.md (the `convert` and `format` kinds, the Convert button), HANDOFF.
+- README (Editing: conversions, pretty print, trailing whitespace, Tab), HANDOFF.
+- languages\README.md: the `convert` and `format` kinds; `trimTrailing` (mode, keep), `tabSize`, `indentSize`,
+  `useTabs`; and a full
+  reference of `bar.yaml` (every key: `action`, `icon`, `label`, `letter`, the separator, placing `convert` and
+  `format`, what goes into the Format menu and in which order), with an example per key. The pack files grow;
+  each option is explained where it is used, in the template too (`_template`).
 
 ## 4. Open questions
 
-4.2 **Which case styles.** Upper, lower, smart capitalize, snake_case asked. Add camelCase, PascalCase, kebab-case and
-CONSTANT_CASE (all common in code)? Recommendation: yes.
-
-4.3 **A case action without a selection.** The word at the cursor, or nothing? Recommendation: the word at the
-cursor (as most editors do). Tabs to spaces without a selection: the whole file, as asked.
-
-4.4 **Placing the buttons.** The Convert button (and Format) on every bar at a fixed place (the end), or placed by
-each pack's `bar.yaml`? Recommendation: at the end by default; a pack may place them itself.
-
-4.5 **Keys.** Proposal: Format Ctrl+Alt+F; Upper Ctrl+Shift+U, lower Ctrl+U (as Visual Studio); the others no key
-(F1 and the menu). Any keys you already use for these in UltraEdit?
-
-4.6 **JSON with comments** (`.jsonc`, LexPen's own `keys.json`, `settings.json`). Refuse to format (comments
-would be lost), or keep the comments (needs a formatter of our own instead of `JsonDocument`)? Recommendation:
-refuse with a message for now; a comment-keeping formatter later if needed.
-
-4.7 **Indent.** 2 spaces fixed, the file's own (tabs when it uses tabs, else the most common step), or a setting
-per language? Recommendation: the file's own, 2 spaces for a file with no indentation (minified).
-
-4.8 **Also spaces to tabs** (the reverse of tabs to spaces, at the start of lines)? Not asked; recommendation: not
-now.
-
-4.9 **Markdown hard line breaks.** In markdown, two (or more) spaces at the end of a line make a line break inside a
-paragraph (GitHub, and LexPen's preview with "line breaks" off). Removing them changes the text's look. Options:
-leave exactly two spaces alone on a line followed by more paragraph text, in markdown only; or no trim on save in
-markdown at all; or trim everything (your choice per file then: the `\` at the end of a line is the other way to
-write a hard break). Recommendation: in markdown, leave a run of two or more spaces alone when the next line goes
-on with the paragraph; remove all other trailing whitespace.
-
-4.10 **The whole file, or only the lines you changed.** Trim on save over the whole file also changes lines you did
-not touch, which shows up in git as changes you did not make (in a file of someone else's, or an old one). Only
-the changed lines (the gutter's change markers know them) avoids that. Recommendation: only the changed lines on
-save; the action itself (3.1.2) does what you select, or the whole file.
-
-4.11 **Build the Format menu now or with the conversions.** The menu change (3.6) does not need the conversions:
-it can go in first with the comment group and the bar items, and Convert joins when 3.1 is built.
-Recommendation: first, on its own.
-
-4.12 **Letters for bar items.** The first free letter of the title (automatic, may differ per language), or a
-`key letter` in `bar.yaml` (`letter: s`)? Recommendation: automatic; `letter:` only if one turns out awkward.
-
-4.13 **Items of the bar that are not on the bar.** Some actions of a pack have a key but no bar button (snippets,
-say). Only the bar's items in the menu, or every action of the pack? Recommendation: only the bar's items; F1
-lists every action.
+None.

@@ -79,6 +79,15 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   restarts). Ctrl+Shift+1 to 9 selects one, Ctrl+Shift+` the Windows clipboard; Ctrl+C, Ctrl+X and Ctrl+V then
   work on the active one. The bottom bar shows it (Clip: Win, Clip: 3); a click there or Ctrl+Shift+C lists them
   with the start of their text.
+- **Column mode** (Alt+C or Edit > Column mode; `COL` in the bottom bar, a click there ends it): a drag and
+  Shift+arrows (also Home / End / PgUp / PgDn) select a block, a rectangle that goes on past the end of short
+  lines; tabs count to their tab stop. Without the mode Alt+drag and Alt+Shift+arrows make one. A key typed on a
+  block replaces it on every line; Backspace / Delete remove its part and leave a cursor on every line, where
+  typing then goes on (overwriting in OVR mode); a shorter line is first filled up with spaces, so the text lines
+  up. Tab / Shift+Tab indent the block's lines. Copy and cut mark a block on the clipboard (`MSDEVColumnSelect`,
+  as Visual Studio and Notepad++; `[block]` in the clipboard list); paste puts a marked text in as a column at the
+  cursor, and in column mode any text. A text of as many lines as there are cursors gives each cursor its line.
+  Only with a monospaced editor font. The bottom bar shows the block's size: `Block 5 x 12` (lines x columns).
 - **Gutter**: line numbers, bookmarks, change markers (not saved yet), git markers (changed since the last commit;
   a click shows the old text and can revert the block) and fold markers (heading sections and code blocks in
   markdown, braces or indentation in code). View > Gutter switches each column. Line numbers: none, every 10 (a
@@ -86,7 +95,7 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
 - **Bottom bar**: at the left both panes, each a page with an arrow to where it is (left / right, or up / down
   when above each other) and an eye: struck through while the pane is hidden, grey while it has no documents. A
   click on the eye shows or hides the pane; hiding one while the other is hidden shows the other (never both
-  hidden). Then line and column (and the size of the selection), INS / OVR (Ins), encoding, line endings,
+  hidden). Then line and column (and the size of the selection or block), COL (column mode), INS / OVR (Ins), encoding, line endings,
   language, the active clipboard and a pending chord. "Long line: colour stops at 10,000 characters" when a
   line is that long (the editor colours a line up to there). At the far right a heartbeat (- \ | /) turns
   while LexPen responds; when it stands still, LexPen is busy. The bottom bar can have a font and size of its own.
@@ -193,6 +202,7 @@ F1 lists every key and action. The main ones of the default set:
 | Ctrl+F, F3 / Shift+F3, Ctrl+Shift+R, Ctrl+Shift+F | Find, next / previous (past the last match: stop, go on from the top, or go on until where the search started; a setting), replace, search in files |
 | Ctrl+PgDn / Ctrl+PgUp | Next / previous section (with Shift: select) |
 | Ctrl+Shift+1 .. 9, Ctrl+Shift+` , Ctrl+Shift+C | Select clipboard 1 to 9, the Windows clipboard, the list |
+| Alt+C, Alt+Shift+arrows | Column mode on / off, select a block (also without column mode) |
 | Ctrl+1, S / T / C, Ctrl+1, 1 | Bookmark 1: store, toggle, clear, go to (likewise 2 to 9) |
 | Ctrl+K, K / N / P / L | Unnumbered bookmark, next, previous, list |
 | Ctrl+/, Ctrl+Shift+/ | Toggle comment, toggle block comment |

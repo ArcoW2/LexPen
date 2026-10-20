@@ -26,6 +26,11 @@
   "Alt+Down": "nextTab",
   "Alt+Left": ["section", -1],       // the previous / next section: paragraph, heading, procedure, ... per language
   "Alt+Right": ["section", 1],
+  "Alt+C": "columnMode",             // column mode: a drag and Shift+arrows select a block (COL in the bottom bar)
+  "Alt+Shift+Up": ["blockSelect", "up"],       // a block from the cursor, also without column mode
+  "Alt+Shift+Down": ["blockSelect", "down"],
+  "Alt+Shift+Left": ["blockSelect", "left"],
+  "Alt+Shift+Right": ["blockSelect", "right"],
 
   // ---------- View ----------
   "Ctrl+E": "togglePreview",

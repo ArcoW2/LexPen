@@ -45,16 +45,15 @@
 - Language packs: `docs/plans/executed/PLAN-language-packs.md`, merged into `main` (`0e6417d`).
 - Merged into `main` (`498d791`) and pushed: theme inheritance, the language set, pane marks, whitespace, the
   fixes of that branch.
-- On the local branch `window-sessions` until you approve it: projects and window sessions
-  (`docs/plans/executed/PLAN-window-sessions.md`). Draft waiting: `PLAN-formatters.md` (its questions are open).
+- Merged into `main` (`8b73c1f`) and pushed (2026-10-20): projects and window sessions
+  (`docs/plans/executed/PLAN-window-sessions.md`), embedded languages
+  (`docs/plans/executed/PLAN-embedded-languages.md`), the tab bar's show-in-folder-pane button.
+- On the local branch `column-selection`: column mode (`docs/plans/executed/PLAN-column-selection.md`). Plan
+  waiting: `PLAN-formatters.md` (conversions, pretty print, trailing whitespace, the Format menu from the bars, tab and indent stops; no questions left), `PLAN-virtual-space.md` (cursor past the end of the line; no questions left).
 - Earlier, on `theme-inheritance` (now merged): theme inheritance
   (`docs/plans/executed/PLAN-theme-inheritance.md`), the language set from the UltraEdit word files and the debug
   build reading packs and themes from the project (`docs/plans/executed/PLAN-language-set.md`), Esc closing the
   find bar / sidebar search first, File > Open on All files, the languages guide (`wwwroot/languages/README.md`).
-  On the branch `embedded-languages`: a language inside a language (`docs/plans/executed/PLAN-embedded-languages.md`).
-  Plans waiting:
-  `PLAN-formatters.md` (conversions, pretty print, trailing whitespace), `PLAN-column-selection.md` (column mode;
-  no questions left).
 - Before making the repository public, also: YamlDotNet (MIT) in THIRD-PARTY-NOTICES.
 - Merged into `main` (`caa3f7b`): themes (`docs/plans/executed/PLAN-themes.md`), the preview theme per mode and
   find at the end of the file; the padlock for read-only tabs (`752eb7c`).
@@ -89,7 +88,6 @@ execution" table with every decision taken without asking and every bug found).
 | Outline in narrow panes | Suggested, not asked: with two panes side by side the 220 px outline leaves a narrow text column. Option: hide the outline automatically below a pane width |
 | Recent list on the welcome page | Proposed earlier; you chose the Open menu instead. Not built |
 | Spell check / line numbers settings in the More menu | Would come with the two items above |
-| Column mode (idea, 2026-10-19) | Select a rectangle and copy / paste it as a column. CodeMirror 5 already selects a rectangle with Alt+drag; missing: copy and paste as a column (paste puts each line of the clipboard on the next line, same column), keys and menu items |
 | Hex view (idea, 2026-10-19) | A hex layout of the file: the bytes in hex on the left, the characters on the right. Not planned yet |
 | Multi-cursor (idea, 2026-10-19) | Several cursors, typing goes to all of them. CodeMirror 5 already adds a cursor with Ctrl+click; missing: adding cursors from the keyboard (next match, line above / below), keys and menu items |
 | Declined by you (listed so they are not proposed again) | Quick open by file name (xplorer2 is as fast); file actions in the tree (new, rename, delete); replace in search |

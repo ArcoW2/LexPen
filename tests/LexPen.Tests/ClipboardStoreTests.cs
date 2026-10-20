@@ -44,6 +44,39 @@ public class ClipboardStoreTests : IDisposable
     }
 
     [Fact]
+    public void ABlockKeepsItsMarkAcrossARestart()
+    {
+        var store = new ClipboardStore(FilePath);
+        store.Set(2, "ab\ncd", column: true);
+        store.Set(3, "plain");
+        var again = new ClipboardStore(FilePath);
+        Assert.Equal("ab\ncd", again.Get(2));
+        Assert.True(again.IsColumn(2));
+        Assert.False(again.IsColumn(3));
+        Assert.False(again.IsColumn(0));
+        Assert.True(again.State()["columns"]![2]!.GetValue<bool>());
+    }
+
+    [Fact]
+    public void ANewTextWithoutTheMarkClearsIt()
+    {
+        var store = new ClipboardStore(FilePath);
+        store.Set(4, "block", column: true);
+        store.Set(4, "text");
+        Assert.False(store.IsColumn(4));
+    }
+
+    [Fact]
+    public void AFileOfPlainStringsStillLoads()
+    {
+        Directory.CreateDirectory(dir);
+        File.WriteAllText(FilePath, "[\"\", \"one\", \"two\"]");
+        var store = new ClipboardStore(FilePath);
+        Assert.Equal("two", store.Get(2));
+        Assert.False(store.IsColumn(2));
+    }
+
+    [Fact]
     public void ABrokenFileStartsEmpty()
     {
         Directory.CreateDirectory(dir);

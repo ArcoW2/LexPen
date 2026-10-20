@@ -136,3 +136,19 @@ Later, in plans of their own: column insert / fill, numbering a column, sorting 
 ## 4. Open questions
 
 None.
+
+## 5. Resolved during execution
+
+| Thing | Solution implemented |
+|---|---|
+| How the page knows a Windows clipboard block at Ctrl+V | The editor's own paste cannot wait for the host. The host listens for clipboard changes (`WM_CLIPBOARDUPDATE`) and tells the page each time whether `MSDEVColumnSelect` is there (event `clipboardColumn`); the paste then decides at once. `clipboardText` stays as it was (it is used elsewhere); a separate op `clipboardColumn` answers the same question on request. |
+| The column flag of the numbered clipboards in `clipboards.json` | A block is stored as `{ "text": ..., "column": true }`, any other entry stays a plain string, so older files still load (unit test). The page gets the flags with the clipboard state (`columns`). |
+| Undo after typing on a block | CodeMirror makes quick typing one undo step: one undo takes back the keys typed in a row, on all lines at once. |
+| The cursor after a column paste | At the paste's start (its top left), as one cursor. |
+| One line pasted on a block of several lines | It goes on every line of the block (as typing does). |
+| An empty line in a pasted block | Leaves its line as it is: no spaces are added for nothing. |
+| Alt+drag | CodeMirror's own rectangle does not reach the page; column.js handles the drag itself (in column mode, or with Alt), so it works the same in and out of the mode. A double click keeps selecting a word. |
+| A block shown past short lines | Each line's selection ends at the line's end (CodeMirror cannot select past it); the block's real width is in the bottom bar (`Block 3 x 4`) and in what typing and paste do. |
+| Pure functions in the tests | `columnPiece` / `columnInsert` are plain functions in `column.js`; JavaScript has no unit test project here, so they are checked in the app (t52), with the editor commands that use them. |
+| The monospace check | Measured in the editor's own font (`iiiiiiiiii` against `MMMMMMMMMM` on a canvas), so a fallback font counts as what it is. |
+| Not tested end to end | Writing `MSDEVColumnSelect` to the real Windows clipboard and reading it back (the tests never touch your clipboard): the page's side is tested (the host gets the text with `column: true`; a marked paste goes in as a column). To try by hand: a block copied in LexPen pasted in Visual Studio or Notepad++, and the other way round. |
