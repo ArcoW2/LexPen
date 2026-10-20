@@ -5,6 +5,10 @@ aliases: [jsonc, json5]   # other names it is known by (a markdown fence ```json
 open: edit
 mode: { name: javascript, json: true }   # built in
 fold: brace
+actions:
+  # Pretty print: the selection (a whole JSON value) or the whole file, indented; numbers, escapes and key order stay
+  # as written. With comments it asks whether to keep them.
+  format: { title: Format JSON, hint: 'Indented and readable; with comments: asks whether to keep them', format: json }
 # Keys and values apart: a key is string and property (property's look wins), a value only string.
 tokens:
   property: { theme: string }   # keys: the theme's string colour (blue in the dark themes)

@@ -72,6 +72,19 @@ aliases: [4nt, take-command]
 # embedded:
 #   - { open: 'rem ---json', close: 'rem ---end', language: json }
 
+# ---------- Tabs and whitespace ----------
+# tabSize: where the tab stops are (Tab after text, a tab after text is shown up to the next one); else the setting.
+# indentSize: where the indent stops are (Tab in the indentation, Indent / Outdent, pretty print, a tab in the
+#   indentation is shown that wide); else the setting.
+# useTabs: true writes a tab for Tab, indent and pretty print (Makefile, Go); else spaces.
+# trimTrailing: the spaces and tabs at line ends. mode: setting (on save as the setting says; the default), true
+#   (always on save) or false (never, not even by the action); keep: N leaves at most N as written.
+#   trimTrailing: false / true set the mode only.
+# tabSize: 4
+# indentSize: 2
+# useTabs: false
+# trimTrailing: { mode: setting, keep: 0 }
+
 # ---------- Outline ----------
 # Patterns that find the entries of the outline (the Outline button): name is the group with the name,
 # level 1 or 2 (or a group whose length is the level), flags i for any case.
@@ -85,6 +98,9 @@ outline:
 #   wrap: before / after the selection (the cursor between when nothing is selected)
 #   linePrefix: put in front of every selected line, or taken away when all have it
 #   jump: to the next / previous line matching "line" (keys give the direction, as Ctrl+PgDn / Ctrl+PgUp)
+#   convert: a conversion (upper, lower, capitalize, snake, camel, pascal, kebab, constant, tabsToSpaces,
+#            spacesToTabs, trimTrailing); plain text has them all, so a pack only names one for its bar or a key
+#   format: pretty print by LexPen: json or xml (the JSON and XML packs have it)
 actions:
   snippetIff:
     title: 'Snippet: iff'

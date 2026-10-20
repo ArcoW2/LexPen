@@ -67,10 +67,33 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
 - **F1**: every action with its key, grouped and searchable (on key, title, hint or action name). Enter runs the
   selected one, so F1 is also a command palette and the way to actions without a key. Your own keys are marked;
   a default you replaced is shown struck through.
-- **Language actions**: what Format does depends on the language of the file (`wwwroot\languages\<name>\language.json`).
+- **Language actions**: what Format does depends on the language of the file (`wwwroot\languages\<name>\language.yaml`).
   Markdown has the formatting; every language with comment markers has Toggle comment (Ctrl+/), Toggle block
   comment (Ctrl+Shift+/) and Remove block comment; Ctrl+PgDn / Ctrl+PgUp (or Alt+Right / Alt+Left) go to the next / previous section
-  (a heading in markdown, a paragraph in plain text). Items a language does not have are greyed out.
+  (a heading in markdown, a paragraph in plain text).
+- **The Format menu** holds what the bar above the editor holds, for the language you are in: the comment items,
+  then the bar's items in the bar's order with their icons (Convert and Format among them). On a line of another
+  language (a block, a fence, lines you set) that language's bar items follow in a submenu named after it, and
+  act in that language (Alt+R opens it).
+- **Conversions** (every language; the Convert button `Aa` at the end of every bar, the Format menu, F1): UPPER
+  CASE (Ctrl+Shift+U), lower case (Ctrl+U), all of them in a menu at the cursor with Ctrl+Alt+F, smart capitalize (a capital after `.` and `:` with a space after them,
+  after an empty line and at the start of the file), snake_case, camelCase, PascalCase, kebab-case, CONSTANT_CASE,
+  tabs to spaces, spaces to tabs (the indentation, a tab per indent step) and remove whitespace at line ends. The
+  case ones work on the selection (several, or a block: each) or the word at the cursor; the others on the lines
+  of the selection or the whole file. One undo step each.
+- **Pretty print** (Format JSON, Format XML: on the bar of JSON and XML, the Format menu): the selection, or the
+  whole file, indented one indent step per level. JSON keeps every token as written (`1.0`, long numbers,
+  escapes, key order); with comments it asks whether to keep them. XML keeps comments, CDATA, the declaration and
+  the spacing of text mixed with elements. Text that does not parse is left alone; the message gives the line and
+  column, and the cursor goes there. Inside a block of JSON in another language: that block.
+- **Whitespace at line ends**: saving removes the spaces and tabs at the line ends of the whole file (Options >
+  Settings > Editor, on; Ctrl+Z after the save gives them back). A language can keep some: markdown keeps up to two
+  (a line break there); `trimTrailing` in its `language.yaml`.
+- **Tab and indent**: two settings (Options > Settings > Editor > Tabs): the tab size (4) and the indent size (2);
+  a language can set its own, and ask for real tabs (`useTabs`). Tab in a line's indentation (or with lines
+  selected) indents to the next indent stop, Shift+Tab back; Tab after text goes to the next tab stop (spaces, or
+  a tab). A tab is shown the same way: in the indentation as wide as an indent step, after text up to the next
+  tab stop; the column in the bottom bar and column mode count it so.
 - **Bookmarks**: 1 to 9 and unnumbered ones, at a line and column, kept per file. Ctrl+1, S stores bookmark 1,
   Ctrl+1, 1 (or Ctrl+1, Ctrl+1) goes there, Ctrl+1, T toggles, Ctrl+1, C clears; Ctrl+K, 1 and Ctrl+Q, 1 as in
   WordStar and Delphi; Ctrl+K, K / N / P / L for unnumbered ones, next, previous and the list. They follow
@@ -206,6 +229,9 @@ F1 lists every key and action. The main ones of the default set:
 | Ctrl+1, S / T / C, Ctrl+1, 1 | Bookmark 1: store, toggle, clear, go to (likewise 2 to 9) |
 | Ctrl+K, K / N / P / L | Unnumbered bookmark, next, previous, list |
 | Ctrl+/, Ctrl+Shift+/ | Toggle comment, toggle block comment |
+| Ctrl+Alt+F | The Convert menu at the cursor (also in the Convert button's tooltip) |
+| Ctrl+Shift+U / Ctrl+U | UPPER CASE / lower case |
+| Tab / Shift+Tab | In the indentation (or on selected lines): indent / outdent; after text: to the next tab stop |
 | Ctrl+B, Ctrl+I, Ctrl+Shift+X, Ctrl+` | Bold, italic, strikethrough, inline code |
 | Ctrl+T, L / Ctrl+T, I | Insert link / image from the clipboard |
 | Ctrl+H, 1 .. 6 / Ctrl+H, 0 | Heading 1 to 6 / plain text |
@@ -299,13 +325,15 @@ PowerShell and C# modes and the search, comment and fold add-ons; loaded when th
 | `ThemeFile.cs` | Themes: shipped and yours, checked, bases followed; colour names and fallbacks from app.css |
 | `DataFolder.cs` | The data folder's layout (`State\`) and the one-time move of an older layout |
 | `MainForm.cs` | One window: WebView2 host, message handling, file access, watchers, git, close prompt |
+| `Formatters.cs` | Pretty print: JSON (a formatter of its own) and XML (unit tested) |
 | `tests/LexPen.Tests` | Unit tests |
 | `wwwroot/index.html` | The UI page and its Content Security Policy |
 | `wwwroot/app.js` | Documents, tabs and panes, rendering, editor, sidebar, bottom bar |
 | `wwwroot/keys.js`, `keys.json` | Key presses, chords and the default keys |
 | `wwwroot/actions.js` | The actions; the language packs |
 | `wwwroot/menus.js`, `palette.js` | The menu bar; F1 |
-| `wwwroot/format.js`, `bookmarks.js`, `gutter.js`, `find.js` | Editor commands and the formatting bar; bookmarks; the gutter; find in a pane |
+| `wwwroot/format.js`, `bookmarks.js`, `gutter.js`, `find.js` | Editor commands and the bars; bookmarks; the gutter; find in a pane |
+| `wwwroot/tabs.js`, `convert.js`, `column.js` | Tab and indent stops; conversions, trim on save and pretty print; column mode |
 | `wwwroot/languages/` | Language packs: markdown and plain text (the actions part) |
 | `wwwroot/app.css` | Styling; fallback theme colours |
 | `wwwroot/vendor/` | Bundled third-party libraries (generated by `vendor.ps1`) |

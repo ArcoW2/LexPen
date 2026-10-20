@@ -6,3 +6,7 @@ open: edit
 mode: xml               # built in
 fold: indent
 comments: { block: ['<!--', '-->'] }
+actions:
+  # Pretty print: the selection (whole elements) or the whole file, indented; comments, CDATA and the declaration
+  # stay, and text mixed with elements keeps its spacing.
+  format: { title: Format XML, hint: 'Indented and readable; comments, CDATA and the declaration stay', format: xml }

@@ -99,6 +99,9 @@
   // ---------- Format (what they do depends on the language of the file) ----------
   "Ctrl+/": "toggleComment",
   "Ctrl+Shift+/": "blockComment",
+  "Ctrl+Alt+F": "convertMenu",
+  "Ctrl+Shift+U": "upperCase",
+  "Ctrl+U": "lowerCase",
   "Ctrl+B": "bold",
   "Ctrl+I": "italic",
   "Ctrl+Shift+X": "strikethrough",

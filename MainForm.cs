@@ -366,6 +366,7 @@ sealed class MainForm : Form
                 "search" => await Task.Run(() => Search(msg)),
                 "gitStatus" => await Task.Run(() => GitStatus(msg["path"]!.GetValue<string>())),
                 "gitHead" => await Task.Run(() => GitHead(msg["path"]!.GetValue<string>())),
+                "format" => await Task.Run(() => Format(msg)),
                 _ => Dispatch(msg, files),
             };
         }
@@ -576,6 +577,16 @@ sealed class MainForm : Form
                 return MessageBox.Show(this, Arg("text"), "LexPen",
                     MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes;
 
+            // Pretty print of JSON with comments: keep them, remove them, or (null) do not format.
+            case "askKeepComments":
+                return MessageBox.Show(this, "This JSON has comments. Keep the comments?\n\nYes keeps them, No removes them, Cancel changes nothing.",
+                    "LexPen", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question) switch
+                {
+                    DialogResult.Yes => "keep",
+                    DialogResult.No => "drop",
+                    _ => null,
+                };
+
             // Settings (SettingsFile): read, change one (every window follows), the rows of the settings window.
             case "settings":
             {
@@ -709,6 +720,17 @@ sealed class MainForm : Form
             default:
                 throw new ArgumentException($"Unknown operation '{Arg("op")}'.");
         }
+    }
+
+    // Pretty print (Formatters): { text } or { error, line, column }; { ask: true } for JSON with comments when the
+    // page is to ask first (comments: "ask"; else "keep" or "drop").
+    static JsonObject Format(JsonNode msg)
+    {
+        string kind = msg["kind"]!.GetValue<string>(), text = msg["text"]!.GetValue<string>(), indent = msg["indent"]!.GetValue<string>();
+        var comments = msg["comments"]?.GetValue<string>() ?? "keep";
+        if (kind == "json" && comments == "ask" && Formatters.JsonHasComments(text)) return new JsonObject { ["ask"] = true };
+        var r = kind == "xml" ? Formatters.Xml(text, indent) : Formatters.Json(text, indent, comments != "drop");
+        return new JsonObject { ["text"] = r.Text, ["error"] = r.Error, ["line"] = r.Line, ["column"] = r.Column };
     }
 
     // Image files (and a pasted picture, as base64 PNG) for the document: the markdown to insert.

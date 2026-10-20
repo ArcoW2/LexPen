@@ -1,7 +1,7 @@
 # Plan: text conversions and formatters (case, tabs, trailing whitespace, pretty print, the Format menu)
 
-Status: plan, 2026-10-20; answers of 2026-10-20 worked in (4.2 to 4.13). Replaces the draft of 2026-10-19
-(formatters, Q7 of executed/PLAN-language-packs.md).
+Status: executed 2026-10-20 (branch `formatters`); answers of 2026-10-20 worked in (4.2 to 4.17). Replaces the
+draft of 2026-10-19 (formatters, Q7 of executed/PLAN-language-packs.md). What was decided while building: section 5.
 
 ## 1. What this is about
 
@@ -217,3 +217,30 @@ Actions of the plain text pack, so a language inherits them (and can override on
 ## 4. Open questions
 
 None.
+
+## 5. Resolved during execution
+
+| Thing | Solution implemented |
+|---|---|
+| Showing a tab two ways (3.4) | The editor gets the indent size as its own tab size, so its indentation and a tab in it use indent stops (CodeMirror's indent, Tab and drawing need nothing else). A tab after text is redrawn up to the next tab stop as each line is drawn (`renderLine`, `drawTabs` in `tabs.js`). Every column count in LexPen (`textColumn` / `textCh`: column mode, the bottom bar, tabs to spaces) uses the same rule. |
+| The bottom bar column | Now the visual column (a tab counts to its stop), as column mode counts; it was the character's place in the line. |
+| Shift+Tab, Indent / Outdent | To the indent stop before (or after), not by a fixed 2; on the selected lines, else the cursor's line (also with the cursor after text). |
+| Tab in a markdown list item | Indents the item wherever the cursor is (as before); in a table it still moves to the next cell. |
+| Tabs to spaces, spaces to tabs on a selection | The whole lines the selection touches: how wide a tab is depends on the line before it. |
+| Case conversions on names | Each line on its own (a name does not go on over a line break); words joined by spaces, `-` or `_` are one name (`file name and XMLFile` -> `fileNameAndXmlFile`). Without a selection: the word at the cursor (CodeMirror's word), the cursor stays where it was. A block keeps being a block. |
+| Smart capitalize details | A line with only spaces counts as empty; a sentence start ends at the first character that is not a letter (`- item` keeps its `i`). |
+| `keep: N` | The first N spaces or tabs after the text stay; fewer than N stay as they are. |
+| The setting's name | `trimTrailing` (Options > Settings > Editor, "Remove whitespace at line ends on save"), as in 3.1.2; `trimOnSave` was the draft's name. |
+| Trim on save, one undo step | One operation in the editor that shows the file; a file in no editor is trimmed in its text. A file whose tabs are all read-only is not trimmed. |
+| The comments question | A Yes / No / Cancel message box from the host ("Keep the comments?"); the page asks for it only when the host finds comments. |
+| Formatting off the page | The host formats on a background thread (as search); the page checks the text did not change meanwhile before it puts the result in. Lines come back with `\n`; the editor writes the file's own line ends. |
+| JSON details | A trailing comma is accepted and kept. A comment on its own line is indented as the items of its object or list (also before the closing bracket); a block comment followed by more on its line stays in front of it. An empty `{}` / `[]` stays on one line (with comments inside and kept: not empty). Text already formatted: a message, nothing changes. |
+| XML details | The parser resolves character references (`&#233;` is written as the character) and writes attributes with double quotes; whitespace is dropped only in elements without text of their own (mixed content keeps its spacing). A selection is read as a document, else as a fragment (several elements). |
+| Format in another language's block | Without a selection, its Format (inner bar, the Format menu's submenu) formats the lines of that language around the cursor, keeping their indentation. |
+| A language without bar.yaml | Gets no bar (not one with only Convert); its Format menu has the comment items and Convert. |
+| Markdown's bar as data | A list in `format.js` (`MARKDOWN_BAR`), not a bar.yaml: its Heading and Table menus and the table grid are built in. Both the bar and the Format menu are built from it. The Format menu no longer has "Insert image from clipboard" (not on the bar; Ctrl+T, I and F1 keep it). |
+| Icons in the menu | The comment items show the bar's comment icons too. A submenu of an inner language without a bar shows "(no bar)". |
+| Fixed letters | Comment items c, e, m; Con&vert, &Heading, T&able, &Format (the pack's Format action); the others: `letter:` or the first free one. |
+| Ctrl+Alt+F | Changed after execution (your review): Alt+R opens the Format menu already, so Ctrl+Alt+F opens the Convert menu at the cursor (app action `convertMenu`); the Convert button's tooltip shows the key, as the other bar buttons show theirs. |
+| Not changed | The preview draws code tabs as before (the browser's tab width); 3.4 is about the editor. |
+| Tests | Unit: `FormattersTests` (JSON tokens as written, comments kept / removed, trailing comma, errors with line and column; XML declaration, comments, CDATA, mixed content, fragment, errors). In-app: t53 (tab and indent stops, drawing, settings, pack sizes, useTabs), t54 (every conversion, block, undo, read-only, trim on save with the setting and the language modes, CRLF, markdown keep 2), t55 (pretty print: file, selection, comments question with its three answers, broken JSON, useTabs, XML), t56 (Format menu for markdown and ASA, the JSON submenu and its Format, a pack placing Convert, `letter:`, Ctrl+Alt+F, the Convert button). Changed expectations: t52 (a leading tab is now an indent step wide), t4 (C#'s Format menu has no Bold). |

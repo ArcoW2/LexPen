@@ -579,7 +579,10 @@ async function ensureEditor(pane) {
     gutters: ['CodeMirror-linenumbers', BM_GUTTER],   // all columns: setupGutter (gutter.js)
   });
   // The last line has no line end (showLineEnds): the line elements know which one is the last.
-  pane.cm.on('renderLine', (cm, line, el) => el.classList.toggle('mm-last-line', cm.getLineNumber(line) === cm.lastLine()));
+  pane.cm.on('renderLine', (cm, line, el) => {
+    el.classList.toggle('mm-last-line', cm.getLineNumber(line) === cm.lastLine());
+    drawTabs(cm, line, el);   // a tab after text to the next tab stop (tabs.js)
+  });
   applyWhitespace();
   pane.cm.on('gutterClick', (cm, line, gutter) => {
     if (gutter === BM_GUTTER && pane.active) toggleFreeBookmark(pane, line, 0);
@@ -958,6 +961,7 @@ async function showActive(pane) {
         pane.cm.setOption('mode', mode);
       }
       pane.cm.setOption('readOnly', !editable(tab));
+      applyTabStops(pane, tab.doc);   // tab and indent sizes of its language (tabs.js)
       if (tab.doc.language) pane.editorEl.dataset.lang = tab.doc.language; else delete pane.editorEl.dataset.lang;
       fillCodeBar(pane);
       pane.cm.refresh();
@@ -1338,7 +1342,7 @@ function updateStatus() {
   let pos = '';
   if (cm) {
     const head = cm.getCursor('head'), selected = cm.getSelection(), block = blockSize(cm);
-    pos = `Ln ${head.line + 1}, Col ${head.ch + 1}`;
+    pos = `Ln ${head.line + 1}, Col ${textColumn(cm.getLine(head.line), head.ch, stopsOf(cm)) + 1}`;   // a tab to its stop
     if (block) pos += ` (Block ${block})`;
     else if (selected) {
       const lines = selected.split('\n').length;
@@ -1513,6 +1517,7 @@ async function saveDoc(doc, saveAs) {
   }
   // Save as another name turns an ANSI file into UTF-8 (the way out when it cannot hold a character).
   const encoding = !samePath(path, doc.path) && doc.encoding === 'ANSI' ? 'UTF-8' : doc.encoding;
+  trimOnSave(doc);   // the whitespace at line ends (convert.js)
   await host('write', { path, text: diskText(doc), encoding, backup: setting('backup') });
   doc.encoding = encoding;
   if (doc.cmDoc) doc.savedGeneration = doc.cmDoc.changeGeneration(true);
@@ -3154,6 +3159,8 @@ function applySettings() {
     showAll();
   }
   if (changed('showWhitespace') || changed('showLineEnds')) applyWhitespace();
+  if ((changed('tabSize') || changed('indentSize')) && 'tabSize' in was)
+    for (const pane of panes) if (pane.cm && pane.active) applyTabStops(pane, pane.active.doc);
   if (changed('zoom')) applyZoom(now.zoom);
   if (changed('lineBreaks')) {
     applyLineBreaks(now.lineBreaks);

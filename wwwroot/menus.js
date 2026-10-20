@@ -28,16 +28,8 @@ const MENUS = [
     { label: '&Go to bookmark', fill: () => bookmarkItems('go') }, { label: 'Store &bookmark', fill: () => bookmarkItems('store') },
     ['&Next bookmark', 'bookmarkNext', 1], ['Previous boo&kmark', 'bookmarkNext', -1],
   ]],
-  ['Fo&rmat', [
-    ['Toggle &comment', 'toggleComment'], ['Toggle block comm&ent', 'blockComment'], ['Remove block co&mment', 'removeBlockComment'], '-',
-    ['&Bold', 'bold'], ['&Italic', 'italic'], ['&Strikethrough', 'strikethrough'], ['Inline co&de', 'inlineCode'], '-',
-    ['Insert &link', 'link'], ['Insert ima&ge from clipboard', 'imageFromClipboard'], ['Insert image from &file...', 'imageFromFile'], '-',
-    { label: '&Heading', sub: [1, 2, 3, 4, 5, 6].map(n => [`Heading &${n}`, 'heading', n]) },
-    ['Plain &paragraph', 'paragraph'], ['B&ulleted list', 'bulletList'], ['&Numbered list', 'numberList'],
-    ['&Task list item', 'taskList'], ['&Quote', 'quote'], ['Code bloc&k', 'codeBlock'], ['Horizontal &rule', 'rule'],
-    { label: 'T&able', sub: [['&Insert table', 'table', 3, 2], ['&Format table', 'tableFormat'], '-',
-      ['Add &row', 'tableAddRow'], ['Add &column', 'tableAddColumn'], ['&Delete row', 'tableDeleteRow'], ['D&elete column', 'tableDeleteColumn']] },
-  ]],
+  // Filled when it opens: the bar items of the file's language, and of the cursor line's (formatMenuItems).
+  ['Fo&rmat', () => formatMenuItems()],
   ['&View', [
     ['&Editor', 'editorSwitch'], ['&Preview', 'previewSwitch'], ['&Outline', 'outline'], '-',
     ['S&idebar', 'sidebar'], ['&Folders', 'folders'], ['&Search', 'searchView'], '-',
@@ -111,6 +103,7 @@ async function openMenuLevel(items, x, y, select, above, leftX) {
   el.className = 'mm-menu mm-dropdown';
   const level = { el, items: [], index: -1 };
   menuBar.levels.push(level);
+  const icons = items.some(i => i?.icon);   // a menu with icons (Format): every item gets the place of one
   for (const item of items) {
     if (item === '-') { el.append(document.createElement('hr')); continue; }
     const button = document.createElement('button');
@@ -118,10 +111,12 @@ async function openMenuLevel(items, x, y, select, above, leftX) {
     const it = Array.isArray(item) ? { label: item[0], action: item[1], params: item.slice(2) } : item;
     const isSub = !!(it.sub || it.fill), params = it.params ?? [];
     const { html, letter } = menuLabel(it.label, it.plain);
-    const enabled = isSub || it.enabled !== false && (!it.action || actionAvailable(it.action, params));
+    // An item of another language (the Format menu's submenu of the cursor line's language) works as its bar button.
+    const available = () => it.language ? !!editorPane() : actionAvailable(it.action, params);
+    const enabled = isSub || it.enabled !== false && (!it.action || available());
     const checked = it.checked ?? (it.action && appActions.get(it.action)?.checked?.(params));   // or the item's own
     // The check mark and the arrow are drawn by the style sheet (mm-checked, mm-arrow).
-    button.innerHTML = `<span class="mm-mark"></span><span class="mm-label">${html}</span>` +
+    button.innerHTML = `<span class="mm-mark"></span>` + (icons ? `<span class="mm-icon">${it.icon ?? ''}</span>` : '') + `<span class="mm-label">${html}</span>` +
       (isSub ? '<span class="mm-arrow"></span>' : `<span class="mm-key">${escapeHtml(it.key ?? (it.action ? keyText(it.action, ...params) : ''))}</span>`);
     button.classList.toggle('mm-checked', !!checked);
     if (it.title) button.title = it.title;
@@ -176,7 +171,7 @@ function chooseMenuItem(level, index) {
   }
   closeMenus();
   if (entry.item.run) entry.item.run();
-  else runAction(entry.item.action, entry.item.params, { from: 'menu' });
+  else runAction(entry.item.action, entry.item.params, { from: 'menu', language: entry.item.language });
 }
 
 function closeMenus() {
@@ -237,6 +232,84 @@ function openPopupMenu(items, x, y) {
   closeMenus();
   hideMenus();
   openMenuLevel(items, x, y, true, true);
+}
+
+// A menu of its own below an element (a bar's Convert button).
+function openMenuBelow(items, el) {
+  closeMenus();
+  hideMenus();
+  const r = el.getBoundingClientRect();
+  openMenuLevel(items, r.left, r.bottom + 2, false);
+}
+
+// ---------- The Format menu (docs/plans/executed/PLAN-formatters.md 3.6) ----------
+// The comment group (every language), then the bar items of the file's language in the bar's order, with their
+// icons; on a line of another language (a block, a fence, lines you set) its bar items follow in a submenu named
+// after it, acting in that language. One list with the bar (barItems, format.js), so a change to a bar shows here.
+const COMMENT_ITEMS = [['Toggle &comment', 'toggleComment'], ['Toggle block comm&ent', 'blockComment'], ['Remove block co&mment', 'removeBlockComment']];
+
+async function formatMenuItems() {
+  await loadEditor();   // the bars are in format.js
+  const doc = activeDoc(), lang = languageOf(doc) ?? 'plaintext';
+  const icon = { toggleComment: 'comment', blockComment: 'blockcomment' };   // as on the bars
+  const items = [...COMMENT_ITEMS.map(([label, action]) => ({ label, action, icon: packs.plaintext?.icons?.[icon[action]] })), '-', ...barMenuItems(lang, null)];
+  const pane = panes[state.activePane], cm = pane.cm && pane.active && pane.el.dataset.mode !== 'preview' ? pane.cm : null;
+  const inner = cm && lineLanguage(cm, cm.getCursor().line);
+  if (inner && inner !== lang && packs[inner]) {
+    const sub = barMenuItems(inner, inner);
+    items.push('-', { label: packs[inner].name, sub: sub.length ? withLetters(tidyLines(sub)) : [{ label: '(no bar)', enabled: false }] });
+  }
+  return withLetters(tidyLines(items));
+}
+
+// The menu items of a language's bar: the comment group left out (it comes first already), Convert with the
+// conversions, markdown's Heading and Table as submenus. `language`: the items act in that language.
+function barMenuItems(lang, language) {
+  const items = barItems(lang);
+  const list = items.length ? items : [{ action: 'convert', icon: 'case' }];   // a language without a bar: Convert only
+  return list.flatMap(item => {
+    if (item === '-') return ['-'];
+    if (COMMENT_COMMANDS.includes(item.action)) return [];
+    const icon = itemIcon(lang, item);
+    if (item.menu === 'heading') return [{ label: '&Heading', icon, sub: HEADING_ITEMS() }];
+    if (item.menu === 'table') return [{ label: 'T&able', icon, sub: TABLE_ITEMS() }];
+    if (item.action === 'convert') return [{ label: 'Con&vert', icon, sub: CONVERT_ITEMS }];
+    const title = titleIn(lang, item.action).replace(/&/g, '');
+    if (item.action === 'format') return [{ label: '&' + title, action: 'format', icon, language }];
+    return [{ label: title, action: item.action, params: item.params ?? [], icon, language, letter: item.letter }];
+  });
+}
+
+// No line at the start or end of a menu, nor two in a row.
+const tidyLines = items => items.filter((it, i, all) => it !== '-' || i > 0 && i < all.length - 1 && all[i + 1] !== '-');
+
+// Letters (&) for the items without one: the one the bar gives (`letter:` in bar.yaml) first, else the first letter
+// of the title that no other item of the menu has yet.
+function withLetters(items) {
+  const taken = new Set(items.filter(i => i !== '-').map(i => menuLabel(Array.isArray(i) ? i[0] : i.label).letter).filter(Boolean));
+  const mark = (it, at) => ({ ...it, label: it.label.slice(0, at) + '&' + it.label.slice(at) });
+  const out = items.map(it => {
+    if (it === '-' || Array.isArray(it) || it.label.includes('&') || !it.letter) return it;
+    const want = String(it.letter).toLowerCase(), at = it.label.toLowerCase().indexOf(want);
+    if (!want || taken.has(want)) return it;
+    taken.add(want);
+    return at >= 0 ? mark(it, at) : { ...it, label: `${it.label} (&${want.toUpperCase()})` };
+  });
+  return out.map(it => {
+    if (it === '-' || Array.isArray(it) || it.label.includes('&')) return it;
+    const at = [...it.label].findIndex(c => /[a-z0-9]/i.test(c) && !taken.has(c.toLowerCase()));
+    if (at < 0) return it;
+    taken.add(it.label[at].toLowerCase());
+    return mark(it, at);
+  });
+}
+
+// A menu at the cursor (Ctrl+Alt+F: the conversions).
+function openPopupAtCursor(pane, items) {
+  const at = pane.cm.cursorCoords(null, 'window');
+  closeMenus();
+  hideMenus();
+  openMenuLevel(items, at.left, at.bottom + 2, true);
 }
 
 // ---------- Clipboards (Edit menu, the bottom bar, Ctrl+Shift+C) ----------

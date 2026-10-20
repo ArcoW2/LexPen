@@ -48,8 +48,10 @@
 - Merged into `main` (`8b73c1f`) and pushed (2026-10-20): projects and window sessions
   (`docs/plans/executed/PLAN-window-sessions.md`), embedded languages
   (`docs/plans/executed/PLAN-embedded-languages.md`), the tab bar's show-in-folder-pane button.
-- On the local branch `column-selection`: column mode (`docs/plans/executed/PLAN-column-selection.md`). Plan
-  waiting: `PLAN-formatters.md` (conversions, pretty print, trailing whitespace, the Format menu from the bars, tab and indent stops; no questions left), `PLAN-virtual-space.md` (cursor past the end of the line; no questions left).
+- Merged into `main` (`cec859e`) and pushed: column mode (`docs/plans/executed/PLAN-column-selection.md`).
+- On the local branch `formatters`: conversions, pretty print (JSON, XML), trailing whitespace on save, tab and
+  indent stops, the Format menu from the bars (`docs/plans/executed/PLAN-formatters.md`). Plan waiting:
+  `PLAN-virtual-space.md` (cursor past the end of the line; no questions left).
 - Earlier, on `theme-inheritance` (now merged): theme inheritance
   (`docs/plans/executed/PLAN-theme-inheritance.md`), the language set from the UltraEdit word files and the debug
   build reading packs and themes from the project (`docs/plans/executed/PLAN-language-set.md`), Esc closing the

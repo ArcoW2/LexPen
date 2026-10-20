@@ -96,6 +96,8 @@ function runLanguage(pane, def, params, ctx) {
   if (def.insert != null) return insertSnippet(cm, def.insert);
   if (Array.isArray(def.wrap)) return wrapSelection(cm, ...def.wrap);
   if (def.linePrefix != null) return toggleLinePrefix(cm, String(def.linePrefix));
+  if (def.convert) return runConvert(pane, String(def.convert));   // convert.js
+  if (def.format) return runFormat(pane, String(def.format), ctx.language);
 }
 
 // ---------- The app actions ----------
@@ -267,6 +269,8 @@ appAction('blockSelect', { title: 'Select a block', hint: 'Grows or shrinks a bl
   variantTitles: { up: 'Select a block: up', down: 'Select a block: down', left: 'Select a block: left', right: 'Select a block: right' },
   run: ([dir], { pane }) => editorMonospaced() ? extendBlock(pane.cm, dir)
     : toast('A block needs a monospaced editor font (Options > Settings > Editor).') });
+appAction('convertMenu', { title: 'Convert menu at the cursor', hint: 'The conversions (case, tabs and spaces, whitespace at line ends), as a menu at the cursor; also the Convert button of the bar', group: 'format',
+  editor: true, run: (_, { pane }) => openPopupAtCursor(pane, CONVERT_ITEMS) });
 appAction('overwrite', { title: 'Insert / overwrite', hint: 'Typing replaces the character at the cursor (OVR in the bottom bar)', group: 'edit', editor: true,
   run: (_, { pane }) => { pane.cm.toggleOverwrite(); updateStatus(); } });
 
@@ -328,7 +332,15 @@ const SETTING_ROWS = [
   { name: 'editorLine', group: 'Editor', kind: 'choice',
     options: () => [[0, `Default (${EDITOR_LINE})`], ...LINE_HEIGHTS.map(n => [n, String(n)])] },
   { name: 'wrap', group: 'Editor', kind: 'toggle' },
+  { name: 'tabSize', group: 'Editor', sub: 'Tabs', kind: 'choice', title: 'Tab size',
+    hint: 'Where the tab stops are: Tab after text goes to the next one, and a tab after text is shown that wide. A language can set its own (tabSize)',
+    options: () => Array.from({ length: 16 }, (_, i) => [i + 1, String(i + 1)]) },
+  { name: 'indentSize', group: 'Editor', sub: 'Tabs', kind: 'choice', title: 'Indent size',
+    hint: 'Where the indent stops are: Tab in the indentation of a line, Indent / Outdent, and a tab in the indentation is shown that wide. A language can set its own (indentSize)',
+    options: () => Array.from({ length: 16 }, (_, i) => [i + 1, String(i + 1)]) },
   { name: 'formatBar', group: 'Editor', kind: 'toggle' },
+  { name: 'trimTrailing', group: 'Editor', kind: 'toggle', title: 'Remove whitespace at line ends on save',
+    hint: 'The whole file, just before it is written (Ctrl+Z after the save gives the spaces back). Off: every space is kept. A language can keep some (markdown: 2) or never trim (trimTrailing)' },
   { name: 'showWhitespace', group: 'Editor', kind: 'toggle', title: 'Show spaces and tabs',
     hint: 'In the editor: a space as a small dot, a tab as an arrow (theme colour: whitespace)' },
   { name: 'showLineEnds', group: 'Editor', kind: 'toggle', title: 'Show line ends',

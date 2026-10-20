@@ -12,6 +12,19 @@ actions:
   removeBlockComment: { title: Remove block comment, hint: The block comment the cursor is in, command: removeBlockComment }
   indent: { title: Indent, hint: The selected lines one level in, command: indent }
   outdent: { title: Outdent, hint: The selected lines one level out, command: outdent }
+  # Conversions (kind convert): the selection (a block: each line's part); without one the case ones do the word at
+  # the cursor, the others the whole file. A language can put one on its bar or give it a key.
+  upperCase: { title: UPPER CASE, hint: The selection or the word at the cursor, convert: upper }
+  lowerCase: { title: lower case, hint: The selection or the word at the cursor, convert: lower }
+  capitalize: { title: Smart capitalize, hint: 'A capital after . and :, after an empty line and at the start of the file', convert: capitalize }
+  snakeCase: { title: snake_case, hint: 'fileName -> file_name', convert: snake }
+  camelCase: { title: camelCase, hint: 'file name -> fileName', convert: camel }
+  pascalCase: { title: PascalCase, hint: 'file name -> FileName', convert: pascal }
+  kebabCase: { title: kebab-case, hint: 'fileName -> file-name', convert: kebab }
+  constantCase: { title: CONSTANT_CASE, hint: 'fileName -> FILE_NAME', convert: constant }
+  tabsToSpaces: { title: Tabs to spaces, hint: 'Every tab, as wide as it is shown; the selected lines or the whole file', convert: tabsToSpaces }
+  spacesToTabs: { title: Spaces to tabs, hint: 'The indentation: a tab per indent step; the selected lines or the whole file', convert: spacesToTabs }
+  trimTrailing: { title: Remove whitespace at line ends, hint: 'Spaces and tabs at the end of the selected lines or of the whole file', convert: trimTrailing }
   section:
     title: Section
     hint: To the next / previous paragraph

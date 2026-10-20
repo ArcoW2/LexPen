@@ -520,8 +520,8 @@ function formatKeys() {
   return {
     'Enter': markdownOnly(cm => { if (!enterInTable(cm)) cm.execCommand('newlineAndIndentContinueMarkdownList'); }),
     'Shift-Enter': mdKey(cm => cm.replaceSelection('<br>')),
-    'Tab': cm => { if (cm.getOption('mode').name !== 'gfm' || !moveCell(cm, 1)) cm.execCommand('indentMore'); },
-    'Shift-Tab': cm => { if (cm.getOption('mode').name !== 'gfm' || !moveCell(cm, -1)) cm.execCommand('indentLess'); },
+    'Tab': cm => { if (cm.getOption('mode').name !== 'gfm' || !moveCell(cm, 1)) tabKey(cm); },   // tabs.js
+    'Shift-Tab': cm => { if (cm.getOption('mode').name !== 'gfm' || !moveCell(cm, -1)) shiftTabKey(cm); },
   };
 }
 
@@ -551,8 +551,8 @@ const EDIT_COMMANDS = {
   toggleComment,
   blockComment,
   removeBlockComment: cm => { removeBlockComment(cm); },
-  indent: cm => cm.execCommand('indentMore'),
-  outdent: cm => cm.execCommand('indentLess'),
+  indent: cm => indentLines(cm, 1),   // the selected lines (or the cursor's) to the next / previous indent stop, tabs.js
+  outdent: cm => indentLines(cm, -1),
 };
 
 // ---------- The bar of a code language (its pack's bar.yaml) ----------
@@ -564,8 +564,10 @@ function makeCodeBar(pane) {
   bar.hidden = true;
   bar.addEventListener('mousedown', e => e.preventDefault());   // the focus stays in the editor
   bar.addEventListener('click', e => {
-    const button = e.target.closest('[data-action]');
-    if (button && pane.cm) runAction(button.dataset.action, [], { from: 'bar' });
+    const button = e.target.closest('[data-action], [data-convert]');
+    if (!button || !pane.cm) return;
+    if (button.dataset.convert !== undefined) openMenuBelow(CONVERT_ITEMS, button);
+    else runAction(button.dataset.action, [], { from: 'bar' });
   });
   pane.codeBar = bar;
   return bar;
@@ -575,30 +577,59 @@ function fillCodeBar(pane) {
   const doc = pane.active?.doc, key = (doc?.language ?? '') + ':' + languagesVersion;
   if (!pane.codeBar || pane.codeBarKey === key) return;
   pane.codeBarKey = key;
-  const pack = doc?.language && packs[doc.language], bar = pane.codeBar;
-  bar.replaceChildren(...barButtons(pack));
+  const bar = pane.codeBar;
+  bar.replaceChildren(...(doc?.language ? barButtons(doc.language) : []));
   bar.hidden = !bar.children.length;
 }
 
-// The buttons of a pack's bar.yaml: separators and buttons with their action, icon and label.
-function barButtons(pack) {
-  const out = [];
-  for (const item of pack?.bar ?? []) {
-    if (item === '-') {
-      out.push(Object.assign(document.createElement('span'), { className: 'mm-fmt-sep' }));
-      continue;
-    }
-    if (!item?.action) continue;
+// ---------- One list for the bar and the Format menu (executed/PLAN-formatters.md 3.2, 3.6) ----------
+// A language's bar: its bar.yaml (markdown: MARKDOWN_BAR), with Convert, and Format where the language has it, at the
+// end unless the bar names them itself ({ action: convert }, { action: format }). A language without a bar gets none
+// (the Format menu still has Convert).
+function barItems(lang) {
+  const pack = packs[lang], items = [...(lang === 'markdown' ? MARKDOWN_BAR : Array.isArray(pack?.bar) ? pack.bar : [])]
+    .filter(i => i === '-' || i?.action || i?.menu);
+  if (!items.length) return [];
+  const has = name => items.some(i => i?.action === name), extra = [];
+  if (!has('convert')) extra.push({ action: 'convert', icon: 'case' });
+  if (pack?.actions?.format && !has('format')) extra.push({ action: 'format', icon: 'format' });
+  if (extra.length && items.at(-1) !== '-') items.push('-');
+  return [...items, ...extra];
+}
+
+// The icon of a bar item: the pack's, else plain text's (by name), or markdown's own content.
+const itemIcon = (lang, item) => item.html ?? packs[lang]?.icons?.[item.icon] ?? packs.plaintext?.icons?.[item.icon] ?? '';
+// The title of an action in a language (the inner language's bar and menu are not the file's).
+const titleIn = (lang, name) => (packs[lang]?.actions?.[name] ?? packs.plaintext?.actions?.[name] ?? appActions.get(name))?.title ?? name;
+
+// The Convert button's tooltip, with the key of the menu at the cursor (Ctrl+Alt+F).
+const CONVERT_TITLE = () => withKey('Convert: case, tabs and spaces, whitespace at line ends', 'convertMenu');
+// The conversions (3.1), the Convert button's menu and submenu.
+const CONVERT_ITEMS = [
+  ['&UPPER CASE', 'upperCase'], ['&lower case', 'lowerCase'], ['Smart &capitalize', 'capitalize'], '-',
+  ['&snake_case', 'snakeCase'], ['ca&melCase', 'camelCase'], ['&PascalCase', 'pascalCase'], ['&kebab-case', 'kebabCase'],
+  ['C&ONSTANT_CASE', 'constantCase'], '-',
+  ['&Tabs to spaces', 'tabsToSpaces'], ['Spaces to t&abs', 'spacesToTabs'], ['Remove &whitespace at line ends', 'trimTrailing'],
+];
+
+// The buttons of a code language's bar: separators, buttons with their action, icon and label, Convert with its menu.
+function barButtons(lang) {
+  return barItems(lang).map(item => {
+    if (item === '-') return Object.assign(document.createElement('span'), { className: 'mm-fmt-sep' });
     const button = document.createElement('button');
     button.className = 'mm-fmt';
     button.tabIndex = -1;
+    if (item.action === 'convert') {
+      button.dataset.convert = '';
+      button.title = CONVERT_TITLE();
+      button.innerHTML = itemIcon(lang, item) + CARET;
+      return button;
+    }
     button.dataset.action = item.action;
-    button.title = withKey(actionTitle(item.action), item.action);
-    const icon = pack.icons?.[item.icon] ?? packs.plaintext?.icons?.[item.icon] ?? '';
-    button.innerHTML = icon + (item.label ? `<span class="mm-fmt-label">${escapeHtml(String(item.label))}</span>` : '');
-    out.push(button);
-  }
-  return out;
+    button.title = withKey(titleIn(lang, item.action), item.action);
+    button.innerHTML = itemIcon(lang, item) + (item.label ? `<span class="mm-fmt-label">${escapeHtml(String(item.label))}</span>` : '');
+    return button;
+  });
 }
 
 // ---------- The inner language's bar (PLAN-embedded-languages.md 3.2) ----------
@@ -628,8 +659,9 @@ function updateInnerBar(pane) {
     bar.hidden = true;
     bar.addEventListener('mousedown', e => e.preventDefault());   // the focus stays in the editor
     bar.addEventListener('click', e => {
-      const button = e.target.closest('[data-action]');
-      if (button) runAction(button.dataset.action, [], { from: 'bar', language: bar.dataset.lang });
+      const button = e.target.closest('[data-action], [data-convert]');
+      if (button?.dataset.convert !== undefined) openMenuBelow(CONVERT_ITEMS, button);
+      else if (button) runAction(button.dataset.action, [], { from: 'bar', language: bar.dataset.lang });
     });
     cm.getWrapperElement().append(bar);
   }
@@ -637,7 +669,7 @@ function updateInnerBar(pane) {
   const show = !!lang && lang !== languageOf(doc) && !!packs[lang] && pane.el.dataset.mode !== 'preview';
   if (show && bar.dataset.key !== lang + ':' + languagesVersion) {
     bar.replaceChildren(Object.assign(document.createElement('span'), { className: 'mm-inner-name', textContent: packs[lang].name + ':' }),
-      ...barButtons(packs[lang]));
+      ...barButtons(lang));
     bar.dataset.key = lang + ':' + languagesVersion;
   }
   if (show) bar.dataset.lang = lang;
@@ -676,35 +708,42 @@ const menuItem = (name, label, params = [], cls = '') =>
   `<button data-action="${name}" data-params="${params.join(' ')}" class="mm-fmt-item ${cls}">${label}<span class="mm-key">${keyText(name, ...params)}</span></button>`;
 const GRID_COLS = 8, GRID_ROWS = 6;
 
-const barHtml = () =>
-  button('bold', '<b>B</b>') +
-  button('italic', '<i>I</i>') +
-  button('strikethrough', '<s>S</s>') +
-  button('inlineCode', ICONS.code) +
-  '<span class="mm-fmt-sep"></span>' +
-  `<span class="mm-fmt-wrap">${menuButton('headingMenu', 'Heading', '<span class="mm-fmt-h">H</span>' + CARET)}` +
-  '<div class="mm-menu mm-fmt-menu" data-menu="headingMenu" hidden>' +
-  [1, 2, 3, 4, 5, 6].map(n => menuItem('heading', 'Heading ' + n, [n], 'mm-fmt-h' + n)).join('') +
-  '<hr>' + menuItem('paragraph', 'Plain paragraph') + '</div></span>' +
-  button('bulletList', ICONS.bullet) +
-  button('numberList', ICONS.number) +
-  button('taskList', ICONS.task) +
-  button('quote', ICONS.quote) +
-  '<span class="mm-fmt-sep"></span>' +
-  button('link', ICONS.link) +
-  button('imageFromFile', ICONS.image) +
-  `<span class="mm-fmt-wrap">${menuButton('tableMenu', 'Table', ICONS.table + CARET)}` +
-  '<div class="mm-menu mm-fmt-menu" data-menu="tableMenu" hidden>' +
-  `<div class="mm-fmt-grid" style="--cols:${GRID_COLS}">` +
-  Array.from({ length: GRID_COLS * GRID_ROWS }, (_, i) => `<span data-c="${i % GRID_COLS + 1}" data-r="${(i / GRID_COLS | 0) + 1}"></span>`).join('') +
-  '</div><div class="mm-fmt-size">Insert a table</div><hr>' +
-  menuItem('tableFormat', 'Format table (line up the columns)', [], 'mm-fmt-in-table') +
-  menuItem('tableAddRow', 'Add row below', [], 'mm-fmt-in-table') +
-  menuItem('tableAddColumn', 'Add column right', [], 'mm-fmt-in-table') +
-  menuItem('tableDeleteRow', 'Delete row', [], 'mm-fmt-in-table') +
-  menuItem('tableDeleteColumn', 'Delete column', [], 'mm-fmt-in-table') + '</div></span>' +
-  button('codeBlock', ICONS.codeBlock) +
-  button('rule', ICONS.rule);
+// Markdown's bar as a list, as a pack's bar.yaml: { action, html: its content } and the Heading and Table menus.
+// The bar and the Format menu are both built from it (barItems adds Convert).
+const MARKDOWN_BAR = [
+  { action: 'bold', html: '<b>B</b>' }, { action: 'italic', html: '<i>I</i>' }, { action: 'strikethrough', html: '<s>S</s>' },
+  { action: 'inlineCode', html: ICONS.code }, '-',
+  { menu: 'heading', html: '<span class="mm-fmt-h">H</span>' },
+  { action: 'bulletList', html: ICONS.bullet }, { action: 'numberList', html: ICONS.number }, { action: 'taskList', html: ICONS.task },
+  { action: 'quote', html: ICONS.quote }, '-',
+  { action: 'link', html: ICONS.link }, { action: 'imageFromFile', html: ICONS.image }, { menu: 'table', html: ICONS.table },
+  { action: 'codeBlock', html: ICONS.codeBlock }, { action: 'rule', html: ICONS.rule },
+];
+// The items of the Heading and Table menus in the Format menu (the bar's own menus: barHtml).
+const HEADING_ITEMS = () => [...[1, 2, 3, 4, 5, 6].map(n => [`Heading &${n}`, 'heading', n]), '-', ['Plain &paragraph', 'paragraph']];
+const TABLE_ITEMS = () => [['&Insert table 3 x 2', 'table', 3, 2], ['&Format table', 'tableFormat'], '-',
+  ['Add &row', 'tableAddRow'], ['Add &column', 'tableAddColumn'], ['&Delete row', 'tableDeleteRow'], ['D&elete column', 'tableDeleteColumn']];
+
+const barHtml = () => barItems('markdown').map(item => {
+  if (item === '-') return '<span class="mm-fmt-sep"></span>';
+  if (item.menu === 'heading') return `<span class="mm-fmt-wrap">${menuButton('headingMenu', 'Heading', item.html + CARET)}` +
+    '<div class="mm-menu mm-fmt-menu" data-menu="headingMenu" hidden>' +
+    [1, 2, 3, 4, 5, 6].map(n => menuItem('heading', 'Heading ' + n, [n], 'mm-fmt-h' + n)).join('') +
+    '<hr>' + menuItem('paragraph', 'Plain paragraph') + '</div></span>';
+  if (item.menu === 'table') return `<span class="mm-fmt-wrap">${menuButton('tableMenu', 'Table', item.html + CARET)}` +
+    '<div class="mm-menu mm-fmt-menu" data-menu="tableMenu" hidden>' +
+    `<div class="mm-fmt-grid" style="--cols:${GRID_COLS}">` +
+    Array.from({ length: GRID_COLS * GRID_ROWS }, (_, i) => `<span data-c="${i % GRID_COLS + 1}" data-r="${(i / GRID_COLS | 0) + 1}"></span>`).join('') +
+    '</div><div class="mm-fmt-size">Insert a table</div><hr>' +
+    menuItem('tableFormat', 'Format table (line up the columns)', [], 'mm-fmt-in-table') +
+    menuItem('tableAddRow', 'Add row below', [], 'mm-fmt-in-table') +
+    menuItem('tableAddColumn', 'Add column right', [], 'mm-fmt-in-table') +
+    menuItem('tableDeleteRow', 'Delete row', [], 'mm-fmt-in-table') +
+    menuItem('tableDeleteColumn', 'Delete column', [], 'mm-fmt-in-table') + '</div></span>';
+  if (item.action === 'convert')
+    return `<button class="mm-fmt" data-convert title="${escapeHtml(CONVERT_TITLE())}" tabindex="-1">${itemIcon('markdown', item)}${CARET}</button>`;
+  return button(item.action, itemIcon('markdown', item));
+}).join('');
 
 function makeFormatBar(pane) {
   const bar = document.createElement('div');
@@ -728,6 +767,8 @@ function makeFormatBar(pane) {
     }
     closeMenus();
     if (!pane.cm) return;
+    const convert = e.target.closest('[data-convert]');
+    if (convert) return openMenuBelow(CONVERT_ITEMS, convert);
     const item = !cell && e.target.closest('[data-action]');
     if (cell) runAction('table', [+cell.dataset.c, +cell.dataset.r], { from: 'bar' });
     else if (item) runAction(item.dataset.action, item.dataset.params ? item.dataset.params.split(' ').map(Number) : [], { from: 'bar' });

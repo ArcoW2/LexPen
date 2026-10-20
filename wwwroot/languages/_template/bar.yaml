@@ -1,10 +1,13 @@
-# The buttons above the editor for this language, left to right. Each: an action of the pack (or of plain
-# text: toggleComment, blockComment, indent, outdent), an icon (a file in icons\ of this pack or of
-# plaintext\icons: comment, blockcomment, indent, outdent, snippet) and an optional short label shown after
-# the icon. The tooltip is the action's title and its key from keys.json. '-' is a separator.
+# The buttons above the editor for this language, left to right, and the Format menu in the same order. Each: an
+# action of the pack (or of plain text: toggleComment, blockComment, indent, outdent, upperCase, ...), an icon (a
+# file in icons\ of this pack or of plaintext\icons: comment, blockcomment, indent, outdent, snippet, case,
+# format), an optional short label shown after the icon, and an optional letter: the underlined letter in the
+# Format menu. The tooltip is the action's title and its key from keys.json. '-' is a separator.
+# Convert (the conversions) and Format (a pack's own "format" action) come at the end by themselves; name them
+# to put them elsewhere: - { action: convert, icon: case }. Every key: README.md in the languages folder.
 - { action: toggleComment, icon: comment }
 - '-'
 - { action: indent, icon: indent }
 - { action: outdent, icon: outdent }
 - '-'
-- { action: snippetIff, icon: snippet, label: iff }
+- { action: snippetIff, icon: snippet, label: iff, letter: f }

@@ -29,7 +29,7 @@ this plan uses the same counting for a single cursor.
 - Kept per editor (`cm.state.mmVirtual = { line, col }`) only while the cursor sits past its line's end; the real
   cursor is then at the line's end. Any other cursor move, an edit elsewhere, a second cursor, a selection or a
   block clears it.
-- Visual columns, as column mode: a tab counts to its stop (3.4 of PLAN-formatters.md once that is built).
+- Visual columns, as column mode: a tab counts to its stop (3.4 of executed/PLAN-formatters.md).
 - Drawn as LexPen's own cursor element at the line's end plus the missing columns times the character width;
   CodeMirror's cursor is hidden meanwhile. It blinks like CodeMirror's and follows the OVR shape.
 - The bottom bar shows the virtual column.
@@ -46,13 +46,13 @@ this plan uses the same counting for a single cursor.
 ### 3.4 Editing
 
 - **Typing, paste** at a virtual column: first spaces from the line's end to the column, then the text, one undo
-  step. With `useTabs` (PLAN-formatters.md) the fill is tabs as far as the stops allow, then spaces.
+  step. With `useTabs` (executed/PLAN-formatters.md) the fill is tabs as far as the stops allow, then spaces.
 - **Enter**: a new line as now, no spaces added to the line left behind.
 - **Backspace** past the end: the cursor one column back, nothing deleted.
 - **Delete** past the end: spaces from the line's end up to the cursor, then the next line joined on there; the
   cursor stays where it was. One undo step. (As Visual Studio.)
 - Spaces that typing left and that are later emptied are trailing whitespace like any other (trim on save,
-  PLAN-formatters.md 3.1.2).
+  executed/PLAN-formatters.md 3.1.2).
 
 ### 3.5 Limits
 

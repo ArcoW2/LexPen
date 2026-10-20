@@ -12,8 +12,8 @@
 const column = { on: false };
 
 const blockOf = cm => cm.state.mmBlock ?? null;
-const vcolAt = (cm, line, ch) => CodeMirror.countColumn(cm.getLine(line), ch, cm.getOption('tabSize'));
-const chAtCol = (cm, line, col) => CodeMirror.findColumn(cm.getLine(line), col, cm.getOption('tabSize'));
+const vcolAt = (cm, line, ch) => textColumn(cm.getLine(line), ch, stopsOf(cm));   // tabs.js: indent and tab stops
+const chAtCol = (cm, line, col) => textCh(cm.getLine(line), col, stopsOf(cm));
 const lineEndCol = (cm, line) => vcolAt(cm, line, cm.getLine(line).length);
 
 function blockBox({ anchor, head }) {
@@ -163,8 +163,11 @@ function onBeforeSelectionChange(cm) {
 
 // Tab / Shift+Tab: the block's lines indented or outdented; the block moves along.
 function indentBlock(cm, dir) {
-  const b = blockOf(cm), unit = cm.getOption('indentUnit') * dir;
-  own(cm, () => cm.execCommand(dir > 0 ? 'indentMore' : 'indentLess'));
+  const b = blockOf(cm), box = blockBox(b), lines = [];
+  for (let l = box.top; l <= box.bottom; l++) lines.push(l);
+  const before = vcolAt(cm, b.head.line, cm.getLine(b.head.line).match(/^[ 	]*/)[0].length);
+  own(cm, () => indentLines(cm, dir, lines));
+  const unit = vcolAt(cm, b.head.line, cm.getLine(b.head.line).match(/^[ 	]*/)[0].length) - before;
   const by = p => ({ line: p.line, col: Math.max(0, p.col + unit) });
   setBlock(cm, by(b.anchor), by(b.head));
 }
@@ -190,20 +193,20 @@ function clearBlock(cm) {
 
 // Where a piece goes in at visual column col of a line, and what goes in: a shorter line is filled up with spaces
 // first. Pure, as columnInsert (the tests use both).
-function columnPiece(text, col, piece, tabSize) {
-  const end = CodeMirror.countColumn(text, text.length, tabSize);
+function columnPiece(text, col, piece, stops) {
+  const end = textColumn(text, text.length, stops);
   if (end < col) return { ch: text.length, insert: ' '.repeat(col - end) + piece };
-  return { ch: CodeMirror.findColumn(text, col, tabSize), insert: piece };
+  return { ch: textCh(text, col, stops), insert: piece };
 }
 
 // The lines with the pieces put in as a column from line first on: past the end, lines are added; an empty piece
 // leaves its line as it is.
-function columnInsert(lines, pieces, first, col, tabSize) {
+function columnInsert(lines, pieces, first, col, stops) {
   const out = [...lines];
   pieces.forEach((piece, i) => {
     while (out.length <= first + i) out.push('');
     if (!piece) return;
-    const text = out[first + i], { ch, insert } = columnPiece(text, col, piece, tabSize);
+    const text = out[first + i], { ch, insert } = columnPiece(text, col, piece, stops);
     out[first + i] = text.slice(0, ch) + insert + text.slice(ch);
   });
   return out;
@@ -216,7 +219,7 @@ function pasteColumn(cm, pieces, line, col) {
       const at = line + i;
       if (at > cm.lastLine()) cm.replaceRange('\n', CodeMirror.Pos(cm.lastLine()), undefined, '*mmcolumn');
       if (!piece) return;
-      const { ch, insert } = columnPiece(cm.getLine(at), col, piece, cm.getOption('tabSize'));
+      const { ch, insert } = columnPiece(cm.getLine(at), col, piece, stopsOf(cm));
       cm.replaceRange(insert, CodeMirror.Pos(at, ch), undefined, '*mmcolumn');
     });
     cm.state.mmBlock = null;

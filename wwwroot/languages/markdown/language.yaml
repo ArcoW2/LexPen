@@ -8,6 +8,9 @@ mode: markdown          # built in: markdown with GitHub's additions (tables, ta
 fold: markdown          # headings fold their section, fences fold their block
 outline: markdown       # built in: the headings, from the rendered document
 comments: { block: ['<!--', '-->'] }
+# Two spaces at the end of a line are a line break in markdown: saving (and Remove whitespace at line ends) keeps
+# at most two. trimTrailing: false never trims, true always on save; see languages\_template\language.yaml.
+trimTrailing: { keep: 2 }
 actions:
   bold: { title: Bold, hint: 'The selection, or ** ** with the cursor in between; again: not bold', command: bold }
   italic: { title: Italic, hint: Works like bold, command: italic }

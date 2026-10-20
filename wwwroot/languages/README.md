@@ -39,7 +39,8 @@ starting with `_` is not loaded (`_template`).
    - `open`: `edit`, `split` or `preview`; `fold`: `brace`, `indent`, `markdown` or `none`.
    - The colouring (next section).
    - `outline`: patterns for the Outline button.
-   - `actions`: snippets, wrap, line prefix, jumps.
+   - `actions`: snippets, wrap, line prefix, jumps, conversions, pretty print.
+   - Optional: `tabSize`, `indentSize`, `useTabs`, `trimTrailing` (Tabs and whitespace, below).
 3. Edit `bar.yaml` for the buttons (below).
 4. Save. A mistake shows in the settings window (Options > Settings, at the top) with the file (and the line, for
    a YAML mistake); a pack that cannot be read falls back to plain text until it is fixed.
@@ -116,20 +117,37 @@ file changed elsewhere the range is found again by the text of its first and las
 
 ## The bar: bar.yaml
 
-The buttons above the editor, left to right; `'-'` is a separator:
+The buttons above the editor, left to right. The same list is the Format menu, so a change to the bar shows there
+too. A file without `bar.yaml` gives the language no bar (its Format menu has the comment items and Convert).
 
 ```yaml
 - { action: toggleComment, icon: comment }
 - '-'
-- { action: snippetSelect, icon: snippet, label: select }
+- { action: snippetSelect, icon: snippet, label: select, letter: s }
+- { action: convert, icon: case }
 ```
 
-- `action`: an action of this pack, or of plain text: `toggleComment`, `blockComment`, `removeBlockComment`,
-  `indent`, `outdent`, `section`.
-- `icon`: an SVG in this pack's `icons` folder, or one of plain text's: `comment`, `blockcomment`, `indent`,
-  `outdent`, `snippet`.
-- `label`: optional short text after the icon.
-- The tooltip is the action's `title` and its key. Without `bar.yaml` the language has no buttons.
+Every key of an item:
+
+| Key | What | Example |
+|---|---|---|
+| `action` | An action of this pack, or of plain text: `toggleComment`, `blockComment`, `removeBlockComment`, `indent`, `outdent`, `section`, the conversions (`upperCase`, ...). Two names are special: `convert` and `format` (below) | `{ action: indent, icon: indent }` |
+| `icon` | An SVG in this pack's `icons` folder, or one of plain text's: `comment`, `blockcomment`, `indent`, `outdent`, `snippet`, `case`, `format`. Shown on the button and in front of the item in the Format menu | `icon: snippet` |
+| `label` | Optional short text after the icon (the bar only; the menu shows the action's title) | `label: select` |
+| `letter` | Optional: the underlined letter of the item in the Format menu. Without it the menu takes the first letter of the title that no other item has | `letter: s` |
+| `'-'` | A separator on the bar, a line in the Format menu | `- '-'` |
+
+- **Convert** (`action: convert`): a button with the conversions as its menu (case, tabs and spaces, whitespace at
+  line ends). Every bar gets it at its end, unless the bar names it itself: then it is where you put it, in the
+  bar and in the menu.
+- **Format** (`action: format`): the pack's own `format` action (pretty print, below). A pack that has one gets the
+  button at the end of its bar, after Convert, unless the bar names it.
+- **The Format menu**, in this order: Toggle comment, Toggle block comment, Remove block comment (every language);
+  a line; the bar's items in the bar's order (the comment items it has are not repeated; Convert as a submenu). On
+  a line of another language (a block, a fence, lines you set) a submenu named after that language follows with
+  its bar's items, which act in that language. Ctrl+Alt+F opens the Convert menu at the cursor; the Convert button's
+  tooltip shows that key.
+- The tooltip of a button is the action's `title` and its key.
 
 ## Actions and keys
 
@@ -140,6 +158,24 @@ An action in `actions` has a `title`, an optional `hint`, and one of:
 - `wrap: [before, after]`: around the selection.
 - `linePrefix`: in front of every selected line, or taken away when all have it.
 - `jump: { line: pattern }`: to the next / previous matching line (with `variants` for the two directions).
+- `convert`: a conversion: `upper`, `lower`, `capitalize`, `snake`, `camel`, `pascal`, `kebab`, `constant`,
+  `tabsToSpaces`, `spacesToTabs`, `trimTrailing`. Plain text has them all (`upperCase`, `lowerCase`, `capitalize`,
+  `snakeCase`, `camelCase`, `pascalCase`, `kebabCase`, `constantCase`, `tabsToSpaces`, `spacesToTabs`,
+  `trimTrailing`), so every language does; a pack names one to put it on its bar or give it a key of its own.
+- `format`: pretty print by LexPen: `json` or `xml`. The JSON and XML packs have it as their action `format`.
+
+## Tabs and whitespace
+
+In `language.yaml`, all optional:
+
+| Key | What | Example |
+|---|---|---|
+| `tabSize` | Where the tab stops are: Tab after text goes to the next one, and a tab after text is shown up to it. Else the setting (4) | `tabSize: 8` |
+| `indentSize` | Where the indent stops are: Tab in a line's indentation, Indent / Outdent, pretty print, and a tab in the indentation is shown that wide. Else the setting (2) | `indentSize: 4` |
+| `useTabs` | `true`: Tab, indent and pretty print write a tab (Makefile, Go, tab-separated files). Else spaces | `useTabs: true` |
+| `trimTrailing` | The whitespace at line ends. `mode`: `setting` (default: on save as the setting says), `true` (always trimmed on save), `false` (never, not even by Remove whitespace at line ends). `keep: N`: at most N spaces or tabs stay, as written. `trimTrailing: false` / `true` set the mode only | `trimTrailing: { keep: 2 }` |
+
+Markdown ships with `trimTrailing: { keep: 2 }`: two spaces at a line's end are a line break there.
 
 A key for an action goes in your `keys.json` by the action's name: `"Ctrl+Alt+I": "snippetIff"`. The same key
 can do something else in another language, through an action of the same name there. An action a language does

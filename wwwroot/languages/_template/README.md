@@ -5,7 +5,8 @@
 2. Edit `language.yaml`: every part is explained in its comments. Start with `name` and `extensions`, then the
    colouring (`comments`, `quotes`, `words`, `rules`), then the outline and the actions.
 3. Edit `bar.yaml` for the buttons above the editor. Icons: SVG files in an `icons` folder of the pack, or the
-   shared ones of the plain text pack (`comment`, `blockcomment`, `indent`, `outdent`, `snippet`).
+   shared ones of the plain text pack (`comment`, `blockcomment`, `indent`, `outdent`, `snippet`, `case`,
+   `format`). The bar is also the Format menu, in the same order; Convert comes at its end by itself.
 4. Save: LexPen picks the change up at once. A mistake shows in the settings window (Options > Settings) and
    the language falls back to plain text until it is fixed.
 
