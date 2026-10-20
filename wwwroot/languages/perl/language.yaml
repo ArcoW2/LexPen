@@ -1,0 +1,82 @@
+# Perl, made from UltraEdit's wordfiles\perl.uew. Every part is explained in
+# languages\_template\language.yaml; how a pack is made from a word file: languages\README.md.
+name: Perl
+extensions: [.cgi, .pl, .pm, .plx]
+firstLine: '^#!.*\bperl\b'   # UltraEdit: LanguageMarker
+open: edit
+fold: brace
+comments: { line: '#', block: ['=pod', '=cut'], moreBlocks: [['=item', '=cut']] }
+quotes:                            # UltraEdit: EnableMLS, strings over several lines
+  - { open: '"', escape: '\', multiline: true }
+  - { open: "'", escape: '\', multiline: true }
+rules:
+  - { regex: '\$#\w*', token: variable }   # $#array: not a comment (UltraEdit: Line Comment Preceding Chars)
+# The word lists of the word file, words as written there. Each list's name is its token type:
+#   keyword        C1 Keywords
+#   builtin        C2 Functions
+#   method         C3 Methods
+#   cgi-function   C5 CGI functions
+#   cgi-parameter  C6 CGI parameters
+#   dbi            C7 DBI
+#   variable       C8 Variables
+# Not coloured: C4 Operators; C9 Regular expression literals (signs only, or as noted).
+words:
+  keyword: ['-A', '-B', '-C', '-M', '-O', '-R', '-S', '-T', '-W', '-X', '-b', '-c', '-d', '-e', '-f', '-g', '-k',
+    '-l', '-o', '-p', '-r', '-s', '-t', '-u', '-w', '-x', '-z', continue, do, else, elsif, exit, for, foreach,
+    goto, if, last, local, my, next, 'no', our, package, redo, require, return, sub, unless, until, use, while]
+  builtin: [accept, alarm, atan2, bind, binmode, bless, caller, chdir, chmod, chomp, chop, chown, chr, chroot,
+    close, closedir, connect, cos, crypt, dbmclose, dbmopen, defined, delete, die, dump, each, endgrent,
+    endhostent, endnetent, endprotoent, endpwent, endservent, eof, eval, exec, exists, exp, fcntl, fileno, flock,
+    fork, format, formline, getc, getgrent, getgrgid, getgrname, gethostbyaddr, gethostbyname, gethostent,
+    getlogin, getnetbyaddr, getnetbyname, getnetent, getpeername, getpgrp, getppid, getpriority, getprotobyname,
+    getprotobynumber, getprotoent, getpwent, getpwnam, getpwuid, getservbyname, getservbyport, getservent,
+    getsockname, getsockopt, glob, gmtime, grep, hex, index, int, ioctl, join, keys, kill, lc, lcfirst, length,
+    link, listen, localtime, log, lstat, map, mkdir, msgctl, msgget, msgrcv, msgsnd, new, oct, open, opendir,
+    ord, pack, pipe, pop, pos, print, printf, push, quotemeta, rand, read, readdir, readline, readlink, recv,
+    ref, rename, reset, reverse, rewinddir, rindex, rmdir, scalar, seek, seekdir, select, semctl, semgett, semop,
+    send, setgrent, sethostent, setnetent, setpgrp, setpriority, setprotoent, setpwent, setservent, setsockopt,
+    shift, shmctl, shmget, shmread, shmwrite, shutdown, sin, sleep, socket, socketpair, sort, splice, split,
+    sprintf, sqrt, srand, stat, study, substr, symlink, syscall, sysopen, sysread, system, syswrite, tell,
+    telldir, tie, tied, time, times, truncate, uc, ucfirst, umask, undef, unlink, unpack, unshift, untie, utime,
+    values, vec, wait, waitpid, wantarray, warn, write]
+  method: [AUTOLOAD, BEGIN, CHECK, CLEAR, CLOSE, CORE, DELETE, DESTROY, END, EXISTS, EXTEND, FETCH, FETCHSIZE,
+    FIRSTKEY, GETC, INIT, NEXTKEY, POP, PRINT, PRINTF, PUSH, READ, READLINE, SHIFT, SPLICE, STORE, STORESIZE,
+    SUPER, TIEARRAY, TIEHANDLE, TIEHASH, TIESCALAR, UNIVERSAL, UNSHIFT, UNTIE, WRITE, __DATA__, __END__,
+    __FILE__, __LINE__, __PACKAGE__, attributes, attrs, autouse, base, blib, bytes, charnames, constant,
+    diagnostics, fields, filetest, integer, less, lib, locale, ops, overload, perllocal, re, sigtrap, strict,
+    subs, utf8, vars, warnings]
+  cgi-function: [Accept, CGI, Carp, TR, Tr, address, auth_type, autoEscape, br, button, caption, center,
+    checkbox, checkbox_group, compile, cookie, defaults, delete_all, div, em, end_h1, end_html, end_table,
+    end_ul, endform, escape, escape_HTML, fatalsToBrowser, filefield, font, h1, h2, h3, h4, h5, header, hidden,
+    hr, http, https, image_button, img, isindex, li, multipart_end, multipart_init, multipart_start, ol, p,
+    param, param_fetch, password_field, path_info, popup_menu, pre, query_string, radio_group, raw_cookie,
+    redirect, referer, remote_addr, remote_host, remote_indent, remote_user, request_method, script_name,
+    scrolling_list, self_url, server_name, server_port, server_software, span, start_form, start_h1, start_html,
+    start_multipart_form, start_table, start_ul, startform, strong, submit, table, td, textarea, textfield, th,
+    tmpFileName, ul, unescape, unescapeHTML, upload, uploadInfo, url, url_param, use_named_parameters,
+    user_agent, user_name, virtual_host]
+  cgi-parameter: ['-BGCOLOR', '-absolute', '-action', '-align', '-alt', '-author', '-background', '-base',
+    '-bgcolor', '-border', '-boundary', '-cellpadding', '-cellspacing', '-checked', '-class', '-code',
+    '-colheader', '-color', '-colspan', '-columns', '-compact', '-content', '-cookie', '-default', '-domain',
+    '-dtd', '-expires', '-face', '-full', '-head', '-height', '-href', '-justification', '-label', '-labels',
+    '-language', '-leftmargin', '-linebreak', '-location', '-marginheight', '-marginwidth', '-maxlength',
+    '-meta', '-method', '-multiple', '-name', '-nolabels', '-nph', '-on', '-onBlur', '-onChange', '-onClick',
+    '-onFocus', '-onLoad', '-onMouseOut', '-onMouseOver', '-onSelect', '-onSubmit', '-onUnload', '-override',
+    '-path', '-path_info', '-query', '-query_string', '-readonly', '-refresh', '-rel', '-relative',
+    '-rightmargin', '-rowheader', '-rows', '-rowspan', '-script', '-secure', '-selected', '-size', '-src',
+    '-status', '-style', '-target', '-title', '-topmargin', '-type', '-uri', '-url', '-valign', '-value',
+    '-values', '-width', '-wrap', '-xbase', onmouseout, onmouseover]
+  dbi: [DBI, LongReadLen, bind_col, bind_parm, disconnect, dump_results, errstr, execute, fetch, finish, prepare]
+  variable: ['$*', '%*', '@*']
+# How the token types of this pack look (the usual ones have a look in plaintext\language.yaml). Each list
+# has its own type, so it can get a look of its own here.
+tokens:
+  method: { like: def }
+  cgi-function: { like: builtin }
+  cgi-parameter: { like: attribute }
+  dbi: { like: type }
+  variable: { like: variable-2 }
+# The tag groups (use declarations, subs) of the word file.
+outline:
+  - { pattern: '^\s*use\s+([\w:]+)', name: 1, level: 2 }   # use
+  - { pattern: '^\s*sub\s+(\w+)', name: 1, level: 1 }   # subs

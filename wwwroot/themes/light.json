@@ -1,8 +1,45 @@
-// Light: Today's day colours: the base for light themes.
-// A theme lists only the colours that differ from its base (light or dark); the names are in the README (Themes).
+// Light: the day colours, complete: the root of the light themes (Yellowish builds on it).
+// Every colour name is set here; a theme on this base lists only what it changes. The names are in the README (Themes).
 {
   "name": "Light",
-  "base": "light",
   "colors": {
+    // The app: backgrounds, text, borders, selection, alerts, markers, find.
+    "bg": "#ffffff",
+    "bgSide": "#f6f7f9",
+    "bgBar": "#eef0f3",
+    "bgCode": "#f3f4f6",
+    "fg": "#1f2328",
+    "fgDim": "#656d76",
+    "border": "#d8dce2",
+    "accent": "#0969da",
+    "hover": "rgba(0, 0, 0, .06)",
+    "active": "rgba(9, 105, 218, .13)",
+    "select": "#b6d7ff",
+    "note": "#0969da",
+    "tip": "#1a7f37",
+    "important": "#8250df",
+    "warning": "#9a6700",
+    "caution": "#cf222e",
+    "gitModified": "#895503",
+    "gitAdded": "#587c0c",
+    "gitUntracked": "#007100",
+    "gitDeleted": "#ad0707",
+    "paneActive": "#0969da",
+    "barChanged": "#0969da",
+    "barRemoved": "#cf222e",
+    "bgBarDim": "#dcdfe4",
+    "findHit": "rgba(255, 196, 0, .4)",
+    "findCurrent": "rgba(255, 140, 0, .85)",
+    "findCurrentFg": "#000",
+    "findBox": "#ff0000",
+    "whitespace": "#b4bac2",
+
+    // Code: the colours a language pack maps its token types onto (tokens: { theme: keyword }).
+    "keyword": "#cf222e",
+    "string": "#0a3069",
+    "comment": "#6e7781",
+    "number": "#0550ae",
+    "title": "#8250df",
+    "attr": "#116329"
   }
 }

@@ -82,18 +82,23 @@ function simpleMode(pack) {
     start.push({ regex: re(open + '.*'), token, next: 'string' + i });   // goes on
     states['string' + i] = [{ regex: re(inner + close), token, next: 'start' }, { regex: /.*/, token }];
   });
-  // Word lists: a word ending in * stands for every word starting with it ('@@*'); those come first, the
-  // longest first, so '@@*' wins over '@*'.
+  // Word lists: a word ending in * stands for every word starting with it ('@@*'). The exact words come first (a
+  // word in a list wins over a "starts with"), then those, the longest first, so '@@*' wins over '@*'.
   const prefixes = [], lists = [];
-  for (const [token, words] of Object.entries(pack.words ?? {})) {
+  // In the order of the file (wordOrder: the host's; the keys themselves arrive sorted): the first list with a word wins.
+  for (const token of pack.wordOrder ?? Object.keys(pack.words ?? {})) {
+    const words = pack.words?.[token];
     if (!Array.isArray(words) || !/^[\w-]+$/.test(token)) continue;
     const exact = words.map(String).filter(w => !w.endsWith('*'));
     for (const w of words.map(String).filter(w => w.endsWith('*') && w.length > 1)) prefixes.push({ prefix: w.slice(0, -1), token });
-    if (exact.length) lists.push({ regex: re('(?:' + exact.map(escapeRegex).join('|') + ')(?![\\w$])'), token });
+    // The longest first ('background-color' before 'background'); a word ending in a letter or digit must not go on
+    // ('for' is not the start of 'format'), one ending in a sign may ('</a>' in '</a>text').
+    const word = w => escapeRegex(w) + (/[\w$]$/.test(w) ? '(?![\\w$])' : '');
+    if (exact.length) lists.push({ regex: re('(?:' + [...exact].sort((a, b) => b.length - a.length).map(word).join('|') + ')'), token });
   }
+  start.push(...lists);
   prefixes.sort((a, b) => b.prefix.length - a.prefix.length);
   for (const { prefix, token } of prefixes) start.push({ regex: re(escapeRegex(prefix) + '[\\w$]*'), token });
-  start.push(...lists);
   // Numbers: the pack's patterns ("numbers": a pattern, a list of them, or false for none), else 0x1F, 12, 1.5e3.
   const numbers = pack.numbers === false ? [] : pack.numbers == null || pack.numbers === true
     ? [{ regex: '(?:0x[\\da-f]+|\\d+\\.?\\d*(?:e[-+]?\\d+)?|\\.\\d+)(?![\\w$])', flags: 'i' }]
@@ -147,7 +152,9 @@ function resolveLook(looks, type, theme, seen = new Set()) {
   let spec = looks[type];
   if (!spec || typeof spec !== 'object' || seen.has(type)) return {};
   seen.add(type);
-  const changes = spec.byTheme && theme && (spec.byTheme[theme.id] ?? spec.byTheme[theme.base]);
+  // byTheme: the theme itself, then its bases (nearest first), then the mode (light / dark).
+  const mode = typeof look !== 'undefined' ? look?.mode : undefined;
+  const changes = spec.byTheme && theme && [...(theme.chain ?? [theme.id]), mode].map(k => spec.byTheme[k]).find(c => c);
   if (changes && typeof changes === 'object') spec = { ...spec, ...changes };
   const from = spec.like ? resolveLook(looks, String(spec.like), theme, seen) : {};
   let color = validColour(spec.color)

@@ -1,7 +1,8 @@
 # SQL (T-SQL, PostgreSQL, Oracle: the common words). Coloured by this file: the word lists and patterns
 # below, so you can add your own words. Every part is explained in languages\_template\language.yaml.
 name: SQL
-extensions: [.sql, .ddl, .pks, .pkb]
+# Currently this pack does not contain .sql for that is themed by asa language
+extensions: [.ddl, .pks, .pkb]
 open: edit
 fold: indent
 caseSensitive: false

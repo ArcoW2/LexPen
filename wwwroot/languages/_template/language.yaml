@@ -56,7 +56,8 @@ rules:                             # extra patterns, tried first: regex and its 
 #   color: '#c0c0ff'   a fixed colour (better inside byTheme: one colour rarely suits light and dark)
 #   contrast: 20       lightness points further from the background (stronger); -20: closer (subtler)
 #   bold, italic, underline, strikethrough: true / false
-#   byTheme: { dark: { ... }, light: { ... }, black: { ... } }   changes for one theme or base
+#   byTheme: { dark: { ... }, light: { ... }, black: { ... } }   changes for one theme (and the themes built on
+#                      it), else for the mode: light or dark
 # A type without a look looks like text.
 tokens:
   label: { like: def, bold: true, contrast: 10 }

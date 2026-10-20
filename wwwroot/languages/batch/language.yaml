@@ -1,0 +1,56 @@
+# Batch, made from UltraEdit's wordfiles\batch.uew. Every part is explained in
+# languages\_template\language.yaml; how a pack is made from a word file: languages\README.md.
+name: Batch
+extensions: [.bat, .cmd, .sys]
+open: edit
+fold: indent                       # UltraEdit folds on ( ): the editor folds braces only, so by indent
+caseSensitive: false               # UltraEdit: Nocase
+comments: { line: 'rem ' }               # Toggle comment uses rem
+quotes:
+  - { open: '"' }                    # UltraEdit: DisableMLS, one line
+rules:
+  - { regex: '::.*', token: comment, sol: true }   # UltraEdit: :: as a comment in column 1 only
+# The word lists of the word file, words as written there. Each list's name is its token type:
+#   keyword   C1 Internal Commands
+#   builtin   C2 External Commands
+#   variable  C3 Variables
+#   label     C4 Labels
+#   echo      C5 Echo
+#   argument  C8 Command Arguments
+# Not coloured: C6 Special Characters; C7 Operators (signs only, or as noted).
+words:
+  keyword: [':eof', call, cd, chdir, cls, copy, date, defined, del, dir, do, else, endlocal, errorlevel, exist,
+    exit, for, goto, if, md, mkdir, move, not, nul, path, pause, popd, pushd, rd, ren, rename, return, rmdir,
+    say, select, set, setlocal, start, then, title, type, ver, when]
+  builtin: [ansi, append, arp, assign, assoc, at, atmadm, attrib, autofail, backup, basedev, batch, bcdedit,
+    boot, bootcfg, bootsect, break, buffers, cache, cacls, call, cd, chcp, chdir, chkdsk, chkntfs, choice,
+    cipher, cls, cmd, codepage, color, command, comp, compact, control, convert, copy, country, ctty, date,
+    ddinstal, debug, defrag, del, delete, deltree, detach, device, devicehigh, devinfo, dir, disable, diskcoache,
+    diskcomp, diskcopy, diskpart, doskey, dosshell, dpath, drivparm, dumpchk, dumpprocess, eautil, edit, edlin,
+    emm386, enable, endlocal, erase, exit, exit_vdm, expand, extproc, extract, fasthelp, fc, fcbs, fciv, fdisk,
+    fdiskpm, files, find, findstr, fixboot, fixmbr, for, forfiles, format, fsaccess, fsfilter, ftp, fType, goto,
+    gpupdate, graftabl, help, 'himem.sys', hostname, icacls, if, 'ifshlp.sys', iopl, ipconfig, join, keyb, keys,
+    label, lastdrive, lh, libpath, listsvc, loadfix, loadhigh, lock, logoff, logon, makeini, map, maxwait, md,
+    mem, memman, mkdir, mklink, mode, more, move, msav, msbackup, mscdex, msd, mwbackup, nbtstat, net, netsh,
+    netstat, nlsfunc, None, nslookup, patch, path, pathping, pause, pauseonerror, picview, ping, pmrexx, popd,
+    power, print, printmonbufsize, priority, priority_disk_io, prompt, protectonly, protshell, pstat, pushd,
+    qbasic, rd, recover, reg, ren, rename, repl, replace, restore, rmdir, rmsize, robocopy, route, run, runas,
+    scandisk, scanreg, schtasks, set, setboot, setlocal, setver, sfc, share, shell, shift, shutdown, smartdrv,
+    sort, spool, start, subst, suppresspopups, swappath, switches, sys, syslevel, syslog, systeminfo, systemroot,
+    taskkill, tasklist, telnet, threads, time, timeslice, title, trace, tracebuf, tracefmt, tracert, trapdump,
+    tree, tskill, type, undelete, unformat, unlock, unpack, use, ver, verify, view, vmdisk, vol, wmic, xcopy,
+    xcopy32, xdfcopy]
+  variable: ['%*']
+  label: [':*']
+  echo: ['@echo', echo, 'off', 'on']
+  argument: [DisableDelayedExpansion, DisableExtensions, EnableDelayedExpansion, EnableExtensions]
+# How the token types of this pack look (the usual ones have a look in plaintext\language.yaml). Each list
+# has its own type, so it can get a look of its own here.
+tokens:
+  variable: { like: variable-2 }
+  label: { like: def }
+  echo: { like: keyword }
+  argument: { like: atom }
+# The tag groups of the word file.
+outline:
+  - { pattern: '^:(?!:)(.+)$', name: 1, level: 1 }   # labels

@@ -10,23 +10,28 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
 ## Features
 
 - **Languages**: a language pack per language (`wwwroot\languages\<name>\language.yaml`, `bar.yaml`, icons):
-  markdown, plain text, C#, JSON, YAML, PowerShell, XML, JavaScript, SQL and Delphi / Pascal ship. A pack gives
-  the extensions, how the file opens, the colouring (a built-in mode, or word lists and patterns as SQL and
+  markdown, plain text, C#, JSON, YAML, PowerShell, XML, JavaScript, SQL, Delphi / Pascal, and from the UltraEdit
+  word files AutoHotkey, Sybase ASA SQL, Batch, C / C++, CSS, HTML, Java, Perl, PHP, Python, Ruby, Shell,
+  VBScript and Visual Basic ship. A debug build reads them (and the themes) from the project's `wwwroot` and
+  picks up a change at once. A pack gives the extensions, how the file opens, the colouring (a built-in mode, or word lists and patterns as SQL and
   Pascal), comments, the outline (procedures, classes, ...), actions and snippets and the buttons above the
   editor. The preview of a code file is coloured as the editor (not above 2 MB). The language in the bottom bar
   is a selector (also View > Language...); the choice is kept per file. Your own packs go in
-  `%LOCALAPPDATA%\LexPen\languages\` (start from `wwwroot\languages\_template`, every part explained there; a
+  `%LOCALAPPDATA%\LexPen\languages\` (start from `wwwroot\languages\_template`; the guide: `wwwroot\languages\README.md`; a
   folder with a shipped name replaces it) and apply at once; mistakes show in the settings window. How a file
   opens: per language, the pack's choice unless you set it (settings window, General > Open in).
 - **Themes**: Light, Dark, Black (OLED), Greenish, Bluish, Reddish and Yellowish ship in `wwwroot\themes`; your own
   go in `%LOCALAPPDATA%\LexPen\themes\` (a file with the same name replaces a shipped one) and apply at once.
   LexPen follows Windows' light / dark mode (a setting, on), with a theme chosen for each mode; Day / night
   switches until Windows changes mode. The preview can have a theme of its own per mode (a light preview next to
-  a dark editor). A theme file: `{ "name": "Mine", "base": "dark", "colors": { "bg": "#102030" } }`, only what differs
-  from its base. Colour names: `bg`, `bgSide`, `bgBar`, `bgBarDim`, `bgCode`, `fg`, `fgDim`, `border`, `accent`,
+  a dark editor). Light and Dark (`light.json`, `dark.json`) set every colour; any other theme names any theme as
+  its base and lists only what differs: `{ "name": "Lighter bluish", "base": "bluish", "colors": { "bg": "#1d2533" } }`
+  (its own colours, then Bluish's, then Dark's). A theme is not light or dark itself: the mode it is chosen for is
+  (title bar, scrollbars, diagrams, a language's `byTheme: { dark }`). A colour nothing in the chain sets comes
+  from the fallbacks in app.css. Colour names: `bg`, `bgSide`, `bgBar`, `bgBarDim`, `bgCode`, `fg`, `fgDim`, `border`, `accent`,
   `hover`, `active`, `select`, `paneActive`; code: `keyword`, `string`, `comment`, `number`, `title`, `attr`;
   alerts: `note`, `tip`, `important`, `warning`, `caution`; markers: `gitModified`, `gitAdded`, `gitUntracked`,
-  `gitDeleted`, `barChanged`, `barRemoved`; find: `findHit`, `findCurrent`, `findCurrentFg`, `findBox`. Values:
+  `gitDeleted`, `barChanged`, `barRemoved`; find: `findHit`, `findCurrent`, `findCurrentFg`, `findBox`; shown spaces, tabs and line ends: `whitespace`. Values:
   `#rrggbb`, `#rgb` or `rgba(r, g, b, a)`. Mistakes show in the settings window.
 - **Settings window** (Options > Settings): every setting in one searchable list with a header per group; a change
   applies at once in every LexPen window, Reset goes back to the default. Your `settings.json` in
@@ -46,6 +51,9 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
 - **Wrap long lines** (View menu, Alt+Z, on by default): in the editor and for code in the preview. A line of
   more than 10,000 characters always wraps in the preview: one such coloured line makes the browser freeze for
   seconds on every mouse move (see docs/plans/executed/PLAN-long-lines.md).
+- **Spaces, tabs and line ends** (Options > Settings > Editor, each off by default, apart): in the editor a space
+  shows as a small dot and a tab as an arrow; line ends as a pilcrow (CRLF) or the LF sign, the last line none.
+  Their colour is the theme's `whitespace`.
 - **Menus**: File, Edit, Format, View and Options in the toolbar row. Every item shows its key; Alt+letter opens a
   menu, the arrow keys move, Enter runs, Esc closes one level, an underlined letter runs its item. The focus stays
   in the editor, so a menu item works on the cursor and the selection there.
@@ -72,7 +80,10 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   a click shows the old text and can revert the block) and fold markers (heading sections and code blocks in
   markdown, braces or indentation in code). View > Gutter switches each column. Line numbers: none, every 10 (a
   dash at 5, a dot on the others) or every line; absolute or relative to the cursor line.
-- **Bottom bar**: line and column (and the size of the selection), INS / OVR (Ins), encoding, line endings,
+- **Bottom bar**: at the left both panes, each a page with an arrow to where it is (left / right, or up / down
+  when above each other) and an eye: struck through while the pane is hidden, grey while it has no documents. A
+  click on the eye shows or hides the pane; hiding one while the other is hidden shows the other (never both
+  hidden). Then line and column (and the size of the selection), INS / OVR (Ins), encoding, line endings,
   language, the active clipboard and a pending chord. "Long line: colour stops at 10,000 characters" when a
   line is that long (the editor colours a line up to there). At the far right a heartbeat (- \ | /) turns
   while LexPen responds; when it stands still, LexPen is busy. The bottom bar can have a font and size of its own.
@@ -252,7 +263,7 @@ PowerShell and C# modes and the search, comment and fold add-ons; loaded when th
 | `SettingsFile.cs` | `settings.json`: the defaults merged with yours, problems, only differences written |
 | `SettingsForm.cs` | The settings window (`wwwroot/settings.html`, `settings.js`) |
 | `LanguagePacks.cs` | Language packs: shipped and yours, YAML read with YamlDotNet, given to the page as JSON |
-| `ThemeFile.cs` | Themes: shipped and yours, checked, colour names from app.css |
+| `ThemeFile.cs` | Themes: shipped and yours, checked, bases followed; colour names and fallbacks from app.css |
 | `DataFolder.cs` | The data folder's layout (`State\`) and the one-time move of an older layout |
 | `MainForm.cs` | One window: WebView2 host, message handling, file access, watchers, git, close prompt |
 | `tests/LexPen.Tests` | Unit tests |
@@ -263,7 +274,7 @@ PowerShell and C# modes and the search, comment and fold add-ons; loaded when th
 | `wwwroot/menus.js`, `palette.js` | The menu bar; F1 |
 | `wwwroot/format.js`, `bookmarks.js`, `gutter.js`, `find.js` | Editor commands and the formatting bar; bookmarks; the gutter; find in a pane |
 | `wwwroot/languages/` | Language packs: markdown and plain text (the actions part) |
-| `wwwroot/app.css`, `theme.js` | Styling and day/night theme |
+| `wwwroot/app.css` | Styling; fallback theme colours |
 | `wwwroot/vendor/` | Bundled third-party libraries (generated by `vendor.ps1`) |
 | `img/icon/` | App icon: `lexpen.ico` (`lexpen.svg` is its source, `make-ico.ps1` rebuilds `lexpen.ico` and `lexpen.png`) |
 | `demo.md` | Formatting showcase |

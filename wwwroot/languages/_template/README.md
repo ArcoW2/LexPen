@@ -12,5 +12,7 @@
 A key for an action goes in your `keys.json`, by the action's name: `"Ctrl+Alt+I": "snippetIff"`. The same
 key can do something else in another language, with an action of the same name there.
 
-The shipped packs (`wwwroot\languages`) are examples: SQL and Delphi / Pascal are coloured by their own
-word lists; C#, JavaScript, JSON, YAML, PowerShell and XML use a built-in editor mode (`mode:`).
+The shipped packs (`wwwroot\languages`) are examples: SQL, Sybase ASA SQL, AutoHotkey and Delphi / Pascal are
+coloured by their own word lists; C#, JavaScript, JSON, YAML, PowerShell and XML use a built-in editor mode
+(`mode:`). The full guide (where packs live, the colouring, the bar, maintaining packs, converting an UltraEdit
+word file): `README.md` in the languages folder.

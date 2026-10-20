@@ -65,17 +65,24 @@ function editorPane(ctx = {}) {
   return pane;
 }
 
+// A key typed in a text field outside the editor (find, replace, the search, ...): an editor action leaves it to
+// the field, so Ctrl+V pastes there, Ctrl+C copies from it, Ctrl+Z undoes in it.
+const inTextField = ctx => ctx.from === 'key' && !!document.activeElement?.matches('input, textarea, [contenteditable]:not([contenteditable=false])')
+  && !document.activeElement.closest('.CodeMirror');
+
 function runAction(name, params = [], ctx = {}) {
   const app = appActions.get(name);
   if (app) {
     if (app.editor) {
       const pane = editorPane(ctx);
-      return pane ? app.run(params, { ...ctx, pane }) : undefined;
+      if (pane) return app.run(params, { ...ctx, pane });
+      if (!inTextField(ctx)) return;
+      return app.field ? app.field(document.activeElement) : PASS;
     }
     return app.run(params, ctx);
   }
   const pane = editorPane(ctx), def = pane && langDef(pane.active.doc, name);
-  if (!def) return;   // no editor, or not in this language: nothing happens
+  if (!def) return inTextField(ctx) ? PASS : undefined;   // no editor, or not in this language: nothing happens
   return runLanguage(pane, def, params, ctx);
 }
 
@@ -206,7 +213,16 @@ appAction('paste', { title: 'Paste', hint: 'From the active clipboard', group: '
     const text = clips.active === 0 ? await host('clipboardText') : await host('clipGet', { n: clips.active });
     if (text && !ctx.pane.cm.getOption('readOnly')) ctx.pane.cm.replaceSelection(text);
   })();
-} });
+},
+  // In a text field (find, the search, ...): the Windows clipboard by the field's own paste, another one inserted
+  // here (one line: a field has no line breaks), with the field's undo and input event.
+  field: el => {
+    if (clips.active === 0) return PASS;
+    host('clipGet', { n: clips.active }).then(text => {
+      if (!text || document.activeElement !== el) return;
+      document.execCommand('insertText', false, String(text).replace(/\r?\n/g, ' '));
+    });
+  } });
 appAction('clipboardSelect', { title: 'Clipboard', hint: 'Copy, cut and paste work on it until another one is chosen', group: 'clipboard',
   variants: Array.from({ length: 10 }, (_, n) => [n]),
   variantTitles: Object.fromEntries(Array.from({ length: 10 }, (_, n) => [n, n === 0 ? 'Windows clipboard' : 'Clipboard ' + n])),
@@ -276,6 +292,10 @@ const SETTING_ROWS = [
     options: () => [[0, `Default (${EDITOR_LINE})`], ...LINE_HEIGHTS.map(n => [n, String(n)])] },
   { name: 'wrap', group: 'Editor', kind: 'toggle' },
   { name: 'formatBar', group: 'Editor', kind: 'toggle' },
+  { name: 'showWhitespace', group: 'Editor', kind: 'toggle', title: 'Show spaces and tabs',
+    hint: 'In the editor: a space as a small dot, a tab as an arrow (theme colour: whitespace)' },
+  { name: 'showLineEnds', group: 'Editor', kind: 'toggle', title: 'Show line ends',
+    hint: 'In the editor: \u00B6 at the end of a line for CRLF, \u240A for LF (theme colour: whitespace)' },
   { name: 'lineNumbers', group: 'Editor', sub: 'Gutter', kind: 'choice',
     options: () => [['none', 'None'], ['tens', 'Every 10 (a dash at 5, a dot on the others)'], ['all', 'Every line']] },
   { name: 'lineNumberCount', group: 'Editor', sub: 'Gutter', kind: 'choice',
@@ -307,9 +327,13 @@ const SETTING_ROWS = [
   { name: 'keys', group: 'Keys', kind: 'keys', title: 'Keys', hint: 'Every action and its keys: F1. Your own keys go in your keys.json, on top of the defaults.' },
 ];
 
-// The themes from the host (look.themes), light ones first, marked when they are yours.
-const themeOptions = () => [...(look?.themes ?? [])].sort((a, b) => (a.base === 'light' ? 0 : 1) - (b.base === 'light' ? 0 : 1))
-  .map(t => [t.id, `${t.name} (${t.base}${t.mine ? ', yours' : ''})`]);
+// The themes from the host (look.themes: Light and Dark first, then by name), with their base and marked when
+// they are yours: "Lighter bluish (on Bluish, yours)".
+const themeOptions = () => (look?.themes ?? []).map(t => {
+  const on = t.base && `on ${look.themes.find(b => b.id === t.base)?.name ?? t.base}`;
+  const notes = [on, t.mine && 'yours'].filter(Boolean).join(', ');
+  return [t.id, notes ? `${t.name} (${notes})` : t.name];
+});
 
 // General > Open in: a row per language (its pack's "open" unless you choose).
 const openInRows = () => PACK_NAMES.map(name => ({

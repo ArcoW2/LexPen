@@ -56,16 +56,30 @@ sealed class SettingsForm : Form
         };
         core.NavigationStarting += (_, n) => { if (!n.Uri.StartsWith(AppUrl)) n.Cancel = true; };
         core.NewWindowRequested += (_, n) => n.Handled = true;
-        core.Navigate($"{AppUrl}settings.html?theme={app.Base}");
+        firstPaint = await core.AddScriptToExecuteOnDocumentCreatedAsync(firstPaintScript = app.FirstPaintScript());
+        core.Navigate($"{AppUrl}settings.html");
     }
 
     /// <summary>The caption follows the theme, as the main windows do.</summary>
     public void ApplyTheme()
     {
-        var dark = app.Base == "dark";
-        BackColor = web.DefaultBackgroundColor = dark ? Color.FromArgb(0x1e, 0x1f, 0x22) : Color.White;
+        var dark = app.Mode == "dark";
+        BackColor = web.DefaultBackgroundColor = app.AppBackground();
         var on = dark ? 1 : 0;
         DwmSetWindowAttribute(Handle, 20 /* DWMWA_USE_IMMERSIVE_DARK_MODE */, ref on, sizeof(int));
+        UpdateFirstPaint();
+    }
+
+    // The theme's colours before the page's first paint (AppHost.FirstPaintScript), also after a reload.
+    string? firstPaint, firstPaintScript;
+    async void UpdateFirstPaint()
+    {
+        if (web.CoreWebView2 is not { } core || firstPaint is null) return;   // OnLoad registers the first one
+        var script = app.FirstPaintScript();
+        if (script == firstPaintScript) return;
+        firstPaintScript = script;
+        core.RemoveScriptToExecuteOnDocumentCreated(firstPaint);
+        firstPaint = await core.AddScriptToExecuteOnDocumentCreatedAsync(script);
     }
 
     [DllImport("dwmapi.dll")]

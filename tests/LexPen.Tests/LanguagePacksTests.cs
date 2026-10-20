@@ -21,9 +21,40 @@ public class LanguagePacksTests : IDisposable
     {
         var all = LanguagePacks.Load(Shipped, Path.Combine(dir, "none"));
         Assert.Empty(Problems(all));
-        Assert.Equal(["csharp", "javascript", "json", "markdown", "pascal", "plaintext", "powershell", "sql", "xml", "yaml"],
+        Assert.Equal(["ahk", "asa", "batch", "cpp", "csharp", "css", "html", "java", "javascript", "json", "markdown", "pascal",
+            "perl", "php", "plaintext", "powershell", "python", "ruby", "shell", "sql", "vb", "vbscript", "xml", "yaml"],
             all["packs"]!.AsObject().Select(p => p.Key));
         Assert.DoesNotContain("_template", all["packs"]!.AsObject().Select(p => p.Key));
+    }
+
+    [Fact]
+    public void TheYamlKeepsItsOrder()
+    {
+        // The order of the word lists is their priority: the first list with a word wins.
+        var words = LanguagePacks.Yaml("words:\n  keyword: [a]\n  atom: [b]\n  builtin: [c]\n")!["words"]!.AsObject();
+        Assert.Equal(["keyword", "atom", "builtin"], words.Select(w => w.Key));
+        // The page gets the keys sorted (WebView2): the order goes along as wordOrder.
+        var ahk = LanguagePacks.Load(Shipped, Path.Combine(dir, "none"))["packs"]!["ahk"]!;
+        Assert.Equal(["keyword", "atom", "variable-2", "builtin", "key", "type"], ahk["wordOrder"]!.AsArray().Select(k => k!.GetValue<string>()));
+    }
+
+    [Fact]
+    public void NoExtensionIsInTwoShippedPacks()
+    {
+        var claims = LanguagePacks.Load(Shipped, Path.Combine(dir, "none"))["packs"]!.AsObject()
+            .SelectMany(p => (p.Value!["extensions"]?.AsArray() ?? []).Select(e => (Ext: e!.GetValue<string>().TrimStart('.').ToLowerInvariant(), Pack: p.Key)));
+        var twice = claims.GroupBy(c => c.Ext).Where(g => g.Count() > 1).Select(g => $"{g.Key}: {string.Join(", ", g.Select(c => c.Pack))}");
+        Assert.Empty(twice);
+    }
+
+    [Fact]
+    public void ADebugBuildFindsTheProjectsWwwroot()
+    {
+        var bin = Path.Combine(dir, "project", "bin", "Debug", "net10.0-windows");
+        Directory.CreateDirectory(bin);
+        File.WriteAllText(Path.Combine(dir, "project", "LexPen.csproj"), "<Project />");
+        Assert.Equal(Path.Combine(dir, "project", "wwwroot"), AppHost.FindProjectWwwroot(bin));
+        Assert.Null(AppHost.FindProjectWwwroot(Path.Combine(dir, "none")));
     }
 
     [Fact]
@@ -35,6 +66,10 @@ public class LanguagePacksTests : IDisposable
         Assert.Equal("markdown", ext[".txt"]!.GetValue<string>());   // as before the packs
         Assert.Equal("pascal", ext[".pas"]!.GetValue<string>());
         Assert.Equal("xml", ext[".csproj"]!.GetValue<string>());
+        Assert.Equal("ahk", ext[".ahk"]!.GetValue<string>());
+        Assert.Equal("asa", ext[".evn"]!.GetValue<string>());
+        Assert.Equal("asa", ext[".sql"]!.GetValue<string>());   // .sql is ASA SQL
+        Assert.Equal("sql", ext[".ddl"]!.GetValue<string>());
     }
 
     [Fact]

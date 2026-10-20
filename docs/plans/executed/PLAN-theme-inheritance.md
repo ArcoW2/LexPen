@@ -127,3 +127,17 @@ may be any theme").
 ## 4. Open questions
 
 None.
+
+## 5. Resolved during execution
+
+| Thing | Solution implemented |
+|---|---|
+| 3.4 says `Vars` is the complete set, but the fallback depends on the mode, which is not known when the files load | `Vars` holds the colours through the chain (own, base, base's base); `ThemeFile.Complete(theme, fallback)` adds the mode's fallback. `Look()` and the first-paint script send that complete set. |
+| `"base"` that is not text (a number, an object) | Reported ("must be the name of a theme file"); the theme loads without a base. |
+| A theme whose base is part of a loop (c -> a, with a -> b -> a) | The loop members keep their own colours (3.4); c builds on what a has, so c = a's own colours + c's own. The loop is reported once. |
+| 3.5: a script registered with `AddScriptToExecuteOnDocumentCreatedAsync` runs before `<html>` exists (found by t34: no colours after a reload) | The script sets the colours at once when `<html>` is there, else a MutationObserver sets them as `<html>` appears: a microtask, so still before the parser runs a page script and before any paint. Verified by t34 (DOMContentLoaded after a reload, no look event yet: mode and theme `bg` already set). |
+| First paint also needs the Day / night label (it reads `data-mode`) | The first-paint script sets `data-theme` and `data-mode` (both the mode) besides the colours. |
+| The window background when the theme's `bg` is not a plain colour | `bg` as `#rgb`, `#rrggbb`, `#rrggbbaa` or `rgb(a)()` is used (alpha left out); anything else keeps the old fixed colour of the mode. |
+| `init` sent `theme = app.Base` (not read by the page) | Sends the mode now; `AppHost.Base` is gone. |
+| The settings list label for Light and Dark (no base, shipped) | Just the name: `Light`. With a base: `Name (on Base)`, plus `yours` when yours. |
+| Tests: the in-app checks could not run at first: Windows refused the clipboard to every process (OpenClipboard error 5, access denied; nothing held it), and LexPen reads the clipboard at start | Unit tests ran (125 passed). Once the clipboard was available again: t34 (16 checks) passed after the first-paint fix below; the in-app scripts t1 to t36 passed, without the t15 timing scripts (t28 and t31 moved from `.sql` to `.ddl`, which stayed SQL). |

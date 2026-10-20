@@ -339,6 +339,17 @@ function makePane(index) {
   pane.barEl.addEventListener('click', e => onBarClick(pane, e));
 
   const tabOf = e => pane.tabs.find(t => t.id === +e.target.closest('.mm-tab')?.dataset.tab);
+  // The full name above the tabs follows the mouse over the tabs (showDocName).
+  pane.tabsEl.addEventListener('mouseover', e => {
+    const tab = tabOf(e) ?? null;
+    if (tab === hoverTab) return;
+    hoverTab = tab;
+    showDocName();
+  });
+  pane.tabsEl.addEventListener('mouseleave', () => {
+    hoverTab = null;
+    showDocName();
+  });
   pane.tabsEl.addEventListener('click', e => {
     const tab = tabOf(e);
     if (!tab) return;
@@ -502,6 +513,9 @@ async function ensureEditor(pane) {
     extraKeys: formatKeys(),
     gutters: ['CodeMirror-linenumbers', BM_GUTTER],   // all columns: setupGutter (gutter.js)
   });
+  // The last line has no line end (showLineEnds): the line elements know which one is the last.
+  pane.cm.on('renderLine', (cm, line, el) => el.classList.toggle('mm-last-line', cm.getLineNumber(line) === cm.lastLine()));
+  applyWhitespace();
   pane.cm.on('gutterClick', (cm, line, gutter) => {
     if (gutter === BM_GUTTER && pane.active) toggleFreeBookmark(pane, line, 0);
     if (gutter === GIT_GUTTER && pane.active) showGitChange(pane, line);
@@ -653,7 +667,7 @@ async function renderNow(tab) {
   if (diagrams.length) {
     await loadScript('vendor/mermaid.min.js');
     if (id !== tab.renderId) return;
-    mermaid.initialize({ startOnLoad: false, theme: (state.previewBase ?? state.theme) === 'dark' ? 'dark' : 'default' });
+    mermaid.initialize({ startOnLoad: false, theme: state.theme === 'dark' ? 'dark' : 'default' });
     await mermaid.run({ nodes: diagrams, suppressErrors: true });
   }
   tab.lines = null;
@@ -711,7 +725,58 @@ function layout() {
   ui.panes.style.setProperty('--ratio', `calc(${state.ratio}% - 3px)`);
   for (const pane of panes) pane.el.classList.toggle('mm-active', pane.index === state.activePane);
   ui.sync.classList.toggle('mm-on', state.sync);
+  updatePaneMarks();
 }
+
+// The bottom bar: per pane a page with an arrow to where it is (left / right, or up / down when above each other)
+// and an eye: shown, or struck through when hidden. Grey without documents. The eye shows or hides the pane.
+const PANE_EYE = '<path d="M1 8s2.5-4.5 7-4.5S15 8 15 8s-2.5 4.5-7 4.5S1 8 1 8z"/><circle cx="8" cy="8" r="2"/>';
+const PANE_ARROWS = { left: 'M12 13.5H3M5.5 11L3 13.5 5.5 16', right: 'M2 13.5h9M8.5 11l2.5 2.5L8.5 16',
+  up: 'M7 16v-5.5M4.5 13L7 10.5 9.5 13', down: 'M7 10.5V16M4.5 13.5L7 16l2.5-2.5' };
+function updatePaneMarks() {
+  for (const el of document.querySelectorAll('.mm-st-pane')) {
+    const index = Number(el.dataset.pane), pane = panes[index], count = pane.tabs.length;
+    const side = state.orient === 'h' ? (index ? 'down' : 'up') : (index ? 'right' : 'left');
+    const where = { left: 'Left', right: 'Right', up: 'Top', down: 'Bottom' }[side] + ' pane';
+    const shown = count > 0 && state.hidden !== index;
+    const key = [side, count > 0, shown].join();
+    if (el.dataset.key !== key) {
+      el.dataset.key = key;
+      el.innerHTML = '<svg class="mm-st-pane-page" viewBox="0 0 14 17" width="13" height="16" fill="none" stroke="currentColor" stroke-width="1.2">' +
+        `<rect x="2.5" y="0.6" width="9" height="8.5" rx="1"/><path d="M4.5 3.2h5M4.5 5h5M4.5 6.8h3"/><path d="${PANE_ARROWS[side]}"/></svg>` +
+        '<button class="mm-st-eye"><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.3">' +
+        PANE_EYE + (shown ? '' : '<path d="M2.5 13.5l11-11"/>') + '</svg></button>';
+    }
+    el.classList.toggle('mm-empty', !count);
+    el.classList.toggle('mm-off', !shown);
+    el.querySelector('.mm-st-pane-page').setAttribute('aria-label', where);
+    el.title = `${where}: ${count === 1 ? '1 document' : `${count} documents`}`;
+    el.querySelector('.mm-st-eye').title = !count ? `${where}: no documents`
+      : shown ? (canHide(index) ? `Hide the ${where.toLowerCase()}` : `${where}: the only one with documents`)
+      : `Show the ${where.toLowerCase()}`;
+  }
+}
+
+// A shown pane can be hidden when the other one has documents (it is then shown instead: never both hidden).
+const canHide = index => panes[index].tabs.length > 0 && state.hidden !== index && panes[1 - index].tabs.length > 0;
+
+function togglePaneShown(index) {
+  if (!panes[index].tabs.length) return;
+  if (state.hidden === index) return showHiddenPane();
+  if (!canHide(index)) return;
+  if (state.hidden === null) return hidePane(index);
+  // The other one is hidden: this one goes, that one comes back.
+  const pane = panes[index], other = panes[state.hidden];
+  if (pane.active) pane.active.previewTop = pane.previewEl.scrollTop;
+  state.hidden = index;
+  layout();
+  if (other.active && other.active.mode !== 'edit') other.previewEl.scrollTop = other.active.previewTop;
+  afterPaneChange();
+}
+document.querySelector('.mm-st-panes').addEventListener('click', e => {
+  const eye = e.target.closest('.mm-st-eye');
+  if (eye) togglePaneShown(Number(eye.closest('.mm-st-pane').dataset.pane));
+});
 
 function setActivePane(index) {
   if (state.activePane === index || panes[index].el.hidden) return;
@@ -949,6 +1014,7 @@ function refreshTabs(only) {
     updateTabsMore(pane);
   }
   markTreeActive();
+  updatePaneMarks();   // the number of documents per pane
 }
 
 // Tab bar "menu": the tabs not (fully) in view, and the button that lists them (with their number).
@@ -1101,10 +1167,17 @@ function cycleTab(step) {
 }
 
 // ---------- Window chrome ----------
+// The full name above the tabs: of the tab the mouse is on, else of the active file.
+let hoverTab = null;
+function showDocName() {
+  const doc = (hoverTab && paneOf(hoverTab) ? hoverTab : activeTab())?.doc;
+  ui.docName.textContent = ui.docName.title = doc ? doc.path || `${doc.draft} (draft, not saved as a file yet)` : '';
+}
+
 function updateChrome() {
   const tab = activeTab(), doc = tab?.doc;
   document.title = (doc && changed(doc) ? '\u25CF ' : '') + (doc ? docName(doc) + ' - ' : '') + 'LexPen';
-  ui.docName.textContent = ui.docName.title = doc ? doc.path || `${doc.draft} (draft, not saved as a file yet)` : '';
+  showDocName();
   // A draft can always be saved as a file.
   document.body.toggleAttribute('data-dirty', !!doc && (doc.dirty || !!doc.draft));
   $('.mm-switch-editor').classList.toggle('mm-on', !!tab && tab.mode !== 'preview');
@@ -1206,6 +1279,8 @@ function updateStatus() {
   statusUi.ins.classList.toggle('mm-on', !!cm?.state.overwrite);
   statusUi.enc.textContent = doc ? doc.encoding : '';
   statusUi.eol.textContent = doc ? (doc.eol === '\r\n' ? 'CRLF' : 'LF') : '';
+  // The line end each editor shows (showLineEnds): its own document's.
+  for (const p of panes) if (p.cm && p.active) p.cm.getWrapperElement().dataset.eol = p.active.doc.eol === '\r\n' ? 'crlf' : 'lf';
   statusUi.lang.textContent = doc ? languageTitle(doc) : '';
   statusUi.long.hidden = !(cm && longLineIn(doc));
   statusUi.clip.textContent = 'Clip: ' + (clips.active === 0 ? 'Win' : clips.active);
@@ -2235,6 +2310,16 @@ searchUi.input.addEventListener('keydown', e => {
     runSearch();
   }
 });
+// Esc in the search (unless a find bar is open: that closes first): the sidebar as before the search, back to the file.
+$('.mm-search-view').addEventListener('keydown', e => {
+  if (e.key !== 'Escape' || panes.some(p => p.find && !p.find.el.hidden)) return;
+  e.preventDefault();
+  const back = searchReturn ?? { sidebar: true, view: 'folder' };
+  searchReturn = null;
+  setSideView(back.view && back.view !== 'search' ? back.view : 'folder');
+  if (!back.sidebar) setSidebar(false);
+  focusPane(panes[state.activePane]);
+});
 searchUi.scope.addEventListener('change', () => { localStorage.searchScope = searchUi.scope.value; runSearch(); });
 for (const button of document.querySelectorAll('.mm-search-bar [data-opt]')) {
   button.addEventListener('click', () => {
@@ -2249,7 +2334,10 @@ function setSideView(view) {
 }
 
 // Ctrl+Shift+F: the search, filled with the editor's selection when that is one line.
+let searchReturn = null;   // the sidebar as it was before the search opened: Esc goes back to it
 function startSearch() {
+  if (document.body.dataset.side !== 'search' || document.body.dataset.sidebar !== 'on')
+    searchReturn = { sidebar: document.body.dataset.sidebar === 'on', view: document.body.dataset.side };
   setSidebar(true);
   setSideView('search');
   const selected = activeTab() && paneOf(activeTab()).cm?.getSelection();
@@ -2708,8 +2796,9 @@ function applyTheme(theme) {
 }
 
 // ---------- The look: themes (wwwroot\themes, your themes\) and light / dark mode ----------
-// The host decides (AppHost.Look): the app's theme, a theme of the preview's own or null, the mode. A theme is
-// its base (light or dark: the colour block in app.css) and its own colours as inline variables.
+// The host decides (AppHost.Look): the app's theme, a theme of the preview's own or null, the mode. A theme comes
+// with all its colours (through its bases), set as inline variables; light or dark is the mode (data-theme), which
+// picks the app.css fallback, color-scheme, the tab colour rules and the diagrams.
 let look = null;
 const themedVars = new WeakMap();   // element -> the variables set on it
 
@@ -2725,16 +2814,13 @@ function applyLook(next) {
   const root = document.documentElement;
   root.dataset.mode = look.mode;
   setThemeVars(root, look.app.vars);
-  const previewBase = (look.preview ?? look.app).base;
   for (const pane of panes) {
     pane.previewEl.classList.toggle('mm-themed', !!look.preview);
-    if (look.preview) pane.previewEl.dataset.theme = look.preview.base; else delete pane.previewEl.dataset.theme;
+    if (look.preview) pane.previewEl.dataset.theme = look.mode; else delete pane.previewEl.dataset.theme;
     setThemeVars(pane.previewEl, look.preview?.vars);
   }
-  const changed = look.app.base !== state.theme || previewBase !== state.previewBase;
-  state.previewBase = previewBase;
-  if (!before) state.theme = root.dataset.theme = look.app.base;   // at start, before anything is shown
-  else if (changed) applyTheme(look.app.base);   // the base: tab colour rules, diagrams
+  if (!before) state.theme = root.dataset.theme = look.mode;   // at start, before anything is shown
+  else if (look.mode !== state.theme) applyTheme(look.mode);   // the mode: tab colour rules, diagrams
   // Another list of themes: the settings window's lists follow.
   if (before && before.themes.map(t => t.id + t.name).join() !== look.themes.map(t => t.id + t.name).join())
     host('settingDefs', { defs: settingDefs() });
@@ -2874,6 +2960,27 @@ function applyLineBreaks(on) {
   md.set({ breaks: on });
 }
 
+// Spaces, tabs and line ends shown in the editor (Options > Settings > Editor; the look: app.css, the colour: the
+// theme's whitespace). Spaces get their own token from an overlay; tabs and line ends are drawn by CSS alone.
+const WS_OVERLAY = {
+  name: 'whitespace',
+  token(stream) {
+    if (stream.eatWhile(' ')) return 'ws-space';
+    if (!stream.skipTo(' ')) stream.skipToEnd();
+    return null;
+  },
+};
+function applyWhitespace() {
+  const spaces = !!setting('showWhitespace');
+  document.body.toggleAttribute('data-show-ws', spaces);
+  document.body.toggleAttribute('data-show-eol', !!setting('showLineEnds'));
+  for (const pane of panes) {
+    if (!pane.cm || !!pane.wsOverlay === spaces) continue;
+    if (spaces) pane.cm.addOverlay(WS_OVERLAY); else pane.cm.removeOverlay(WS_OVERLAY);
+    pane.wsOverlay = spaces;
+  }
+}
+
 // Applies the settings that changed since the last time (at start: all of them).
 let appliedSettings = null;
 function applySettings() {
@@ -2884,6 +2991,7 @@ function applySettings() {
   if (changed('wrap')) applyWrap(now.wrap);
   if (changed('tabBar')) applyTabBar(now.tabBar);
   if (changed('formatBar')) applyFormatBar(now.formatBar);
+  if (changed('showWhitespace') || changed('showLineEnds')) applyWhitespace();
   if (changed('zoom')) applyZoom(now.zoom);
   if (changed('lineBreaks')) {
     applyLineBreaks(now.lineBreaks);
@@ -3106,6 +3214,15 @@ document.addEventListener('keydown', e => {
   // A reload would throw away unsaved text.
   if (e.key === 'F5' || (e.ctrlKey && e.key.toLowerCase() === 'r')) return e.preventDefault();
   if (e.key === 'Escape') {
+    // An open find bar closes first (from anywhere in the window); the next Esc does the rest.
+    const finding = panes.find(p => p.find && !p.find.el.hidden);
+    if (finding) {
+      e.preventDefault();
+      // From the sidebar search the focus stays there: its own Esc comes next.
+      closeFind(panes[state.activePane].find?.el.hidden === false ? panes[state.activePane] : finding,
+        !e.target.closest?.('.mm-search-view'));
+      return;
+    }
     hideMenus();
     dismissNotices();
   }

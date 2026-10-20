@@ -218,18 +218,31 @@ sealed class MainForm : Form
         }
     }
 
-    // Window chrome and the background shown before the page paints follow the page theme.
+    // Window chrome follows the mode; the background shown before the page paints is the theme's.
     // Secondary windows get a dimmed caption and border (Windows 11; Windows 10 ignores it).
     public void ApplyTheme()
     {
-        var dark = app.Base == "dark";
-        BackColor = web.DefaultBackgroundColor = dark ? Color.FromArgb(0x1e, 0x1f, 0x22) : Color.White;
+        var dark = app.Mode == "dark";
+        BackColor = web.DefaultBackgroundColor = app.AppBackground();
+        UpdateFirstPaint();
         var on = dark ? 1 : 0;
         DwmSetWindowAttribute(Handle, 20 /* DWMWA_USE_IMMERSIVE_DARK_MODE */, ref on, sizeof(int));
         var color = Primary ? unchecked((int)0xFFFFFFFF) /* DWMWA_COLOR_DEFAULT */
             : dark ? 0x00181514 : 0x00D0CCC8;   // COLORREF is 0x00BBGGRR
         DwmSetWindowAttribute(Handle, 35 /* DWMWA_CAPTION_COLOR */, ref color, sizeof(int));
         DwmSetWindowAttribute(Handle, 34 /* DWMWA_BORDER_COLOR */, ref color, sizeof(int));
+    }
+
+    // The theme's colours before the page's first paint (AppHost.FirstPaintScript), also after a reload.
+    string? firstPaint, firstPaintScript;
+    async void UpdateFirstPaint()
+    {
+        if (web.CoreWebView2 is not { } core || firstPaint is null) return;   // OnLoad registers the first one
+        var script = app.FirstPaintScript();
+        if (script == firstPaintScript) return;
+        firstPaintScript = script;
+        core.RemoveScriptToExecuteOnDocumentCreated(firstPaint);
+        firstPaint = await core.AddScriptToExecuteOnDocumentCreatedAsync(script);
     }
 
     [DllImport("dwmapi.dll")]
@@ -290,7 +303,8 @@ sealed class MainForm : Form
             OpenExternal(n.Uri);
         };
 
-        core.Navigate($"{AppUrl}index.html?theme={app.Base}");
+        firstPaint = await core.AddScriptToExecuteOnDocumentCreatedAsync(firstPaintScript = app.FirstPaintScript());
+        core.Navigate($"{AppUrl}index.html");
     }
 
     static void OpenExternal(string uri)
@@ -359,7 +373,7 @@ sealed class MainForm : Form
                     ["id"] = Id,
                     ["primary"] = Primary,
                     ["index"] = app.IndexOf(this),
-                    ["theme"] = app.Base,
+                    ["theme"] = app.Mode,
                     ["tabColours"] = app.TabColours(),
                     ["folder"] = start.Folder,
                     ["files"] = new JsonArray(start.Files.Select(f => (JsonNode?)f).ToArray()),
@@ -374,10 +388,12 @@ sealed class MainForm : Form
 
             case "pickFile":
             {
+                var filter = app.FileFilter();   // from the language packs
                 using var d = new OpenFileDialog
                 {
                     Multiselect = true,
-                    Filter = app.FileFilter(),   // from the language packs
+                    Filter = filter,
+                    FilterIndex = filter.Split('|').Length / 2,   // starts on All files (the last)
                 };
                 return d.ShowDialog(this) == DialogResult.OK
                     ? new JsonArray(d.FileNames.Select(f => (JsonNode?)f).ToArray())

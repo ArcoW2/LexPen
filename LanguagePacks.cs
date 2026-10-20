@@ -90,6 +90,9 @@ static class LanguagePacks
             problems.Add($"{source}: \"open\" must be edit, split or preview.");
             pack.Remove("open");
         }
+        // The order of the word lists is their priority (the first list with a word wins), but a message to the page
+        // arrives with its keys sorted (WebView2): the order goes along as a list.
+        if (pack["words"] is JsonObject words) pack["wordOrder"] = new JsonArray(words.Select(w => (JsonNode?)w.Key).ToArray());
         foreach (var part in new[] { "firstLine" })
             if (pack[part] is JsonNode p && !ValidRegex(p.ToString(), out var error))
             {

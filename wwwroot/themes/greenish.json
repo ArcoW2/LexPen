@@ -1,9 +1,10 @@
 // Greenish: Dark, tinted green; an example to copy from.
-// A theme lists only the colours that differ from its base (light or dark); the names are in the README (Themes).
+// A theme lists only what differs from its base; the base may be any theme. The names are in the README (Themes).
 {
   "name": "Greenish",
   "base": "dark",
   "colors": {
+    // The app: backgrounds, text, borders, selection, alerts, markers, find.
     "bg": "#15201a",
     "bgSide": "#1a2820",
     "bgBar": "#1f2e25",
@@ -16,6 +17,8 @@
     "active": "rgba(95, 211, 141, .18)",
     "select": "#2b5a3d",
     "paneActive": "#5fd38d",
+
+    // Code: the colours a language pack maps its token types onto (tokens: { theme: keyword }).
     "title": "#9be7b4"
   }
 }

@@ -1,8 +1,45 @@
-// Dark: Today's night colours: the base for dark themes.
-// A theme lists only the colours that differ from its base (light or dark); the names are in the README (Themes).
+// Dark: the night colours, complete: the root of the dark themes (Black, Bluish, Greenish, Reddish build on it).
+// Every colour name is set here; a theme on this base lists only what it changes. The names are in the README (Themes).
 {
   "name": "Dark",
-  "base": "dark",
   "colors": {
+    // The app: backgrounds, text, borders, selection, alerts, markers, find.
+    "bg": "#1e1f22",
+    "bgSide": "#25262a",
+    "bgBar": "#2b2d31",
+    "bgCode": "#2a2c31",
+    "fg": "#d7dae0",
+    "fgDim": "#8b929c",
+    "border": "#3a3d44",
+    "accent": "#58a6ff",
+    "hover": "rgba(255, 255, 255, .07)",
+    "active": "rgba(88, 166, 255, .2)",
+    "select": "#264f78",
+    "note": "#58a6ff",
+    "tip": "#3fb950",
+    "important": "#a371f7",
+    "warning": "#d29922",
+    "caution": "#f85149",
+    "gitModified": "#e2c08d",
+    "gitAdded": "#81b88b",
+    "gitUntracked": "#73c991",
+    "gitDeleted": "#c74e39",
+    "paneActive": "#d29922",
+    "barChanged": "#1f6feb",
+    "barRemoved": "#da3633",
+    "bgBarDim": "#222327",
+    "findHit": "rgba(255, 196, 0, .4)",
+    "findCurrent": "rgba(255, 140, 0, .85)",
+    "findCurrentFg": "#000",
+    "findBox": "#ffff00",
+    "whitespace": "#5a606a",
+
+    // Code: the colours a language pack maps its token types onto (tokens: { theme: keyword }).
+    "keyword": "#ff7b72",
+    "string": "#a5d6ff",
+    "comment": "#8b949e",
+    "number": "#79c0ff",
+    "title": "#d2a8ff",
+    "attr": "#7ee787"
   }
 }

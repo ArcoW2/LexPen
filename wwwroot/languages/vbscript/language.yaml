@@ -1,0 +1,115 @@
+# VBScript, made from UltraEdit's wordfiles\vbscript.uew. Every part is explained in
+# languages\_template\language.yaml; how a pack is made from a word file: languages\README.md.
+name: VBScript
+extensions: [.vbs]
+open: edit
+fold: indent
+caseSensitive: false               # UltraEdit: Nocase
+comments: { line: "'", moreLines: ['rem '], block: ['/*', '*/'], moreBlocks: [['<!--', '-->']] }
+quotes:
+  - { open: '"', double: true }    # "say ""hi""": a quote inside is written twice
+# The word lists of the word file, words as written there. Each list's name is its token type:
+#   tag       C1 Tags
+#   builtin   C2 VBFunctions
+#   method    C3 VBMethods
+#   event     C4 VBEvents
+#   keyword   C5 VBStatements
+#   object    C6 Objects
+#   constant  C7 Constants
+words:
+  tag: ['%>', '<%']
+  builtin: [Abs, Array, Asc, AscB, AscW, Atn, Avg, CBool, CByte, CCur, CDate, CDbl, Cdec, Choose, Chr, ChrB,
+    ChrW, CInt, CLng, Command, Cos, Count, CreateObject, CSng, CStr, CurDir, CVar, CVDate, CVErr, Date, DateAdd,
+    DateDiff, DatePart, DateSerial, DateValue, Day, DDB, Dir, DoEvents, Environ, EOF, Error, Exp, FileAttr,
+    FileDateTime, FileLen, Fix, Format, FreeFile, FV, GetAllStrings, GetAttr, GetAutoServerSettings, GetObject,
+    GetSetting, Hex, Hour, IIf, IMEStatus, Input, InputB, InputBox, InstB, InStr, Int, IPmt, IsArray, IsDate,
+    IsEmpty, IsError, IsMissing, IsNull, IsNumeric, IsObject, LBound, LCase, Left, LeftB, Len, LenB, LoadPicture,
+    Loc, LOF, Log, LTrim, Max, Mid, MidB, Min, Minute, MIRR, Month, MsgBox, Now, NPer, NPV, Oct, Partition, Pmt,
+    PPmt, PV, QBColor, Rate, Replace, RGB, Right, RightB, Rnd, RTrim, Second, Seek, Sgn, Shell, Sin, SLN, Space,
+    Spc, Split, Sqr, StDev, StDevP, Str, StrComp, StrConv, String, Sum, Switch, SYD, Tab, Tan, Time, Timer,
+    TimeSerial, TimeValue, Trim, TypeName, UBound, UCase, Val, Var, VarP, VarType, Weekday, Year]
+  method: [Accept, Activate, Add, AddCustom, AddFile, AddFromFile, AddFromTemplate, AddItem, AddNew,
+    AddToAddInToolbar, AddToolboxProgID, Append, AppendChunk, Arrange, Assert, AsyncRead, BatchUpdate,
+    BeginTrans, Bind, Buffer, CacheControl, Cancel, CancelAsyncRead, CancelBatch, CancelUpdate,
+    CanPropertyChange, CaptureImage, CellText, CellValue, Charset, Circle, Clear, ClearFields, ClearSel,
+    ClearSelCols, Clone, Close, Cls, ColContaining, ColumnSize, CommitTrans, CompactDatabase, Compose, Connect,
+    ContentType, Copy, CopyQueryDef, CreateDatabase, CreateDragImage, CreateEmbed, CreateField, CreateGroup,
+    CreateIndex, CreateLink, CreatePreparedStatement, CreatePropery, CreateQuery, CreateQueryDef, CreateRelation,
+    CreateTableDef, CreateUser, CreateWorkspace, Customize, Delete, DeleteColumnLabels, DeleteColumns,
+    DeleteRowLabels, DeleteRows, DoVerb, Drag, Draw, Edit, EditCopy, EditPaste, EndDoc, EnsureVisible,
+    EstablishConnection, Execute, Expires, ExpiresAbsolute, ExtractIcon, Fetch, FetchVerbs, FileExists, Files,
+    FillCache, Find, FindFirst, FindItem, FindLast, FindNext, FindPrevious, FolderExists, Forward, GetBookmark,
+    GetChunk, GetClipString, GetData, GetFirstVisible, GetFormat, GetHeader, GetLineFromChar, GetNumTicks,
+    GetRows, GetSelectedPart, GetText, GetVisibleCount, GoBack, GoForward, Hide, HitTest, HoldFields, HTMLEncode,
+    Idle, InitializeLabels, InsertColumnLabels, InsertColumns, InsertObjDlg, InsertRowLabels, InsertRows,
+    IsClientConnected, Item, KillDoc, Layout, Line, LinkExecute, LinkPoke, LinkRequest, LinkSend, Listen,
+    LoadFile, LoadResData, LoadResPicture, LoadResString, LogEvent, MakeCompileFile, MakeReplica, MapPath,
+    MoreResults, Move, MoveData, MoveFirst, MoveLast, MoveNext, MovePrevious, NavigateTo, NewPage, NewPassword,
+    NextRecordset, OLEDrag, OnAddinsUpdate, OnConnection, OnDisconnection, OnStartupComplete, Open,
+    OpenConnection, OpenDatabase, OpenQueryDef, OpenRecordset, OpenResultset, OpenURL, Overlay, PaintPicture,
+    Paste, PastSpecialDlg, PeekData, Play, Point, PopulatePartial, PopupMenu, Print, PrintForm, PropertyChanged,
+    PSet, Quit, Raise, RandomDataFill, RandomFillColumns, RandomFillRows, rdoCreateEnvironment,
+    rdoRegisterDataSource, ReadFromFile, ReadProperty, Rebind, ReFill, Refresh, RefreshLink, RegisterDatabase,
+    Reload, Remove, RemoveAddInFromToolbar, RemoveItem, Render, RepairDatabase, Reply, ReplyAll, Requery,
+    ResetCustom, ResetCustomLabel, ResolveName, RestoreToolbar, Resync, Rollback, RollbackTrans, RowBookmark,
+    RowContaining, RowTop, Save, SaveAs, SaveFile, SaveToFile, SaveToolbar, SaveToOle1File, Scale, ScaleX,
+    ScaleY, ScriptTimeout, Scroll, Select, SelectAll, SelectPart, SelPrint, Send, SendData, SessionID, Set,
+    SetAutoServerSettings, SetData, SetFocus, SetOption, SetSize, SetText, SetViewport, Show, ShowColor,
+    ShowFont, ShowHelp, ShowOpen, ShowPrinter, ShowSave, ShowWhatsThis, SignOff, SignOn, Size, Span,
+    SplitContaining, StartLabelEdit, StartLogging, Status, Stop, Synchronize, TextHeight, TextWidth, Timeout,
+    ToDefaults, TwipsToChartPart, TypeByChartType, Update, UpdateControls, UpdateRecord, UpdateRow, Upto,
+    URLEncode, WhatsThisMode, Write, WriteProperty, ZOrder]
+  event: [AccessKeyPress, AddHeader, AfterAddFile, AfterChangeFileName, AfterCloseFile, AfterColEdit,
+    AfterColUpdate, AfterDelete, AfterInsert, AfterLabelEdit, AfterRemoveFile, AfterUpdate, AfterWriteFile,
+    AmbienChanged, AppendToLog, ApplyChanges, Associate, AsyncReadComplete, AxisActivated, AxisLabelActivated,
+    AxisLabelSelected, AxisLabelUpdated, AxisSelected, AxisTitleActivated, AxisTitleSelected, AxisTitleUpdated,
+    AxisUpdated, BeforeClick, BeforeColEdit, BeforeColUpdate, BeforeConnect, BeforeDelete, BeforeInsert,
+    BeforeLabelEdit, BeforeLoadFile, BeforeUpdate, BinaryWrite, ButtonClick, ButtonCompleted, ButtonGotFocus,
+    ButtonLostFocus, Change, ChartActivated, ChartSelected, ChartUpdated, Click, ColEdit, Collapse, ColResize,
+    ColumnClick, Compare, ConfigChageCancelled, ConfigChanged, ConnectionRequest, DataArrival, DataChanged,
+    DataUpdated, DblClick, Deactivate, DeviceArrival, DeviceOtherEvent, DeviceQueryRemove,
+    DeviceQueryRemoveFailed, DeviceRemoveComplete, DeviceRemovePending, DevModeChange, Disconnect,
+    DisplayChanged, Dissociate, DoGetNewFileName, Done, DonePainting, DownClick, DragDrop, DragOver, DropDown,
+    EditProperty, EnterCell, EnterFocus, ExitFocus, Expand, Flush, FootnoteActivated, FootnoteSelected,
+    FootnoteUpdated, GotFocus, HeadClick, InfoMessage, IniProperties, Initialize, ItemActivated, ItemAdded,
+    ItemCheck, ItemClick, ItemReloaded, ItemRemoved, ItemRenamed, ItemSeletected, KeyDown, KeyPress, KeyUp,
+    LeaveCell, LegendActivated, LegendSelected, LegendUpdated, LinkClose, LinkError, LinkNotify, LinkOpen, Load,
+    LostFocus, MouseDown, MouseMove, MouseUp, NodeClick, ObjectMove, OLECompleteDrag, OLEDragDrop, OLEDragOver,
+    OLEGiveFeedback, OLESetData, OLEStartDrag, OnAddNew, OnComm, OnEnd, OnStart, Paint, PanelClick,
+    PanelDblClick, PathChange, PatternChange, PlotActivated, PlotSelected, PlotUpdated, PointActivated,
+    PointLabelActivated, PointLabelSelected, PointLabelUpdated, PointSelected, PointUpdated, PowerQuerySuspend,
+    PowerResume, PowerStatusChanged, PowerSuspend, QueryChangeConfig, QueryComplete, QueryCompleted,
+    QueryTimeout, QueryUnload, ReadProperties, Redirect, Reposition, RequestChangeFileName, RequestWriteFile,
+    Resize, ResultsChanged, RowColChange, RowCurrencyChange, RowResize, RowStatusChanged, SelChange,
+    SelectionChanged, SendComplete, SendProgress, SeriesActivated, SeriesSelected, SeriesUpdated, SettingChanged,
+    SplitChange, StateChanged, StatusUpdate, SysColorsChanged, Terminate, TimeChanged, TitleActivated,
+    TitleSelected, UnboundAddData, UnboundDeleteRow, UnboundGetRelativeBookmark, UnboundReadData,
+    UnboundWriteData, Unload, UpClick, Updated, Validate, ValidationError, WillAssociate, WillChangeData,
+    WillDissociate, WillExecute, WillUpdateRows, WriteProperties]
+  keyword: [AppActivate, Base, Beep, Call, Case, ChDir, ChDrive, Const, DefBool, DefByte, DefCur, DefDate,
+    DefDbl, DefDec, DefInt, DefLng, DefObj, DefSng, DefStr, Deftype, DefVar, DeleteSetting, Dim, Do, Else,
+    ElseIf, End, Enum, Erase, Event, Exit, Explicit, FileCopy, For, ForEach, Function, Get, GoSub, GoTo, If,
+    Implements, Kill, Let, LineInput, Lock, LSet, MkDir, Name, Next, 'On', OnError, Option, Private, Property,
+    Public, Put, RaiseEvent, Randomize, ReDim, Reset, Resume, Return, RmDir, RSet, SavePicture, SaveSetting,
+    SendKeys, SetAttr, Static, Step, Sub, Then, To, Type, Unlock, Wend, While, Width, With]
+  object: [Application, ClientCertificate, Cookies, Form, ObjectContext, QueryString, Request, Response, Server,
+    ServerVariables, Session]
+  constant: [CDROM, 'False', Fixed, ForAppending, ForReading, ForWriting, RAMDisk, Remote, Removable, 'True',
+    Unknown, vbArray, vbBinaryCompare, vbBlack, vbBlue, vbBoolean, vbByte, vbCr, vbCrLf, vbCurrency, vbCyan,
+    vbDataObject, vbDate, vbDecimal, vbDouble, vbEmpty, vbError, vbFalse, vbFirstFourDays, vbFirstFullWeek,
+    vbFirstJan1, vbFormFeed, vbFriday, vbGeneralDate, vbGreen, vbInteger, vbLf, vbLong, vbLongDate, vbLongTime,
+    vbMagenta, vbMonday, vbNewLine, vbNull, vbNullChar, vbNullString, vbObject, vbObjectError, vbRed, vbSaturday,
+    vbShortDate, vbShortTime, vbSingle, vbString, vbSunday, vbTab, vbTextCompare, vbThursday, vbTrue, vbTuesday,
+    vbUseSystem, vbUseSystemDayOfWeek, vbVariant, vbVerticalTab, vbWednesday, vbWhite, vbYellow]
+# How the token types of this pack look (the usual ones have a look in plaintext\language.yaml). Each list
+# has its own type, so it can get a look of its own here.
+tokens:
+  method: { like: def }
+  event: { like: attribute }
+  object: { like: type }
+  constant: { like: atom }
+# The tag groups of the word file.
+outline:
+  - { pattern: '^\s*(?:(?:public|private)\s+)*function\s+([a-z]\w*)', name: 1, level: 1, flags: i }   # functions
+  - { pattern: '^\s*(?:(?:public|private)\s+)*sub\s+([a-z]\w*)', name: 1, level: 1, flags: i }   # subs
+  - { pattern: '^\s*(?:(?:public|private)\s+)*property\s+((?:let|get|set)\s+[a-z]\w*)', name: 1, level: 2, flags: i }   # properties

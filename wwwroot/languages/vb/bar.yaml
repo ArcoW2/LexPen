@@ -1,0 +1,4 @@
+- { action: toggleComment, icon: comment }
+- '-'
+- { action: indent, icon: indent }
+- { action: outdent, icon: outdent }

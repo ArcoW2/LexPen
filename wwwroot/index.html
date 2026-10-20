@@ -7,7 +7,6 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: http: data: blob:; font-src 'self' data:; media-src https: http:; connect-src 'self'">
 <title>LexPen</title>
 <link rel="icon" href="data:,">
-<script src="theme.js"></script>
 <link rel="stylesheet" href="app.css">
 </head>
 <body data-busy>
@@ -76,6 +75,7 @@
 
 <!-- Bottom bar: the active pane's file (see updateStatus). -->
 <footer class="mm-status">
+  <span class="mm-st-panes"><span class="mm-st-pane" data-pane="0"></span><span class="mm-st-pane" data-pane="1"></span></span>
   <span class="mm-st-chord"></span>
   <span class="mm-st-fill"></span>
   <span class="mm-st-pos"></span>

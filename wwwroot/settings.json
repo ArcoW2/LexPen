@@ -23,6 +23,8 @@
   "gutter.git": true,             // lines changed since the last commit
   "gutter.folds": true,
   "formatBar": true,              // the bar with bold, headings, lists, ... above the editor
+  "showWhitespace": false,        // in the editor: a space as a small dot, a tab as an arrow
+  "showLineEnds": false,          // in the editor: a sign at the end of each line (CRLF or LF)
 
   // ---------- Preview ----------
   "lineBreaks": false,            // a single line break starts a new line (off: joins the lines, as on GitHub)

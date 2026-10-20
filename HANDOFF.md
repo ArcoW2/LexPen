@@ -42,7 +42,11 @@
   (`docs/plans/executed/PLAN-settings-window.md`); pinned and read-only tabs, Close all tabs (`docs/plans/executed/PLAN-pinned-tabs.md`); wrapping, the editor / preview splitter and the heartbeat
   (`docs/plans/executed/PLAN-long-lines.md`); fonts and line height (`docs/plans/executed/PLAN-fonts.md`) and the fix for Ctrl+V with the Windows
   clipboard.
-- Language packs: `docs/plans/executed/PLAN-language-packs.md`, on the local branch `languages` until you approve it.
+- Language packs: `docs/plans/executed/PLAN-language-packs.md`, merged into `main` (`0e6417d`).
+- On the local branch `theme-inheritance` until you approve it: theme inheritance
+  (`docs/plans/executed/PLAN-theme-inheritance.md`), the language set from the UltraEdit word files and the debug
+  build reading packs and themes from the project (`docs/plans/executed/PLAN-language-set.md`), Esc closing the
+  find bar / sidebar search first, File > Open on All files, the languages guide (`wwwroot/languages/README.md`).
   Drafts waiting: `PLAN-fenced-code-colours.md` (fenced code in markdown, Q5) and `PLAN-formatters.md` (Q7).
 - Before making the repository public, also: YamlDotNet (MIT) in THIRD-PARTY-NOTICES.
 - Merged into `main` (`caa3f7b`): themes (`docs/plans/executed/PLAN-themes.md`), the preview theme per mode and

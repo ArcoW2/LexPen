@@ -33,7 +33,7 @@ let themeVars = [];
 function applyLook() {
   const v = settings.values, look = settings.look;
   if (look) {
-    document.documentElement.dataset.theme = look.app.base;
+    document.documentElement.dataset.theme = look.mode;
     for (const name of themeVars) document.documentElement.style.removeProperty(name);
     for (const [name, value] of Object.entries(look.app.vars)) document.documentElement.style.setProperty(name, value);
     themeVars = Object.keys(look.app.vars);

@@ -1,0 +1,67 @@
+# C / C++, made from UltraEdit's wordfiles\c_cplusplus.uew. Every part is explained in
+# languages\_template\language.yaml; how a pack is made from a word file: languages\README.md.
+name: 'C / C++'
+extensions: [.c, .cpp, .cc, .cxx, .h, .hpp, .awk]
+open: edit
+fold: brace
+comments: { line: '//', block: ['/*', '*/'] }
+quotes:
+  - { open: '"', escape: '\' }
+  - { open: "'", escape: '\' }
+# The word lists of the word file, words as written there. Each list's name is its token type:
+#   keyword      C1 Keywords
+#   cpp-keyword  C2 C++ Keywords
+#   extension    C3 Microsoft C extensions
+#   constant     C6 Predefined Macros and Constants
+#   type         C7 Predefined Types
+#   variable     C8 Predefined Variables
+#   library      C9 Standard Library
+# Not coloured: C4 Operators; C5 Braces, comma, semicolon (signs only, or as noted).
+words:
+  keyword: ['#define', '#elif', '#else', '#endif', '#error', '#if', '#ifdef', '#ifndef', '#include',
+    '#include_next', '#line', '#pragma', '#undef', __asm, __based, __cdecl, __declspec, __except, __far,
+    __fastcall, __finally, __fortran, __huge, __inline, __int16, __int32, __int64, __int8, __interrupt, __leave,
+    __loadds, __near, __pascal, __saveregs, __segment, __segname, __self, __stdcall, __try, __uuidof, auto, bool,
+    break, case, char, const, continue, default, defined, do, double, else, enum, extern, float, for, goto, if,
+    int, long, register, return, short, signed, sizeof, static, struct, switch, typedef, union, unsigned, void,
+    volatile, while]
+  cpp-keyword: [__multiple_inheritance, __single_inheritance, __virtual_inheritance, catch, class, const_cast,
+    delete, dynamic_cast, explicit, export, 'false', friend, inline, mutable, namespace, new, operator, private,
+    protected, public, reinterpret_cast, static_cast, template, this, throw, 'true', try, typeid, typename,
+    using, virtual, wchar_t]
+  extension: [dllexport, dllimport, naked, thread, uuid]
+  constant: [__LINE__, __FILE__, __DATE__, __TIME__, __STDC__, _IOFBF, _IOLBF, _IONBF, BUFSIZ, CHAR_BIT,
+    CHAR_MIN, CHAR_MAX, CLOCKS_PER_SEC, EDOM, ERANGE, EOF, EXIT_FAILURE, EXIT_SUCCESS, FOPEN_MAX, FILENAME_MAX,
+    HUGE_VAL, INT_MIN, INT_MAX, LC_ALL, LC_COLLATE, LC_CTYPE, LC_MONETARY, LC_NUMERIC, LC_TIME, LONG_MIN,
+    LONG_MAX, L_tmpnam, MB_CUR_MAX, MB_LEN_MAX, NDEBUG, 'NULL', RAND_MAX, SCHAR_MIN, SCHAR_MAX, SHRT_MIN,
+    SHRT_MAX, SEEK_CUR, SEEK_END, SEEK_SET, SIG_DFL, SIG_ERR, SIG_IGN, SIGABRT, SIGFPE, SIGILL, SIGINT, SIGSEGV,
+    SIGTERM, TMP_MAX, UCHAR_MAX, USHRT_MAX, UINT_MAX, ULONG_MAX, assert, offsetof, setjmp, stderr, stdin, stdout,
+    va_start, va_arg, va_end]
+  type: [FILE, clock_t, div_t, fpos_t, jmp_buf, lconv, ldiv_t, ptrdiff_t, sig_atomic_t, size_t, time_t, tm,
+    va_list, wchar_t]
+  variable: [errno]
+  library: [abort, abs, atexit, atof, atoi, atol, asctime, acos, asin, atan, atan2, bsearch, calloc, ceil, cos,
+    cosh, clearerr, clock, ctime, div, difftime, exit, exp, fabs, floor, fmod, frexp, free, fclose, feof, ferror,
+    fflush, fgetpos, fopen, fread, freopen, fseek, fsetpos, ftell, fwrite, fprintf, fscanf, fgetc, fgets, fputc,
+    fputs, getc, getchar, gets, getenv, gmtime, isalnum, isalpha, iscntrl, isdigit, isgraph, islower, isprint,
+    ispunct, isspace, isupper, isxdigit, labs, ldiv, ldexp, log, log10, localeconv, longjmp, localtime, malloc,
+    mblen, mbstowcs, mbtowc, modf, memchr, memcmp, memcpy, memmove, memset, mktime, perror, pow, printf, putc,
+    putchar, puts, qsort, rand, realloc, raise, remove, rename, rewind, setlocale, setbuf, setvbuf, signal, sin,
+    sinh, sqrt, scanf, sprintf, sscanf, strcat, strncat, strchr, strcmp, strncmp, strcoll, strcpy, strncpy,
+    strcspn, strerror, strftime, strlen, strpbrk, strrchr, strspn, strstr, strtok, strxfrm, srand, strtod,
+    strtol, strtoul, system, tan, tanh, tolower, toupper, tmpfile, tmpnam, time, ungetc, vfprintf, vprintf,
+    vsprintf, wcstombs, wctomb]
+# How the token types of this pack look (the usual ones have a look in plaintext\language.yaml). Each list
+# has its own type, so it can get a look of its own here.
+tokens:
+  cpp-keyword: { like: keyword }
+  extension: { like: meta }
+  constant: { like: atom }
+  variable: { like: variable-2 }
+  library: { like: builtin }
+# The tag groups of the word file.
+outline:
+  - { pattern: '^\s*typedef\s+(?:[\w*\[\]]+\s+)+(\w+);', name: 1, level: 1 }   # typedefs (on one line)
+  - { pattern: '^\s*#define\s+(\w+)\(', name: 1, level: 2 }   # macros
+  - { pattern: '^(?:\w+[ \t]+)+[ *]*(\w+)[ \t]*\([^)]*\);', name: 1, level: 2 }   # prototypes
+  - { pattern: '^(?!\s*(?:if|else|while|for|switch|return)\b)\s*(?:[\w*&:<>,]+\s+)+\**(\w+)\s*\([^{;}]*\)\s*(?:const\s*)?\{', name: 1, level: 1 }   # functions (with { on the same line)

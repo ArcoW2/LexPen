@@ -51,7 +51,43 @@ sealed class AppHost : ApplicationContext
 
     // ---------- Language packs (LanguagePacks) ----------
     static string UserLanguagesDir => Path.Combine(DataDir, LanguagePacks.FolderName);
-    static string ShippedLanguagesDir => Path.Combine(AppContext.BaseDirectory, "wwwroot", LanguagePacks.FolderName);
+    static string ShippedLanguagesDir => ShippedDir(LanguagePacks.FolderName);
+
+    // The shipped language packs and themes: wwwroot next to the exe. A debug build reads (and watches) the project's
+    // own wwwroot instead, so an edit there applies at once, without a build.
+    static string ShippedDir(string folder) => Path.Combine(ProjectWwwroot ?? Path.Combine(AppContext.BaseDirectory, "wwwroot"), folder);
+#if DEBUG
+    static readonly string? ProjectWwwroot = FindProjectWwwroot(AppContext.BaseDirectory);
+#else
+    const string? ProjectWwwroot = null;
+#endif
+
+    /// <summary>The wwwroot of the project the exe was built from: up from `from` to the folder with LexPen.csproj.</summary>
+    internal static string? FindProjectWwwroot(string from)
+    {
+        for (var dir = new DirectoryInfo(from); dir is not null; dir = dir.Parent)
+            if (File.Exists(Path.Combine(dir.FullName, "LexPen.csproj"))) return Path.Combine(dir.FullName, "wwwroot");
+        return null;
+    }
+
+    // A folder to watch: a change anywhere in it runs `changed` (on the UI thread, by the caller's timer). Null when
+    // the folder is not there.
+    FileSystemWatcher? Watch(string dir, string filter, bool subfolders, Action changed)
+    {
+        if (!Directory.Exists(dir)) return null;
+        var watcher = new FileSystemWatcher(dir, filter)
+        {
+            IncludeSubdirectories = subfolders,
+            NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite | NotifyFilters.Size,
+        };
+        void Changed() => windows.FirstOrDefault(w => !w.IsDisposed)?.BeginInvoke(changed);
+        watcher.Changed += (_, _) => Changed();
+        watcher.Created += (_, _) => Changed();
+        watcher.Deleted += (_, _) => Changed();
+        watcher.Renamed += (_, _) => Changed();
+        watcher.EnableRaisingEvents = true;
+        return watcher;
+    }
     JsonObject languages = new();
     /// <summary>Every pack as JSON for the pages, the extensions, problems (LanguagePacks.Load).</summary>
     public JsonObject Languages => languages;
@@ -94,29 +130,23 @@ sealed class AppHost : ApplicationContext
 
     void LoadLanguages() => languages = LanguagePacks.Load(ShippedLanguagesDir, UserLanguagesDir);
 
-    // Your languages folder changed (a pack edited, added or removed): read the packs again, every window follows.
-    FileSystemWatcher? languagesWatcher;
+    // Your languages folder changed (a pack edited, added or removed), or in a debug build the project's: read the
+    // packs again, every window follows.
+    readonly List<FileSystemWatcher> languagesWatchers = [];
     readonly System.Windows.Forms.Timer languagesTimer = new() { Interval = 300 };
 
     public void WatchLanguages()
     {
         LoadLanguages();
         try { Directory.CreateDirectory(UserLanguagesDir); }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return; }
-        languagesWatcher = new FileSystemWatcher(UserLanguagesDir)
-        {
-            IncludeSubdirectories = true,
-            NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite | NotifyFilters.Size,
-        };
-        void Changed() => windows.FirstOrDefault(w => !w.IsDisposed)?.BeginInvoke(() =>
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+        void Changed()
         {
             languagesTimer.Stop();
             languagesTimer.Start();
-        });
-        languagesWatcher.Changed += (_, _) => Changed();
-        languagesWatcher.Created += (_, _) => Changed();
-        languagesWatcher.Deleted += (_, _) => Changed();
-        languagesWatcher.Renamed += (_, _) => Changed();
+        }
+        foreach (var dir in ProjectWwwroot is null ? [UserLanguagesDir] : new[] { UserLanguagesDir, ShippedLanguagesDir })
+            if (Watch(dir, "*", true, Changed) is { } watcher) languagesWatchers.Add(watcher);
         languagesTimer.Tick += (_, _) =>
         {
             languagesTimer.Stop();
@@ -124,14 +154,14 @@ sealed class AppHost : ApplicationContext
             foreach (var w in windows) w.Post(new JsonObject { ["event"] = "languages", ["languages"] = languages.DeepClone() });
             settingsWindow?.Post(new JsonObject { ["event"] = "languages", ["languages"] = languages.DeepClone() });
         };
-        languagesWatcher.EnableRaisingEvents = true;
     }
 
     // ---------- Themes (ThemeFile) and light / dark mode ----------
     static string UserThemesDir => Path.Combine(DataDir, ThemeFile.FolderName);
-    static string ShippedThemesDir => Path.Combine(AppContext.BaseDirectory, "wwwroot", ThemeFile.FolderName);
+    static string ShippedThemesDir => ShippedDir(ThemeFile.FolderName);
     List<ThemeFile.Theme> themes = [];
     List<string> themeProblems = [];
+    Dictionary<string, string> fallbackLight = [], fallbackDark = [];   // app.css: a colour no theme in the chain sets
     string windowsMode = WindowsMode();
     string? modeOverride;   // Day / night while following Windows: until Windows changes mode
 
@@ -140,21 +170,44 @@ sealed class AppHost : ApplicationContext
 
     ThemeFile.Theme ThemeFor(string? id, string mode) =>
         themes.FirstOrDefault(t => t.Id == id) ?? themes.FirstOrDefault(t => t.Id == mode)
-        ?? new ThemeFile.Theme(mode, mode, mode, new Dictionary<string, string>(), false);
+        ?? new ThemeFile.Theme(mode, mode, null, new Dictionary<string, string>(), false, [mode]);
 
     ThemeFile.Theme AppTheme => ThemeFor(SettingText(Mode == "dark" ? "themeDark" : "themeLight"), Mode);
 
-    /// <summary>The base (light or dark) of the app's theme: the title bars and the first paint follow it.</summary>
-    public string Base => AppTheme.Base;
+    /// <summary>Every colour of the app's theme, for the current mode (the mode's fallback for what it lacks).</summary>
+    public Dictionary<string, string> AppColours() => ThemeFile.Complete(AppTheme, Mode == "dark" ? fallbackDark : fallbackLight);
+
+    /// <summary>The app's theme background: the window before the page draws.</summary>
+    public Color AppBackground() =>
+        ThemeFile.Rgb(AppColours().GetValueOrDefault("--bg") ?? "") is var (r, g, b) ? Color.FromArgb(r, g, b)
+        : Mode == "dark" ? Color.FromArgb(0x1e, 0x1f, 0x22) : Color.White;
+
+    /// <summary>A script that runs before the page's own scripts and its first paint: the mode and the app's
+    /// theme colours on the page, so it never shows other colours first.</summary>
+    public string FirstPaintScript()
+    {
+        var vars = new JsonObject(AppColours().Select(v => KeyValuePair.Create(v.Key, (JsonNode?)v.Value)));
+        var mode = JsonValue.Create(Mode).ToJsonString();
+        // It runs before <html> exists: an observer sets them on <html> as it appears (a microtask: before the
+        // parser runs a page script, and before any paint).
+        return $"(() => {{ const set = r => {{ r.dataset.theme = r.dataset.mode = {mode}; " +
+            $"for (const [n, v] of Object.entries({vars.ToJsonString()})) r.style.setProperty(n, v); }}; " +
+            "if (document.documentElement) return set(document.documentElement); " +
+            "new MutationObserver((_, o) => { if (document.documentElement) { o.disconnect(); set(document.documentElement); } })" +
+            ".observe(document, { childList: true }); })();";
+    }
 
     /// <summary>What every window shows: the app's theme, the preview's own one (or null: the app's), the mode,
-    /// the list of themes (for the settings) and problems in theme files.</summary>
+    /// the list of themes (for the settings) and problems in theme files. A theme's vars are complete (with the
+    /// mode's fallback); chain is its id and its bases, nearest first.</summary>
     public JsonObject Look()
     {
-        static JsonObject Json(ThemeFile.Theme t) => new()
+        var fallback = Mode == "dark" ? fallbackDark : fallbackLight;
+        JsonObject Json(ThemeFile.Theme t) => new()
         {
-            ["id"] = t.Id, ["name"] = t.Name, ["base"] = t.Base,
-            ["vars"] = new JsonObject(t.Vars.Select(v => KeyValuePair.Create(v.Key, (JsonNode?)v.Value))),
+            ["id"] = t.Id, ["name"] = t.Name, ["base"] = t.BaseId,
+            ["chain"] = new JsonArray(t.Chain.Select(c => (JsonNode?)c).ToArray()),
+            ["vars"] = new JsonObject(ThemeFile.Complete(t, fallback).Select(v => KeyValuePair.Create(v.Key, (JsonNode?)v.Value))),
         };
         var app = AppTheme;
         var previewId = SettingText(Mode == "dark" ? "previewThemeDark" : "previewThemeLight");
@@ -166,9 +219,9 @@ sealed class AppHost : ApplicationContext
         {
             ["mode"] = Mode,
             ["app"] = Json(app),
-            ["preview"] = string.IsNullOrEmpty(previewId) || themes.All(t => t.Id != previewId) ? null : Json(ThemeFor(previewId, app.Base)),
+            ["preview"] = string.IsNullOrEmpty(previewId) || themes.All(t => t.Id != previewId) ? null : Json(ThemeFor(previewId, Mode)),
             ["themes"] = new JsonArray(themes.Select(t => (JsonNode?)new JsonObject
-                { ["id"] = t.Id, ["name"] = t.Name, ["base"] = t.Base, ["mine"] = t.Mine }).ToArray()),
+                { ["id"] = t.Id, ["name"] = t.Name, ["base"] = t.BaseId, ["mine"] = t.Mine }).ToArray()),
             ["problems"] = problems,
         };
     }
@@ -176,8 +229,9 @@ sealed class AppHost : ApplicationContext
     void LoadThemes()
     {
         var problems = new List<string>();
-        var names = ThemeFile.Names(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "wwwroot", "app.css")));
-        themes = ThemeFile.Load(ShippedThemesDir, UserThemesDir, names, problems);
+        var css = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "wwwroot", "app.css"));
+        (fallbackLight, fallbackDark) = (ThemeFile.Fallback(css, "light"), ThemeFile.Fallback(css, "dark"));
+        themes = ThemeFile.Load(ShippedThemesDir, UserThemesDir, ThemeFile.Names(css), problems);
         themeProblems = problems;
     }
 
@@ -217,8 +271,9 @@ sealed class AppHost : ApplicationContext
         if (SettingFlag("followWindows")) SendLook();
     }
 
-    // Your themes folder changed (a theme edited, added or removed): read the themes again.
-    FileSystemWatcher? themesWatcher;
+    // Your themes folder changed (a theme edited, added or removed), or in a debug build the project's: read the
+    // themes again.
+    readonly List<FileSystemWatcher> themesWatchers = [];
     readonly System.Windows.Forms.Timer themesTimer = new() { Interval = 200 };
 
     public void WatchThemes()
@@ -226,27 +281,20 @@ sealed class AppHost : ApplicationContext
         LoadThemes();
         Microsoft.Win32.SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
         try { Directory.CreateDirectory(UserThemesDir); }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return; }
-        themesWatcher = new FileSystemWatcher(UserThemesDir, "*.json")
-        {
-            NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.Size,
-        };
-        void Changed() => windows.FirstOrDefault(w => !w.IsDisposed)?.BeginInvoke(() =>
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+        void Changed()
         {
             themesTimer.Stop();
             themesTimer.Start();
-        });
-        themesWatcher.Changed += (_, _) => Changed();
-        themesWatcher.Created += (_, _) => Changed();
-        themesWatcher.Deleted += (_, _) => Changed();
-        themesWatcher.Renamed += (_, _) => Changed();
+        }
+        foreach (var dir in ProjectWwwroot is null ? [UserThemesDir] : new[] { UserThemesDir, ShippedThemesDir })
+            if (Watch(dir, "*.json", false, Changed) is { } watcher) themesWatchers.Add(watcher);
         themesTimer.Tick += (_, _) =>
         {
             themesTimer.Stop();
             LoadThemes();
             SendLook();
         };
-        themesWatcher.EnableRaisingEvents = true;
     }
     /// <summary>The rows of the settings window, as a main window's page describes them (actions.js).</summary>
     public JsonNode? SettingDefs { get; set; }

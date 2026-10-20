@@ -1,9 +1,10 @@
 // Black (OLED): Pure black backgrounds, slightly brighter text.
-// A theme lists only the colours that differ from its base (light or dark); the names are in the README (Themes).
+// A theme lists only what differs from its base; the base may be any theme. The names are in the README (Themes).
 {
   "name": "Black (OLED)",
   "base": "dark",
   "colors": {
+    // The app: backgrounds, text, borders, selection, alerts, markers, find.
     "bg": "#000000",
     "bgSide": "#0a0a0b",
     "bgBar": "#111113",
