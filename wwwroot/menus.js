@@ -10,7 +10,7 @@
 // (an entry of a recent list: a file, not an action). `font`: the key column (a sample) is shown in that font.
 const MENUS = [
   ['&File', [
-    ['&New file', 'newFile'], ['Open &file...', 'openFile'], ['&Open folder...', 'openFolder'], '-',
+    ['&New file', 'newFile'], ['&Open file...', 'openFile'], ['Open &folder...', 'openFolder'], '-',
     { label: 'Fa&vourites', fill: () => recentItems('favourites') },
     { label: '&Recent files', fill: () => recentItems('files') },
     { label: 'Recent fold&ers', fill: () => recentItems('folders') },
@@ -55,6 +55,8 @@ const MENUS = [
     ['&Day / night', 'theme'],
     { label: '&Zoom', sub: [['Zoom &in', 'zoomIn'], ['Zoom &out', 'zoomOut'], ['&100%', 'zoomReset']] },
   ]],
+  // Filled when it opens: every project with its windows (app.js, projectMenuItems).
+  ['&Projects', () => projectMenuItems()],
   ['&Options', [
     ['&Settings...', 'settings'], '-',
     ['&Keyboard shortcuts and commands', 'commands'], ['&About LexPen', 'about'],
@@ -88,18 +90,22 @@ function buildMenuBar() {
   }));
 }
 
-function openTopMenu(i, select) {
+async function openTopMenu(i, select) {
   closeMenus();
   hideMenus();   // the right-click menus
   menuBar.top = i;
   const button = menuBar.el.children[i];
   button.classList.add('mm-on');
   const r = button.getBoundingClientRect();
-  openMenuLevel(MENUS[i][1], r.left, r.bottom + 2, select);
+  // A menu filled when it opens (Projects): a function giving its items.
+  const items = typeof MENUS[i][1] === 'function' ? await MENUS[i][1]() : MENUS[i][1];
+  if (menuBar.top !== i || menuBar.levels.length) return;   // closed or moved on meanwhile
+  openMenuLevel(items, r.left, r.bottom + 2, select);
 }
 
-// Builds one menu (a dropdown or a submenu) at x, y and makes it the deepest open level.
-async function openMenuLevel(items, x, y, select, above) {
+// Builds one menu (a dropdown or a submenu) at x, y and makes it the deepest open level. A submenu that does not fit
+// right of x opens left of leftX instead (its parent's left edge), so it never covers its parent.
+async function openMenuLevel(items, x, y, select, above, leftX) {
   const el = document.createElement('div');
   el.className = 'mm-menu mm-dropdown';
   const level = { el, items: [], index: -1 };
@@ -112,7 +118,7 @@ async function openMenuLevel(items, x, y, select, above) {
     const isSub = !!(it.sub || it.fill), params = it.params ?? [];
     const { html, letter } = menuLabel(it.label, it.plain);
     const enabled = isSub || it.enabled !== false && (!it.action || actionAvailable(it.action, params));
-    const checked = it.action && appActions.get(it.action)?.checked?.(params);
+    const checked = it.checked ?? (it.action && appActions.get(it.action)?.checked?.(params));   // or the item's own
     // The check mark and the arrow are drawn by the style sheet (mm-checked, mm-arrow).
     button.innerHTML = `<span class="mm-mark"></span><span class="mm-label">${html}</span>` +
       (isSub ? '<span class="mm-arrow"></span>' : `<span class="mm-key">${escapeHtml(it.key ?? (it.action ? keyText(it.action, ...params) : ''))}</span>`);
@@ -135,7 +141,8 @@ async function openMenuLevel(items, x, y, select, above) {
     el.append(none);
   }
   document.body.append(el);
-  el.style.left = Math.max(4, Math.min(x, innerWidth - el.offsetWidth - 4)) + 'px';
+  const left = leftX !== undefined && x + el.offsetWidth > innerWidth - 4 ? leftX - el.offsetWidth + 2 : x;
+  el.style.left = Math.max(4, Math.min(left, innerWidth - el.offsetWidth - 4)) + 'px';
   el.style.top = Math.max(4, Math.min(above ? y - el.offsetHeight - 2 : y, innerHeight - el.offsetHeight - 4)) + 'px';
   if (select) selectMenuItem(level, level.items.findIndex(e => e.enabled), false);
 }
@@ -156,7 +163,7 @@ async function openSubmenu(level, select) {
   const items = entry.item.sub ?? await entry.item.fill();
   if (menuBar.levels.at(-1) !== level || level.items[level.index] !== entry) return;   // moved on meanwhile
   const r = entry.button.getBoundingClientRect();
-  openMenuLevel(items, r.right - 2, r.top - 5, select);
+  openMenuLevel(items, r.right - 2, r.top - 5, select, false, level.el.getBoundingClientRect().left);
 }
 
 function chooseMenuItem(level, index) {

@@ -2,6 +2,7 @@
 # languages\_template\language.yaml; how a pack is made from a word file: languages\README.md.
 name: Batch
 extensions: [.bat, .cmd, .sys]
+aliases: [bat, cmd, dos]   # other names it is known by (a markdown fence ```bat, an embedded block); see languages\README.md
 open: edit
 fold: indent                       # UltraEdit folds on ( ): the editor folds braces only, so by indent
 caseSensitive: false               # UltraEdit: Nocase

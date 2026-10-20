@@ -1,6 +1,11 @@
 # JSON. Every part is explained in languages\_template\language.yaml.
 name: JSON
 extensions: [.json, .jsonc, .geojson, .webmanifest]
+aliases: [jsonc, json5]   # other names it is known by (a markdown fence ```jsonc, an embedded block); see languages\README.md
 open: edit
 mode: { name: javascript, json: true }   # built in
 fold: brace
+# Keys and values apart: a key is string and property (property's look wins), a value only string.
+tokens:
+  property: { theme: string }   # keys: the theme's string colour (blue in the dark themes)
+  string: { theme: attr }       # values: the theme's attr colour (green in the dark themes)

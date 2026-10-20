@@ -3,6 +3,7 @@
 name: HTML
 # The extensions of the word file, .php included (the PHP pack has .php3 .php4 .php5).
 extensions: [.htm, .html, .shtml, .htt, .hta, .htx, .cfm, .jsp, .php, .phtml, .asp, .tmpl, .asax, .ashx, .asmx, .aspx, .ascx]
+aliases: [htm, xhtml]   # other names it is known by (a markdown fence ```htm, an embedded block); see languages\README.md
 open: edit
 fold: indent
 caseSensitive: false               # UltraEdit: Nocase
@@ -328,3 +329,10 @@ outline:
   - { pattern: '<img\s[^>]*\bsrc=["\'']([^"\''].*?)["\'']', name: 1, level: 2, flags: i }   # images
   - { pattern: '<script\s[^>]*\bsrc=["\'']([^"\''].*?)["\'']', name: 1, level: 2, flags: i }   # scripts
   - { pattern: '<link\s[^>]*\bhref=["\'']([^"\''].*?\.css)["\'']', name: 1, level: 2, flags: i }   # stylesheets
+
+# Blocks of other languages: the lines between a <script> and a </script> line are JavaScript, between <style> and
+# </style> CSS, between <?php and ?> PHP. Only markers on lines of their own (a block is whole lines).
+embedded:
+  - { openRegex: '^\s*<script\b[^>]*>\s*$', closeRegex: '^\s*</script>', language: javascript, flags: i }
+  - { openRegex: '^\s*<style\b[^>]*>\s*$', closeRegex: '^\s*</style>', language: css, flags: i }
+  - { openRegex: '^\s*<\?php\s*$', closeRegex: '^\s*\?>', language: php, flags: i }

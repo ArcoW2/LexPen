@@ -1,6 +1,7 @@
 # C#. Every part is explained in languages\_template\language.yaml.
 name: C#
 extensions: [.cs, .csx]
+aliases: ['c#', cs]   # other names it is known by (a markdown fence ```c#, an embedded block); see languages\README.md
 open: edit
 mode: text/x-csharp     # built in
 fold: brace

@@ -6,20 +6,15 @@ namespace LexPen;
 static class Router
 {
     /// <summary>One window to open or reuse. <see cref="Window"/> is an index into the open windows; null opens a new one.</summary>
-    public sealed record Target(int? Window, string? Folder, List<string> Files)
-    {
-        /// <summary>The new window restores the saved session (only on the first start).</summary>
-        public bool Restore { get; set; }
-        /// <summary>The new window becomes the primary window.</summary>
-        public bool Primary { get; set; }
-    }
+    public sealed record Target(int? Window, string? Folder, List<string> Files);
 
     /// <summary>
     /// <paramref name="windows"/> holds the open folder of each open window (null: none), in opening order;
-    /// <paramref name="recent"/> is the index of the most recently active one (-1 when there are none).
-    /// The last target in the result is the one to bring to the front.
+    /// <paramref name="here"/> the windows on the virtual desktop shown now, most recently active first. The last
+    /// target in the result is the one to bring to the front. At start the windows of the projects are open before
+    /// this runs (AppHost.Launch).
     /// </summary>
-    public static List<Target> Route(IReadOnlyList<(string Path, bool Dir)> items, IReadOnlyList<string?> windows, int recent, bool shift)
+    public static List<Target> Route(IReadOnlyList<(string Path, bool Dir)> items, IReadOnlyList<string?> windows, IReadOnlyList<int> here, bool shift)
     {
         var targets = new List<Target>();
 
@@ -40,20 +35,10 @@ static class Router
             if (owner is null) rest.Add(path); else owner.Files.Add(path);
         }
 
-        if (windows.Count == 0)
-        {
-            // First start: Shift does not matter. The window for the remaining files (or the only
-            // window, without arguments) restores the session; otherwise the first folder window does.
-            if (rest.Count > 0 || targets.Count == 0)
-                targets.Add(new Target(null, null, rest) { Restore = true, Primary = true });
-            else
-                targets[0].Restore = targets[0].Primary = true;
-        }
-        else if (rest.Count > 0 || targets.Count == 0)
-        {
-            // Shift: a new window; otherwise the most recently active one (without files: just activate it).
-            targets.Add(shift ? new Target(null, null, rest) : new Target(recent, null, rest));
-        }
+        // The rest (or, without arguments, just a window): the most recently active window on this desktop; Shift,
+        // or no LexPen window on this desktop: a new window.
+        if (rest.Count > 0 || targets.Count == 0)
+            targets.Add(new Target(shift || here.Count == 0 ? null : here[0], null, rest));
         return targets;
     }
 

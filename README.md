@@ -12,7 +12,10 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
 - **Languages**: a language pack per language (`wwwroot\languages\<name>\language.yaml`, `bar.yaml`, icons):
   markdown, plain text, C#, JSON, YAML, PowerShell, XML, JavaScript, SQL, Delphi / Pascal, and from the UltraEdit
   word files AutoHotkey, Sybase ASA SQL, Batch, C / C++, CSS, HTML, Java, Perl, PHP, Python, Ruby, Shell,
-  VBScript and Visual Basic ship. A debug build reads them (and the themes) from the project's `wwwroot` and
+  VBScript and Visual Basic ship. A language inside a language: blocks of whole lines between marker lines (ASA's
+  JSON API block, markdown fences coloured by their pack, HTML's script / style / php), and lines you give a
+  language yourself (select them, then the language in the bottom bar); inside, the inner language's colours,
+  comments, indent and bar (over the top row), and a tinted gutter. A debug build reads them (and the themes) from the project's `wwwroot` and
   picks up a change at once. A pack gives the extensions, how the file opens, the colouring (a built-in mode, or word lists and patterns as SQL and
   Pascal), comments, the outline (procedures, classes, ...), actions and snippets and the buttons above the
   editor. The preview of a code file is coloured as the editor (not above 2 MB). The language in the bottom bar
@@ -31,7 +34,7 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   from the fallbacks in app.css. Colour names: `bg`, `bgSide`, `bgBar`, `bgBarDim`, `bgCode`, `fg`, `fgDim`, `border`, `accent`,
   `hover`, `active`, `select`, `paneActive`; code: `keyword`, `string`, `comment`, `number`, `title`, `attr`;
   alerts: `note`, `tip`, `important`, `warning`, `caution`; markers: `gitModified`, `gitAdded`, `gitUntracked`,
-  `gitDeleted`, `barChanged`, `barRemoved`; find: `findHit`, `findCurrent`, `findCurrentFg`, `findBox`; shown spaces, tabs and line ends: `whitespace`. Values:
+  `gitDeleted`, `barChanged`, `barRemoved`; find: `findHit`, `findCurrent`, `findCurrentFg`, `findBox`; shown spaces, tabs and line ends: `whitespace`; the gutter beside lines of another language: `gutterBgEmbedded`. Values:
   `#rrggbb`, `#rgb` or `rgba(r, g, b, a)`. Mistakes show in the settings window.
 - **Settings window** (Options > Settings): every setting in one searchable list with a header per group; a change
   applies at once in every LexPen window, Reset goes back to the default. Your `settings.json` in
@@ -43,8 +46,8 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   them sets their widths (double-click: half and half).
 - **Pinned tabs** (right-click a tab > Pin tab): a pin before the name. Closing it alone asks first; Close other
   tabs, Close tabs to the right, Close all tabs (tab menu, the tab bar's own menu and File menu; one pane) and closing a pane leave it
-  open. Closing the second pane or a secondary window moves pinned tabs to the main pane / primary window
-  (a setting, on by default). Kept in the session.
+  open. Closing the second pane, or a window while another window of its project stays open, moves pinned tabs to
+  the main pane / that window (a setting, on by default). Kept in the session.
 - **Read-only tabs** (right-click a tab > Read-only): the tab cannot change the file; switching it off is
   refused while another tab or window edits the file. A file with the Windows read-only attribute opens
   read-only. A padlock before the name shows it (underlined: set by you); the tooltip says why.
@@ -66,7 +69,7 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   a default you replaced is shown struck through.
 - **Language actions**: what Format does depends on the language of the file (`wwwroot\languages\<name>\language.json`).
   Markdown has the formatting; every language with comment markers has Toggle comment (Ctrl+/), Toggle block
-  comment (Ctrl+Shift+/) and Remove block comment; Ctrl+PgDn / Ctrl+PgUp go to the next / previous section
+  comment (Ctrl+Shift+/) and Remove block comment; Ctrl+PgDn / Ctrl+PgUp (or Alt+Right / Alt+Left) go to the next / previous section
   (a heading in markdown, a paragraph in plain text). Items a language does not have are greyed out.
 - **Bookmarks**: 1 to 9 and unnumbered ones, at a line and column, kept per file. Ctrl+1, S stores bookmark 1,
   Ctrl+1, 1 (or Ctrl+1, Ctrl+1) goes there, Ctrl+1, T toggles, Ctrl+1, C clears; Ctrl+K, 1 and Ctrl+Q, 1 as in
@@ -100,6 +103,8 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   The same file can be open in both panes: the first copy edits, the other shows the text live, read-only. Drag a
   tab along the tab bar to reorder it. Right-click a tab for Close, Close other tabs, Close tabs to the right;
   View > **Tab bar**: one row that scrolls, one row with a menu for the tabs out of view, or several rows.
+  The arrows button at the left of each tab bar shows the pane's file in the folder pane (opening its folder
+  when it lies outside the open one), as Visual Studio's Sync with active document.
 - **Ctrl+Tab**: through the documents in recently used order (hold Ctrl and press Tab again to go further back),
   or in tab bar order (the setting Ctrl+Tab order).
 - **Outline**: Ctrl+Shift+H shows the headings of each pane's file at its right; click one to go there (preview
@@ -110,16 +115,30 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   `^w` spaces or tabs, `^^` the `^` itself. Click a result to go there.
 - **Compare**: the button on the divider (View > Scroll both panes together) scrolls both panes together, by
   source line: preview with preview, editor with editor.
-- **One instance, more windows**: opening a file while LexPen runs adds it as a tab to the most recently used window.
-  Hold **Shift** while starting it, or pass `-n` (`--new-window`), to get a new window instead. Several paths at
-  once: every folder gets a window, files go to the window of the folder they are in. A tab can move to another
-  window (right-click a tab, or drag it out of the window). Windows other than the first one have a dimmed title
-  bar and toolbar and a number in the title. A file open in two windows can only be edited in the first one.
+- **One instance, more windows**: opening a file while LexPen runs adds it as a tab to the most recently used
+  window on the virtual desktop you are on; with no LexPen window there, a window opens there with the project
+  whose window was closed last on that desktop (or a new project). Hold **Shift**
+  while starting it, or pass `-n` (`--new-window`), to get a new window instead. Several paths at once: every
+  folder gets a window, files go to the window of the folder they are in. A tab can move to another window
+  (right-click a tab, or drag it out of the window). All windows look the same. A file open in two windows can
+  only be edited in the first one.
+- **Projects** (the Projects menu, or the project's name at the left of the bottom bar): every window belongs to a
+  project, with a number and a name you can give it; a project can have several windows. Every window keeps its
+  folder, tabs, panes, cursor, place and virtual desktop, saved continuously (a crash or reboot loses at most the
+  last second). Starting LexPen on a desktop opens the project closed last on that desktop; after a log-off,
+  shutdown or crash every window that was open comes back, on its own desktop. The menu lists
+  every project (checked: open) with its windows: open a project (all its windows) or one window, a new window in
+  a project, a new project (a new empty window), rename this project, move this window to another or a new
+  project. A window closed by hand while another window of its project stays open is forgotten; the last window of
+  a project closes the project (it stays in the menu, to open again). A project you did not name is dropped when
+  none of its windows has files left (or always, with Keep unnamed projects off); a named one stays until you
+  delete it. A new window joins the project of the last window used on its desktop, or starts a new one
+  (Options > Settings > General > Windows).
 - **File menu**: New file, Open file, Open folder, Favourites, the recently opened files and folders and the
   recently closed files (15 each, shared by all windows). An entry that no longer exists is dimmed; choosing it
   removes it.
 - **Drafts**: a new file is kept as a draft (`%LOCALAPPDATA%\LexPen\State\Drafts\editN.md`) until saved, and comes back
-  at the next start. The first window also restores its folder, tabs and panes.
+  at the next start, in its own window.
 - **Changed on disk**: an open file with unsaved changes that changes on disk gets a blue bar (Reload / Keep mine),
   a removed or renamed file a red one (Close / Save it again / Keep as draft). A file without unsaved changes
   is reloaded; when that happened out of sight, a blue banner says so until you click anywhere or press Esc.
@@ -166,7 +185,9 @@ F1 lists every key and action. The main ones of the default set:
 | Ctrl+S / Ctrl+Shift+S | Save / save as |
 | Ctrl+W / Ctrl+F4, Ctrl+Shift+T | Close tab, reopen the last closed tab |
 | Ctrl+Tab / Ctrl+Shift+Tab | Next / previous document |
-| Alt+Left / Alt+Right, mouse back / forward | Back / forward to the tab and file shown before, like a browser |
+| Alt+Up / Alt+Down | Previous / next tab, in the tab bar's order |
+| Alt+Left / Alt+Right, Ctrl+PgUp / Ctrl+PgDn | Previous / next section (paragraph, heading, procedure, ... per language) |
+| Mouse back / forward | Back / forward to the tab and file shown before, like a browser |
 | Ctrl+E | Show / hide the preview |
 | Ctrl+Shift+H, Ctrl+Shift+B, Ctrl+Shift+E | Outline, sidebar, folder pane |
 | Ctrl+F, F3 / Shift+F3, Ctrl+Shift+R, Ctrl+Shift+F | Find, next / previous (past the last match: stop, go on from the top, or go on until where the search started; a setting), replace, search in files |
@@ -252,7 +273,9 @@ PowerShell and C# modes and the search, comment and fold add-ons; loaded when th
 | Path | Contents |
 |---|---|
 | `Program.cs` | Entry point: single instance (mutex + named pipe), hands the arguments to the running instance |
-| `AppHost.cs` | Owns the windows: routing launches, primary window, edit locks, moving tabs, settings, session, clipboards, bookmarks |
+| `AppHost.cs` | Owns the windows: routing launches, projects and sessions, edit locks, moving tabs, settings, clipboards, bookmarks |
+| `ProjectStore.cs` | Projects and their windows (`projects.json`): sessions, places, desktops, the closing rules (unit tested) |
+| `VirtualDesktop.cs` | Windows' virtual desktops (IVirtualDesktopManager): a window's desktop, moving it back |
 | `Router.cs` | Which window gets which paths of a launch (pure, unit tested) |
 | `DraftStore.cs` | Drafts (`Drafts\editN.md`), written in the background |
 | `TextFile.cs` | Reading and writing files in their own encoding; the backup on save |
@@ -283,7 +306,8 @@ PowerShell and C# modes and the search, comment and fold add-ons; loaded when th
 
 `%LOCALAPPDATA%\LexPen` holds what you choose: `settings.json` (only what differs from the defaults), `keys.json`,
 `favourites.json`, `tab-colours.json`, `themes\`, `languages\`. What LexPen remembers by itself is in its `State\` subfolder: `state.json`
-(window position, recent lists), `session.json` (the first window's tabs and panes, each tab's cursor and scroll
-position, restored at the next start), `Drafts\`, `clipboards.json`,
+(recent lists, the fallback window position), `projects.json` (every project and window: tabs and panes, each
+tab's cursor and scroll position, the window's place and desktop; an older `session.json` became project 1),
+`Drafts\`, `clipboards.json`,
 `bookmarks.json` and `EBWebView\` (the browser's own data). An older layout is moved over once at start
 (DataFolder.cs). Set the environment variable `LEXPEN_DATA` to use another folder (for testing).

@@ -3,6 +3,7 @@
 name: SQL
 # Currently this pack does not contain .sql for that is themed by asa language
 extensions: [.ddl, .pks, .pkb]
+aliases: [tsql, mssql, plsql, mysql, postgresql]   # other names it is known by (a markdown fence ```tsql, an embedded block); see languages\README.md
 open: edit
 fold: indent
 caseSensitive: false

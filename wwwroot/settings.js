@@ -65,6 +65,25 @@ function control(def) {
     }
     return { box, show: () => {}, focus: box.firstChild };
   }
+  // Names to languages (languageNames): pairs in one line, "bash=tcc, cmd=batch"; kept as { bash: "tcc", ... }.
+  if (def.kind === 'names') {
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'st-names';
+    input.spellcheck = false;
+    input.placeholder = 'bash=tcc, cmd=batch';
+    input.addEventListener('change', () => {
+      const map = {};
+      for (const pair of input.value.split(',')) {
+        const [name, language] = pair.split('=').map(x => x?.trim());
+        if (name && language) map[name.toLowerCase()] = language;
+      }
+      set(def.name, map);
+    });
+    box.append(input);
+    return { box, focus: input,
+      show: v => input.value = Object.entries(v && typeof v === 'object' ? v : {}).map(([k, x]) => `${k}=${x}`).join(', ') };
+  }
   // A list: choices and sizes from the row, fonts from the host. Values keep their kind (text or number).
   const select = document.createElement('select');
   let sample = null;

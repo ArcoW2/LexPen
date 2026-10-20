@@ -1,6 +1,7 @@
 # YAML. Every part is explained in languages\_template\language.yaml.
 name: YAML
 extensions: [.yaml, .yml]
+aliases: [yml]   # other names it is known by (a markdown fence ```yml, an embedded block); see languages\README.md
 open: edit
 mode: yaml              # built in
 fold: indent

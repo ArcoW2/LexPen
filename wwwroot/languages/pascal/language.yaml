@@ -3,6 +3,7 @@
 # Every part is explained in languages\_template\language.yaml.
 name: Delphi / Pascal
 extensions: [.pas, .dpr, .dpk, .lpr, .pp, .inc]
+aliases: [delphi, objectpascal]   # other names it is known by (a markdown fence ```delphi, an embedded block); see languages\README.md
 open: edit
 fold: indent
 caseSensitive: false

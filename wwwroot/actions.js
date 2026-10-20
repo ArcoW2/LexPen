@@ -81,7 +81,9 @@ function runAction(name, params = [], ctx = {}) {
     }
     return app.run(params, ctx);
   }
-  const pane = editorPane(ctx), def = pane && langDef(pane.active.doc, name);
+  // ctx.language: an action of that language (the inner language's bar), else of the document's.
+  const pane = editorPane(ctx), def = pane && (ctx.language && packs[ctx.language]
+    ? packs[ctx.language].actions?.[name] ?? packs.plaintext?.actions?.[name] : langDef(pane.active.doc, name));
   if (!def) return inTextField(ctx) ? PASS : undefined;   // no editor, or not in this language: nothing happens
   return runLanguage(pane, def, params, ctx);
 }
@@ -111,10 +113,19 @@ appAction('pinTab', { title: 'Pin tab', hint: 'Closing it asks first; closing se
 appAction('readOnly', { title: 'Read-only', hint: 'This tab cannot change the file', group: 'tabs',
   enabled: () => !!activeTab(), checked: () => !!activeTab()?.readOnly || !!activeDoc()?.diskReadOnly,
   run: () => activeTab() && setReadOnly(activeTab(), !activeTab().readOnly) });
+appAction('projects', { title: 'Projects...', hint: 'Every project and its windows: open one, a new project, rename, move this window', group: 'files',
+  run: () => openProjectMenu() });
+appAction('newProject', { title: 'New project...', hint: 'A new empty window in a new project', group: 'files',
+  run: async () => { const name = await askName('New project', ''); if (name !== null) host('project', { kind: 'new', name }); } });
+appAction('renameProject', { title: 'Rename this project...', hint: 'The name of this window\'s project', group: 'files', run: () => renameProject() });
+appAction('moveWindowToProject', { title: 'Move this window to a project...', hint: 'Another project, or a new one', group: 'files',
+  run: () => openProjectMenu('move') });
 appAction('closeWindow', { title: 'Close window', hint: 'Asks about unsaved changes', group: 'files', run: () => host('exit') });
 
 appAction('nextDocument', { title: 'Next document', hint: 'Through the tabs of the window', group: 'tabs', run: () => nextDocument(1) });
 appAction('previousDocument', { title: 'Previous document', hint: 'Through the tabs of the window', group: 'tabs', run: () => nextDocument(-1) });
+appAction('nextTab', { title: 'Next tab', hint: 'The tab to the right in this pane, in tab bar order', group: 'tabs', run: () => cycleTab(1) });
+appAction('previousTab', { title: 'Previous tab', hint: 'The tab to the left in this pane, in tab bar order', group: 'tabs', run: () => cycleTab(-1) });
 appAction('back', { title: 'Back', hint: 'To the tab and file shown before, like a browser (also the mouse back button)', group: 'tabs', run: () => commands.back() });
 appAction('forward', { title: 'Forward', hint: 'Again forward (also the mouse forward button)', group: 'tabs', run: () => commands.forward() });
 
@@ -258,7 +269,7 @@ appAction('findShared', { title: 'One search for both panes', hint: 'Off: each p
   checked: () => setting('findShared'), run: () => commands.findShared() });
 appAction('lineBreaks', { title: 'Single line break starts a new line', hint: 'Off: a single line break joins the lines, as in GitHub files', group: 'settings',
   checked: () => setting('lineBreaks'), run: () => commands.lineBreaks() });
-appAction('movePinned', { title: 'Move pinned tabs when closing a pane or window', hint: 'To the main pane / the primary window; off, they keep the pane open or close with the window', group: 'settings',
+appAction('movePinned', { title: 'Move pinned tabs when closing a pane or window', hint: 'To the main pane / another open window of the same project; off, they keep the pane open or close with the window', group: 'settings',
   checked: () => setting('movePinned'), run: () => setSetting('movePinned', !setting('movePinned')) });
 // Fonts: with a font name or a size in points (''/0: the default); without one (F1) the list opens.
 for (const [name, title, hint] of [
@@ -278,6 +289,13 @@ for (const [name, title, hint] of [
 // from the action of the same name where there is one. Sent to the host at start (settingDefs).
 const SETTING_GROUPS = ['General', 'Editor', 'Preview', 'Files', 'Tabs', 'Find', 'App', 'Keys'];
 const SETTING_ROWS = [
+  { name: 'languageNames', group: 'General', sub: 'Languages', kind: 'names', title: 'Names of languages',
+    hint: 'A name after a markdown fence (```bash) or in a block, and the language it is: bash=tcc, cmd=batch. Before the languages\' own names and aliases' },
+  { name: 'newWindowProject', group: 'General', sub: 'Windows', kind: 'choice', title: 'A new window',
+    hint: 'Its project: the one of the last window used on this desktop, or always a new one (Projects menu)',
+    options: () => [['same', 'Joins the project of the last window on this desktop'], ['new', 'Starts a new project']] },
+  { name: 'keepUnnamedProjects', group: 'General', sub: 'Windows', kind: 'toggle', title: 'Keep unnamed projects',
+    hint: 'A project you did not name, with files, when its last window closes: kept as "Project n", or dropped. Without files it is always dropped' },
   { name: 'followWindows', group: 'General', sub: 'Theme', kind: 'toggle', title: 'Follow Windows',
     hint: 'Light or dark as Windows is (Settings > Personalization > Colors), at once; Day / night switches until Windows changes' },
   { name: 'themeLight', group: 'General', sub: 'Theme', kind: 'choice', title: 'Theme for light mode',

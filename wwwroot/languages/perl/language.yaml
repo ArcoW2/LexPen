@@ -2,6 +2,7 @@
 # languages\_template\language.yaml; how a pack is made from a word file: languages\README.md.
 name: Perl
 extensions: [.cgi, .pl, .pm, .plx]
+aliases: [pl]   # other names it is known by (a markdown fence ```pl, an embedded block); see languages\README.md
 firstLine: '^#!.*\bperl\b'   # UltraEdit: LanguageMarker
 open: edit
 fold: brace

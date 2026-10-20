@@ -1,6 +1,7 @@
 # PowerShell. Every part is explained in languages\_template\language.yaml.
 name: PowerShell
 extensions: [.ps1, .psm1, .psd1]
+aliases: [ps, ps1, pwsh]   # other names it is known by (a markdown fence ```ps, an embedded block); see languages\README.md
 open: edit
 mode: powershell        # built in
 fold: brace

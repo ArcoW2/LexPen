@@ -2,6 +2,7 @@
 # languages\_template\language.yaml; how a pack is made from a word file: languages\README.md.
 name: Shell
 extensions: [.csh, .ksh, .sh]
+aliases: [bash, sh, zsh, ksh]   # other names it is known by (a markdown fence ```bash, an embedded block); see languages\README.md
 firstLine: '^#!.*\b(?:ba|k|c)?sh\b'   # UltraEdit: LanguageMarker
 open: edit
 fold: brace                       # UltraEdit also folds do/done, if/fi, case/esac: the editor folds braces only

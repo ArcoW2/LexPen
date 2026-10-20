@@ -31,12 +31,30 @@ sealed class MainForm : Form
         [".bmp"] = "image/bmp", [".ico"] = "image/x-icon", [".avif"] = "image/avif",
     };
 
-    /// <summary>What a new window opens with. <see cref="Restore"/>: the saved session and the drafts.</summary>
-    public sealed record Start(string? Folder, List<string> Files, bool Restore);
+    /// <summary>What a window opens with. <see cref="Key"/>: its window in a project (ProjectStore), with its session;
+    /// <see cref="ToDesktop"/>: back on the virtual desktop it was on (at start).</summary>
+    public sealed record Start(string? Folder, List<string> Files, int Key = 0, bool ToDesktop = false);
 
     readonly AppHost app;
-    readonly Start start;
+    Start start;
     public int Id { get; }
+    /// <summary>The window's key in its project (ProjectStore).</summary>
+    public int Key => start.Key;
+
+    /// <summary>Becomes another window of a project, before the page has asked what to open (AppHost.WindowShown).</summary>
+    public void Rekey(int key) => start = start with { Key = key };
+
+    /// <summary>A window opened at start: back on the desktop it was on (AppHost.WindowShown).</summary>
+    public bool ToDesktop => start.ToDesktop;
+
+    /// <summary>Set by AppHost: a new window that may become the project closed last on its desktop.</summary>
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+    public bool ReopenHere { get; set; }
+
+    /// <summary>Done when the window is on its desktop and knows its project (AppHost.WindowShown); the page loads
+    /// after that, so it asks for the right session.</summary>
+    public TaskCompletionSource Settled { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
     /// <summary>The open folder; used to route launches to the window that shows it.</summary>
     public string? Root { get; private set; }
 
@@ -117,7 +135,7 @@ sealed class MainForm : Form
 
     bool Primary => app.IsPrimary(this);
 
-    /// <summary>Primary or not, and the [n] in the title: secondary windows look dimmed.</summary>
+    /// <summary>The [n] in the page, and the project in the title. All windows look the same.</summary>
     public void UpdateRole()
     {
         ApplyTheme();
@@ -128,7 +146,7 @@ sealed class MainForm : Form
     void UpdateTitle()
     {
         var title = web.CoreWebView2?.DocumentTitle is { Length: > 0 } t ? t : "LexPen";
-        Text = Primary ? title : $"{title} [{app.IndexOf(this)}]";
+        Text = app.ProjectInfo(this)["display"]?.GetValue<string>() is { Length: > 0 } project ? $"{title} - {project}" : title;
     }
 
     // Only what the tree shows matters: everything outside hidden folders and node_modules.
@@ -227,8 +245,7 @@ sealed class MainForm : Form
         UpdateFirstPaint();
         var on = dark ? 1 : 0;
         DwmSetWindowAttribute(Handle, 20 /* DWMWA_USE_IMMERSIVE_DARK_MODE */, ref on, sizeof(int));
-        var color = Primary ? unchecked((int)0xFFFFFFFF) /* DWMWA_COLOR_DEFAULT */
-            : dark ? 0x00181514 : 0x00D0CCC8;   // COLORREF is 0x00BBGGRR
+        var color = unchecked((int)0xFFFFFFFF);   // DWMWA_COLOR_DEFAULT: every window the same
         DwmSetWindowAttribute(Handle, 35 /* DWMWA_CAPTION_COLOR */, ref color, sizeof(int));
         DwmSetWindowAttribute(Handle, 34 /* DWMWA_BORDER_COLOR */, ref color, sizeof(int));
     }
@@ -303,6 +320,7 @@ sealed class MainForm : Form
             OpenExternal(n.Uri);
         };
 
+        await Settled.Task;   // on its desktop, in its project (AppHost.WindowShown)
         firstPaint = await core.AddScriptToExecuteOnDocumentCreatedAsync(firstPaintScript = app.FirstPaintScript());
         core.Navigate($"{AppUrl}index.html");
     }
@@ -378,11 +396,11 @@ sealed class MainForm : Form
                     ["folder"] = start.Folder,
                     ["files"] = new JsonArray(start.Files.Select(f => (JsonNode?)f).ToArray()),
                 };
-                if (start.Restore)
-                {
-                    init["restore"] = AppHost.LoadSession();
-                    init["drafts"] = app.Drafts.LoadAll();
-                }
+                // Its session (a window of a project opened again) and its drafts.
+                var (session, drafts) = app.StartOf(this);
+                if (session is not null) init["restore"] = session;
+                if (drafts.Count > 0) init["drafts"] = drafts;
+                init["project"] = app.ProjectInfo(this);
                 return init;
             }
 
@@ -511,7 +529,8 @@ sealed class MainForm : Form
                 // Read-only on disk: the tab opens read-only (it cannot be saved anyway).
                 var readOnly = (File.GetAttributes(Arg("path")) & FileAttributes.ReadOnly) != 0;
                 // A language chosen for this file before (the selector), else null: by extension.
-                return new JsonObject { ["text"] = text, ["encoding"] = encoding, ["readOnly"] = readOnly, ["language"] = app.FileLanguage(Arg("path")) };
+                return new JsonObject { ["text"] = text, ["encoding"] = encoding, ["readOnly"] = readOnly, ["language"] = app.FileLanguage(Arg("path")),
+                    ["ranges"] = app.FileRanges(Arg("path")) };
             }
 
             // In the encoding the file was read in; `backup`: the old file becomes name.bak.
@@ -570,6 +589,10 @@ sealed class MainForm : Form
             case "languages":
                 return app.Languages.DeepClone();
 
+            case "setFileRanges":
+                app.SetFileRanges(Arg("path"), msg["ranges"] as JsonArray);
+                return null;
+
             case "setFileLanguage":
                 app.SetFileLanguage(Arg("path"), msg["language"]?.GetValue<string>());
                 return null;
@@ -606,7 +629,14 @@ sealed class MainForm : Form
                 return null;
 
             case "session":
-                if (Primary) app.SaveSession(msg["data"]!);
+                app.SaveSession(this, msg["data"]!);
+                return null;
+
+            case "projects":
+                return app.ProjectList(this);
+
+            case "project":
+                app.ProjectCommand(this, Arg("kind"), msg);
                 return null;
 
             case "lock":
@@ -851,6 +881,15 @@ sealed class MainForm : Form
         catch (Win32Exception) { return null; }   // git not installed
     }
 
+    // Its place and desktop are kept with the window's session (AppHost.WindowPlaceChanged), once it is shown.
+    protected override void OnShown(EventArgs e)
+    {
+        base.OnShown(e);
+        Move += (_, _) => app.WindowPlaceChanged(this);
+        Resize += (_, _) => app.WindowPlaceChanged(this);
+        app.WindowShown(this);
+    }
+
     protected override void OnFormClosing(FormClosingEventArgs e)
     {
         // The page decides first: it may ask to save, and answers with "closeNow".
@@ -865,7 +904,8 @@ sealed class MainForm : Form
                 return;
             }
             closeAsked = true;
-            Post(new JsonObject { ["event"] = "closeRequest" });
+            // Pinned tabs go to another open window of this project, if there is one (the page decides, per setting).
+            Post(new JsonObject { ["event"] = "closeRequest", ["peer"] = app.PeerOf(this)?.Id });
             return;
         }
 

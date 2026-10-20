@@ -113,6 +113,34 @@ sealed class AppHost : ApplicationContext
         File.WriteAllText(FileLanguagesPath, JsonSerializer.Serialize(fileLanguages));
     }
 
+    // Lines you gave a language (the language list with a selection; PLAN-embedded-languages.md 3.1.2): kept by
+    // path, State\file-ranges.json: per file a list of { language, from, to, first, last } (line numbers and the
+    // text of the first and last line, to find them again after the file changed elsewhere).
+    static string FileRangesPath => Path.Combine(DataFolder.StateDir(DataDir), "file-ranges.json");
+    JsonObject? fileRanges;
+
+    JsonObject FileRangesAll()
+    {
+        if (fileRanges is not null) return fileRanges;
+        try { fileRanges = JsonNode.Parse(File.ReadAllText(FileRangesPath)) as JsonObject; }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException) { }
+        return fileRanges ??= new JsonObject();
+    }
+
+    public JsonNode? FileRanges(string path) =>
+        FileRangesAll().FirstOrDefault(p => string.Equals(p.Key, path, StringComparison.OrdinalIgnoreCase)).Value?.DeepClone();
+
+    /// <summary>Null or an empty list: none for this file.</summary>
+    public void SetFileRanges(string path, JsonArray? ranges)
+    {
+        var all = FileRangesAll();
+        foreach (var key in all.Select(p => p.Key).Where(k => string.Equals(k, path, StringComparison.OrdinalIgnoreCase)).ToList())
+            all.Remove(key);
+        if (ranges is { Count: > 0 }) all[path] = ranges.DeepClone();
+        Directory.CreateDirectory(Path.GetDirectoryName(FileRangesPath)!);
+        File.WriteAllText(FileRangesPath, all.ToJsonString());
+    }
+
     /// <summary>File dialog filters from the packs: markdown first, then each language, then all files.</summary>
     public string FileFilter()
     {
@@ -327,16 +355,44 @@ sealed class AppHost : ApplicationContext
 
     // ---------- Launch ----------
 
-    /// <summary>Opens or activates windows for the paths of one launch.</summary>
+    bool restored;
+
+    /// <summary>Opens or activates windows for the paths of one launch. The first launch opens the windows of the
+    /// projects first (ProjectStore.StartWindows), each on its own virtual desktop.</summary>
     public void Launch(IReadOnlyList<string> paths, bool shift)
     {
-        var items = paths.Select(p => (Path: p, Dir: Directory.Exists(p))).ToList();
-        var targets = Router.Route(items, windows.Select(w => w.Root).ToList(),
-            recent.Count > 0 ? windows.IndexOf(recent[0]) : -1, shift);
+        if (!restored)
+        {
+            restored = true;
+            foreach (var (_, entry) in projects.StartWindows(KeepUnnamed))
+                Open(new MainForm.Start(null, [], entry.Key, ToDesktop: true));
+            SaveProjects();
+            // Only once they are on their own desktops (WindowShown) does "a window on this desktop" mean anything.
+            // Not async itself: an async method puts the thread's synchronization context back as it found it, which
+            // here (before the first window) is not WinForms' own; every await after that would leave the UI thread.
+            if (windows.Count > 0)
+            {
+                RouteWhenSettled(paths, shift);
+                return;
+            }
+        }
+        Route(paths, shift);
+    }
 
-        // The primary window first, so it gets the saved bounds and the others cascade from it.
+    async void RouteWhenSettled(IReadOnlyList<string> paths, bool shift)
+    {
+        await Task.WhenAny(Task.WhenAll(windows.Select(w => w.Settled.Task)), Task.Delay(5000));
+        Route(paths, shift);
+    }
+
+    void Route(IReadOnlyList<string> paths, bool shift)
+    {
+        var items = paths.Select(p => (Path: p, Dir: Directory.Exists(p))).ToList();
+        var here = recent.Where(w => VirtualDesktop.OnCurrentDesktop(w.Handle)).Select(w => windows.IndexOf(w)).ToList();
+        var targets = Router.Route(items, windows.Select(w => w.Root).ToList(), here, shift);
+
         MainForm? front = null;
-        foreach (var t in targets.OrderByDescending(t => t.Primary))
+        foreach (var t in targets)
         {
             MainForm w;
             if (t.Window is int i)
@@ -344,24 +400,35 @@ sealed class AppHost : ApplicationContext
                 w = windows[i];
                 if (t.Files.Count > 0) w.Post(new JsonObject { ["event"] = "open", ["files"] = ToArray(t.Files) });
             }
-            else w = Open(new MainForm.Start(t.Folder, t.Files, t.Restore), t.Primary);
+            // A new window for files (not Shift, not a folder): on a desktop whose last window was closed, that
+            // project comes back instead of a new one.
+            else w = Open(new MainForm.Start(t.Folder, t.Files), reopenHere: !shift && t.Folder is null);
             if (ReferenceEquals(t, targets[^1])) front = w;
         }
         BringToFront(front!);
     }
 
-    /// <summary>A new window. <paramref name="at"/>: screen position for a tab dragged out of a window.</summary>
-    public MainForm Open(MainForm.Start start, bool makePrimary, Point? at = null)
+    /// <summary>
+    /// A window. <paramref name="start"/>.Key: a window of a project to open again (its session, place and, with
+    /// ToDesktop, its desktop); 0: a new window, in <paramref name="project"/> or per the setting newWindowProject.
+    /// <paramref name="at"/>: screen position for a tab dragged out of a window.
+    /// </summary>
+    public MainForm Open(MainForm.Start start, Point? at = null, ProjectStore.Project? project = null, bool reopenHere = false)
     {
-        var w = new MainForm(this, ++lastId, start);
-        if (windows.Count == 0)
+        var entry = start.Key != 0 ? projects.WindowOf(start.Key) : null;
+        if (entry is null)
         {
-            var saved = new Rectangle(State.X, State.Y, State.Width, State.Height);
-            if (saved.Width > 200 && Screen.AllScreens.Any(s => s.WorkingArea.IntersectsWith(saved)))
-                w.Place(saved, State.Maximized);
-            else if (State.Maximized)
-                w.Place(null, true);
+            entry = projects.AddWindow(project ?? ProjectForNewWindow());
+            start = start with { Key = entry.Key };
         }
+        var w = new MainForm(this, ++lastId, start);
+        var saved = entry.Bounds is [var x, var y, var width, var height] ? new Rectangle(x, y, width, height)
+            : windows.Count == 0 ? new Rectangle(State.X, State.Y, State.Width, State.Height) : Rectangle.Empty;
+        var maximized = entry.Bounds is not null ? entry.Maximized : windows.Count == 0 && State.Maximized;
+        if (saved.Width > 200 && at is null && Screen.AllScreens.Any(s => s.WorkingArea.IntersectsWith(saved)))
+            w.Place(saved, maximized);
+        else if (windows.Count == 0)
+            w.Place(null, maximized);
         else
         {
             // Cascade from the active window, or put the window where the tab was dropped.
@@ -380,12 +447,67 @@ sealed class AppHost : ApplicationContext
         {
             recent.Remove(w);
             recent.Insert(0, w);
+            projects.Touch(w.Key);
+            WindowPlaceChanged(w);
         };
-        w.FormClosed += (_, _) => Closed(w);
-        if (makePrimary || primary is null) SetPrimary(w);
+        w.FormClosed += (_, e) => Closed(w, e.CloseReason);
+        if (primary is null) SetPrimary(w);
         else w.UpdateRole();
         w.Show();
+        w.ReopenHere = reopenHere;   // decided once it is shown (WindowShown)
+        entry.Open = true;
+        projects.Touch(entry.Key);
+        WindowPlaceChanged(w);
         return w;
+    }
+
+    /// <summary>
+    /// A window is shown: now Windows knows it, so it can go to its own desktop (a window opened at start) and tell
+    /// which desktop it is on. Windows takes a moment to know a new window: tried for up to about 3 seconds. A new
+    /// window on a desktop whose last LexPen window was closed becomes that project's window (the most recently
+    /// closed one there, at its place) and the project's other closed windows open too. Then the page loads.
+    /// </summary>
+    public async void WindowShown(MainForm w)
+    {
+        string? desktop = null;
+        var target = w.ToDesktop ? projects.WindowOf(w.Key)?.Desktop : null;
+        if (VirtualDesktop.Available && (target is not null || w.ReopenHere))
+            for (var i = 0; i < 30; i++)
+            {
+                var moved = target is null || VirtualDesktop.MoveTo(w.Handle, target);
+                desktop = VirtualDesktop.DesktopOf(w.Handle);
+                // Known to Windows and moved; or known but the desktop is gone (removed, another PC): it stays here.
+                if (desktop is not null && (moved || i >= 3)) break;
+                await Task.Delay(100);
+            }
+        if (w.ReopenHere && desktop is not null && projects.LastClosedOn(desktop) is { } closed
+            && closed.Windows.Where(o => o.Desktop == desktop).MaxBy(o => o.Used) is { } reuse)
+        {
+            projects.Forget(w.Key, KeepUnnamed);
+            w.Rekey(reuse.Key);
+            reuse.Open = true;
+            if (reuse.Bounds is [var x, var y, var width, var height]
+                && Screen.AllScreens.Any(s => s.WorkingArea.IntersectsWith(new Rectangle(x, y, width, height))))
+            {
+                w.Bounds = new Rectangle(x, y, width, height);
+                if (reuse.Maximized) w.WindowState = FormWindowState.Maximized;
+            }
+            foreach (var other in closed.Windows.Where(o => o != reuse && !o.Open).ToList())
+                Open(new MainForm.Start(null, [], other.Key));
+            w.UpdateRole();
+        }
+        WindowPlaceChanged(w);
+        w.Settled.TrySetResult();
+    }
+
+    // The project of a new window: per the setting, the project of the last window used on this desktop, or a new one.
+    ProjectStore.Project ProjectForNewWindow()
+    {
+        if (SettingText("newWindowProject") != "new"
+            && recent.FirstOrDefault(w => VirtualDesktop.OnCurrentDesktop(w.Handle)) is { } last
+            && projects.ProjectOf(last.Key) is { } p)
+            return p;
+        return projects.NewProject("");
     }
 
     void SetPrimary(MainForm w)
@@ -396,12 +518,17 @@ sealed class AppHost : ApplicationContext
         w.UpdateRole();
     }
 
-    void Closed(MainForm w)
+    void Closed(MainForm w, CloseReason reason)
     {
         windows.Remove(w);
         recent.Remove(w);
         foreach (var path in locks.Where(l => l.Value.Contains(w)).Select(l => l.Key).ToList())
             Unlock(path, w);
+        // Closed by hand, the last window too: the project's rules (ProjectStore.CloseByHand); the project comes back
+        // when LexPen starts on that desktop (LastClosedOn). Windows closing it (log-off, shutdown, Task Manager) or a
+        // crash: the windows stay open in their projects and all come back at the next start, each on its desktop.
+        if (reason is not (CloseReason.WindowsShutDown or CloseReason.TaskManagerClosing))
+            projects.CloseByHand(w.Key, KeepUnnamed);
         // The most recently active window takes over as primary.
         if (primary == w)
         {
@@ -409,6 +536,7 @@ sealed class AppHost : ApplicationContext
             if (recent.Count > 0) SetPrimary(recent[0]);
         }
         foreach (var other in windows) other.UpdateRole();   // the [n] numbers shift
+        SaveProjects();
         if (windows.Count == 0)
         {
             settingsWindow?.Close();
@@ -513,7 +641,7 @@ sealed class AppHost : ApplicationContext
         else if (target.GetValue<string>() == "next" && windows.Count > 1)
             to = windows[(windows.IndexOf(from) + 1) % windows.Count];
         else
-            to = Open(new MainForm.Start(null, [], false), false, target.GetValue<string>() == "new" ? at : null);
+            to = Open(new MainForm.Start(null, []), target.GetValue<string>() == "new" ? at : null);
 
         if (transfer is not null) TransferLock(transfer, from, to);
         to.Post(new JsonObject { ["event"] = "adoptTab", ["tab"] = tab.DeepClone(), ["pane"] = pane });
@@ -742,16 +870,179 @@ sealed class AppHost : ApplicationContext
         catch { return []; }
     }
 
-    public void SaveSession(JsonNode data)
+    // ---------- Projects (ProjectStore): every window's session, place and desktop ----------
+
+    static string ProjectsPath => DataFolder.StatePath(DataDir, ProjectStore.FileName);
+    readonly ProjectStore projects = LoadProjects();
+    bool KeepUnnamed => settings["values"]?["keepUnnamedProjects"]?.GetValueKind() != JsonValueKind.False;
+
+    // The first start after projects came: the old session.json (the primary window's) becomes project 1.
+    static ProjectStore LoadProjects()
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(SessionPath)!);
-        File.WriteAllText(SessionPath, data.ToJsonString());
+        if (File.Exists(ProjectsPath)) return ProjectStore.Load(ProjectsPath);
+        JsonNode? old = null;
+        try { old = JsonNode.Parse(File.ReadAllText(SessionPath)); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException) { }
+        var state = LoadState();
+        return ProjectStore.Load(ProjectsPath, old, state.Width > 200 ? [state.X, state.Y, state.Width, state.Height] : null, state.Maximized);
     }
 
-    public static JsonNode? LoadSession()
+    // Saved shortly after a change: changes close together (a window moved, several sessions) are one write.
+    readonly System.Windows.Forms.Timer projectsTimer = new() { Interval = 400 };
+    bool projectsTimerHooked;
+
+    void SaveProjectsSoon()
     {
-        try { return JsonNode.Parse(File.ReadAllText(SessionPath)); }
-        catch { return null; }
+        if (!projectsTimerHooked)
+        {
+            projectsTimerHooked = true;
+            projectsTimer.Tick += (_, _) => SaveProjects();
+        }
+        projectsTimer.Stop();
+        projectsTimer.Start();
+    }
+
+    void SaveProjects()
+    {
+        projectsTimer.Stop();
+        try { projects.Save(); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }   // the next change tries again
+    }
+
+    /// <summary>A window's session from the page (a second after a change, and when it closes): written at once, the
+    /// page has already waited.</summary>
+    public void SaveSession(MainForm w, JsonNode data)
+    {
+        if (projects.WindowOf(w.Key) is not { } entry) return;
+        entry.Session = data.DeepClone();
+        SaveProjects();
+    }
+
+    /// <summary>The window moved, changed size or desktop: kept with its session.</summary>
+    public void WindowPlaceChanged(MainForm w)
+    {
+        if (projects.WindowOf(w.Key) is not { } entry || w.WindowState == FormWindowState.Minimized) return;
+        var b = w.WindowState == FormWindowState.Normal ? w.Bounds : w.RestoreBounds;
+        int[] bounds = [b.X, b.Y, b.Width, b.Height];
+        var maximized = w.WindowState == FormWindowState.Maximized;
+        var desktop = VirtualDesktop.DesktopOf(w.Handle) ?? entry.Desktop;
+        if (entry.Bounds is not null && entry.Bounds.SequenceEqual(bounds) && entry.Maximized == maximized && entry.Desktop == desktop) return;
+        (entry.Bounds, entry.Maximized, entry.Desktop) = (bounds, maximized, desktop);
+        SaveProjectsSoon();
+    }
+
+    // A window moved to another desktop by hand (Win+Tab) gives no event: looked at now and then.
+    readonly System.Windows.Forms.Timer desktopTimer = new() { Interval = 5000 };
+    bool desktopTimerOn;
+
+    void WatchDesktops()
+    {
+        if (desktopTimerOn) return;
+        desktopTimerOn = true;
+        desktopTimer.Tick += (_, _) => { foreach (var w in windows) WindowPlaceChanged(w); };
+        desktopTimer.Start();
+    }
+
+    // The first window to start in this run also gets the drafts that no window of any project names (left by a
+    // crash before they were in a session, or by a deleted project).
+    bool orphanDraftsGiven;
+
+    /// <summary>What a window opens with: its session and its drafts (see ProjectStore.DraftsOf).</summary>
+    public (JsonNode? Session, JsonArray Drafts) StartOf(MainForm w)
+    {
+        WatchDesktops();
+        var entry = projects.WindowOf(w.Key);
+        var mine = entry is null ? [] : ProjectStore.DraftsOf(entry).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var named = orphanDraftsGiven ? null : projects.AllDrafts();
+        orphanDraftsGiven = true;
+        var drafts = new JsonArray(Drafts.LoadAll()
+            .Where(d => d!["id"]!.GetValue<string>() is var id && (mine.Contains(id) || named is not null && !named.Contains(id)))
+            .Select(d => d!.DeepClone()).ToArray());
+        return (entry?.Session?.DeepClone(), drafts);
+    }
+
+    /// <summary>The window's project as the page and the title show it.</summary>
+    public JsonObject ProjectInfo(MainForm w)
+    {
+        var p = projects.ProjectOf(w.Key);
+        return new JsonObject { ["id"] = p?.Id, ["name"] = p?.Name ?? "", ["display"] = p is null ? "" : ProjectStore.Display(p) };
+    }
+
+    // A project renamed, or a window moved to another project: titles and bottom bars follow.
+    void ProjectsChanged()
+    {
+        foreach (var w in windows)
+        {
+            w.UpdateRole();
+            w.Post(new JsonObject { ["event"] = "project", ["project"] = ProjectInfo(w) });
+        }
+        SaveProjectsSoon();
+    }
+
+    /// <summary>Another open window of the same project (the most recently active): where pinned tabs go when this
+    /// one closes. Null when there is none.</summary>
+    public MainForm? PeerOf(MainForm w)
+    {
+        var p = projects.ProjectOf(w.Key);
+        return recent.FirstOrDefault(o => o != w && projects.ProjectOf(o.Key) == p);
+    }
+
+    /// <summary>The Projects menu: every project (newest used first, this window's first), its windows, which are open.</summary>
+    public JsonArray ProjectList(MainForm from)
+    {
+        var mine = projects.ProjectOf(from.Key);
+        var open = windows.ToDictionary(w => w.Key);
+        return new JsonArray(projects.Projects.OrderByDescending(p => p == mine).ThenByDescending(p => p.Used).Select(p => (JsonNode?)new JsonObject
+        {
+            ["id"] = p.Id, ["name"] = p.Name, ["display"] = ProjectStore.Display(p), ["mine"] = p == mine,
+            ["open"] = p.Windows.Any(w => open.ContainsKey(w.Key)),
+            ["windows"] = new JsonArray(p.Windows.Select(w => (JsonNode?)new JsonObject
+            {
+                ["key"] = w.Key, ["open"] = open.ContainsKey(w.Key), ["mine"] = w.Key == from.Key,
+                ["folder"] = (open.TryGetValue(w.Key, out var ow) ? ow.Root : null) ?? w.Session?["root"]?.GetValue<string>(),
+                ["tabs"] = (w.Session?["panes"]?.AsArray() ?? []).Sum(pane => pane?["tabs"]?.AsArray().Count ?? 0),
+            }).ToArray()),
+        }).ToArray());
+    }
+
+    /// <summary>The Projects menu's commands. Windows opened from it come on the desktop you are on.</summary>
+    public void ProjectCommand(MainForm from, string kind, JsonNode? msg)
+    {
+        int Id() => msg!["project"]!.GetValue<int>();   // "id" is the call's own number
+        string Name() => msg?["name"]?.GetValue<string>() ?? "";
+        switch (kind)
+        {
+            case "open":   // all its windows: the closed ones open, the open ones come to the front
+                if (projects.Get(Id()) is not { } p) return;
+                MainForm? last = null;
+                foreach (var entry in p.Windows.ToList())
+                    last = windows.FirstOrDefault(w => w.Key == entry.Key) ?? Open(new MainForm.Start(null, [], entry.Key));
+                if (last is null) last = Open(new MainForm.Start(null, []), project: p);   // a named project without windows
+                BringToFront(last);
+                break;
+            case "window":
+                var key = msg!["key"]!.GetValue<int>();
+                BringToFront(windows.FirstOrDefault(w => w.Key == key)
+                    ?? (projects.WindowOf(key) is not null ? Open(new MainForm.Start(null, [], key)) : from));
+                break;
+            case "newWindow":
+                if (projects.Get(Id()) is { } target) BringToFront(Open(new MainForm.Start(null, []), project: target));
+                break;
+            case "new":
+                BringToFront(Open(new MainForm.Start(null, []), project: projects.NewProject(Name())));
+                break;
+            case "rename":
+                if (projects.ProjectOf(from.Key) is { } mine) projects.Rename(mine, Name());
+                break;
+            case "move":
+                var to = msg?["project"] is null ? projects.NewProject(Name()) : projects.Get(Id());
+                if (to is not null) projects.MoveWindow(from.Key, to, KeepUnnamed);
+                break;
+            case "delete":
+                if (projects.Get(Id()) is { } gone) projects.Delete(gone);
+                break;
+        }
+        ProjectsChanged();
     }
 
     static JsonArray ToArray(IEnumerable<string> items) => new(items.Select(i => (JsonNode?)i).ToArray());

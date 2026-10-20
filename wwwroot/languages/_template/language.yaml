@@ -64,6 +64,14 @@ tokens:
   keyword: { byTheme: { dark: { color: '#ff9e64' }, light: { color: '#b45309' } } }
   variable-2: { byTheme: { dark: { color: '#7dcfff', italic: true } } }
 
+# ---------- Other names, and blocks of another language ----------
+# aliases: names this language is also known by (a markdown fence ```tcc, a block's language); see README.md.
+aliases: [4nt, take-command]
+# embedded: blocks of another language inside this one, whole lines between a start and an end line:
+#   { open: 'text', close: 'text', language: json } or { openRegex: '...', closeRegex: '...', languageGroup: 1 }
+# embedded:
+#   - { open: 'rem ---json', close: 'rem ---end', language: json }
+
 # ---------- Outline ----------
 # Patterns that find the entries of the outline (the Outline button): name is the group with the name,
 # level 1 or 2 (or a group whose length is the level), flags i for any case.

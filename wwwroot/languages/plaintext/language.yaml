@@ -3,6 +3,7 @@
 # markers (its own "comments", or those of its editor mode); plain text has none, so there they are greyed out.
 # Every part is explained in languages\_template\language.yaml.
 name: Plain text
+aliases: [text, txt, plain]   # other names it is known by (a markdown fence ```text, an embedded block); see languages\README.md
 open: edit
 fold: none
 actions:

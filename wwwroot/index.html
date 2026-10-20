@@ -75,6 +75,7 @@
 
 <!-- Bottom bar: the active pane's file (see updateStatus). -->
 <footer class="mm-status">
+  <button class="mm-st-project" title="This window's project (click: the Projects menu)"></button>
   <span class="mm-st-panes"><span class="mm-st-pane" data-pane="0"></span><span class="mm-st-pane" data-pane="1"></span></span>
   <span class="mm-st-chord"></span>
   <span class="mm-st-fill"></span>
@@ -101,7 +102,7 @@
   <button data-cmd="tabNextWindow">Move to next window</button>
   <button data-cmd="tabNewWindow">Open in new window</button>
   <hr>
-  <button data-cmd="tabCopyPath">Copy path</button>
+  <button data-cmd="tabCopyPath">Copy full name to clipboard</button>
   <button data-cmd="tabShowInTree" class="mm-file-item">Show in folder pane</button>
   <button data-cmd="tabFavourite" class="mm-fav-item">Add to favourites</button>
   <button data-cmd="tabPin" data-key-of="pinTab">Pin tab</button>
@@ -155,6 +156,15 @@
   <input class="mm-pal-search" type="text" spellcheck="false" placeholder="Search a command, key or name; Enter runs it">
   <div class="mm-pal-list"></div>
   <p class="mm-pal-foot"></p>
+</dialog>
+
+<!-- A name (a project): askName in app.js. -->
+<dialog class="mm-about mm-name-dialog">
+  <form method="dialog">
+    <label class="mm-name-label" for="mm-name-input"></label>
+    <input id="mm-name-input" class="mm-name-input" type="text" spellcheck="false" placeholder="Empty: a number">
+    <div class="mm-name-buttons"><button value="ok">OK</button><button value="cancel" type="button" class="mm-name-cancel">Cancel</button></div>
+  </form>
 </dialog>
 
 <dialog class="mm-about mm-about-dialog">

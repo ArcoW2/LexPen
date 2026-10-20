@@ -2,6 +2,7 @@
 # languages\_template\language.yaml; how a pack is made from a word file: languages\README.md.
 name: Visual Basic
 extensions: [.bas, .frm, .cls, .vb, .vba, .ctl, .dsr]
+aliases: [vbnet, visualbasic, vba]   # other names it is known by (a markdown fence ```vbnet, an embedded block); see languages\README.md
 open: edit
 fold: indent
 comments: { line: "'" }

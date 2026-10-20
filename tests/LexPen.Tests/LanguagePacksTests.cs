@@ -48,6 +48,40 @@ public class LanguagePacksTests : IDisposable
     }
 
     [Fact]
+    public void EmbeddedBlocksAreCheckedAndAWrongOneLeftOut()
+    {
+        Directory.CreateDirectory(Path.Combine(dir, "mine"));
+        File.WriteAllText(Path.Combine(dir, "mine", "language.yaml"), """
+            name: Mine
+            aliases: [MyLang, ' ml ']
+            embedded:
+              - { open: '/*==[', close: ']==*/', language: json }
+              - { openRegex: '^```(\w+)', closeRegex: '^```$', languageGroup: 1 }
+              - { open: '<<' }
+              - { openRegex: '(', close: 'x', language: json }
+              - { openRegex: '^a', close: 'b', languageGroup: 3 }
+            """);
+        var all = LanguagePacks.Load(Shipped, dir);
+        var mine = all["packs"]!["mine"]!;
+        Assert.Equal(2, mine["embedded"]!.AsArray().Count);
+        Assert.Equal(["myLang".ToLowerInvariant(), "ml"], mine["aliases"]!.AsArray().Select(a => a!.GetValue<string>()));
+        var problems = Problems(all);
+        Assert.Contains(problems, p => p.Contains("needs \"close\""));
+        Assert.Contains(problems, p => p.Contains("\"openRegex\" is not a valid pattern"));
+        Assert.Contains(problems, p => p.Contains("\"languageGroup\" must be a group"));
+    }
+
+    [Fact]
+    public void NoAliasIsInTwoShippedPacksOrAnotherPacksName()
+    {
+        var packs = LanguagePacks.Load(Shipped, Path.Combine(dir, "none"))["packs"]!.AsObject();
+        var owners = packs.SelectMany(p => (p.Value!["aliases"]?.AsArray() ?? []).Select(a => (Name: a!.GetValue<string>(), Pack: p.Key))).ToList();
+        Assert.Empty(owners.GroupBy(o => o.Name).Where(g => g.Count() > 1).Select(g => g.Key));
+        var idsAndNames = packs.SelectMany(p => new[] { (Name: p.Key, Pack: p.Key), (Name: p.Value!["name"]!.GetValue<string>().ToLowerInvariant(), Pack: p.Key) });
+        Assert.Empty(owners.Where(o => idsAndNames.Any(n => n.Name == o.Name && n.Pack != o.Pack)).Select(o => $"{o.Name} ({o.Pack})"));
+    }
+
+    [Fact]
     public void ADebugBuildFindsTheProjectsWwwroot()
     {
         var bin = Path.Combine(dir, "project", "bin", "Debug", "net10.0-windows");

@@ -2,6 +2,7 @@
 # languages\_template\language.yaml; how a pack is made from a word file: languages\README.md.
 name: Ruby
 extensions: [.rb, .rbw]
+aliases: [rb]   # other names it is known by (a markdown fence ```rb, an embedded block); see languages\README.md
 firstLine: '^#!.*\bruby\b'   # UltraEdit: LanguageMarker
 open: edit
 fold: indent

@@ -144,6 +144,9 @@ const md = markdownit({
   linkify: true,
   highlight(code, lang) {
     if (lang === 'mermaid') return `<pre class="mermaid">${escapeHtml(code)}</pre>`;
+    // A language with a pack: its own colouring, as in the editor (PLAN-embedded-languages.md 3.3); else highlight.js.
+    const pack = fencePack(lang);
+    if (pack) return fenceHtml(code, pack);
     if (lang && hljs.getLanguage(lang)) return hljs.highlight(code, { language: lang, ignoreIllegals: true }).value;
     return '';
   },
@@ -166,6 +169,58 @@ const md = markdownit({
         `<span class="tex"${options.displayMode ? ' data-display' : ''}>${escapeHtml(tex)}</span>`,
     },
   });
+
+// A fence's language as a pack (found by name, languages.js), once the colouring engine is there; markdown and
+// plain text are left to markdown-it / highlight.js.
+function fencePack(lang) {
+  if (!lang || !window.CodeMirror?.runMode) return null;
+  const name = languageByName(lang);
+  return name && name !== 'markdown' && name !== 'plaintext' ? name : null;
+}
+
+// Code in a language's own colours, as spans; every token also carries "in-<language>" (its looks, languages.js).
+function fenceHtml(code, name) {
+  let html = '';
+  CodeMirror.runMode(code.replace(/\n$/, ''), languageMode(name), (token, style) => {
+    if (token === '\n') { html += '\n'; return; }
+    const cls = `${style ? style.replace(/\S+/g, 'cm-$&') + ' ' : ''}cm-in-${name}`;
+    html += `<span class="${cls}">${escapeHtml(token)}</span>`;
+  });
+  return html + '\n';
+}
+
+// Markdown with lines you gave a language (3.1.2): the text in parts, each range a code block of its language and
+// the rest markdown, with their source lines kept (data-line, for scrolling the two panes together).
+function renderMarkdownWithRanges(text, doc) {
+  const lines = text.split('\n'), parts = [], tokens = [];
+  let at = 0;
+  for (const r of [...doc.ranges].map(r => [...rangeLines(doc, r), r.language]).sort((x, y) => x[0] - y[0])) {
+    const [from, to, language] = r;
+    if (from < at || !packs[language]) continue;
+    if (from > at) parts.push({ from: at, text: lines.slice(at, from).join('\n') });
+    parts.push({ from, to, language, text: lines.slice(from, to + 1).join('\n') });
+    at = to + 1;
+  }
+  if (at < lines.length) parts.push({ from: at, text: lines.slice(at).join('\n') });
+  const env = {}, Token = new md.core.State('', md, env).Token;
+  for (const part of parts) {
+    if (part.language) {
+      const t = new Token('fence', 'code', 0);
+      Object.assign(t, { info: part.language, content: part.text + '\n', markup: '```', block: true, map: [part.from, part.to + 1] });
+      t.attrSet('data-line', part.from);
+      tokens.push(t);
+      continue;
+    }
+    for (const t of md.parse(withFrontMatter(part.text), env)) {   // its lines counted from the part's start
+      if (t.map) {
+        t.map = [t.map[0] + part.from, t.map[1] + part.from];
+        if (t.attrGet('data-line') != null) t.attrSet('data-line', t.map[0]);
+      }
+      tokens.push(t);
+    }
+  }
+  return md.renderer.render(tokens, md.options, env);
+}
 
 // The source line of every block, for scrolling the two panes together.
 md.core.ruler.push('source_lines', s => {
@@ -232,13 +287,14 @@ function makeDoc({ path = null, draft = null, text = '', encoding = 'UTF-8' }) {
 }
 
 async function loadDoc(path) {
-  const { text, encoding, readOnly, language } = await host('read', { path });
+  const { text, encoding, readOnly, language, ranges } = await host('read', { path });
   const found = findDoc(path), doc = found ?? makeDoc({ path, text, encoding });
   doc.diskReadOnly = readOnly;
   if (!found && language && packs[language]) {   // chosen for this file before (the language selector)
     doc.language = language === 'markdown' ? undefined : language;
     doc.languageChosen = true;
   }
+  if (!found) doc.ranges = rangesFound(text, ranges);   // lines you gave a language, found again in the text
   doc.lock = await host('lock', { path });
   unfresh(path);
   syncWatchFiles();
@@ -291,7 +347,9 @@ function makePane(index) {
   const el = document.createElement('section');
   el.className = 'mm-pane';
   el.dataset.mode = 'preview';
-  el.innerHTML = '<div class="mm-tabs-row"><div class="mm-tabs"></div>' +
+  el.innerHTML = '<div class="mm-tabs-row"><button class="mm-sync-tree" title="Show the file in the folder pane">' +
+    '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.5h11M10 2.5l3 3-3 3M14 10.5H3M6 7.5l-3 3 3 3"/></svg></button>' +
+    '<div class="mm-tabs"></div>' +
     '<button class="mm-tabs-more" title="Tabs out of view" hidden></button>' +
     '<button class="mm-pane-button" title="This pane: hide or close it; show a hidden pane">' +
     '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><path d="M8 2.5v11"/></svg></button></div>' +
@@ -314,6 +372,11 @@ function makePane(index) {
   el.querySelector('.mm-split').addEventListener('pointerdown', e => resizeSplit(e));
   el.querySelector('.mm-split').addEventListener('dblclick', () => setSplit(null));
   el.querySelector('.mm-tabs-more').addEventListener('click', e => showTabsMore(pane, e.currentTarget));
+  // The file of the pane's tab in the folder pane (as Visual Studio's "Sync with active document").
+  el.querySelector('.mm-sync-tree').addEventListener('click', () => {
+    const path = pane.active?.doc.path;
+    if (path) showInTree(path); else toast('This file is not saved yet, so it is in no folder.');
+  });
   el.querySelector('.mm-tabs').addEventListener('scroll', () => updateTabsMore(pane));
   el.querySelector('.mm-pane-button').addEventListener('click', e => {
     const open = ui.paneMenu.hidden;
@@ -460,7 +523,8 @@ function loadEditor() {
     .then(() => loadScript('bookmarks.js')).then(() => loadScript('gutter.js'));
 }
 
-const editorMode = doc => doc.language ? languageMode(doc.language) : { name: 'gfm', highlightFormatting: true };
+// The editor mode: the language's, with blocks of other languages and lines you set (documentMode, languages.js).
+const editorMode = doc => documentMode(doc);
 
 // Markdown keys (Enter, Tab in tables); in code files the key keeps its editor default.
 const markdownOnly = run => editor =>
@@ -475,6 +539,7 @@ function materialize(doc) {
   // A file moved here with unsaved edits stays unsaved, even when undone (-1 never matches).
   doc.savedGeneration = doc.dirty ? -1 : doc.cmDoc.changeGeneration(true);
   doc.cmDoc.on('change', () => onDocChange(doc));
+  attachRanges(doc);   // lines you gave a language follow the edits
   return doc.cmDoc;
 }
 
@@ -528,6 +593,7 @@ async function ensureEditor(pane) {
     scheduleGutter(pane);
   });
   pane.cm.on('cursorActivity', () => {
+    updateInnerBar(pane);   // the inner language's bar (format.js)
     updateRelativeNumbers(pane);
     saveSession();   // the cursor is kept in the session (after a second without moving)
     refreshFormatBar(pane);
@@ -619,15 +685,17 @@ async function renderNow(tab) {
   const doc = tab.doc, text = docText(doc), article = tab.article;
 
   // Built in a <template> so images are not requested before their paths are fixed.
-  // A code file: its language's colouring (languages.js, the editor script has the colouring engine).
-  if (doc.language && !window.CodeMirror?.runMode) {
+  // A code file: its language's colouring (languages.js, the editor script has the colouring engine); markdown
+  // too when it has fenced code or lines you gave a language (coloured by their packs).
+  const needsEngine = doc.language || doc.ranges?.length || /^\s*(`{3,}|~{3,})\s*[\w#+.-]/m.test(text);
+  if (needsEngine && !window.CodeMirror?.runMode) {
     await loadEditor();
     if (id !== tab.renderId) return;
   }
   const tpl = document.createElement('template');
   tpl.innerHTML = doc.language
-    ? `<pre class="mm-code" data-lang="${doc.language}">${codeHtml(text, text.length > PREVIEW_COLOUR_LIMIT ? 'text/plain' : languageMode(doc.language))}</pre>`
-    : md.render(withFrontMatter(text));
+    ? `<pre class="mm-code" data-lang="${doc.language}">${codeHtml(text, text.length > PREVIEW_COLOUR_LIMIT ? 'text/plain' : editorMode(doc))}</pre>`
+    : doc.ranges?.length ? renderMarkdownWithRanges(text, doc) : md.render(withFrontMatter(text));
   const content = tpl.content;
   if (doc.language && hasLongLine(text)) content.firstElementChild.classList.add('mm-long-line');
 
@@ -892,6 +960,7 @@ async function showActive(pane) {
       if (tab.doc.language) pane.editorEl.dataset.lang = tab.doc.language; else delete pane.editorEl.dataset.lang;
       fillCodeBar(pane);
       pane.cm.refresh();
+      updateInnerBar(pane);
       refreshFormatBar(pane);
     }
     updateBar(pane);
@@ -1289,6 +1358,7 @@ function updateStatus() {
     : `Clipboard ${clips.active} is active: ${clips.previews[clips.active] || '(empty)'} (click: the clipboards)`;
 }
 
+statusUi.lang.addEventListener('mousedown', e => e.preventDefault());   // the focus stays in the editor
 statusUi.lang.addEventListener('click', () => showLanguageList());
 
 events.clipboards = ({ state }) => {
@@ -2680,7 +2750,8 @@ ui.divider.addEventListener('contextmenu', e => showMenu(ui.dividerMenu, e, () =
 }));
 
 // ---------- Session ----------
-// The primary window keeps its folder, tabs and panes in session.json; drafts live in Drafts\.
+// Every window keeps its folder, tabs and panes with its project (the host's projects.json, ProjectStore.cs), a
+// second after a change and when it closes; drafts live in Drafts\.
 function sessionData() {
   return {
     root: state.root,
@@ -2711,7 +2782,7 @@ function tabCursor(tab) {
 
 let started = false;
 function saveSession() {
-  if (!state.primary || !started) return;
+  if (!started) return;
   clearTimeout(saveSession.timer);
   saveSession.timer = setTimeout(() => host('session', { data: sessionData() }), 1000);
 }
@@ -2756,10 +2827,11 @@ async function restore(session, drafts) {
 }
 
 // Closing: one prompt for unsaved files and changed drafts, then the host closes the window.
-events.closeRequest = async () => {
+// Pinned tabs go to `peer`, another open window of this project (the host says which), when the setting says so.
+events.closeRequest = async ({ peer } = {}) => {
   try {
-    if (!state.primary && setting('movePinned'))
-      for (const tab of allTabs().filter(t => t.pinned)) if (paneOf(tab)) await moveTab(tab, 'primary', { closing: true });
+    if (peer && setting('movePinned'))
+      for (const tab of allTabs().filter(t => t.pinned)) if (paneOf(tab)) await moveTab(tab, peer, { closing: true });
     const dirty = [...docs].filter(d => d.path && d.dirty && d.lock);
     const drafts = [...docs].filter(d => d.draft && d.draftChanged && docText(d).trim());
     if (dirty.length || drafts.length) {
@@ -2772,7 +2844,7 @@ events.closeRequest = async () => {
     }
     await flushDrafts();
     await Promise.all([...docs].filter(d => d.marks).map(d => saveBookmarks(d)));
-    if (state.primary) await host('session', { data: sessionData() });
+    await host('session', { data: sessionData() });
     host('closeNow');
   } catch (e) {
     host('closeCancel');
@@ -2780,10 +2852,88 @@ events.closeRequest = async () => {
   }
 };
 
+// ---------- Projects (the host's ProjectStore): the Projects menu, the bottom bar, names ----------
+// A project has windows; every window is in one. The menu lists every project (checked: open) with its windows
+// (checked: open) and what can be done with them; the host does it (AppHost.ProjectCommand).
+const projectChip = $('.mm-st-project');
+function setProject(project) {
+  state.project = project ?? null;
+  projectChip.textContent = project?.display ?? '';
+  projectChip.hidden = !project;
+}
+events.project = ({ project }) => setProject(project);
+projectChip.addEventListener('mousedown', e => e.preventDefault());   // the focus stays in the editor
+projectChip.addEventListener('click', () => openProjectMenu());
+
+// The Projects menu at the bottom bar (a click on the project, the action "projects"): the same items as in
+// the menu bar; `only` picks a part of it ("move": the projects to move this window to).
+async function openProjectMenu(only) {
+  closeMenus();
+  hideMenus();
+  const items = await projectMenuItems();
+  const shown = only === 'move' ? items.find(i => i.move).sub : items;
+  const r = projectChip.getBoundingClientRect();
+  openMenuLevel(shown, r.left, r.top, true, true);
+}
+
+async function projectMenuItems() {
+  const list = await host('projects');
+  const ask = async (title, then) => { const name = await askName(title, ''); if (name !== null) then(name); };
+  const tabs = n => `${n} tab${n === 1 ? '' : 's'}`;
+  const projectItem = p => ({
+    label: p.display + (p.mine ? '   (this window)' : ''), plain: true, checked: p.open, sub: [
+      { label: 'Open project', plain: true, title: 'All its windows', run: () => host('project', { kind: 'open', project: p.id }) },
+      ...(p.windows.length ? ['-'] : []),
+      ...p.windows.map((w, i) => ({
+        label: `Window ${i + 1}: ${w.folder ?? '(no folder)'}, ${tabs(w.tabs)}${w.mine ? '   (this window)' : ''}`,
+        plain: true, checked: w.open, run: () => host('project', { kind: 'window', key: w.key }),
+      })),
+      '-',
+      { label: 'New window in this project', plain: true, run: () => host('project', { kind: 'newWindow', project: p.id }) },
+      ...(p.open ? [] : [{ label: 'Delete project...', plain: true, run: async () => {
+        if (await host('confirm', { text: `Delete the project "${p.display}"? Its files stay; unsaved new documents come back in a window.` }))
+          host('project', { kind: 'delete', project: p.id });
+      } }]),
+    ],
+  });
+  return [
+    ...list.map(projectItem), '-',
+    { label: '&New project...', title: 'A new empty window in a new project', run: () => ask('New project', name => host('project', { kind: 'new', name })) },
+    '-',
+    { label: '&Rename this project...', run: () => renameProject() },
+    { label: '&Move this window to', move: true, sub: [
+      ...list.filter(p => !p.mine).map(p => ({ label: p.display, plain: true, run: () => host('project', { kind: 'move', project: p.id }) })),
+      ...(list.some(p => !p.mine) ? ['-'] : []),
+      { label: 'New project...', plain: true, run: () => ask('Move this window to a new project', name => host('project', { kind: 'move', name })) },
+    ] },
+  ];
+}
+
+async function renameProject() {
+  const name = await askName('Name of this project', state.project?.name ?? '');
+  if (name !== null) host('project', { kind: 'rename', name });
+}
+
+// Asks a name: the text, or null for Cancel / Esc.
+function askName(title, value) {
+  const dialog = $('.mm-name-dialog'), input = dialog.querySelector('.mm-name-input');
+  dialog.querySelector('.mm-name-label').textContent = title;
+  input.value = value;
+  dialog.returnValue = '';
+  dialog.showModal();
+  input.select();
+  return new Promise(resolve => {
+    dialog.addEventListener('close', () => {
+      resolve(dialog.returnValue === 'ok' ? input.value.trim() : null);
+      focusPane(panes[state.activePane]);
+    }, { once: true });
+  });
+}
+$('.mm-name-dialog .mm-name-cancel').addEventListener('click', () => $('.mm-name-dialog').close('cancel'));
+
 // ---------- Window role, theme ----------
 function setRole({ primary, index }) {
-  state.primary = primary;
-  document.body.toggleAttribute('data-secondary', !primary);
+  state.primary = primary;   // all windows look the same; the primary is the one a closing window's tab may go to
   document.body.dataset.window = index;
   saveSession();
 }
@@ -2991,6 +3141,11 @@ function applySettings() {
   if (changed('wrap')) applyWrap(now.wrap);
   if (changed('tabBar')) applyTabBar(now.tabBar);
   if (changed('formatBar')) applyFormatBar(now.formatBar);
+  if (changed('languageNames') && 'languageNames' in was) {   // fences and blocks may now be another language
+    languagesVersion++;
+    for (const tab of allTabs()) tab.stale = true;
+    showAll();
+  }
   if (changed('showWhitespace') || changed('showLineEnds')) applyWhitespace();
   if (changed('zoom')) applyZoom(now.zoom);
   if (changed('lineBreaks')) {
@@ -3255,7 +3410,7 @@ track((async () => {
   showSort();
   layout();
 
-  // The primary window at the first start restores the session; folder and files on the command line come on top.
+  // A window of a project opened again restores its session; folder and files on the command line come on top.
   const start = await host('init');
   await loadLanguages();   // first: the keys name their actions
   setKeys(await host('keys'));
@@ -3265,6 +3420,7 @@ track((async () => {
   showKeys();
   state.win = start.id;
   setRole(start);
+  setProject(start.project);
   setTabColours(start.tabColours);
   const session = start.restore;
   const root = start.folder ?? session?.root ?? null;

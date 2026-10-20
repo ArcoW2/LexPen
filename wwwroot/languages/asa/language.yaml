@@ -3,6 +3,7 @@
 name: Sybase ASA SQL
 # The extensions of the word file, .sql included: SQL files open as ASA SQL (the SQL pack keeps the others).
 extensions: [.sql, .evn, .sp, .tr, .vw, .ws, .do]
+aliases: [sqlanywhere, sybase]   # other names it is known by (a markdown fence ```sqlanywhere, an embedded block); see languages\README.md
 open: edit
 fold: indent                       # UltraEdit: EnableCFByIndent
 caseSensitive: false               # UltraEdit: Nocase
@@ -114,6 +115,10 @@ tokens:
   global: { like: variable-2, contrast: 10 }     # @@: the strongest (as in the shipped SQL pack)
   variable: { like: variable-2 }                 # @
   local: { like: variable-2, contrast: -10 }     # @_: the subtlest
+# Blocks of another language: the King API definition, JSON on the lines between the line with /*==[ and the
+# line with ]==*/ (both marker lines stay SQL comment). See languages\README.md (embedded).
+embedded:
+  - { open: '/*==[', close: ']==*/', language: json }
 # The tag groups of the word file: procedures / functions / triggers, tables, regions, TODO, API definitions.
 outline:
   - { pattern: '^\s*create\s+(?:or\s+replace\s+)?(?:procedure|function|view|event|domain)\s+([\w".]+)', name: 1, level: 1, flags: i }

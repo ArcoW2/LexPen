@@ -93,6 +93,32 @@ static class LanguagePacks
         // The order of the word lists is their priority (the first list with a word wins), but a message to the page
         // arrives with its keys sorted (WebView2): the order goes along as a list.
         if (pack["words"] is JsonObject words) pack["wordOrder"] = new JsonArray(words.Select(w => (JsonNode?)w.Key).ToArray());
+        // The same for the looks: a token of two types (a JSON key: string and property) gets the look of the type that
+        // comes later in the file.
+        if (pack["tokens"] is JsonObject tokens) pack["tokenOrder"] = new JsonArray(tokens.Select(t => (JsonNode?)t.Key).ToArray());
+        // Blocks of another language (embedded) and the names this language answers to (aliases): a wrong entry is
+        // reported and left out, the rest of the pack stays.
+        if (pack["embedded"] is JsonNode embedded)
+        {
+            var kept = new JsonArray();
+            if (embedded is not JsonArray rules)
+                problems.Add($"{source}: \"embedded\" must be a list of blocks, as [{{ open: '/*==[', close: ']==*/', language: json }}].");
+            else
+                foreach (var rule in rules)
+                    if (EmbeddedProblem(rule) is string problem) problems.Add($"{source}: embedded: {problem}");
+                    else kept.Add(rule!.DeepClone());
+            pack["embedded"] = kept;
+        }
+        if (pack["aliases"] is JsonNode aliases)
+        {
+            if (aliases is JsonArray names && names.All(n => n?.GetValueKind() is System.Text.Json.JsonValueKind.String or System.Text.Json.JsonValueKind.Number))
+                pack["aliases"] = new JsonArray(names.Select(n => (JsonNode?)n!.ToString().Trim().ToLowerInvariant()).Where(n => n!.GetValue<string>().Length > 0).ToArray());
+            else
+            {
+                problems.Add($"{source}: \"aliases\" must be a list of names, as [cs, c#].");
+                pack.Remove("aliases");
+            }
+        }
         foreach (var part in new[] { "firstLine" })
             if (pack[part] is JsonNode p && !ValidRegex(p.ToString(), out var error))
             {
@@ -119,6 +145,24 @@ static class LanguagePacks
     }
 
     static string Message(Exception ex) => ex is YamlException y ? $"line {y.Start.Line}, column {y.Start.Column}: {y.Message}" : ex.Message;
+
+    // What is wrong with one embedded block rule, or null: an open and a close (text or pattern), and the language
+    // (a name, or the open pattern's group that holds it).
+    static string? EmbeddedProblem(JsonNode? rule)
+    {
+        if (rule is not JsonObject r) return "a block must be { open, close, language }.";
+        string? Text(string key) => r[key]?.GetValueKind() == System.Text.Json.JsonValueKind.String ? r[key]!.GetValue<string>() : null;
+        foreach (var (plain, regex) in new[] { ("open", "openRegex"), ("close", "closeRegex") })
+        {
+            if (Text(plain) is not { Length: > 0 } && Text(regex) is not { Length: > 0 }) return $"a block needs \"{plain}\" (text) or \"{regex}\" (a pattern).";
+            if (Text(regex) is { } pattern && !ValidRegex(pattern, out var error)) return $"\"{regex}\" is not a valid pattern: {error}";
+        }
+        var group = r["languageGroup"]?.GetValueKind() == System.Text.Json.JsonValueKind.Number ? (int)r["languageGroup"]!.GetValue<long>() : (int?)null;   // YAML numbers arrive as long
+        if (Text("language") is not { Length: > 0 } && group is null) return "a block needs \"language\" (a name) or \"languageGroup\" (a group of openRegex).";
+        if (group is int g && (Text("openRegex") is not { } open || g < 1 || g > new Regex(open).GetGroupNumbers().Max()))
+            return "\"languageGroup\" must be a group of \"openRegex\".";
+        return null;
+    }
 
     static bool ValidRegex(string pattern, out string? error)
     {

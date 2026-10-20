@@ -2,6 +2,7 @@
 # languages\_template\language.yaml; how a pack is made from a word file: languages\README.md.
 name: Python
 extensions: [.py, .pyw]
+aliases: [py]   # other names it is known by (a markdown fence ```py, an embedded block); see languages\README.md
 firstLine: '^#!.*\bpython'   # UltraEdit: LanguageMarker
 open: edit
 fold: indent

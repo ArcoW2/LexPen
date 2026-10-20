@@ -2,6 +2,7 @@
 # languages\_template\language.yaml; how a pack is made from a word file: languages\README.md.
 name: VBScript
 extensions: [.vbs]
+aliases: [vbs]   # other names it is known by (a markdown fence ```vbs, an embedded block); see languages\README.md
 open: edit
 fold: indent
 caseSensitive: false               # UltraEdit: Nocase

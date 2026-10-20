@@ -16,6 +16,7 @@
   /* Find: every match, the current one and the box around it (bright red on light). */
   --find-hit: rgba(255, 196, 0, .4); --find-current: rgba(255, 140, 0, .85); --find-current-fg: #000; --find-box: #ff0000;
   --whitespace: #b4bac2;   /* shown spaces, tabs and line ends (editor) */
+  --gutter-bg-embedded: #e4ebf5;   /* the gutter beside lines of another language (PLAN-embedded-languages.md) */
 }
 :root[data-theme=dark], .mm-themed[data-theme=dark] {
   color-scheme: dark;
@@ -30,6 +31,7 @@
   /* Find: the box bright yellow on dark. */
   --find-hit: rgba(255, 196, 0, .4); --find-current: rgba(255, 140, 0, .85); --find-current-fg: #000; --find-box: #ffff00;
   --whitespace: #5a606a;
+  --gutter-bg-embedded: #2b3342;
 }
 
 /* Which way "more contrast" goes: away from the background (darker on light, lighter on dark). A language
@@ -93,7 +95,6 @@ body[data-two] .mm-orient { display: inline-block; }
 body[data-orient=h] .mm-orient::before { content: "Above each other"; }
 
 /* Secondary windows (opened with Shift or by moving a tab out) look dimmed next to the primary one. */
-body[data-secondary] .mm-toolbar { background: var(--bg-bar-dim); color: var(--fg-dim); }
 
 .mm-menu-wrap { position: relative; }
 .mm-menu {
@@ -190,6 +191,16 @@ body[data-show-ws] .CodeMirror .cm-tab {
 body[data-show-eol] .CodeMirror .CodeMirror-line:not(.mm-last-line)::after { color: var(--whitespace); }
 body[data-show-eol] .CodeMirror[data-eol=crlf] .CodeMirror-line:not(.mm-last-line)::after { content: '\00B6'; }
 body[data-show-eol] .CodeMirror[data-eol=lf] .CodeMirror-line:not(.mm-last-line)::after { content: '\240A'; }
+
+/* The window's project (bottom bar, left): a click opens the Projects menu. */
+.mm-status .mm-st-project { font-weight: 600; color: var(--fg); max-width: 22em; overflow: hidden; text-overflow: ellipsis; }
+
+/* Asking a name (a project). */
+.mm-name-dialog { min-width: 26em; }
+.mm-name-dialog label { display: block; margin-bottom: 8px; }
+.mm-name-dialog input { width: 100%; box-sizing: border-box; padding: 4px 6px; font: inherit; color: var(--fg);
+  background: var(--bg); border: 1px solid var(--border); border-radius: 4px; }
+.mm-name-dialog .mm-name-buttons { display: flex; justify-content: flex-end; gap: 6px; margin-top: 12px; }
 
 /* The panes: a page with an arrow to where it is, and an eye (struck through: hidden). Grey without documents. */
 .mm-st-panes { display: flex !important; gap: 6px; }
@@ -325,6 +336,10 @@ body[data-orient=h] .mm-sync::before { content: "\21C4"; }
 .mm-pane-button { display: none; flex: none; align-self: flex-start; margin: 3px 4px; padding: 3px 5px; color: var(--fg-dim); }
 body[data-two] .mm-pane-button, body[data-pane-hidden] .mm-pane-button { display: block; }
 .mm-pane-button svg { display: block; }
+/* At its left end: the file of the active tab in the folder pane. */
+.mm-sync-tree { flex: none; align-self: flex-start; margin: 3px 2px 3px 4px; padding: 3px 5px; color: var(--fg-dim); }
+.mm-sync-tree:hover { color: var(--fg); }
+.mm-sync-tree svg { display: block; }
 /* Option: all tabs visible, wrapped over several rows. */
 body[data-tab-bar=rows] .mm-tabs { flex-wrap: wrap; overflow-x: visible; }
 body[data-tab-bar=rows] .mm-tab { border-bottom: 1px solid var(--border); margin-bottom: -1px; }
@@ -442,6 +457,20 @@ body[data-busy]::after {
 .mm-editor-pane .CodeMirror-lines { padding: 12px 0 40vh; }
 .mm-editor-pane .CodeMirror pre.CodeMirror-line { padding: 0 16px 0 10px; }
 .mm-editor-pane .CodeMirror-gutters { background: var(--bg); border-right: 0; }
+/* The inner language's bar (format.js, updateInnerBar): over the top text row, so the editor never shifts. */
+.CodeMirror .mm-inner-bar { position: absolute; top: 0; left: 0; right: 0; z-index: 6; display: flex; flex-wrap: wrap;
+  align-items: center; gap: 1px; padding: 3px 6px; background: var(--gutter-bg-embedded); border-bottom: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .15); user-select: none; font-family: var(--app-font); font-size: calc(13px * var(--ui-scale)); }
+.CodeMirror .mm-inner-bar[hidden] { display: none; }
+body[data-no-format-bar] .CodeMirror .mm-inner-bar { display: none; }
+.mm-inner-bar .mm-inner-name { font-weight: 600; margin: 0 6px 0 4px; align-self: center; }
+/* A line in another language than the file's (a block, a fence, lines you set): its gutter slightly tinted. */
+/* CodeMirror forces the gutter wrapper's own background off: the tint lies behind it, as wide as the gutter. */
+.mm-editor-pane .CodeMirror-code > div:has(> pre.mm-embedded) > .CodeMirror-gutter-wrapper { top: 0; bottom: 0; }
+.mm-editor-pane .CodeMirror-code > div:has(> pre.mm-embedded) > .CodeMirror-gutter-wrapper::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: var(--mm-gutter-w, 0); z-index: -1;
+  background: var(--gutter-bg-embedded);
+}
 /* The square between the two scrollbars (and below the gutter): CodeMirror makes it white. */
 .mm-editor-pane .CodeMirror-scrollbar-filler, .mm-editor-pane .CodeMirror-gutter-filler { background: var(--bg); }
 .mm-editor-pane .CodeMirror-linenumber { color: var(--fg-dim); opacity: .6; }

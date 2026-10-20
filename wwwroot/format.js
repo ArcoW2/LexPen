@@ -432,10 +432,12 @@ function tableCommand(cm, op) {
 }
 
 // ---------- Comments ----------
-// The language's comment markers: its pack's "comments", else those of its editor mode.
-function commentMarkers(doc) {
-  const own = packs[languageOf(doc)]?.comments;
-  const mode = CodeMirror.getMode(CodeMirror.defaults, editorMode(doc));
+// The language's comment markers: its pack's "comments", else those of its editor mode. With an editor: the
+// language of the cursor's line (a block of another language comments as that language, PLAN-embedded-languages.md).
+function commentMarkers(doc, cm) {
+  const inner = cm && lineLanguage(cm, cm.getCursor('from').line), lang = inner && packs[inner] ? inner : languageOf(doc);
+  const own = packs[lang]?.comments;
+  const mode = CodeMirror.getMode(CodeMirror.defaults, lang === languageOf(doc) ? editorMode(doc) : languageMode(lang));
   const line = own ? own.line : mode.lineComment;
   const block = own ? own.block : mode.blockCommentStart && [mode.blockCommentStart, mode.blockCommentEnd];
   return { line, block, any: line || block };
@@ -446,7 +448,7 @@ const COMMENT_COMMANDS = ['toggleComment', 'blockComment', 'removeBlockComment']
 // Comments the selected lines, or uncomments them (CodeMirror's comment add-on). Without a line comment
 // (markdown, XML) each line goes into a block comment.
 function toggleComment(cm) {
-  const doc = fmtDoc(cm), m = commentMarkers(doc);
+  const doc = fmtDoc(cm), m = commentMarkers(doc, cm);
   if (!m.any) return toast(`${languageTitle(doc)} has no comments.`);
   cm.toggleComment({ lineComment: m.line, blockCommentStart: m.block?.[0], blockCommentEnd: m.block?.[1], indent: true });
 }
@@ -463,7 +465,7 @@ function enclosingComment(cm, open, close) {
 // Takes the markers of the block comment around the cursor away (with the space next to each). False
 // when the cursor is not in one.
 function removeBlockComment(cm, quiet) {
-  const doc = fmtDoc(cm), block = commentMarkers(doc).block, found = block && enclosingComment(cm, ...block);
+  const doc = fmtDoc(cm), block = commentMarkers(doc, cm).block, found = block && enclosingComment(cm, ...block);
   if (!found) {
     if (!quiet) toast(block ? 'The cursor is not in a block comment.' : `${languageTitle(doc)} has no block comments.`);
     return false;
@@ -481,7 +483,7 @@ function removeBlockComment(cm, quiet) {
 // Inside a block comment: removes it. Else the selection goes into one (without a selection: an empty
 // one with the cursor in it).
 function blockComment(cm) {
-  const doc = fmtDoc(cm), block = commentMarkers(doc).block;
+  const doc = fmtDoc(cm), block = commentMarkers(doc, cm).block;
   if (!block) return toast(`${languageTitle(doc)} has no block comments.`);
   if (removeBlockComment(cm, true)) return;
   const [open, close] = block;
@@ -574,10 +576,16 @@ function fillCodeBar(pane) {
   if (!pane.codeBar || pane.codeBarKey === key) return;
   pane.codeBarKey = key;
   const pack = doc?.language && packs[doc.language], bar = pane.codeBar;
-  bar.replaceChildren();
+  bar.replaceChildren(...barButtons(pack));
+  bar.hidden = !bar.children.length;
+}
+
+// The buttons of a pack's bar.yaml: separators and buttons with their action, icon and label.
+function barButtons(pack) {
+  const out = [];
   for (const item of pack?.bar ?? []) {
     if (item === '-') {
-      bar.append(Object.assign(document.createElement('span'), { className: 'mm-fmt-sep' }));
+      out.push(Object.assign(document.createElement('span'), { className: 'mm-fmt-sep' }));
       continue;
     }
     if (!item?.action) continue;
@@ -588,9 +596,57 @@ function fillCodeBar(pane) {
     button.title = withKey(actionTitle(item.action), item.action);
     const icon = pack.icons?.[item.icon] ?? packs.plaintext?.icons?.[item.icon] ?? '';
     button.innerHTML = icon + (item.label ? `<span class="mm-fmt-label">${escapeHtml(String(item.label))}</span>` : '');
-    bar.append(button);
+    out.push(button);
   }
-  bar.hidden = !bar.children.length;
+  return out;
+}
+
+// ---------- The inner language's bar (PLAN-embedded-languages.md 3.2) ----------
+// While the cursor is on a line of another language (a block, a fence, lines you set), that language's bar lies
+// over the editor's top text row, starting with its name: the editor never shifts. Its buttons act in that
+// language. On the first visible line the text scrolls one line, so the cursor's line is under the bar.
+
+// The language of an editor line: the block mode's state after it (documentMode, languages.js); null: the file's.
+function lineLanguage(cm, line) {
+  const state = cm.getStateAfter(line, true);
+  return state && typeof state === 'object' && 'lang' in state ? state.lang ?? null : null;
+}
+
+function updateInnerBar(pane) {
+  const cm = pane.cm, doc = pane.active?.doc;
+  if (!cm || !doc) return;
+  if (!pane.gutterWidthWatched) {   // the tint behind the gutter of a line of another language needs its width
+    pane.gutterWidthWatched = true;
+    const width = () => cm.getWrapperElement().style.setProperty('--mm-gutter-w', cm.getGutterElement().offsetWidth + 'px');
+    cm.on('update', width);
+    width();
+  }
+  let bar = pane.innerBar;
+  if (!bar) {
+    bar = pane.innerBar = document.createElement('div');
+    bar.className = 'mm-inner-bar';
+    bar.hidden = true;
+    bar.addEventListener('mousedown', e => e.preventDefault());   // the focus stays in the editor
+    bar.addEventListener('click', e => {
+      const button = e.target.closest('[data-action]');
+      if (button) runAction(button.dataset.action, [], { from: 'bar', language: bar.dataset.lang });
+    });
+    cm.getWrapperElement().append(bar);
+  }
+  const line = cm.getCursor().line, lang = lineLanguage(cm, line);
+  const show = !!lang && lang !== languageOf(doc) && !!packs[lang] && pane.el.dataset.mode !== 'preview';
+  if (show && bar.dataset.key !== lang + ':' + languagesVersion) {
+    bar.replaceChildren(Object.assign(document.createElement('span'), { className: 'mm-inner-name', textContent: packs[lang].name + ':' }),
+      ...barButtons(packs[lang]));
+    bar.dataset.key = lang + ':' + languagesVersion;
+  }
+  if (show) bar.dataset.lang = lang;
+  bar.hidden = !show;
+  // The cursor on the first visible line, under the bar: one line down, unless it is the document's first line.
+  if (show && line > 0) {
+    const top = cm.getScrollInfo().top, first = cm.lineAtHeight(top + 1, 'local');
+    if (line <= first) cm.scrollTo(null, cm.heightAtLine(line - 1, 'local'));
+  }
 }
 
 // ---------- The formatting bar ----------

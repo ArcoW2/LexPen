@@ -1,6 +1,7 @@
 # JavaScript. Every part is explained in languages\_template\language.yaml.
 name: JavaScript
 extensions: [.js, .mjs, .cjs, .jsx]
+aliases: [js, node, jsx]   # other names it is known by (a markdown fence ```js, an embedded block); see languages\README.md
 open: edit
 mode: javascript        # built in
 fold: brace

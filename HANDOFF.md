@@ -43,11 +43,18 @@
   (`docs/plans/executed/PLAN-long-lines.md`); fonts and line height (`docs/plans/executed/PLAN-fonts.md`) and the fix for Ctrl+V with the Windows
   clipboard.
 - Language packs: `docs/plans/executed/PLAN-language-packs.md`, merged into `main` (`0e6417d`).
-- On the local branch `theme-inheritance` until you approve it: theme inheritance
+- Merged into `main` (`498d791`) and pushed: theme inheritance, the language set, pane marks, whitespace, the
+  fixes of that branch.
+- On the local branch `window-sessions` until you approve it: projects and window sessions
+  (`docs/plans/executed/PLAN-window-sessions.md`). Draft waiting: `PLAN-formatters.md` (its questions are open).
+- Earlier, on `theme-inheritance` (now merged): theme inheritance
   (`docs/plans/executed/PLAN-theme-inheritance.md`), the language set from the UltraEdit word files and the debug
   build reading packs and themes from the project (`docs/plans/executed/PLAN-language-set.md`), Esc closing the
   find bar / sidebar search first, File > Open on All files, the languages guide (`wwwroot/languages/README.md`).
-  Drafts waiting: `PLAN-fenced-code-colours.md` (fenced code in markdown, Q5) and `PLAN-formatters.md` (Q7).
+  On the branch `embedded-languages`: a language inside a language (`docs/plans/executed/PLAN-embedded-languages.md`).
+  Plans waiting:
+  `PLAN-formatters.md` (conversions, pretty print, trailing whitespace), `PLAN-column-selection.md` (column mode;
+  no questions left).
 - Before making the repository public, also: YamlDotNet (MIT) in THIRD-PARTY-NOTICES.
 - Merged into `main` (`caa3f7b`): themes (`docs/plans/executed/PLAN-themes.md`), the preview theme per mode and
   find at the end of the file; the padlock for read-only tabs (`752eb7c`).

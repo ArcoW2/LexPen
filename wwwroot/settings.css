@@ -39,3 +39,4 @@
 .st-none { padding: 24px 10px; color: var(--fg-dim); }
 .st-foot { flex: none; padding: 8px 16px; color: var(--fg-dim); font-size: calc(12px * var(--ui-scale)); border-top: 1px solid var(--border); background: var(--bg-bar); }
 .st-link { padding: 1px 6px; font-size: inherit; }
+.st-names { width: 26em; padding: 3px 6px; font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 4px; }

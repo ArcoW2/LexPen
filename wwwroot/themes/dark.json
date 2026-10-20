@@ -33,6 +33,7 @@
     "findCurrentFg": "#000",
     "findBox": "#ffff00",
     "whitespace": "#5a606a",
+    "gutterBgEmbedded": "#2b3342",
 
     // Code: the colours a language pack maps its token types onto (tokens: { theme: keyword }).
     "keyword": "#ff7b72",

@@ -84,6 +84,36 @@ One flow, for every language:
 The theme files (`wwwroot\themes`) know nothing of languages: they only hold the colours (`keyword`, `string`,
 ...) that the looks point at.
 
+## A language inside a language: embedded, aliases
+
+A file can hold blocks of another language: JSON inside an SQL comment, code in a markdown fence, JavaScript in a
+`<script>`. Every block is whole lines: from the line after the line with its start marker up to the line before
+the line with its end marker; the two marker lines stay the outer language. Inside a block the inner language
+colours (its own looks), Toggle comment and indent work as that language, a bar of that language lies over the
+top text row (`JSON:`), and the gutter beside its lines is tinted (theme colour `gutterBgEmbedded`).
+
+```yaml
+embedded:
+  - { open: '/*==[', close: ']==*/', language: json }          # text a line holds; the language fixed
+  - { openRegex: '^\s*(`{3,}|~{3,})\s*([\w#+.-]+)', closeRegex: '^\s*(`{3,}|~{3,})\s*$', languageGroup: 2 }
+  - { openRegex: '^\s*<script\b[^>]*>\s*$', closeRegex: '^\s*</script>', language: javascript, flags: i }
+```
+
+- `open` / `close`: text the line holds; `openRegex` / `closeRegex`: a pattern the line matches (`flags: i` for any
+  case). `language`: the inner language by name; or `languageGroup`: the group of `openRegex` that holds the name.
+- A name is found in one table for all packs: your own mapping first (Options > Settings > General > Languages,
+  `languageNames`: `bash=tcc`), then a pack's id, its name, its `aliases`, its extensions (in that order of
+  strength: `sql` is the SQL pack although `.sql` files open as ASA SQL). A name that finds nothing: the block stays
+  the outer language (a markdown fence then gets highlight.js in the preview).
+- `aliases: [c#, cs]`: other names a pack is known by. Two shipped packs never share one (a unit test checks).
+- Shipped: ASA SQL's King API block (`/*==[` ... `]==*/`, JSON), markdown's fences, HTML's `<script>`, `<style>` and
+  `<?php` ... `?>` blocks.
+
+**Lines you give a language**: select lines, then the language in the bottom bar > For the selected lines. LexPen
+remembers it per file (`State\file-ranges.json`); the range moves with your edits, Enter on its last line makes it
+grow, Enter on the line after it does not, and pasted text takes the language of the line it lands on. After the
+file changed elsewhere the range is found again by the text of its first and last line.
+
 ## The bar: bar.yaml
 
 The buttons above the editor, left to right; `'-'` is a separator:

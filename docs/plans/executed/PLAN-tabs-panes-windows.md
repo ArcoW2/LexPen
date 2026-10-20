@@ -1,5 +1,7 @@
 # Plan: tabs, side-by-side panes, single instance and multiple windows
 
+Superseded in part by PLAN-window-sessions.md: every window keeps its session (projects), and all windows look the same.
+
 Status: implemented on branch `feature/tabs-panes-windows`. See section 9 for what changed or was decided
 during execution, and what could not be verified.
 

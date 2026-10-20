@@ -2,6 +2,7 @@
 # languages\_template\language.yaml.
 name: AutoHotkey
 extensions: [.ahk]
+aliases: [autohotkey]   # other names it is known by (a markdown fence ```autohotkey, an embedded block); see languages\README.md
 open: edit
 fold: brace                        # UltraEdit: fold on { }
 comments: { line: ';', block: ['/*', '*/'] }

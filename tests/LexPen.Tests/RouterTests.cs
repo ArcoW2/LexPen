@@ -6,54 +6,50 @@ public class RouterTests
         paths.Select(p => (p.TrimEnd('/').Replace('/', '\\'), p.EndsWith('/'))).ToList();
 
     [Fact]
-    public void FirstStartWithoutArgumentsRestoresTheSession()
+    public void NoWindowAndNoArgumentsOpensOne()
     {
-        var t = Assert.Single(Router.Route([], [], -1, shift: false));
+        var t = Assert.Single(Router.Route([], [], [], shift: false));
         Assert.Null(t.Window);
-        Assert.True(t.Restore);
-        Assert.True(t.Primary);
         Assert.Empty(t.Files);
     }
 
     [Fact]
-    public void FirstStartIgnoresShift()
+    public void FilesGoToTheMostRecentWindowOnThisDesktop()
     {
-        var t = Assert.Single(Router.Route(Items(@"C:\a\x.md"), [], -1, shift: true));
-        Assert.True(t.Restore);
-        Assert.Equal([@"C:\a\x.md"], t.Files);
+        // Window 1 was used last on this desktop; window 0 is on another desktop (not in "here").
+        var t = Assert.Single(Router.Route(Items(@"C:\a\x.md", @"C:\b\y.md"), [null, @"C:\a", null], here: [1, 2], shift: false));
+        Assert.Equal(1, t.Window);
+        Assert.Equal([@"C:\a\x.md", @"C:\b\y.md"], t.Files);
     }
 
     [Fact]
-    public void FilesGoToTheMostRecentWindow()
+    public void NoWindowOnThisDesktopOpensANewOneHere()
     {
-        var t = Assert.Single(Router.Route(Items(@"C:\a\x.md", @"C:\b\y.md"), [null, @"C:\a"], recent: 1, shift: false));
-        Assert.Equal(1, t.Window);
-        Assert.Equal([@"C:\a\x.md", @"C:\b\y.md"], t.Files);
-        Assert.False(t.Restore);
+        var t = Assert.Single(Router.Route(Items(@"C:\a\x.md"), [null, null], here: [], shift: false));
+        Assert.Null(t.Window);
+        Assert.Equal([@"C:\a\x.md"], t.Files);
     }
 
     [Fact]
     public void ShiftOpensANewWindowWithTheFiles()
     {
-        var t = Assert.Single(Router.Route(Items(@"C:\a\x.md"), [null], recent: 0, shift: true));
+        var t = Assert.Single(Router.Route(Items(@"C:\a\x.md"), [null], here: [0], shift: true));
         Assert.Null(t.Window);
-        Assert.False(t.Restore);
-        Assert.False(t.Primary);
         Assert.Equal([@"C:\a\x.md"], t.Files);
     }
 
     [Fact]
     public void ShiftWithoutFilesOpensAnEmptyWindow()
     {
-        var t = Assert.Single(Router.Route([], [null], recent: 0, shift: true));
+        var t = Assert.Single(Router.Route([], [null], here: [0], shift: true));
         Assert.Null(t.Window);
         Assert.Empty(t.Files);
     }
 
     [Fact]
-    public void NoArgumentsActivateTheMostRecentWindow()
+    public void NoArgumentsActivateTheMostRecentWindowOnThisDesktop()
     {
-        var t = Assert.Single(Router.Route([], [null, null], recent: 1, shift: false));
+        var t = Assert.Single(Router.Route([], [null, null], here: [1, 0], shift: false));
         Assert.Equal(1, t.Window);
         Assert.Empty(t.Files);
     }
@@ -61,41 +57,36 @@ public class RouterTests
     [Fact]
     public void EachFolderGetsAWindowAndFilesGoToTheDeepestFolder()
     {
-        var targets = Router.Route(Items("C:/a/", "C:/a/b/", "C:/a/b/x.md", "C:/a/y.md", "C:/c/z.md"), [], -1, shift: false);
+        var targets = Router.Route(Items("C:/a/", "C:/a/b/", "C:/a/b/x.md", "C:/a/y.md", "C:/c/z.md"), [], [], shift: false);
         var a = targets.Single(t => t.Folder == @"C:\a");
         var b = targets.Single(t => t.Folder == @"C:\a\b");
         var rest = targets.Single(t => t.Folder is null);
         Assert.Equal([@"C:\a\y.md"], a.Files);
         Assert.Equal([@"C:\a\b\x.md"], b.Files);
         Assert.Equal([@"C:\c\z.md"], rest.Files);
-        // The window with the remaining files restores the session and comes to the front.
-        Assert.True(rest.Restore && rest.Primary);
-        Assert.False(a.Restore || a.Primary || b.Restore || b.Primary);
-        Assert.Same(rest, targets[^1]);
+        Assert.Same(rest, targets[^1]);   // comes to the front
     }
 
     [Fact]
-    public void OnlyFoldersAtFirstStartMakeTheFirstFolderPrimary()
+    public void OnlyFoldersOpenOnlyTheirWindows()
     {
-        var targets = Router.Route(Items("C:/a/", "C:/b/"), [], -1, shift: false);
-        Assert.Equal(2, targets.Count);
-        Assert.True(targets[0].Primary && targets[0].Restore);
-        Assert.False(targets[1].Primary || targets[1].Restore);
+        var targets = Router.Route(Items("C:/a/", "C:/b/"), [], [], shift: false);
+        Assert.Equal([@"C:\a", @"C:\b"], targets.Select(t => t.Folder));
     }
 
     [Fact]
     public void AFolderAlreadyOpenReusesItsWindow()
     {
-        var targets = Router.Route(Items("C:/A/", @"C:/a/x.md"), [null, @"C:\a\"], recent: 0, shift: false);
+        var targets = Router.Route(Items("C:/A/", @"C:/a/x.md"), [null, @"C:\a\"], here: [0], shift: false);
         var t = Assert.Single(targets);
         Assert.Equal(1, t.Window);
         Assert.Equal([@"C:\a\x.md"], t.Files);
     }
 
     [Fact]
-    public void RemainingFilesWithFoldersGoToTheRunningWindow()
+    public void RemainingFilesWithFoldersGoToTheWindowOnThisDesktop()
     {
-        var targets = Router.Route(Items("C:/a/", "C:/c/z.md"), [null], recent: 0, shift: false);
+        var targets = Router.Route(Items("C:/a/", "C:/c/z.md"), [null], here: [0], shift: false);
         Assert.Equal(2, targets.Count);
         Assert.Null(targets[0].Window);
         Assert.Equal(0, targets[1].Window);
@@ -105,7 +96,7 @@ public class RouterTests
     [Fact]
     public void AFileNextToAFolderWithASimilarNameIsNotInsideIt()
     {
-        var targets = Router.Route(Items("C:/a/", "C:/ab/x.md"), [], -1, shift: false);
+        var targets = Router.Route(Items("C:/a/", "C:/ab/x.md"), [], [], shift: false);
         Assert.Empty(targets.Single(t => t.Folder == @"C:\a").Files);
         Assert.Equal([@"C:\ab\x.md"], targets.Single(t => t.Folder is null).Files);
     }

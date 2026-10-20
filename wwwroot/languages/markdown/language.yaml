@@ -2,6 +2,7 @@
 # Every part is explained in languages\_template\language.yaml.
 name: Markdown
 extensions: [.md, .markdown, .mdown, .mkd, .mdx, .txt]   # .txt: as before the language packs
+aliases: [md]   # other names it is known by (a markdown fence ```md, an embedded block); see languages\README.md
 open: edit
 mode: markdown          # built in: markdown with GitHub's additions (tables, task lists, fenced code)
 fold: markdown          # headings fold their section, fences fold their block
@@ -35,3 +36,8 @@ actions:
     jump: { line: '^#{1,6}\s', token: header }
     variants: [[1], [-1]]
     variantTitles: { '1': Next section, '-1': Previous section }
+
+# Fenced code: the lines between ```name and ``` are the language named after the fence (```sql, ```bash, ...),
+# found by its name (id, name, aliases, extensions; your own mapping first: setting languageNames).
+embedded:
+  - { openRegex: '^\s*(`{3,}|~{3,})\s*([\w#+.-]+)', closeRegex: '^\s*(`{3,}|~{3,})\s*$', languageGroup: 2 }

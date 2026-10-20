@@ -2,6 +2,7 @@
 # languages\_template\language.yaml; how a pack is made from a word file: languages\README.md.
 name: 'C / C++'
 extensions: [.c, .cpp, .cc, .cxx, .h, .hpp, .awk]
+aliases: [c, 'c++', h]   # other names it is known by (a markdown fence ```c, an embedded block); see languages\README.md
 open: edit
 fold: brace
 comments: { line: '//', block: ['/*', '*/'] }

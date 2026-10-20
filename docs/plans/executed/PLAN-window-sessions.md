@@ -59,8 +59,9 @@ new one there. All windows look the same.
 
 ### 3.5 Closing a window
 
-- **LexPen as a whole closing** (closing the last window, log-off, shutdown, a crash): every window that was open
-  comes back at the next start, in its project.
+- **Windows closing LexPen** (log-off, shutdown, Task Manager) or a crash: every window that was open comes back at
+  the next start, in its project, on its own desktop. Closing the last window by hand is not this: it is a window
+  closed by hand like any other (below), and its project comes back when LexPen starts on that desktop (3.7).
 - **A window closed by hand while another window of the same project stays open:** the closed window is forgotten;
   its pinned tabs move into the remaining window of that project (the most recently active one), as you prefer.
   The setting "Move pinned tabs when closing a pane or window" (`movePinned`) keeps deciding whether they move at
@@ -162,3 +163,17 @@ None.
 
 | Thing | Solution implemented |
 |---|---|
+| A call from the page with an argument `id` (the project) lost it: the page's call to the host uses `id` for its own number | The argument is `project`. |
+| When a session reaches the host | Written at once (the page already waits a second after a change); a window's move, size or desktop is written 0.4 s after the last change. A test that kills LexPen right after a session found the 0.4 s too late. |
+| A moved virtual desktop | Looked at when a window is activated and every 5 seconds. |
+| The primary window | Kept inside the host only for what was single before: the target "primary" of a moved tab, and the window place in `state.json` as the fallback for a window without its own. A window whose last tab is moved out still closes itself, as before. |
+| Deleting a project | Its unsaved new documents (drafts) stay on disk; at the next start they come back in the first window, so nothing unsaved is lost. |
+| The windows of a project in the menu | Numbered within the project (Window 1, 2, ...), with folder and number of tabs. |
+| The title | `<the page's title> - <project>`. |
+| Move this window to (an action) | Opens that part of the Projects menu at the bottom bar. |
+| The dimmed look of secondary windows | Gone; its CSS rule removed. The theme colour `bgBarDim` (only used by it) is still in the themes, unused. |
+| Tests | Unit: `ProjectStoreTests` (10), `RouterTests` rewritten for desktops; 138 passed. In-app: t43 (19 checks: rename, new project, crash and restore with draft, pinned tab to the other window, a closed project opened again, an unnamed empty project dropped, the menu, move this window), t44 (4 checks: a second launch, `-n`); the regression scripts t1 to t42 pass (t4 now expects the Projects menu). Virtual desktops: not testable by a script; to check by hand. |
+| The test harness | A test copy of LexPen sometimes never opens its debugging port (measured starts 2.2 to 2.6 s; one hung until stopped); the scripts are tried once more then. Not a LexPen start problem. |
+| Asked after execution: a launch on a desktop whose last LexPen window was closed opened a new project | It opens the project whose window was closed last on that desktop (all its closed windows; the reused one at its place). Not for Shift / `-n` or a folder argument. Windows has no call for "the desktop shown now", so the new window's own desktop decides, before its page asks what to open. Tests: `ProjectStoreTests` (LastClosedOn, Forget), t45 (5 checks; the second desktop simulated in projects.json). |
+| Reported: close on desktop 2, then on desktop 1, start on desktop 2: desktop 1's project showed on desktop 2 | Windows only moves (and tells the desktop of) a window it knows, which is not yet so right after it is created: the move at start and the "which desktop" of a new window were done too early. Both now happen once the window is shown, tried for up to about 3 seconds; the page loads after that, and the first launch is routed only when the restored windows are on their desktops. `Launch` stays synchronous: an async method puts back the synchronization context it started with (before the first window: not WinForms' own), after which every await left the UI thread (found by the tests, never committed). Not testable without a second desktop: to check by hand. |
+| Asked after execution: after closing the windows on every desktop by hand, LexPen started on a desktop with the project closed last on any desktop (the last window closed by hand counted as "LexPen closing" and stayed open) | Closing the last window by hand closes its project like any other window; a start on a desktop opens the project closed last on that desktop. Only Windows closing LexPen (log-off, shutdown, Task Manager) or a crash keeps the windows open for the next start. Test: t46 (4 checks: the last window closed by hand, started again: its project back, no new one). |
