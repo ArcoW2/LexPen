@@ -543,7 +543,8 @@ function loadEditor() {
   loadCss('vendor/editor.css');
   // format.js: the formatting commands and bar; it needs CodeMirror, so it comes second.
   return editorLoaded ??= loadScript('vendor/editor.js').then(() => loadScript('format.js'))
-    .then(() => loadScript('bookmarks.js')).then(() => loadScript('gutter.js')).then(() => loadScript('brackets.js'));
+    .then(() => loadScript('bookmarks.js')).then(() => loadScript('gutter.js')).then(() => loadScript('brackets.js'))
+    .then(() => loadScript('guides.js'));
 }
 
 // The editor mode: the language's, with blocks of other languages and lines you set (documentMode, languages.js).
@@ -632,6 +633,7 @@ async function ensureEditor(pane) {
   setupColumn(pane);   // column mode and blocks (column.js); its paste handler comes after the picture one
   setupVirtual(pane);   // the cursor past the end of the line (virtual.js); its keys before column mode's
   setupBrackets(pane);   // matching brackets: the highlight, closing signs while typing (brackets.js)
+  setupGuides(pane);   // indent guides (guides.js)
   pane.cm.on('drop', (cm, e) => onEditorDrop(pane, e));
   pane.cm.getWrapperElement().addEventListener('wheel', e => {   // Ctrl+wheel: the editor font size
     if (!e.ctrlKey) return;
@@ -3377,6 +3379,10 @@ function applySettings() {
   if (changed('bracketHighlight')) {   // app.css: how the pair at the cursor looks (brackets.js marks it)
     document.body.dataset.bracketHighlight = now.bracketHighlight || 'colour';
     if (typeof paintBrackets === 'function') for (const pane of panes) if (pane.cm) paintBrackets(pane.cm);
+  }
+  if (changed('indentGuides') || changed('indentGuideCursor')) {   // app.css draws them; guides.js sets the line classes
+    document.body.dataset.indentGuides = now.indentGuides || 'comment';
+    if (typeof repaintGuides === 'function') repaintGuides();
   }
   if (changed('formatBar')) applyFormatBar(now.formatBar);
   if (changed('languageNames') && 'languageNames' in was) {   // fences and blocks may now be another language

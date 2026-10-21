@@ -35,7 +35,7 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   from the fallbacks in app.css. Colour names: `bg`, `bgSide`, `bgBar`, `bgBarDim`, `bgCode`, `fg`, `fgDim`, `border`, `accent`,
   `hover`, `active`, `select`, `paneActive`; code: `keyword`, `string`, `comment`, `number`, `title`, `attr`;
   alerts: `note`, `tip`, `important`, `warning`, `caution`; markers: `gitModified`, `gitAdded`, `gitUntracked`,
-  `gitDeleted`, `barChanged`, `barRemoved`; find: `findHit`, `findCurrent`, `findCurrentFg`, `findBox`; the pair at the cursor: `bracketMatch`, `bracketNoMatch`; shown spaces, tabs and line ends: `whitespace`; the gutter beside lines of another language: `gutterBgEmbedded`. Values:
+  `gitDeleted`, `barChanged`, `barRemoved`; find: `findHit`, `findCurrent`, `findCurrentFg`, `findBox`; the pair at the cursor: `bracketMatch`, `bracketNoMatch`; indent guides (rainbow, per level): `guide1` to `guide6`; shown spaces, tabs and line ends: `whitespace`; the gutter beside lines of another language: `gutterBgEmbedded`. Values:
   `#rrggbb`, `#rgb` or `rgba(r, g, b, a)`. Mistakes show in the settings window.
 - **Settings window** (Options > Settings): a tab per group (General, Files, Editor, Preview, Tabs, Find, App, Keys,
   Languages; Ctrl+Tab / Ctrl+PgDn between them; a tab's rows are made when it is first shown); a search shows the
@@ -61,6 +61,11 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
 - **Spaces, tabs and line ends** (Options > Settings > Editor, each off by default, apart): in the editor a space
   shows as a small dot and a tab as an arrow; line ends as a pilcrow (CRLF) or the LF sign, the last line none.
   Their colour is the theme's `whitespace`.
+- **Indent guides** (Options > Settings > Editor): a thin line at every indent step, from the indent to the
+  unindent; an empty line takes the level of the lines around it. In the comment colour (the default), a colour
+  per level (rainbow: theme colours `guide1` to `guide6`, lighter at night) or off. The guide of the block the
+  cursor is in (on a line such as `begin`: the block it opens) shows in the find box's colour (a setting of its
+  own). The editor only.
 - **Menus**: File, Edit, Format, View and Options in the toolbar row. Every item shows its key; Alt+letter opens a
   menu, the arrow keys move, Enter runs, Esc closes one level, an underlined letter runs its item. The focus stays
   in the editor, so a menu item works on the cursor and the selection there.

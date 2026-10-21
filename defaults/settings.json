@@ -35,6 +35,9 @@
   "bracketHighlight": "colour",   // the pair or word set (begin ... end) around the cursor: "colour", "underline"
                                   // (in the find box's colour) or "off"
   "closeBrackets": false,         // typing an opening sign or quote adds its closer
+  "indentGuides": "comment",      // a line at every indent step: "comment" (its colour), "rainbow" (a colour per
+                                  // level, theme colours guide1 to guide6) or "off"
+  "indentGuideCursor": true,      // the guide of the block at the cursor in the find box's colour
   "outlineMerged": false,         // the outline's groups together, in line order (off: a header per group)
   "outlineBullets": true,         // a bullet in the group's colour in front of each outline entry
   "sneakTheme": "",               // the theme of the outline's sneak preview (a long click); "": the editor's, tinted

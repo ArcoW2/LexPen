@@ -3,7 +3,7 @@
 {
   "name": "Light",
   "colors": {
-    // The app: backgrounds, text, borders, selection, alerts, markers, find, brackets.
+    // The app: backgrounds, text, borders, selection, alerts, markers, find, brackets, indent guides.
     "bg": "#ffffff",
     "bgSide": "#f6f7f9",
     "bgBar": "#eef0f3",
@@ -34,6 +34,12 @@
     "findBox": "#ff0000",
     "bracketMatch": "rgba(9, 105, 218, .22)",
     "bracketNoMatch": "rgba(207, 34, 46, .35)",
+    "guide1": "rgba(207, 34, 46, .45)",
+    "guide2": "rgba(154, 103, 0, .5)",
+    "guide3": "rgba(26, 127, 55, .45)",
+    "guide4": "rgba(27, 124, 131, .45)",
+    "guide5": "rgba(9, 105, 218, .45)",
+    "guide6": "rgba(130, 80, 223, .45)",
     "whitespace": "#b4bac2",
     "gutterBgEmbedded": "#e4ebf5",
 

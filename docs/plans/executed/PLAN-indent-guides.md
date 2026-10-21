@@ -1,6 +1,6 @@
 # Plan: Indent guides
 
-Status: draft 2026-10-21, not started. Your request; your answers of 2026-10-21 are worked in. The number in the
+Status: executed 2026-10-21 (section 5). Your request; your answers of 2026-10-21 are worked in. The number in the
 file name is the priority; rename to reorder.
 
 ## 1. What this is about
@@ -47,8 +47,11 @@ the cursor is in, thin, in the colour of the find box (and the bracket underline
 - Setting `indentGuideCursor` (on / off): the guide of the block the cursor is in drawn in the find box's colour
   (`--find-box`, as the bracket underline and the find outline), still thin. Independent of `indentGuides`: with
   the guides off, only this one line shows.
-- Which guide: the innermost one at the cursor's line, at the column one indent step left of that line's text
-  (the level the line belongs to). On an empty line: the level it takes from its neighbours (3.1).
+- Which guide: on a line that opens an indent (the next line with text is indented further, as after `begin`),
+  the guide of that indent, from the next line down: the cursor on `begin` shows the line of its block together
+  with the bracket highlight of `begin` (your remark). Else the innermost one at the cursor's line, at the column
+  one indent step left of that line's text (the level the line belongs to). On an empty line: the level it takes
+  from its neighbours (3.1).
 - Its extent: up and down from the cursor's line while the lines (empty ones included) are indented at least that
   far: from the indent to the unindent.
 - Updated on every cursor move and change, after a moment (as the bracket highlight); only the lines of that run
@@ -76,3 +79,16 @@ colour names.
 ## 4. Open questions
 
 None.
+
+## 5. Resolved during execution
+
+| Point | What was done |
+|---|---|
+| How it is drawn | Not in `renderLine` (3.3): a line class per number of guides (`mm-g1` ... `mm-g40`, from `web/guides.js`) and CSS gradients in `app.css`, at the indent step in `ch` (`--mm-step` on the editor). A class change does not rebuild the line, so an empty line follows its neighbours after an edit without a redraw of the text, and a font size change needs nothing. Only the lines in view (and 20 around them) get their class, after scrolling, a change or a cursor move (40 ms later). |
+| The cursor's guide | A line class `mm-guide-cur` on the lines of the run, its column in `--mm-gc`; drawn on top of the others. Kept per document (a tab switch). The run is looked for up to 20000 lines each way; an empty line at either end of the run is left out. |
+| The cursor on an opening line | Your remark after the first build: the cursor on `begin` showed nothing (the guide of its indent starts on the next line). Now a line followed by a deeper one shows the guide of that indent (3.2a). |
+| Empty lines | Look at most 200 lines up and down for a line with text; none found: level 0. |
+| Settings | `indentGuides` (comment, rainbow, off; default comment), `indentGuideCursor` (default on: you asked for it as a setting, the default was not said). Options > Settings, Editor, Indent guides. |
+| Colours | Comment: the theme's comment colour at 55 %. Rainbow: theme colours `guide1` to `guide6` in dark.json (light colours) and light.json (darker ones); the other themes take them from their base. |
+| Docs | README (an Indent guides bullet; the theme colour names). |
+| Tests | t81 (in the app): 14 checks pass: guides per line, empty lines from their neighbours, the cursor's guide on `begin` and on `if` (the indent they open), on a body line, on `end if` and on an empty line, an edit, rainbow (six layers and the cursor's), off, the cursor's guide off, tabs. Screenshots: comment and rainbow at night, comment by day. Unit tests: 186 pass (the theme colour name `guide6` added to an existing test). Also run: t79 (45), t70 (6). |

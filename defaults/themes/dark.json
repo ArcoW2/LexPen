@@ -3,7 +3,7 @@
 {
   "name": "Dark",
   "colors": {
-    // The app: backgrounds, text, borders, selection, alerts, markers, find, brackets.
+    // The app: backgrounds, text, borders, selection, alerts, markers, find, brackets, indent guides.
     "bg": "#1e1f22",
     "bgSide": "#25262a",
     "bgBar": "#2b2d31",
@@ -34,6 +34,12 @@
     "findBox": "#ffff00",
     "bracketMatch": "rgba(120, 170, 255, .35)",
     "bracketNoMatch": "rgba(248, 81, 73, .5)",
+    "guide1": "rgba(255, 123, 114, .5)",
+    "guide2": "rgba(229, 192, 123, .5)",
+    "guide3": "rgba(126, 231, 135, .45)",
+    "guide4": "rgba(86, 182, 194, .5)",
+    "guide5": "rgba(121, 192, 255, .5)",
+    "guide6": "rgba(210, 168, 255, .5)",
     "whitespace": "#5a606a",
     "gutterBgEmbedded": "#2b3342",
 

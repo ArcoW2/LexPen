@@ -16,6 +16,8 @@
   /* Find: every match, the current one and the box around it (bright red on light). */
   --find-hit: rgba(255, 196, 0, .4); --find-current: rgba(255, 140, 0, .85); --find-current-fg: #000; --find-box: #ff0000;
   --bracket-match: rgba(9, 105, 218, .22); --bracket-no-match: rgba(207, 34, 46, .35);
+  /* Indent guides, setting indentGuides rainbow: one colour per level, darker on light. */
+  --guide1: rgba(207, 34, 46, .45); --guide2: rgba(154, 103, 0, .5); --guide3: rgba(26, 127, 55, .45); --guide4: rgba(27, 124, 131, .45); --guide5: rgba(9, 105, 218, .45); --guide6: rgba(130, 80, 223, .45);
   --whitespace: #b4bac2;   /* shown spaces, tabs and line ends (editor) */
   --gutter-bg-embedded: #e4ebf5;   /* the gutter beside lines of another language (PLAN-embedded-languages.md) */
 }
@@ -32,6 +34,8 @@
   /* Find: the box bright yellow on dark. */
   --find-hit: rgba(255, 196, 0, .4); --find-current: rgba(255, 140, 0, .85); --find-current-fg: #000; --find-box: #ffff00;
   --bracket-match: rgba(120, 170, 255, .35); --bracket-no-match: rgba(248, 81, 73, .5);
+  /* Indent guides, rainbow: light colours on dark. */
+  --guide1: rgba(255, 123, 114, .5); --guide2: rgba(229, 192, 123, .5); --guide3: rgba(126, 231, 135, .45); --guide4: rgba(86, 182, 194, .5); --guide5: rgba(121, 192, 255, .5); --guide6: rgba(210, 168, 255, .5);
   --whitespace: #5a606a;
   --gutter-bg-embedded: #2b3342;
 }
@@ -663,6 +667,27 @@ body[data-find-mark=outline] ::highlight(mm-find-cur-0), body[data-find-mark=out
 .CodeMirror .mm-bracket.mm-bracket-bad { background: var(--bracket-no-match); }
 body[data-bracket-highlight=underline] .CodeMirror .mm-bracket { background: none; border-radius: 0; box-shadow: inset 0 -2px var(--find-box); }
 body[data-bracket-highlight=underline] .CodeMirror .mm-bracket.mm-bracket-bad { box-shadow: inset 0 -2px var(--bracket-no-match); }
+
+/* Indent guides (guides.js): a line class mm-gN gives the number of guides (--mm-gn), --mm-step the indent step and
+   --mm-gc the cursor's guide (in ch), set on the editor. Setting indentGuides: comment (the default), rainbow (guide1
+   to guide6 per level, repeating), off; indentGuideCursor: the cursor's guide in the find box's colour, on top. */
+.mm-editor-pane .CodeMirror pre.CodeMirror-line {
+  --mm-guide-img: repeating-linear-gradient(to right, color-mix(in srgb, var(--hl-comment) 55%, transparent) 0 1px, transparent 1px var(--mm-step));
+  --mm-guide-pos: 0 0;
+  --mm-guide-size: calc(var(--mm-gn, 0) * var(--mm-step, 2ch)) 100%;
+  background-image: var(--mm-guide-img); background-position: var(--mm-guide-pos); background-size: var(--mm-guide-size);
+  background-repeat: no-repeat; background-origin: content-box;
+}
+body[data-indent-guides=rainbow] .mm-editor-pane .CodeMirror pre.CodeMirror-line {
+  --mm-guide-img: repeating-linear-gradient(to right, var(--guide1) 0 1px, transparent 1px calc(6 * var(--mm-step))), repeating-linear-gradient(to right, var(--guide2) 0 1px, transparent 1px calc(6 * var(--mm-step))), repeating-linear-gradient(to right, var(--guide3) 0 1px, transparent 1px calc(6 * var(--mm-step))), repeating-linear-gradient(to right, var(--guide4) 0 1px, transparent 1px calc(6 * var(--mm-step))), repeating-linear-gradient(to right, var(--guide5) 0 1px, transparent 1px calc(6 * var(--mm-step))), repeating-linear-gradient(to right, var(--guide6) 0 1px, transparent 1px calc(6 * var(--mm-step)));
+  --mm-guide-pos: calc(0 * var(--mm-step)) 0, calc(1 * var(--mm-step)) 0, calc(2 * var(--mm-step)) 0, calc(3 * var(--mm-step)) 0, calc(4 * var(--mm-step)) 0, calc(5 * var(--mm-step)) 0;
+  --mm-guide-size: max(0px, calc((var(--mm-gn, 0) - 0) * var(--mm-step, 2ch))) 100%, max(0px, calc((var(--mm-gn, 0) - 1) * var(--mm-step, 2ch))) 100%, max(0px, calc((var(--mm-gn, 0) - 2) * var(--mm-step, 2ch))) 100%, max(0px, calc((var(--mm-gn, 0) - 3) * var(--mm-step, 2ch))) 100%, max(0px, calc((var(--mm-gn, 0) - 4) * var(--mm-step, 2ch))) 100%, max(0px, calc((var(--mm-gn, 0) - 5) * var(--mm-step, 2ch))) 100%;
+}
+body[data-indent-guides=off] .mm-editor-pane .CodeMirror pre.CodeMirror-line { --mm-guide-img: none; }
+.mm-editor-pane .CodeMirror pre.CodeMirror-line.mm-guide-cur {
+  background-image: linear-gradient(var(--find-box), var(--find-box)), var(--mm-guide-img);
+  background-position: var(--mm-gc, 0) 0, var(--mm-guide-pos); background-size: 1px 100%, var(--mm-guide-size);
+}
 
 /* Formatting bar above the editor (format.js): markdown's built-in bar, or a code language's bar (its pack's
    bar.yaml, mm-code-bar); both switch off with View > Formatting bar. */
