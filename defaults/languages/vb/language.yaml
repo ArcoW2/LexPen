@@ -94,9 +94,13 @@ tokens:
   method: { like: def }
   event: { like: attribute }
 # The tag groups of the word file.
-outline:
-  - { pattern: '^\s*(?:(?:public|private)\s+)*function\s+([a-z]\w*)', name: 1, level: 1, flags: i }   # functions
-  - { pattern: '^\s*(?:(?:public|private)\s+)*sub\s+([a-z]\w*)', name: 1, level: 1, flags: i }   # subs
+outline:   # the groups of visualbasic.uew (/TGBegin), in its order
+  - group: 'Functions'
+    patterns:
+      - { pattern: '^\s*(?:(?:public|private)\s+)*function\s+([a-z]\w*)' }
+  - group: 'Subs'
+    patterns:
+      - { pattern: '^\s*(?:(?:public|private)\s+)*sub\s+([a-z]\w*)' }
 
 # ---------- Format ----------
 # The parameters of the formatter (Format, Enter): the roles of the words and signs of this language and the

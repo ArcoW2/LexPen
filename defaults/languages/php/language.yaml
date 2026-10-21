@@ -1485,10 +1485,16 @@ tokens:
   keyword-2: { like: keyword }
   class: { like: type }
 # The tag groups of the word file.
-outline:
-  - { pattern: '^\s*require(?:_once)?[\s"\'']+([\w$&*\-./:=?\\^]+)["\'']*;', name: 1, level: 2, flags: i }   # requires
-  - { pattern: '^\s*include(?:_once)?[\s"\'']+([\w$&*\-./:=?\\^]+)["\'']*;', name: 1, level: 2, flags: i }   # includes
-  - { pattern: '^\s*(?:(?:abstract|final|private|protected|public|static)\s+)*function\s+([a-z_\u007f-\ufffd][0-9a-z_\u007f-\ufffd]*)', name: 1, level: 1, flags: i }   # functions
+outline:   # the groups of php.uew (/TGBegin), in its order
+  - group: 'Requires'
+    patterns:
+      - { pattern: '^\s*require(?:_once)?[\s"'']+([\w$&*\-./:=?\\^]+)["'']*;' }
+  - group: 'Includes'
+    patterns:
+      - { pattern: '^\s*include(?:_once)?[\s"'']+([\w$&*\-./:=?\\^]+)["'']*;' }
+  - group: 'Functions'
+    patterns:
+      - { pattern: '^\s*(?:(?:abstract|final|private|protected|public|static)\s+)*function\s+([a-z_\u007f-\ufffd][0-9a-z_\u007f-\ufffd]*)' }
 
 # ---------- Format ----------
 # The parameters of the formatter (Format, Enter): the roles of the words and signs of this language and the

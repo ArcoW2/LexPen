@@ -108,7 +108,7 @@ language. Today's `wwwroot\languages\<name>\language.json` (markdown, plain text
   come from the pack.
 - highlight.js stays for fenced code blocks inside markdown (Q5); see PLAN-fenced-code-colours.md.
 - Host: lists the packs (app folder `languages\`, then your folder `%LOCALAPPDATA%\LexPen\languages\`,
-  where a folder with the same name wins; Q4), reads the YAML (see Q9) and gives the page JSON, serves the
+  where a folder with the same name wins; Q4), reads the YAML (YamlDotNet, NuGet, MIT licence; to list in THIRD-PARTY-NOTICES) and gives the page JSON, serves the
   icons, watches your folder (a changed pack applies at once, as themes do). File dialogs get their type
   filters from the packs' extensions.
 - Page: a pack is fetched the first time a file of that language is shown, not before.
@@ -148,7 +148,7 @@ language. Today's `wwwroot\languages\<name>\language.json` (markdown, plain text
 
 | # | Question | Proposal |
 |---|---|---|
-| - | None. Q9 (reading YAML) was answered: the host with YamlDotNet (NuGet, MIT licence; to list in THIRD-PARTY-NOTICES). | |
+| - | None. | |
 
 ## 9. Resolved issues during execution
 

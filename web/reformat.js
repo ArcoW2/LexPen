@@ -186,7 +186,7 @@ function rfPhrase(cfg, line, i, phrases) {
 let rfFrameId = 0;
 function rfFrame(kind, props) {
   return Object.assign({ id: ++rfFrameId, kind, name: null, col: 0, indent: 0, content: 0, closecol: 0, midcol: 0, opcol: null,
-    opener: null, openerLast: null, closer: null, until: null, endsBefore: [], endsAfter: [], line: 0, group: null, block: null,
+    opener: null, openerLast: null, closer: null, closerLast: null, middleLasts: [], until: null, endsBefore: [], endsAfter: [], line: 0, group: null, block: null,
     item: null, bodyLine: null, clauses: [], lastbase: null, wait: null, endTok: null, middles: [], untils: [], odef: {},
     tag: null, children: [], closes: true }, props);
 }
@@ -444,7 +444,7 @@ function rfSimulate(lines, cfg, override = new Map()) {
           stack.push(c); frames.push(c);
         }
       } else if (rr === 'bmid') {
-        const k = role[2], bl = stack[k]; popTo(k + 1); bl.middles.push(t);
+        const k = role[2], bl = stack[k]; popTo(k + 1); bl.middles.push(t); bl.middleLasts.push(line[i + used - 1]);
         const m = mdef(role[1]);
         if (m.until) {
           const c = rfFrame('cond', { block: bl, col: here, line: li, until: m.until, opener: line[i + used - 1], odef: m });
@@ -456,7 +456,7 @@ function rfSimulate(lines, cfg, override = new Map()) {
           stack.push(s1); frames.push(s1);
         }
       } else if (rr === 'bclose') {
-        const k = role[2]; stack[k].closer = t; skipped(k); popTo(k);
+        const k = role[2]; stack[k].closer = t; stack[k].closerLast = line[i + used - 1]; skipped(k); popTo(k);
       } else if (rr === 'until') {
         const c = stack.pop(); c.closer = t; c.block.untils.push(t);
         if (c.odef.body === 'single') {                   // Pascal: if ... then <one statement>

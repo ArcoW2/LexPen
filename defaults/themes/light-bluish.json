@@ -1,0 +1,25 @@
+// Light bluish: Light, tinted cool blue.
+// A theme lists only what differs from its base; the base may be any theme. The names are in the README (Themes).
+{
+  "name": "Light bluish",
+  "base": "light",
+  "colors": {
+    // The app: backgrounds, text, borders, selection, alerts, markers, find.
+    "bg": "#f2f6fc",
+    "bgSide": "#e8eff9",
+    "bgBar": "#dfe8f5",
+    "bgCode": "#e9f0f9",
+    "bgBarDim": "#d3deee",
+    "fg": "#17212e",
+    "fgDim": "#546277",
+    "border": "#c8d5e8",
+    "accent": "#1f5fbf",
+    "hover": "rgba(0, 0, 0, .06)",
+    "active": "rgba(31, 95, 191, .12)",
+    "select": "#bcd4f6",
+    "paneActive": "#1f5fbf",
+
+    // Code: darker where the tinted code background needs it (contrast 4.5:1).
+    "title": "#6a36b8"
+  }
+}

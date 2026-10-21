@@ -1,0 +1,26 @@
+// Light reddish: Light, tinted soft red (rose).
+// A theme lists only what differs from its base; the base may be any theme. The names are in the README (Themes).
+{
+  "name": "Light reddish",
+  "base": "light",
+  "colors": {
+    // The app: backgrounds, text, borders, selection, alerts, markers, find.
+    "bg": "#fbf1f1",
+    "bgSide": "#f5e6e7",
+    "bgBar": "#efdcde",
+    "bgCode": "#f3e5e6",
+    "bgBarDim": "#e6cfd2",
+    "fg": "#2b1a1c",
+    "fgDim": "#6e5558",
+    "border": "#e2c4c8",
+    "accent": "#b3263a",
+    "hover": "rgba(0, 0, 0, .06)",
+    "active": "rgba(179, 38, 58, .12)",
+    "select": "#f4c3ca",
+    "paneActive": "#b3263a",
+
+    // Code: darker where the tinted code background needs it (contrast 4.5:1).
+    "keyword": "#a8151f",
+    "title": "#6a36b8"
+  }
+}

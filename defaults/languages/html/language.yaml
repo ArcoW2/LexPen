@@ -321,14 +321,28 @@ tokens:
   entity: { like: atom }
   dash: { like: meta, underline: true }
 # The tag groups of the word file.
-outline:
-  - { pattern: '<(?:[a-z]+\s[^>]*\bid|a\s[^>]*\bname)=["\'']([^"\''].*?)["\'']', name: 1, level: 1, flags: i }   # anchors
-  - { pattern: '<form\s[^>]*\bname=["\'']([^"\''].*?)["\'']', name: 1, level: 1, flags: i }   # forms
-  - { pattern: '<a\s[^>]*\bhref=["\'']([^"\''#].*?)["\'']', name: 1, level: 2, flags: i }   # external links
-  - { pattern: '<a\s[^>]*\bhref=["\''](#.*?)["\'']', name: 1, level: 2, flags: i }   # local links
-  - { pattern: '<img\s[^>]*\bsrc=["\'']([^"\''].*?)["\'']', name: 1, level: 2, flags: i }   # images
-  - { pattern: '<script\s[^>]*\bsrc=["\'']([^"\''].*?)["\'']', name: 1, level: 2, flags: i }   # scripts
-  - { pattern: '<link\s[^>]*\bhref=["\'']([^"\''].*?\.css)["\'']', name: 1, level: 2, flags: i }   # stylesheets
+outline:   # the groups of html.uew (/TGBegin), in its order
+  - group: 'External Links'
+    patterns:
+      - { pattern: '<a\s[^>]*\bhref=["'']([^"''#].*?)["'']' }
+  - group: 'Local Links'
+    patterns:
+      - { pattern: '<a\s[^>]*\bhref=["''](#.*?)["'']' }
+  - group: 'Anchors'
+    patterns:
+      - { pattern: '<(?:[a-z]+\s[^>]*\bid|a\s[^>]*\bname)=["'']([^"''].*?)["'']' }
+  - group: 'Forms'
+    patterns:
+      - { pattern: '<form\s[^>]*\bname=["'']([^"''].*?)["'']' }
+  - group: 'Images'
+    patterns:
+      - { pattern: '<img\s[^>]*\bsrc=["'']([^"''].*?)["'']' }
+  - group: 'Scripts'
+    patterns:
+      - { pattern: '<script\s[^>]*\bsrc=["'']([^"''].*?)["'']' }
+  - group: 'Stylesheets'
+    patterns:
+      - { pattern: '<link\s[^>]*\bhref=["'']([^"''].*?\.css)["'']' }
 
 # Blocks of other languages: the lines between a <script> and a </script> line are JavaScript, between <style> and
 # </style> CSS, between <?php and ?> PHP. Only markers on lines of their own (a block is whole lines).

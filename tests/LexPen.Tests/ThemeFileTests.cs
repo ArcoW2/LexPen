@@ -25,6 +25,8 @@ public class ThemeFileTests : IDisposable
         Assert.Equal("--hl-keyword", Names["keyword"]);
         Assert.Equal("--find-current-fg", Names["findCurrentFg"]);
         Assert.Equal("--find-box", Names["findBox"]);
+        Assert.Equal("--bracket-match", Names["bracketMatch"]);
+        Assert.Equal("--bracket-no-match", Names["bracketNoMatch"]);
         Assert.DoesNotContain("editorFont", Names.Keys);   // the fonts block is not a theme block
     }
 
@@ -177,8 +179,9 @@ public class ThemeFileTests : IDisposable
         var problems = new List<string>();
         var themes = ThemeFile.Load(Path.Combine(Defaults, "themes"), Path.Combine(dir, "none"), Names, problems);
         Assert.Empty(problems);
-        Assert.Equal(["light", "dark", "black", "bluish", "greenish", "reddish", "yellowish"], themes.Select(t => t.Id));
-        Assert.Equal([null, null, "dark", "dark", "dark", "dark", "light"], themes.Select(t => t.BaseId));
+        Assert.Equal(["light", "dark", "black", "bluish", "greenish", "reddish", "dark-yellowish", "light-bluish", "light-greenish", "light-reddish", "yellowish"],
+            themes.Select(t => t.Id));
+        Assert.Equal([null, null, "dark", "dark", "dark", "dark", "dark", "light", "light", "light", "light"], themes.Select(t => t.BaseId));
     }
 
     // ---------- Readable contrast (WCAG 2): text 7:1, dim text and code colours 4.5:1, comments and the accent 3:1 ----------

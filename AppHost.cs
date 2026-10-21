@@ -241,8 +241,9 @@ sealed class AppHost : ApplicationContext
         };
         var app = AppTheme;
         var previewId = SettingText(Mode == "dark" ? "previewThemeDark" : "previewThemeLight");
+        var sneakId = SettingText("sneakTheme");   // the outline's sneak preview: a theme of its own, or null
         var problems = new JsonArray(themeProblems.Select(p => (JsonNode?)p).ToArray());
-        foreach (var name in new[] { "themeLight", "themeDark", "previewThemeLight", "previewThemeDark" })
+        foreach (var name in new[] { "themeLight", "themeDark", "previewThemeLight", "previewThemeDark", "sneakTheme" })
             if (SettingText(name) is { Length: > 0 } id && themes.All(t => t.Id != id))
                 problems.Add($"settings.json: \"{name}\": there is no theme \"{id}\".");
         return new JsonObject
@@ -250,6 +251,7 @@ sealed class AppHost : ApplicationContext
             ["mode"] = Mode,
             ["app"] = Json(app),
             ["preview"] = string.IsNullOrEmpty(previewId) || themes.All(t => t.Id != previewId) ? null : Json(ThemeFor(previewId, Mode)),
+            ["sneak"] = string.IsNullOrEmpty(sneakId) || themes.All(t => t.Id != sneakId) ? null : Json(ThemeFor(sneakId, Mode)),
             ["themes"] = new JsonArray(themes.Select(t => (JsonNode?)new JsonObject
                 { ["id"] = t.Id, ["name"] = t.Name, ["base"] = t.BaseId, ["mine"] = t.Mine }).ToArray()),
             ["problems"] = problems,

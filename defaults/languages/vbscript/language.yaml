@@ -110,10 +110,16 @@ tokens:
   object: { like: type }
   constant: { like: atom }
 # The tag groups of the word file.
-outline:
-  - { pattern: '^\s*(?:(?:public|private)\s+)*function\s+([a-z]\w*)', name: 1, level: 1, flags: i }   # functions
-  - { pattern: '^\s*(?:(?:public|private)\s+)*sub\s+([a-z]\w*)', name: 1, level: 1, flags: i }   # subs
-  - { pattern: '^\s*(?:(?:public|private)\s+)*property\s+((?:let|get|set)\s+[a-z]\w*)', name: 1, level: 2, flags: i }   # properties
+outline:   # the groups of vbscript.uew (/TGBegin), in its order
+  - group: 'Functions'
+    patterns:
+      - { pattern: '^\s*(?:(?:public|private)\s+)*function\s+([a-z]\w*)' }
+  - group: 'Subs'
+    patterns:
+      - { pattern: '^\s*(?:(?:public|private)\s+)*sub\s+([a-z]\w*)' }
+  - group: 'Properties'
+    patterns:
+      - { pattern: '^\s*(?:(?:public|private)\s+)*property\s+((?:let|get|set)\s+[a-z]\w*)' }
 
 # ---------- Format ----------
 # The parameters of the formatter (Format, Enter): the roles of the words and signs of this language and the

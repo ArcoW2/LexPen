@@ -5,6 +5,7 @@
 // code). Each column can be switched off: View > Gutter. Loaded with the editor.
 
 const CHANGE_GUTTER = 'mm-changes', GIT_GUTTER = 'mm-git', FOLD_GUTTER = 'CodeMirror-foldgutter';
+const OUTLINE_GUTTER = 'mm-outline-gutter';   // the outline's bullets, while the outline is open (app.js)
 const GUTTER_COLUMNS = [
   ['lineNumbers', 'Line numbers'], ['bookmarks', 'Bookmarks'], ['changes', 'Change markers (not saved)'],
   ['git', 'Git markers (since the last commit)'], ['folds', 'Fold markers'],
@@ -232,7 +233,9 @@ function setupGutter(pane) {
   if (!cm || !doc) return;
   const numbers = setting('lineNumbers');   // none | tens | all
   const gutters = [
-    ...(numbers !== 'none' ? ['CodeMirror-linenumbers'] : []), ...(gutterOn('bookmarks') ? [BM_GUTTER] : []),
+    ...(numbers !== 'none' ? ['CodeMirror-linenumbers'] : []),
+    ...(document.body.hasAttribute('data-outline') && hasOutline(doc) ? [OUTLINE_GUTTER] : []),
+    ...(gutterOn('bookmarks') ? [BM_GUTTER] : []),
     ...(gutterOn('changes') ? [CHANGE_GUTTER] : []), ...(gutterOn('git') ? [GIT_GUTTER] : []), ...(gutterOn('folds') ? [FOLD_GUTTER] : []),
   ];
   // Only when something changed: setting the columns or the fold finder makes the editor measure every line

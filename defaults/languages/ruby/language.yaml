@@ -127,10 +127,16 @@ tokens:
   variable: { like: variable-2 }
   symbol: { like: atom }
 # The tag groups of the word file.
-outline:
-  - { pattern: '^\s*module\s+([\w.:]+)', name: 1, level: 1 }   # modules
-  - { pattern: '^\s*class\s+([\w.:]+)', name: 1, level: 1 }   # classes
-  - { pattern: '^\s*def\s+([\w.?!=]+)', name: 1, level: 2 }   # functions
+outline:   # the groups of ruby.uew (/TGBegin), in its order
+  - group: 'Modules'
+    patterns:
+      - { pattern: '^\s*module\s+([\w.:]+)', case: true }
+  - group: 'Classes'
+    patterns:
+      - { pattern: '^\s*class\s+([\w.:]+)', case: true }
+  - group: 'Functions'
+    patterns:
+      - { pattern: '^\s*def\s+([\w.?!=]+)', case: true, indent: line }
 
 # ---------- Format ----------
 # The parameters of the formatter (Format, Enter): the roles of the words and signs of this language and the

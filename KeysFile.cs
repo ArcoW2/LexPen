@@ -26,7 +26,7 @@ static class KeysFile
         foreach (var c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789`-=[]\\;'./") names[c.ToString()] = c.ToString().ToUpperInvariant();
         for (var i = 1; i <= 12; i++) names["F" + i] = "F" + i;
         for (var i = 0; i <= 9; i++) names["Num" + i] = "Num" + i;
-        foreach (var n in new[] { "NumPlus", "NumMinus", "Tab", "Enter", "Esc", "Space", "Backspace", "Ins", "Del", "Home", "End", "PgUp", "PgDn", "Left", "Right", "Up", "Down" })
+        foreach (var n in new[] { "Comma", "NumPlus", "NumMinus", "Tab", "Enter", "Esc", "Space", "Backspace", "Ins", "Del", "Home", "End", "PgUp", "PgDn", "Left", "Right", "Up", "Down" })
             names[n] = n;
         foreach (var (alias, name) in new[] { ("Escape", "Esc"), ("Insert", "Ins"), ("Delete", "Del"), ("PageUp", "PgUp"), ("PageDown", "PgDn"),
             ("ArrowLeft", "Left"), ("ArrowRight", "Right"), ("ArrowUp", "Up"), ("ArrowDown", "Down"), ("Return", "Enter") })

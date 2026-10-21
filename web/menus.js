@@ -15,7 +15,7 @@ const MENUS = [
     { label: '&Recent files', fill: () => recentItems('files') },
     { label: 'Recent fold&ers', fill: () => recentItems('folders') },
     { label: 'Recently &closed', fill: () => recentItems('closed') }, '-',
-    ['&Save', 'save'], ['Save &as...', 'saveAs'], '-',
+    ['&Save', 'save'], ['Save &as...', 'saveAs'], ['Revert to save&d', 'revertToSaved'], '-',
     ['Close &tab', 'closeTab'], ['Close a&ll tabs', 'closeAllTabs'], ['Reopen closed ta&b', 'reopenTab'], ['Close &window', 'closeWindow'],
   ]],
   ['&Edit', [
@@ -24,6 +24,7 @@ const MENUS = [
     { label: 'Select c&lipboard', fill: () => clipboardItems() }, '-',
     ['Col&umn mode', 'columnMode'], '-',
     ['&Find', 'find'], ['R&eplace', 'replace'], ['&Search in files', 'searchInFiles'], ['Go to line...', 'goToLine'], '-',
+    ['Select inside brac&kets', 'selectInsideBrackets'], '-',
     ['Next secti&on', 'section', 1], ['Pre&vious section', 'section', -1], '-',
     { label: '&Go to bookmark', fill: () => bookmarkItems('go') }, { label: 'Store &bookmark', fill: () => bookmarkItems('store') },
     ['&Next bookmark', 'bookmarkNext', 1], ['Previous boo&kmark', 'bookmarkNext', -1],

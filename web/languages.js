@@ -477,27 +477,78 @@ function updatePackColours() {
 
 // ---------- Outline ----------
 // The entries of the outline: markdown's headings (built in), else the pack's patterns; null: no outline.
+// A pack's outline is a list of patterns (one list in line order) or of groups (docs/plans/executed/PLAN-outline-groups.md):
+// { group, colour, patterns }, as UltraEdit's tag groups. A group's patterns are matched against the whole text
+// (`^` / `$` at line starts and ends, a pattern may span lines); an entry belongs to the line its match starts on.
 const hasOutline = doc => !!doc && (!doc.language || Array.isArray(packOf(doc)?.outline));
+// The bullet colours of groups without a colour of their own, by their place.
+const OUTLINE_COLOURS = ['#e5534b', '#57ab5a', '#539bf5', '#c69026', '#b083f0', '#39c5cf', '#e0823d', '#d65e9b'];
 
 function outlineOf(doc) {
   if (!doc.language) return headingsOf(doc);
-  const patterns = packOf(doc)?.outline;
-  if (!Array.isArray(patterns)) return null;
+  const list = packOf(doc)?.outline;
+  if (!Array.isArray(list)) return null;
   if (doc.outline && doc.outlineVersion === doc.version) return doc.outline;
-  const compiled = patterns.map(p => { try { return { ...p, re: new RegExp(p.pattern, p.flags ?? '') }; } catch { return null; } }).filter(Boolean);
-  const entries = [];
-  docText(doc).split('\n').forEach((text, line) => {
-    for (const p of compiled) {
-      const m = p.re.exec(text);
-      if (!m) continue;
-      const level = typeof p.level === 'number' ? p.level : m[p.level]?.length ?? 1;
-      entries.push({ level: Math.max(1, Math.min(6, level)), text: m[p.name ?? 1] ?? m[0].trim(), line });
-      break;
-    }
-  });
+  const text = docText(doc), entries = [];
+  const grouped = list.some(g => g && Array.isArray(g.patterns));
+  if (!grouped) {
+    const compiled = list.map(p => { try { return { ...p, re: new RegExp(p.pattern, p.flags ?? '') }; } catch { return null; } }).filter(Boolean);
+    text.split('\n').forEach((t, line) => {
+      for (const p of compiled) {
+        const m = p.re.exec(t);
+        if (!m) continue;
+        const level = typeof p.level === 'number' ? p.level : m[p.level]?.length ?? 1;
+        const shown = m[p.name ?? 1] ?? m[0].trim();
+        const ch = Math.max(0, m.index + Math.max(0, m[0].indexOf(shown)));   // where its text starts (a double-click)
+        entries.push({ level: Math.max(1, Math.min(6, level)), text: shown, line, ch });
+        break;
+      }
+    });
+  } else {
+    const starts = [0];                                   // where every line starts: index -> line
+    for (let i = text.indexOf('\n'); i >= 0; i = text.indexOf('\n', i + 1)) starts.push(i + 1);
+    const lineAt = index => { let lo = 0, hi = starts.length - 1; while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (starts[mid] <= index) lo = mid; else hi = mid - 1; } return lo; };
+    const step = tabStops(doc).indent;
+    const width = s => s.replace(/\t/g, ' '.repeat(step)).length;
+    const groups = list.filter(g => g && Array.isArray(g.patterns));
+    groups.forEach((g, gi) => {
+      const found = new Map();                            // line -> entry: within a group the first pattern of a line wins
+      for (const p of g.patterns) {
+        let re;
+        try { re = new RegExp(p.pattern, 'gm' + (p.flags ?? (p.case ? '' : 'i'))); } catch { continue; }
+        // Line by line, unless the pattern spans lines (`span: true`: a C function's { on the next line); a \s
+        // would otherwise run on into the next line.
+        const matches = p.span ? text.matchAll(re) : text.split('\n').flatMap((t, l) =>
+          [...t.matchAll(re)].map(m => Object.assign(m, { index: starts[l] + m.index })));
+        for (const m of matches) {
+          if (!m[0].length) continue;
+          const lead = m[0].match(/^\s*/)[0].length;       // the line where the match itself starts
+          const line = lineAt(m.index + Math.min(lead, m[0].length - 1));
+          if (found.has(line)) continue;
+          // The shown text: the named capture(s), else every capture that matched, joined (as UltraEdit).
+          const names = p.name === undefined ? null : [].concat(p.name);
+          const parts = names ? names.map(n => m[n]) : m.slice(1);
+          const shown = parts.filter(x => x !== undefined && x.trim()).map(x => x.trim()).join(' ') || m[0].trim().split('\n')[0];
+          let level = typeof p.level === 'number' ? p.level : 1;
+          if (p.indent === 'line') {
+            const own = text.slice(starts[line], text.indexOf('\n', starts[line]) < 0 ? undefined : text.indexOf('\n', starts[line]));
+            level = 1 + Math.floor(width(own.match(/^[ \t]*/)[0]) / step);
+          } else if (Number.isInteger(p.indent)) level = 1 + Math.floor(width(m[p.indent] ?? '') / step);
+          const first = parts.find(x => x !== undefined && x.trim()) ?? '';   // where its text starts (a double-click)
+          const at = m.index + Math.max(0, m[0].indexOf(first.trim())) - starts[line];
+          found.set(line, { level: Math.max(1, Math.min(6, level)), text: shown, line, group: gi, ch: Math.max(0, at) });
+        }
+      }
+      entries.push(...[...found.values()].sort((a, b) => a.line - b.line));
+    });
+    entries.groups = groups.map((g, gi) => ({ name: String(g.group ?? ''), colour: outlineColour(g.colour, gi) }));
+  }
   doc.outlineVersion = doc.version;
   return doc.outline = entries;
 }
+
+// A group's colour: `#rrggbb`, a theme colour's name (accent), else one by its place.
+const outlineColour = (c, i) => typeof c === 'string' && c ? (c.startsWith('#') ? c : `var(--${c})`) : OUTLINE_COLOURS[i % OUTLINE_COLOURS.length];
 
 // ---------- How a file opens ----------
 // Your setting for the language (settings window, General > Open in), else the pack's "open", else the editor.

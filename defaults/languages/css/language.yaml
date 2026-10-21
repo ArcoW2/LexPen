@@ -356,9 +356,13 @@ tokens:
   class: { like: def }
   id: { like: def, italic: true }
 # The tag groups of the word file.
-outline:
-  - { pattern: '@import(?:\s+url)?[\s("\'']+([a-z/.\-]*?)[)"\'']+', name: 1, level: 2, flags: i }   # imports
-  - { pattern: '^\s*([\w.\-#@:\[\]()*>+~=$^|", ]+?)\s*\{', name: 1, level: 1 }   # selectors
+outline:   # the groups of css.uew (/TGBegin), in its order
+  - group: 'Imports'
+    patterns:
+      - { pattern: '@import(?:\s+url)?[\s("'']+([a-z/.\-]*?)[)"'']+' }
+  - group: 'Selectors'
+    patterns:
+      - { pattern: '^\s*([\w.\-#@:\[\]()*>+~=$^|", ]+?)\s*\{', case: true }
 
 # ---------- Format ----------
 # The parameters of the formatter (Format, Enter): the roles of the words and signs of this language and the

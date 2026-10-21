@@ -15,6 +15,7 @@
   --pane-active: #0969da; --bar-changed: #0969da; --bar-removed: #cf222e; --bg-bar-dim: #dcdfe4;
   /* Find: every match, the current one and the box around it (bright red on light). */
   --find-hit: rgba(255, 196, 0, .4); --find-current: rgba(255, 140, 0, .85); --find-current-fg: #000; --find-box: #ff0000;
+  --bracket-match: rgba(9, 105, 218, .22); --bracket-no-match: rgba(207, 34, 46, .35);
   --whitespace: #b4bac2;   /* shown spaces, tabs and line ends (editor) */
   --gutter-bg-embedded: #e4ebf5;   /* the gutter beside lines of another language (PLAN-embedded-languages.md) */
 }
@@ -30,6 +31,7 @@
   --pane-active: #d29922; --bar-changed: #1f6feb; --bar-removed: #da3633; --bg-bar-dim: #222327;
   /* Find: the box bright yellow on dark. */
   --find-hit: rgba(255, 196, 0, .4); --find-current: rgba(255, 140, 0, .85); --find-current-fg: #000; --find-box: #ffff00;
+  --bracket-match: rgba(120, 170, 255, .35); --bracket-no-match: rgba(248, 81, 73, .5);
   --whitespace: #5a606a;
   --gutter-bg-embedded: #2b3342;
 }
@@ -417,6 +419,32 @@ body[data-outline] .mm-pane:not([data-no-outline]) .mm-outline { display: flex; 
 .mm-outline-item:hover { background: var(--hover); }
 .mm-outline-item.mm-on { background: var(--active); color: var(--accent); }
 .mm-outline-none { padding: 8px 12px; color: var(--fg-dim); font-style: italic; }
+/* Groups of the outline (a pack's tag groups): a header that folds, a bullet in the group's colour. */
+.mm-outline-group { padding: 4px 8px 2px; font-weight: 600; color: var(--fg-dim); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mm-outline-group::before { content: "\25BE"; display: inline-block; width: 12px; }
+.mm-outline-group[data-folded]::before { content: "\25B8"; }
+.mm-outline-group:hover { background: var(--hover); }
+.mm-outline-gutter { width: 9px; }
+/* A sneak preview (a long click on an outline entry): it must not look like the normal editor. A thick accent
+   frame, an accent tint behind the text, the previewed line tinted stronger, a badge that says what it is, and no
+   cursor (it is not there). Back to normal on the release. */
+.mm-outline-item.mm-sneak { outline: 1px dashed var(--accent); outline-offset: -1px; }
+.mm-pane[data-sneak] .mm-editor-pane, .mm-pane[data-sneak] .mm-preview-pane { position: relative; }
+.mm-pane[data-sneak] .mm-editor-pane::after, .mm-pane[data-sneak] .mm-preview-pane::after {
+  content: ""; position: absolute; inset: 0; z-index: 10; pointer-events: none; border: 3px solid var(--accent);
+}
+/* The tint only in the editor's own theme; a theme of its own (setting sneakTheme) is the difference itself. */
+.mm-pane[data-sneak]:not([data-sneak-themed]) .mm-editor-pane .CodeMirror, .mm-pane[data-sneak]:not([data-sneak-themed]) .mm-preview-pane { background: color-mix(in srgb, var(--accent) 9%, var(--bg)); }
+.mm-pane[data-sneak]:not([data-sneak-themed]) .CodeMirror-gutters { background: color-mix(in srgb, var(--accent) 14%, var(--bg)); }
+.mm-pane[data-sneak] .CodeMirror-cursors { visibility: hidden; }
+.CodeMirror .mm-sneak-line { background: color-mix(in srgb, var(--accent) 28%, transparent); }
+.mm-sneak-badge {
+  position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 20; pointer-events: none;
+  padding: 3px 12px; border-radius: 12px; background: var(--accent); color: var(--bg); font: 600 calc(12px * var(--ui-scale)) var(--app-font, sans-serif);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .3); white-space: nowrap;
+}
+.mm-outline-mark { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-left: 1px; vertical-align: middle; }
+.mm-outline-bullet { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; vertical-align: middle; flex: none; }
 .mm-zoom { min-width: 52px; color: var(--fg-dim); font-variant-numeric: tabular-nums; }
 body[data-zoomed] .mm-zoom { color: var(--accent); }
 body[data-outline] .mm-outline-button { background: var(--active); color: var(--accent); }
@@ -574,13 +602,14 @@ body[data-no-format-bar] .CodeMirror .mm-inner-bar { display: none; }
 /* Matches: all of them, and the current one in the preview (the editor selects it). */
 .cm-mm-find-hit { background: var(--find-hit); border-radius: 2px; }
 ::highlight(mm-find-0), ::highlight(mm-find-1) { background-color: var(--find-hit); }
-::highlight(mm-find-cur-0), ::highlight(mm-find-cur-1) { background-color: var(--find-current); color: var(--find-current-fg); }
+::highlight(mm-find-cur-0), ::highlight(mm-find-cur-1) { background-color: var(--find-current); }
+body:not([data-find-mark=outline]) ::highlight(mm-find-cur-0), body:not([data-find-mark=outline]) ::highlight(mm-find-cur-1) { color: var(--find-current-fg); }
 /* The current match in the editor: as in the preview. */
 .CodeMirror .mm-find-current, .CodeMirror .cm-mm-find-hit.mm-find-current { background: var(--find-current); color: var(--find-current-fg); }
 /* The setting findMark, outline or both: one box around each whole match (find.js marks it: a line on the left at
    its first piece, on the right at its last, top and bottom all along; the colouring splits a match into pieces).
    The current match's box is thicker. Outline only: no background colour (the current match shows the selection).
-   The preview's matches are drawn by the highlight API, which has no box: an underline there. */
+   The preview: see .mm-pfind-box. */
 body[data-find-mark=outline] .cm-mm-find-hit, body[data-find-mark=outline] .mm-editor-pane .CodeMirror .cm-searching { background: none; }
 body[data-find-mark=outline] .CodeMirror .mm-find-current, body[data-find-mark=outline] .CodeMirror .cm-mm-find-hit.mm-find-current {
   background: none; color: inherit;
@@ -609,13 +638,31 @@ body[data-find-mark=outline] .CodeMirror .mm-find-line-current .CodeMirror-linen
   box-shadow: inset var(--side) 0 var(--find-box), inset calc(-1 * var(--side)) 0 var(--find-box),
     inset 0 var(--edge) var(--find-box), inset 0 calc(-1 * var(--edge)) var(--find-box);
 }
-body[data-find-mark=outline] ::highlight(mm-find-0), body[data-find-mark=outline] ::highlight(mm-find-1) {
-  background-color: transparent; text-decoration: underline 2px var(--find-box);
+/* The preview: the highlight API has no box, so find.js draws the boxes in a layer over the text. Outline only:
+   no background, the current match in the selection colour (as the editor selects it); the text keeps its own
+   colour (a highlight's `color: inherit` is not the text's colour but black, so no colour is set there at all). */
+body[data-find-mark=outline] ::highlight(mm-find-0), body[data-find-mark=outline] ::highlight(mm-find-1) { background-color: transparent; }
+body[data-find-mark=outline] ::highlight(mm-find-cur-0), body[data-find-mark=outline] ::highlight(mm-find-cur-1) { background-color: var(--select); }
+.mm-pfind-boxes { position: relative; height: 0; pointer-events: none; }
+.mm-pfind-box { position: absolute; box-sizing: border-box; --side: 1px; --edge: 2px; box-shadow: inset 0 var(--edge) var(--find-box), inset 0 calc(-1 * var(--edge)) var(--find-box); }
+.mm-pfind-box.mm-find-current { --side: 1.5px; --edge: 3px; }
+.mm-pfind-box.mm-find-box-start {
+  box-shadow: inset var(--side) 0 var(--find-box), inset 0 var(--edge) var(--find-box), inset 0 calc(-1 * var(--edge)) var(--find-box);
 }
-body[data-find-mark=both] ::highlight(mm-find-0), body[data-find-mark=both] ::highlight(mm-find-1) { text-decoration: underline 2px var(--find-box); }
-body[data-find-mark=outline] ::highlight(mm-find-cur-0), body[data-find-mark=outline] ::highlight(mm-find-cur-1) {
-  background-color: transparent; color: inherit; text-decoration: underline 3px var(--find-box);
+.mm-pfind-box.mm-find-box-end {
+  box-shadow: inset calc(-1 * var(--side)) 0 var(--find-box), inset 0 var(--edge) var(--find-box), inset 0 calc(-1 * var(--edge)) var(--find-box);
 }
+.mm-pfind-box.mm-find-box-start.mm-find-box-end {
+  box-shadow: inset var(--side) 0 var(--find-box), inset calc(-1 * var(--side)) 0 var(--find-box),
+    inset 0 var(--edge) var(--find-box), inset 0 calc(-1 * var(--edge)) var(--find-box);
+}
+
+/* The pair or word set at the cursor (brackets.js), setting bracketHighlight: a background colour, or an underline
+   in the find box's colour; one without its match in bracketNoMatch. */
+.CodeMirror .mm-bracket { background: var(--bracket-match); border-radius: 2px; }
+.CodeMirror .mm-bracket.mm-bracket-bad { background: var(--bracket-no-match); }
+body[data-bracket-highlight=underline] .CodeMirror .mm-bracket { background: none; border-radius: 0; box-shadow: inset 0 -2px var(--find-box); }
+body[data-bracket-highlight=underline] .CodeMirror .mm-bracket.mm-bracket-bad { box-shadow: inset 0 -2px var(--bracket-no-match); }
 
 /* Formatting bar above the editor (format.js): markdown's built-in bar, or a code language's bar (its pack's
    bar.yaml, mm-code-bar); both switch off with View > Formatting bar. */

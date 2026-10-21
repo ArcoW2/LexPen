@@ -1,7 +1,7 @@
-// Bluish: Dark, tinted blue; an example to copy from.
+// Dark bluish: Dark, tinted blue; an example to copy from.
 // A theme lists only what differs from its base; the base may be any theme. The names are in the README (Themes).
 {
-  "name": "Bluish",
+  "name": "Dark bluish",
   "base": "dark",
   "colors": {
     // The app: backgrounds, text, borders, selection, alerts, markers, find.

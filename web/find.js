@@ -385,6 +385,8 @@ function goPreview(pane, regex, dir, fromOrigin) {
   bar.at = matches[i][0];
   const range = previewRange(bar.index, ...matches[i]);
   CSS.highlights.set('mm-find-cur-' + pane.index, new Highlight(range));
+  pane.previewBoxes.current = range;
+  drawPreviewBoxes(pane);
   const r = range.getBoundingClientRect(), box = pane.previewEl.getBoundingClientRect();
   if (r.top < box.top + 20 || r.bottom > box.bottom - 20) pane.previewEl.scrollTop += r.top - box.top - box.height / 3;
   showCount(pane, matches, i);
@@ -428,7 +430,47 @@ function notFound(pane, matches, fromOrigin) {
 function mark(pane, where, regex, matches) {
   pane.find.marked = where + pane.active?.id;
   if (where === 'editor') return markEditor(pane, regex);
-  CSS.highlights.set('mm-find-' + pane.index, new Highlight(...matches.map(([s, e]) => previewRange(pane.find.index, s, e))));
+  const ranges = matches.map(([s, e]) => previewRange(pane.find.index, s, e));
+  CSS.highlights.set('mm-find-' + pane.index, new Highlight(...ranges));
+  pane.previewBoxes = { ranges, current: null };
+  drawPreviewBoxes(pane);
+}
+
+// The setting findMark outline / both in the preview: the highlight API has no box, so a box per line piece of
+// each match is drawn over the text (a layer after the preview's content, scrolling with it; not before it: the
+// article stays the first child, see showActive); the current match's box is thicker. Drawn again when the
+// preview changes width or zoom (the text wraps anew).
+function drawPreviewBoxes(pane) {
+  pane.previewBoxLayer?.remove();
+  pane.previewBoxLayer = null;
+  const boxes = pane.previewBoxes;
+  if (!boxes || (setting('findMark') || 'background') === 'background') return;
+  const layer = document.createElement('div');
+  layer.className = 'mm-pfind-boxes';
+  pane.previewEl.append(layer);
+  pane.previewBoxLayer = layer;
+  if (!pane.previewBoxObserver) {
+    let width = pane.previewEl.clientWidth;
+    pane.previewBoxObserver = new ResizeObserver(() => {
+      if (pane.previewEl.clientWidth === width) return;
+      width = pane.previewEl.clientWidth;
+      if (pane.previewBoxes) drawPreviewBoxes(pane);
+    });
+    pane.previewBoxObserver.observe(pane.previewEl);
+  }
+  const origin = layer.getBoundingClientRect();
+  const draw = (range, current) => {
+    const rects = [...range.getClientRects()].filter(r => r.width > 0);
+    rects.forEach((r, i) => {
+      const box = document.createElement('div');
+      box.className = 'mm-pfind-box' + (current ? ' mm-find-current' : '') + (i === 0 ? ' mm-find-box-start' : '')
+        + (i === rects.length - 1 ? ' mm-find-box-end' : '');
+      Object.assign(box.style, { left: r.left - origin.left + 'px', top: r.top - origin.top + 'px', width: r.width + 'px', height: r.height + 'px' });
+      layer.append(box);
+    });
+  };
+  if (boxes.ranges.length <= BOX_LIMIT) for (const range of boxes.ranges) draw(range, false);
+  if (boxes.current) draw(boxes.current, true);
 }
 
 function clearMarks(pane) {
@@ -437,6 +479,9 @@ function clearMarks(pane) {
   for (const m of pane.findBoxes ?? []) m.clear();
   pane.findBoxes = [];
   CSS.highlights.delete('mm-find-' + pane.index);
+  pane.previewBoxes = null;
+  pane.previewBoxLayer?.remove();
+  pane.previewBoxLayer = null;
   pane.findCurrent?.clear();
   pane.findCurrent = null;
   clearGutterMarks(pane);
@@ -451,4 +496,5 @@ function refreshMarks(pane) {
   for (const m of pane.findBoxes ?? []) m.clear();
   pane.findBoxes = [];
   if (regex && !(regex instanceof Error) && findTarget(pane) === 'editor') markEditor(pane, regex);
+  else drawPreviewBoxes(pane);
 }

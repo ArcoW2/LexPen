@@ -78,9 +78,13 @@ tokens:
   dbi: { like: type }
   variable: { like: variable-2 }
 # The tag groups (use declarations, subs) of the word file.
-outline:
-  - { pattern: '^\s*use\s+([\w:]+)', name: 1, level: 2 }   # use
-  - { pattern: '^\s*sub\s+(\w+)', name: 1, level: 1 }   # subs
+outline:   # the groups of perl.uew (/TGBegin), in its order
+  - group: 'Use Declarations'
+    patterns:
+      - { pattern: '^\s*use\s+([\w:]+)', case: true }
+  - group: 'Subs'
+    patterns:
+      - { pattern: '^\s*sub\s+(\w+)', case: true }
 
 # ---------- Format ----------
 # The parameters of the formatter (Format, Enter): the roles of the words and signs of this language and the

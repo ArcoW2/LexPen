@@ -120,15 +120,25 @@ tokens:
 embedded:
   - { open: '/*==[', close: ']==*/', language: json }
 # The tag groups of the word file: procedures / functions / triggers, tables, regions, TODO, API definitions.
-outline:
-  - { pattern: '^\s*create\s+(?:or\s+replace\s+)?(?:procedure|function|view|event|domain)\s+([\w".]+)', name: 1, level: 1, flags: i }
-  - { pattern: '^\s*create\s+or\s+replace\s+trigger\s+([\w".]+)', name: 1, level: 1, flags: i }
-  - { pattern: '^\s*create\s+(?:or\s+replace\s+)?table\s+([\w".]+)', name: 1, level: 1, flags: i }
-  - { pattern: '(?://\s*---|(?://|--)\$region)\s?((?:(?!\s---).)+)', name: 1, level: 2, flags: i }
-  - { pattern: '^\s*begin\s*(?:--|//)\s*(.+)$', name: 1, level: 2, flags: i }
-  - { pattern: '^\s*//\s*\*\*\*\s?([^*]+)\**$', name: 1, level: 2 }
-  - { pattern: '//.*\s*(?:TODO|ACW|!@#):*\s+([^0-9].+)$', name: 1, level: 2 }
-  - { pattern: '^\s*"StoredProcName"\s*:\s*"([0-9a-z_]*)"', name: 1, level: 2, flags: i }
+outline:   # the groups of Sybase_ASA_SQL.uew (/TGBegin), in its order
+  - group: 'TODO'
+    patterns:
+      - { pattern: '//.*\s*(TODO|ACW|!@#):*\s+([^0-9].+)$' }   # the tag and the text, joined
+  - group: 'APIdefs King Communicator'
+    patterns:
+      - { pattern: '^\s*"StoredProcName"\s*:\s*"([0-9a-z_]*)"' }
+  - group: 'Procs/Funcs/triggers'
+    patterns:
+      - { pattern: '^\s*create\s+(?:or\s+replace\s+)?(procedure|function|view|event|domain)\s+([\w".]+)' }
+      - { pattern: '^\s*create\s+or\s+replace\s+trigger\s+([\w".]+)' }
+  - group: 'Regions'
+    patterns:
+      - { pattern: '(?://\s*---|(?://|--)\$region)\s?((?:(?!\s---).)+)' }
+      - { pattern: '^\s*begin\s*(?:--|//)\s*(.+)$' }
+      - { pattern: '^\s*//\s*\*\*\*\s?([^*]+)\**$', case: true }
+  - group: 'Tables'
+    patterns:
+      - { pattern: '^\s*create\s+(?:or\s+replace\s+)?table\s+([\w".]+)' }
 
 # ---------- Format ----------
 # The parameters of the formatter (Format, Enter): the roles of the words and signs of this language and the

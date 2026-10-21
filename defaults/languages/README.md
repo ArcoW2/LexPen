@@ -38,7 +38,7 @@ starting with `_` is not loaded (`_template`).
    - `name` (shown in the bottom bar and the language list) and `extensions` (`[.sql, .ddl]`).
    - `open`: `edit`, `split` or `preview`; `fold`: `brace`, `indent`, `markdown` or `none`.
    - The colouring (next section).
-   - `outline`: patterns for the Outline button.
+   - `outline`: patterns for the Outline button, in one list or in named groups (Outline, below).
    - `actions`: snippets, wrap, line prefix, jumps, conversions.
    - `format`: the parameters of the formatter (Format, Enter; below).
    - Optional: `tabSize`, `indentSize`, `useTabs`, `trimTrailing` (Tabs and whitespace, below).
@@ -168,6 +168,34 @@ An action in `actions` has a `title`, an optional `hint`, and one of:
 - `format: rules`: the formatter with the pack's `format:` parameters (Format, below). Every pack with parameters
   has it as its action `format`; JSON and XML name it to give it their own title.
 
+## Outline
+
+`outline:` is one list of patterns (shown in line order), or a list of named groups, as UltraEdit's tag groups:
+
+```yaml
+outline:
+  - group: 'TODO'
+    colour: accent                     # optional: the bullet's colour (#rrggbb or a theme colour)
+    patterns:
+      - { pattern: '//.*\s*(TODO|ACW):*\s+(.+)$' }
+  - group: 'Functions'
+    patterns:
+      - { pattern: '^\s*def\s+(\w+)', case: true, indent: line }
+      - { pattern: '^(?:\w+\s+)+(\w+)\s*\([^)]*\)\s*\{', span: true }
+```
+
+| Key of a pattern | What |
+|---|---|
+| `pattern` | A JavaScript regular expression, matched per line (`^` / `$` at the line's start and end) |
+| `name` | A capture number, or a list of them, joined with a space. In groups without it: every capture that matched, joined (`TODO fix this`); in a plain list: capture 1 |
+| `case` | `true`: minds case. Patterns in groups ignore case otherwise (as UltraEdit's); a plain list's patterns use `flags` (`i`) |
+| `indent` | In groups: `line` (the entry indented as its line is, in indent steps: methods under their class) or a capture number (its width) |
+| `level` | A fixed depth (1 to 6); in a plain list also a capture whose length is the depth |
+| `span` | `true`: the pattern is matched against the whole text, so it may run over lines (a C function's `{` on the next line); the entry is the line the match starts on. Else `\s` would run into the next line |
+
+A group without entries is not shown. Within a group a line counts once (its first matching pattern); a line can be in
+more than one group.
+
 ## Format: the formatter's parameters
 
 One formatter for every language (`web/reformat.js`). It knows roles, not words: groups, blocks, conditions,
@@ -256,7 +284,8 @@ AutoHotkey (`ahk`) and Sybase ASA SQL (`asa`) were made this way:
 | `Escape Char` | a `rules` entry for the escaped character, or `escape:` on the quote |
 | `/C1"Name"` ... `/Cn` word lists | one `words` list each, named after a token type; words copied as they are, never retyped. Lists with only punctuation are left out. |
 | `** @@` in a list (words starting with) | `'@@*'` |
-| `/Function String` or `/TGBegin` tag groups with `/TGFindStr` | `outline` patterns (`%` is `^`, `[^t ]++` is `\s*`, `^(...^)` is the group) |
+| `/Function String` | `outline` patterns (`%` is `^`, `[^t ]++` is `\s*`, `^(...^)` is the group) |
+| `/TGBegin "Name"` ... `/TGEnd` tag groups with `/TGFindStr` | `outline` groups: `- group: 'Name'` with `patterns`, in the word file's order; groups searched only inside a block (`/TGFindBStart`, Parameters) are left out |
 | `/Open Fold Strings = "{"` / `EnableCFByIndent` | `fold: brace` / `fold: indent` |
 | `LanguageMarker = "python"` | `firstLine: '^#!.*\bpython'` (files without a known extension) |
 | `/Indent Strings`, `/Delimiters`, `/Member String`, `/Variable String`, tag groups inside a block (`/TGFindBStart`) | not used |

@@ -98,9 +98,13 @@ words:
 tokens:
   class: { like: type }
 # The tag groups of the word file.
-outline:
-  - { pattern: '^import\s+([\w.*]+);', name: 1, level: 2 }   # imports
-  - { pattern: '^\s*(?:(?:public|protected|private|static|final|abstract|synchronized|native)\s+)+[\w<>\[\],.?\s]*?(\w+)\s*\(', name: 1, level: 1 }   # methods
+outline:   # the groups of java.uew (/TGBegin), in its order
+  - group: 'Imports'
+    patterns:
+      - { pattern: '^import\s+([\w.*]+);', case: true }
+  - group: 'Methods'
+    patterns:
+      - { pattern: '^\s*(?:(?:public|protected|private|static|final|abstract|synchronized|native)\s+)+[\w<>\[\],.?\s]*?(\w+)\s*\(', case: true }
 
 # ---------- Format ----------
 # The parameters of the formatter (Format, Enter): the roles of the words and signs of this language and the

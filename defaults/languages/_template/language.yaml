@@ -87,7 +87,8 @@ aliases: [4nt, take-command]
 
 # ---------- Outline ----------
 # Patterns that find the entries of the outline (the Outline button): name is the group with the name,
-# level 1 or 2 (or a group whose length is the level), flags i for any case.
+# level 1 or 2 (or a group whose length is the level), flags i for any case. Or named groups, as UltraEdit's tag
+# groups: - group: 'Labels' with patterns: [...] (see README.md, Outline).
 outline:
   - { pattern: '^\s*:(\w+)', name: 1, level: 1 }
 

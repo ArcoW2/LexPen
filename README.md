@@ -23,18 +23,19 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   `%LOCALAPPDATA%\LexPen\languages\` (start from `defaults\languages\_template`; the guide: `defaults\languages\README.md`; a
   folder with a shipped name replaces it) and apply at once; mistakes show in the settings window. How a file
   opens: per language, the pack's choice unless you set it (settings window, General > Open in).
-- **Themes**: Light, Dark, Black (OLED), Greenish, Bluish, Reddish and Yellowish ship in `defaults\themes`; your own
+- **Themes**: Light, Dark, Black (OLED), Dark bluish, Dark greenish, Dark reddish, Dark yellowish, Light bluish, Light
+  greenish, Light reddish and Light yellowish ship in `defaults\themes`; your own
   go in `%LOCALAPPDATA%\LexPen\themes\` (a file with the same name replaces a shipped one) and apply at once.
   LexPen follows Windows' light / dark mode (a setting, on), with a theme chosen for each mode; Day / night
   switches until Windows changes mode. The preview can have a theme of its own per mode (a light preview next to
   a dark editor). Light and Dark (`light.json`, `dark.json`) set every colour; any other theme names any theme as
   its base and lists only what differs: `{ "name": "Lighter bluish", "base": "bluish", "colors": { "bg": "#1d2533" } }`
-  (its own colours, then Bluish's, then Dark's). A theme is not light or dark itself: the mode it is chosen for is
+  (its own colours, then Dark bluish's, then Dark's). A theme is not light or dark itself: the mode it is chosen for is
   (title bar, scrollbars, diagrams, a language's `byTheme: { dark }`). A colour nothing in the chain sets comes
   from the fallbacks in app.css. Colour names: `bg`, `bgSide`, `bgBar`, `bgBarDim`, `bgCode`, `fg`, `fgDim`, `border`, `accent`,
   `hover`, `active`, `select`, `paneActive`; code: `keyword`, `string`, `comment`, `number`, `title`, `attr`;
   alerts: `note`, `tip`, `important`, `warning`, `caution`; markers: `gitModified`, `gitAdded`, `gitUntracked`,
-  `gitDeleted`, `barChanged`, `barRemoved`; find: `findHit`, `findCurrent`, `findCurrentFg`, `findBox`; shown spaces, tabs and line ends: `whitespace`; the gutter beside lines of another language: `gutterBgEmbedded`. Values:
+  `gitDeleted`, `barChanged`, `barRemoved`; find: `findHit`, `findCurrent`, `findCurrentFg`, `findBox`; the pair at the cursor: `bracketMatch`, `bracketNoMatch`; shown spaces, tabs and line ends: `whitespace`; the gutter beside lines of another language: `gutterBgEmbedded`. Values:
   `#rrggbb`, `#rgb` or `rgba(r, g, b, a)`. Mistakes show in the settings window.
 - **Settings window** (Options > Settings): a tab per group (General, Files, Editor, Preview, Tabs, Find, App, Keys,
   Languages; Ctrl+Tab / Ctrl+PgDn between them; a tab's rows are made when it is first shown); a search shows the
@@ -162,7 +163,8 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   other half of the window, or right-click a tab > **Move to other pane** to show two files next to each other.
   The divider can be dragged; **Side by side / Above each other** (or right-click the divider) switches the split.
   The active pane has a blue (day) or yellow (night) border. Clicking a file in the tree shows it in the current
-  tab; Shift+click opens a new tab, Ctrl+click shows it in the other pane, Ctrl+Shift+click opens a new tab there.
+  tab (in a new tab when the current one is changed or a draft); Shift+click opens a new tab, Ctrl+click shows it
+  in the other pane, Ctrl+Shift+click opens a new tab there.
   The same file can be open in both panes: the first copy edits, the other shows the text live, read-only. Drag a
   tab along the tab bar to reorder it. Right-click a tab for Close, Close other tabs, Close tabs to the right;
   View > **Tab bar**: one row that scrolls, one row with a menu for the tabs out of view, or several rows.
@@ -171,7 +173,17 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
 - **Ctrl+Tab**: through the documents in recently used order (hold Ctrl and press Tab again to go further back),
   or in tab bar order (the setting Ctrl+Tab order).
 - **Outline**: Ctrl+Shift+H shows the headings of each pane's file at its right; click one to go there (preview
-  and editor). The heading you are at is highlighted. Its width can be dragged.
+  and editor). The entry above the cursor is highlighted (in the preview: the one at the top). Its width can be dragged.
+  Languages from an UltraEdit word file show their tag groups as UltraEdit's function list does: a header per
+  group (TODO, Procs/Funcs/triggers, Regions, Tables for ASA; Functions, Classes, ...), its entries in line order;
+  a click on a header folds it (kept per language), and a folded group opens when its entry is the one you are at.
+  Right-click the outline (or Options > Settings, Editor): all groups together in line order, and a bullet in the
+  group's colour in front of each entry. While the outline is open the same bullets stand in the gutter, on the
+  lines of the entries. A click on an entry shows it (the cursor stays where it is), a double-click puts the cursor
+  on its text, a long click is a sneak preview: the entry is shown while the button is held (moving along the
+  outline shows the entry under the pointer), and on release the pane is back where it was. It stands out (a frame,
+  a badge, a tint), or has a theme of its own: Options > Settings, Editor, Theme of the sneak preview (a light one
+  next to a dark editor).
 - **Search** (Ctrl+Shift+F): in the current file, the open files (unsaved edits included) or the files in the
   folder (the open folder, otherwise the folder of the current file), with match case, whole word and regular
   expressions. Codes: `^p` line break (CR, LF or CRLF), `^t` tab, `^?` any character, `^#` digit, `^$` letter,
@@ -200,6 +212,8 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
 - **File menu**: New file, Open file, Open folder, Favourites, the recently opened files and folders and the
   recently closed files (15 each, shared by all windows). An entry that no longer exists is dimmed; choosing it
   removes it.
+  **Revert to saved** (File menu, and a tab's right-click menu, shown only when the text differs from the file on
+  disk): the file as it is on disk; Ctrl+Z gives your changes back.
 - **Drafts**: a new file is kept as a draft (`%LOCALAPPDATA%\LexPen\State\Drafts\editN.md`) until saved, and comes back
   at the next start, in its own window. Closing a changed draft's tab asks "Save draft editN?" (Yes: Save As, No: the
   draft is deleted, Cancel). Closing LexPen asks for the changed files and drafts in one question (Yes, No (keep
@@ -256,8 +270,10 @@ F1 lists every key and action. The main ones of the default set:
 | Mouse back / forward | Back / forward to the tab and file shown before, like a browser |
 | Ctrl+E | Show / hide the preview |
 | Ctrl+Shift+H, Ctrl+Shift+B, Ctrl+Shift+E | Outline, sidebar, folder pane |
-| Ctrl+F, F3 / Shift+F3, Ctrl+Shift+R, Ctrl+Shift+F | Find, next / previous (past the last match: stop, go on from the top, or go on until where the search started; a setting), replace, search in files. Found text is marked with a background colour, a box around it, or both (Options > Settings, Find; in the preview the box is an underline); so are the line numbers of its lines (a setting) |
+| Ctrl+F, F3 / Shift+F3, Ctrl+Shift+R, Ctrl+Shift+F | Find, next / previous (past the last match: stop, go on from the top, or go on until where the search started; a setting), replace, search in files. Found text is marked with a background colour, a box around it, or both (Options > Settings, Find; in the editor and the preview); so are the line numbers of its lines (a setting) |
 | Ctrl+G | Go to line: a line number, or line:column (also Edit > Go to line...) |
+| Ctrl+[ / Ctrl+] | To the opener (before it) / closer (after it) of the pair or word set around the cursor; again: the pair around that one; with Shift: select. The pair is highlighted as you move and type: the innermost one holding the cursor, or the set of the word the cursor is on (`if` ... `else` ... `end if`), only in the language at the cursor, strings and comments left out (Options > Settings, Editor: a background colour, an underline or off; also close brackets and quotes while typing). Edit > Select inside brackets: what lies between |
+| Ctrl+> / Ctrl+< | Indent / outdent the lines (in keys.json: `Ctrl+Shift+.` and `Ctrl+Shift+Comma`) |
 | Ctrl+PgDn / Ctrl+PgUp | Next / previous section (with Shift: select) |
 | Ctrl+Shift+1 .. 9, Ctrl+Shift+` , Ctrl+Shift+C | Select clipboard 1 to 9, the Windows clipboard, the list |
 | Alt+C, Alt+Shift+arrows | Column mode on / off, select a block (also without column mode) |

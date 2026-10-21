@@ -6,13 +6,13 @@ open: edit
 mode: text/x-csharp     # built in
 fold: brace
 comments: { line: '//', block: ['/*', '*/'] }
-outline:
-  - pattern: '^\s*(?:\[[^\]]*\]\s*)*(?:(?:public|private|protected|internal|static|sealed|abstract|partial|readonly|unsafe|file|ref)\s+)*(?:class|interface|record|struct|enum)\s+(\w+)'
-    name: 1
-    level: 1
-  - pattern: '^\s*(?:(?:public|private|protected|internal|static|virtual|override|async|abstract|sealed|extern|unsafe|new|partial)\s+)+[\w<>\[\],.?() ]+?\s+(\w+)\s*(?:<[^>]*>)?\s*\('
-    name: 1
-    level: 2
+outline:   # the groups of csharp.uew (/TGBegin), in its order
+  - group: 'Functions'
+    patterns:
+      - { pattern: '^\s*(?:(?:public|private|protected|internal|static|virtual|override|async|abstract|sealed|extern|unsafe|new|partial)\s+)+[\w<>\[\],.?() ]+?\s+(\w+)\s*(?:<[^>]*>)?\s*\(', case: true }
+  - group: 'Classes'
+    patterns:
+      - { pattern: '^\s*(?:\[[^\]]*\]\s*)*(?:(?:public|private|protected|internal|static|sealed|abstract|partial|readonly|unsafe|file|ref)\s+)*(?:class|interface|record|struct|enum)\s+(\w+)', case: true }
 actions:
   snippetTry:
     title: 'Snippet: try / catch'

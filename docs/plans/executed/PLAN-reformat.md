@@ -25,7 +25,7 @@ mechanisms; the pack names the texts. Comments and strings never count. It runs 
 file, as one undo step, with the tab and indent settings. How it lays out is set by separate style attributes
 (content after a `(` or on the next line, indentation from the block word or from its line, alignment on or
 off, ...), each a setting per language with the pack's default; no named sets. Built in three steps:
-indentation, alignment, conditions and clauses (4.6). The same pass can check the text as well: an opener
+indentation, alignment, conditions and clauses (4.4). The same pass can check the text as well: an opener
 without its closer, a closer without its opener (3.7e).
 
 ## 3. Details
@@ -42,7 +42,7 @@ as its own `format:` kind, as JSON and XML are now.
 
 ### 3.2 Built-in modes
 
-Decided (your answer to 4.23 and 4.24): no separate path. C# and JavaScript get `format` parameters like every
+Decided: no separate path. C# and JavaScript get `format` parameters like every
 other pack (appendix), and their editor mode keeps only the colouring. JSON's and XML's pretty print move onto
 the same formatter too (3.7c). The earlier idea, CodeMirror's smart indent for the built-in modes, is dropped.
 
@@ -105,7 +105,7 @@ select (
        )
 ```
 
-or, compacter (4.1):
+or, compacter (the `open` attribute, 3.7):
 
 ```sql
 select (if a = b then
@@ -119,14 +119,14 @@ select (if a = b then
   close and an open.
 - Only code counts: the colouring already knows what is a comment or a string, so `begin -- end` or `'end'` do
   not count.
-- A block opened and closed on one line (`if a = b then 'x' else 'y' endif`) adds nothing (4.2).
+- A block opened and closed on one line (`if a = b then 'x' else 'y' endif`) adds nothing (4.1).
 - A `close` pops back to its own opener: `endif` closes the `if`, also when a `(` inside it was left open by a
   mistake (that `(` is dropped, so one mistake does not shift the rest of the file).
 - Lines inside a block comment or a string over several lines keep their indentation.
 - With `useTabs`, the leading whitespace is tabs as far as it goes (a leading tab is an indent step wide) and
   spaces for the rest of the column.
 
-First rule sets, to be checked against real files (4.3): ASA (`begin`/`end`, `if`/`endif`/`end if`,
+First rule sets, to be checked against real files (4.2): ASA (`begin`/`end`, `if`/`endif`/`end if`,
 `case`/`end case`, `loop`/`end loop`; `else`, `elseif`, `when`), SQL (`begin`/`end`), Pascal (`begin`, `case`,
 `try`, `record`, `class` ... `end`; `except`, `finally` as middle; a forward `class;` must not open), VB /
 VBScript (`If ... Then`, `For`/`Next`, `Sub`/`End Sub`, ...). Python and YAML are left out: their indentation is
@@ -143,10 +143,10 @@ the structure.
   - Layout of a block that spans lines: a line break after its opener's line end (`then`, `begin`), before and
     after a `middle` word, before its `close` word. A block that is on one line stays on one line.
   - Then every line's indentation from 3.3.
-  - The `(`: kept where it is, or the content moved onto the next line (4.1).
+  - The `(`: kept where it is, or the content moved onto the next line (the `open` attribute, 3.7).
 - The selection's lines, or the whole file. With a selection the stack is built from the lines above it, so a
   selected procedure body lands where it belongs.
-- **Every language in the text** (your answer to 4.4): each part is formatted by its own language's rules, the
+- **Every language in the text**: each part is formatted by its own language's rules, the
   file's language for its lines and each embedded language for its lines: a JSON block in a .sql file by the
   JSON pretty print, a fenced block in markdown by its fence's language, lines you gave a language by that
   language, and so on inside those (a script in HTML). The marker lines stay with the outer language. An inner
@@ -239,7 +239,7 @@ statements:                      # a statement's first word, and the clause word
     ```
 
   - `start`: at the start of the next line, one indent step right of the `if`, the operators lined up
-    (right-aligned, 4.7); the first line's operand moves right to line up with the operands after the
+    (right-aligned, 4.5); the first line's operand moves right to line up with the operands after the
     operators:
 
     ```sql
@@ -304,7 +304,7 @@ statements:                      # a statement's first word, and the clause word
       and nawfile.NawFilGid = pId;
 ```
 
-Your layouts for it (your answer to 4.15; the `where` left out). A join without a join inside it keeps its `on`
+Your layouts for it (the `where` left out). A join without a join inside it keeps its `on`
 on its own line. Three forms:
 
 Aligned, also the first comparison of each `on` (`open: same, close: own, base: word, align: on, alignClause: first, afterClose: next`):
@@ -428,7 +428,7 @@ What the rules give with this label (`align: on` lines up the comparisons of the
 The difference: `=`, `is` and `like` in one column.
 
 or compact, the `on` on the next line in the join's column (`open: same, close: own, base: word, operator: start, longClause: next`;
-the short join's `on` is then not in a column, 4.19):
+the short join's `on` is then not in a column; ASA's default):
 
 ```sql
 from
@@ -464,7 +464,7 @@ What I read from these, as rules:
 - **A join without a join inside**: one line: join word, table, alias, `on (...)`. The joins of the list are
   columns: the table, the alias and the `on` start in one column over the whole list. The table column is the
   widest table plus one space; before `on` there are four spaces after the widest alias (in all three forms;
-  see 4.16). An item of another shape (`tabNaw naw`, the join with a join inside) is not in the columns.
+  see 4.13). An item of another shape (`tabNaw naw`, the join with a join inside) is not in the columns.
 - **How a nesting is recognized**: not by joins at all. After a join word comes either a table name or a `(`.
   A `(` there opens a group, whatever is in it: joins (`(tabNawFile nawfile inner join ...)`) or a query
   (`(select ... ) x`). That group follows `open`, `close` and `base` like every other parenthesis, and its
@@ -474,7 +474,7 @@ What I read from these, as rules:
 - **What follows a group over lines** (`) on (...)`, `) x on (...)`, also `) then` or `) as x` elsewhere): on
   the line of the `)`, or on the next line. Not a join attribute but a general one, `afterClose: same / next`
   (3.7). With `next`, your example puts the `on` right-aligned under the join word (it ends where `join`
-  ends, measured on your text); in general: under the word that opened the item (4.21).
+  ends, measured on your text); in general: under the word that opened the item (4.16).
 - **`base` in joins**: `word` as in all your examples (the inner joins just right of the `(`). With
   `base: line` the inside of the group goes one step right of the join's line, the `)` at that line's start:
 
@@ -508,7 +508,7 @@ What I read from these, as rules:
 
 ### 3.7 Style attributes (per language)
 
-Asked: variants such as compact, clean, extended, per language. Your answer to 4.1: keep the attributes
+Asked: variants such as compact, clean, extended, per language. Decided: keep the attributes
 separate, not joined into named styles. Each attribute is a setting of its own per language; the pack gives its
 defaults.
 
@@ -518,11 +518,11 @@ defaults.
 | `close` | `same` / `own` | `)`, `]`, `}` of a group that spans lines: at the end of its last line, or on a line of its own. A group on one line keeps its `)` (`on (a = b)`) | `own` |
 | `base` | `word` / `line` | The next line's indentation: one step right of the column of the `(` or block word, or one step right of the indentation of the line it is on | `word` |
 | `align` | `on` / `off` | 3.5 (anchors, list columns) | `on` |
-| `oneLine` | `keep` / `split` | A block written on one line: left on one line, or laid out over lines | 4.2 |
+| `oneLine` | `keep` / `split` | A block written on one line: left on one line, or laid out over lines | 4.1 |
 | `operator` | `end` / `start` / `own` | Where `and`, `or`, `and not`, ... go in a condition over lines (3.6) | `start` (your examples) |
-| `afterClose` | `same` / `next` | What follows a `)` that closes a group over lines (the `on` of a join with a join inside, an alias, `then`): on the `)`'s line, or on the next line (3.6) | 4.20 |
-| `alignClause` | `first` / `off` | The first comparison of each `on` lined up over the list (3.6) | 4.20 |
-| `longClause` | `column` / `next` | A long `on`: it stays in its column on the join's line, or starts the next line in the join's column (3.6) | 4.19 |
+| `afterClose` | `same` / `next` | What follows a `)` that closes a group over lines (the `on` of a join with a join inside, an alias, `then`): on the `)`'s line, or on the next line (3.6) | `next` |
+| `alignClause` | `first` / `off` | The first comparison of each `on` lined up over the list (3.6) | `off` |
+| `longClause` | `column` / `next` | A long `on`: it stays in its column on the join's line, or starts the next line in the join's column (3.6) | `next` |
 | `parenSpace` | `off` / `on` | `(a = b)` or `( a = b )` | `off` (your examples) |
 
 Your three examples with `open`, `close` and `base` (each attribute on its own):
@@ -600,7 +600,7 @@ script on your text (2026-10-21); under each of your drawings in 3.6 is what the
 | Joins, `on` not aligned inside (second form) | As the first form, without the `=` column | The last join (`comments on (`) is out of the `on` column; with `align: on` over the whole list it would be in it. Needs 4.18. |
 | Joins, `on` after the `)` (third form) | `) on (` on the `)`'s line | The same as the second form: the last join out of the column. |
 | A long `on`, aligned | `on` at 65; `(` at 68; first operand at 73; `and` at 69 (just right of the `(`); `)` at 68 under the `(` | The comparisons are not lined up (`=`, `is`, `like`), while `align: on` would line them up (3.5). Either your fictive example is just not aligned, or `alignClause` also covers the lines of a long `on` (then its label is `alignClause: off`). 4.22. |
-| A long `on`, compact | `on` at 2 (the join's column); `(` at 5; first operand at 10; `and` at 6; `)` at 5 | The short join above it keeps the table column but has its `on` out of the column: no attribute gives that. 4.19. |
+| A long `on`, compact | `on` at 2 (the join's column); `(` at 5; first operand at 10; `and` at 6; `)` at 5 | The short join above it keeps the table column but has its `on` out of the column: no attribute gives that. |
 | `base: line` join (drawn by me) | Follows its label | Not from your text; drawn from the rule only. |
 
 The rule texts were corrected where this showed a gap: `close` is about groups over lines only (a one-line
@@ -671,12 +671,12 @@ language's indent size from the settings (3.7) |
 | `freeClosers` | Closers that need no opener (3.7e) |
 | `markup`, `void`, `verbatimElements`, `autoClose` | XML / HTML: tags, elements without content, elements kept as written, implied end tags |
 | `tables` | Markdown: rows around a delimiter row (`sep`, `delimiter`, `fill`): the separators in columns, each row one line |
-| `longLimit`, `clauseGap` | A clause is long with more comparisons than this (4.17); the spaces before a clause in a join's column (4.16) |
+| `longLimit`, `clauseGap` | A clause is long with more comparisons than this (4.14); the spaces before a clause in a join's column (4.13) |
 | `style` | The attributes of 3.7, the pack's defaults |
 
 ### 3.7c JSON and XML with the same attributes
 
-They fit, and (your answer to 4.24) they use the same formatter, not a parser of their own. Two things the
+They fit, and they use the same formatter, not a parser of their own. Two things the
 parsers gave are kept another way: every value stays exactly as written because the formatter changes only
 whitespace and line breaks outside strings and comments, for every language; and a mistake (a `{` without its
 `}`) is reported by the check of 3.7e, with its line. JSON's question "keep the comments?" goes: Format always
@@ -765,7 +765,7 @@ Where the prototype differs from your drawings, or decides something not yet ask
   (`and` at the start, `or` at the end), so moving them would change it. 4.11.
 - **Your condition example** comes out as drawn, except that `is distinct from` stands one space after the
   widest left side; yours stands further right (perhaps longer names elsewhere in your code). 4.8.
-- **The last join** keeps its `on` in the column (columns over the whole list, 4.18); your second form has it
+- **The last join** keeps its `on` in the column (columns over the whole list, 4.15); your second form has it
   right after `comments`.
 - **A block written on one line** (`begin declare x ...; end`) stays on one line (`oneLine: keep`). 4.2.
 - **Alignment** only applies inside lists, clauses and conditions, never between the statements of a block
@@ -820,68 +820,54 @@ for `/Indent Strings` in "From an UltraEdit word file").
 
 ## 4. Open questions
 
-1. **The two forms.** Answered: separate attributes, no named styles; ASA's defaults in 3.7.
-2. **A block on one line.** `if a = b then 'equal' else 'not equal' endif` on one line: keep it (as 3.4), or
+1. **A block on one line.** `if a = b then 'equal' else 'not equal' endif` on one line: keep it (as 3.4), or
    always lay it out over lines? Your third example splits `then 'equal' else` because the block already spans
    lines; that I took as the rule.
-3. **Test files.** A few of your real ASA and Pascal files would be the test set for the rules: which ones may I
+2. **Test files.** A few of your real ASA and Pascal files would be the test set for the rules: which ones may I
    use?
-4. **Inner languages.** Answered: every language by its own rules (3.4).
-5. **Continued statements.** Answered in part by your example 2 (conditions, `set`). Left: a `select a, b from t
+3. **Continued statements.** Conditions and `set` follow your example 2 (3.6). A `select a, b from t
    where x = 1` over lines: the column list after `select` on the next lines one step right, as `set`?
-6. **Steps.** Build it in three steps, each usable on its own: (1) indentation and Enter (3.3, 3.4), (2)
+4. **Steps.** Build it in three steps, each usable on its own: (1) indentation and Enter (3.3, 3.4), (2)
    alignment (3.5), (3) conditions and clauses (3.6)? Recommended: yes; step 3 is the most SQL-specific.
-7. **Operators of different length.** `and`, `or` and `and not` in one condition (`start` and `own`):
+5. **Operators of different length.** `and`, `or` and `and not` in one condition (`start` and `own`):
    left-aligned as drawn in 3.6 (`  and     (` above `  and not (`), or right-aligned (`      and (` above
    `  and not (`)?
-8. **Columns in example 1.** The name column is wider than the names shown (I assume a longer name in the part
+6. **Columns in example 1.** The name column is wider than the names shown (I assume a longer name in the part
    left out). If the widest name is all it takes: plus one space, or a minimum gap (your type column has at least
    five spaces after `nchar(80)`)?
-9. **Comments at a line end.** Never aligned (as in example 1), or aligned when they are in a run of their own
+7. **Comments at a line end.** Never aligned (as in example 1), or aligned when they are in a run of their own
    (several lines with a trailing comment in a row)?
-10. **More switches.** Others you want as a switch, e.g. keyword case (`IF` / `if` / as written), a space inside
-    parentheses?
-11. **The own-line form.** Is 3.6's `own` drawing what you mean by "between lines": operators one step right of
-    the `if`, every operand one step further? And should there be `asTyped` (the operator stays where it is)?
-12. **Clauses.** You asked why clauses are there. They are not for the operators: they put `set`, `from` and
+8. **More switches.** Others you want as a switch, e.g. keyword case (`IF` / `if` / as written), a space inside
+   parentheses?
+9. **The own-line form.** Is 3.6's `own` drawing what you mean by "between lines": operators one step right of
+   the `if`, every operand one step further? And should there be `asTyped` (the operator stays where it is)?
+10. **Clauses.** You asked why clauses are there. They are not for the operators: they put `set`, `from` and
     `where` under their statement (`update`) and the `set` list on the next lines. If I read your question
     wrongly and you meant the sentence "Format keeps the operator where you put it": that one is replaced by
     the `operator` switch.
-13. **Statements without `;`.** Is 3.6's list complete for ASA? Other words that end a statement there (`go`
+11. **Statements without `;`.** Is 3.6's list complete for ASA? Other words that end a statement there (`go`
     between batches, a label, `declare`), or statements of which a clause word is also a statement word (as
     `set`)?
-14. **An inner part partly selected.** A selection that covers half of a JSON block: format the whole block
+12. **An inner part partly selected.** A selection that covers half of a JSON block: format the whole block
     (JSON can only be pretty printed whole), or only indent the selected lines of it?
-15. **Joins.** Answered: your layouts, now in 3.6.
-16. **The gap before `on`.** Four spaces after the widest alias in your examples, one after the widest table: a
+13. **The gap before `on`.** Four spaces after the widest alias in your examples, one after the widest table: a
     fixed rule (one space inside an item, four before a clause word such as `on`), or an attribute?
-17. **What a long `on` is.** Your first form keeps two comparisons on one line of over 150 characters and
+14. **What a long `on` is.** Your first form keeps two comparisons on one line of over 150 characters and
     splits the fictive one with four. Split by the number of comparisons (more than two?), by the length of the
     text between the parentheses, or by the line's length (a line width setting)?
-18. **Columns after a join with a join inside.** Your first form keeps the last join in the columns after it,
+15. **Columns after a join with a join inside.** Your first form keeps the last join in the columns after it,
     the other two start again. Which one, or a switch?
-19. **The compact form.** Answered by your defaults: `longClause: next`. Was: Answered in part: no named styles (3.7). Left: a long `on` in the aligned form (the
-    `on` stays in its column) or in the compact form (the `on` on the next line)? Now the attribute `longClause`
-    (3.7): its ASA default? And with `longClause: next`, the short joins' `on` out of the column (as your compact
-    example), or still in it?
-20. **ASA's defaults for joins.** Answered by your defaults: `afterClose: next`, `alignClause: off`. Was: `afterClose`: `next` (your first two forms) or `same` (your third)?
-    `alignClause`: `first` (your first form) or `off`?
-21. **`afterClose: next`, which column.** Your example ends the `on` where `join` ends. As a general rule: right
+16. **`afterClose: next`, which column.** Your example ends the `on` where `join` ends. As a general rule: right
     under the end of the word that opened the item (`join`, `then` under ...?), at the item's start (the
     join's column), or one step right of it?
-22. **Comparisons in a long `on`.** Lined up over its lines (`=`, `is`, `like` in one column), or not (as your
+17. **Comparisons in a long `on`.** Lined up over its lines (`=`, `is`, `like` in one column), or not (as your
     fictive example)? If not: `alignClause` covers them too, and the aligned long form's label is `alignClause: off`.
-23. **C# and JavaScript.** Answered: the same formatter (3.2). Was: Keep their editor mode's indentation (3.2), or give them the `format` roles too, so
-    every language follows the same attributes?
-24. **JSON and XML.** Answered: the same formatter (3.7c). Was: Keep their own parsers (they guarantee every value stays as written and report errors with
-    line and column) and let those read the same attributes (3.7c), as recommended; or move them onto the
-    generic engine?
-25. **How problems show (3.7e).** A red mark in the gutter of the line with a tooltip, as you suggested; also
+18. **How problems show (3.7e).** A red mark in the gutter of the line with a tooltip, as you suggested; also
     a count in the bottom bar or a list (F8 to the next one)? Checked while typing (after a pause) or on Format?
-26. **The prototype in the repository.** `docs/plans/reformat-prototype/` holds it (engine, parameters, samples)
+19. **The prototype in the repository.** `docs/plans/reformat-prototype/` holds it (engine, parameters, samples)
     as the reference for the real one (its outputs can become the tests). Keep it there, or remove it once the
     formatter is built?
-27. **Arguments of a call on the next line.** Your file has `call api_..._DoAction(` with every argument on the next
+20. **Arguments of a call on the next line.** Your file has `call api_..._DoAction(` with every argument on the next
     lines, one step in. With ASA's `open: same` Format pulls the first one up next to the `(` and lines the others
     up under it (column 37 there). Keep it so, make `open: next` the default for the parentheses of a call (a
     group setting), or leave the content where it is when the `(` ends its line?
@@ -891,14 +877,14 @@ for `/Indent Strings` in "From an UltraEdit word file").
 | Point | What was done |
 |---|---|
 | The formatter | `web/reformat.js`: a port of the prototype (`docs/plans/reformat-prototype`), one engine for every language; the parameters from each pack's `format:` (generated from the prototype's sets, so what was tested is what ships). Tested by t64: the 21 samples and 10 ASA cases give exactly the prototype's output, and a second Format changes nothing (31 of 31). |
-| JSON and XML (4.23, 4.24) | On the same formatter. Their comments question is gone (comments stay); `<b/>` stays as written (the old pretty print wrote `<b />`); the declaration and the root element on lines of their own. `Formatters.cs`, the host's `format` and `askKeepComments` and `FormattersTests` are no longer used; not removed (your call). |
-| Mistakes in the structure | Format leaves the text as it was when the check of 3.7e finds an opener without its closer or a closer without one in the lines to format; the message gives the line and the cursor goes there (as the old pretty print did for JSON / XML). For HTML the end tags that may be left out (`optionalEnd`) do not count. The gutter marks of 3.7e (4.25) are not built. |
+| JSON and XML (3.2, 3.7c) | On the same formatter. Their comments question is gone (comments stay); `<b/>` stays as written (the old pretty print wrote `<b />`); the declaration and the root element on lines of their own. `Formatters.cs`, the host's `format` and `askKeepComments` and `FormattersTests` are no longer used; not removed (your call). |
+| Mistakes in the structure | Format leaves the text as it was when the check of 3.7e finds an opener without its closer or a closer without one in the lines to format; the message gives the line and the cursor goes there (as the old pretty print did for JSON / XML). For HTML the end tags that may be left out (`optionalEnd`) do not count. The gutter marks of 3.7e (4.18) are not built. |
 | A selection | Its whole lines are formatted; the lines above count as they are, not as Format would make them (`set y` after an unformatted `if` at column 0 goes to column 2). |
 | A part of another language | Formatted by its own parameters, its lines from the indentation it had; it moves with the line above it, and so does the end marker in the comment that holds it (`]==*/`). A language without parameters (plain text) keeps its lines and moves along. |
 | `base: line` with `open: same` | As the definition says: one step right of the indentation of the line the block word is on (`select (if a = b then` / `  'x'` / `endif`). |
 | ASA: `exception` (your example) | `declare @x exception for sqlstate ...` was read as a block's exception part, and its `for` as a loop. Now `exception`, `for`, `while` and `loop` count only where a statement starts (a label may come first), and the exception part is a branch one step inside its `begin`, its `when` lines one step further, as in your example. In the tests (t64, ASA: exception). |
 | Your suppliers_HELPER.sql | Formatted as a whole in the prototype (3432 lines; a second Format changes nothing). It showed: a type of two words (`long nvarchar`) was split over two columns, and a comment right after the last word of an item was pushed out. Now only the gaps every row of a list has are columns (mode, name), the rest of a row is one cell lined up by its anchor (`default`), and the gap before a line-end comment is no column. A blank line no longer ends a list's columns (your lists keep one column through blank and comment lines; that is also why your `in` has two spaces: `out` is further down the same list). A `(` that starts a line of a statement (`declare @original ROW`, then `(`) stands at the statement's column. The check reported line 3156, `")" closes nothing`: correct, comments do not nest in SQL Anywhere (the `*/` of `/*Raise when in use*/` ends the outer comment). |
-| `call x(` with its arguments on the next lines (your file) | ASA's `open: same` pulls the first argument up next to the `(` and lines the others up under it; your code has them on the next line, one step in. Left as the default says (4.27). |
+| `call x(` with its arguments on the next lines (your file) | ASA's `open: same` pulls the first argument up next to the `(` and lines the others up under it; your code has them on the next line, one step in. Left as the default says (4.20). |
 | Enter and closing words | Enter in a language with parameters (not Python, markdown): the new line where Format would put it (an empty line gets a neutral probe so it gets its frame's column). Typing a closing word followed by a space or sign at a line start (`end if;`, `else `), or a closing sign (`}`, `)`), or `>` of an end tag, moves that line to its column. At most 2000 lines above are read. Tested by t67. |
 | Line breaks per round | The prototype applies one fix at a time; LexPen applies all fixes found in a round, from the end of the text to its start, skipping a fix on a line another fix of the round changed. The same output on all 31 cases. |
 | Speed | Measured by t68 (debug build, this machine), the ASA procedure repeated: 250 lines: Format 33 ms, Enter 4 ms; 1000 lines: 88 ms, 13 ms; 4000 lines: 278 ms, 33 ms. |

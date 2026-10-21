@@ -61,11 +61,20 @@ tokens:
   variable: { like: variable-2 }
   library: { like: builtin }
 # The tag groups of the word file.
-outline:
-  - { pattern: '^\s*typedef\s+(?:[\w*\[\]]+\s+)+(\w+);', name: 1, level: 1 }   # typedefs (on one line)
-  - { pattern: '^\s*#define\s+(\w+)\(', name: 1, level: 2 }   # macros
-  - { pattern: '^(?:\w+[ \t]+)+[ *]*(\w+)[ \t]*\([^)]*\);', name: 1, level: 2 }   # prototypes
-  - { pattern: '^(?!\s*(?:if|else|while|for|switch|return)\b)\s*(?:[\w*&:<>,]+\s+)+\**(\w+)\s*\([^{;}]*\)\s*(?:const\s*)?\{', name: 1, level: 1 }   # functions (with { on the same line)
+outline:   # the groups of c_cplusplus.uew (/TGBegin), in its order
+  - group: 'Typedefs'
+    patterns:
+      - { pattern: '^[ \t]*typedef[ \t]+(?:struct|union|enum)[ \t]+(?:\w+[ \t]+)?\{[^{}]*\}[ \t]*(\w+);', case: true, span: true }   # the struct over lines
+      - { pattern: '^\s*typedef\s+(?:[\w*\[\]]+\s+)+(\w+);', case: true }
+  - group: 'Macros'
+    patterns:
+      - { pattern: '^\s*#define\s+(\w+)\(', case: true }
+  - group: 'Prototypes'
+    patterns:
+      - { pattern: '^(?:\w+[ \t]+)+[ *]*(\w+)[ \t]*\([^)]*\);', case: true }
+  - group: 'Functions'
+    patterns:
+      - { pattern: '^(?!\s*(?:if|else|while|for|switch|return)\b)\s*(?:[\w*&:<>,]+\s+)+\**(\w+)\s*\([^{;}]*\)\s*(?:const\s*)?\{', case: true, span: true }   # the { may be on the next line
 
 # ---------- Format ----------
 # The parameters of the formatter (Format, Enter): the roles of the words and signs of this language and the

@@ -53,8 +53,10 @@ tokens:
   echo: { like: keyword }
   argument: { like: atom }
 # The tag groups of the word file.
-outline:
-  - { pattern: '^:(?!:)(.+)$', name: 1, level: 1 }   # labels
+outline:   # the groups of batch.uew (/TGBegin), in its order
+  - group: 'Labels'
+    patterns:
+      - { pattern: '^:(?!:)(.+)$', case: true }
 
 # ---------- Format ----------
 # The parameters of the formatter (Format, Enter): the roles of the words and signs of this language and the

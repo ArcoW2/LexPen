@@ -562,8 +562,29 @@ function reindentLine(cm, line) {
 function formatEnter(cm) {
   if (cm.getOption('readOnly') || !reformatContext(cm, cm.getCursor().line)) return CodeMirror.Pass;
   cm.operation(() => {
+    // The line being left first: `else` then Enter puts the else at its column (no space or sign came after it).
+    for (const line of new Set(cm.listSelections().map(s => s.head.line))) if (startsWithCloser(cm, line)) reindentLine(cm, line);
     cm.execCommand('newlineAndIndent');
     for (const sel of cm.listSelections()) reindentLine(cm, sel.head.line);
+  });
+}
+
+// The closing and middle words of a language (end if, else, when, then on its own line) and its closing signs.
+function closerWords(cfg) {
+  const b = cfg.blocks ?? {};
+  return [...Object.keys(b.close ?? {}), ...(b.middle ?? []).map(m => m.w), ...(b.open ?? []).flatMap(o => o.until ?? []),
+    ...(b.open ?? []).filter(o => o.endsBefore?.length && o.closes === false).map(o => o.w)];
+}
+
+// Does the line start with a closing or middle word as a whole word (else, end if;), or a closing sign?
+function startsWithCloser(cm, line) {
+  const ctx = reformatContext(cm, line);
+  if (!ctx) return false;
+  const cfg = ctx.cfg, text = cm.getLine(line).replace(/^[ \t]+/, '');
+  if ((cfg.groups ?? []).some(g => text.startsWith(g.pair[1])) || (cfg.markup && text.startsWith('</'))) return true;
+  return closerWords(cfg).some(w => {
+    const head = text.slice(0, w.length);
+    return rfLow(cfg, head) === rfLow(cfg, w) && !/[\w$#@]/.test(text.charAt(w.length));
   });
 }
 
@@ -574,9 +595,7 @@ function electricReformat(cm, change) {
   const line = change.from.line, ctx = reformatContext(cm, line);
   if (!ctx) return;
   const typed = change.text[0], head = cm.getLine(line).slice(0, change.from.ch).replace(/^[ \t]+/, '');
-  const cfg = ctx.cfg, b = cfg.blocks ?? {};
-  const words = [...Object.keys(b.close ?? {}), ...(b.middle ?? []).map(m => m.w), ...(b.open ?? []).flatMap(o => o.until ?? []),
-    ...(b.open ?? []).filter(o => o.endsBefore?.length && o.closes === false).map(o => o.w)];
+  const cfg = ctx.cfg, words = closerWords(cfg);
   const closers = (cfg.groups ?? []).map(g => g.pair[1]);
   const isWordEnd = !/[\w$#@]/.test(typed);
   const hit = (isWordEnd && words.some(w => rfLow(cfg, w) === rfLow(cfg, head))) || (!head && closers.includes(typed)) ||

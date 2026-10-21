@@ -25,6 +25,7 @@ public class KeysFileTests
     [InlineData("Ctrl+/", "Ctrl+/")]
     [InlineData("Ctrl+Shift+`", "Ctrl+Shift+`")]
     [InlineData("insert", "Ins")]
+    [InlineData("ctrl+shift+comma", "Ctrl+Shift+Comma")]
     public void NormalizesKeyNames(string written, string expected) => Assert.Equal(expected, KeysFile.Normalize(written));
 
     [Theory]

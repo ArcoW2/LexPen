@@ -1,9 +1,9 @@
-// Light: the day colours, complete: the root of the light themes (Yellowish builds on it).
+// Light: the day colours, complete: the root of the light themes (the light yellowish, reddish, bluish, greenish build on it).
 // Every colour name is set here; a theme on this base lists only what it changes. The names are in the README (Themes).
 {
   "name": "Light",
   "colors": {
-    // The app: backgrounds, text, borders, selection, alerts, markers, find.
+    // The app: backgrounds, text, borders, selection, alerts, markers, find, brackets.
     "bg": "#ffffff",
     "bgSide": "#f6f7f9",
     "bgBar": "#eef0f3",
@@ -32,6 +32,8 @@
     "findCurrent": "rgba(255, 140, 0, .85)",
     "findCurrentFg": "#000",
     "findBox": "#ff0000",
+    "bracketMatch": "rgba(9, 105, 218, .22)",
+    "bracketNoMatch": "rgba(207, 34, 46, .35)",
     "whitespace": "#b4bac2",
     "gutterBgEmbedded": "#e4ebf5",
 

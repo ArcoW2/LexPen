@@ -6,8 +6,10 @@ open: edit
 mode: powershell        # built in
 fold: brace
 comments: { line: '#', block: ['<#', '#>'] }
-outline:
-  - { pattern: '^\s*function\s+([\w-]+)', name: 1, level: 1, flags: i }
+outline:   # the groups of powershell.uew (/TGBegin), in its order
+  - group: 'Functions'
+    patterns:
+      - { pattern: '^\s*(?:function|filter)\s+([\w-]+)' }
 actions:
   snippetFunction:
     title: 'Snippet: function'

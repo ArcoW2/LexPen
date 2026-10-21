@@ -443,18 +443,7 @@ ANSI files too. New files and drafts are UTF-8 without BOM, as today.
 
 ## 4. Open questions
 
-Answered on 2026-10-19 and worked into section 3: remove print only (3.2); bookmarks in the editor only
-(3.4); numbered clipboards instead of a ring, Ctrl+Shift+` for clipboard 0, Ctrl+Shift+C and the indicator
-for the list, 1 to 9 kept across restarts with 0 active at start (3.6); Ctrl+Tab in recently used order,
-keys in categories, Ctrl+Alt+PgUp / PgDn removed, Ctrl+PgUp / PgDn for sections, no Ctrl+N (3.3); Alt
-letters F / E / R / V / O, arrow keys in menus (3.8); keys file as JSON with `//` comments and actions
-with parameters (3.9); Ctrl+Shift+C is the clipboard list and never DevTools (3.3); Ctrl+O and
-Ctrl+Shift+O dropped like Ctrl+N (3.3); Ctrl+Tab order is a setting, recently used or tab bar order (3.3);
-plain text as the base pack for sections, for now (3.9); files without BOM that are not valid UTF-8
-are read and saved as ANSI (3.12); backup on save as a setting, on by default,
-named `notes.md.bak` (3.11).
-
-Nothing is open.
+None.
 
 ## 5. Resolved issues during execution
 

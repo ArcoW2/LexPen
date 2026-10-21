@@ -92,11 +92,13 @@ tokens:
   library: { like: type, italic: true }
   self: { like: variable-2 }
 # The tag groups of the word file.
-outline:
-  - { pattern: '^class\s+(\w+)', name: 1, level: 1 }   # classes
-  - { pattern: '^def\s+(\w+)', name: 1, level: 1 }   # functions
-  - { pattern: '^\s+class\s+(\w+)', name: 1, level: 2 }
-  - { pattern: '^\s+def\s+(\w+)', name: 1, level: 2 }   # methods (indented)
+outline:   # the groups of python.uew (/TGBegin), in its order
+  - group: 'Classes'
+    patterns:
+      - { pattern: '^\s*class\s+(\w+)', case: true, indent: line }
+  - group: 'Functions'
+    patterns:
+      - { pattern: '^\s*def\s+(\w+)', case: true, indent: line }
 
 # ---------- Format ----------
 # The parameters of the formatter (Format, Enter): the roles of the words and signs of this language and the

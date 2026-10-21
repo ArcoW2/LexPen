@@ -1,9 +1,9 @@
-// Dark: the night colours, complete: the root of the dark themes (Black, Bluish, Greenish, Reddish build on it).
+// Dark: the night colours, complete: the root of the dark themes (Black and the dark bluish, greenish, reddish, yellowish build on it).
 // Every colour name is set here; a theme on this base lists only what it changes. The names are in the README (Themes).
 {
   "name": "Dark",
   "colors": {
-    // The app: backgrounds, text, borders, selection, alerts, markers, find.
+    // The app: backgrounds, text, borders, selection, alerts, markers, find, brackets.
     "bg": "#1e1f22",
     "bgSide": "#25262a",
     "bgBar": "#2b2d31",
@@ -32,6 +32,8 @@
     "findCurrent": "rgba(255, 140, 0, .85)",
     "findCurrentFg": "#000",
     "findBox": "#ffff00",
+    "bracketMatch": "rgba(120, 170, 255, .35)",
+    "bracketNoMatch": "rgba(248, 81, 73, .5)",
     "whitespace": "#5a606a",
     "gutterBgEmbedded": "#2b3342",
 

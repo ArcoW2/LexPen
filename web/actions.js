@@ -106,6 +106,8 @@ appAction('openFile', { title: 'Open file...', hint: 'One or more files, in tabs
 appAction('openFolder', { title: 'Open folder...', hint: 'In the folder pane', group: 'files', run: () => commands.openFolder() });
 appAction('save', { title: 'Save', hint: 'The file of the active tab', group: 'files', run: () => commands.save() });
 appAction('saveAs', { title: 'Save as...', hint: 'Under another name; an ANSI file becomes UTF-8', group: 'files', run: () => commands.saveAs() });
+appAction('revertToSaved', { title: 'Revert to saved', hint: 'The file as it is on disk; Ctrl+Z gives your changes back', group: 'files',
+  enabled: () => canRevert(activeDoc()), run: () => revertDoc(activeDoc()) });
 appAction('closeTab', { title: 'Close tab', hint: 'Asks about unsaved changes', group: 'files', run: () => commands.closeTab() });
 appAction('reopenTab', { title: 'Reopen closed tab', hint: 'The last tab closed in this window', group: 'files', run: () => reopenTab() });
 appAction('closeAllTabs', { title: 'Close all tabs', hint: 'Of the active pane; pinned tabs stay', group: 'files',
@@ -190,6 +192,19 @@ appAction('goToLine', { title: 'Go to line', hint: 'A line number, or line:colum
     cm.scrollIntoView(CodeMirror.Pos(line, ch), cm.getScrollInfo().clientHeight / 2);
     cm.focus();
   } });
+// Select inside brackets (brackets.js): what lies between the pair or word set at the cursor. No key.
+appAction('selectInsideBrackets', { title: 'Select inside brackets', hint: 'Between the pair the highlight shows: ( ), begin ... end, a string', group: 'edit', editor: true,
+  run: (_, { pane }) => { selectInsideBrackets(pane.cm); pane.cm.focus(); } });
+// The opener / closer of that pair: the cursor before the opener or after the closer, so the next press goes on to
+// the pair around it. With Shift: select to there.
+appAction('goToOpenBracket', { title: 'Go to opening bracket', hint: 'Of the pair the highlight shows (begin of begin ... end); with Shift: select to it', group: 'edit', editor: true, move: true,
+  run: (_, { pane, extend }) => { goToBracket(pane.cm, 'open', extend); pane.cm.focus(); } });
+appAction('goToCloseBracket', { title: 'Go to closing bracket', hint: 'Of the pair the highlight shows (end of begin ... end); with Shift: select to it', group: 'edit', editor: true, move: true,
+  run: (_, { pane, extend }) => { goToBracket(pane.cm, 'close', extend); pane.cm.focus(); } });
+appAction('indentMore', { title: 'Indent', hint: 'The lines of the cursor or selection one indent step right', group: 'edit', editor: true,
+  run: (_, { pane }) => { pane.cm.execCommand('indentMore'); pane.cm.focus(); } });
+appAction('indentLess', { title: 'Outdent', hint: 'The lines of the cursor or selection one indent step left', group: 'edit', editor: true,
+  run: (_, { pane }) => { pane.cm.execCommand('indentLess'); pane.cm.focus(); } });
 appAction('find', { title: 'Find', hint: 'In this pane: the editor or the preview (the selection is filled in)', group: 'edit', run: () => findKey('open') });
 appAction('findNext', { title: 'Find next', hint: 'With an empty or hidden find bar: show it', group: 'edit', run: () => findKey('next') });
 appAction('findPrevious', { title: 'Find previous', hint: 'The match before', group: 'edit', run: () => findKey('prev') });
@@ -354,6 +369,18 @@ const SETTING_ROWS = [
     hint: 'Where the indent stops are: Tab in the indentation of a line, Indent / Outdent, and a tab in the indentation is shown that wide. A language can set its own (indentSize)',
     options: () => Array.from({ length: 16 }, (_, i) => [i + 1, String(i + 1)]) },
   { name: 'formatBar', group: 'Editor', kind: 'toggle' },
+  { name: 'bracketHighlight', group: 'Editor', sub: 'Brackets', kind: 'choice', title: 'The pair at the cursor: marked with',
+    hint: 'The innermost pair or word set (begin ... end) around the cursor; one without its match in another colour',
+    options: () => [['colour', 'A background colour'], ['underline', 'An underline (the colour of the find box)'], ['off', 'Not marked']] },
+  { name: 'closeBrackets', group: 'Editor', sub: 'Brackets', kind: 'toggle', title: 'Close brackets and quotes while typing',
+    hint: 'An opening sign adds its closer; typing the closer before one steps over it; Backspace removes an empty pair. Signs only, never words' },
+  { name: 'outlineMerged', group: 'Editor', sub: 'Outline', kind: 'toggle', title: 'Outline: groups together, by line',
+    hint: 'Off: a header per group (its entries in line order); also in the right-click menu of the outline' },
+  { name: 'outlineBullets', group: 'Editor', sub: 'Outline', kind: 'toggle', title: 'Outline: a bullet in the colour of the group',
+    hint: 'In front of every entry of a language with groups; also in the right-click menu of the outline' },
+  { name: 'sneakTheme', group: 'Editor', sub: 'Outline', kind: 'choice', title: 'Theme of the sneak preview',
+    hint: 'A long click on an outline entry shows it while the button is held: in the editor\'s own theme with a tint, or in a theme of its own (a light one next to a dark editor)',
+    options: () => [['', 'The editor\'s theme, tinted'], ...themeOptions()] },
   { name: 'leftWraps', group: 'Editor', sub: 'Cursor', kind: 'toggle', title: 'Left at the start of a line goes to the line above',
     hint: 'At the first column, Left (and Shift+Left) goes on to the end of the line above. Off: the cursor stays at the start' },
   { name: 'scrollMargin', group: 'Editor', sub: 'Cursor', kind: 'choice', title: 'Scroll sideways before the edge',
@@ -393,7 +420,7 @@ const SETTING_ROWS = [
   { name: 'findShared', group: 'Find', kind: 'toggle' },
   { name: 'findWrap', group: 'Find', kind: 'choice', title: 'Search: at the end of the file', hint: 'What find / search next (F3) does past the last match (Shift+F3: before the first)',
     options: () => [['end', 'Stop, with a message'], ['around', 'Go on from the top'], ['origin', 'Go on from the top, stop where the search started']] },
-  { name: 'findMark', group: 'Find', kind: 'choice', title: 'Found text: marked with', hint: 'The matches of find and search, in the editor and the preview (the preview cannot draw a box: an underline there)',
+  { name: 'findMark', group: 'Find', kind: 'choice', title: 'Found text: marked with', hint: 'The matches of find and search, in the editor and the preview',
     options: () => [['background', 'A background colour'], ['outline', 'A box around it (the text keeps its own background)'], ['both', 'Both']] },
   { name: 'findGutter', group: 'Find', kind: 'toggle', title: 'Mark the line numbers of lines with found text',
     hint: 'As the found text is marked; the line with the current match as the current match' },

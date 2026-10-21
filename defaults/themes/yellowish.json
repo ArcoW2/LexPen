@@ -1,7 +1,7 @@
-// Yellowish: Light and warm, like paper.
+// Light yellowish: Light and warm, like paper.
 // A theme lists only what differs from its base; the base may be any theme. The names are in the README (Themes).
 {
-  "name": "Yellowish",
+  "name": "Light yellowish",
   "base": "light",
   "colors": {
     // The app: backgrounds, text, borders, selection, alerts, markers, find.

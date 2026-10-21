@@ -365,8 +365,24 @@ function makePane(index) {
     outlineEl: el.querySelector('.mm-outline-list'),
   };
   pane.outlineEl.addEventListener('click', e => {
+    if (pane.sneakEnded) { pane.sneakEnded = false; return; }   // the release of a sneak preview
+    const head = e.target.closest('[data-group-head]');
+    if (head) return toggleOutlineGroup(pane, head);      // a group's header: fold or unfold
     const item = e.target.closest('[data-line]');
-    if (item) goToLine(pane, +item.dataset.line);
+    if (item) goToLine(pane, +item.dataset.line);         // there, the cursor stays (a double-click moves it)
+  });
+  // A long click: a sneak preview (startSneak).
+  pane.outlineEl.addEventListener('pointerdown', e => { pane.sneakEnded = false; startSneak(pane, e); });
+  pane.outlineEl.addEventListener('pointermove', e => { if (pane.sneak) sneakTo(pane, e.target.closest('[data-line]')); });
+  for (const type of ['pointerup', 'pointercancel']) addEventListener(type, () => endSneak(pane));
+  pane.outlineEl.addEventListener('contextmenu', outlineMenu);
+  // A double-click: the cursor on the entry's own text in its line, in the editor.
+  pane.outlineEl.addEventListener('dblclick', e => {
+    const item = e.target.closest('[data-line]');
+    if (!item || !pane.cm || pane.active?.mode === 'preview') return;
+    const line = +item.dataset.line, ch = Math.min(+item.dataset.ch || 0, pane.cm.getLine(line)?.length ?? 0);
+    pane.cm.setCursor(line, ch);
+    pane.cm.focus();
   });
   el.querySelector('.mm-outline-edge').addEventListener('pointerdown', e => resizeOutline(e));
   el.querySelector('.mm-split').addEventListener('pointerdown', e => resizeSplit(e));
@@ -448,6 +464,7 @@ function makePane(index) {
       ui.tabMenu.querySelector('[data-cmd=tabPin]').textContent = tab.pinned ? 'Unpin tab' : 'Pin tab';
       ui.tabMenu.querySelector('[data-cmd=tabReadOnly]').classList.toggle('mm-on', tab.readOnly || tab.doc.diskReadOnly);
       ui.tabMenu.querySelector('[data-cmd=tabShowInTree]').hidden = !tab.doc.path;
+      ui.tabMenu.querySelector('[data-cmd=tabRevert]').hidden = !canRevert(tab.doc);
     });
     ui.stripMenu.querySelector('button').disabled = !closedTabs.length;
     ui.stripMenu.querySelector('[data-cmd=stripCloseAll]').disabled = !pane.tabs.length;
@@ -526,7 +543,7 @@ function loadEditor() {
   loadCss('vendor/editor.css');
   // format.js: the formatting commands and bar; it needs CodeMirror, so it comes second.
   return editorLoaded ??= loadScript('vendor/editor.js').then(() => loadScript('format.js'))
-    .then(() => loadScript('bookmarks.js')).then(() => loadScript('gutter.js'));
+    .then(() => loadScript('bookmarks.js')).then(() => loadScript('gutter.js')).then(() => loadScript('brackets.js'));
 }
 
 // The editor mode: the language's, with blocks of other languages and lines you set (documentMode, languages.js).
@@ -603,6 +620,7 @@ async function ensureEditor(pane) {
   });
   pane.cm.on('cursorActivity', () => {
     updateInnerBar(pane);   // the inner language's bar (format.js)
+    markOutline(pane);   // the outline's entry at the cursor
     updateRelativeNumbers(pane);
     saveSession();   // the cursor is kept in the session (after a second without moving)
     refreshFormatBar(pane);
@@ -613,6 +631,7 @@ async function ensureEditor(pane) {
   pane.cm.on('change', (cm, change) => electricReformat(cm, change));   // a closing word typed: its column (format.js)
   setupColumn(pane);   // column mode and blocks (column.js); its paste handler comes after the picture one
   setupVirtual(pane);   // the cursor past the end of the line (virtual.js); its keys before column mode's
+  setupBrackets(pane);   // matching brackets: the highlight, closing signs while typing (brackets.js)
   pane.cm.on('drop', (cm, e) => onEditorDrop(pane, e));
   pane.cm.getWrapperElement().addEventListener('wheel', e => {   // Ctrl+wheel: the editor font size
     if (!e.ctrlKey) return;
@@ -666,6 +685,32 @@ function setDocText(doc, text, encoding) {
     tab.lines = null;
   }
   if (doc.lock && doc.shared) pushText(doc);
+}
+
+// Revert to saved (File menu, tab menu): the file as it is on disk, as one edit, so Ctrl+Z gives the changes back;
+// then it counts as saved. Only for a file whose text differs from the disk (changed here, or there) and still
+// exists.
+const canRevert = doc => !!doc?.path && doc.lock && doc.disk !== 'removed' && (doc.dirty || doc.disk === 'changed');
+async function revertDoc(doc) {
+  if (!canRevert(doc)) return;
+  const { text, encoding, readOnly } = await host('read', { path: doc.path });
+  doc.diskReadOnly = readOnly;
+  if (!doc.cmDoc) return reloadDoc(doc, text, encoding);    // never in an editor: no undo to keep
+  const cd = doc.cmDoc, keep = panes.filter(p => p.active?.doc === doc && p.cm).map(p => ({ p, top: p.cm.getScrollInfo().top }));
+  const cursor = cd.getCursor();
+  cd.replaceRange(text, CodeMirror.Pos(cd.firstLine(), 0), CodeMirror.Pos(cd.lastLine(), cd.getLine(cd.lastLine()).length), 'revert');
+  doc.savedText = text;
+  if (encoding) doc.encoding = encoding;
+  doc.eol = eolOf(text);
+  doc.savedGeneration = cd.changeGeneration(true);
+  doc.dirty = false;
+  doc.disk = 'ok';
+  cd.setCursor(CodeMirror.Pos(Math.min(cursor.line, cd.lastLine()), cursor.ch));
+  for (const { p, top } of keep) p.cm.scrollTo(null, top);
+  refreshTabs();
+  updateChrome();
+  await showAll();
+  saveSession();
 }
 
 // Same, keeping the scroll positions and the cursor of the panes that show it.
@@ -2008,10 +2053,10 @@ ui.tree.addEventListener('click', e => {
 });
 
 // A file from the tree: shown in the current tab of the pane (when it is already open there: that tab).
-// Ctrl: the other pane; Shift: a new tab. A draft is never replaced.
+// Ctrl: the other pane; Shift: a new tab. A draft or a changed file is never replaced (a new tab instead).
 function openFromTree(path, { ctrlKey, shiftKey }) {
   const pane = ctrlKey ? otherPane() : panes[state.activePane], tab = pane.active;
-  if (shiftKey || !tab || tab.doc.draft || pane.tabs.some(t => samePath(t.doc.path, path))) return openFile(path, { pane });
+  if (shiftKey || !tab || tab.doc.draft || tab.doc.dirty || pane.tabs.some(t => samePath(t.doc.path, path))) return openFile(path, { pane });
   return navigate(tab, path);
 }
 ui.tree.addEventListener('dragstart', e => {
@@ -2462,6 +2507,7 @@ function applyZoom(zoom) {
   $('.mm-zoom').textContent = Math.round(zoom * 100) + '%';
   for (const tab of allTabs()) tab.lines = null;
   panes.forEach((p, i) => at[i] !== null && setPreviewLine(p, at[i]));
+  for (const p of panes) if (p.previewBoxes) drawPreviewBoxes(p);   // found text's boxes: the text has another size (find.js)
 }
 const zoomBy = step => setZoom(setting('zoom') + step / 10);
 
@@ -2550,7 +2596,11 @@ function setOutline(on) {
   document.body.toggleAttribute('data-outline', on);
   localStorage.outline = on ? 'on' : 'off';
   if (localStorage.outlineWidth) document.body.style.setProperty('--outline-w', localStorage.outlineWidth);
-  for (const pane of panes) showOutline(pane);
+  for (const pane of panes) {
+    if (typeof setupGutter === 'function') setupGutter(pane);   // the outline's column in the gutter, or not
+    pane.outlineFor = null;
+    showOutline(pane);
+  }
   relayout();
 }
 
@@ -2563,17 +2613,91 @@ function showOutline(pane) {
   if (pane.outlineFor === doc && pane.outlineVersion === doc.version) return markOutline(pane);
   pane.outlineFor = doc;
   pane.outlineVersion = doc.version;
-  pane.outlineEl.replaceChildren(...headings.map(h => {
-    const item = document.createElement('div');
-    item.className = 'mm-outline-item';
-    item.dataset.line = h.line;
-    item.dataset.level = h.level;
-    item.style.paddingLeft = 8 + (h.level - 1) * 12 + 'px';
-    item.textContent = item.title = h.text;
-    return item;
+  // Groups (a pack's tag groups): a header per group with entries, or all together in line order (outlineMerged);
+  // a bullet in the group's colour (outlineBullets).
+  const groups = headings.groups, merged = !groups || setting('outlineMerged'), bullets = groups && setting('outlineBullets') !== false;
+  const folded = outlineFolded(doc);
+  const item = h => {
+    const el = document.createElement('div');
+    el.className = 'mm-outline-item';
+    el.dataset.line = h.line;
+    el.dataset.ch = h.ch ?? 0;
+    el.dataset.level = h.level;
+    el.style.paddingLeft = 8 + (h.level - 1) * 12 + (groups && !merged ? 10 : 0) + 'px';
+    if (h.group !== undefined) el.dataset.group = h.group;
+    if (bullets) {
+      const b = document.createElement('span');
+      b.className = 'mm-outline-bullet';
+      b.style.background = groups[h.group].colour;
+      el.append(b);
+    }
+    el.append(h.text);
+    el.title = groups ? `${h.text} (${groups[h.group].name})` : h.text;
+    if (!merged && folded.has(groups[h.group].name)) el.hidden = true;
+    return el;
+  };
+  if (merged) pane.outlineEl.replaceChildren(...[...headings].sort((a, b) => a.line - b.line).map(item));
+  else pane.outlineEl.replaceChildren(...groups.flatMap((g, gi) => {
+    const own = headings.filter(h => h.group === gi);
+    if (!own.length) return [];                             // a group without entries is left out
+    const head = document.createElement('div');
+    head.className = 'mm-outline-group';
+    head.dataset.groupHead = gi;
+    head.toggleAttribute('data-folded', folded.has(g.name));
+    if (bullets) { const b = document.createElement('span'); b.className = 'mm-outline-bullet'; b.style.background = g.colour; head.append(b); }
+    head.append(`${g.name} (${own.length})`);
+    head.title = 'Click: fold or unfold';
+    return [head, ...own.map(item)];
   }));
   if (!headings.length) pane.outlineEl.innerHTML = `<div class="mm-outline-none">${doc.language ? 'Nothing found' : 'No headings'}</div>`;
+  paintOutlineGutter(pane, headings);
   markOutline(pane);
+}
+
+// While the outline is open: every entry's bullet in the gutter on its line, in its group's colour (gutter.js
+// adds the column).
+function paintOutlineGutter(pane, headings) {
+  const cm = pane.cm;
+  if (!cm || typeof OUTLINE_GUTTER === 'undefined') return;
+  cm.clearGutter(OUTLINE_GUTTER);
+  if (!document.body.hasAttribute('data-outline')) return;
+  const groups = headings.groups;
+  cm.operation(() => {
+    for (const h of headings) {
+      if (h.line > cm.lastLine()) continue;
+      const el = document.createElement('span');
+      el.className = 'mm-outline-mark';
+      el.style.background = groups ? groups[h.group].colour : 'var(--accent)';
+      el.title = groups ? `${h.text} (${groups[h.group].name})` : h.text;
+      cm.setGutterMarker(h.line, OUTLINE_GUTTER, el);
+    }
+  });
+}
+
+// Folded groups, per language (the group names).
+function outlineFolded(doc) {
+  try { return new Set(JSON.parse(localStorage['outlineFolded.' + languageOf(doc)] ?? '[]')); } catch { return new Set(); }
+}
+function setOutlineFolded(doc, name, fold) {
+  const set = outlineFolded(doc);
+  if (fold) set.add(name); else set.delete(name);
+  try { localStorage['outlineFolded.' + languageOf(doc)] = JSON.stringify([...set]); } catch { }
+}
+function toggleOutlineGroup(pane, head, fold = !head.hasAttribute('data-folded')) {
+  const doc = pane.active?.doc, gi = head.dataset.groupHead, name = outlineOf(doc)?.groups?.[gi]?.name;
+  if (name === undefined) return;
+  setOutlineFolded(doc, name, fold);
+  head.toggleAttribute('data-folded', fold);
+  for (const el of pane.outlineEl.querySelectorAll(`.mm-outline-item[data-group="${gi}"]`)) el.hidden = fold;
+}
+
+// The outline's right-click menu: its two settings.
+function outlineMenu(e) {
+  e.preventDefault();
+  openPopupMenu([
+    { label: 'Groups together, by line', plain: true, checked: !!setting('outlineMerged'), run: () => setSetting('outlineMerged', !setting('outlineMerged')) },
+    { label: 'Bullet in the group\'s colour', plain: true, checked: setting('outlineBullets') !== false, run: () => setSetting('outlineBullets', setting('outlineBullets') === false) },
+  ], e.clientX, e.clientY);
 }
 
 let outlineTimer = 0;
@@ -2582,16 +2706,23 @@ function scheduleOutline() {
   outlineTimer = setTimeout(() => panes.forEach(showOutline), 300);
 }
 
-// The heading the pane is at: the last one at or above the top line.
+// The heading the pane is at: the last one at or above the cursor's line (the editor shown), else the top line of
+// the preview.
 function markOutline(pane) {
   if (pane.el.hasAttribute('data-no-outline') || !document.body.hasAttribute('data-outline')) return;
   cancelAnimationFrame(pane.markFrame);
   pane.markFrame = requestAnimationFrame(() => {
     const tab = pane.active;
     if (!tab) return;
-    const line = tab.mode === 'edit' ? (pane.cm ? editorLine(pane.cm) : 0) : previewLine(pane);
+    const line = tab.mode !== 'preview' && pane.cm ? pane.cm.getCursor().line : previewLine(pane);
+    // The last entry at or above the line, of all groups (in groups the list is not in line order).
     let current = null;
-    for (const item of pane.outlineEl.children) if (+item.dataset.line <= line + 0.5) current = item;
+    for (const item of pane.outlineEl.querySelectorAll('[data-line]'))
+      if (+item.dataset.line <= line + 0.5 && (!current || +item.dataset.line >= +current.dataset.line)) current = item;
+    if (current?.hidden) {                                 // in a folded group: the group opens
+      const head = pane.outlineEl.querySelector(`[data-group-head="${current.dataset.group}"]`);
+      if (head) toggleOutlineGroup(pane, head, false);
+    }
     for (const item of pane.outlineEl.querySelectorAll('.mm-on')) if (item !== current) item.classList.remove('mm-on');
     if (current && !current.classList.contains('mm-on')) {
       current.classList.add('mm-on');
@@ -2600,8 +2731,9 @@ function markOutline(pane) {
   });
 }
 
-// Puts the source line at the top of the pane: preview, editor or both.
-function goToLine(pane, line) {
+// Puts the source line at the top of the pane: preview, editor or both. The cursor stays where it is (a click in
+// the outline; a double-click moves it). `focus`: the editor gets the keys again.
+function goToLine(pane, line, focus = true) {
   const tab = pane.active;
   if (!tab) return;
   if (tab.mode !== 'edit') {
@@ -2611,10 +2743,68 @@ function goToLine(pane, line) {
   }
   if (tab.mode !== 'preview' && pane.cm) {
     pane.placed = tab.mode === 'split';
-    pane.cm.setCursor(line, 0);
     pane.cm.scrollTo(null, pane.cm.heightAtLine(line, 'local'));
-    pane.cm.focus();
+    if (focus) pane.cm.focus();
   }
+}
+
+// A long click on an outline entry: a sneak preview. While the button is held the pane shows the entry (and the
+// entry under the pointer as it moves along the outline); on release it goes back to where it was.
+const SNEAK_DELAY = 400;
+function startSneak(pane, e) {
+  const item = e.target.closest('[data-line]');
+  if (!item || e.button !== 0) return;
+  clearTimeout(pane.sneakTimer);
+  pane.sneakTimer = setTimeout(() => {
+    pane.sneak = { editor: pane.cm?.getScrollInfo().top ?? 0, preview: pane.previewEl.scrollTop, line: null };
+    pane.el.toggleAttribute('data-sneak', true);
+    // A theme of its own (setting sneakTheme): the editor and the preview in it while it lasts.
+    if (look?.sneak) {
+      const mode = look.sneak.chain.includes('light') ? 'light' : look.sneak.chain.includes('dark') ? 'dark' : look.mode;
+      for (const el of [pane.editorEl, pane.previewEl]) { setThemeVars(el, look.sneak.vars); el.dataset.theme = mode; }
+      pane.el.toggleAttribute('data-sneak-themed', true);
+    }
+    sneakTo(pane, item);
+  }, SNEAK_DELAY);
+}
+function sneakTo(pane, item) {
+  if (!pane.sneak || !item || +item.dataset.line === pane.sneak.line) return;
+  pane.sneak.line = +item.dataset.line;
+  for (const el of pane.outlineEl.querySelectorAll('.mm-sneak')) el.classList.remove('mm-sneak');
+  item.classList.add('mm-sneak');
+  goToLine(pane, pane.sneak.line, false);
+  // The previewed line tinted, and a badge that says what this is (app.css: the frame, the tint, no cursor).
+  if (pane.cm && pane.active?.mode !== 'preview') {
+    if (pane.sneak.mark) pane.cm.removeLineClass(pane.sneak.mark, 'background', 'mm-sneak-line');
+    pane.sneak.mark = pane.cm.addLineClass(pane.sneak.line, 'background', 'mm-sneak-line');
+  }
+  let badge = pane.el.querySelector('.mm-sneak-badge');
+  if (!badge) {
+    badge = document.createElement('div');
+    badge.className = 'mm-sneak-badge';
+    pane.el.querySelector('.mm-body').append(badge);
+  }
+  badge.textContent = `Sneak preview: line ${pane.sneak.line + 1}, ${item.textContent} (release to go back)`;
+}
+function endSneak(pane) {
+  clearTimeout(pane.sneakTimer);
+  const s = pane.sneak;
+  if (!s) return;
+  pane.sneak = null;
+  pane.sneakEnded = true;                                  // the click that follows the release does nothing
+  pane.el.removeAttribute('data-sneak');
+  if (pane.el.hasAttribute('data-sneak-themed')) {          // back to the editor's theme, and the preview's own
+    pane.el.removeAttribute('data-sneak-themed');
+    setThemeVars(pane.editorEl, null);
+    delete pane.editorEl.dataset.theme;
+    setThemeVars(pane.previewEl, look.preview?.vars);
+    if (look.preview) pane.previewEl.dataset.theme = look.mode; else delete pane.previewEl.dataset.theme;
+  }
+  pane.el.querySelector('.mm-sneak-badge')?.remove();
+  if (s.mark && pane.cm) pane.cm.removeLineClass(s.mark, 'background', 'mm-sneak-line');
+  for (const el of pane.outlineEl.querySelectorAll('.mm-sneak')) el.classList.remove('mm-sneak');
+  if (pane.cm) pane.cm.scrollTo(null, s.editor);
+  pane.previewEl.scrollTop = s.preview;
 }
 
 function resizeOutline(e) {
@@ -3178,9 +3368,15 @@ function applySettings() {
   if (FONT_SETTINGS.some(changed)) applyFonts();
   if (changed('wrap')) applyWrap(now.wrap);
   if (changed('tabBar')) applyTabBar(now.tabBar);
+  if ((changed('outlineMerged') || changed('outlineBullets')) && 'outlineMerged' in was)
+    for (const pane of panes) { pane.outlineFor = null; showOutline(pane); }   // the outline drawn again
   if (changed('findMark') || changed('findGutter')) {   // app.css: how matches look; boxes and line numbers: find.js
     document.body.dataset.findMark = now.findMark || 'background';
     if (typeof refreshMarks === 'function') for (const pane of panes) if (pane.find?.marked) refreshMarks(pane);
+  }
+  if (changed('bracketHighlight')) {   // app.css: how the pair at the cursor looks (brackets.js marks it)
+    document.body.dataset.bracketHighlight = now.bracketHighlight || 'colour';
+    if (typeof paintBrackets === 'function') for (const pane of panes) if (pane.cm) paintBrackets(pane.cm);
   }
   if (changed('formatBar')) applyFormatBar(now.formatBar);
   if (changed('languageNames') && 'languageNames' in was) {   // fences and blocks may now be another language
@@ -3366,6 +3562,7 @@ const commands = {
   tabCloseAll: () => menuTab && closeTabs([...paneOf(menuTab).tabs]),
   tabPin: () => menuTab && togglePin(menuTab),
   tabReadOnly: () => menuTab && setReadOnly(menuTab, !menuTab.readOnly),
+  tabRevert: () => menuTab && revertDoc(menuTab.doc),
   formatBar: () => setSetting('formatBar', !setting('formatBar')),
   findShared: () => setSetting('findShared', !setting('findShared')),
   reopenTab: () => reopenTab(),

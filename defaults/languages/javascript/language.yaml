@@ -6,10 +6,16 @@ open: edit
 mode: javascript        # built in
 fold: brace
 comments: { line: '//', block: ['/*', '*/'] }
-outline:
-  - { pattern: '^\s*(?:export\s+)?(?:default\s+)?class\s+(\w+)', name: 1, level: 1 }
-  - { pattern: '^\s*(?:export\s+)?(?:async\s+)?function\s*\*?\s*(\w+)', name: 1, level: 1 }
-  - { pattern: '^\s*(?:export\s+)?(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?(?:function|\([^)]*\)\s*=>|\w+\s*=>)', name: 1, level: 1 }
+outline:   # the groups of javascript.uew (/TGBegin), in its order
+  - group: 'Named Functions'
+    patterns:
+      - { pattern: '^\s*(?:export\s+)?(?:async\s+)?function\s*\*?\s*(\w+)', case: true }
+  - group: 'Anonymous Functions'
+    patterns:
+      - { pattern: '^\s*(?:export\s+)?(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?(?:function|\([^)]*\)\s*=>|\w+\s*=>)', case: true }
+  - group: 'Classes'
+    patterns:
+      - { pattern: '^\s*(?:export\s+)?(?:default\s+)?class\s+(\w+)', case: true }
 actions:
   snippetFunction:
     title: 'Snippet: function'

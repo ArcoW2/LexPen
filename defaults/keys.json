@@ -4,8 +4,8 @@
 // file key by key, so an update of LexPen does not overwrite your keys. "Ctrl+T": null takes a key away.
 //
 // A key:     "Ctrl+Shift+S". Modifiers Ctrl, Alt, Shift; then a letter, digit, F1-F12, ` - = [ ] \ ; ' . /,
-//            or Tab Enter Esc Space Backspace Ins Del Home End PgUp PgDn Left Right Up Down Num0-Num9
-//            NumPlus NumMinus. Keys are the physical keys of a US keyboard.
+//            or Comma (a comma alone separates the keys of a chord), Tab Enter Esc Space Backspace Ins Del Home
+//            End PgUp PgDn Left Right Up Down Num0-Num9 NumPlus NumMinus. Keys are the physical keys of a US keyboard.
 // A chord:   "Ctrl+K, K": the first key, then the second. While it waits, the bottom bar shows the first.
 // An action: its name ("save"), or its name with parameters (["heading", 2]). F1 lists every action
 //            with its name, also the ones without a key.
@@ -54,6 +54,10 @@
   "Ctrl+Shift+R": "replace",
   "Ctrl+PgDn": ["section", 1],
   "Ctrl+PgUp": ["section", -1],
+  "Ctrl+[": "goToOpenBracket",       // the opener / closer of the pair or word set the highlight shows (Shift: select)
+  "Ctrl+]": "goToCloseBracket",
+  "Ctrl+Shift+.": "indentMore",      // Ctrl+> and Ctrl+<: indent and outdent the lines (as Tab / Shift+Tab on a selection)
+  "Ctrl+Shift+Comma": "indentLess",
   "Ins": "overwrite",
 
   // ---------- Clipboards: 0 (Ctrl+Shift+`) is the Windows clipboard, 1 to 9 are LexPen's own ----------

@@ -1,0 +1,21 @@
+// Dark yellowish: Dark, tinted warm yellow (amber).
+// A theme lists only what differs from its base; the base may be any theme. The names are in the README (Themes).
+{
+  "name": "Dark yellowish",
+  "base": "dark",
+  "colors": {
+    // The app: backgrounds, text, borders, selection, alerts, markers, find.
+    "bg": "#221e14",
+    "bgSide": "#29241a",
+    "bgBar": "#2f291d",
+    "bgCode": "#2b2519",
+    "bgBarDim": "#1c1810",
+    "fg": "#ece3cc",
+    "fgDim": "#a99f86",
+    "border": "#463d2a",
+    "accent": "#e0b84a",
+    "active": "rgba(224, 184, 74, .18)",
+    "select": "#5c4a1f",
+    "paneActive": "#e0b84a"
+  }
+}

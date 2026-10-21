@@ -32,6 +32,12 @@
   "gutter.git": true,             // lines changed since the last commit
   "gutter.folds": true,
   "formatBar": true,              // the bar with bold, headings, lists, ... above the editor
+  "bracketHighlight": "colour",   // the pair or word set (begin ... end) around the cursor: "colour", "underline"
+                                  // (in the find box's colour) or "off"
+  "closeBrackets": false,         // typing an opening sign or quote adds its closer
+  "outlineMerged": false,         // the outline's groups together, in line order (off: a header per group)
+  "outlineBullets": true,         // a bullet in the group's colour in front of each outline entry
+  "sneakTheme": "",               // the theme of the outline's sneak preview (a long click); "": the editor's, tinted
   "scrollMargin": 8,              // columns: the editor scrolls sideways when the cursor comes this close to the edge
   "leftWraps": true,              // Left at the first column goes on to the end of the line above
   "virtualSpace": false,          // the cursor can be past the end of a line: it keeps its column on short lines,
