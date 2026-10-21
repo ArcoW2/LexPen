@@ -143,6 +143,8 @@ appAction('outline', { title: 'Outline', hint: 'The headings (or procedures, cla
   checked: () => document.body.hasAttribute('data-outline'), run: () => commands.outline() });
 appAction('wrap', { title: 'Wrap long lines', hint: 'In the editor and in code in the preview', group: 'view',
   checked: () => setting('wrap'), run: () => setWrap(!setting('wrap')) });
+appAction('locateCursor', { title: 'Locate the cursor', hint: 'Rings shrink onto every cursor; a cursor out of view gets a marker at that edge (also a short tap on Ctrl)', group: 'view',
+  enabled: () => !!editorPane(), run: () => locateCursor(editorPane({ from: 'menu' })) });
 appAction('sidebar', { title: 'Sidebar', hint: 'Show or hide the folder pane and the search', group: 'view',
   checked: () => document.body.dataset.sidebar === 'on', run: () => commands.sidebar() });
 appAction('folders', { title: 'Folders', hint: 'The folder pane, with the keyboard in it', group: 'view', run: () => focusTree() });
@@ -201,6 +203,16 @@ appAction('goToOpenBracket', { title: 'Go to opening bracket', hint: 'Of the pai
   run: (_, { pane, extend }) => { goToBracket(pane.cm, 'open', extend); pane.cm.focus(); } });
 appAction('goToCloseBracket', { title: 'Go to closing bracket', hint: 'Of the pair the highlight shows (end of begin ... end); with Shift: select to it', group: 'edit', editor: true, move: true,
   run: (_, { pane, extend }) => { goToBracket(pane.cm, 'close', extend); pane.cm.focus(); } });
+// Multiple cursors (cursors.js): the current occurrence of the find bar's text, else of the selection. Also from the
+// find field (after Ctrl+F, Enter), on that pane's editor.
+const occurrenceAction = (kind, title, hint) => appAction('cursor' + kind[0].toUpperCase() + kind.slice(1), { title, hint, group: 'edit', editor: true,
+  run: (_, { pane }) => occurrence(pane, kind),
+  field: el => { const pane = panes.find(p => p.find?.el.contains(el) && p.cm && p.el.dataset.mode !== 'preview'); return pane ? occurrence(pane, kind) : PASS; } });
+occurrenceAction('add', 'Add occurrence as cursor', 'The current occurrence of the selection (or the find text) joins the cursors; then the next one is current');
+occurrenceAction('next', 'Next occurrence', 'The current occurrence moves on, without adding it');
+occurrenceAction('previous', 'Previous occurrence', 'The current occurrence moves back, without adding it');
+occurrenceAction('remove', 'Remove occurrence', 'The current occurrence leaves the cursors; the next one is current (none: the previous one)');
+occurrenceAction('clear', 'Clear added cursors', 'Only the current occurrence stays selected');
 appAction('indentMore', { title: 'Indent', hint: 'The lines of the cursor or selection one indent step right', group: 'edit', editor: true,
   run: (_, { pane }) => { pane.cm.execCommand('indentMore'); pane.cm.focus(); } });
 appAction('indentLess', { title: 'Outdent', hint: 'The lines of the cursor or selection one indent step left', group: 'edit', editor: true,
@@ -393,6 +405,13 @@ const SETTING_ROWS = [
     options: () => [1, 2, 4, 8, 12, 16, 24, 32].map(n => [n, n === 1 ? '1 column' : n + ' columns']) },
   { name: 'virtualSpace', group: 'Editor', sub: 'Cursor', kind: 'toggle', title: 'Cursor past the end of the line',
     hint: 'Up, Down and a click keep the cursor in its column on a shorter line; typing there fills the line with spaces first. Only with a monospaced editor font (with another font this does nothing)' },
+  { name: 'locateCursor', group: 'Editor', sub: 'Cursor', kind: 'toggle', title: 'A short tap on Ctrl shows where the cursor is',
+    hint: 'Rings shrink onto every cursor, in the colour of the find box; a cursor out of view gets a marker at that edge with its line number (also View > Locate the cursor)' },
+  { name: 'locateCursorTap', group: 'Editor', sub: 'Cursor', kind: 'choice', title: 'The longest tap on Ctrl',
+    hint: 'Ctrl held longer, or with another key, a click or the mouse wheel, is not a tap',
+    options: () => [200, 300, 400, 500, 700, 1000].map(n => [n, n + ' ms']) },
+  { name: 'locateCursorJump', group: 'Editor', sub: 'Cursor', kind: 'toggle', title: 'A double tap on Ctrl scrolls to the cursor',
+    hint: 'Two taps on Ctrl: the editor scrolls to the cursor (with several: the main one), then shows where it is' },
   { name: 'showWhitespace', group: 'Editor', kind: 'toggle', title: 'Show spaces and tabs',
     hint: 'In the editor: a space as a small dot, a tab as an arrow (theme colour: whitespace)' },
   { name: 'showLineEnds', group: 'Editor', kind: 'toggle', title: 'Show line ends',

@@ -148,6 +148,20 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   as Visual Studio and Notepad++; `[block]` in the clipboard list); paste puts a marked text in as a column at the
   cursor, and in column mode any text. A text of as many lines as there are cursors gives each cursor its line.
   Only with a monospaced editor font. The bottom bar shows the block's size: `Block 5 x 12` (lines x columns).
+- **Multiple cursors**: Ctrl+Alt+click adds a cursor (held and dragged, it follows the mouse until you let go); on a
+  cursor or inside a selection it removes that one, never the last. Ctrl+Alt+double-click selects the find match
+  there (find bar open), else the word: Ctrl+F the text, then Ctrl+Alt+double-click the matches you want. With the
+  keys, on the find bar's text (with its switches) or else exactly the selected text: Ctrl+Alt+Right / Left move a
+  current occurrence (boxed), Ctrl+D, A adds it to the cursors and goes to the next, Ctrl+D, D (or R) removes it,
+  Ctrl+D, C keeps only the current one selected (also Edit > Multiple cursors; past the end as find, the setting
+  "At the end of the file"). Typing, Backspace / Delete, paste and Tab work on every cursor; each cursor moves as one
+  cursor does (Left at a line's start stays there with leftWraps off; meeting cursors become one); with virtual space
+  each one can stand past its line's end (one per line) and typing fills each line up to its own column. Esc: back
+  to the first cursor. The bottom bar shows `3 cursors`, or `3 selected, at 4 of 9` with the occurrences.
+- **Locate the cursor**: a short tap on Ctrl alone shows rings, in the find box's colour, shrinking onto every cursor;
+  a cursor out of view gets a marker at that edge (top: higher, bottom: lower) with its line number, several in one
+  direction one marker with the count. A double tap scrolls to the cursor first (setting, off by default). Also View >
+  Locate the cursor; settings in Editor > Cursor (on / off, the longest tap).
 - **Gutter**: line numbers, bookmarks, change markers (not saved yet), git markers (changed since the last commit;
   a click shows the old text and can revert the block) and fold markers (heading sections and code blocks in
   markdown, braces or indentation in code). View > Gutter switches each column. Line numbers: none, every 10 (a
@@ -282,6 +296,8 @@ F1 lists every key and action. The main ones of the default set:
 | Ctrl+PgDn / Ctrl+PgUp | Next / previous section (with Shift: select) |
 | Ctrl+Shift+1 .. 9, Ctrl+Shift+` , Ctrl+Shift+C | Select clipboard 1 to 9, the Windows clipboard, the list |
 | Alt+C, Alt+Shift+arrows | Column mode on / off, select a block (also without column mode) |
+| Ctrl+Alt+click / double-click, Ctrl+D, A / D / R / C, Ctrl+Alt+Right / Left | Multiple cursors: add or remove a cursor, select a find match or word; add / remove / clear occurrences, the next / previous occurrence |
+| Ctrl (a short tap), Ctrl, Ctrl | Locate the cursor (rings on every cursor, a marker for one out of view); the double tap scrolls to it (setting) |
 | Ctrl+1, S / T / C, Ctrl+1, 1 | Bookmark 1: store, toggle, clear, go to (likewise 2 to 9) |
 | Ctrl+K, K / N / P / L | Unnumbered bookmark, next, previous, list |
 | Ctrl+/, Ctrl+Shift+/ | Toggle comment, toggle block comment |

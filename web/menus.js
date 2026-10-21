@@ -24,7 +24,9 @@ const MENUS = [
     { label: 'Select c&lipboard', fill: () => clipboardItems() }, '-',
     ['Col&umn mode', 'columnMode'], '-',
     ['&Find', 'find'], ['R&eplace', 'replace'], ['&Search in files', 'searchInFiles'], ['Go to line...', 'goToLine'], '-',
-    ['Select inside brac&kets', 'selectInsideBrackets'], '-',
+    ['Select inside brac&kets', 'selectInsideBrackets'],
+    { label: '&Multiple cursors', sub: [['&Add occurrence', 'cursorAdd'], ['&Next occurrence', 'cursorNext'],
+      ['&Previous occurrence', 'cursorPrevious'], ['&Remove occurrence', 'cursorRemove'], ['&Clear added cursors', 'cursorClear']] }, '-',
     ['Next secti&on', 'section', 1], ['Pre&vious section', 'section', -1], '-',
     { label: '&Go to bookmark', fill: () => bookmarkItems('go') }, { label: 'Store &bookmark', fill: () => bookmarkItems('store') },
     ['&Next bookmark', 'bookmarkNext', 1], ['Previous boo&kmark', 'bookmarkNext', -1],
@@ -34,6 +36,7 @@ const MENUS = [
   ['Co&nvert', () => convertMenuItems()],
   ['&View', [
     ['&Editor', 'editorSwitch'], ['&Preview', 'previewSwitch'], ['&Outline', 'outline'], '-',
+    ['Locate the &cursor (tap Ctrl)', 'locateCursor'], '-',
     ['S&idebar', 'sidebar'], ['&Folders', 'folders'], ['&Search', 'searchView'], '-',
     { label: 'P&anes', sub: [['Side &by side', 'paneOrientation', 'v'], ['&Above each other', 'paneOrientation', 'h'], '-',
       ['&Hide this pane', 'paneHide'], ['Hide &other pane', 'paneHideOther'], ['&Close this pane', 'paneClose'],
