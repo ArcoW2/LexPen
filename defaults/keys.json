@@ -33,8 +33,9 @@
   "Alt+Shift+Right": ["blockSelect", "right"],
 
   // ---------- View ----------
-  "Ctrl+E": "togglePreview",
-  "Ctrl+Shift+H": "outline",
+  "Ctrl+Alt+V, E": "editorSwitch",  // Ctrl+Alt+V, then: E the editor, P the preview (on / off; one of them stays), O the outline
+  "Ctrl+Alt+V, P": "previewSwitch",
+  "Ctrl+Alt+V, O": "outline",
   "Ctrl+Shift+B": "sidebar",
   "Ctrl+Shift+E": "folders",
   "Ctrl+Shift+F": "searchInFiles",

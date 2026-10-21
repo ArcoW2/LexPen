@@ -1327,7 +1327,7 @@ async function setMode(mode) {
   saveSession();
 }
 
-// Ctrl+E: the preview next to the editor on or off; with the preview alone, the editor comes back.
+// The preview next to the editor on or off (action togglePreview, no key by default); with the preview alone, the editor comes back.
 function togglePreview() {
   const tab = activeTab();
   if (tab) setMode(tab.mode === 'split' ? 'edit' : 'split');

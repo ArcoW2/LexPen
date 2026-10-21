@@ -46,7 +46,7 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   edit it by hand or copy it to another PC, a change in it applies at once. Problems in it show in the window.
 - **Editor first**: files open in the editor. Markdown opens as the setting **Open markdown in** says
   (editor, editor and preview, or preview). **Editor** and **Preview** in the toolbar (and the View menu) are
-  switches; one of them stays on. Ctrl+E shows or hides the preview next to the editor. The splitter between
+  switches; one of them stays on (keys Ctrl+Alt+V, E and Ctrl+Alt+V, P). The splitter between
   them sets their widths (double-click: half and half).
 - **Pinned tabs** (right-click a tab > Pin tab): a pin before the name. Closing it alone asks first; Close other
   tabs, Close tabs to the right, Close all tabs (tab menu, the tab bar's own menu and File menu; one pane) and closing a pane leave it
@@ -177,7 +177,7 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   when it lies outside the open one), as Visual Studio's Sync with active document.
 - **Ctrl+Tab**: through the documents in recently used order (hold Ctrl and press Tab again to go further back),
   or in tab bar order (the setting Ctrl+Tab order).
-- **Outline**: Ctrl+Shift+H shows the headings of each pane's file at its right; click one to go there (preview
+- **Outline**: Ctrl+Alt+V, O shows the headings of each pane's file at its right; click one to go there (preview
   and editor). The entry above the cursor is highlighted (in the preview: the one at the top). Its width can be dragged.
   Languages from an UltraEdit word file show their tag groups as UltraEdit's function list does: a header per
   group (TODO, Procs/Funcs/triggers, Regions, Tables for ASA; Functions, Classes, ...), its entries in line order;
@@ -273,8 +273,8 @@ F1 lists every key and action. The main ones of the default set:
 | Alt+Up / Alt+Down | Previous / next tab, in the tab bar's order; the focus goes to its editor or preview, as the tab had it last |
 | Alt+Left / Alt+Right, Ctrl+PgUp / Ctrl+PgDn | Previous / next section (paragraph, heading, procedure, ... per language) |
 | Mouse back / forward | Back / forward to the tab and file shown before, like a browser |
-| Ctrl+E | Show / hide the preview |
-| Ctrl+Shift+H, Ctrl+Shift+B, Ctrl+Shift+E | Outline, sidebar, folder pane |
+| Ctrl+Alt+V, E / P / O | View: the editor, the preview (on / off; one of them stays), the outline |
+| Ctrl+Shift+B, Ctrl+Shift+E | Sidebar, folder pane |
 | Ctrl+F, F3 / Shift+F3, Ctrl+Shift+R, Ctrl+Shift+F | Find, next / previous (past the last match: stop, go on from the top, or go on until where the search started; a setting), replace, search in files. Found text is marked with a background colour, a box around it, or both (Options > Settings, Find; in the editor and the preview); so are the line numbers of its lines (a setting). The last searches (with their switches) and replacements are kept for all windows and restarts: Up / Down in a find, replace or search field step through them, Alt+Down (or Down in an empty field) lists them, with Clear history; the find bar and the search in files share the searches (setting: how many, 20) |
 | Ctrl+G | Go to line: a line number, or line:column (also Edit > Go to line...) |
 | Ctrl+[ / Ctrl+] | To the opener (before it) / closer (after it) of the pair or word set around the cursor; again: the pair around that one; with Shift: select. The pair is highlighted as you move and type: the innermost one holding the cursor, or the set of the word the cursor is on (`if` ... `else` ... `end if`), only in the language at the cursor, strings and comments left out (Options > Settings, Editor: a background colour, an underline or off; also close brackets and quotes while typing). Edit > Select inside brackets: what lies between |
