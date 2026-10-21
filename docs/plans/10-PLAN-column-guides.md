@@ -10,21 +10,25 @@ ruler and a column marker; Visual Studio has guidelines.
 
 ## 2. The solution, in brief
 
-A setting "Column guides": one or more columns (80, 120, ...), drawn as thin vertical lines in the editor, per
-language when the pack or the user says so. Optionally a ruler above the editor with the column numbers and the
-cursor's column marked.
+Column guides as thin vertical lines in the editor, from three settings: a first column, a step after it (a guide
+every step columns from the first one; 0 for none), and one extra column on its own (as 80). Each is easy to set
+or clear in the settings and from the editor's context menu; the same for every language. Optionally a ruler above
+the editor with the column numbers and the cursor's column marked.
 
 ## 3. Details
 
 - Drawn as a background layer (CSS on the code area), at the column times the character width; with the editor's
   font monospaced only (as virtual space).
-- Per language: `guides: [100]` in a pack, a settings row per language overriding it.
+- Settings: `columnGuideStart` (0: none), `columnGuideStep` (0: only the start), `columnGuideExtra` (0: none).
+  Example: start 4, step 4 gives guides at 4, 8, 12, ...; extra 80 adds one at 80.
+- Not per language: one set for all files.
+- The context menu: "Column guide here" (sets the extra one at the cursor's column) and "Clear column guides".
 - The colour: the theme's `border`, or a theme colour `guide`.
 - With wrapping on: still drawn (the wrap point is the window's width).
 
 ### 3.1 Tests
 
-In-app: a guide at 80 lands after 80 characters; two guides; per language; zoom keeps them at their column.
+In-app: a guide at 80 lands after 80 characters; start and step; the extra one; set and clear from the context menu; zoom keeps them at their column.
 
 ## 4. Open questions
 

@@ -37,3 +37,6 @@ the last line without a break; undo is one step.
 
 1. Default case: ignore case (as UE's default) or case sensitive?
 2. A dialog with all options at once (as UE), or the menu items only?
+3. The menu: Sort is a special case of Edit, and so is Format. Where do they go: an Edit submenu each (Edit > Sort,
+   Edit > Format), or keep Convert and Format as menus of their own and add Sort there? To settle before the items
+   are added.
