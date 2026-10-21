@@ -119,6 +119,19 @@ body[data-orient=h] .mm-orient::before { content: "Above each other"; }
 
 .mm-context { position: fixed; right: auto; }   /* right-click menus, placed at the pointer */
 
+/* The find history under a find field (history.js). */
+.mm-history {
+  position: fixed; z-index: 40; max-width: 60vw; overflow-y: auto; padding: 4px; background: var(--bg-bar);
+  border: 1px solid var(--border); border-radius: 6px; box-shadow: 0 4px 14px rgba(0, 0, 0, .2);
+}
+.mm-history-item { display: flex; gap: 12px; padding: 4px 10px; border-radius: 4px; cursor: default; white-space: pre; }
+.mm-history-item:hover, .mm-history-item.mm-on { background: var(--hover); }
+.mm-history-item.mm-on { background: var(--active); }
+.mm-history-text { flex: 1; overflow: hidden; text-overflow: ellipsis; font-family: var(--editor-font); }
+.mm-history-flags { color: var(--fg-dim); font-size: calc(12px * var(--ui-scale)); }
+.mm-history-clear { margin-top: 4px; border-top: 1px solid var(--border); border-radius: 0; color: var(--fg-dim); }
+.mm-history-none { padding: 4px 10px; color: var(--fg-dim); }
+
 .mm-about {
   min-width: 400px; padding: 20px 24px; color: var(--fg); background: var(--bg);
   border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 30px rgba(0, 0, 0, .3);

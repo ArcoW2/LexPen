@@ -63,6 +63,16 @@ function findBar(pane) {
     refresh(pane, true);   // as you type: the first match from where the search started
   });
   bar.with.addEventListener('input', () => findOf(pane).replace = bar.with.value);
+  // The history (history.js): an entry in the field, a search with its switches; `typed`: the text as typed, the
+  // switches as they are.
+  attachHistory(bar.input, 'find', (entry, typed) => {
+    const f = findOf(pane);
+    bar.input.value = f.query = entry.text;
+    if (!typed) for (const k of ['case', 'word', 'regex']) f[k] = !!entry[k];
+    syncBar(pane);
+    refresh(pane, true);
+  });
+  attachHistory(bar.with, 'replace', entry => { bar.with.value = findOf(pane).replace = entry.text; });
   for (const input of [bar.input, bar.with]) input.addEventListener('keydown', e => {
     if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeFind(pane, true); }
     else if (e.key === 'Enter') {
@@ -196,6 +206,7 @@ function findGo(pane, dir, fromOrigin) {
   const bar = pane.find, regex = findRegex(pane);
   if (!regex || regex instanceof Error) return;
   const where = findTarget(pane);
+  if (!fromOrigin) recordFind(findOf(pane).query, findOf(pane));   // a search done, not one typed (history.js)
   if (bar.marked !== where + pane.active?.id) refresh(pane, false);   // another tab or mode since the marks
   if (where === 'editor') return goEditor(pane, regex, dir, fromOrigin);
   goPreview(pane, regex, dir, fromOrigin);
@@ -295,6 +306,7 @@ function replaceOne(pane) {
   const cm = pane.cm, f = findOf(pane), regex = findRegex(pane);
   if (findTarget(pane) !== 'editor' || !cm || !regex || regex instanceof Error) return;
   if (cm.getOption('readOnly')) return toast('This tab is read-only.');
+  recordReplace(f.replace);   // the history (history.js); findGo below keeps the search
   const whole = new RegExp('^(?:' + regex.source + ')$', regex.flags.replace('g', ''));
   const selected = cm.getSelection();
   if (selected && whole.test(selected))
@@ -308,6 +320,8 @@ function replaceAll(pane) {
   if (findTarget(pane) !== 'editor' || !cm || !regex || regex instanceof Error) return;
   if (cm.getOption('readOnly')) return toast('This tab is read-only.');
   const text = cm.getValue(), matches = matchesIn(text, regex);
+  recordFind(f.query, f);   // the history (history.js)
+  recordReplace(f.replace);
   if (!matches.length) return;
   const single = new RegExp(regex.source, regex.flags.replace('g', ''));
   cm.operation(() => {   // one undo step

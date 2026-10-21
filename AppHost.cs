@@ -35,6 +35,8 @@ sealed class AppHost : ApplicationContext
         public List<string> RecentFiles { get; set; } = [];
         public List<string> RecentFolders { get; set; } = [];
         public List<string> ClosedFiles { get; set; } = [];
+        public List<FindEntry> FindHistory { get; set; } = [];
+        public List<string> ReplaceHistory { get; set; } = [];
     }
 
     public AppState State { get; } = LoadState();
@@ -758,6 +760,47 @@ sealed class AppHost : ApplicationContext
     {
         var state = Clipboards.State();
         foreach (var w in windows) w.Post(new JsonObject { ["event"] = "clipboards", ["state"] = state.DeepClone() });
+    }
+
+    // ---------- Find history (FindHistory), shared by all windows ----------
+
+    int FindHistoryMax => settings["values"]?["findHistory"]?.GetValueKind() == JsonValueKind.Number
+        ? Math.Clamp(settings["values"]!["findHistory"]!.GetValue<int>(), 0, 500) : FindHistory.DefaultMax;
+
+    /// <summary>{ find: [{ text, case, word, regex }], replace: [text] }, newest first.</summary>
+    public JsonObject FindHistoryState() => new()
+    {
+        ["find"] = new JsonArray(State.FindHistory.Take(FindHistoryMax).Select(e => (JsonNode?)new JsonObject
+            { ["text"] = e.Text, ["case"] = e.Case, ["word"] = e.Word, ["regex"] = e.Regex }).ToArray()),
+        ["replace"] = new JsonArray(State.ReplaceHistory.Take(FindHistoryMax).Select(t => (JsonNode?)t).ToArray()),
+    };
+
+    /// <summary>A search done (kind find, with its switches) or a replacement used (kind replace): on top of its list.
+    /// Every window gets the lists.</summary>
+    public void FindHistoryAdd(string kind, JsonNode entry)
+    {
+        if (kind == "find")
+            State.FindHistory = FindHistory.Push(State.FindHistory, new FindEntry
+            {
+                Text = entry["text"]?.GetValue<string>() ?? "", Case = entry["case"]?.GetValue<bool>() == true,
+                Word = entry["word"]?.GetValue<bool>() == true, Regex = entry["regex"]?.GetValue<bool>() == true,
+            }, FindHistoryMax);
+        else if (kind == "replace") State.ReplaceHistory = FindHistory.Push(State.ReplaceHistory, entry["text"]?.GetValue<string>() ?? "", FindHistoryMax);
+        else throw new ArgumentException($"Unknown history '{kind}'.");
+        FindHistoryChanged();
+    }
+
+    public void FindHistoryClear(string kind)
+    {
+        if (kind == "replace") State.ReplaceHistory = []; else State.FindHistory = [];
+        FindHistoryChanged();
+    }
+
+    void FindHistoryChanged()
+    {
+        SaveState();
+        var lists = FindHistoryState();
+        foreach (var w in windows) w.Post(new JsonObject { ["event"] = "findHistory", ["lists"] = lists.DeepClone() });
     }
 
     // ---------- Recent lists (the File menu), shared by all windows ----------

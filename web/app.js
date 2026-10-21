@@ -1427,6 +1427,7 @@ function updateStatus() {
 statusUi.lang.addEventListener('mousedown', e => e.preventDefault());   // the focus stays in the editor
 statusUi.lang.addEventListener('click', () => showLanguageList());
 
+events.findHistory = onFindHistory;   // history.js
 events.clipboards = ({ state }) => {
   Object.assign(clips, state);
   updateStatus();
@@ -2363,6 +2364,7 @@ function searchFolder() {
 async function runSearch() {
   const text = searchUi.input.value;
   if (!text) return;
+  recordFind(text, searchOptions);   // the history, shared with the find bar (history.js)
   const run = ++searchRun, scope = searchUi.scope.value;
   const source = searchPattern(text);
   let regex;
@@ -2453,6 +2455,15 @@ searchUi.results.addEventListener('click', async e => {
   }
 });
 
+// The history (history.js): an entry with its switches; `typed`: the text as typed, the switches as they are.
+attachHistory(searchUi.input, 'find', (entry, typed) => {
+  searchUi.input.value = entry.text;
+  if (typed) return;
+  for (const button of document.querySelectorAll('.mm-search-bar [data-opt]')) {
+    searchOptions[button.dataset.opt] = !!entry[button.dataset.opt];
+    button.classList.toggle('mm-on', searchOptions[button.dataset.opt]);
+  }
+});
 searchUi.input.addEventListener('keydown', e => {
   if (e.key === 'Enter') {
     e.preventDefault();
@@ -3665,6 +3676,7 @@ track((async () => {
   setKeys(await host('keys'));
   host('settingDefs', { defs: settingDefs() });   // the rows of the settings window
   Object.assign(clips, await host('clipState').catch(() => ({})));   // the Windows clipboard busy elsewhere: no previews
+  await loadFindHistory();   // history.js
   buildMenuBar();
   showKeys();
   state.win = start.id;

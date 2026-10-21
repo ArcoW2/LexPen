@@ -71,6 +71,8 @@
   "findShared": false,            // one find for both panes (off: each pane its own)
   "findWrap": "end",              // past the last match: "end" (stop, with a message), "around" (go on from the top)
                                   // or "origin" (go on from the top, stop where the search started)
+  "findHistory": 20,              // searches (and replacements) kept, for all windows: Up / Down in a find field
+                                  // step through them, Alt+Down opens the list
   "findMark": "background",       // how found text is marked: "background", "outline" or "both"
   "findGutter": true,             // the line numbers of lines with found text marked the same way (the current one too)
 

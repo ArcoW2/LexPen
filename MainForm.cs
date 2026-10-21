@@ -708,6 +708,17 @@ sealed class MainForm : Form
             case "recent":
                 return app.Recent();
 
+            case "findHistory":
+                return app.FindHistoryState();
+
+            case "findHistoryAdd":
+                app.FindHistoryAdd(Arg("kind"), msg["entry"]!);
+                return null;
+
+            case "findHistoryClear":
+                app.FindHistoryClear(Arg("kind"));
+                return null;
+
             case "recentAdd":
                 app.RecentAdd(Arg("kind"), Arg("path"));
                 return null;
