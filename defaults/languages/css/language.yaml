@@ -359,3 +359,23 @@ tokens:
 outline:
   - { pattern: '@import(?:\s+url)?[\s("\'']+([a-z/.\-]*?)[)"\'']+', name: 1, level: 2, flags: i }   # imports
   - { pattern: '^\s*([\w.\-#@:\[\]()*>+~=$^|", ]+?)\s*\{', name: 1, level: 1 }   # selectors
+
+# ---------- Format ----------
+# The parameters of the formatter (Format, Enter): the roles of the words and signs of this language and the
+# style it uses. See README.md (Format) and docs/plans/executed/PLAN-reformat.md; the indent step is the indent size.
+format:
+  case: false
+  word: '[A-Za-z0-9_#.%-]+'
+  comments: {block: [['/*', '*/']]}
+  strings:
+    - {open: '"', escape: '\'}
+    - {open: '''', escape: '\'}
+  groups:
+    - {pair: ['{', '}'], list: true, block: true, openAt: same}
+    - {pair: ['(', ')'], open: same, close: same, base: word, tight: true, oneLine: keep}
+  separators: [';']
+  ends: [';']
+  align: [':']
+  space: [{after: ':', inside: '{'}, {after: ',', inside: '{'}, {before: '{'}]
+  trail: [';', ',', ')', '}']
+  style: {open: next, close: own, base: line, align: 'off', oneLine: split, afterClose: next, parenSpace: 'off'}

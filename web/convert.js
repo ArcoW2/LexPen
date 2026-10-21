@@ -161,11 +161,100 @@ function trimOnSave(doc) {
   if (cm) own(cm, run); else run();
 }
 
+// ---------- Reformat (docs/plans/executed/PLAN-reformat.md) ----------
+// The action kind `format: rules`: the selected lines, else the whole file (or, from another language's bar or
+// submenu, its part), by the formatter of reformat.js with each language's own parameters. A part of another
+// language inside (a JSON block, a fence, lines you set) is formatted by that language's parameters and keeps its
+// place: it moves with the line above it. One undo step.
+function runReformat(pane, language) {
+  const cm = pane.cm, doc = pane.active.doc;
+  if (cm.somethingSelected() && cm.listSelections().length > 1) return toast('Format works on one selection.');
+  const fileLang = languageOf(doc), n = cm.lineCount();
+  const all = Array.from({ length: n }, (_, l) => cm.getLine(l));
+  const langs = all.map((_, l) => lineLanguage(cm, l) ?? fileLang);
+  let a = cm.getCursor('from').line, b = cm.getCursor('to').line;
+  if (cm.somethingSelected() && b > a && cm.getCursor('to').ch === 0) b--;   // a selection up to a line start ends before it
+  const lang = language ?? fileLang;
+  if (!cm.somethingSelected()) {
+    if (lang !== fileLang) {                                // another language's part: its block
+      while (a > 0 && langs[a - 1] === lang) a--;
+      while (b < n - 1 && langs[b + 1] === lang) b++;
+    } else { a = 0; b = n - 1; }
+  }
+  let out;
+  try {
+    out = reformatPart(all, langs, 0, n - 1, a, b, lang === fileLang ? lang : lang, lang !== fileLang);
+  } catch (e) {
+    if (Number.isInteger(e.line)) { cm.setCursor(CodeMirror.Pos(e.line, 0)); cm.scrollIntoView(null, 80); cm.focus(); }
+    return toast(`Not formatted: ${e.message}.`);
+  }
+  if (!out) return toast(`${packs[lang]?.name ?? lang} has nothing to format with.`);
+  const region = out.slice(a, out.length - (n - 1 - b));
+  const before = all.slice(a, b + 1).join('\n'), after = region.join('\n');
+  if (after === before) return toast('Formatted already.');
+  const line = cm.getCursor().line, wasSelected = cm.somethingSelected();
+  own(cm, () => cm.operation(() => {
+    cm.replaceRange(after, CodeMirror.Pos(a, 0), CodeMirror.Pos(b, all[b].length), 'format');
+    if (wasSelected) cm.setSelection(CodeMirror.Pos(a, 0), CodeMirror.Pos(a + region.length - 1, region.at(-1).length));
+    else cm.setCursor(CodeMirror.Pos(Math.min(line, cm.lastLine()), 0));
+  }));
+}
+
+// The lines `from`..`to` of `all` as one text of language `lang` (an inner part: only its own lines), lines `a`..`b`
+// formatted, the rest kept. Lines of another language are placeholders for this language's formatter, and are
+// formatted by their own afterwards, shifted as the line above them moved. Returns the lines from..to, or null when
+// the language has no parameters.
+function reformatPart(all, langs, from, to, a, b, lang, inner) {
+  const cfg = rfConfig(lang);
+  if (!cfg) return null;
+  const stops = tabStops({ language: lang === 'markdown' ? undefined : lang });
+  const opts = { indent: stops.indent, useTabs: stops.useTabs, frozen: new Set() };
+  const own = [];                                           // this language's text: other lines as placeholders
+  for (let l = from; l <= to; l++) {
+    const mine = langs[l] === lang || (!inner && langs[l] === null);
+    own.push(mine ? all[l] : '\u0000' + l);
+    if (l < a || l > b) opts.frozen.add(l - from);
+  }
+  // An inner part: its lines as if they started at column 0 (its formatter indents from there).
+  const base = inner ? Math.min(...all.slice(from, to + 1).filter(t => t.trim()).map(t => t.match(/^[ \t]*/)[0].replace(/\t/g, ' '.repeat(stops.indent)).length)) : 0;
+  const dedent = t => t.replace(new RegExp(`^[ \\t]{0,${isFinite(base) ? base : 0}}`), '');
+  const source = own.map(t => t.startsWith('\u0000') || !inner ? t : dedent(t)).join('\n');
+  // A mistake in the lines to format (an opener without its closer, a closer without one): nothing is changed.
+  const problem = reformatProblems(source, cfg).find(([n]) => n - 1 + from >= a && n - 1 + from <= b);
+  if (problem) throw Object.assign(new Error(`line ${problem[0] + from}: ${problem[1]}`), { line: problem[0] - 1 + from });
+  const lines = reformatLines(source, cfg, opts);
+  const formatted = lines.map(l => l.text);
+  const result = [];
+  const indentOf = t => t.match(/^[ \t]*/)[0].replace(/\t/g, ' '.repeat(stops.indent)).length;
+  for (let k = 0; k < formatted.length; k++) {
+    const t = formatted[k];
+    if (!t.startsWith('\u0000')) { result.push(inner && t ? rfIndentText(isFinite(base) ? base : 0, opts) + t : t); continue; }
+    // A run of another language's lines: by its own formatter (when it has one), moved with the line above.
+    const first = +t.slice(1);
+    let last = first;
+    while (k + 1 < formatted.length && formatted[k + 1] === '\u0000' + (last + 1)) { k++; last++; }
+    const segLang = langs[first], aboveOld = first > from ? indentOf(all[first - 1]) : 0, aboveNew = result.length ? indentOf(result.at(-1)) : 0;
+    const shift = result.length && result.at(-1).trim() ? aboveNew - aboveOld : 0;
+    let seg = segLang && segLang !== lang && packs[segLang]?.format && !(last < a || first > b)
+      ? reformatPart(all, langs, first, last, Math.max(a, first), Math.min(b, last), segLang, true) : null;
+    seg ??= all.slice(first, last + 1);
+    const move = s => !s.trim() || shift === 0 ? s : shift > 0 ? ' '.repeat(shift) + s : s.replace(new RegExp(`^ {0,${-shift}}`), '');
+    for (const s of seg) result.push(move(s));
+    // The lines kept as they were right after it (the end marker, in the comment that holds the block) move with it.
+    while (k + 1 < formatted.length && lines[k + 1].kept && !formatted[k + 1].startsWith('\u0000') && !opts.frozen.has(last + 1 - from)) {
+      k++; last++;
+      result.push(move(formatted[k]));
+    }
+  }
+  return result;
+}
+
 // ---------- Pretty print (3.3) ----------
 // The action kind `format` (json, xml): the selection, else the whole file, formatted by the host (Formatters.cs),
 // indented one indent step per level (a tab where the language uses tabs). JSON with comments: the host is asked
 // whether to keep them. A text that does not parse is left alone; the message says where, the cursor goes there.
 async function runFormat(pane, kind, language) {
+  if (kind === 'rules') return runReformat(pane, language);   // the formatter of reformat.js
   const cm = pane.cm;
   if (cm.somethingSelected() && cm.listSelections().length > 1) return toast('Format works on one selection.');
   let from = cm.getCursor('from'), to = cm.getCursor('to');

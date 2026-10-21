@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Demo</title>
+<style>
+  body { margin: 0 }
+</style></head>
+<body><ul><li>one<li>two</ul>
+<p>Text with <a href="x">a link</a> and <br> a break.
+<table><tr><td>a<td>b</table>
+<pre>
+  keep   this
+</pre>
+</body></html>

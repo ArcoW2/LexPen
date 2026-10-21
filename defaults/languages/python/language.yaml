@@ -97,3 +97,25 @@ outline:
   - { pattern: '^def\s+(\w+)', name: 1, level: 1 }   # functions
   - { pattern: '^\s+class\s+(\w+)', name: 1, level: 2 }
   - { pattern: '^\s+def\s+(\w+)', name: 1, level: 2 }   # methods (indented)
+
+# ---------- Format ----------
+# The parameters of the formatter (Format, Enter): the roles of the words and signs of this language and the
+# style it uses. See README.md (Format) and docs/plans/executed/PLAN-reformat.md; the indent step is the indent size.
+format:
+  case: true
+  keepIndent: true
+  word: '[A-Za-z_][A-Za-z0-9_]*'
+  comments: {line: ['#']}
+  strings:
+    - {open: '"""', lines: true, escape: '\'}
+    - {open: '''''''', lines: true, escape: '\'}
+    - {open: '"', escape: '\'}
+    - {open: '''', escape: '\'}
+  groups:
+    - {pair: ['(', ')'], open: same, close: same, base: word}
+    - {pair: ['[', ']'], open: same, close: same, base: word}
+    - {pair: ['{', '}'], open: same, close: same, base: word}
+  operators: [and, or, and not, or not]
+  compare: ['==', '!=', '<=', '>=', '<', '>', is not, not in, is, in]
+  align: ['=']
+  style: {open: same, close: same, base: word, align: 'off', afterClose: same, operator: start, oneLine: keep, parenSpace: 'off'}

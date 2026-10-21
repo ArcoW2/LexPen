@@ -143,7 +143,11 @@ body[data-orient=h] .mm-orient::before { content: "Above each other"; }
 .mm-pal-search:focus { border-color: var(--accent); }
 .mm-pal-list { flex: 1; min-height: 0; overflow: auto; margin-top: 8px; }
 .mm-palette table { width: 100%; }
-.mm-palette th { position: sticky; top: 0; background: var(--bg); }
+/* F1: the column names on top (a fixed height, so a group's header sticks just under them). */
+.mm-palette th { position: sticky; top: calc(24px * var(--ui-scale)); background: var(--bg); }
+.mm-palette thead th { top: 0; z-index: 2; height: calc(24px * var(--ui-scale)); box-sizing: border-box; padding: 0 8px 0 0;
+  text-align: left; vertical-align: middle; color: var(--fg-dim); font-weight: 600; font-size: calc(12px * var(--ui-scale));
+  border-bottom: 1px solid var(--border); }
 .mm-palette td { padding: 3px 8px 3px 0; vertical-align: top; color: var(--fg); font-family: inherit; }
 .mm-palette td:first-child { white-space: nowrap; width: 1%; font-family: Consolas, "Cascadia Mono", monospace; font-size: calc(12px * var(--ui-scale)); padding-top: 4px; }
 .mm-palette td + td { font-family: inherit; color: var(--fg); }   /* not the About window's monospace */
@@ -460,7 +464,7 @@ body[data-busy]::after {
 }
 .mm-editor-pane .CodeMirror-lines { padding: 12px 0 40vh; }
 .mm-editor-pane .CodeMirror pre.CodeMirror-line { padding: 0 16px 0 10px; }
-.mm-editor-pane .CodeMirror-gutters { background: var(--bg); border-right: 0; }
+.mm-editor-pane .CodeMirror-gutters { background: var(--bg); border-right: 1px solid var(--border); }   /* where the text starts, also when scrolled */
 /* The inner language's bar (format.js, updateInnerBar): over the top text row, so the editor never shifts. */
 .CodeMirror .mm-inner-bar { position: absolute; top: 0; left: 0; right: 0; z-index: 6; display: flex; flex-wrap: wrap;
   align-items: center; gap: 1px; padding: 3px 6px; background: var(--gutter-bg-embedded); border-bottom: 1px solid var(--border);
@@ -502,6 +506,15 @@ body[data-no-format-bar] .CodeMirror .mm-inner-bar { display: none; }
 .mm-editor-pane .CodeMirror-foldgutter-open, .mm-editor-pane .CodeMirror-foldgutter-folded { color: var(--fg-dim); }
 .mm-bm-free { min-width: 6px; height: 10px; padding: 0; border-radius: 1px 1px 0 0; clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 70%, 0 100%); }
 .mm-editor-pane .CodeMirror-cursor { border-left: 2px solid var(--accent); }
+/* The cursor past the end of the line (virtual.js): drawn by LexPen, CodeMirror's own hidden meanwhile. */
+.mm-vcursor { position: absolute; z-index: 3; width: 0; border-left: 2px solid var(--accent); pointer-events: none;
+  animation: mm-vblink 1.06s steps(1) infinite; }
+.mm-vcursor[hidden], .CodeMirror:not(.CodeMirror-focused) .mm-vcursor { display: none; }
+.mm-vfill { position: relative; z-index: 1; }   /* a block past shorter lines' ends (virtual.js) */
+.mm-vspacer { position: absolute; width: 1px; height: 1px; visibility: hidden; pointer-events: none; }
+.mm-vspacer[hidden] { display: none; }
+.CodeMirror.mm-virtual div.CodeMirror-cursors { visibility: hidden; }
+@keyframes mm-vblink { 50% { visibility: hidden; } }
 /* Scoped to the pane so it beats editor.css (loaded later), which sets a light color for these. */
 .mm-editor-pane .CodeMirror-selected, .mm-editor-pane .CodeMirror-focused .CodeMirror-selected { background: var(--select); }
 .mm-editor-pane .CodeMirror-line::selection, .mm-editor-pane .CodeMirror-line > span::selection,
@@ -562,9 +575,46 @@ body[data-no-format-bar] .CodeMirror .mm-inner-bar { display: none; }
 .cm-mm-find-hit { background: var(--find-hit); border-radius: 2px; }
 ::highlight(mm-find-0), ::highlight(mm-find-1) { background-color: var(--find-hit); }
 ::highlight(mm-find-cur-0), ::highlight(mm-find-cur-1) { background-color: var(--find-current); color: var(--find-current-fg); }
-/* The current match in the editor: as in the preview, and a box around it. */
-.CodeMirror .mm-find-current, .CodeMirror .cm-mm-find-hit.mm-find-current {
-  background: var(--find-current); color: var(--find-current-fg); outline: 2px solid var(--find-box); border-radius: 2px;
+/* The current match in the editor: as in the preview. */
+.CodeMirror .mm-find-current, .CodeMirror .cm-mm-find-hit.mm-find-current { background: var(--find-current); color: var(--find-current-fg); }
+/* The setting findMark, outline or both: one box around each whole match (find.js marks it: a line on the left at
+   its first piece, on the right at its last, top and bottom all along; the colouring splits a match into pieces).
+   The current match's box is thicker. Outline only: no background colour (the current match shows the selection).
+   The preview's matches are drawn by the highlight API, which has no box: an underline there. */
+body[data-find-mark=outline] .cm-mm-find-hit, body[data-find-mark=outline] .mm-editor-pane .CodeMirror .cm-searching { background: none; }
+body[data-find-mark=outline] .CodeMirror .mm-find-current, body[data-find-mark=outline] .CodeMirror .cm-mm-find-hit.mm-find-current {
+  background: none; color: inherit;
+}
+/* The setting findGutter: the line numbers of lines with a match (find.js), marked as the matches are. */
+.CodeMirror .mm-find-line .CodeMirror-linenumber { background: var(--find-hit); }
+.CodeMirror .mm-find-line-current .CodeMirror-linenumber { background: var(--find-current); color: var(--find-current-fg); }
+body[data-find-mark=outline] .CodeMirror .mm-find-line .CodeMirror-linenumber { background: none; color: inherit; }
+body[data-find-mark=outline] .CodeMirror .mm-find-line.mm-find-line-current .CodeMirror-linenumber { background: var(--select); }   /* as its match: selected */
+body[data-find-mark=outline] .CodeMirror .mm-find-line .CodeMirror-linenumber, body[data-find-mark=both] .CodeMirror .mm-find-line .CodeMirror-linenumber {
+  box-shadow: inset 1px 0 var(--find-box), inset -1px 0 var(--find-box), inset 0 2px var(--find-box), inset 0 -2px var(--find-box);
+}
+body[data-find-mark=outline] .CodeMirror .mm-find-line-current .CodeMirror-linenumber, body[data-find-mark=both] .CodeMirror .mm-find-line-current .CodeMirror-linenumber {
+  box-shadow: inset 1.5px 0 var(--find-box), inset -1.5px 0 var(--find-box), inset 0 3px var(--find-box), inset 0 -3px var(--find-box);
+}
+/* The lines at the sides thinner than those at the top and bottom (--side, --edge). */
+.CodeMirror .mm-find-box { --side: 1px; --edge: 2px; box-shadow: inset 0 var(--edge) var(--find-box), inset 0 calc(-1 * var(--edge)) var(--find-box); }
+.CodeMirror .mm-find-box.mm-find-current { --side: 1.5px; --edge: 3px; }
+.CodeMirror .mm-find-box.mm-find-box-start {
+  box-shadow: inset var(--side) 0 var(--find-box), inset 0 var(--edge) var(--find-box), inset 0 calc(-1 * var(--edge)) var(--find-box);
+}
+.CodeMirror .mm-find-box.mm-find-box-end {
+  box-shadow: inset calc(-1 * var(--side)) 0 var(--find-box), inset 0 var(--edge) var(--find-box), inset 0 calc(-1 * var(--edge)) var(--find-box);
+}
+.CodeMirror .mm-find-box.mm-find-box-start.mm-find-box-end {
+  box-shadow: inset var(--side) 0 var(--find-box), inset calc(-1 * var(--side)) 0 var(--find-box),
+    inset 0 var(--edge) var(--find-box), inset 0 calc(-1 * var(--edge)) var(--find-box);
+}
+body[data-find-mark=outline] ::highlight(mm-find-0), body[data-find-mark=outline] ::highlight(mm-find-1) {
+  background-color: transparent; text-decoration: underline 2px var(--find-box);
+}
+body[data-find-mark=both] ::highlight(mm-find-0), body[data-find-mark=both] ::highlight(mm-find-1) { text-decoration: underline 2px var(--find-box); }
+body[data-find-mark=outline] ::highlight(mm-find-cur-0), body[data-find-mark=outline] ::highlight(mm-find-cur-1) {
+  background-color: transparent; color: inherit; text-decoration: underline 3px var(--find-box);
 }
 
 /* Formatting bar above the editor (format.js): markdown's built-in bar, or a code language's bar (its pack's

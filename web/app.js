@@ -392,6 +392,12 @@ function makePane(index) {
 
   el.addEventListener('pointerdown', () => setActivePane(index), true);
   pane.previewEl.tabIndex = -1;   // can take the focus (Esc from the tree), so the keys scroll it
+  // The part of the tab shown that has the focus, editor or preview: the tab gets it back when shown again.
+  pane.el.addEventListener('focusin', e => {
+    if (!pane.active) return;
+    if (pane.editorEl.contains(e.target)) pane.active.focusPart = 'editor';
+    else if (pane.previewEl.contains(e.target)) pane.active.focusPart = 'preview';
+  });
   pane.previewEl.addEventListener('scroll', () => onPreviewScroll(pane));
   pane.previewEl.addEventListener('wheel', e => {
     if (!e.ctrlKey) return;
@@ -424,7 +430,7 @@ function makePane(index) {
       else if (state.hidden !== null) showHiddenPane();
       return;
     }
-    activate(pane, tab);
+    activate(pane, tab).then(() => focusPane(pane));   // the tab's editor or preview, as it had the focus last
   });
   pane.tabsEl.addEventListener('mousedown', e => { if (e.button === 1) e.preventDefault(); });   // no autoscroll
   pane.tabsEl.addEventListener('auxclick', e => {
@@ -604,7 +610,9 @@ async function ensureEditor(pane) {
   });
   pane.cm.on('scroll', () => onEditorScroll(pane));
   pane.cm.on('paste', (cm, e) => onEditorPaste(pane, e));
+  pane.cm.on('change', (cm, change) => electricReformat(cm, change));   // a closing word typed: its column (format.js)
   setupColumn(pane);   // column mode and blocks (column.js); its paste handler comes after the picture one
+  setupVirtual(pane);   // the cursor past the end of the line (virtual.js); its keys before column mode's
   pane.cm.on('drop', (cm, e) => onEditorDrop(pane, e));
   pane.cm.getWrapperElement().addEventListener('wheel', e => {   // Ctrl+wheel: the editor font size
     if (!e.ctrlKey) return;
@@ -1233,11 +1241,13 @@ function applyTabStyle(el, doc, active) {
   return hit.label;
 }
 
-function cycleTab(step) {
+// The document reached gets the focus (also when it was elsewhere: the tree, a tab clicked before).
+async function cycleTab(step) {
   const pane = panes[state.activePane];
   if (pane.tabs.length < 2) return;
   const at = pane.tabs.indexOf(pane.active);
-  activate(pane, pane.tabs[(at + step + pane.tabs.length) % pane.tabs.length]);
+  await activate(pane, pane.tabs[(at + step + pane.tabs.length) % pane.tabs.length]);
+  focusPane(pane);
 }
 
 // ---------- Window chrome ----------
@@ -1309,8 +1319,8 @@ function nextDocument(step, held = true) {
   }
   const { list } = tabWalk;
   tabWalk.at = (tabWalk.at + step + list.length) % list.length;
-  const tab = list[tabWalk.at];
-  activate(paneOf(tab), tab);
+  const tab = list[tabWalk.at], pane = paneOf(tab);
+  activate(pane, tab).then(() => focusPane(pane));
   if (!held) endTabWalk();
 }
 
@@ -1342,7 +1352,9 @@ function updateStatus() {
   let pos = '';
   if (cm) {
     const head = cm.getCursor('head'), selected = cm.getSelection(), block = blockSize(cm);
-    pos = `Ln ${head.line + 1}, Col ${textColumn(cm.getLine(head.line), head.ch, stopsOf(cm)) + 1}`;   // a tab to its stop
+    // Past the end of the line (virtual.js), or a block's head (also past a line's end): that column.
+    const past = blockOf(cm)?.head ?? virtualOf(cm), line = past ? past.line : head.line;
+    pos = `Ln ${line + 1}, Col ${(past ? past.col : textColumn(cm.getLine(head.line), head.ch, stopsOf(cm))) + 1}`;   // a tab to its stop
     if (block) pos += ` (Block ${block})`;
     else if (selected) {
       const lines = selected.split('\n').length;
@@ -1447,7 +1459,10 @@ async function closeTab(tab, force, bulk) {
   }
   if (last && !force) {
     if (doc.draft) {
-      if (docText(doc).trim() && !await host('confirm', { text: `Discard draft ${doc.draft}?` })) return false;
+      // Yes saves it as a file (Save As), No drops it, Cancel keeps the tab.
+      const answer = docText(doc).trim() ? await host('askSave', { text: `Save draft ${doc.draft}?` }) : 'no';
+      if (answer === 'yes') return await saveDoc(doc) && closeTab(tab, force, bulk);
+      if (answer !== 'no') return false;
     } else if (doc.dirty && doc.lock && !await host('confirm', { text: `Discard unsaved changes to ${nameOf(doc.path)}?` })) return false;
   }
   const pane = paneOf(tab);
@@ -1853,8 +1868,10 @@ function setTreeCursor(row, scroll = true) {
 }
 
 // The keys go to the pane's file: the editor, or the preview (arrows scroll it).
+// The editor or the preview, as the tab had it last (both are shown in split; the editor at first).
 function focusPane(pane) {
-  if (pane.cm && pane.el.dataset.mode !== 'preview') pane.cm.focus(); else pane.previewEl.focus();
+  const mode = pane.el.dataset.mode, part = pane.active?.focusPart;
+  if (pane.cm && mode !== 'preview' && (mode !== 'split' || part !== 'preview')) pane.cm.focus(); else pane.previewEl.focus();
 }
 
 // The clicked Save button hides itself once saved, which would leave the focus nowhere: back to the file.
@@ -1971,6 +1988,7 @@ async function toggleDir(row) {
   const open = row.classList.toggle('mm-open');
   children.hidden = !open;
   if (open) expanded.add(row.dataset.path); else expanded.delete(row.dataset.path);
+  saveSession();   // the open folders are kept with the window (sessionData)
   if (open && !children.childElementCount) {
     await fillDir(children, row.dataset.path, +row.dataset.depth + 1);
     markFresh();
@@ -1978,6 +1996,7 @@ async function toggleDir(row) {
   }
 }
 
+ui.tree.addEventListener('scroll', () => saveSession(), { passive: true });   // its scroll position, with the session
 ui.tree.addEventListener('click', e => {
   const row = e.target.closest('.mm-row');
   if (!row) return;
@@ -2004,8 +2023,10 @@ ui.tree.addEventListener('dragstart', e => {
   e.dataTransfer.effectAllowed = 'copyMove';
 });
 
-async function openFolder(path) {
+// `open`: the folders to open again (a restored session: the tree as it was).
+async function openFolder(path, open = []) {
   expanded.clear();
+  for (const dir of open) if (typeof dir === 'string') expanded.add(dir);
   git = new Map();   // no colours of the previous folder meanwhile
   await fillDir(ui.tree, path, 0);
   state.root = path;
@@ -2473,6 +2494,7 @@ function applyFonts() {
   else root.removeProperty('--status-size');
   relayout();
   columnFontChanged();
+  virtualFontChanged();
 }
 
 // ---------- Wrap long lines (View menu, Alt+Z) ----------
@@ -2767,6 +2789,7 @@ ui.divider.addEventListener('contextmenu', e => showMenu(ui.dividerMenu, e, () =
 function sessionData() {
   return {
     root: state.root,
+    tree: state.root ? { open: [...expanded], top: Math.round(ui.tree.scrollTop) } : undefined,   // the open folders, the scroll
     activePane: state.activePane,
     hidden: state.hidden,
     panes: panes.map(pane => ({
@@ -2845,7 +2868,8 @@ events.closeRequest = async ({ peer } = {}) => {
     if (peer && setting('movePinned'))
       for (const tab of allTabs().filter(t => t.pinned)) if (paneOf(tab)) await moveTab(tab, peer, { closing: true });
     const dirty = [...docs].filter(d => d.path && d.dirty && d.lock);
-    const drafts = [...docs].filter(d => d.draft && d.draftChanged && docText(d).trim());
+    // Changed drafts are asked about only with the setting; otherwise they stay drafts, unasked.
+    const drafts = setting('askSaveDrafts') ? [...docs].filter(d => d.draft && d.draftChanged && docText(d).trim()) : [];
     if (dirty.length || drafts.length) {
       const answer = await host('closePrompt', { dirty: dirty.map(d => d.path), drafts: drafts.map(d => d.draft) });
       if (answer === 'cancel') return host('closeCancel');
@@ -2927,9 +2951,11 @@ async function renameProject() {
 }
 
 // Asks a name: the text, or null for Cancel / Esc.
-function askName(title, value) {
+// `placeholder`: the hint in the empty field (a project name: a number when left empty).
+function askName(title, value, placeholder = 'Empty: a number') {
   const dialog = $('.mm-name-dialog'), input = dialog.querySelector('.mm-name-input');
   dialog.querySelector('.mm-name-label').textContent = title;
+  input.placeholder = placeholder;
   input.value = value;
   dialog.returnValue = '';
   dialog.showModal();
@@ -3152,6 +3178,10 @@ function applySettings() {
   if (FONT_SETTINGS.some(changed)) applyFonts();
   if (changed('wrap')) applyWrap(now.wrap);
   if (changed('tabBar')) applyTabBar(now.tabBar);
+  if (changed('findMark') || changed('findGutter')) {   // app.css: how matches look; boxes and line numbers: find.js
+    document.body.dataset.findMark = now.findMark || 'background';
+    if (typeof refreshMarks === 'function') for (const pane of panes) if (pane.find?.marked) refreshMarks(pane);
+  }
   if (changed('formatBar')) applyFormatBar(now.formatBar);
   if (changed('languageNames') && 'languageNames' in was) {   // fences and blocks may now be another language
     languagesVersion++;
@@ -3159,6 +3189,8 @@ function applySettings() {
     showAll();
   }
   if (changed('showWhitespace') || changed('showLineEnds')) applyWhitespace();
+  if (changed('virtualSpace') && !now.virtualSpace && !column.on)
+    for (const pane of panes) if (pane.cm) clearVirtual(pane.cm);
   if ((changed('tabSize') || changed('indentSize')) && 'tabSize' in was)
     for (const pane of panes) if (pane.cm && pane.active) applyTabStops(pane, pane.active.doc);
   if (changed('zoom')) applyZoom(now.zoom);
@@ -3429,7 +3461,7 @@ track((async () => {
   await loadLanguages();   // first: the keys name their actions
   setKeys(await host('keys'));
   host('settingDefs', { defs: settingDefs() });   // the rows of the settings window
-  Object.assign(clips, await host('clipState'));
+  Object.assign(clips, await host('clipState').catch(() => ({})));   // the Windows clipboard busy elsewhere: no previews
   buildMenuBar();
   showKeys();
   state.win = start.id;
@@ -3440,7 +3472,10 @@ track((async () => {
   const root = start.folder ?? session?.root ?? null;
 
   document.body.dataset.sidebar = root && localStorage.sidebar !== 'off' ? 'on' : 'off';
-  if (root) await openFolder(root).catch(() => {});
+  // The tree as it was: its open folders and scroll position (when it is the session's folder).
+  const tree = root && session?.root === root && session.tree && typeof session.tree === 'object' ? session.tree : null;
+  if (root) await openFolder(root, Array.isArray(tree?.open) ? tree.open : []).catch(() => {});
+  if (tree && Number.isFinite(tree.top)) ui.tree.scrollTop = tree.top;
   if (start.restore !== undefined || start.drafts) await restore(session, start.drafts || []);
   for (const path of start.files) await openFile(path).catch(e => toast(e.message));
   syncWatch();

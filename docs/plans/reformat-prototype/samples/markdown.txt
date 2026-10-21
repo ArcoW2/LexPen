@@ -1,0 +1,19 @@
+# Prices
+
+Text before the table | not a table row.
+
+| Item | Price | Note |
+|:--|--:|:-:|
+| Apple | 1.5 | fresh |
+| Banana split | 12 | with `a|b` in code |
+| Pear | 0.75 | escaped \| pipe |
+
+Name | Value
+--- | ---
+x | 1
+longer name | 22
+
+```
+| not | a | table |
+|---|---|---|
+```

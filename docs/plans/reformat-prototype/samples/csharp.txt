@@ -1,0 +1,25 @@
+namespace Demo {
+public class Order : Base {
+private int count;
+public void Add(Item item, int amount) {
+if (item == null) throw new ArgumentNullException(nameof(item));
+if (amount > 0 &&
+item.Active)
+count += amount;
+else {
+count = 0; }
+foreach (var line in lines) {
+switch (line.Kind) {
+case Kind.A:
+Handle(line);
+break;
+default:
+break;
+}
+}
+var total = lines
+.Where(l => l.Active)
+.Sum(l => l.Amount);
+}
+}
+}

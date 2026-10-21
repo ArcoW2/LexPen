@@ -1,0 +1,48 @@
+unit Orders;
+interface
+uses
+SysUtils, Classes;
+type
+TOrder = class(TObject)
+private
+FCount: Integer;
+public
+procedure Add(AItem: TItem; AAmount: Integer);
+end;
+TForward = class;
+implementation
+procedure TOrder.Add(AItem: TItem; AAmount: Integer);
+var
+i: Integer;
+begin
+if AItem = nil then
+raise Exception.Create('no item');
+if (AAmount > 0) and
+AItem.Active then
+begin
+FCount := FCount + AAmount;
+end
+else
+FCount := 0;
+for i := 0 to 9 do
+Inc(FCount);
+case AAmount of
+1: Log('one');
+2:
+begin
+Log('two');
+end;
+else
+Log('other');
+end;
+try
+Save;
+except
+on E: Exception do
+Log(E.Message);
+end;
+repeat
+Dec(i);
+until i = 0;
+end;
+end.

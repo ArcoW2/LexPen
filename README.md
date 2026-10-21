@@ -36,7 +36,10 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   alerts: `note`, `tip`, `important`, `warning`, `caution`; markers: `gitModified`, `gitAdded`, `gitUntracked`,
   `gitDeleted`, `barChanged`, `barRemoved`; find: `findHit`, `findCurrent`, `findCurrentFg`, `findBox`; shown spaces, tabs and line ends: `whitespace`; the gutter beside lines of another language: `gutterBgEmbedded`. Values:
   `#rrggbb`, `#rgb` or `rgba(r, g, b, a)`. Mistakes show in the settings window.
-- **Settings window** (Options > Settings): every setting in one searchable list with a header per group; a change
+- **Settings window** (Options > Settings): a tab per group (General, Files, Editor, Preview, Tabs, Find, App, Keys,
+  Languages; Ctrl+Tab / Ctrl+PgDn between them; a tab's rows are made when it is first shown); a search shows the
+  matches of the tab shown; the tabs with a match stand out (while typing, a tab without one moves to the first
+  tab with one); a change
   applies at once in every LexPen window, Reset goes back to the default. Your `settings.json` in
   `%LOCALAPPDATA%\LexPen` holds only what you changed (the defaults with a comment each: `defaults\settings.json`);
   edit it by hand or copy it to another PC, a change in it applies at once. Problems in it show in the window.
@@ -64,7 +67,8 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   default set; a `keys.json` in `%LOCALAPPDATA%\LexPen` overrides it key by key (`"Ctrl+T": null` takes a key
   away). Chords like `Ctrl+K, K`: the first key waits in the bottom bar for the second. A move (section,
   bookmark) selects when Shift is added to its key.
-- **F1**: every action with its key, grouped and searchable (on key, title, hint or action name). Enter runs the
+- **F1**: every action with its key (columns Keys, Command, Action, their names on top while the list scrolls),
+  grouped and searchable (on key, title, hint or action name). Enter runs the
   selected one, so F1 is also a command palette and the way to actions without a key. Your own keys are marked;
   a default you replaced is shown struck through.
 - **Language actions**: what Format does depends on the language of the file (`defaults\languages\<name>\language.yaml`).
@@ -72,23 +76,47 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   comment (Ctrl+Shift+/) and Remove block comment; Ctrl+PgDn / Ctrl+PgUp (or Alt+Right / Alt+Left) go to the next / previous section
   (a heading in markdown, a paragraph in plain text).
 - **The Format menu** holds what the bar above the editor holds, for the language you are in: the comment items,
-  then the bar's items in the bar's order with their icons (Convert and Format among them). On a line of another
-  language (a block, a fence, lines you set) that language's bar items follow in a submenu named after it, and
-  act in that language (Alt+R opens it).
-- **Conversions** (every language; the Convert button `Aa` at the end of every bar, the Format menu, F1): UPPER
-  CASE (Ctrl+Shift+U), lower case (Ctrl+U), all of them in a menu at the cursor with Ctrl+Alt+F, smart capitalize (a capital after `.` and `:` with a space after them,
+  then the bar's items in the bar's order with their icons (Format among them; Alt+R opens it). The **Convert
+  menu** next to it holds the conversions (Alt+N). On a line of another language (a block, a fence, lines you
+  set) each menu gets a submenu named after that language with its items, acting in that language; a language
+  without items there (no bar) gets none.
+- **Conversions** (every language; the Convert button `Aa` at the end of every bar, the Convert menu, F1): UPPER
+  CASE (Ctrl+Shift+U), lower case (Ctrl+U), all of them in a menu at the cursor with Ctrl+Alt+C, smart capitalize (a capital after `.` and `:` with a space after them,
   after an empty line and at the start of the file), snake_case, camelCase, PascalCase, kebab-case, CONSTANT_CASE,
   tabs to spaces, spaces to tabs (the indentation, a tab per indent step) and remove whitespace at line ends. The
   case ones work on the selection (several, or a block: each) or the word at the cursor; the others on the lines
   of the selection or the whole file. One undo step each.
-- **Pretty print** (Format JSON, Format XML: on the bar of JSON and XML, the Format menu): the selection, or the
-  whole file, indented one indent step per level. JSON keeps every token as written (`1.0`, long numbers,
-  escapes, key order); with comments it asks whether to keep them. XML keeps comments, CDATA, the declaration and
-  the spacing of text mixed with elements. Text that does not parse is left alone; the message gives the line and
-  column, and the cursor goes there. Inside a block of JSON in another language: that block.
+- **Reformat** (the Reformat button at the end of the bar, the Format menu; every language with format parameters):
+  the selected lines, else the whole file; from another language's bar or submenu, its part. One formatter for
+  every language (ASA, SQL, C#, Java, JavaScript, C++, PHP, Perl, PowerShell, AutoHotkey, Pascal, VB, VBScript,
+  Ruby, shell, batch, JSON, XML, HTML, CSS, Python, markdown): indentation, line breaks and alignment by the rules
+  each language names under `format:` in its `language.yaml`. Only whitespace and line breaks change, never a token
+  (JSON keeps `1.0`, long numbers, escapes; comments stay). A part of another language (a JSON block, a fence) is
+  formatted by its own rules and moves with the line above it. A mistake in the structure in the lines to format
+  (an opener without its closer, a closer without one) leaves everything as it was; the message gives the line,
+  the cursor goes there. The indent step is the indent size (the setting, or the language's `indentSize`), tabs
+  where the language uses them. How it lays out, per language: Options > Settings, Languages, "Format: ..." (where
+  the content after a `(` goes, the indentation from the block word or from its line, alignment, `and` / `or` at a
+  line start, ...). Python keeps its indentation (only lines inside brackets are lined up), markdown its text (its
+  tables are lined up); YAML is not formatted.
+- **Indentation while typing**: in those languages Enter gives the new line the indentation Format would give it,
+  and typing a closing word or sign at the start of a line (`end if`, `else`, `}`, `</name>`) moves that line to
+  its column.
 - **Whitespace at line ends**: saving removes the spaces and tabs at the line ends of the whole file (Options >
-  Settings > Editor, on; Ctrl+Z after the save gives them back). A language can keep some: markdown keeps up to two
+  Settings > Files, on; Ctrl+Z after the save gives them back). A language can keep some: markdown keeps up to two
   (a line break there); `trimTrailing` in its `language.yaml`.
+- **Scroll sideways before the edge** (Options > Settings > Editor, 8 columns): without wrapping, the editor scrolls
+  left or right when the cursor (or a block's head) comes that close to the edge, also past the longest line; on
+  keys, not on a click.
+- **Left at the start of a line** (Options > Settings > Editor, on by default): Left (and Shift+Left) at the first
+  column goes on to the end of the line above; off, the cursor stays there.
+- **Cursor past the end of the line** (Options > Settings > Editor, off by default; always in column mode; a
+  monospaced editor font only): Up, Down, PgUp / PgDn and a click keep the cursor in its column on a shorter or
+  empty line (with wrapping on: its place on the row), Right goes on past the end, End goes to the real end.
+  Typing or pasting there first fills the line with spaces (tabs with `useTabs`) up to the cursor; moving away adds
+  nothing. Backspace there moves back, Delete fills and joins the next line on. The bottom bar shows the column.
+- **The head of a selection** (and of a block, also past a line's end) shows a cursor, so Shift+arrows show where
+  they are. Without wrapping the cursor can go as far right as you like; the editor scrolls along.
 - **Tab and indent**: two settings (Options > Settings > Editor > Tabs): the tab size (4) and the indent size (2);
   a language can set its own, and ask for real tabs (`useTabs`). Tab in a line's indentation (or with lines
   selected) indents to the next indent stop, Shift+Tab back; Tab after text goes to the next tab stop (spaces, or
@@ -102,7 +130,10 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   restarts). Ctrl+Shift+1 to 9 selects one, Ctrl+Shift+` the Windows clipboard; Ctrl+C, Ctrl+X and Ctrl+V then
   work on the active one. The bottom bar shows it (Clip: Win, Clip: 3); a click there or Ctrl+Shift+C lists them
   with the start of their text.
-- **Column mode** (Alt+C or Edit > Column mode; `COL` in the bottom bar, a click there ends it): a drag and
+- **Column mode** (Alt+C or Edit > Column mode; `COL` in the bottom bar, a click there ends it; the cursor goes
+  past line ends in it, as with the setting above, so a block can start and end there; a block is always a
+  rectangle, drawn past shorter lines' ends and copied with spaces filling them; Shift+End goes to the end of the
+  head's line, pressed again to the end of the block's longest line; Ctrl+Shift+arrows step by word on the head's line; Alt+C with a selection turns it into a block, and a block back into a selection, from its anchor to its head): a drag and
   Shift+arrows (also Home / End / PgUp / PgDn) select a block, a rectangle that goes on past the end of short
   lines; tabs count to their tab stop. Without the mode Alt+drag and Alt+Shift+arrows make one. A key typed on a
   block replaces it on every line; Backspace / Delete remove its part and leave a cursor on every line, where
@@ -170,7 +201,10 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   recently closed files (15 each, shared by all windows). An entry that no longer exists is dimmed; choosing it
   removes it.
 - **Drafts**: a new file is kept as a draft (`%LOCALAPPDATA%\LexPen\State\Drafts\editN.md`) until saved, and comes back
-  at the next start, in its own window.
+  at the next start, in its own window. Closing a changed draft's tab asks "Save draft editN?" (Yes: Save As, No: the
+  draft is deleted, Cancel). Closing LexPen asks for the changed files and drafts in one question (Yes, No (keep
+  drafts): the drafts stay, Cancel); with Ask to save changed drafts (settings, Files) off, drafts are not asked
+  about and stay drafts.
 - **Changed on disk**: an open file with unsaved changes that changes on disk gets a blue bar (Reload / Keep mine),
   a removed or renamed file a red one (Close / Save it again / Keep as draft). A file without unsaved changes
   is reloaded; when that happened out of sight, a blue banner says so until you click anywhere or press Esc.
@@ -217,19 +251,20 @@ F1 lists every key and action. The main ones of the default set:
 | Ctrl+S / Ctrl+Shift+S | Save / save as |
 | Ctrl+W / Ctrl+F4, Ctrl+Shift+T | Close tab, reopen the last closed tab |
 | Ctrl+Tab / Ctrl+Shift+Tab | Next / previous document |
-| Alt+Up / Alt+Down | Previous / next tab, in the tab bar's order |
+| Alt+Up / Alt+Down | Previous / next tab, in the tab bar's order; the focus goes to its editor or preview, as the tab had it last |
 | Alt+Left / Alt+Right, Ctrl+PgUp / Ctrl+PgDn | Previous / next section (paragraph, heading, procedure, ... per language) |
 | Mouse back / forward | Back / forward to the tab and file shown before, like a browser |
 | Ctrl+E | Show / hide the preview |
 | Ctrl+Shift+H, Ctrl+Shift+B, Ctrl+Shift+E | Outline, sidebar, folder pane |
-| Ctrl+F, F3 / Shift+F3, Ctrl+Shift+R, Ctrl+Shift+F | Find, next / previous (past the last match: stop, go on from the top, or go on until where the search started; a setting), replace, search in files |
+| Ctrl+F, F3 / Shift+F3, Ctrl+Shift+R, Ctrl+Shift+F | Find, next / previous (past the last match: stop, go on from the top, or go on until where the search started; a setting), replace, search in files. Found text is marked with a background colour, a box around it, or both (Options > Settings, Find; in the preview the box is an underline); so are the line numbers of its lines (a setting) |
+| Ctrl+G | Go to line: a line number, or line:column (also Edit > Go to line...) |
 | Ctrl+PgDn / Ctrl+PgUp | Next / previous section (with Shift: select) |
 | Ctrl+Shift+1 .. 9, Ctrl+Shift+` , Ctrl+Shift+C | Select clipboard 1 to 9, the Windows clipboard, the list |
 | Alt+C, Alt+Shift+arrows | Column mode on / off, select a block (also without column mode) |
 | Ctrl+1, S / T / C, Ctrl+1, 1 | Bookmark 1: store, toggle, clear, go to (likewise 2 to 9) |
 | Ctrl+K, K / N / P / L | Unnumbered bookmark, next, previous, list |
 | Ctrl+/, Ctrl+Shift+/ | Toggle comment, toggle block comment |
-| Ctrl+Alt+F | The Convert menu at the cursor (also in the Convert button's tooltip) |
+| Ctrl+Alt+C | The Convert menu at the cursor (also in the Convert button's tooltip) |
 | Ctrl+Shift+U / Ctrl+U | UPPER CASE / lower case |
 | Tab / Shift+Tab | In the indentation (or on selected lines): indent / outdent; after text: to the next tab stop |
 | Ctrl+B, Ctrl+I, Ctrl+Shift+X, Ctrl+` | Bold, italic, strikethrough, inline code |
@@ -329,7 +364,7 @@ PowerShell and C# modes and the search, comment and fold add-ons; loaded when th
 | `ThemeFile.cs` | Themes: shipped and yours, checked, bases followed; colour names and fallbacks from app.css |
 | `DataFolder.cs` | The data folder's layout (`State\`) and the one-time move of an older layout |
 | `MainForm.cs` | One window: WebView2 host, message handling, file access, watchers, git, close prompt |
-| `Formatters.cs` | Pretty print: JSON (a formatter of its own) and XML (unit tested) |
+| `Formatters.cs` | The former pretty print of JSON and XML (unit tested); not used since Format is `web/reformat.js` |
 | `tests/LexPen.Tests` | Unit tests |
 | `web/` | The page (built into the exe as resources; a debug build serves this folder, so an edit applies on a reload) |
 | `web/index.html` | The UI page and its Content Security Policy |
@@ -338,7 +373,8 @@ PowerShell and C# modes and the search, comment and fold add-ons; loaded when th
 | `web/actions.js` | The actions; the language packs |
 | `web/menus.js`, `palette.js` | The menu bar; F1 |
 | `web/format.js`, `bookmarks.js`, `gutter.js`, `find.js` | Editor commands and the bars; bookmarks; the gutter; find in a pane |
-| `web/tabs.js`, `convert.js`, `column.js` | Tab and indent stops; conversions, trim on save and pretty print; column mode |
+| `web/tabs.js`, `convert.js`, `column.js` | Tab and indent stops; conversions, trim on save and Format (the parts per language); column mode |
+| `web/reformat.js` | The formatter: one engine for every language, the parameters from the pack's `format:` (a port of `docs/plans/reformat-prototype`) |
 | `web/app.css` | Styling; fallback theme colours |
 | `web/vendor/` | Bundled third-party libraries (generated by `vendor.ps1`) |
 | `defaults/` | Copied next to the exe: `keys.json` and `settings.json` (the defaults), `languages/` (the language packs), `themes/` |
@@ -349,7 +385,7 @@ PowerShell and C# modes and the search, comment and fold add-ons; loaded when th
 
 `%LOCALAPPDATA%\LexPen` holds what you choose: `settings.json` (only what differs from the defaults), `keys.json`,
 `favourites.json`, `tab-colours.json`, `themes\`, `languages\`. What LexPen remembers by itself is in its `State\` subfolder: `state.json`
-(recent lists, the fallback window position), `projects.json` (every project and window: tabs and panes, each
+(recent lists, the fallback window position), `projects.json` (every project and window: tabs and panes, the folder pane's open folders and scroll position, each
 tab's cursor and scroll position, the window's place and desktop; an older `session.json` became project 1),
 `Drafts\`, `clipboards.json`,
 `bookmarks.json` and `EBWebView\` (the browser's own data). An older layout is moved over once at start

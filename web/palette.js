@@ -105,7 +105,9 @@ function renderPalette() {
   }
   if (!q) for (const [group, rows] of FIXED_KEYS)
     html += `<tr><th colspan="3">${group} (fixed keys)</th></tr>` + rows.map(([k, t]) => `<tr class="mm-pal-fixed"><td>${escapeHtml(k)}</td><td>${escapeHtml(t)}</td><td></td></tr>`).join('');
-  palette.list.innerHTML = `<table>${html || '<tr><td>Nothing found.</td></tr>'}</table>`;
+  // The column names stay on top while the list scrolls; a group's header stays just under them.
+  palette.list.innerHTML = '<table><thead><tr class="mm-pal-head"><th>Keys</th><th>Command</th><th>Action</th></tr></thead>' +
+    `<tbody>${html || '<tr><td>Nothing found.</td></tr>'}</tbody></table>`;
   selectPaletteRow(palette.rows.findIndex(r => r.folded || r.available), 0);
 }
 

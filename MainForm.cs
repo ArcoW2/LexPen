@@ -577,6 +577,16 @@ sealed class MainForm : Form
                 return MessageBox.Show(this, Arg("text"), "LexPen",
                     MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes;
 
+            // Save before closing: "yes" | "no" | null (Cancel).
+            case "askSave":
+                return MessageBox.Show(this, Arg("text"), "LexPen",
+                    MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question) switch
+                {
+                    DialogResult.Yes => "yes",
+                    DialogResult.No => "no",
+                    _ => null,
+                };
+
             // Pretty print of JSON with comments: keep them, remove them, or (null) do not format.
             case "askKeepComments":
                 return MessageBox.Show(this, "This JSON has comments. Keep the comments?\n\nYes keeps them, No removes them, Cancel changes nothing.",
@@ -792,8 +802,8 @@ sealed class MainForm : Form
         if (drafts.Count > 0)
             text.AppendLine("Drafts changed (kept as draft unless you save them as a file):")
                 .AppendJoin("", drafts.Select(d => $"    {d}\n"));
-        var save = new TaskDialogButton(drafts.Count > 0 ? "Save..." : "Save");
-        var discard = new TaskDialogButton(drafts.Count > 0 ? "Don't save (keep drafts)" : "Don't save");
+        var save = new TaskDialogButton("Yes");
+        var discard = new TaskDialogButton(drafts.Count > 0 ? "No (keep drafts)" : "No");
         var page = new TaskDialogPage
         {
             Caption = "LexPen",

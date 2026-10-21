@@ -1,0 +1,19 @@
+public class Order
+{
+@Override
+public int count(List<Item> items)
+{
+int n = 0;
+for (Item i : items)
+if (i.active()) n++;
+try
+{
+save();
+}
+catch (IOException e)
+{
+log(e);
+}
+return n;
+}
+}

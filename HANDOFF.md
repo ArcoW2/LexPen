@@ -50,10 +50,11 @@
   (`docs/plans/executed/PLAN-embedded-languages.md`), the tab bar's show-in-folder-pane button.
 - Merged into `main` (`cec859e`) and pushed: column mode (`docs/plans/executed/PLAN-column-selection.md`).
 - Merged into `main` (`b207422`) and pushed: conversions, pretty print (JSON, XML), trailing whitespace on save,
-  tab and indent stops, the Format menu from the bars (`docs/plans/executed/PLAN-formatters.md`). Plan waiting:
-  `PLAN-virtual-space.md` (cursor past the end of the line; no questions left).
-- On the local branch `app-files`: one `LexPen.exe` and a folder `defaults` (the page in the exe, served from
-  there; `docs/plans/executed/PLAN-app-files.md`, with the start-up measurements).
+  tab and indent stops, the Format menu from the bars (`docs/plans/executed/PLAN-formatters.md`).
+- Merged into `main` (`3623b0b`) and pushed: one `LexPen.exe` and a folder `defaults` (the page in the exe,
+  served from there; `docs/plans/executed/PLAN-app-files.md`, with the start-up measurements).
+- On the local branch `virtual-space`: the cursor past the end of the line (setting, and always in column mode),
+  a drawn cursor at the head of a selection or block (`docs/plans/executed/PLAN-virtual-space.md`).
 - Earlier, on `theme-inheritance` (now merged): theme inheritance
   (`docs/plans/executed/PLAN-theme-inheritance.md`), the language set from the UltraEdit word files and the debug
   build reading packs and themes from the project (`docs/plans/executed/PLAN-language-set.md`), Esc closing the

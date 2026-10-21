@@ -1,0 +1,17 @@
+function Get-Total([string]$Path) {
+$sum = 0
+if (Test-Path $Path)
+{
+Get-Content $Path |
+Where-Object { $_ -match '\d' } |
+ForEach-Object { $sum += [int]$_ }
+}
+else {
+Write-Warning "no file: $Path"
+}
+$h = @{
+Name = 'x'
+Count = $sum
+}
+return $sum
+}

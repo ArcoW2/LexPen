@@ -76,3 +76,41 @@ tokens:
 # The function string of the word file.
 outline:
   - { pattern: '\bfunction\s+([\w-]+)', name: 1, level: 1 }   # functions
+
+# ---------- Format ----------
+# The parameters of the formatter (Format, Enter): the roles of the words and signs of this language and the
+# style it uses. See README.md (Format) and docs/plans/executed/PLAN-reformat.md; the indent step is the indent size.
+format:
+  case: true
+  word: '[A-Za-z0-9_./$-]+'
+  comments: {line: [' #']}
+  strings:
+    - {open: '"', escape: '\', lines: true}
+    - {open: '''', lines: true}
+  keep:
+    - '<<-?\s*[\''"]?([A-Za-z_]+)[\''"]?.*?^\t*\1$'
+    - '\$\{[^}]*\}'
+    - '\$\(\(.*?\)\)'
+  groups:
+    - {pair: ['{', '}'], open: next, close: own, base: line, block: true}
+    - {pair: ['$(', ')'], open: same, close: same, base: line}
+    - {pair: ['(', ')'], open: same, close: same, base: word}
+    - {pair: ['[[', ']]'], open: same, close: same, base: word}
+  blocks:
+    open:
+      - {w: if, until: [then]}
+      - {w: while, until: [do]}
+      - {w: until, until: [do]}
+      - {w: for, until: [do]}
+      - {w: select, until: [do]}
+      - {w: case, until: [in]}
+      - {w: pattern, line: '^[^\s()]+(\s*\|\s*[^\s()]+)*\)', inside: [case], closes: false, endsAfter: [';;'], endsBefore: [esac]}
+    middle:
+      - {w: elif, of: [if], until: [then]}
+      - {w: else, of: [if]}
+    close: {fi: if, done: [while, until, for, select], esac: case}
+  signs: [';;', '&&', '||']
+  freeClosers: ['^\s*[^\s()]+(\s*\|\s*[^\s()]+)*\)']
+  ends: [';', "\n"]
+  continueAfter: '(\\|\||&&)\s*$'
+  style: {open: same, close: same, base: line, align: 'off', afterClose: same, operator: end, oneLine: keep, parenSpace: 'off'}

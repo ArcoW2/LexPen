@@ -1,0 +1,27 @@
+#!/bin/bash
+count() {
+local n=0
+for f in "$@"; do
+if [ -f "$f" ]; then
+n=$((n + 1))
+elif [ -d "$f" ]
+then
+echo "dir: ${f#./}"
+else
+echo "skip # not a comment"
+fi
+done
+case "$1" in
+start|run)
+echo starting
+;;
+stop) echo stopping ;;
+*)
+echo unknown
+;;
+esac
+cat <<EOF
+  kept   as written
+EOF
+echo $n # the count
+}

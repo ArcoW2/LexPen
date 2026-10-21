@@ -518,11 +518,70 @@ const mdKey = run => markdownOnly(cm => { if (!cm.getOption('readOnly')) run(cm)
 
 function formatKeys() {
   return {
-    'Enter': markdownOnly(cm => { if (!enterInTable(cm)) cm.execCommand('newlineAndIndentContinueMarkdownList'); }),
+    'Enter': cm => {
+      const md = markdownOnly(c => { if (!enterInTable(c)) c.execCommand('newlineAndIndentContinueMarkdownList'); })(cm);
+      return md === CodeMirror.Pass ? formatEnter(cm) : md;
+    },
     'Shift-Enter': mdKey(cm => cm.replaceSelection('<br>')),
     'Tab': cm => { if (cm.getOption('mode').name !== 'gfm' || !moveCell(cm, 1)) tabKey(cm); },   // tabs.js
     'Shift-Tab': cm => { if (cm.getOption('mode').name !== 'gfm' || !moveCell(cm, -1)) shiftTabKey(cm); },
   };
+}
+
+// ---------- Indentation while typing (docs/plans/executed/PLAN-reformat.md 3.4) ----------
+// In a language with format parameters, Enter gives the new line the indentation Format would give it, and typing
+// a closing word or sign at the start of a line (end if, else, }, </name>) moves that line to its column.
+function reformatContext(cm, line) {
+  const doc = panes.find(p => p.cm === cm)?.active?.doc;
+  if (!doc) return null;
+  const fileLang = languageOf(doc), langAt = l => lineLanguage(cm, l) ?? fileLang, lang = langAt(line);
+  const cfg = rfConfig(lang);
+  if (!cfg || cfg.keepIndent) return null;                // Python, markdown: their indentation is their structure
+  let from = line;
+  while (from > 0 && line - from < 2000 && (lang !== fileLang ? langAt(from - 1) === lang : true)) from--;
+  const stops = tabStops({ language: lang === 'markdown' ? undefined : lang });
+  const opts = { indent: stops.indent, useTabs: stops.useTabs };
+  const base = lang !== fileLang ? (cm.getLine(from).match(/^[ \t]*/)[0].replace(/\t/g, ' '.repeat(stops.indent)).length) : 0;
+  return { cfg, opts, from, lang, base, langAt };
+}
+
+function reindentLine(cm, line) {
+  const ctx = reformatContext(cm, line);
+  if (!ctx) return;
+  const texts = [];
+  for (let l = ctx.from; l <= line; l++) {
+    const t = cm.getLine(l);
+    texts.push(ctx.langAt(l) !== ctx.lang ? '\u0000' + l : ctx.base ? t.replace(new RegExp(`^[ \\t]{0,${ctx.base}}`), '') : t);
+  }
+  const col = reformatIndentAt(texts.join('\n'), ctx.cfg, ctx.opts);
+  if (col === null || col === undefined) return;
+  const have = cm.getLine(line).match(/^[ \t]*/)[0], want = rfIndentText(col + ctx.base, ctx.opts);
+  if (have !== want) cm.replaceRange(want, CodeMirror.Pos(line, 0), CodeMirror.Pos(line, have.length), '+input');
+}
+
+function formatEnter(cm) {
+  if (cm.getOption('readOnly') || !reformatContext(cm, cm.getCursor().line)) return CodeMirror.Pass;
+  cm.operation(() => {
+    cm.execCommand('newlineAndIndent');
+    for (const sel of cm.listSelections()) reindentLine(cm, sel.head.line);
+  });
+}
+
+// A character typed: when it ends a closing word at the start of the line (`end if` then a space or `;`), or is a
+// closing sign there, the line goes to its column.
+function electricReformat(cm, change) {
+  if (change.origin !== '+input' || change.text.length !== 1 || change.text[0].length !== 1) return;
+  const line = change.from.line, ctx = reformatContext(cm, line);
+  if (!ctx) return;
+  const typed = change.text[0], head = cm.getLine(line).slice(0, change.from.ch).replace(/^[ \t]+/, '');
+  const cfg = ctx.cfg, b = cfg.blocks ?? {};
+  const words = [...Object.keys(b.close ?? {}), ...(b.middle ?? []).map(m => m.w), ...(b.open ?? []).flatMap(o => o.until ?? []),
+    ...(b.open ?? []).filter(o => o.endsBefore?.length && o.closes === false).map(o => o.w)];
+  const closers = (cfg.groups ?? []).map(g => g.pair[1]);
+  const isWordEnd = !/[\w$#@]/.test(typed);
+  const hit = (isWordEnd && words.some(w => rfLow(cfg, w) === rfLow(cfg, head))) || (!head && closers.includes(typed)) ||
+    (cfg.markup && typed === '>' && head.startsWith('</'));
+  if (hit) reindentLine(cm, line);
 }
 
 // The commands the language packs name ("command" in an action); parameters come from the key.
@@ -602,7 +661,7 @@ const itemIcon = (lang, item) => item.html ?? packs[lang]?.icons?.[item.icon] ??
 // The title of an action in a language (the inner language's bar and menu are not the file's).
 const titleIn = (lang, name) => (packs[lang]?.actions?.[name] ?? packs.plaintext?.actions?.[name] ?? appActions.get(name))?.title ?? name;
 
-// The Convert button's tooltip, with the key of the menu at the cursor (Ctrl+Alt+F).
+// The Convert button's tooltip, with the key of the menu at the cursor (Ctrl+Alt+C).
 const CONVERT_TITLE = () => withKey('Convert: case, tabs and spaces, whitespace at line ends', 'convertMenu');
 // The conversions (3.1), the Convert button's menu and submenu.
 const CONVERT_ITEMS = [

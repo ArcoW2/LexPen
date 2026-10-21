@@ -1,0 +1,8 @@
+def total(items, limit=10,
+        strict=False):
+    result = [i.amount for i in items
+                    if i.active]
+    if (len(result) > limit and
+          strict):
+        raise ValueError("too many")
+    return sum(result)

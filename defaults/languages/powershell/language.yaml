@@ -16,3 +16,35 @@ actions:
   snippetTry:
     title: 'Snippet: try / catch'
     insert: "try {\n    $0\n} catch {\n    Write-Error $_\n}\n"
+
+# ---------- Format ----------
+# The parameters of the formatter (Format, Enter): the roles of the words and signs of this language and the
+# style it uses. See README.md (Format) and docs/plans/executed/PLAN-reformat.md; the indent step is the indent size.
+format:
+  case: false
+  word: '[A-Za-z_$@-][A-Za-z0-9_:$-]*'
+  comments: {line: ['#'], block: [['<#', '#>']]}
+  strings:
+    - {open: '@"', close: '"@', lines: true}
+    - {open: '@''', close: '''@', lines: true}
+    - {open: '"', escape: '`', lines: true}
+    - {open: '''', double: true, lines: true}
+  groups:
+    - {pair: ['{', '}'], open: next, close: own, base: line, openAt: same, afterClose: same, block: true}
+    - {pair: ['(', ')'], open: same, close: same, base: word, afterClose: same, tight: true}
+    - {pair: ['[', ']'], open: same, close: same, base: word, afterClose: same, tight: true}
+    - {pair: ['@(', ')'], open: same, close: same, base: word}
+    - {pair: ['$(', ')'], open: same, close: same, base: word}
+    - {pair: ['@{', '}'], open: next, close: own, base: line, block: true}
+  blocks:
+  singleBody: ['{']
+  ends: [';', "\n"]
+  operators: ['-and', '-or', '-xor']
+  continue: ['|']
+  compare: ['-eq', '-ne', '-lt', '-le', '-gt', '-ge', '-like', '-match']
+  align: ['=']
+  keepLines: []
+  style: {open: same, close: own, base: line, align: 'off', afterClose: next, operator: start, oneLine: keep, parenSpace: 'off'}
+  trail: [';', ',', ')', ']', '}', '.']
+  continueAfter: '(`|\|)\s*$'
+  joinAfterClose: [else, elseif, catch, finally, until, while]

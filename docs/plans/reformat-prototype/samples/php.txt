@@ -1,0 +1,18 @@
+<?php
+class Order extends Base {
+private $count = 0;
+public function add($item, $amount) {
+if ($amount > 0)
+{
+$this->count += $amount;
+}
+elseif ($amount == 0) {
+return;
+}
+foreach ($this->lines as $line)
+echo $line;
+$text = <<<EOT
+  kept   as written
+EOT;
+}
+}

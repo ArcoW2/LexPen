@@ -32,8 +32,10 @@
   "gutter.git": true,             // lines changed since the last commit
   "gutter.folds": true,
   "formatBar": true,              // the bar with bold, headings, lists, ... above the editor
-  "trimTrailing": true,           // saving removes the spaces and tabs at the line ends of the whole file (a language
-                                  // can keep some, or never trim: trimTrailing in its language.yaml)
+  "scrollMargin": 8,              // columns: the editor scrolls sideways when the cursor comes this close to the edge
+  "leftWraps": true,              // Left at the first column goes on to the end of the line above
+  "virtualSpace": false,          // the cursor can be past the end of a line: it keeps its column on short lines,
+                                  // and typing there fills the line with spaces first (a monospaced font only)
   "showWhitespace": false,        // in the editor: a space as a small dot, a tab as an arrow
   "showLineEnds": false,          // in the editor: a sign at the end of each line (CRLF or LF)
 
@@ -45,6 +47,9 @@
 
   // ---------- Files ----------
   "backup": true,                 // saving keeps the old file as name.ext.bak
+  "trimTrailing": true,           // saving removes the spaces and tabs at the line ends of the whole file (a language
+                                  // can keep some, or never trim: trimTrailing in its language.yaml)
+  "askSaveDrafts": true,          // closing LexPen asks to save changed drafts too (false: they stay drafts, unasked)
 
   // ---------- Tabs ----------
   "tabOrder": "recent",           // Ctrl+Tab order: "recent" (recently used) or "tabs" (the tab bar)
@@ -57,6 +62,8 @@
   "findShared": false,            // one find for both panes (off: each pane its own)
   "findWrap": "end",              // past the last match: "end" (stop, with a message), "around" (go on from the top)
                                   // or "origin" (go on from the top, stop where the search started)
+  "findMark": "background",       // how found text is marked: "background", "outline" or "both"
+  "findGutter": true,             // the line numbers of lines with found text marked the same way (the current one too)
 
   // ---------- App ----------
   "appFont": "",                  // menus, tabs, panes, bars and dialogs; "" is Segoe UI

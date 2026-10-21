@@ -23,13 +23,14 @@ const MENUS = [
     ['Cu&t', 'cut'], ['&Copy', 'copy'], ['&Paste', 'paste'], ['Paste &image (asks how to link it)...', 'pasteImage'],
     { label: 'Select c&lipboard', fill: () => clipboardItems() }, '-',
     ['Col&umn mode', 'columnMode'], '-',
-    ['&Find', 'find'], ['R&eplace', 'replace'], ['&Search in files', 'searchInFiles'], '-',
+    ['&Find', 'find'], ['R&eplace', 'replace'], ['&Search in files', 'searchInFiles'], ['Go to line...', 'goToLine'], '-',
     ['Next secti&on', 'section', 1], ['Pre&vious section', 'section', -1], '-',
     { label: '&Go to bookmark', fill: () => bookmarkItems('go') }, { label: 'Store &bookmark', fill: () => bookmarkItems('store') },
     ['&Next bookmark', 'bookmarkNext', 1], ['Previous boo&kmark', 'bookmarkNext', -1],
   ]],
-  // Filled when it opens: the bar items of the file's language, and of the cursor line's (formatMenuItems).
+  // Filled when they open: the bar items, and the conversions, of the file's language and of the cursor line's.
   ['Fo&rmat', () => formatMenuItems()],
+  ['Co&nvert', () => convertMenuItems()],
   ['&View', [
     ['&Editor', 'editorSwitch'], ['&Preview', 'previewSwitch'], ['&Outline', 'outline'], '-',
     ['S&idebar', 'sidebar'], ['&Folders', 'folders'], ['&Search', 'searchView'], '-',
@@ -242,10 +243,12 @@ function openMenuBelow(items, el) {
   openMenuLevel(items, r.left, r.bottom + 2, false);
 }
 
-// ---------- The Format menu (docs/plans/executed/PLAN-formatters.md 3.6) ----------
-// The comment group (every language), then the bar items of the file's language in the bar's order, with their
-// icons; on a line of another language (a block, a fence, lines you set) its bar items follow in a submenu named
-// after it, acting in that language. One list with the bar (barItems, format.js), so a change to a bar shows here.
+// ---------- The Format and Convert menus (docs/plans/executed/PLAN-formatters.md 3.6) ----------
+// Format: the comment group (every language), then the bar items of the file's language in the bar's order, with
+// their icons (Convert left out: it has a menu of its own). Convert: the conversions. On a line of another language
+// (a block, a fence, lines you set) each menu gets a submenu named after that language with its items, acting in
+// that language; a submenu without items is left out. One list with the bar (barItems, format.js), so a change to
+// a bar shows here.
 const COMMENT_ITEMS = [['Toggle &comment', 'toggleComment'], ['Toggle block comm&ent', 'blockComment'], ['Remove block co&mment', 'removeBlockComment']];
 
 async function formatMenuItems() {
@@ -253,27 +256,46 @@ async function formatMenuItems() {
   const doc = activeDoc(), lang = languageOf(doc) ?? 'plaintext';
   const icon = { toggleComment: 'comment', blockComment: 'blockcomment' };   // as on the bars
   const items = [...COMMENT_ITEMS.map(([label, action]) => ({ label, action, icon: packs.plaintext?.icons?.[icon[action]] })), '-', ...barMenuItems(lang, null)];
+  return withInner(lang, items, inner => barMenuItems(inner, inner));
+}
+
+async function convertMenuItems() {
+  await loadEditor();
+  const lang = languageOf(activeDoc()) ?? 'plaintext';
+  return withInner(lang, convertItems(lang, null), inner => convertItems(inner, inner));
+}
+
+// The menu's items, and on a line of another language a submenu with that language's items (when it has any).
+function withInner(lang, items, innerItems) {
   const pane = panes[state.activePane], cm = pane.cm && pane.active && pane.el.dataset.mode !== 'preview' ? pane.cm : null;
   const inner = cm && lineLanguage(cm, cm.getCursor().line);
   if (inner && inner !== lang && packs[inner]) {
-    const sub = barMenuItems(inner, inner);
-    items.push('-', { label: packs[inner].name, sub: sub.length ? withLetters(tidyLines(sub)) : [{ label: '(no bar)', enabled: false }] });
+    const sub = tidyLines(innerItems(inner));
+    if (sub.some(it => it !== '-')) items.push('-', { label: packs[inner].name, sub: withLetters(sub) });
   }
   return withLetters(tidyLines(items));
 }
 
-// The menu items of a language's bar: the comment group left out (it comes first already), Convert with the
-// conversions, markdown's Heading and Table as submenus. `language`: the items act in that language.
+// The conversions of a language: plain text's (every language has them), then the pack's own conversion actions.
+// `language`: they act in that language (its indent size, the whitespace it keeps at line ends).
+function convertItems(lang, language) {
+  const own = CONVERT_ITEMS.filter(it => it !== '-').map(([, action]) => action);
+  const extra = Object.entries(packs[lang]?.actions ?? {}).filter(([name, def]) => def.convert && !own.includes(name))
+    .map(([name, def]) => ({ label: def.title ?? name, action: name, params: [], language }));
+  const items = CONVERT_ITEMS.map(it => it === '-' ? it : { label: it[0], action: it[1], params: [], language });
+  return extra.length ? [...items, '-', ...extra] : items;
+}
+
+// The menu items of a language's bar: the comment group left out (it comes first already), Convert too (the
+// Convert menu), markdown's Heading and Table as submenus. `language`: the items act in that language.
 function barMenuItems(lang, language) {
-  const items = barItems(lang);
-  const list = items.length ? items : [{ action: 'convert', icon: 'case' }];   // a language without a bar: Convert only
-  return list.flatMap(item => {
+  return barItems(lang).flatMap(item => {
     if (item === '-') return ['-'];
     if (COMMENT_COMMANDS.includes(item.action)) return [];
     const icon = itemIcon(lang, item);
     if (item.menu === 'heading') return [{ label: '&Heading', icon, sub: HEADING_ITEMS() }];
     if (item.menu === 'table') return [{ label: 'T&able', icon, sub: TABLE_ITEMS() }];
-    if (item.action === 'convert') return [{ label: 'Con&vert', icon, sub: CONVERT_ITEMS }];
+    if (item.action === 'convert') return [];
     const title = titleIn(lang, item.action).replace(/&/g, '');
     if (item.action === 'format') return [{ label: '&' + title, action: 'format', icon, language }];
     return [{ label: title, action: item.action, params: item.params ?? [], icon, language, letter: item.letter }];
@@ -304,7 +326,7 @@ function withLetters(items) {
   });
 }
 
-// A menu at the cursor (Ctrl+Alt+F: the conversions).
+// A menu at the cursor (Ctrl+Alt+C: the conversions).
 function openPopupAtCursor(pane, items) {
   const at = pane.cm.cursorCoords(null, 'window');
   closeMenus();

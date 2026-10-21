@@ -55,3 +55,18 @@ tokens:
 # The tag groups of the word file.
 outline:
   - { pattern: '^:(?!:)(.+)$', name: 1, level: 1 }   # labels
+
+# ---------- Format ----------
+# The parameters of the formatter (Format, Enter): the roles of the words and signs of this language and the
+# style it uses. See README.md (Format) and docs/plans/executed/PLAN-reformat.md; the indent step is the indent size.
+format:
+  case: false
+  word: '[A-Za-z0-9_%!.:\\-]+'
+  comments: {line: ['::', 'rem ', 'REM ', 'Rem ', '@rem ', '@REM ']}
+  strings:
+    - {open: '"'}
+  groups:
+    - {pair: ['(', ')'], open: next, close: own, base: line, afterClose: same, block: true}
+  keepLines: ['^\s*:[A-Za-z_]']
+  ends: ["\n", '&']
+  style: {open: next, close: own, base: line, align: 'off', afterClose: same, oneLine: keep}

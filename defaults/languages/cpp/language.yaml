@@ -66,3 +66,38 @@ outline:
   - { pattern: '^\s*#define\s+(\w+)\(', name: 1, level: 2 }   # macros
   - { pattern: '^(?:\w+[ \t]+)+[ *]*(\w+)[ \t]*\([^)]*\);', name: 1, level: 2 }   # prototypes
   - { pattern: '^(?!\s*(?:if|else|while|for|switch|return)\b)\s*(?:[\w*&:<>,]+\s+)+\**(\w+)\s*\([^{;}]*\)\s*(?:const\s*)?\{', name: 1, level: 1 }   # functions (with { on the same line)
+
+# ---------- Format ----------
+# The parameters of the formatter (Format, Enter): the roles of the words and signs of this language and the
+# style it uses. See README.md (Format) and docs/plans/executed/PLAN-reformat.md; the indent step is the indent size.
+format:
+  case: true
+  word: '[A-Za-z_][A-Za-z0-9_]*'
+  comments: {line: ['//'], block: [['/*', '*/']]}
+  strings:
+    - {open: 'R"(', close: ')"', lines: true}
+    - {open: '"', escape: '\'}
+    - {open: '''', escape: '\'}
+  groups:
+    - {pair: ['{', '}'], open: next, close: own, base: line, openAt: keep, afterClose: next, block: true}
+    - {pair: ['(', ')'], open: same, close: same, base: word, afterClose: same, tight: true}
+    - {pair: ['[', ']'], open: same, close: same, base: word, afterClose: same, tight: true}
+  blocks:
+    open:
+      - {w: if, kind: single, closes: false, afterGroup: true}
+      - {w: for, kind: single, closes: false, afterGroup: true}
+      - {w: while, kind: single, closes: false, afterGroup: true}
+      - {w: else, kind: single, closes: false, when: '^\s*(//.*)?$'}
+      - {w: do, kind: single, closes: false, when: '^\s*(//.*)?$'}
+      - {w: case, before: '^\s*$', inside: ['{'], closes: false, endsBefore: [case, default, '}']}
+      - {w: default, before: '^\s*$', when: '^\s*:', inside: ['{'], closes: false, endsBefore: [case, default, '}']}
+  singleBody: ['{']
+  ends: [';']
+  operators: ['&&', '||']
+  continue: ['.', '?.', '?', ':', '??', '+', '=>']
+  compare: ['==', '!=', '<=', '>=', '<', '>']
+  align: ['=']
+  keepLines: ['^\s*#']
+  style: {open: same, close: own, base: line, align: 'off', afterClose: next, operator: start, oneLine: keep, parenSpace: 'off'}
+  trail: [';', ',', ')', ']', '}', '.']
+  labels: ['^(public|private|protected)\s*:']

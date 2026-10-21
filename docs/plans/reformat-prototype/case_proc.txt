@@ -1,0 +1,25 @@
+create procedure sp_x(in pId integer)
+begin
+declare lCount integer;
+declare lName varchar(40);
+select count(*) into lCount from tabNaw where NawGid = pId;
+if lCount = 0 then
+return
+elseif lCount = 1 then
+set lName = 'one';
+else
+case lName
+when 'a' then set lName = 'b';
+when 'c' then
+set lName = 'd';
+message 'changed';
+else set lName = null
+end case;
+end if;
+while lCount > 0 loop
+set lCount = lCount - 1;
+end loop;
+exception
+when others then
+message 'error';
+end

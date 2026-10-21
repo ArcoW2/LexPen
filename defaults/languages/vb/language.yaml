@@ -97,3 +97,53 @@ tokens:
 outline:
   - { pattern: '^\s*(?:(?:public|private)\s+)*function\s+([a-z]\w*)', name: 1, level: 1, flags: i }   # functions
   - { pattern: '^\s*(?:(?:public|private)\s+)*sub\s+([a-z]\w*)', name: 1, level: 1, flags: i }   # subs
+
+# ---------- Format ----------
+# The parameters of the formatter (Format, Enter): the roles of the words and signs of this language and the
+# style it uses. See README.md (Format) and docs/plans/executed/PLAN-reformat.md; the indent step is the indent size.
+format:
+  case: false
+  word: '[A-Za-z_][A-Za-z0-9_]*[%&@!#$]?'
+  comments: {line: ['''', 'REM ', 'Rem ', 'rem ']}
+  strings:
+    - {open: '"', double: true}
+  groups:
+    - {pair: ['(', ')'], open: same, close: same, base: word, tight: true}
+    - {pair: ['{', '}'], open: same, close: same, base: word}
+  blocks:
+    open:
+      - {w: If, when: '\bThen\s*(''.*)?$', until: [Then]}
+      - {w: Select Case}
+      - {w: Case, before: '^\s*$', inside: [select case], closes: false, endsBefore: [Case, End Select]}
+      - {w: For, before: '^\s*$'}
+      - {w: Do, before: '^\s*$'}
+      - {w: While, before: '^\s*$'}
+      - {w: With, before: '^\s*$'}
+      - {w: Try, before: '^\s*$'}
+      - {w: Using, before: '^\s*$'}
+      - {w: SyncLock, before: '^\s*$'}
+      - {w: Sub, before: '^\s*((Public|Private|Friend|Protected|Shared|Overrides|Overridable|NotOverridable|Overloads|Static|Default|ReadOnly|WriteOnly|Partial|Async|Iterator|Shadows|Widening|Narrowing)\s+)*$', notInside: [interface]}
+      - {w: Function, before: '^\s*((Public|Private|Friend|Protected|Shared|Overrides|Overridable|NotOverridable|Overloads|Static|Default|ReadOnly|WriteOnly|Partial|Async|Iterator|Shadows|Widening|Narrowing)\s+)*$', notInside: [interface]}
+      - {w: Property, before: '^\s*((Public|Private|Friend|Protected|Shared|Overrides|Overridable|NotOverridable|Overloads|Static|Default|ReadOnly|WriteOnly|Partial|Async|Iterator|Shadows|Widening|Narrowing)\s+)*$', notInside: [interface]}
+      - {w: Operator, before: '^\s*((Public|Private|Friend|Protected|Shared|Overrides|Overridable|NotOverridable|Overloads|Static|Default|ReadOnly|WriteOnly|Partial|Async|Iterator|Shadows|Widening|Narrowing)\s+)*$', notInside: [interface]}
+      - {w: Event, before: '^\s*((Public|Private|Friend|Protected|Shared|Overrides|Overridable|NotOverridable|Overloads|Static|Default|ReadOnly|WriteOnly|Partial|Async|Iterator|Shadows|Widening|Narrowing)\s+)*$', notInside: [interface]}
+      - {w: Get, before: '^\s*$', when: '^\s*(\(|$)', inside: [property]}
+      - {w: Set, before: '^\s*$', when: '^\s*(\(|$)', inside: [property]}
+      - {w: Class, before: '^\s*((Public|Private|Friend|Protected|Shared|Overrides|Overridable|NotOverridable|Overloads|Static|Default|ReadOnly|WriteOnly|Partial|Async|Iterator|Shadows|Widening|Narrowing)\s+)*$'}
+      - {w: Module, before: '^\s*((Public|Private|Friend|Protected|Shared|Overrides|Overridable|NotOverridable|Overloads|Static|Default|ReadOnly|WriteOnly|Partial|Async|Iterator|Shadows|Widening|Narrowing)\s+)*$'}
+      - {w: Structure, before: '^\s*((Public|Private|Friend|Protected|Shared|Overrides|Overridable|NotOverridable|Overloads|Static|Default|ReadOnly|WriteOnly|Partial|Async|Iterator|Shadows|Widening|Narrowing)\s+)*$'}
+      - {w: Namespace, before: '^\s*((Public|Private|Friend|Protected|Shared|Overrides|Overridable|NotOverridable|Overloads|Static|Default|ReadOnly|WriteOnly|Partial|Async|Iterator|Shadows|Widening|Narrowing)\s+)*$'}
+      - {w: Interface, before: '^\s*((Public|Private|Friend|Protected|Shared|Overrides|Overridable|NotOverridable|Overloads|Static|Default|ReadOnly|WriteOnly|Partial|Async|Iterator|Shadows|Widening|Narrowing)\s+)*$'}
+      - {w: Enum, before: '^\s*((Public|Private|Friend|Protected|Shared|Overrides|Overridable|NotOverridable|Overloads|Static|Default|ReadOnly|WriteOnly|Partial|Async|Iterator|Shadows|Widening|Narrowing)\s+)*$'}
+    middle:
+      - {w: ElseIf, of: [if], until: [Then]}
+      - {w: Else, of: [if]}
+      - {w: Catch, of: [try]}
+      - {w: Finally, of: [try]}
+    close: {End If: If, End Select: Select Case, Next: For, Loop: Do, Wend: While, End While: While, End With: With, End Try: Try, End Using: Using, End SyncLock: SyncLock, End Sub: Sub, End Function: Function, End Property: Property, End Get: Get, End Set: Set, End Operator: Operator, End Event: Event, End Class: Class, End Module: Module, End Structure: Structure, End Namespace: Namespace, End Interface: Interface, End Enum: Enum}
+  ends: ["\n", ':']
+  continueAfter: '\s_\s*$'
+  operators: [AndAlso, OrElse, And Not, Or Not, And, Or, Xor]
+  compare: ['<>', '<=', '>=', '=', '<', '>', Is, IsNot, Like]
+  align: ['=']
+  style: {open: same, close: same, base: line, align: 'off', afterClose: same, operator: start, oneLine: keep, parenSpace: 'off'}

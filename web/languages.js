@@ -17,6 +17,11 @@ function applyLanguages(all) {
   packs = all.packs ?? {};
   packExtensions = all.extensions ?? {};
   PACK_NAMES = Object.keys(packs).sort((a, b) => packs[a].name.localeCompare(packs[b].name));
+  // A pack with format parameters (reformat.js) has the action Format, on its bar and in the Format menu; its own
+  // `format` action keeps its title and hint.
+  for (const p of Object.values(packs)) if (p.format && typeof p.format === 'object')
+    p.actions = { ...p.actions, format: { title: 'Reformat', hint: 'The selected lines, else the whole file: indentation, line breaks and alignment by the rules of the language (Options > Settings, Languages)',
+      ...p.actions?.format, format: 'rules' } };
   languagesVersion++;
   buildLanguageNames();
   if (all.problems?.length) toast(`Language packs: ${all.problems[0]}` + (all.problems.length > 1 ? ` (and ${all.problems.length - 1} more, see Options > Settings)` : ''));

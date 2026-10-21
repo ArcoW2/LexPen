@@ -43,8 +43,11 @@ function setBlock(cm, anchor, head) {
     ranges.push({ anchor: CodeMirror.Pos(line, chAtCol(cm, line, anchor.col)), head: CodeMirror.Pos(line, chAtCol(cm, line, head.col)) });
   own(cm, () => {
     cm.setSelections(ranges, head.line - box.top, { scroll: false });
-    cm.scrollIntoView(CodeMirror.Pos(head.line, chAtCol(cm, head.line, head.col)));
+    lineIntoView(cm, head.line);   // up or down only: sideways to the head is drawVirtual's (virtual.js)
   });
+  rememberBlock(cm);
+  // The head's cursor (virtual.js): also when the selections stay the same (the head past every line's end).
+  drawVirtual(cm, true);
   updateStatus();
 }
 
@@ -53,7 +56,8 @@ function collapseBlock(cm) {
   const b = blockOf(cm);
   if (!b) return false;
   cm.state.mmBlock = null;
-  cm.setCursor(CodeMirror.Pos(b.head.line, chAtCol(cm, b.head.line, b.head.col)));
+  if (virtualAllowed()) placeAt(cm, b.head.line, b.head.col);   // past the line's end when the head is (virtual.js)
+  else cm.setCursor(CodeMirror.Pos(b.head.line, chAtCol(cm, b.head.line, b.head.col)));
   return true;
 }
 
@@ -71,35 +75,56 @@ function extendBlock(cm, dir) {
   let b = blockOf(cm);
   if (!b) {
     const range = cm.listSelections()[cm.listSelections().length - 1], at = p => ({ line: p.line, col: vcolAt(cm, p.line, p.ch) });
-    b = { anchor: at(range.anchor), head: at(range.head) };
+    const past = virtualOf(cm);   // the cursor past the end of the line (virtual.js): the block starts there
+    b = past ? { anchor: { ...past }, head: { ...past } } : { anchor: at(range.anchor), head: at(range.head) };
   }
   const head = { ...b.head }, page = Math.max(1, Math.floor(cm.getScrollInfo().clientHeight / cm.defaultTextHeight()) - 1);
   switch (dir) {
     case 'left': head.col = stepCol(cm, head.line, head.col, -1); break;
-    case 'right': head.col = stepCol(cm, head.line, head.col, 1); break;
+    case 'right': head.col = Math.min(stepCol(cm, head.line, head.col, 1), Math.max(head.col, maxCol(cm, head.line))); break;
     case 'up': head.line = Math.max(cm.firstLine(), head.line - 1); break;
     case 'down': head.line = Math.min(cm.lastLine(), head.line + 1); break;
     case 'pageUp': head.line = Math.max(cm.firstLine(), head.line - page); break;
     case 'pageDown': head.line = Math.min(cm.lastLine(), head.line + page); break;
     case 'home': head.col = 0; break;
-    case 'end': head.col = lineEndCol(cm, head.line); break;
+    case 'wordLeft': case 'wordRight': {   // Ctrl+Shift+arrows: the next word end / start on the head's line only
+      const step = dir === 'wordRight' ? 1 : -1, end = lineEndCol(cm, head.line);
+      if (head.col > end) { if (step < 0) head.col = end; break; }   // past the end: back to it; further right: no word
+      const to = cm.findPosH(CodeMirror.Pos(head.line, chAtCol(cm, head.line, head.col)), step, 'group');
+      head.col = to.line === head.line ? vcolAt(cm, head.line, to.ch) : step > 0 ? end : 0;
+      break;
+    }
+    case 'end': {   // the end of the head's line; when already there, of the block's longest line
+      const end = lineEndCol(cm, head.line), box = blockBox({ anchor: b.anchor, head });
+      let longest = end;
+      for (let l = box.top; l <= box.bottom; l++) longest = Math.max(longest, lineEndCol(cm, l));
+      head.col = head.col === end ? longest : end;
+      break;
+    }
   }
   setBlock(cm, b.anchor, head);
 }
 
-// Column mode on or off (the window, all its tabs). Off: a block becomes one selection, its first line's part.
+// Column mode on or off (the window, all its tabs); the selection changes along (below).
 function setColumnMode(on) {
   if (on && !editorMonospaced())
     return toast('Column mode needs a monospaced editor font (Options > Settings > Editor): with another font the columns do not line up.');
   column.on = on;
-  if (!on) {
-    for (const pane of panes) {
-      const cm = pane.cm, b = cm && blockOf(cm);
-      if (!b) continue;
-      const box = blockBox(b);
+  if (!on && !setting('virtualSpace')) for (const pane of panes) if (pane.cm) clearVirtual(pane.cm);
+  // The selection changes with the mode: a block becomes the selection from its anchor to its head (a column past a
+  // line's end: that line's end), a selection becomes the block from its anchor to its head.
+  for (const pane of panes) {
+    const cm = pane.cm;
+    if (!cm) continue;
+    const b = blockOf(cm), pos = p => CodeMirror.Pos(p.line, chAtCol(cm, p.line, p.col));
+    if (!on && b) {
       cm.state.mmBlock = null;
-      cm.setSelection(CodeMirror.Pos(box.top, chAtCol(cm, box.top, box.left)), CodeMirror.Pos(box.top, chAtCol(cm, box.top, box.right)));
+      cm.setSelection(pos(b.anchor), pos(b.head));
+    } else if (on && !b && cm.somethingSelected()) {
+      const r = cm.listSelections()[cm.getDoc().sel.primIndex], at = p => ({ line: p.line, col: vcolAt(cm, p.line, p.ch) });
+      setBlock(cm, at(r.anchor), at(r.head));
     }
+    drawVirtual(cm);
   }
   updateStatus();
 }
@@ -156,9 +181,22 @@ function onChanges(cm) {
   setBlock(cm, { line: b.anchor.line, col }, { line: b.head.line, col });
 }
 
+// Undo and redo give back the selections of a block (one per line), not the block: the blocks are remembered by
+// their selections, so the block comes back with them (a key then moves from its head, not every line's cursor).
+const rangesKey = ranges => ranges.map(r => `${r.anchor.line}:${r.anchor.ch}-${r.head.line}:${r.head.ch}`).join(',');
+function rememberBlock(cm) {
+  const known = cm.state.mmBlocks ??= new Map(), key = rangesKey(cm.listSelections());
+  known.delete(key);
+  known.set(key, { anchor: { ...cm.state.mmBlock.anchor }, head: { ...cm.state.mmBlock.head } });
+  if (known.size > 200) known.delete(known.keys().next().value);   // the oldest
+}
+
 // A selection made elsewhere (a click, a key, find) ends the block; not the cursors moving with an edit of it.
-function onBeforeSelectionChange(cm) {
-  if (blockOf(cm) && !cm.state.mmOwn && !cm.state.mmEdited) cm.state.mmBlock = null;
+// Selections that undo or redo give back: the block they belonged to, when there was one.
+function onBeforeSelectionChange(cm, change) {
+  if (cm.state.mmOwn || cm.state.mmEdited) return;
+  const known = change?.ranges.length > 1 || /undo|redo/.test(change?.origin ?? '') ? cm.state.mmBlocks?.get(rangesKey(change.ranges)) : null;
+  cm.state.mmBlock = known ? { anchor: { ...known.anchor }, head: { ...known.head } } : null;
 }
 
 // Tab / Shift+Tab: the block's lines indented or outdented; the block moves along.
@@ -173,11 +211,14 @@ function indentBlock(cm, dir) {
 }
 
 // ---------- Copy, cut and paste ----------
-// The block's text: each line's part, joined with the file's line end; a short line gives what it has (no spaces).
+// The block's text: each line's part, joined with the file's line end; a short line's part is filled up with
+// spaces to the block's width, so the text is a rectangle wherever it is pasted.
 function blockText(cm, eol) {
   const box = blockBox(blockOf(cm)), parts = [];
-  for (let line = box.top; line <= box.bottom; line++)
-    parts.push(cm.getLine(line).slice(chAtCol(cm, line, box.left), chAtCol(cm, line, box.right)));
+  for (let line = box.top; line <= box.bottom; line++) {
+    const from = chAtCol(cm, line, box.left), to = chAtCol(cm, line, box.right);
+    parts.push(cm.getLine(line).slice(from, to) + ' '.repeat(Math.max(0, box.right - box.left - (vcolAt(cm, line, to) - vcolAt(cm, line, from)))));
+  }
   return parts.join(eol);
 }
 
@@ -294,7 +335,8 @@ function onMouseDown(cm, e) {
     removeEventListener('mouseup', up, true);
     if (moved) return;
     cm.state.mmBlock = null;
-    cm.setCursor(CodeMirror.Pos(start.line, chAtCol(cm, start.line, start.col)));
+    if (column.on) placeAt(cm, start.line, start.col, false);   // past the end of the line where clicked (virtual.js)
+    else cm.setCursor(CodeMirror.Pos(start.line, chAtCol(cm, start.line, start.col)));
   };
   addEventListener('mousemove', move, true);
   addEventListener('mouseup', up, true);
@@ -306,13 +348,14 @@ function setupColumn(pane) {
   cm.on('beforeChange', onBeforeChange);
   cm.on('changes', onChanges);
   cm.on('beforeSelectionChange', onBeforeSelectionChange);
-  cm.on('swapDoc', () => { cm.state.mmBlock = null; });
+  cm.on('swapDoc', () => { cm.state.mmBlock = null; cm.state.mmBlocks = null; });
   cm.on('paste', onNativePaste);
   cm.getWrapperElement().addEventListener('mousedown', e => onMouseDown(cm, e), true);
   const extend = dir => c => column.on ? extendBlock(c, dir) : CodeMirror.Pass;
   const collapse = c => { collapseBlock(c); return CodeMirror.Pass; };
   cm.addKeyMap({
     'Shift-Left': extend('left'), 'Shift-Right': extend('right'), 'Shift-Up': extend('up'), 'Shift-Down': extend('down'),
+    'Shift-Ctrl-Left': extend('wordLeft'), 'Shift-Ctrl-Right': extend('wordRight'),
     'Shift-Home': extend('home'), 'Shift-End': extend('end'), 'Shift-PageUp': extend('pageUp'), 'Shift-PageDown': extend('pageDown'),
     Left: collapse, Right: collapse, Up: collapse, Down: collapse, Home: collapse, End: collapse, PageUp: collapse, PageDown: collapse,
     Esc: c => collapseBlock(c) ? undefined : CodeMirror.Pass,

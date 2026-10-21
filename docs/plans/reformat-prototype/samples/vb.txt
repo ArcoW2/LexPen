@@ -1,0 +1,28 @@
+Public Class Order
+Private count As Integer
+Public Sub Add(item As Item, amount As Integer)
+If item Is Nothing Then Throw New ArgumentNullException("item")
+If amount > 0 AndAlso _
+item.Active Then
+count += amount
+ElseIf amount = 0 Then
+Exit Sub
+Else
+count = 0
+End If
+For Each line In lines
+Select Case line.Kind
+Case 1
+Handle(line)
+Case Else
+' nothing
+End Select
+Next
+Try
+Save()
+Catch ex As Exception
+Log(ex.Message)
+End Try
+End Sub
+Public MustOverride Sub Later()
+End Class

@@ -39,7 +39,8 @@ starting with `_` is not loaded (`_template`).
    - `open`: `edit`, `split` or `preview`; `fold`: `brace`, `indent`, `markdown` or `none`.
    - The colouring (next section).
    - `outline`: patterns for the Outline button.
-   - `actions`: snippets, wrap, line prefix, jumps, conversions, pretty print.
+   - `actions`: snippets, wrap, line prefix, jumps, conversions.
+   - `format`: the parameters of the formatter (Format, Enter; below).
    - Optional: `tabSize`, `indentSize`, `useTabs`, `trimTrailing` (Tabs and whitespace, below).
 3. Edit `bar.yaml` for the buttons (below).
 4. Save. A mistake shows in the settings window (Options > Settings, at the top) with the file (and the line, for
@@ -118,7 +119,7 @@ file changed elsewhere the range is found again by the text of its first and las
 ## The bar: bar.yaml
 
 The buttons above the editor, left to right. The same list is the Format menu, so a change to the bar shows there
-too. A file without `bar.yaml` gives the language no bar (its Format menu has the comment items and Convert).
+too. A file without `bar.yaml` gives the language no bar (its Format menu has the comment items only).
 
 ```yaml
 - { action: toggleComment, icon: comment }
@@ -140,13 +141,15 @@ Every key of an item:
 - **Convert** (`action: convert`): a button with the conversions as its menu (case, tabs and spaces, whitespace at
   line ends). Every bar gets it at its end, unless the bar names it itself: then it is where you put it, in the
   bar and in the menu.
-- **Format** (`action: format`): the pack's own `format` action (pretty print, below). A pack that has one gets the
-  button at the end of its bar, after Convert, unless the bar names it.
+- **Reformat** (`action: format`): the formatter (Format, below). A pack with `format:` parameters gets the button at
+  the end of its bar, after Convert, unless the bar names it; an action `format` of its own gives it another title
+  or hint (JSON: Reformat JSON).
 - **The Format menu**, in this order: Toggle comment, Toggle block comment, Remove block comment (every language);
-  a line; the bar's items in the bar's order (the comment items it has are not repeated; Convert as a submenu). On
-  a line of another language (a block, a fence, lines you set) a submenu named after that language follows with
-  its bar's items, which act in that language. Ctrl+Alt+F opens the Convert menu at the cursor; the Convert button's
-  tooltip shows that key.
+  a line; the bar's items in the bar's order (the comment items it has are not repeated, nor Convert: that is the
+  Convert menu). **The Convert menu**: the conversions, then the pack's own conversion actions. On a line of another
+  language (a block, a fence, lines you set) each menu gets a submenu named after that language with its items,
+  which act in that language; left out when that language has none (no bar: no Format submenu). Ctrl+Alt+C opens
+  the conversions at the cursor; the Convert button's tooltip shows that key.
 - The tooltip of a button is the action's `title` and its key.
 
 ## Actions and keys
@@ -162,7 +165,57 @@ An action in `actions` has a `title`, an optional `hint`, and one of:
   `tabsToSpaces`, `spacesToTabs`, `trimTrailing`. Plain text has them all (`upperCase`, `lowerCase`, `capitalize`,
   `snakeCase`, `camelCase`, `pascalCase`, `kebabCase`, `constantCase`, `tabsToSpaces`, `spacesToTabs`,
   `trimTrailing`), so every language does; a pack names one to put it on its bar or give it a key of its own.
-- `format`: pretty print by LexPen: `json` or `xml`. The JSON and XML packs have it as their action `format`.
+- `format: rules`: the formatter with the pack's `format:` parameters (Format, below). Every pack with parameters
+  has it as its action `format`; JSON and XML name it to give it their own title.
+
+## Format: the formatter's parameters
+
+One formatter for every language (`web/reformat.js`). It knows roles, not words: groups, blocks, conditions,
+statements and their clauses, list items, elements, tables. The pack's `format:` says which of its words and signs
+play which role, and which style it uses. It changes only whitespace and line breaks outside strings and comments.
+The shipped packs are the examples (each has a full set at its end); `docs/plans/executed/PLAN-reformat.md` (appendix) has
+them with notes, and `docs/plans/reformat-prototype` is the reference that tried each on a sample.
+
+| Key | What |
+|---|---|
+| `case`, `word` | Words in any case (`false`) or exact; what a word is (a pattern) |
+| `comments`, `strings` | As for the colouring; a line comment starting with a space (`' ;'`) only counts after a space, one ending with a space (`'rem '`) only as a word |
+| `keep` | Regions kept exactly as written: heredocs, regex literals (`after`: only after one of these signs) |
+| `groups` | Pairs (`pair: ['(', ')']`) with their own `open`, `close`, `base`, `openAt` (where a `{` goes: `same`, `next`, `keep`, or `{default, next: pattern of the head}`), `afterClose`, `oneLine`, `list` (a line per item when split), `block` (statements inside: braces), `tight` (no space inside) |
+| `blocks.open` | Block words (`w`): `until` (what ends its condition: `then`, `do`), `before` / `when` (patterns for the text before / after the word), `inside` / `notInside`, `kind: single` (one statement: C's `if (...)`), `afterGroup`, `body: single`, `endsBefore` / `endsAfter` (sections and branches that end without a word of their own), `breakAfter`, `closes: false`, `line` (a whole-line pattern) |
+| `blocks.middle` | `else`, `elseif`, `except`, `private:` ...: `of` (which blocks), `until`, `breakAfter`, `lineStart` |
+| `blocks.close` | Closer -> the blocks it closes (`end if: if`; `end: [begin, case]`); `{of, strict}`: only the innermost |
+| `singleBody` | What takes the place of a one-statement body on the next line: `{` (C), `begin` (Pascal) |
+| `ends` | What ends a statement: `;`, and `"\n"` where a line does (VB, shell, JavaScript) |
+| `continue`, `continueAfter` | A line starting with these (`.`, `|`) continues the one above, one step in; so does a line after one matching the pattern (VB's ` _`) |
+| `statements`, `items` | Statements with their clause words (SQL: `update: [set, from, where]`); list items with their start words and clause (joins and `on`) |
+| `operators`, `compare`, `align` | `and` / `or` ...; comparisons; other texts lines are lined up on (`=`, `default`, `:=`) |
+| `separators`, `space`, `trail`, `joinAfterClose` | List separators; one space after / before a sign; what may follow a `)` on its line; words joined after a `}` (`} else {`) |
+| `keepLines`, `labels`, `keepIndent` | Lines at column 0 (`#if`, batch labels); lines at the column of their braces (C++ `public:`); keep the indentation as written (Python, markdown) |
+| `freeClosers` | Closers that need no opener (Pascal's final `end.`, a shell pattern's `)`) |
+| `markup`, `void`, `verbatimElements`, `autoClose`, `optionalEnd` | XML / HTML: tags; elements without content; elements kept as written; implied end tags; end tags that may be left out |
+| `tables` | Markdown: rows around a delimiter row (`sep`, `delimiter`, `fill`) |
+| `longLimit`, `clauseGap` | A join's `on` is long with more comparisons than this; the spaces before a short `on` |
+| `style` | The style attributes below, the pack's defaults |
+
+The style attributes (each also a setting per language: Options > Settings, Languages, "Format: ..."):
+
+| Attribute | Values |
+|---|---|
+| `open` | `same` / `next`: after `(`, `[`, `{` and a block word, the content on the same line or the next |
+| `close` | `same` / `own`: the `)` of a group over lines at the end of its last line or on a line of its own |
+| `base` | `word` / `line`: the next line right of the `(` or block word, or a step right of the line it is on |
+| `align` | `on` / `off`: anchors, lists as columns, joins in columns |
+| `oneLine` | `keep` / `split`: a group written on one line stays, or goes over lines (JSON, XML, CSS) |
+| `operator` | `start` / `end`: `and` / `or` at a line start in one column with the operands after them, or as typed |
+| `afterClose` | `same` / `next`: what follows a `)` of a group over lines (a join's `on`) |
+| `alignClause` | `first` / `off`: the first comparison of each join's `on` in one column |
+| `longClause` | `next` / `column`: a long `on` on the next line, or in its column |
+| `parenSpace` | `off` / `on`: no space or one space inside `( )` |
+
+The indent step is the language's indent size (below), never a `format` key. A change to the parameters of a
+shipped pack: run `docs/plans/reformat-prototype` (`t_asa.py`, `t_lang.py`) with the same change, and the in-app
+test that compares LexPen's output with it.
 
 ## Tabs and whitespace
 
@@ -171,8 +224,8 @@ In `language.yaml`, all optional:
 | Key | What | Example |
 |---|---|---|
 | `tabSize` | Where the tab stops are: Tab after text goes to the next one, and a tab after text is shown up to it. Else the setting (4) | `tabSize: 8` |
-| `indentSize` | Where the indent stops are: Tab in a line's indentation, Indent / Outdent, pretty print, and a tab in the indentation is shown that wide. Else the setting (2) | `indentSize: 4` |
-| `useTabs` | `true`: Tab, indent and pretty print write a tab (Makefile, Go, tab-separated files). Else spaces | `useTabs: true` |
+| `indentSize` | Where the indent stops are: Tab in a line's indentation, Indent / Outdent, Format's indent step, and a tab in the indentation is shown that wide. Else the setting (2) | `indentSize: 4` |
+| `useTabs` | `true`: Tab, indent and Format write a tab (Makefile, Go, tab-separated files). Else spaces | `useTabs: true` |
 | `trimTrailing` | The whitespace at line ends. `mode`: `setting` (default: on save as the setting says), `true` (always trimmed on save), `false` (never, not even by Remove whitespace at line ends). `keep: N`: at most N spaces or tabs stay, as written. `trimTrailing: false` / `true` set the mode only | `trimTrailing: { keep: 2 }` |
 
 Markdown ships with `trimTrailing: { keep: 2 }`: two spaces at a line's end are a line break there.

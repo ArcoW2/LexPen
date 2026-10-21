@@ -1,0 +1,16 @@
+@echo off
+rem Copy the files
+if exist "%1" (
+echo copying %1
+if not exist out (
+mkdir out
+)
+) else (
+echo no file
+goto :end
+)
+for %%f in (*.txt) do (
+echo %%f
+)
+:end
+echo done

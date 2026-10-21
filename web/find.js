@@ -221,7 +221,9 @@ function goEditor(pane, regex, dir, fromOrigin) {
   cm.setSelection(cm.posFromIndex(s), cm.posFromIndex(e));
   // The selection is drawn below the other matches' colour, so the current one gets its own mark.
   pane.findCurrent?.clear();
-  pane.findCurrent = cm.markText(cm.posFromIndex(s), cm.posFromIndex(e), { className: 'mm-find-current' });
+  pane.findCurrent = cm.markText(cm.posFromIndex(s), cm.posFromIndex(e),
+    { className: 'mm-find-current', startStyle: 'mm-find-current-start', endStyle: 'mm-find-current-end' });
+  markCurrentLine(pane);
   cm.scrollIntoView({ from: cm.posFromIndex(s), to: cm.posFromIndex(e) }, 80);
   showCount(pane, matches, i);
 }
@@ -240,6 +242,53 @@ function markEditor(pane, regex) {
     },
   };
   cm.addOverlay(pane.findOverlay);
+  boxMatches(pane, regex);
+}
+
+// The setting findMark outline / both: one box around each whole match (its first piece a line on the left, its
+// last one on the right, top and bottom all along), as text marks; the colouring splits a match into pieces, so a
+// box per piece would box every word. Up to BOX_LIMIT matches; past that only the background.
+const BOX_LIMIT = 3000;
+function boxMatches(pane, regex) {
+  for (const m of pane.findBoxes ?? []) m.clear();
+  pane.findBoxes = [];
+  clearGutterMarks(pane);
+  const cm = pane.cm;
+  if (!cm) return;
+  const boxes = (setting('findMark') || 'background') !== 'background', gutter = setting('findGutter') !== false;
+  if (!boxes && !gutter) return;
+  const matches = editorMatches(pane, regex);
+  cm.operation(() => {
+    if (boxes && matches.length <= BOX_LIMIT)
+      for (const [s, e] of matches) pane.findBoxes.push(cm.markText(cm.posFromIndex(s), cm.posFromIndex(e),
+        { className: 'mm-find-box', startStyle: 'mm-find-box-start', endStyle: 'mm-find-box-end' }));
+    // The setting findGutter: the line numbers of the lines with a match, marked as the matches are.
+    if (gutter) {
+      const lines = new Set(matches.map(([s]) => cm.posFromIndex(s).line));
+      pane.findGutter = [...lines].map(l => cm.addLineClass(l, 'gutter', 'mm-find-line'));
+    }
+  });
+  markCurrentLine(pane);
+}
+
+// The line number of the current match's line: marked as the current match (findGutter).
+function markCurrentLine(pane) {
+  const cm = pane.cm;
+  if (!cm) return;
+  if (pane.findGutterCurrent) cm.removeLineClass(pane.findGutterCurrent, 'gutter', 'mm-find-line-current');
+  pane.findGutterCurrent = null;
+  const at = pane.findCurrent?.find();
+  if (at && setting('findGutter') !== false) pane.findGutterCurrent = cm.addLineClass(at.from.line, 'gutter', 'mm-find-line-current');
+}
+
+function clearGutterMarks(pane) {
+  const cm = pane.cm;
+  if (cm) {
+    for (const h of pane.findGutter ?? []) cm.removeLineClass(h, 'gutter', 'mm-find-line');
+    if (pane.findGutterCurrent) cm.removeLineClass(pane.findGutterCurrent, 'gutter', 'mm-find-line-current');
+  }
+  pane.findGutter = [];
+  pane.findGutterCurrent = null;
 }
 
 function replaceOne(pane) {
@@ -385,9 +434,12 @@ function mark(pane, where, regex, matches) {
 function clearMarks(pane) {
   if (pane.findOverlay) pane.cm?.removeOverlay(pane.findOverlay);
   pane.findOverlay = null;
+  for (const m of pane.findBoxes ?? []) m.clear();
+  pane.findBoxes = [];
   CSS.highlights.delete('mm-find-' + pane.index);
   pane.findCurrent?.clear();
   pane.findCurrent = null;
+  clearGutterMarks(pane);
   if (pane.find) pane.find.at = pane.find.marked = null;
   CSS.highlights.delete('mm-find-cur-' + pane.index);
 }
@@ -396,5 +448,7 @@ function refreshMarks(pane) {
   const regex = findRegex(pane);
   if (pane.findOverlay) pane.cm?.removeOverlay(pane.findOverlay);
   pane.findOverlay = null;
+  for (const m of pane.findBoxes ?? []) m.clear();
+  pane.findBoxes = [];
   if (regex && !(regex instanceof Error) && findTarget(pane) === 'editor') markEditor(pane, regex);
 }

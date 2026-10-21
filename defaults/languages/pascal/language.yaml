@@ -41,3 +41,54 @@ actions:
   snippetBegin:
     title: 'Snippet: begin / end'
     insert: "begin\n  $0\nend;\n"
+
+# ---------- Format ----------
+# The parameters of the formatter (Format, Enter): the roles of the words and signs of this language and the
+# style it uses. See README.md (Format) and docs/plans/executed/PLAN-reformat.md; the indent step is the indent size.
+format:
+  case: false
+  word: '[A-Za-z_][A-Za-z0-9_]*'
+  comments: {line: ['//'], block: [['{', '}'], ['(*', '*)']]}
+  strings:
+    - {open: '''', double: true}
+  groups:
+    - {pair: ['(', ')'], open: same, close: same, base: word, tight: true}
+    - {pair: ['[', ']'], open: same, close: same, base: word, tight: true}
+  blocks:
+    open:
+      - {w: begin, breakAfter: true}
+      - {w: try, breakAfter: true}
+      - {w: asm}
+      - {w: repeat, breakAfter: true}
+      - {w: case, until: [of]}
+      - {w: record, before: '(=|:)\s*(packed\s+)?$'}
+      - {w: class, before: '=\s*$', when: '^(?!\s*;)(?!\s+of\b)'}
+      - {w: interface, before: '=\s*$', when: '^(?!\s*;)'}
+      - {w: object, before: '=\s*$'}
+      - {w: var, before: '^\s*$', when: '^\s*$', closes: false, endsBefore: [begin, var, const, type, label, procedure, function, constructor, destructor, implementation, initialization, finalization, class procedure, class function, 'end.']}
+      - {w: const, before: '^\s*$', when: '^\s*$', closes: false, endsBefore: [begin, var, const, type, label, procedure, function, constructor, destructor, implementation, initialization, finalization, class procedure, class function, 'end.']}
+      - {w: type, before: '^\s*$', when: '^\s*$', closes: false, endsBefore: [begin, var, const, type, label, procedure, function, constructor, destructor, implementation, initialization, finalization, class procedure, class function, 'end.']}
+      - {w: uses, before: '^\s*$', closes: false, endsAfter: [';']}
+      - {w: if, kind: single, closes: false, until: [then], body: single, endsBefore: [else]}
+      - {w: while, kind: single, closes: false, until: [do], body: single}
+      - {w: for, kind: single, closes: false, until: [do], body: single}
+      - {w: with, kind: single, closes: false, until: [do], body: single}
+      - {w: 'on', kind: single, closes: false, until: [do], body: single, inside: [try]}
+      - {w: else, kind: single, closes: false, when: '^\s*(//.*)?$'}
+    middle:
+      - {w: except, of: [try], breakAfter: true}
+      - {w: finally, of: [try], breakAfter: true}
+      - {w: else, of: [case], breakAfter: true}
+      - {w: private, of: [class, object], lineStart: true}
+      - {w: protected, of: [class, object], lineStart: true}
+      - {w: public, of: [class, object], lineStart: true}
+      - {w: published, of: [class, object], lineStart: true}
+      - {w: strict private, of: [class, object], lineStart: true}
+    close: {end: [begin, try, asm, case, record, class, interface, object], until: repeat}
+  singleBody: [begin]
+  freeClosers: ['end\.']
+  ends: [';']
+  operators: [and, or, xor, and not, or not]
+  compare: ['<>', '<=', '>=', '=', '<', '>', in, is]
+  align: [':=']
+  style: {open: same, close: same, base: line, align: 'off', afterClose: same, operator: start, oneLine: keep, parenSpace: 'off'}

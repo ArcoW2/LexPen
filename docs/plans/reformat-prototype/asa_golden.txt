@@ -1,0 +1,121 @@
+== if 1
+select (if a = b then
+          'equal'
+        else
+          'not equal'
+        endif
+       )
+== if 2
+select (if a = b then
+          'equal'
+        else
+          'not equal'
+        endif
+       )
+== if 3
+select (if a = b then
+          'equal'
+        else
+          'not equal'
+        endif
+       )
+== params
+create or replace procedure "KingSystem".api_suppliers_HELPER_ACTION
+(
+  // Operators
+  in pAction            smallint, //0 = POST (add), 1 = PATCH (change)
+  in pParentEntity_Name nchar(80) default null, // Only valid for sub-entities
+  in pParentEntity_Id   integer   default null,
+  // Settings
+  in pUseDefaults       smallint  default null
+)
+== condition
+if    (@current.mailing_address_type is not distinct from @original.mailing_address_type)
+  and (@current.mailing_address_type = 1 /*specific*/)
+  and (@current.mailing_address_id is not null)
+then
+  if @original.mailing_country_id is distinct from @current.mailing_country_id or
+     @original.NawGid             is distinct from @current.NawGid             or
+     @original.mailing_ean_code   is distinct from @current.mailing_ean_code
+  then
+    update tabAdres
+    set
+      AdrLndGid       = @current.mailing_country_id,
+      AdrNawGid       = @current.NawGid,
+      AdrCode         = null,
+      AdrLastModified = @current.last_modified
+    where AdrGid = @current.mailing_address_id;
+  end if;
+end if;
+== joins
+select *
+from
+  tabNaw naw
+  left outer join tabAdres          address_primary              on (address_primary.AdrGid = naw.NawGidVestiging and address_primary.AdrCode is null)
+  left outer join tabAdres          address_mailing              on (address_mailing.AdrGid = naw.NawGidCorrespondentie)
+  left outer join tabNawRekening    bank_account_default         on (bank_account_default.NawrekNawGid = naw.nawGid and bank_account_default.nawRekSoort like '%D%')
+  left outer join tabNawRekening    bank_account_payment_init    on (bank_account_payment_init.NawrekNawGid = naw.nawGid and bank_account_payment_init.nawRekSoort like '%B%')
+  inner join (tabNawFile nawfile
+              inner join tabRekeningschema nawledger on (nawledger.RksGid = nawfile.nawFilRksGid)
+             )
+          on (nawfile.NawFilNawGid = naw.NawGid and NawFilFonId = 'C')
+  left outer join tabNawOpmerkingen comments                     on (comments.NawOpmNawGid = naw.NawGid)
+where
+      NawSoort          = 1
+  and nawfile.NawFilGid = pId;
+== long on
+select *
+from
+  tabNaw naw
+  left outer join tabAdres address_mailing    on (address_mailing.AdrGid = naw.NawGidCorrespondentie)
+  left outer join tabAdres address_primary
+  on (    address_primary.AdrGid            = naw.NawGidVestiging
+      and address_primary.AdrCode           is null
+      and bank_account_default.NawrekNawGid = naw.nawGid
+      and bank_account_default.nawRekSoort  like '%D%'
+     )
+where x = 1;
+== begin
+begin declare x integer; set x = 1; if x = 1 then message 'one'; else message 'other'; end if; end
+== proc
+create procedure sp_x(in pId integer)
+begin
+  declare lCount integer;
+  declare lName varchar(40);
+  select count(*) into lCount from tabNaw where NawGid = pId;
+  if lCount = 0 then
+    return
+  elseif lCount = 1 then
+    set lName = 'one';
+  else
+    case lName
+      when 'a' then set lName = 'b';
+      when 'c' then
+        set lName = 'd';
+        message 'changed';
+      else set lName = null
+    end case;
+  end if;
+  while lCount > 0 loop
+    set lCount = lCount - 1;
+  end loop;
+  exception
+    when others then
+      message 'error';
+end
+== exception
+begin
+  declare @fk_constraint  exception for sqlstate '23W05';  // foreign key constraint violation
+  declare @errormessage   nchar(255) ;
+  declare @errorcode      integer ;
+
+  // Limit scope of potential exceptions situations, otherwise no execution of succeeding statements
+  begin
+    call NawDelete(@current.id,
+                   1               /* 1 = delete ledger account */
+                  );
+    exception
+      when @fk_constraint then call api_raise(25105, '', 'suppliers', @current.id); //Entity %1! with id ''%2!'' is currently in use and cannot be changed or removed.
+      when others         then resignal;
+  end;
+end;

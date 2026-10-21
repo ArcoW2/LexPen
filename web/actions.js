@@ -176,6 +176,20 @@ appAction('compareScroll', { title: 'Scroll both panes together', hint: 'By sour
 appAction('commands', { title: 'Keyboard shortcuts and commands', hint: 'This list; Enter runs the selected command', group: 'view', run: () => showPalette() });
 appAction('about', { title: 'About LexPen', hint: 'Version and libraries', group: 'view', run: () => showAbout() });
 
+// Go to line: a line number (or line:column); the cursor goes there, the line in the middle when it was out of view.
+appAction('goToLine', { title: 'Go to line', hint: 'A line number, or line:column; the cursor goes there', group: 'edit', editor: true,
+  run: async (_, { pane }) => {
+    const cm = pane.cm, here = cm.getCursor();
+    const answer = await askName(`Go to line (1 to ${cm.lineCount()})`, String(here.line + 1), 'A line number, or line:column');
+    if (answer === null || answer === '') return;
+    const m = answer.match(/^(\d+)\s*(?:[:,]\s*(\d+))?$/);
+    if (!m) return toast(`Not a line number: ${answer}`);
+    const line = Math.min(Math.max(+m[1], 1), cm.lineCount()) - 1;
+    const ch = m[2] ? Math.min(Math.max(+m[2], 1) - 1, cm.getLine(line).length) : 0;
+    cm.setCursor(CodeMirror.Pos(line, ch));
+    cm.scrollIntoView(CodeMirror.Pos(line, ch), cm.getScrollInfo().clientHeight / 2);
+    cm.focus();
+  } });
 appAction('find', { title: 'Find', hint: 'In this pane: the editor or the preview (the selection is filled in)', group: 'edit', run: () => findKey('open') });
 appAction('findNext', { title: 'Find next', hint: 'With an empty or hidden find bar: show it', group: 'edit', run: () => findKey('next') });
 appAction('findPrevious', { title: 'Find previous', hint: 'The match before', group: 'edit', run: () => findKey('prev') });
@@ -310,9 +324,10 @@ for (const [name, title, hint] of [
 // The rows of the settings window (settings.html), in its groups and order: the setting's name in
 // settings.json, its kind (toggle, choice, font, size) and, for a choice, its options. Title and hint come
 // from the action of the same name where there is one. Sent to the host at start (settingDefs).
-const SETTING_GROUPS = ['General', 'Editor', 'Preview', 'Files', 'Tabs', 'Find', 'App', 'Keys'];
+// The settings window shows a tab per group, in this order; the rows of a group in their order below.
+const SETTING_GROUPS = ['General', 'Files', 'Editor', 'Preview', 'Tabs', 'Find', 'App', 'Keys', 'Languages'];
 const SETTING_ROWS = [
-  { name: 'languageNames', group: 'General', sub: 'Languages', kind: 'names', title: 'Names of languages',
+  { name: 'languageNames', group: 'Languages', kind: 'names', title: 'Names of languages',
     hint: 'A name after a markdown fence (```bash) or in a block, and the language it is: bash=tcc, cmd=batch. Before the languages\' own names and aliases' },
   { name: 'newWindowProject', group: 'General', sub: 'Windows', kind: 'choice', title: 'A new window',
     hint: 'Its project: the one of the last window used on this desktop, or always a new one (Projects menu)',
@@ -339,8 +354,13 @@ const SETTING_ROWS = [
     hint: 'Where the indent stops are: Tab in the indentation of a line, Indent / Outdent, and a tab in the indentation is shown that wide. A language can set its own (indentSize)',
     options: () => Array.from({ length: 16 }, (_, i) => [i + 1, String(i + 1)]) },
   { name: 'formatBar', group: 'Editor', kind: 'toggle' },
-  { name: 'trimTrailing', group: 'Editor', kind: 'toggle', title: 'Remove whitespace at line ends on save',
-    hint: 'The whole file, just before it is written (Ctrl+Z after the save gives the spaces back). Off: every space is kept. A language can keep some (markdown: 2) or never trim (trimTrailing)' },
+  { name: 'leftWraps', group: 'Editor', sub: 'Cursor', kind: 'toggle', title: 'Left at the start of a line goes to the line above',
+    hint: 'At the first column, Left (and Shift+Left) goes on to the end of the line above. Off: the cursor stays at the start' },
+  { name: 'scrollMargin', group: 'Editor', sub: 'Cursor', kind: 'choice', title: 'Scroll sideways before the edge',
+    hint: 'The editor scrolls left or right when the cursor comes this many columns from the edge (on keys, not on a click); without wrapping',
+    options: () => [1, 2, 4, 8, 12, 16, 24, 32].map(n => [n, n === 1 ? '1 column' : n + ' columns']) },
+  { name: 'virtualSpace', group: 'Editor', sub: 'Cursor', kind: 'toggle', title: 'Cursor past the end of the line',
+    hint: 'Up, Down and a click keep the cursor in its column on a shorter line; typing there fills the line with spaces first. Only with a monospaced editor font (with another font this does nothing)' },
   { name: 'showWhitespace', group: 'Editor', kind: 'toggle', title: 'Show spaces and tabs',
     hint: 'In the editor: a space as a small dot, a tab as an arrow (theme colour: whitespace)' },
   { name: 'showLineEnds', group: 'Editor', kind: 'toggle', title: 'Show line ends',
@@ -362,6 +382,10 @@ const SETTING_ROWS = [
   { name: 'zoom', group: 'Preview', kind: 'choice', title: 'Preview zoom', hint: 'Also Ctrl+mouse wheel over a preview',
     options: () => Array.from({ length: 26 }, (_, i) => (5 + i) / 10).map(z => [z, Math.round(z * 100) + '%']) },
   { name: 'backup', group: 'Files', kind: 'toggle' },
+  { name: 'trimTrailing', group: 'Files', kind: 'toggle', title: 'Remove whitespace at line ends on save',
+    hint: 'The whole file, just before it is written (Ctrl+Z after the save gives the spaces back). Off: every space is kept. A language can keep some (markdown: 2) or never trim (trimTrailing)' },
+  { name: 'askSaveDrafts', group: 'Files', kind: 'toggle', title: 'Ask to save changed drafts when closing LexPen',
+    hint: 'Off: changed drafts stay drafts without a question (closing a draft tab always asks)' },
   { name: 'tabOrder', group: 'Tabs', kind: 'choice', options: () => [['recent', 'Recently used'], ['tabs', 'Tab bar order']] },
   { name: 'tabBar', group: 'Tabs', kind: 'choice', title: 'Tab bar', hint: 'When the tabs do not fit in one row',
     options: () => [['scroll', 'One row that scrolls'], ['menu', 'One row, a menu for the tabs out of view'], ['rows', 'Several rows']] },
@@ -369,6 +393,10 @@ const SETTING_ROWS = [
   { name: 'findShared', group: 'Find', kind: 'toggle' },
   { name: 'findWrap', group: 'Find', kind: 'choice', title: 'Search: at the end of the file', hint: 'What find / search next (F3) does past the last match (Shift+F3: before the first)',
     options: () => [['end', 'Stop, with a message'], ['around', 'Go on from the top'], ['origin', 'Go on from the top, stop where the search started']] },
+  { name: 'findMark', group: 'Find', kind: 'choice', title: 'Found text: marked with', hint: 'The matches of find and search, in the editor and the preview (the preview cannot draw a box: an underline there)',
+    options: () => [['background', 'A background colour'], ['outline', 'A box around it (the text keeps its own background)'], ['both', 'Both']] },
+  { name: 'findGutter', group: 'Find', kind: 'toggle', title: 'Mark the line numbers of lines with found text',
+    hint: 'As the found text is marked; the line with the current match as the current match' },
   { name: 'appFont', group: 'App', kind: 'font' },
   { name: 'appSize', group: 'App', kind: 'size', base: () => ptOf(APP_PX) + ' pt' },
   { name: 'statusFont', group: 'App', kind: 'font' },
@@ -386,15 +414,25 @@ const themeOptions = () => (look?.themes ?? []).map(t => {
 
 // General > Open in: a row per language (its pack's "open" unless you choose).
 const openInRows = () => PACK_NAMES.map(name => ({
-  name: 'openIn.' + name, group: 'General', sub: 'Open in', kind: 'choice', title: packs[name].name, default: '',
+  name: 'openIn.' + name, group: 'Languages', sub: 'Open in', kind: 'choice', title: packs[name].name, default: '',
   hint: (packs[name].extensions ?? []).join(' ') || 'Files you give this language',
   options: () => [['', `As the language says (${({ edit: 'the editor', split: 'editor and preview', preview: 'the preview' })[packs[name].open] ?? 'the editor'})`],
     ['edit', 'The editor'], ['split', 'Editor and preview'], ['preview', 'The preview']],
 }));
 
+// Languages > Format: <language>: a row per style attribute the language has (reformat.js), its own value unless
+// you choose.
+const formatRows = () => PACK_NAMES.filter(name => packs[name].format?.style).flatMap(name =>
+  Object.keys(RF_ATTRIBUTES).filter(key => key in packs[name].format.style).map(key => {
+    const [title, values] = RF_ATTRIBUTES[key], own = packs[name].format.style[key];
+    return { name: `format.${name}.${key}`, group: 'Languages', sub: 'Format: ' + packs[name].name, kind: 'choice', title, default: '',
+      hint: `${packs[name].name}: ${key}`, options: () => [['', `As the language says (${values.find(v => v[0] === own)?.[1] ?? own})`], ...values] };
+  }));
+
 function settingDefs() {
-  const rows = [...SETTING_ROWS];
-  rows.splice(rows.findIndex(r => r.group === 'General'), 0, ...openInRows());
+  // In the order of the groups (a stable sort keeps the rows' own order within a group).
+  const rank = r => SETTING_GROUPS.indexOf(r.group);
+  const rows = [...SETTING_ROWS, ...openInRows(), ...formatRows()].sort((a, b) => rank(a) - rank(b));
   return rows.map(r => {
     const action = appActions.get(r.name);
     return {

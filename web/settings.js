@@ -1,12 +1,12 @@
 'use strict';
-// The settings window (Options > Settings; SettingsForm.cs hosts it). One long list with a header per group,
+// The settings window (Options > Settings; SettingsForm.cs hosts it). A tab per group (Ctrl+Tab, Ctrl+PgDn / PgUp),
 // built from the rows a main window describes (SETTING_ROWS in actions.js). A change goes to the host at once
 // (settingSet); the host writes your settings.json and sends the new set to every window, this one included.
 // Keys: type to search; Up / Down between rows; Space toggles; Enter opens a list; Esc empties the search,
 // a second Esc closes the window.
 
 const $ = s => document.querySelector(s);
-const ui = { search: $('.st-search'), count: $('.st-count'), problems: $('.st-problems'), list: $('.st-list') };
+const ui = { search: $('.st-search'), count: $('.st-count'), problems: $('.st-problems'), tabs: $('.st-tabs'), list: $('.st-list') };
 
 // ---------- Host bridge (as in app.js) ----------
 const pending = new Map(), events = {};
@@ -132,32 +132,68 @@ function control(def) {
   };
 }
 
+// ---------- Tabs: a tab per group ----------
+// A tab's rows are made the first time it is shown (the fonts of the Editor and App tabs, a row per language in
+// Languages take a while); a search looks through every tab, so it makes them all.
+let tab = null;              // the group shown
+const built = new Set();     // the groups whose rows exist
+const groupsOf = () => [...new Set(settings.defs.map(d => d.group))];
+
 function build() {
   ui.list.replaceChildren();
+  ui.tabs.replaceChildren();
   rows.length = 0;
+  built.clear();
   if (!settings.defs) {
     ui.list.innerHTML = '<div class="st-none">The settings are not known yet: open this window again from a LexPen window.</div>';
     return;
   }
-  let group = null, sub = null;
-  for (const def of settings.defs) {
-    if (def.group !== group) {
-      group = def.group;
-      sub = null;
-      const h = document.createElement('div');
-      h.className = 'st-group';
-      h.dataset.group = group;
-      h.textContent = group;
-      ui.list.append(h);
-    }
+  const names = groupsOf();
+  let stored = null;
+  try { stored = localStorage.settingsTab; } catch { /* no storage: the first tab */ }
+  tab = names.includes(tab) ? tab : names.includes(stored) ? stored : names[0];
+  for (const group of names) {
+    const b = document.createElement('button');
+    b.className = 'st-tab';
+    b.dataset.group = group;
+    b.textContent = group;
+    b.addEventListener('click', () => showTab(group));
+    ui.tabs.append(b);
+  }
+  showTab(tab);
+}
+
+function showTab(group) {
+  tab = group;
+  try { localStorage.settingsTab = group; } catch { /* per window only */ }
+  for (const b of ui.tabs.children) b.classList.toggle('st-on', b.dataset.group === group);
+  buildGroup(group);
+  filter();
+  ui.list.scrollTop = 0;
+}
+
+// The rows of one group, in its own section (the sections in the order of the groups).
+function buildGroup(group) {
+  if (built.has(group)) return;
+  built.add(group);
+  const section = document.createElement('section');
+  section.className = 'st-section';
+  section.dataset.group = group;
+  const h = document.createElement('div');
+  h.className = 'st-group';
+  h.dataset.group = group;
+  h.textContent = group;
+  section.append(h);
+  let sub = null;
+  for (const def of settings.defs.filter(d => d.group === group)) {
     if (def.sub && def.sub !== sub) {   // a part of a group, as Editor > Gutter
       sub = def.sub;
-      const h = document.createElement('div');
-      h.className = 'st-sub';
-      h.dataset.group = group;
-      h.dataset.sub = sub;
-      h.textContent = sub;
-      ui.list.append(h);
+      const s = document.createElement('div');
+      s.className = 'st-sub';
+      s.dataset.group = group;
+      s.dataset.sub = sub;
+      s.textContent = sub;
+      section.append(s);
     }
     const el = document.createElement('div');
     el.className = 'st-row';
@@ -177,11 +213,18 @@ function build() {
       reset.addEventListener('click', () => set(def.name, def.default ?? settings.defaults[def.name]));
       el.append(reset);
     }
-    ui.list.append(el);
+    section.append(el);
     rows.push({ def, el, control: c });
   }
+  const order = groupsOf(), after = [...ui.list.children].find(s => order.indexOf(s.dataset.group) > order.indexOf(group));
+  ui.list.insertBefore(section, after ?? null);
   show();
-  filter();
+}
+
+// Next / previous tab (Ctrl+Tab, Ctrl+Shift+Tab, Ctrl+PgDn / PgUp).
+function stepTab(dir) {
+  const names = groupsOf(), i = names.indexOf(tab);
+  showTab(names[(i + dir + names.length) % names.length]);
 }
 
 // The values as they are now: controls, the changed marks, problems in your file.
@@ -238,26 +281,45 @@ events.defs = ({ defs }) => {
 };
 
 // ---------- Search ----------
-function filter() {
+// The rows of the tab shown; with words only those that match. A search looks through every tab: the tabs with a
+// match stand out (a click shows their matches), and while typing, when the tab shown has none, the first tab with one
+// is shown.
+function filter(typing = false) {
   const words = ui.search.value.toLowerCase().split(/\s+/).filter(Boolean);
-  let shown = 0;
-  for (const { def, el } of rows) {
-    const text = (def.title + ' ' + def.hint + ' ' + def.group + ' ' + (def.sub ?? '')).toLowerCase();
-    el.hidden = !words.every(w => text.includes(w));
-    if (!el.hidden) shown++;
+  if (words.length) for (const group of groupsOf()) buildGroup(group);
+  document.body.classList.toggle('st-searching', words.length > 0);
+  const matches = r => {
+    const text = (r.def.title + ' ' + r.def.hint + ' ' + r.def.group + ' ' + (r.def.sub ?? '')).toLowerCase();
+    return words.every(w => text.includes(w));
+  };
+  const found = new Set(rows.filter(matches).map(r => r.def.group));
+  if (typing && words.length && !found.has(tab) && found.size) {
+    tab = groupsOf().find(g => found.has(g));
+    for (const b of ui.tabs.children) b.classList.toggle('st-on', b.dataset.group === tab);
   }
-  for (const h of ui.list.querySelectorAll('.st-group'))
-    h.hidden = !rows.some(r => r.def.group === h.dataset.group && !r.el.hidden);
+  let shown = 0;
+  for (const r of rows) {
+    r.el.hidden = r.def.group !== tab || !matches(r);
+    if (!r.el.hidden) shown++;
+  }
+  for (const s of ui.list.querySelectorAll('.st-section'))
+    s.hidden = !rows.some(r => r.def.group === s.dataset.group && !r.el.hidden);
   for (const h of ui.list.querySelectorAll('.st-sub'))
     h.hidden = !rows.some(r => r.def.group === h.dataset.group && r.def.sub === h.dataset.sub && !r.el.hidden);
-  ui.count.textContent = words.length ? `${shown} of ${rows.length}` : '';
+  for (const b of ui.tabs.children) b.classList.toggle('st-has', words.length > 0 && found.has(b.dataset.group));
+  const total = rows.filter(matches).length;
+  ui.count.textContent = !words.length ? '' : total === shown ? `${shown} found` : `${shown} here, ${total} in all tabs`;
 }
-ui.search.addEventListener('input', filter);
+ui.search.addEventListener('input', () => filter(true));
 
 // ---------- Keys ----------
 const visibleRows = () => rows.filter(r => !r.el.hidden);
 
 addEventListener('keydown', e => {
+  if (e.ctrlKey && !e.altKey && (e.key === 'Tab' || e.key === 'PageDown' || e.key === 'PageUp') && settings?.defs) {
+    e.preventDefault();
+    return stepTab(e.key === 'PageUp' || e.key === 'Tab' && e.shiftKey ? -1 : 1);
+  }
   if (e.ctrlKey || e.altKey || e.metaKey) return;
   if (e.key === 'Escape') {
     e.preventDefault();

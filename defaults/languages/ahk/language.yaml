@@ -129,3 +129,36 @@ outline:
   - { pattern: '^\s*([\w#@$?\[\]\u00e4\u00f6\u00fc\u00c4\u00d6\u00dc\u00df]+:)\s*$', name: 1, level: 1 }              # label      Start: (letters as in ahk.uew, umlauts too)
   - { pattern: '^\s*([\w#@$?\[\]\u00e4\u00f6\u00fc\u00c4\u00d6\u00dc\u00df]+)\(.*\)', name: 1, level: 1 }             # function   Name(a, b)
   - { pattern: '^\s*(#[a-z]+) ', name: 1, level: 2, flags: i }                      # directive  #Include x
+
+# ---------- Format ----------
+# The parameters of the formatter (Format, Enter): the roles of the words and signs of this language and the
+# style it uses. See README.md (Format) and docs/plans/executed/PLAN-reformat.md; the indent step is the indent size.
+format:
+  case: false
+  word: '[A-Za-z_#@$][A-Za-z0-9_#@$]*'
+  comments: {line: [' ;'], block: [['/*', '*/']]}
+  strings:
+    - {open: '"', double: true, escape: '`'}
+    - {open: '''', escape: '`'}
+  groups:
+    - {pair: ['{', '}'], open: next, close: own, base: line, openAt: keep, afterClose: next, block: true}
+    - {pair: ['(', ')'], open: same, close: same, base: word, afterClose: same, tight: true}
+    - {pair: ['[', ']'], open: same, close: same, base: word, afterClose: same, tight: true}
+  blocks:
+    open:
+      - {w: if, kind: single, closes: false, when: '^(?!.*\{\s*(;.*)?$)'}
+      - {w: while, kind: single, closes: false, when: '^(?!.*\{\s*(;.*)?$)'}
+      - {w: for, kind: single, closes: false, when: '^(?!.*\{\s*(;.*)?$)'}
+      - {w: loop, kind: single, closes: false, when: '^(?!.*\{\s*(;.*)?$)'}
+      - {w: else, kind: single, closes: false, when: '^\s*(;.*)?$'}
+      - {w: section, line: '^(\S.*::\s*(;.*)?$|[\w#@$]+:\s*(;.*)?$)', closes: true}
+    close: {return: {of: section, strict: true}}
+  singleBody: ['{']
+  ends: ["\n"]
+  operators: ['&&', '||', and, or]
+  continue: ['.', '?.', '?', ':', '??', '+', '=>']
+  compare: ['==', '!=', '<=', '>=', '<', '>']
+  align: ['=']
+  keepLines: []
+  style: {open: same, close: own, base: line, align: 'off', afterClose: next, operator: start, oneLine: keep, parenSpace: 'off'}
+  trail: [';', ',', ')', ']', '}', '.']

@@ -1,0 +1,23 @@
+#NoEnv
+^!x::
+if WinExist("Notepad")
+WinActivate
+else
+{
+Run, notepad.exe
+WinWait, Notepad
+}
+return
+Start:
+MsgBox, Starting ; a comment
+Loop, 3
+{
+Send, {Tab}
+}
+return
+Total(a, b) {
+if (a > b) {
+return a
+}
+return b
+}

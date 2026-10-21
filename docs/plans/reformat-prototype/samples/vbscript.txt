@@ -1,0 +1,19 @@
+Option Explicit
+Dim fso, f
+Set fso = CreateObject("Scripting.FileSystemObject")
+Function Count(path)
+Dim n
+n = 0
+If fso.FileExists(path) Then
+Set f = fso.OpenTextFile(path)
+Do While Not f.AtEndOfStream
+f.ReadLine
+n = n + 1
+Loop
+f.Close
+End If
+Count = n
+End Function
+While x < 10
+x = x + 1
+Wend

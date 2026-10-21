@@ -64,3 +64,53 @@ actions:
   snippetProcedure:
     title: 'Snippet: create procedure'
     insert: "CREATE PROCEDURE $0\nAS\nBEGIN\n    SET NOCOUNT ON;\nEND\nGO\n"
+
+# ---------- Format ----------
+# The parameters of the formatter (Format, Enter): the roles of the words and signs of this language and the
+# style it uses. See README.md (Format) and docs/plans/executed/PLAN-reformat.md; the indent step is the indent size.
+format:
+  case: false
+  word: '[A-Za-z_@#$][A-Za-z0-9_@#$]*(?:\.[A-Za-z_@#$][A-Za-z0-9_@#$]*)*'
+  comments: {line: ['//', '--'], block: [['/*', '*/']]}
+  strings:
+    - {open: '''', double: true}
+    - {open: '"', double: true}
+  groups:
+    - {pair: ['(', ')'], tight: true}
+  blocks:
+    open:
+      - {w: begin, breakAfter: true}
+      - {w: if, until: [then]}
+      - {w: case}
+      - {w: loop, breakAfter: true, before: '^\s*(\w+:\s*)?$'}
+      - {w: while, until: [loop], before: '^\s*(\w+:\s*)?$'}
+      - {w: for, until: [do], before: '^\s*(\w+:\s*)?$'}
+      - {w: when, inside: [case, exception], until: [then], closes: false, endsBefore: [when, else, end case, end]}
+      - {w: exception, inside: [begin], before: '^\s*$', closes: false, endsBefore: [end]}
+      - {w: else, inside: [case], closes: false, endsBefore: [when, end case, end]}
+    middle:
+      - {w: else, of: [if], breakAfter: true}
+      - {w: elseif, of: [if], until: [then]}
+    close: {end if: if, endif: if, end case: case, end loop: [loop, while], end for: for, end: [begin, case]}
+  ends: [';']
+  statements:
+    select: [into, from, where, group by, having, order by, union, union all]
+    update: [set, from, where]
+    insert: [values, select]
+    delete: [from, where]
+    set: []
+    call: []
+    return: []
+    declare: []
+    message: []
+    merge: [using, 'on', when]
+    with: [select]
+  items:
+    join: {start: [left outer join, right outer join, full outer join, inner join, cross join, left join, right join, join], clause: ['on']}
+  operators: [and not, or not, and, or, xor]
+  compare: [is not distinct from, is distinct from, is not, not like, like, not in, in, between, '<>', '!=', '<=', '>=', '=', '<', '>', is]
+  align: [default]
+  separators: [',']
+  longLimit: 2
+  clauseGap: 4
+  style: {open: same, close: own, base: word, align: 'on', alignClause: 'off', afterClose: next, operator: start, longClause: next, oneLine: keep, parenSpace: 'off'}

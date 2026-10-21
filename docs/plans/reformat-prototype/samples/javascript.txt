@@ -1,0 +1,20 @@
+export function load(url, opts) {
+const re = /a\/b[/]c/g;
+if (!url)
+return null;
+return fetch(url).then(r => {
+if (r.ok) { return r.json(); }
+else
+{
+throw new Error(`bad ${r.status}`);
+}
+})
+.catch(e => console.log(e));
+}
+const total = items.filter(i => i.active)
+.reduce((a, i) => a + i.amount, 0);
+switch (kind) {
+case 'a':
+run();
+break;
+}

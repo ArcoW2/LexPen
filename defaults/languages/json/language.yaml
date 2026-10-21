@@ -8,8 +8,25 @@ fold: brace
 actions:
   # Pretty print: the selection (a whole JSON value) or the whole file, indented; numbers, escapes and key order stay
   # as written. With comments it asks whether to keep them.
-  format: { title: Format JSON, hint: 'Indented and readable; with comments: asks whether to keep them', format: json }
+  format: { title: Reformat JSON, hint: 'Indented and readable; comments stay; the selected lines, else the whole file', format: rules }
 # Keys and values apart: a key is string and property (property's look wins), a value only string.
 tokens:
   property: { theme: string }   # keys: the theme's string colour (blue in the dark themes)
   string: { theme: attr }       # values: the theme's attr colour (green in the dark themes)
+
+# ---------- Format ----------
+# The parameters of the formatter (Format, Enter): the roles of the words and signs of this language and the
+# style it uses. See README.md (Format) and docs/plans/executed/PLAN-reformat.md; the indent step is the indent size.
+format:
+  case: true
+  word: '[A-Za-z0-9_.+-]+'
+  comments: {line: ['//'], block: [['/*', '*/']]}
+  strings:
+    - {open: '"', escape: '\'}
+  groups:
+    - {pair: ['{', '}'], list: true, block: true}
+    - {pair: ['[', ']'], list: true, block: true}
+  separators: [',']
+  align: [':']
+  space: [{after: ':'}, {after: ','}]
+  style: {open: next, close: own, base: line, align: 'off', oneLine: split, afterClose: same, parenSpace: 'off'}

@@ -9,4 +9,13 @@ comments: { block: ['<!--', '-->'] }
 actions:
   # Pretty print: the selection (whole elements) or the whole file, indented; comments, CDATA and the declaration
   # stay, and text mixed with elements keeps its spacing.
-  format: { title: Format XML, hint: 'Indented and readable; comments, CDATA and the declaration stay', format: xml }
+  format: { title: Reformat XML, hint: 'Indented and readable; comments, CDATA, the declaration and mixed content stay', format: rules }
+
+# ---------- Format ----------
+# The parameters of the formatter (Format, Enter): the roles of the words and signs of this language and the
+# style it uses. See README.md (Format) and docs/plans/executed/PLAN-reformat.md; the indent step is the indent size.
+format:
+  markup: true
+  case: true
+  align: ['=']
+  style: {open: next, close: own, base: line, align: 'off', oneLine: split}

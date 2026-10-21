@@ -1,0 +1,16 @@
+#include <vector>
+class Order {
+public:
+Order(int n) : count(n) {}
+int total() const {
+#ifdef DEBUG
+log("total");
+#endif
+int sum = 0;
+for (auto& l : lines) {
+sum += l.amount; }
+return sum;
+}
+private:
+int count;
+};

@@ -1,0 +1,15 @@
+begin
+  declare @fk_constraint  exception for sqlstate '23W05';  // foreign key constraint violation
+  declare @errormessage   nchar(255) ;
+  declare @errorcode      integer ;
+
+  // Limit scope of potential exceptions situations, otherwise no execution of succeeding statements
+  begin
+    call NawDelete( @current.id,
+                    1               /* 1 = delete ledger account */
+                    );
+    exception
+      when @fk_constraint then call api_raise(25105, '', 'suppliers', @current.id); //Entity %1! with id ''%2!'' is currently in use and cannot be changed or removed.
+      when others         then resignal;
+  end;
+end;

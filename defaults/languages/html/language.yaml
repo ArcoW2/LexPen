@@ -336,3 +336,43 @@ embedded:
   - { openRegex: '^\s*<script\b[^>]*>\s*$', closeRegex: '^\s*</script>', language: javascript, flags: i }
   - { openRegex: '^\s*<style\b[^>]*>\s*$', closeRegex: '^\s*</style>', language: css, flags: i }
   - { openRegex: '^\s*<\?php\s*$', closeRegex: '^\s*\?>', language: php, flags: i }
+
+# ---------- Format ----------
+# The parameters of the formatter (Format, Enter): the roles of the words and signs of this language and the
+# style it uses. See README.md (Format) and docs/plans/executed/PLAN-reformat.md; the indent step is the indent size.
+format:
+  markup: true
+  case: false
+  void: [area, base, br, col, embed, hr, img, input, link, meta, source, track, wbr]
+  verbatimElements: [pre, textarea, script, style]
+  autoClose:
+    li: [li]
+    td: [td, th]
+    th: [td, th]
+    tr: [tr, td, th]
+    option: [option]
+    dt: [dt, dd]
+    dd: [dt, dd]
+    p: [p]
+    div: [p]
+    ul: [p]
+    ol: [p]
+    table: [p]
+    h1: [p]
+    h2: [p]
+    h3: [p]
+    h4: [p]
+    h5: [p]
+    h6: [p]
+    pre: [p]
+    form: [p]
+    blockquote: [p]
+    hr: [p]
+    section: [p]
+    article: [p]
+    header: [p]
+    footer: [p]
+    nav: [p]
+  align: ['=']
+  optionalEnd: [html, head, body, p, li, dt, dd, option, tr, td, th, thead, tbody, tfoot, colgroup]
+  style: {open: next, close: own, base: line, align: 'off', oneLine: split}

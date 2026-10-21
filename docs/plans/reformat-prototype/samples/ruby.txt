@@ -1,0 +1,27 @@
+class Order < Base
+def add(item, amount)
+return if item.nil?
+if amount > 0
+@count += amount
+elsif amount == 0
+log 'zero'
+else
+@count = 0
+end
+total = if @count > 10 then 'big' else 'small' end
+lines.each do |line|
+handle(line) unless line.empty?
+end
+items.map { |i| i.amount }
+case amount
+when 1 then log 'one'
+when 2
+log 'two'
+end
+begin
+save
+rescue IOError => e
+log e
+end
+end
+end

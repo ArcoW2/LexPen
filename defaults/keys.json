@@ -49,7 +49,7 @@
   "Ctrl+F": "find",
   "F3": "findNext",
   "Shift+F3": "findPrevious",
-  "Ctrl+G": "findNext",
+  "Ctrl+G": "goToLine",
   "Ctrl+Shift+G": "findPrevious",
   "Ctrl+Shift+R": "replace",
   "Ctrl+PgDn": ["section", 1],
@@ -99,7 +99,7 @@
   // ---------- Format (what they do depends on the language of the file) ----------
   "Ctrl+/": "toggleComment",
   "Ctrl+Shift+/": "blockComment",
-  "Ctrl+Alt+F": "convertMenu",
+  "Ctrl+Alt+C": "convertMenu",
   "Ctrl+Shift+U": "upperCase",
   "Ctrl+U": "lowerCase",
   "Ctrl+B": "bold",

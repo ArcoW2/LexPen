@@ -1,0 +1,17 @@
+use strict;
+sub total {
+my ($path) = @_;
+my $sum = 0;
+open(my $fh, '<', $path) or die "no $path";
+while (my $line = <$fh>) {
+next unless $line =~ /^\d+$/;
+$sum += $line; }
+if ($sum > 10) {
+print "big\n";
+}
+else
+{
+print "small\n";
+}
+return $sum;
+}

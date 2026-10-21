@@ -81,3 +81,34 @@ tokens:
 outline:
   - { pattern: '^\s*use\s+([\w:]+)', name: 1, level: 2 }   # use
   - { pattern: '^\s*sub\s+(\w+)', name: 1, level: 1 }   # subs
+
+# ---------- Format ----------
+# The parameters of the formatter (Format, Enter): the roles of the words and signs of this language and the
+# style it uses. See README.md (Format) and docs/plans/executed/PLAN-reformat.md; the indent step is the indent size.
+format:
+  case: true
+  word: '[A-Za-z_$@%][A-Za-z0-9_:]*'
+  comments: {line: ['#']}
+  strings:
+    - {open: '"', escape: '\', lines: true}
+    - {open: '''', escape: '\', lines: true}
+  groups:
+    - {pair: ['{', '}'], open: next, close: own, base: line, openAt: same, afterClose: same, block: true}
+    - {pair: ['(', ')'], open: same, close: same, base: word, afterClose: same, tight: true}
+    - {pair: ['[', ']'], open: same, close: same, base: word, afterClose: same, tight: true}
+  blocks:
+  singleBody: ['{']
+  ends: [';']
+  operators: ['&&', '||', and, or, not]
+  continue: ['.', '?.', '?', ':', '??', '+', '=>']
+  compare: ['==', '!=', eq, ne, lt, gt, le, ge, '=~']
+  align: ['=']
+  keepLines: []
+  style: {open: same, close: own, base: line, align: 'off', afterClose: next, operator: start, oneLine: keep, parenSpace: 'off'}
+  trail: [';', ',', ')', ']', '}', '.']
+  keep:
+    - '^=[a-zA-Z].*?^=cut\b.*?$'
+    - '<<"?([A-Z_]+)"?;.*?^\1$'
+    - {re: '(?:m|qr|s|tr|y)?/(?:\\.|[^/\\\n])*/(?:(?:\\.|[^/\\\n])*/)?[a-z]*', after: '(,=~!{;'}
+    - 'q[qwr]?\((?:\\.|[^)\\])*\)'
+  joinAfterClose: [else, catch, finally, while]

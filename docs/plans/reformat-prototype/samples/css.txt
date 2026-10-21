@@ -1,0 +1,6 @@
+body{margin:0;font-family:"Segoe UI",sans-serif}
+a:hover { color:red }
+@media (max-width: 600px) {
+.menu{display:none;
+padding:0 4px}
+}

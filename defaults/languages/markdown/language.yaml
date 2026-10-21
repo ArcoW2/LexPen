@@ -44,3 +44,18 @@ actions:
 # found by its name (id, name, aliases, extensions; your own mapping first: setting languageNames).
 embedded:
   - { openRegex: '^\s*(`{3,}|~{3,})\s*([\w#+.-]+)', closeRegex: '^\s*(`{3,}|~{3,})\s*$', languageGroup: 2 }
+
+# ---------- Format ----------
+# The parameters of the formatter (Format, Enter): the roles of the words and signs of this language and the
+# style it uses. See README.md (Format) and docs/plans/executed/PLAN-reformat.md; the indent step is the indent size.
+format:
+  case: true
+  keepIndent: true
+  word: '[^\s|`\\]+'
+  strings:
+    - {open: '`'}
+  keep:
+    - '\\.'
+    - '^(```|~~~).*?^\1\s*$'
+  tables: {sep: '|', fill: '-', delimiter: '^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$'}
+  style: {align: 'on', oneLine: keep}

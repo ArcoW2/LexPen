@@ -1489,3 +1489,40 @@ outline:
   - { pattern: '^\s*require(?:_once)?[\s"\'']+([\w$&*\-./:=?\\^]+)["\'']*;', name: 1, level: 2, flags: i }   # requires
   - { pattern: '^\s*include(?:_once)?[\s"\'']+([\w$&*\-./:=?\\^]+)["\'']*;', name: 1, level: 2, flags: i }   # includes
   - { pattern: '^\s*(?:(?:abstract|final|private|protected|public|static)\s+)*function\s+([a-z_\u007f-\ufffd][0-9a-z_\u007f-\ufffd]*)', name: 1, level: 1, flags: i }   # functions
+
+# ---------- Format ----------
+# The parameters of the formatter (Format, Enter): the roles of the words and signs of this language and the
+# style it uses. See README.md (Format) and docs/plans/executed/PLAN-reformat.md; the indent step is the indent size.
+format:
+  case: true
+  word: '[A-Za-z_$][A-Za-z0-9_]*'
+  comments: {line: ['//', '#'], block: [['/*', '*/']]}
+  strings:
+    - {open: '"', escape: '\', lines: true}
+    - {open: '''', escape: '\', lines: true}
+  groups:
+    - {pair: ['{', '}'], open: next, close: own, base: line, openAt: {default: same, next: '^((abstract|final|public|private|protected|static|readonly)\s+)*(class|interface|trait|enum|function)\b'}, afterClose: same, block: true}
+    - {pair: ['(', ')'], open: same, close: same, base: word, afterClose: same, tight: true}
+    - {pair: ['[', ']'], open: same, close: same, base: word, afterClose: same, tight: true}
+  blocks:
+    open:
+      - {w: if, kind: single, closes: false, afterGroup: true}
+      - {w: for, kind: single, closes: false, afterGroup: true}
+      - {w: foreach, kind: single, closes: false, afterGroup: true}
+      - {w: while, kind: single, closes: false, afterGroup: true}
+      - {w: else, kind: single, closes: false, when: '^\s*(//.*)?$'}
+      - {w: do, kind: single, closes: false, when: '^\s*(//.*)?$'}
+      - {w: case, before: '^\s*$', inside: ['{'], closes: false, endsBefore: [case, default, '}']}
+      - {w: default, before: '^\s*$', when: '^\s*:', inside: ['{'], closes: false, endsBefore: [case, default, '}']}
+  singleBody: ['{']
+  ends: [';']
+  operators: ['&&', '||', and, or, xor]
+  continue: ['.', '?.', '?', ':', '??', '+', '=>']
+  compare: ['===', '!==', '==', '!=', '<=', '>=', '<', '>']
+  align: ['=']
+  keepLines: []
+  style: {open: same, close: own, base: line, align: 'off', afterClose: next, operator: start, oneLine: keep, parenSpace: 'off'}
+  trail: [';', ',', ')', ']', '}', '.']
+  keep:
+    - '<<<\s*([A-Za-z_]+).*?^\s*\1\b'
+  joinAfterClose: [else, elseif, catch, finally, while]

@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<config><connection name="main"
+host="db01" port="2638"><user>dba</user><options><option key="timeout" value="30"/></options></connection>
+<note>Some <b>mixed</b> text   kept   as written</note><!-- a comment --><data><![CDATA[ <raw> ]]></data></config>

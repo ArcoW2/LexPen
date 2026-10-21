@@ -1,0 +1,9 @@
+create or replace function total(p_id integer) returns integer as $$
+begin
+if p_id is null then
+return 0;
+end if;
+return (select count(*) from orders o
+join lines l on (l.order_id = o.id) where o.customer = p_id);
+end;
+$$ language plpgsql;
