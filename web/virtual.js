@@ -163,6 +163,7 @@ function drawBlockFill(cm) {
 }
 
 function drawVirtual(cm, reveal = false) {
+  if (drawCursors(cm, reveal)) return;   // several cursors: cursors.js draws them
   const wrapper = cm.getWrapperElement();
   // CodeMirror's cursors hidden: past the end of the line, and on a block with width (its cursors at short lines' ends
   // would compete with the head's); a block of width 0 keeps them, one per line where typing goes.
@@ -327,7 +328,7 @@ function setupVirtual(pane) {
   cm.on('beforeSelectionChange', onVirtualSelectionChange);
   cm.on('swapDoc', () => { cm.state.mmVirtual = null; cm.state.mmGoalX = null; drawVirtual(cm); });
   // A font, wrap or size change, scrolling (the block's lines on screen).
-  cm.on('update', () => { if (cm.state.mmVirtualEl && !cm.state.mmVirtualEl.hidden || blockOf(cm)) drawVirtual(cm); });
+  cm.on('update', () => { if (cm.state.mmVirtualEl && !cm.state.mmVirtualEl.hidden || blockOf(cm) || multiOn(cm)) drawVirtual(cm); });
   cm.on('scroll', () => { if (cm.state.mmSpacer && !drawnBox(cm)) placeSpacer(cm, 0); });   // the width follows the view back
   cm.getWrapperElement().addEventListener('mousedown', e => onVirtualMouseDown(cm, e), true);
   const when = run => c => virtualOn(c) ? run(c) : CodeMirror.Pass;
