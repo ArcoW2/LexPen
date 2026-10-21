@@ -632,7 +632,6 @@ async function ensureEditor(pane) {
   pane.cm.on('change', (cm, change) => electricReformat(cm, change));   // a closing word typed: its column (format.js)
   setupColumn(pane);   // column mode and blocks (column.js); its paste handler comes after the picture one
   setupVirtual(pane);   // the cursor past the end of the line (virtual.js); its keys before column mode's
-  setupCursors(pane);   // multiple cursors (cursors.js); its keys before virtual.js's
   setupBrackets(pane);   // matching brackets: the highlight, closing signs while typing (brackets.js)
   setupGuides(pane);   // indent guides (guides.js)
   pane.cm.on('drop', (cm, e) => onEditorDrop(pane, e));
@@ -1403,9 +1402,7 @@ function updateStatus() {
     // Past the end of the line (virtual.js), or a block's head (also past a line's end): that column.
     const past = blockOf(cm)?.head ?? virtualOf(cm), line = past ? past.line : head.line;
     pos = `Ln ${line + 1}, Col ${(past ? past.col : textColumn(cm.getLine(head.line), head.ch, stopsOf(cm))) + 1}`;   // a tab to its stop
-    const many = cursorStatus(cm);   // several cursors, occurrences (cursors.js)
     if (block) pos += ` (Block ${block})`;
-    else if (many) pos += ` (${many})`;
     else if (selected) {
       const lines = selected.split('\n').length;
       pos += ` (${selected.length} selected${lines > 1 ? `, ${lines} lines` : ''})`;

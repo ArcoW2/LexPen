@@ -1,6 +1,6 @@
 # Plan: Multiple cursors: Ctrl+Alt+click, Ctrl+Alt+double-click, Ctrl+D chords, Ctrl+Alt+arrows, past the line end
 
-Status: executed 2026-10-21 (web/cursors.js; in-app test t85, 46 checks). From the list "what UltraEdit or Visual Studio has and LexPen does not".
+Status: draft 2026-10-21, not started. From the list "what UltraEdit or Visual Studio has and LexPen does not".
 The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
@@ -118,24 +118,5 @@ the line above); a block turned into cursors; the wheel keeps the cursors.
 
 ## 4. Open questions
 
-Still open, not part of this execution:
-
 1. Replace in the selection: the find bar has no "in selection" switch now. Add it here (a switch next to case /
    word / regex, on by itself when the bar opens on a multi-line selection), or as a plan of its own?
-
-## 5. Resolved during execution
-
-- One cursor past the end per line: CodeMirror merges cursors on one place, and every cursor past a line's end
-  stands at that line's end for CodeMirror. Ctrl+Alt+click past the end of a line that has one moves it there.
-- Ctrl+Alt+double-click: the first click adds a cursor, the second turns it into the find match (or the word).
-- The occurrence keys also work from the find field (Ctrl+F, Enter, then Ctrl+D, A), on that pane's editor.
-- Starting the occurrences: the current one is the selection when it is an occurrence, else the next one after it.
-  Several cursors already there (Ctrl+Alt+click) count as added.
-- The setting "At the end of the file" (findWrap): end stops with a message; the other two go on from the other end
-  (for the occurrences "until where the search started" acts as "go on").
-- Esc with a find bar open closes the bar first (as before) and keeps the cursors; the next Esc ends them.
-- The occurrences end with an edit, a selection made elsewhere, Esc or a tab switch.
-- With several cursors LexPen draws all of them (CodeMirror's hidden), also at the head of each selection.
-- Home / End / PgUp / PgDn, and Up / Down / Right without virtual space, are CodeMirror's own per cursor; Left too,
-  unless leftWraps is off or a cursor stands past the end.
-- Edit > Multiple cursors has the five occurrence actions (their keys shown there and in F1).

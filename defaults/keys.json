@@ -57,12 +57,6 @@
   "Ctrl+PgUp": ["section", -1],
   "Ctrl+[": "goToOpenBracket",       // the opener / closer of the pair or word set the highlight shows (Shift: select)
   "Ctrl+]": "goToCloseBracket",
-  "Ctrl+D, A": "cursorAdd",          // multiple cursors: Ctrl+D, then A add the current occurrence, D or R remove it, C clear the added ones;
-  "Ctrl+D, D": "cursorRemove",       // Ctrl+Alt+Right / Left: the next / previous occurrence (of the find text, else the selection)
-  "Ctrl+D, R": "cursorRemove",
-  "Ctrl+D, C": "cursorClear",
-  "Ctrl+Alt+Right": "cursorNext",
-  "Ctrl+Alt+Left": "cursorPrevious",
   "Ctrl+Shift+.": "indentMore",      // Ctrl+> and Ctrl+<: indent and outdent the lines (as Tab / Shift+Tab on a selection)
   "Ctrl+Shift+Comma": "indentLess",
   "Ins": "overwrite",

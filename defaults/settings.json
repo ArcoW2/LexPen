@@ -45,10 +45,6 @@
   "leftWraps": true,              // Left at the first column goes on to the end of the line above
   "virtualSpace": false,          // the cursor can be past the end of a line: it keeps its column on short lines,
                                   // and typing there fills the line with spaces first (a monospaced font only)
-  "locateCursor": true,           // a short tap on Ctrl alone: rings shrink onto every cursor (a marker at the edge
-                                  // for one out of view)
-  "locateCursorTap": 400,         // ms: the longest press of Ctrl that counts as a tap
-  "locateCursorJump": false,      // a double tap on Ctrl scrolls to the cursor first
   "showWhitespace": false,        // in the editor: a space as a small dot, a tab as an arrow
   "showLineEnds": false,          // in the editor: a sign at the end of each line (CRLF or LF)
 
