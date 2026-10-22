@@ -52,7 +52,10 @@ function control(def) {
   if (def.kind === 'toggle') {
     const input = document.createElement('input');
     input.type = 'checkbox';
-    input.addEventListener('change', () => set(def.name, input.checked));
+    input.addEventListener('change', () => {
+      set(def.name, input.checked);
+      show();   // a hint per state (hintOff) follows at once
+    });
     box.append(input);
     return { box, show: v => input.checked = !!v, focus: input };
   }
@@ -250,6 +253,7 @@ function show() {
   for (const { def, el, control: c } of rows) {
     if (def.kind === 'keys') continue;
     c.show(settings.values[def.name]);
+    if (def.hintOff) el.querySelector('.st-hint').textContent = settings.values[def.name] ? def.hint : def.hintOff;
     el.classList.toggle('st-changed', settings.user.includes(def.name));
   }
   const problems = [...(settings.problems ?? []), ...(settings.look?.problems ?? []), ...(settings.languageProblems ?? [])];
@@ -306,7 +310,7 @@ function filter(typing = false) {
   if (words.length) for (const group of groupsOf()) buildGroup(group);
   document.body.classList.toggle('st-searching', words.length > 0);
   const matches = r => {
-    const text = (r.def.title + ' ' + r.def.hint + ' ' + r.def.group + ' ' + (r.def.sub ?? '')).toLowerCase();
+    const text = (r.def.title + ' ' + r.def.hint + ' ' + (r.def.hintOff ?? '') + ' ' + r.def.group + ' ' + (r.def.sub ?? '')).toLowerCase();
     return words.every(w => text.includes(w));
   };
   const found = new Set(rows.filter(matches).map(r => r.def.group));

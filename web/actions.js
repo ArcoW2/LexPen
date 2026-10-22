@@ -374,10 +374,11 @@ const SETTING_ROWS = [
   { name: 'languageNames', group: 'Languages', kind: 'names', title: 'Names of languages',
     hint: 'A name after a markdown fence (```bash) or in a block, and the language it is: bash=tcc, cmd=batch. Before the languages\' own names and aliases' },
   { name: 'newWindowProject', group: 'General', sub: 'Windows', kind: 'choice', title: 'A new window',
-    hint: 'Its project: the one of the last window used on this desktop, or always a new one (Projects menu)',
-    options: () => [['same', 'Joins the project of the last window on this desktop'], ['new', 'Starts a new project']] },
+    hint: 'In which project a new window will be created (per virtual desktop)',
+    options: () => [['new', 'New project'], ['same', 'Project of recent window']] },
   { name: 'keepUnnamedProjects', group: 'General', sub: 'Windows', kind: 'toggle', title: 'Keep unnamed projects',
-    hint: 'A project you did not name, with files, when its last window closes: kept as "Project n", or dropped. Without files it is always dropped' },
+    hint: 'Windows with files but with an unnamed project ("Project n") are kept for reopening',
+    hintOff: 'Windows with files for unnamed projects ("Project n") are not remembered for reopening' },
   { name: 'followWindows', group: 'General', sub: 'Theme', kind: 'toggle', title: 'Follow Windows',
     hint: 'Light or dark as Windows is (Settings > Personalization > Colors), at once; Day / night switches until Windows changes' },
   { name: 'themeLight', group: 'General', sub: 'Theme', kind: 'choice', title: 'Theme for light mode',
@@ -525,6 +526,7 @@ function settingDefs() {
     return {
       name: r.name, group: r.group, sub: r.sub ?? null, kind: r.kind, default: r.default,
       title: r.title ?? action?.title ?? r.name, hint: r.hint ?? action?.hint ?? '',
+      hintOff: r.hintOff ?? null,   // a toggle whose hint says what happens: hint when on, hintOff when off
       options: r.options?.() ?? (r.kind === 'size' ? [[0, `Default (${r.base()})`], ...FONT_SIZES.map(pt => [pt, pt + ' pt'])] : null),
       monoFirst: r.name === 'editorFont',
       range: r.range ?? null, unit: r.unit ?? '',
