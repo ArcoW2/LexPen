@@ -48,6 +48,8 @@
   "scrollMargin": 8,              // columns: the editor scrolls sideways when the cursor comes this close to the edge
   "leftWraps": true,              // Left at the first column goes on to the end of the line above
   "homeStop": false,              // Home goes to column 1 (off: to the first non-blank character first)
+  "jumpLines": 10,                // a cursor move of more lines than this, without typing, is a jump: the place it left
+                                  // is kept for Position back (a found item always)
   "scrollMovesCursor": false,     // Ctrl+Up / Ctrl+Down: the cursor moves a line along with the text
   "virtualSpace": false,          // the cursor can be past the end of a line: it keeps its column on short lines,
                                   // and typing there fills the line with spaces first (a monospaced font only)

@@ -305,6 +305,7 @@ async function loadDoc(path) {
 function dropDoc(doc, release = true) {
   docs.delete(doc);
   if (doc.marks) saveBookmarks(doc);
+  dropPlaces(doc);   // places.js
   clearTimeout(doc.pushTimer);
   if (doc.path && release) host('unlock', { path: doc.path });
   syncWatchFiles();
@@ -636,6 +637,7 @@ async function ensureEditor(pane) {
   setupBrackets(pane);   // matching brackets: the highlight, closing signs while typing (brackets.js)
   setupGuides(pane);   // indent guides (guides.js)
   setupRuler(pane);   // the ruler, column guides and manual tabs (ruler.js)
+  setupPlaces(pane);   // the places the cursor jumped from, for Position back / forward (places.js)
   pane.cm.on('drop', (cm, e) => onEditorDrop(pane, e));
   pane.cm.getWrapperElement().addEventListener('wheel', e => {   // Ctrl+wheel: the editor font size
     if (!e.ctrlKey) return;
@@ -2489,7 +2491,7 @@ searchUi.results.addEventListener('click', async e => {
   if (tab.mode !== 'edit') setPreviewLine(pane, Math.max(0, hit.line - 3));
   if (tab.mode !== 'preview' && pane.cm) {
     pane.placed = tab.mode === 'split';
-    pane.cm.setSelection({ line: hit.line, ch: hit.col }, { line: hit.endLine, ch: hit.endCol });
+    asFound(pane, () => pane.cm.setSelection({ line: hit.line, ch: hit.col }, { line: hit.endLine, ch: hit.endCol }));   // places.js
     pane.cm.scrollIntoView({ from: { line: hit.line, ch: 0 }, to: { line: hit.endLine, ch: hit.endCol } }, 120);
   }
 });
@@ -3659,11 +3661,12 @@ document.addEventListener('click', e => {
   else if (button?.dataset.action && !button.closest('.mm-format, .mm-dropdown')) runAction(button.dataset.action, [], { from: 'menu' });
 });
 
-// Mouse back / forward buttons.
+// Mouse back / forward buttons: the places of the document (places.js); with Ctrl the tabs and files of the window.
 document.addEventListener('mouseup', e => {
   if (e.button !== 3 && e.button !== 4) return;
   e.preventDefault();
-  commands[e.button === 3 ? 'back' : 'forward']();
+  if (e.ctrlKey) commands[e.button === 3 ? 'back' : 'forward']();
+  else stepPlace(e.button === 3 ? -1 : 1);
 });
 
 // The keys themselves are in keys.js (keys.json). Here: what is not an action.

@@ -43,6 +43,7 @@ const MENUS = [
       ['&Hide this pane', 'paneHide'], ['Hide &other pane', 'paneHideOther'], ['&Close this pane', 'paneClose'],
       ['C&lose other pane', 'paneCloseOther'], ['&Show hidden pane', 'paneShow']] },
     ['Scroll both panes &together', 'compareScroll.toggle'], '-',
+    ['Position bac&k', 'positionBack'], ['Position for&ward', 'positionForward'], ['Back in the window', 'back'], ['Forward in the window', 'forward'], '-',
     ['&Language...', 'chooseLanguage'], ['&Wrap long lines', 'wrap.toggle'], ['For&matting bar', 'formatBar.toggle'],
     { label: 'Tab ba&r', sub: [['One row that &scrolls', 'tabBar.set', 'scroll'], ['One row, a &menu for the rest', 'tabBar.set', 'menu'],
       ['Several &rows', 'tabBar.set', 'rows']] },

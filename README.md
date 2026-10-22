@@ -230,6 +230,12 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   View > **Tab bar**: one row that scrolls, one row with a menu for the tabs out of view, or several rows.
   The arrows button at the left of each tab bar shows the pane's file in the folder pane (opening its folder
   when it lies outside the open one), as Visual Studio's Sync with active document.
+- **Position back / forward**: every document keeps the places its cursor jumped from: a move of more lines than
+  the setting A jump (Editor, 10 by default) without typing (go to line, a bookmark, the outline, Ctrl+Home, a click
+  far away), and always a found item (find, the search in files), however close. Ctrl+Alt+- goes back, Ctrl+Alt++
+  forward again; also the mouse back / forward buttons. A place moves with the edits; one whose line was deleted is
+  skipped. Ctrl + the mouse buttons go through the tabs and files of the window instead (View > Back / Forward in
+  the window), like a browser.
 - **Ctrl+Tab**: through the documents in recently used order (hold Ctrl and press Tab again to go further back),
   or in tab bar order (the setting Ctrl+Tab order).
 - **Outline**: Ctrl+Alt+V, O shows the headings of each pane's file at its right; click one to go there (preview
@@ -331,6 +337,7 @@ F1 lists every key and action. The main ones of the default set:
 | Ctrl+S / Ctrl+Shift+S | Save / save as |
 | Ctrl+W / Ctrl+F4, Ctrl+Shift+T | Close tab, reopen the last closed tab |
 | Ctrl+Tab / Ctrl+Shift+Tab | Next / previous document |
+| Ctrl+Alt+- / Ctrl+Alt++ | Position back / forward in the document (also the mouse buttons; with Ctrl: through the tabs) |
 | Alt+Left / Alt+Right | Previous / next tab, in the tab bar's order; the focus goes to its editor or preview, as the tab had it last |
 | Alt+Up / Alt+Down, Ctrl+PgUp / Ctrl+PgDn | Previous / next section (paragraph, heading, procedure, ... per language) |
 | Mouse back / forward | Back / forward to the tab and file shown before, like a browser |

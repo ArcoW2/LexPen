@@ -44,6 +44,11 @@
   "Ctrl+NumPlus": "zoomIn",
   "Ctrl+-": "zoomOut",
   "Ctrl+NumMinus": "zoomOut",
+  "Ctrl+Alt+-": "positionBack",       // where the cursor jumped from in the document (Ctrl+Alt++: forward again)
+  "Ctrl+Alt+NumMinus": "positionBack",
+  "Ctrl+Alt+=": "positionForward",
+  "Ctrl+Alt+Shift+=": "positionForward",
+  "Ctrl+Alt+NumPlus": "positionForward",
   "F1": "commands",
 
   // ---------- Edit and find ----------

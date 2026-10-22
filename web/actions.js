@@ -138,8 +138,11 @@ appAction('nextDocument', { title: 'Next document', hint: 'Through the tabs of t
 appAction('previousDocument', { title: 'Previous document', hint: 'Through the tabs of the window', group: 'tabs', run: () => nextDocument(-1) });
 appAction('nextTab', { title: 'Next tab', hint: 'The tab to the right in this pane, in tab bar order', group: 'tabs', run: () => cycleTab(1) });
 appAction('previousTab', { title: 'Previous tab', hint: 'The tab to the left in this pane, in tab bar order', group: 'tabs', run: () => cycleTab(-1) });
-appAction('back', { title: 'Back', hint: 'To the tab and file shown before, like a browser (also the mouse back button)', group: 'tabs', run: () => commands.back() });
-appAction('forward', { title: 'Forward', hint: 'Again forward (also the mouse forward button)', group: 'tabs', run: () => commands.forward() });
+appAction('back', { title: 'Back in the window', hint: 'To the tab and file shown before, like a browser (also Ctrl + the mouse back button)', group: 'tabs', run: () => commands.back() });
+appAction('forward', { title: 'Forward in the window', hint: 'Again forward through the tabs and files (also Ctrl + the mouse forward button)', group: 'tabs', run: () => commands.forward() });
+// The places the cursor jumped from in the document (places.js).
+appAction('positionBack', { title: 'Position back', hint: 'The cursor back to where it was before its last jump in this document (go to line, a find, a bookmark, Ctrl+Home, a click far away); also the mouse back button', group: 'edit', run: () => stepPlace(-1) });
+appAction('positionForward', { title: 'Position forward', hint: 'Again forward after Position back; also the mouse forward button', group: 'edit', run: () => stepPlace(1) });
 
 toggleAction('split', { title: 'Editor and preview side by side', hint: 'The preview next to the editor, or the editor alone', group: 'view',
   enabled: () => !!activeTab() }, () => activeTab()?.mode === 'split', () => togglePreview());
@@ -468,6 +471,8 @@ const SETTING_ROWS = [
   { name: 'scrollMovesCursor', group: 'Editor', sub: 'Cursor', kind: 'toggle', title: 'Ctrl+Up / Ctrl+Down move the cursor along',
     hint: 'Ctrl+Down scrolls the text a line and the cursor goes a line down with it, keeping its place on the screen (Ctrl+Up the other way); at the end of the text the cursor still goes on to the last line. With Shift the selection goes along',
     hintOff: 'Ctrl+Down scrolls the text a line and the cursor stays on its line, also when that line leaves the view (Ctrl+Up the other way)' },
+  { name: 'jumpLines', group: 'Editor', sub: 'Cursor', kind: 'range', range: [1, 100, 1], unit: ' lines', title: 'A jump: a move of more than',
+    hint: 'How far the cursor must move, without typing, for the place it left to be kept for Position back (Ctrl+Alt+-). A found item is always kept, however close' },
   { name: 'scrollMargin', group: 'Editor', sub: 'Cursor', kind: 'choice', title: 'Scroll sideways before the edge',
     hint: 'The editor scrolls left or right when the cursor comes this many columns from the edge (on keys, not on a click); without wrapping',
     options: () => [1, 2, 4, 8, 12, 16, 24, 32].map(n => [n, n === 1 ? '1 column' : n + ' columns']) },

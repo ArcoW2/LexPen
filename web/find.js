@@ -221,6 +221,8 @@ function goEditor(pane, regex, dir, fromOrigin) {
   const matches = editorMatches(pane, regex);
   if (!matches.length) return notFound(pane, matches, fromOrigin);
   const from = cm.indexFromPos(cm.getCursor('from')), to = cm.indexFromPos(cm.getCursor('to'));
+  // A found item is a place to go back to (places.js); while typing only the first, the place the search started.
+  const how = fromOrigin && bar.origin != null ? 'quiet' : 'found';
   if (fromOrigin) bar.origin ??= from; else bar.origin = null;
   let i;
   if (fromOrigin) i = matches.findIndex(([s]) => s >= bar.origin);
@@ -229,7 +231,7 @@ function goEditor(pane, regex, dir, fromOrigin) {
   i = pickMatch(pane, matches, i, dir, fromOrigin);
   if (i < 0) return;
   const [s, e] = matches[i];
-  cm.setSelection(cm.posFromIndex(s), cm.posFromIndex(e));
+  asFound(pane, () => cm.setSelection(cm.posFromIndex(s), cm.posFromIndex(e)), how);
   // The selection is drawn below the other matches' colour, so the current one gets its own mark.
   pane.findCurrent?.clear();
   pane.findCurrent = cm.markText(cm.posFromIndex(s), cm.posFromIndex(e),

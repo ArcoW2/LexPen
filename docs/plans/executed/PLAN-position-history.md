@@ -1,6 +1,6 @@
 # Plan: Back and forward through cursor positions
 
-Status: plan 2026-10-22, not started. From the list "what UltraEdit or Visual Studio has and LexPen does not".
+Status: executed 2026-10-22 (web/places.js; in-app test t99). From the list "what UltraEdit or Visual Studio has and LexPen does not".
 The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
@@ -116,3 +116,15 @@ In-app (a new test):
 ## 4. Open questions
 
 None.
+
+## 5. Resolved during execution
+
+| Topic | As built |
+|---|---|
+| A place | A mark over the place's whole line plus its column, not a bookmark: CodeMirror keeps a bookmark alive when its text is deleted (it moves to the edge), a mark over a line is cleared with the line, so Back can skip it. An empty line gets a bookmark (that one is not skipped). Two lists on the document, `placesBack` and `placesForward`, instead of `places` with `at`. |
+| What is an edit | Any change in the editor (typing, paste, undo, a reformat) marks the cursor move of that operation as no jump; the mark lasts to the end of the operation, so an edit in the other pane does not swallow a jump here. |
+| Jumps in a run | Jumps closer together than half a second (a held Page Down) keep the place before the run; distance between places is not used for this. Found items are never part of a run. |
+| Find while typing | Typing in the find field moves the cursor at every letter; only the first move records a place (where the search started), the rest are not recorded. F3, Shift+F3 and the search in files' results record a place every time. LexPen has no Find all list, so that source is not there. |
+| Preview | Position back / forward in a preview-only tab: a hint "No positions in the preview." (the plain mouse buttons there no longer go through the tabs; Ctrl + the buttons do). |
+| Names | Actions `positionBack` / `positionForward` (group Edit); `back` / `forward` are now titled Back / Forward in the window. View menu: Position back, Position forward, Back in the window, Forward in the window. Setting `jumpLines` in Editor > Cursor. |
+| Tests | t99 (in the app): 26 checks pass on three runs in a row: back / forward by the keys, the end of the list, arrow keys no place, Ctrl+End a place, each found item a place, jumpLines 50, lines added above a place, a deleted place skipped, two files apart, the mouse buttons with and without Ctrl, a new jump drops Forward, a closed document's places gone, the menu and the setting. The next match is driven by `findGo` (what F3 runs): a first F3 straight after Esc in the find bar sometimes did not move, outside this plan. |
