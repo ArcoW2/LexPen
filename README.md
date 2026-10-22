@@ -230,6 +230,22 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   View > **Tab bar**: one row that scrolls, one row with a menu for the tabs out of view, or several rows.
   The arrows button at the left of each tab bar shows the pane's file in the folder pane (opening its folder
   when it lies outside the open one), as Visual Studio's Sync with active document.
+- **Compare two files**: File > Compare files..., a tab's right-click (Compare with..., with the tab in the other
+  pane, with the saved file), the folder pane's right-click on a file (with the file in the editor, with...), or
+  `LexPen.exe --compare old.sql new.sql`. The two files side by side in the two panes, editable as usual: lines that
+  differ tinted (removed, added, changed; lines are paired by how much they look alike), the changed characters
+  marked, filler lines keeping both sides level, the panes scrolling together, the differences on the scroll bars.
+  F7 / Shift+F7: the next / previous difference. The bar above the panes: the count, Ignore whitespace, Ignore
+  case, Align (Ctrl+F7: the two cursor lines are each other's match and the comparing goes on from there; again on
+  the pair: untied), copy the difference at the cursor across (`<<` / `>>`, or Alt+Left / Alt+Right in a
+  difference), Swap, leave (the panes as before). The line strip below: the cursor line and its match one above the
+  other, character under character, spaces and tabs visible. View > Compare has it all too.
+- **Compare two folders**: File > Compare folders..., a folder's right-click (Compare with folder...), or
+  `LexPen.exe --compare old new`. The folder pane shows one tree of both: = equal, ~ different, ? not checked yet,
+  < only on the left, > only on the right; a folder by what is inside. First by size and date, then the contents
+  of the files that need it in the background (Stop ends it; a file with the same contents and another date is
+  equal); with Ignore whitespace or case on, files are also compared as text. Show all or the differences only.
+  A double click (or Enter) on a file compares it; on a file of one side opens it. Read-only: nothing on disk changes.
 - **Scroll bars with an overview**: the editor's vertical scroll bar is a strip that marks where in the file the
   find matches (while the find bar is open, every one of them), the unsaved changes, the git changes and the bookmarks
   are, with a block for the part in view. Drag the block to scroll (it holds on a mark it comes near); a click on a mark
@@ -351,6 +367,7 @@ F1 lists every key and action. The main ones of the default set:
 | Ctrl+W / Ctrl+F4, Ctrl+Shift+T | Close tab, reopen the last closed tab |
 | Ctrl+Tab / Ctrl+Shift+Tab | Next / previous document |
 | Ctrl+Space | Word completion: keywords, the document's words, snippets |
+| F7 / Shift+F7, Ctrl+F7 | Comparing: the next / previous difference; align the two cursor lines |
 | Ctrl+Alt+- / Ctrl+Alt++ | Position back / forward in the document (also the mouse buttons; with Ctrl: through the tabs) |
 | Alt+Left / Alt+Right | Previous / next tab, in the tab bar's order; the focus goes to its editor or preview, as the tab had it last |
 | Alt+Up / Alt+Down, Ctrl+PgUp / Ctrl+PgDn | Previous / next section (paragraph, heading, procedure, ... per language) |
@@ -400,7 +417,7 @@ dotnet publish -c Release -o publish          # release build into .\publish
 ```
 
 Arguments are files and folders to open, plus `-n` / `--new-window` for a new window (see **One instance, more
-windows** above).
+windows** above), or `-c` / `--compare` with two files or two folders to compare them in a new window.
 
 ```powershell
 dotnet test tests\LexPen.Tests                # unit tests

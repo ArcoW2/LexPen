@@ -12,67 +12,7 @@ const GUTTER_COLUMNS = [
 ];
 const gutterOn = name => setting('gutter.' + name) !== false;
 
-// ---------- Line diff ----------
-// Which lines of `b` differ from `a`: hunks { aFrom, aTo, bFrom, bTo } (line ranges, `to` not included).
-// Myers' algorithm on what is left after the common start and end; past `maxEdits` (very different texts)
-// the whole middle counts as one change.
-function diffLines(a, b, maxEdits = 2000) {
-  let start = 0, endA = a.length, endB = b.length;
-  while (start < endA && start < endB && a[start] === b[start]) start++;
-  while (endA > start && endB > start && a[endA - 1] === b[endB - 1]) { endA--; endB--; }
-  const A = a.slice(start, endA), B = b.slice(start, endB);
-  if (!A.length && !B.length) return [];
-  const ops = A.length && B.length ? editScript(A, B, maxEdits) : null;
-  if (!ops) return [{ aFrom: start, aTo: endA, bFrom: start, bTo: endB }];
-  // Runs of deletions and insertions between equal lines are the hunks.
-  const hunks = [];
-  let i = 0, j = 0, hunk = null;
-  for (const op of ops) {
-    if (op === '=') {
-      if (hunk) hunks.push(hunk), hunk = null;
-      i++; j++;
-      continue;
-    }
-    hunk ??= { aFrom: start + i, aTo: start + i, bFrom: start + j, bTo: start + j };
-    if (op === '-') hunk.aTo = start + ++i; else hunk.bTo = start + ++j;
-  }
-  if (hunk) hunks.push(hunk);
-  return hunks;
-}
-
-// The shortest edit script from A to B as '=', '-' (a line of A goes), '+' (a line of B comes); null when
-// it needs more than maxEdits edits.
-function editScript(A, B, maxEdits) {
-  const N = A.length, M = B.length, max = Math.min(N + M, maxEdits);
-  const v = new Map([[1, 0]]), trace = [];
-  for (let d = 0; d <= max; d++) {
-    trace.push(new Map(v));
-    for (let k = -d; k <= d; k += 2) {
-      let x = k === -d || (k !== d && v.get(k - 1) < v.get(k + 1)) ? v.get(k + 1) : v.get(k - 1) + 1;
-      let y = x - k;
-      while (x < N && y < M && A[x] === B[y]) { x++; y++; }
-      v.set(k, x);
-      if (x >= N && y >= M) return backtrack(trace, N, M);
-    }
-  }
-  return null;
-}
-
-function backtrack(trace, N, M) {
-  const ops = [];
-  let x = N, y = M;
-  for (let d = trace.length - 1; d > 0; d--) {
-    const v = trace[d], k = x - y;
-    const prevK = k === -d || (k !== d && v.get(k - 1) < v.get(k + 1)) ? k + 1 : k - 1;
-    const prevX = v.get(prevK), prevY = prevX - prevK;
-    while (x > prevX && y > prevY) { ops.push('='); x--; y--; }
-    ops.push(x === prevX ? '+' : '-');
-    x = prevX;
-    y = prevY;
-  }
-  while (x > 0 && y > 0) { ops.push('='); x--; y--; }
-  return ops.reverse();
-}
+// The line diff (diffLines) is in diff.js, shared with the compare.
 
 // ---------- Markers ----------
 const linesOf = text => text.replace(/\r\n?/g, '\n').split('\n');

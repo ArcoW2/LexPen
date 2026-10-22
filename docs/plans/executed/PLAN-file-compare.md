@@ -1,6 +1,6 @@
 # Plan: Compare two files, or two folders
 
-Status: plan 2026-10-22, not started. From the list "what UltraEdit or Visual Studio has and LexPen does not".
+Status: executed 2026-10-22 (web/compare.js, web/diff.js, web/diff.worker.js, FolderCompare.cs; in-app tests t110, t111). From the list "what UltraEdit or Visual Studio has and LexPen does not".
 The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
@@ -185,3 +185,21 @@ In-app:
 ## 4. Open questions
 
 None.
+
+## 5. Resolved during execution
+
+| Topic | As built |
+|---|---|
+| Lines paired by likeness | A plain line diff pairs the lines of a changed block by position ("WHERE active = 1" against "ORDER BY name, id"). Inside a changed block the lines are paired by how much they look alike (their character pairs in common, at least half), in order: a line with a look-alike is a change of it, the others removed or added, as the mockup in 3.2 shows. A block of more than 10000 line pairs stays as it is. |
+| The diff | `diffLines` moved from gutter.js to diff.js (the page and the worker load it). Myers per stretch between ties; a stretch that needs more than 1500 edits is split first at the lines that occur once on each side (patience) and the parts compared on their own. The characters of a changed pair: Myers on the characters between the common start and end (lines up to 400 characters), else that middle as a whole. |
+| Wrapping | Off in both editors while comparing (a wrapped line would take more rows on one side than the other, and the sides would not stay level); back to the setting when the compare ends. |
+| Scrolling together | Pixel for pixel (both sides are as high as each other, the fillers counted), up and down and sideways. The window's own Scroll both panes together is off during the compare and as before afterwards. |
+| Leaving | The [x], View > Compare > Leave, or another tab in either pane, or closing either tab. The tabs the compare opened are closed (a changed one asks), the others stay; the orientation, the pane sizes and the active tabs as they were. |
+| Compare with the saved file | A read-only tab with the text as last saved, named "name (saved)"; not kept in the session, closed when the compare ends. |
+| Ties | Align (Ctrl+F7) on two lines that are tied already unties them; Untie all on the bar while there are ties. A tie shows as a bar in both gutters. Not built: a right-click on the gutter to remove one. |
+| Line endings | Never a difference; when they differ the bar says "Line endings differ (not counted)" (on the bar, not the bottom bar). |
+| The folder pane | Has no selection of several files (Ctrl+click opens a file in the other pane), so not "two files selected, Compare": a file's right-click has Compare with the file in the editor and Compare with...; a folder's Compare with folder.... |
+| Folder compare | The `.git` folder is left out. A folder on one side only is marked < or > as a whole. A file that cannot be read is marked !. The text compare with the options (FolderCompare.SameText) works as the editor's: spaces collapsed and trimmed, empty lines left out, case folded; up to 20 MB and not for a file with a NUL byte. Marks: "=~" (equal only with the options) shows as = with its own tooltip. |
+| Keys | F7, Shift+F7, Ctrl+F7 in keys.json. Alt+Left / Alt+Right stay the tab keys; pressed in a difference while comparing they copy it across (the menu items for the tabs still go through the tabs). |
+| A start-up error found on the way | app.js applied the compare's settings at the start through compare.js, which loads after it: when the host answered quickly the start stopped with an error and the window stayed empty (seen in 1 of 3 and 1 of 5 runs of a second window; 0 of 8 after the fix). |
+| Tests | Unit: ParseArgs with -c / --compare; FolderCompare: the first pass (one side only, size, same size and date, the 2 seconds of FAT, .git left out, the order), the second pass (bytes), stopped, as text with the options. In-app: t110 (file compare) 29 checks pass on three runs; t111 (folder compare, --compare at the start and to a running LexPen) 13 checks pass on its last runs after the start-up fix. Unit tests: 216 pass. Updated for the new settings and menus: t60, t89, t101. |

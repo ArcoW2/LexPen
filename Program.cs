@@ -13,7 +13,7 @@ static class Program
     static void Main(string[] args)
     {
         ApplicationConfiguration.Initialize();
-        var (newWindow, rest) = ParseArgs(args);
+        var (newWindow, compare, rest) = ParseArgs(args);
         var shift = newWindow || (Control.ModifierKeys & Keys.Shift) != 0;
         var paths = rest.Select(Path.GetFullPath).ToArray();   // against this process's current folder
 
@@ -25,7 +25,7 @@ static class Program
         using var mutex = new Mutex(true, @"Local\" + name, out var owner);
         if (!owner)
         {
-            if (Send(name, paths, shift)) return;
+            if (Send(name, paths, shift, compare)) return;
             // The running instance is closing: wait for it, then take over.
             try { owner = mutex.WaitOne(TimeSpan.FromSeconds(5)); }
             catch (AbandonedMutexException) { owner = true; }
@@ -37,21 +37,23 @@ static class Program
         app.WatchSettings();
         app.WatchThemes();
         app.WatchLanguages();
-        app.Launch(paths, shift);
+        app.Launch(paths, shift, compare);
         if (owner) app.Listen(name);
         Application.Run(app);
         if (owner) mutex.ReleaseMutex();
     }
 
-    // "-n" or "--new-window": a new window, as with Shift held. Everything else is a file or folder.
-    internal static (bool NewWindow, string[] Paths) ParseArgs(string[] args)
+    // "-n" or "--new-window": a new window, as with Shift held. "-c" or "--compare": the two paths compared (two files
+    // or two folders), in a new window. Everything else is a file or folder.
+    internal static (bool NewWindow, bool Compare, string[] Paths) ParseArgs(string[] args)
     {
         static bool IsNewWindow(string a) => a is "-n" or "--new-window";
-        return (args.Any(IsNewWindow), args.Where(a => !IsNewWindow(a)).ToArray());
+        static bool IsCompare(string a) => a is "-c" or "--compare";
+        return (args.Any(IsNewWindow), args.Any(IsCompare), args.Where(a => !IsNewWindow(a) && !IsCompare(a)).ToArray());
     }
 
     // Hands the paths to the running instance; false when it does not answer.
-    static bool Send(string name, string[] paths, bool shift)
+    static bool Send(string name, string[] paths, bool shift, bool compare)
     {
         try
         {
@@ -62,6 +64,7 @@ static class Program
             {
                 ["paths"] = new JsonArray(paths.Select(p => (JsonNode?)p).ToArray()),
                 ["shift"] = shift,
+                ["compare"] = compare,
             };
             client.Write(Encoding.UTF8.GetBytes(msg.ToJsonString() + "\n"));
             using var reader = new StreamReader(client);

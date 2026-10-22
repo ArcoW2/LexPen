@@ -136,8 +136,39 @@ appAction('closeWindow', { title: 'Close window', hint: 'Asks about unsaved chan
 
 appAction('nextDocument', { title: 'Next document', hint: 'Through the tabs of the window', group: 'tabs', run: () => nextDocument(1) });
 appAction('previousDocument', { title: 'Previous document', hint: 'Through the tabs of the window', group: 'tabs', run: () => nextDocument(-1) });
-appAction('nextTab', { title: 'Next tab', hint: 'The tab to the right in this pane, in tab bar order', group: 'tabs', run: () => cycleTab(1) });
-appAction('previousTab', { title: 'Previous tab', hint: 'The tab to the left in this pane, in tab bar order', group: 'tabs', run: () => cycleTab(-1) });
+// While comparing, the key with the cursor in a difference copies it across instead (compare.js).
+appAction('nextTab', { title: 'Next tab', hint: 'The tab to the right in this pane, in tab bar order; comparing, with the cursor in a difference: the left side\'s lines over the right side\'s', group: 'tabs',
+  run: (_, ctx) => (ctx.from === 'key' && comparing() && compareCopy(1)) || cycleTab(1) });
+appAction('previousTab', { title: 'Previous tab', hint: 'The tab to the left in this pane, in tab bar order; comparing, with the cursor in a difference: the right side\'s lines over the left side\'s', group: 'tabs',
+  run: (_, ctx) => (ctx.from === 'key' && comparing() && compareCopy(-1)) || cycleTab(-1) });
+
+// ---------- The compare (compare.js) ----------
+const comparing = () => typeof cmp !== 'undefined' && cmp.on;   // compare.js loads after this file
+appAction('compareFiles', { title: 'Compare files...', hint: 'Two files side by side, the differences marked: pick the left one, then the right one', group: 'files',
+  run: async () => {
+    const [a] = await host('pickFile', { one: true }) ?? [];
+    if (!a) return;
+    const [b] = await host('pickFile', { one: true, at: a }) ?? [];
+    if (b) startCompare({ path: a }, { path: b });
+  } });
+appAction('compareFolders', { title: 'Compare folders...', hint: 'Two folders in the folder pane, each file marked as equal, different or on one side only: pick the left one, then the right one', group: 'files',
+  run: async () => {
+    const a = await host('pickFolder', {});
+    if (!a) return;
+    const b = await host('pickFolder', { at: a });
+    if (b) startFolderCompare(a, b);
+  } });
+appAction('compareNext', { title: 'Next difference', hint: 'Comparing: the next difference below the cursor, in both files', group: 'edit', enabled: comparing, run: () => compareGo(1) });
+appAction('comparePrevious', { title: 'Previous difference', hint: 'Comparing: the previous difference above the cursor, in both files', group: 'edit', enabled: comparing, run: () => compareGo(-1) });
+appAction('compareAlign', { title: 'Align the cursor lines', hint: 'Comparing: the left cursor line and the right cursor line are compared as each other\'s match, and what follows from there; on a tied pair: untied', group: 'edit', enabled: comparing, run: () => compareAlign() });
+appAction('compareSwap', { title: 'Swap the compared files', hint: 'Comparing: left and right change places', group: 'view', enabled: comparing, run: () => compareSwap() });
+appAction('compareClose', { title: 'Leave the compare', hint: 'The panes as they were before the compare', group: 'view', enabled: comparing, run: () => stopCompare() });
+toggleAction('compareWhitespace', { title: 'Compare: ignore whitespace', hint: 'Spaces and tabs: their amount inside a line and all of them at the ends; an empty line against none', group: 'view' },
+  () => !!setting('compareWhitespace'), () => setSetting('compareWhitespace', !setting('compareWhitespace')));
+toggleAction('compareCase', { title: 'Compare: ignore case', hint: 'Upper and lower case count as the same', group: 'view' },
+  () => !!setting('compareCase'), () => setSetting('compareCase', !setting('compareCase')));
+toggleAction('compareStrip', { title: 'Compare: line strip', hint: 'Below the panes: the cursor line and its match, one above the other', group: 'view' },
+  () => setting('compareStrip') !== false, () => setSetting('compareStrip', setting('compareStrip') === false), ['show', 'hide']);
 appAction('back', { title: 'Back in the window', hint: 'To the tab and file shown before, like a browser (also Ctrl + the mouse back button)', group: 'tabs', run: () => commands.back() });
 appAction('forward', { title: 'Forward in the window', hint: 'Again forward through the tabs and files (also Ctrl + the mouse forward button)', group: 'tabs', run: () => commands.forward() });
 // The places the cursor jumped from in the document (places.js).
@@ -157,8 +188,8 @@ toggleAction('wrap', { title: 'Wrap long lines', hint: 'In the editor (code bloc
 appAction('locateCursor', { title: 'Locate the cursor', hint: 'Rings shrink onto every cursor; a cursor out of view gets a marker at that edge (also a short tap on Ctrl)', group: 'view',
   enabled: () => !!editorPane(), run: () => locateCursor(editorPane({ from: 'menu' })) });
 toggleAction('overviewMark', { title: 'Scroll bar marks', hint: 'Show or hide this kind of mark on the editor\'s scroll bar', group: 'view',
-  variants: [['find'], ['changes'], ['git'], ['bookmarks']],
-  variantTitles: { find: 'Scroll bar marks: find matches', changes: 'Scroll bar marks: unsaved changes', git: 'Scroll bar marks: git changes', bookmarks: 'Scroll bar marks: bookmarks' } },
+  variants: [['find'], ['changes'], ['git'], ['bookmarks'], ['compare']],
+  variantTitles: { find: 'Scroll bar marks: find matches', changes: 'Scroll bar marks: unsaved changes', git: 'Scroll bar marks: git changes', bookmarks: 'Scroll bar marks: bookmarks', compare: 'Scroll bar marks: compare differences' } },
   ([name]) => setting('overview.' + name) !== false,
   ([name]) => setSetting('overview.' + name, setting('overview.' + name) === false), ['show', 'hide']);
 toggleAction('ruler', { title: 'Ruler', hint: 'Above the editor: the columns, the column of the cursor, column guides, tab stops and helper lines (click it for one)', group: 'view' },
@@ -527,12 +558,21 @@ const SETTING_ROWS = [
         git: 'No git markers in the gutter', folds: 'No fold markers in the gutter' }[n] })),
   { name: 'overviewWidth', group: 'Editor view', sub: 'Scroll bars', kind: 'range', range: [10, 40, 2], unit: ' px', title: 'Scroll bars: width',
     hint: 'How wide the editor\'s scroll bars are (the horizontal one as high); the marks on the vertical one take their share of it' },
-  ...[['find', 'Find matches'], ['changes', 'Unsaved changes'], ['git', 'Git changes'], ['bookmarks', 'Bookmarks']]
+  ...[['find', 'Find matches'], ['changes', 'Unsaved changes'], ['git', 'Git changes'], ['bookmarks', 'Bookmarks'], ['compare', 'Compare differences']]
     .map(([n, title]) => ({ name: 'overview.' + n, group: 'Editor view', sub: 'Scroll bars', kind: 'toggle', title: 'Marks: ' + title.toLowerCase(),
       hint: { find: 'The scroll bar marks the lines with a match of the find bar', changes: 'The scroll bar marks the lines changed since the last save',
-        git: 'The scroll bar marks the lines changed since the last commit', bookmarks: 'The scroll bar marks the bookmarks' }[n],
+        git: 'The scroll bar marks the lines changed since the last commit', bookmarks: 'The scroll bar marks the bookmarks',
+        compare: 'Comparing, the scroll bar marks the differences' }[n],
       hintOff: { find: 'No find matches on the scroll bar', changes: 'No unsaved changes on the scroll bar',
-        git: 'No git changes on the scroll bar', bookmarks: 'No bookmarks on the scroll bar' }[n] })),
+        git: 'No git changes on the scroll bar', bookmarks: 'No bookmarks on the scroll bar', compare: 'No compare differences on the scroll bar' }[n] })),
+  { name: 'compareWhitespace', group: 'Editor view', sub: 'Compare', kind: 'toggle', title: 'Ignore whitespace',
+    hint: 'Comparing, spaces and tabs count only as a separation: their amount inside a line and those at its ends make no difference, nor an empty line against none',
+    hintOff: 'Comparing, every space and tab counts' },
+  { name: 'compareCase', group: 'Editor view', sub: 'Compare', kind: 'toggle', title: 'Ignore case',
+    hint: 'Comparing, upper and lower case count as the same', hintOff: 'Comparing, upper and lower case differ' },
+  { name: 'compareStrip', group: 'Editor view', sub: 'Compare', kind: 'toggle', title: 'Line strip',
+    hint: 'Comparing, below the panes the cursor line and its match one above the other, the differing characters marked',
+    hintOff: 'Comparing, no line strip below the panes' },
   { name: 'lineBreaks', group: 'Preview', kind: 'toggle',
     hint: 'In the preview, a single line break starts a new line',
     hintOff: 'In the preview, a single line break joins the lines, as in GitHub files (an empty line starts a new paragraph)' },

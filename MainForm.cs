@@ -36,7 +36,8 @@ sealed class MainForm : Form
 
     /// <summary>What a window opens with. <see cref="Key"/>: its window in a project (ProjectStore), with its session;
     /// <see cref="ToDesktop"/>: back on the virtual desktop it was on (at start).</summary>
-    public sealed record Start(string? Folder, List<string> Files, int Key = 0, bool ToDesktop = false);
+    // Compare: two files or two folders to compare (--compare), the page starts it.
+    public sealed record Start(string? Folder, List<string> Files, int Key = 0, bool ToDesktop = false, string[]? Compare = null);
 
     readonly AppHost app;
     Start start;
@@ -399,6 +400,7 @@ sealed class MainForm : Form
                 "search" => await Task.Run(() => Search(msg)),
                 "gitStatus" => await Task.Run(() => GitStatus(msg["path"]!.GetValue<string>())),
                 "gitHead" => await Task.Run(() => GitHead(msg["path"]!.GetValue<string>())),
+                "folderList" => await Task.Run(() => FolderList(msg)),
                 "format" => await Task.Run(() => Format(msg)),
                 _ => Dispatch(msg, files),
             };
@@ -413,6 +415,50 @@ sealed class MainForm : Form
             foreach (var queued in queue) web.CoreWebView2.PostWebMessageAsJson(queued);
             queue.Clear();
         }
+    }
+
+    readonly Dictionary<int, CancellationTokenSource> folderChecks = [];
+
+    // Both trees of a folder compare: the rows as the page draws them.
+    static JsonNode FolderList(JsonNode msg)
+    {
+        var rows = FolderCompare.List(msg["left"]!.GetValue<string>(), msg["right"]!.GetValue<string>());
+        return new JsonArray(rows.Select(r => (JsonNode?)new JsonObject
+        {
+            ["rel"] = r.Rel, ["dir"] = r.Dir, ["state"] = r.State,
+            ["leftSize"] = r.LeftSize, ["rightSize"] = r.RightSize,
+            ["leftTime"] = r.LeftTime?.ToString("o"), ["rightTime"] = r.RightTime?.ToString("o"),
+        }).ToArray());
+    }
+
+    void FolderCheck(int id, string left, string right, List<string> rels, bool whitespace, bool ignoreCase, CancellationToken stop)
+    {
+        var done = 0;
+        void Send(JsonObject ev) => BeginInvoke(() => Post(ev));
+        try
+        {
+            foreach (var rel in rels)
+            {
+                stop.ThrowIfCancellationRequested();
+                string state;
+                try
+                {
+                    var a = Path.Combine(left, rel);
+                    var b = Path.Combine(right, rel);
+                    state = FolderCompare.SameBytes(a, b, stop) ? "=" : (whitespace || ignoreCase) && FolderCompare.SameText(a, b, whitespace, ignoreCase) ? "=~" : "~";
+                }
+                catch (OperationCanceledException) { throw; }
+                catch (Exception) { state = "!"; }   // could not be read
+                done++;
+                Send(new JsonObject { ["event"] = "folderCheck", ["check"] = id, ["rel"] = rel, ["state"] = state, ["done"] = done, ["total"] = rels.Count });
+            }
+            Send(new JsonObject { ["event"] = "folderCheck", ["check"] = id, ["end"] = true, ["done"] = done, ["total"] = rels.Count });
+        }
+        catch (OperationCanceledException)
+        {
+            Send(new JsonObject { ["event"] = "folderCheck", ["check"] = id, ["end"] = true, ["stopped"] = true, ["done"] = done, ["total"] = rels.Count });
+        }
+        finally { BeginInvoke(() => folderChecks.Remove(id)); }
     }
 
     JsonNode? Dispatch(JsonNode msg, string[]? files)
@@ -434,6 +480,8 @@ sealed class MainForm : Form
                     ["folder"] = start.Folder,
                     ["files"] = new JsonArray(start.Files.Select(f => (JsonNode?)f).ToArray()),
                 };
+                if (start.Compare is [var left, var right])
+                    init["compare"] = new JsonObject { ["left"] = left, ["right"] = right, ["folders"] = Directory.Exists(left) };
                 // Its session (a window of a project opened again) and its drafts.
                 var (session, drafts) = app.StartOf(this);
                 if (session is not null) init["restore"] = session;
@@ -571,6 +619,28 @@ sealed class MainForm : Form
             // After a reload from disk: the bookmarks the file had, placed in its new text.
             case "bookmarksResolve":
                 return BookmarkStore.Resolve(msg["list"]!.AsArray(), Arg("text"));
+
+            // The folder compare's second pass (FolderCompare.cs): the contents of the files to check, in the
+            // background; each answer as an event folderCheck, the last one with end. Stopped by folderCheckStop.
+            case "folderCheck":
+            {
+                var id = msg["check"]!.GetValue<int>();   // not "id": the bridge's own call number
+                var left = Arg("left");
+                var right = Arg("right");
+                var rels = msg["files"]!.AsArray().Select(r => r!.GetValue<string>()).ToList();
+                var whitespace = msg["whitespace"]?.GetValue<bool>() == true;
+                var ignoreCase = msg["case"]?.GetValue<bool>() == true;
+                var stop = new CancellationTokenSource();
+                folderChecks[id] = stop;
+                Task.Run(() => FolderCheck(id, left, right, rels, whitespace, ignoreCase, stop.Token));
+                return true;
+            }
+
+            case "folderCheckStop":
+            {
+                if (folderChecks.TryGetValue(msg["check"]!.GetValue<int>(), out var stop)) stop.Cancel();
+                return true;
+            }
 
             case "pickFolder":
             {

@@ -65,6 +65,9 @@ function overviewMarks(pane) {
   };
   if (overviewKind('changes')) hunks(pane.changeHunks, 'changes', colour('--warning'), colour('--warning'));
   if (overviewKind('git')) hunks(pane.gitHunks, 'git', colour('--git-modified'), colour('--git-added'));
+  if (overviewKind('compare'))   // comparing (compare.js): the differences, in the lanes of the changes
+    for (const m of pane.compareMarks ?? [])
+      out.push({ kind: 'compare', from: m.from, to: m.to, colour: colour(m.kind === 'add' ? '--git-added' : m.kind === 'del' ? '--git-deleted' : '--git-modified') });
   // Bookmarks before the find matches: a match on a bookmark's line is drawn over it.
   if (overviewKind('bookmarks') && typeof bookmarkList === 'function')
     for (const { line } of bookmarkList(doc)) out.push({ kind: 'bookmarks', from: line, to: line, colour: colour('--accent') });
@@ -83,7 +86,7 @@ function overviewMarks(pane) {
 // bookmark from there to the right edge with a find match over its right third. At 16 px: 3, 3, 9 and 5 px.
 function overviewLanes(width) {
   const inner = width - 1, side = Math.max(2, Math.round(inner / 5)), find = Math.max(3, Math.round(inner / 3));
-  return { changes: [1, side], git: [1 + side, side], bookmarks: [1 + 2 * side, width - 1 - 2 * side], find: [width - find, find] };
+  return { changes: [1, side], git: [1 + side, side], compare: [1, 2 * side], bookmarks: [1 + 2 * side, width - 1 - 2 * side], find: [width - find, find] };
 }
 
 // Where a place in the text goes on the strip. The block (the part in view) is as high as the view is of the whole
@@ -156,7 +159,7 @@ function overviewHit(pane, e) {
   return { mark: best, y };
 }
 
-const OVERVIEW_NAMES = { find: 'Find match', changes: 'Unsaved change', git: 'Git change', bookmarks: 'Bookmark' };
+const OVERVIEW_NAMES = { find: 'Find match', changes: 'Unsaved change', git: 'Git change', bookmarks: 'Bookmark', compare: 'Difference' };
 function overviewTip(pane, e) {
   const { mark } = overviewHit(pane, e);
   return mark ? `${OVERVIEW_NAMES[mark.kind]}, line ${mark.from + 1}` : null;

@@ -922,3 +922,52 @@ li.CodeMirror-hint-active { background: var(--select); color: var(--fg); }
 .mm-overview-view { position: absolute; z-index: 7; right: 0; top: 0; width: var(--mm-overview-w, 20px); pointer-events: none; border-radius: 3px;
   background: color-mix(in srgb, var(--fg) 28%, transparent); }
 .mm-overview-view.mm-dragging { background: color-mix(in srgb, var(--fg) 40%, transparent); }
+
+/* The compare (compare.js): the bar above the panes, the line strip below them, the marks in the editors. */
+.mm-work { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.mm-cmp-bar { display: flex; align-items: center; gap: 8px; padding: 4px 10px; border-bottom: 1px solid var(--border);
+  background: var(--bg-bar); font-size: calc(13px * var(--ui-scale)); white-space: nowrap; overflow: hidden; }
+.mm-cmp-bar[hidden], .mm-cmp-strip[hidden] { display: none; }
+.mm-cmp-files { font-weight: 600; }
+.mm-cmp-count { min-width: 9em; color: var(--fg-dim); }
+.mm-cmp-bar button { padding: 2px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--fg); }
+.mm-cmp-bar button:hover:not(:disabled) { border-color: var(--accent); }
+.mm-cmp-bar button:disabled { opacity: .45; }
+.mm-cmp-bar label { display: flex; align-items: center; gap: 4px; }
+.mm-cmp-note { color: var(--warning); }
+.mm-cmp-gap { flex: 1; }
+.mm-cmp-add { background: color-mix(in srgb, var(--git-added) 18%, transparent); }
+.mm-cmp-del { background: color-mix(in srgb, var(--git-deleted) 18%, transparent); }
+.mm-cmp-chg { background: color-mix(in srgb, var(--git-modified) 16%, transparent); }
+.CodeMirror .mm-cmp-char, .mm-cmp-strip .mm-cmp-char { background: color-mix(in srgb, var(--git-modified) 45%, transparent); border-radius: 2px; }
+.mm-cmp-filler { background: repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in srgb, var(--fg) 7%, transparent) 6px 8px); }
+.mm-cmp-filler.mm-cmp-quiet { background: none; }
+.CodeMirror .mm-cmp-tie { box-shadow: inset 3px 0 0 var(--accent); }
+.mm-cmp-strip { display: flex; border-top: 1px solid var(--border); background: var(--bg);
+  font: var(--editor-size)/var(--editor-line) var(--editor-font); }
+.mm-cmp-labels { padding: 2px 8px; color: var(--fg-dim); border-right: 1px solid var(--border); white-space: pre; min-width: 5em; }
+.mm-cmp-texts { flex: 1; overflow-x: auto; padding: 2px 8px; }
+.mm-cmp-text { white-space: pre; cursor: text; min-height: calc(var(--editor-size) * var(--editor-line)); }
+.mm-cmp-ws { color: color-mix(in srgb, var(--fg) 35%, transparent); }
+.mm-cmp-none { color: var(--fg-dim); font-style: italic; }
+
+/* The folder compare (compare.js): the folder pane's tree replaced by one of both folders. */
+body[data-folder-compare] .mm-folder-view > .mm-tree-head, body[data-folder-compare] .mm-folder-view > .mm-tree { display: none; }
+.mm-fcmp { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.mm-fcmp-head { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+.mm-fcmp-paths { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: left;
+  color: var(--fg-dim); font-size: calc(11px * var(--ui-scale)); }
+.mm-fcmp-show, .mm-fcmp-progress, .mm-fcmp-legend { display: flex; align-items: center; gap: 10px; padding: 3px 8px; font-size: calc(12px * var(--ui-scale)); }
+.mm-fcmp-progress[hidden] { display: none; }
+.mm-fcmp-progress span { flex: 1; color: var(--fg-dim); }
+.mm-fcmp-legend { color: var(--fg-dim); border-bottom: 1px solid var(--border); white-space: nowrap; overflow: hidden; }
+.mm-fcmp-head button, .mm-fcmp-progress button { padding: 1px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--fg); }
+.mm-fcmp-tree { flex: 1; overflow: auto; outline: none; padding-bottom: 12px; }
+.mm-fcmp-tree:focus .mm-row.mm-cursor, .mm-fcmp-tree .mm-row.mm-cursor { box-shadow: inset 0 0 0 1px var(--accent); }
+.mm-fcmp-mark { flex: none; width: 1.4em; text-align: center; font-weight: 700; font-family: var(--editor-font); color: var(--fg-dim); }
+.mm-fcmp-row[data-state="~"] { color: var(--git-modified); }
+.mm-fcmp-row[data-state="<"] { color: var(--git-deleted); }
+.mm-fcmp-row[data-state=">"] { color: var(--git-added); }
+.mm-fcmp-row[data-state="!"] { color: var(--warning); }
+.mm-fcmp-row[data-state="~"] .mm-fcmp-mark, .mm-fcmp-row[data-state="<"] .mm-fcmp-mark, .mm-fcmp-row[data-state=">"] .mm-fcmp-mark { color: inherit; }
+.mm-fcmp-none { padding: 12px; color: var(--fg-dim); }

@@ -372,14 +372,17 @@ sealed class AppHost : ApplicationContext
 
     /// <summary>Opens or activates windows for the paths of one launch. The first launch opens the windows of the
     /// projects first (ProjectStore.StartWindows), each on its own virtual desktop.</summary>
-    public void Launch(IReadOnlyList<string> paths, bool shift)
+    public void Launch(IReadOnlyList<string> paths, bool shift, bool compare = false)
     {
+        if (compare)
+        {
+            if (!restored) RestoreWindows();
+            CompareWindow(paths);
+            return;
+        }
         if (!restored)
         {
-            restored = true;
-            foreach (var (_, entry) in projects.StartWindows(KeepUnnamed))
-                Open(new MainForm.Start(null, [], entry.Key, ToDesktop: true));
-            SaveProjects();
+            RestoreWindows();
             // Only once they are on their own desktops (WindowShown) does "a window on this desktop" mean anything.
             // Not async itself: an async method puts the thread's synchronization context back as it found it, which
             // here (before the first window) is not WinForms' own; every await after that would leave the UI thread.
@@ -390,6 +393,35 @@ sealed class AppHost : ApplicationContext
             }
         }
         Route(paths, shift);
+    }
+
+    // The project windows that were open, on their own desktops (the first launch).
+    void RestoreWindows()
+    {
+        restored = true;
+        foreach (var (_, entry) in projects.StartWindows(KeepUnnamed))
+            Open(new MainForm.Start(null, [], entry.Key, ToDesktop: true));
+        SaveProjects();
+    }
+
+    /// <summary>
+    /// --compare: a new window comparing the two paths, two files or two folders (the page starts the compare).
+    /// Anything else: a message saying what is expected.
+    /// </summary>
+    void CompareWindow(IReadOnlyList<string> paths)
+    {
+        var files = paths.Count == 2 && paths.All(File.Exists);
+        var folders = paths.Count == 2 && paths.All(Directory.Exists);
+        if (!files && !folders)
+        {
+            MessageBox.Show("--compare needs two existing files or two existing folders, for example:\n" +
+                "LexPen.exe --compare old.sql new.sql\n\nGiven: " + (paths.Count == 0 ? "nothing" : string.Join("\n", paths)),
+                "LexPen", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            if (windows.Count == 0) ExitThread();
+            return;
+        }
+        var w = Open(new MainForm.Start(null, [], Compare: [paths[0], paths[1]]));
+        BringToFront(w);
     }
 
     async void RouteWhenSettled(IReadOnlyList<string> paths, bool shift)
@@ -586,7 +618,7 @@ sealed class AppHost : ApplicationContext
                 await using var writer = new StreamWriter(server, leaveOpen: true) { AutoFlush = true };
                 await writer.WriteLineAsync("ok");
                 var paths = msg["paths"]?.AsArray().Select(p => p!.GetValue<string>()).ToList() ?? [];
-                Launch(paths, msg["shift"]?.GetValue<bool>() == true);
+                Launch(paths, msg["shift"]?.GetValue<bool>() == true, msg["compare"]?.GetValue<bool>() == true);
             }
             catch (Exception ex) when (ex is IOException or JsonException) { }
         }

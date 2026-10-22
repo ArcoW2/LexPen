@@ -263,7 +263,7 @@ const findDraft = id => [...docs].find(d => d.draft === id);
 const docText = doc => doc.cmDoc ? doc.cmDoc.getValue() : doc.text;
 const diskText = doc => doc.cmDoc ? doc.cmDoc.getValue(doc.eol) : doc.text;   // with the file's own line endings
 const eolOf = text => text.includes('\r\n') ? '\r\n' : '\n';
-const docName = doc => doc.path ? nameOf(doc.path) : doc.draft;
+const docName = doc => doc.label ?? (doc.path ? nameOf(doc.path) : doc.draft);   // label: a compare's saved text
 const changed = doc => doc.dirty || doc.draftChanged;
 
 function makeDoc({ path = null, draft = null, text = '', encoding = 'UTF-8' }) {
@@ -466,6 +466,9 @@ function makePane(index) {
       ui.tabMenu.querySelector('[data-cmd=tabReadOnly]').classList.toggle('mm-on', tab.readOnly || tab.doc.diskReadOnly);
       ui.tabMenu.querySelector('[data-cmd=tabShowInTree]').hidden = !tab.doc.path;
       ui.tabMenu.querySelector('[data-cmd=tabRevert]').hidden = !canRevert(tab.doc);
+      const other = panes[1 - index].active;   // the compare (compare.js)
+      ui.tabMenu.querySelector('[data-cmd=tabCompareOther]').hidden = !twoPanes() || !other || other.doc === tab.doc;
+      ui.tabMenu.querySelector('[data-cmd=tabCompareSaved]').hidden = !tab.doc.path || !changed(tab.doc);
     });
     ui.stripMenu.querySelector('button').disabled = !closedTabs.length;
     ui.stripMenu.querySelector('[data-cmd=stripCloseAll]').disabled = !pane.tabs.length;
@@ -544,7 +547,7 @@ function loadEditor() {
   loadCss('vendor/editor.css');
   // format.js: the formatting commands and bar; it needs CodeMirror, so it comes second.
   return editorLoaded ??= loadScript('vendor/editor.js').then(() => loadScript('format.js'))
-    .then(() => loadScript('bookmarks.js')).then(() => loadScript('gutter.js')).then(() => loadScript('brackets.js'))
+    .then(() => loadScript('bookmarks.js')).then(() => loadScript('diff.js')).then(() => loadScript('gutter.js')).then(() => loadScript('brackets.js'))
     .then(() => loadScript('guides.js')).then(() => loadScript('complete.js')).then(() => loadScript('overview.js'));
 }
 
@@ -3046,9 +3049,9 @@ function sessionData() {
     tree: state.root ? { open: [...expanded], top: Math.round(ui.tree.scrollTop) } : undefined,   // the open folders, the scroll
     activePane: state.activePane,
     hidden: state.hidden,
-    panes: panes.map(pane => ({
-      active: pane.tabs.indexOf(pane.active),
-      tabs: pane.tabs.map(tab => ({
+    panes: panes.map(pane => ({   // a compare's saved text (doc.temp) is not kept
+      active: pane.tabs.filter(t => !t.doc.temp).indexOf(pane.active),
+      tabs: pane.tabs.filter(t => !t.doc.temp).map(tab => ({
         path: tab.doc.path, draft: tab.doc.draft, mode: tab.mode,
         top: pane.active === tab && !pane.el.hidden ? pane.previewEl.scrollTop : tab.previewTop,
         ...(tab.pinned && { pinned: true }), ...(tab.readOnly && { readOnly: true }),
@@ -3330,6 +3333,11 @@ document.addEventListener('contextmenu', e => {
     contextPath = row.dataset.path;
     contextKind = row.classList.contains('mm-dir') || row.classList.contains('mm-base') ? 'folders' : 'files';
     favouriteItem(ui.treeMenu, contextPath, contextKind);   // favourites.js
+    // The compare (compare.js): a file with the file in the editor or a picked one; a folder with a picked folder.
+    const active = activeDoc()?.path, file = contextKind === 'files';
+    ui.treeMenu.querySelector('[data-cmd=treeCompareActive]').hidden = !file || !active || samePath(active, contextPath);
+    ui.treeMenu.querySelector('[data-cmd=treeCompareWith]').hidden = !file;
+    ui.treeMenu.querySelector('[data-cmd=treeCompareFolder]').hidden = file;
   });
   else if (!e.target.closest('.mm-tabs, .mm-divider')) hideMenus();   // those open their own menu
 });
@@ -3482,6 +3490,8 @@ function applySettings() {
     if (typeof repaintGuides === 'function') repaintGuides();
   }
   if (RULER_SETTINGS.some(changed) && typeof applyRuler === 'function') applyRuler();   // ruler.js
+  // compare.js, loaded after this file: at the start the settings can be here before it is.
+  if (['compareWhitespace', 'compareCase', 'compareStrip'].some(changed) && typeof onCompareSettings === 'function') onCompareSettings();
   if (['overview', 'overviewWidth', 'overview.find', 'overview.changes', 'overview.git', 'overview.bookmarks', 'gutter.changes', 'gutter.git'].some(changed)
     && typeof applyOverview === 'function') {   // overview.js; the hunks are made for the strip or the gutter
     for (const pane of panes) if (pane.cm && pane.active) paintGutter(pane);
@@ -3632,6 +3642,13 @@ const commands = {
   tabCopyPath: () => menuTab?.doc.path && copyText(menuTab.doc.path),
   tabShowInTree: () => menuTab && showInTree(menuTab.doc.path),
   tabClose: () => menuTab && closeTab(menuTab),
+  // The compare (compare.js): this tab on the left.
+  async tabCompareWith() {
+    const tab = menuTab, [path] = await host('pickFile', { one: true }) ?? [];
+    if (tab && path) startCompare({ tab }, { path });
+  },
+  tabCompareOther: () => menuTab && startCompare({ tab: menuTab }, { tab: panes[1 - menuPaneIndex].active }),
+  tabCompareSaved: () => menuTab && startCompare({ saved: menuTab.doc }, { tab: menuTab }),
   tabCloseOthers: () => menuTab && closeTabs(paneOf(menuTab).tabs.filter(t => t !== menuTab)),
   tabCloseRight: () => menuTab && closeTabs(paneOf(menuTab).tabs.slice(paneOf(menuTab).tabs.indexOf(menuTab) + 1)),
   tabCloseAll: () => menuTab && closeTabs([...paneOf(menuTab).tabs]),
@@ -3659,6 +3676,15 @@ const commands = {
   favouriteToggle: () => toggleFavourite(activeDoc()?.path),
   tabFavourite: () => menuTab && toggleFavourite(menuTab.doc.path),
   treeFavourite: () => toggleFavourite(contextPath, contextKind),
+  treeCompareActive: () => activeTab() && startCompare({ tab: activeTab() }, { path: contextPath }),
+  async treeCompareWith() {
+    const left = contextPath, [right] = await host('pickFile', { one: true, at: left }) ?? [];
+    if (right) startCompare({ path: left }, { path: right });
+  },
+  async treeCompareFolder() {
+    const left = contextPath, right = await host('pickFolder', { at: left });
+    if (right) startFolderCompare(left, right);
+  },
   about: showAbout,
   exit: () => host('exit'),   // the window still asks about unsaved changes
   // Day / night: following Windows, the other mode until Windows changes mode; else the other mode, kept.
@@ -3758,6 +3784,11 @@ track((async () => {
   // The keys act on the file shown last right away.
   if (panes[state.activePane].active) focusPane(panes[state.activePane]);
   started = true;
+  // --compare (compare.js): two files side by side, or two folders in the folder pane.
+  if (start.compare) {
+    const { left, right, folders } = start.compare;
+    if (folders) startFolderCompare(left, right); else await startCompare({ path: left }, { path: right });
+  }
   if (gitWaiting) loadGitLater(gitWaiting);
   saveSession();
 })());

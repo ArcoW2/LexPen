@@ -44,6 +44,9 @@
   "Ctrl+NumPlus": "zoomIn",
   "Ctrl+-": "zoomOut",
   "Ctrl+NumMinus": "zoomOut",
+  "F7": "compareNext",               // comparing: the next / previous difference; Ctrl+F7 ties the two cursor lines
+  "Shift+F7": "comparePrevious",
+  "Ctrl+F7": "compareAlign",
   "Ctrl+Space": "complete",         // word completion: keywords, the document's words, snippets
   "Ctrl+Alt+-": "positionBack",       // where the cursor jumped from in the document (Ctrl+Alt++: forward again)
   "Ctrl+Alt+NumMinus": "positionBack",

@@ -33,6 +33,10 @@
   "overview.changes": true,       // ...the lines changed since the last save
   "overview.git": true,           // ...the lines changed since the last commit
   "overview.bookmarks": true,     // ...the bookmarks
+  "overview.compare": true,       // ...comparing, the differences
+  "compareWhitespace": false,     // comparing: spaces and tabs count only as a separation
+  "compareCase": false,           // comparing: upper and lower case count as the same
+  "compareStrip": true,           // comparing: the line strip below the panes
   "gutter.bookmarks": true,       // the other gutter columns left of the text
   "gutter.changes": true,         // lines changed since the last save
   "gutter.git": true,             // lines changed since the last commit
