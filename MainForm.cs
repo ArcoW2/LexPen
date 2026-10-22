@@ -642,6 +642,20 @@ sealed class MainForm : Form
                 return true;
             }
 
+            // The left side to compare (ExplorerMenu): shared with Explorer's menu and every window.
+            case "compareLeft":
+            {
+                var left = ExplorerMenu.Left;
+                return left is null ? null : new JsonObject
+                {
+                    ["path"] = left, ["name"] = ExplorerMenu.NameOf(left), ["exists"] = Path.Exists(left), ["folder"] = Directory.Exists(left),
+                };
+            }
+
+            case "compareLeftSet":
+                ExplorerMenu.SelectLeft(Arg("path"));
+                return true;
+
             case "pickFolder":
             {
                 using var d = new FolderBrowserDialog();

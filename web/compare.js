@@ -430,6 +430,35 @@ function onCompareSettings() {
   runCompare();
 }
 
+// ---------- The left side to compare (docs/plans/executed/PLAN-explorer-compare.md) ----------
+// One file or folder kept as the left side, shared with Explorer's right-click menu (the host keeps it, ExplorerMenu.cs):
+// "Select as left side to compare", then on another "Compare to <its name>".
+async function selectLeftSide(path) {
+  if (!path) return;
+  await host('compareLeftSet', { path });
+  toast(`${nameOf(path) || path} is the left side to compare: right-click another one, Compare to.`, true);
+}
+
+// The menu's two items: Select as (new) left side; Compare to <name> on a path of the same kind, not the left itself.
+function leftSideItems(menu, prefix, path, folder) {
+  const select = menu.querySelector(`[data-cmd=${prefix}CompareLeft]`), to = menu.querySelector(`[data-cmd=${prefix}CompareTo]`);
+  select.hidden = !path;
+  to.hidden = true;
+  host('compareLeft').then(left => {
+    select.textContent = left ? 'Select as new left side to compare' : 'Select as left side to compare';
+    to.hidden = !path || !left || !!left.folder !== folder || samePath(left.path, path);
+    to.textContent = left ? `Compare to ${left.name}` : 'Compare to';
+  }, () => {});
+}
+
+async function compareToLeftSide(right, folder) {
+  const left = await host('compareLeft');
+  if (!left) return;
+  if (!left.exists) return toast(`The left side to compare, ${left.path}, no longer exists.`);
+  if (folder) startFolderCompare(left.path, right.path);
+  else startCompare({ path: left.path }, right);
+}
+
 // ---------- Compare two folders (3.5) ----------
 // The folder pane in compare mode: one tree of both folders, each file marked (= equal, ~ different, ? not checked
 // yet, < only on the left, > only on the right), a folder by what is inside it. First by size and date (the host's

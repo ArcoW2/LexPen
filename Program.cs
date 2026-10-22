@@ -13,6 +13,12 @@ static class Program
     static void Main(string[] args)
     {
         ApplicationConfiguration.Initialize();
+        // --compare-left (Explorer's Select left side to compare): the left side kept, the entries rewritten, no window.
+        if (Array.IndexOf(args, "--compare-left") is var at and >= 0)
+        {
+            if (at + 1 < args.Length) ExplorerMenu.SelectLeft(Path.GetFullPath(args[at + 1]));
+            return;
+        }
         var (newWindow, compare, rest) = ParseArgs(args);
         var shift = newWindow || (Control.ModifierKeys & Keys.Shift) != 0;
         var paths = rest.Select(Path.GetFullPath).ToArray();   // against this process's current folder

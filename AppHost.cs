@@ -410,6 +410,26 @@ sealed class AppHost : ApplicationContext
     /// </summary>
     void CompareWindow(IReadOnlyList<string> paths)
     {
+        void Say(string text)
+        {
+            MessageBox.Show(text, "LexPen", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            if (windows.Count == 0) ExitThread();
+        }
+        // From Explorer's Compare to (ExplorerMenu): the left side gone, or the left side itself.
+        if (paths.Count == 2 && ExplorerMenu.Left is string left && string.Equals(paths[0], left, StringComparison.OrdinalIgnoreCase))
+        {
+            if (!Path.Exists(left))
+            {
+                ExplorerMenu.ClearLeft();
+                Say($"The left side to compare, {left}, no longer exists. Choose another with Select left side to compare.");
+                return;
+            }
+            if (string.Equals(left.TrimEnd('\\'), paths[1].TrimEnd('\\'), StringComparison.OrdinalIgnoreCase))
+            {
+                Say($"That is the left side itself ({ExplorerMenu.NameOf(left)}): choose another file or folder to compare it to.");
+                return;
+            }
+        }
         var files = paths.Count == 2 && paths.All(File.Exists);
         var folders = paths.Count == 2 && paths.All(Directory.Exists);
         if (!files && !folders)
@@ -702,6 +722,12 @@ sealed class AppHost : ApplicationContext
     /// window and the settings window get the new set at once.</summary>
     public void SetSetting(string name, JsonNode? value)
     {
+        // The Explorer menu's compare entries (ExplorerMenu): written for this exe, or removed.
+        if (name == "explorerCompare")
+        {
+            if (value?.GetValue<bool>() == true) ExplorerMenu.Install(Environment.ProcessPath ?? Application.ExecutablePath);
+            else ExplorerMenu.Remove();
+        }
         SettingsFile.Write(DataDir, name, value);
         ReloadSettings();
     }

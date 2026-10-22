@@ -246,6 +246,12 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   of the files that need it in the background (Stop ends it; a file with the same contents and another date is
   equal); with Ignore whitespace or case on, files are also compared as text. Show all or the differences only.
   A double click (or Enter) on a file compares it; on a file of one side opens it. Read-only: nothing on disk changes.
+- **Compare from Explorer**: Settings > App > Windows Explorer adds "Select left side to compare" to Explorer's
+  right-click menu for files and folders (for you only, no administrator needed; on Windows 11 under Show more
+  options or Shift+right-click). After that, another file or folder has "Compare to <name>", which opens the compare
+  in a new window. The left side stays until you select another ("Select as new left side to compare"). The folder
+  pane's and a tab's right-click have the same two items, with the same left side. The entries run the LexPen that
+  turned the setting on; turning it off removes them.
 - **Scroll bars with an overview**: the editor's vertical scroll bar is a strip that marks where in the file the
   find matches (while the find bar is open, every one of them), the unsaved changes, the git changes and the bookmarks
   are, with a block for the part in view. Drag the block to scroll (it holds on a mark it comes near); a click on a mark

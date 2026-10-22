@@ -28,6 +28,8 @@
   <ItemGroup>
     <!-- What you may read and copy (keys, settings, language packs, themes): next to the exe. -->
     <Content Include="defaults\**" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The icons of the compare entries in Explorer's right-click menu (ExplorerMenu.cs): next to the exe. -->
+    <Content Include="img\icon\compare-left.ico;img\icon\compare-to.ico" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <!-- The page's files: inside the exe (WebFiles). -->
     <EmbeddedResource Include="web\**" LogicalName="web\%(RecursiveDir)%(Filename)%(Extension)" />
     <EmbeddedResource Include="$(ApplicationIcon)" LogicalName="app.ico" />

@@ -469,6 +469,7 @@ function makePane(index) {
       const other = panes[1 - index].active;   // the compare (compare.js)
       ui.tabMenu.querySelector('[data-cmd=tabCompareOther]').hidden = !twoPanes() || !other || other.doc === tab.doc;
       ui.tabMenu.querySelector('[data-cmd=tabCompareSaved]').hidden = !tab.doc.path || !changed(tab.doc);
+      leftSideItems(ui.tabMenu, 'tab', tab.doc.path, false);
     });
     ui.stripMenu.querySelector('button').disabled = !closedTabs.length;
     ui.stripMenu.querySelector('[data-cmd=stripCloseAll]').disabled = !pane.tabs.length;
@@ -3338,6 +3339,7 @@ document.addEventListener('contextmenu', e => {
     ui.treeMenu.querySelector('[data-cmd=treeCompareActive]').hidden = !file || !active || samePath(active, contextPath);
     ui.treeMenu.querySelector('[data-cmd=treeCompareWith]').hidden = !file;
     ui.treeMenu.querySelector('[data-cmd=treeCompareFolder]').hidden = file;
+    leftSideItems(ui.treeMenu, 'tree', contextPath, !file);   // compare.js: the left side to compare
   });
   else if (!e.target.closest('.mm-tabs, .mm-divider')) hideMenus();   // those open their own menu
 });
@@ -3649,6 +3651,8 @@ const commands = {
   },
   tabCompareOther: () => menuTab && startCompare({ tab: menuTab }, { tab: panes[1 - menuPaneIndex].active }),
   tabCompareSaved: () => menuTab && startCompare({ saved: menuTab.doc }, { tab: menuTab }),
+  tabCompareLeft: () => menuTab?.doc.path && selectLeftSide(menuTab.doc.path),
+  tabCompareTo: () => menuTab && compareToLeftSide({ tab: menuTab }, false),
   tabCloseOthers: () => menuTab && closeTabs(paneOf(menuTab).tabs.filter(t => t !== menuTab)),
   tabCloseRight: () => menuTab && closeTabs(paneOf(menuTab).tabs.slice(paneOf(menuTab).tabs.indexOf(menuTab) + 1)),
   tabCloseAll: () => menuTab && closeTabs([...paneOf(menuTab).tabs]),
@@ -3681,6 +3685,8 @@ const commands = {
     const left = contextPath, [right] = await host('pickFile', { one: true, at: left }) ?? [];
     if (right) startCompare({ path: left }, { path: right });
   },
+  treeCompareLeft: () => selectLeftSide(contextPath),
+  treeCompareTo: () => compareToLeftSide({ path: contextPath }, contextKind === 'folders'),
   async treeCompareFolder() {
     const left = contextPath, right = await host('pickFolder', { at: left });
     if (right) startFolderCompare(left, right);

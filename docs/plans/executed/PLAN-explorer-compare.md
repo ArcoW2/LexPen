@@ -1,6 +1,6 @@
 # Plan: Compare from the Explorer menu (select left side, compare to)
 
-Status: plan 2026-10-22, not started. Asked for after the compare (executed/PLAN-file-compare.md), as Beyond
+Status: executed 2026-10-22 (ExplorerMenu.cs; unit tests ExplorerMenuTests, in-app test t112). Asked for after the compare (executed/PLAN-file-compare.md), as Beyond
 Compare does it. The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
@@ -76,3 +76,13 @@ The registry is never touched by a test: the entries are written below a root th
 ## 4. Open questions
 
 None.
+
+## 5. Resolved during execution
+
+| Topic | As built |
+|---|---|
+| Where the left side is kept | A file `compare-left.txt` in the state folder: written by the process that gets `--compare-left` (handled first thing in Main, before the one-instance check, so no window and no running LexPen needed), read by every LexPen when a menu opens (host op `compareLeft`); so no watching is needed. |
+| The setting | Applied by the host when it is changed (SetSetting), once, whichever window or the settings window changed it; a hand edit of settings.json does not write or remove the entries. The hint says the entries run the LexPen that turned it on; it does not name the exe. |
+| Compare to | Runs the existing `--compare <left> <path>`. On the left side itself and with a left side that is gone, the host says so (a message box); the gone one is forgotten and the entry rewritten. In LexPen's own menus Compare to is not offered on the left side itself, and a gone one is said in a toast. |
+| The icons | The LexPen icon small, behind a big red curved arrow: pointing left over the top for Select left side, pointing right at the bottom right for Compare to (chosen from a sheet of variants). Sources img\icon\compare-left.svg and compare-to.svg, built with make-ico.ps1 (16-64 px); the .ico files are copied next to the exe and the entries point at them. |
+| Tests | Unit (ExplorerMenuTests, below a key of their own, removed afterwards): install, a file left side, a folder left side, remove; selecting without the entries; the exe of a command; the name in a label. In-app t112 (LEXPEN_REGISTRY_ROOT below a test key, removed at the end): 15 checks pass: the setting on, --compare-left (no window), a tab's menu, Explorer's Compare to command opening the compare in a new window, the folder pane with a folder left side, a gone left side, the setting off. The real Explorer menu (HKCU\Software\Classes\*\shell) checked before and after: no LexPen entries. Not tested in the app: the message boxes (they would wait for a click). Unit tests: 223 pass. |
