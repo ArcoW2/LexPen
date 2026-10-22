@@ -230,6 +230,13 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   View > **Tab bar**: one row that scrolls, one row with a menu for the tabs out of view, or several rows.
   The arrows button at the left of each tab bar shows the pane's file in the folder pane (opening its folder
   when it lies outside the open one), as Visual Studio's Sync with active document.
+- **Word completion**: Ctrl+Space (Edit > Complete word) lists what completes the word before the cursor: the
+  keywords of the language at the cursor (a sql block in markdown: SQL's), then the words of the document that a
+  "starts with" entry of the language stands for (`'@*'` in SQL: every `@word` of the document, `@@` only the `@@`
+  ones; Perl's `$`), then the other words of the document (the closest first), then the language's snippets. Enter
+  or Tab inserts (at every cursor), Esc closes. In a language of any case a keyword follows the case typed (`SEL` ->
+  `SELECT`). The setting Show completions after a pause in typing (Editor > Completion, 0: off) opens the list by
+  itself. The document's words are gathered in the background, so typing never waits.
 - **Position back / forward**: every document keeps the places its cursor jumped from: a move of more lines than
   the setting A jump (Editor, 10 by default) without typing (go to line, a bookmark, the outline, Ctrl+Home, a click
   far away), and always a found item (find, the search in files), however close. Ctrl+Alt+- goes back, Ctrl+Alt++
@@ -337,6 +344,7 @@ F1 lists every key and action. The main ones of the default set:
 | Ctrl+S / Ctrl+Shift+S | Save / save as |
 | Ctrl+W / Ctrl+F4, Ctrl+Shift+T | Close tab, reopen the last closed tab |
 | Ctrl+Tab / Ctrl+Shift+Tab | Next / previous document |
+| Ctrl+Space | Word completion: keywords, the document's words, snippets |
 | Ctrl+Alt+- / Ctrl+Alt++ | Position back / forward in the document (also the mouse buttons; with Ctrl: through the tabs) |
 | Alt+Left / Alt+Right | Previous / next tab, in the tab bar's order; the focus goes to its editor or preview, as the tab had it last |
 | Alt+Up / Alt+Down, Ctrl+PgUp / Ctrl+PgDn | Previous / next section (paragraph, heading, procedure, ... per language) |

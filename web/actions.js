@@ -203,6 +203,9 @@ appAction('scrollLine.up', { title: 'Scroll up a line', hint: 'The text moves do
 // The character picker (charpicker.js), at the character after the cursor.
 appAction('insertCharacter', { title: 'Insert character', hint: 'A picker like the Windows Character Map: the characters of the editor font, search by code, entity or name, gather some and insert them', group: 'edit', editor: true,
   run: (_, { pane }) => openCharPicker(pickerCode(charAtCursor(pane.cm))) });
+// Word completion (complete.js): keywords, the document's words, snippets.
+appAction('complete', { title: 'Complete word', hint: 'A list of what completes the word before the cursor: the keywords of the language, the words of the document (an @word list for @ and the like), its snippets; Enter or Tab inserts', group: 'edit', editor: true,
+  run: (_, { pane }) => showCompletion(pane) });
 appAction('goToLine', { title: 'Go to line', hint: 'A line number, or line:column; the cursor goes there', group: 'edit', editor: true,
   run: async (_, { pane }) => {
     const cm = pane.cm, here = cm.getCursor();
@@ -473,6 +476,8 @@ const SETTING_ROWS = [
     hintOff: 'Ctrl+Down scrolls the text a line and the cursor stays on its line, also when that line leaves the view (Ctrl+Up the other way)' },
   { name: 'jumpLines', group: 'Editor', sub: 'Cursor', kind: 'range', range: [1, 100, 1], unit: ' lines', title: 'A jump: a move of more than',
     hint: 'How far the cursor must move, without typing, for the place it left to be kept for Position back (Ctrl+Alt+-). A found item is always kept, however close' },
+  { name: 'completeDelay', group: 'Editor', sub: 'Completion', kind: 'range', range: [0, 2000, 100], unit: ' ms', title: 'Show completions after a pause in typing',
+    hint: 'After typing a word character and stopping this long, the list of completions opens by itself; 0: only with Ctrl+Space' },
   { name: 'scrollMargin', group: 'Editor', sub: 'Cursor', kind: 'choice', title: 'Scroll sideways before the edge',
     hint: 'The editor scrolls left or right when the cursor comes this many columns from the edge (on keys, not on a click); without wrapping',
     options: () => [1, 2, 4, 8, 12, 16, 24, 32].map(n => [n, n === 1 ? '1 column' : n + ' columns']) },

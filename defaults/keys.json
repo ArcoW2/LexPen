@@ -44,6 +44,7 @@
   "Ctrl+NumPlus": "zoomIn",
   "Ctrl+-": "zoomOut",
   "Ctrl+NumMinus": "zoomOut",
+  "Ctrl+Space": "complete",         // word completion: keywords, the document's words, snippets
   "Ctrl+Alt+-": "positionBack",       // where the cursor jumped from in the document (Ctrl+Alt++: forward again)
   "Ctrl+Alt+NumMinus": "positionBack",
   "Ctrl+Alt+=": "positionForward",

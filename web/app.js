@@ -545,7 +545,7 @@ function loadEditor() {
   // format.js: the formatting commands and bar; it needs CodeMirror, so it comes second.
   return editorLoaded ??= loadScript('vendor/editor.js').then(() => loadScript('format.js'))
     .then(() => loadScript('bookmarks.js')).then(() => loadScript('gutter.js')).then(() => loadScript('brackets.js'))
-    .then(() => loadScript('guides.js'));
+    .then(() => loadScript('guides.js')).then(() => loadScript('complete.js'));
 }
 
 // The editor mode: the language's, with blocks of other languages and lines you set (documentMode, languages.js).
@@ -638,6 +638,7 @@ async function ensureEditor(pane) {
   setupGuides(pane);   // indent guides (guides.js)
   setupRuler(pane);   // the ruler, column guides and manual tabs (ruler.js)
   setupPlaces(pane);   // the places the cursor jumped from, for Position back / forward (places.js)
+  setupComplete(pane);   // word completion: the document's words, the pause in typing (complete.js)
   pane.cm.on('drop', (cm, e) => onEditorDrop(pane, e));
   pane.cm.getWrapperElement().addEventListener('wheel', e => {   // Ctrl+wheel: the editor font size
     if (!e.ctrlKey) return;

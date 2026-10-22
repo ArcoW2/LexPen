@@ -48,6 +48,8 @@
   "scrollMargin": 8,              // columns: the editor scrolls sideways when the cursor comes this close to the edge
   "leftWraps": true,              // Left at the first column goes on to the end of the line above
   "homeStop": false,              // Home goes to column 1 (off: to the first non-blank character first)
+  "completeDelay": 0,             // ms after the last typed word character before the completion list opens by
+                                  // itself (0: only with Ctrl+Space)
   "jumpLines": 10,                // a cursor move of more lines than this, without typing, is a jump: the place it left
                                   // is kept for Position back (a found item always)
   "scrollMovesCursor": false,     // Ctrl+Up / Ctrl+Down: the cursor moves a line along with the text

@@ -50,9 +50,11 @@ Join-Files @(
     'codemirror\addon\fold\indent-fold.js',
     'codemirror\addon\fold\markdown-fold.js',
     'codemirror\addon\mode\simple.js',      # language packs: colouring rules (simple mode)
-    'codemirror\addon\runmode\runmode.js'   # language packs: the same colouring in the preview
+    'codemirror\addon\runmode\runmode.js',  # language packs: the same colouring in the preview
+    'codemirror\addon\hint\show-hint.js'    # word completion (complete.js)
 ) 'editor.js' ";`n"
-Join-Files @('codemirror\lib\codemirror.css', 'codemirror\addon\dialog\dialog.css', 'codemirror\addon\fold\foldgutter.css') 'editor.css' "`n"
+Join-Files @('codemirror\lib\codemirror.css', 'codemirror\addon\dialog\dialog.css', 'codemirror\addon\fold\foldgutter.css',
+    'codemirror\addon\hint\show-hint.css') 'editor.css' "`n"
 
 # Loaded only when a document contains math / diagrams.
 Copy-Item "$m\katex\dist\katex.min.js", "$m\katex\dist\katex.min.css" "$out\katex"

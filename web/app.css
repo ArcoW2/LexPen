@@ -891,3 +891,10 @@ body:not([data-preview-nowrap]) .mm-preview pre, .mm-preview pre.mm-long-line { 
 .mm-fav-gap { flex: 1; }
 .mm-row.mm-base { display: block; font-weight: 600; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   cursor: default; direction: rtl; text-align: left; }   /* a long path cut off at its start, so the folder's own name stays */
+
+/* Word completion (complete.js): CodeMirror's hint list in the theme's colours, the editor's font. */
+.CodeMirror-hints { background: var(--bg-bar); border: 1px solid var(--border); font: var(--editor-size)/var(--editor-line) var(--editor-font);
+  z-index: 50; max-height: 18em; }
+.CodeMirror-hint { color: var(--fg); display: flex; gap: 16px; justify-content: space-between; padding: 0 6px; }
+li.CodeMirror-hint-active { background: var(--select); color: var(--fg); }
+.mm-hint-kind { color: var(--fg-dim); font-size: .85em; }
