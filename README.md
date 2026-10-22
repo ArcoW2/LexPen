@@ -58,10 +58,10 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
 - **Wrap long lines** (View menu, Alt+Z, on by default): in the editor and for code in the preview. A line of
   more than 10,000 characters always wraps in the preview: one such coloured line makes the browser freeze for
   seconds on every mouse move (see docs/plans/executed/PLAN-long-lines.md).
-- **Spaces, tabs and line ends** (Options > Settings > Editor, each off by default, apart): in the editor a space
+- **Spaces, tabs and line ends** (Options > Settings > Editor view, each off by default, apart): in the editor a space
   shows as a small dot and a tab as an arrow; line ends as a pilcrow (CRLF) or the LF sign, the last line none.
   Their colour is the theme's `whitespace`.
-- **Indent guides** (Options > Settings > Editor): a thin line at every indent step, from the indent to the
+- **Indent guides** (Options > Settings > Editor view): a thin line at every indent step, from the indent to the
   unindent; an empty line takes the level of the lines around it. In the comment colour (the default), a colour
   per level (rainbow: theme colours `guide1` to `guide6`, lighter at night) or off. The guide of the block the
   cursor is in (on a line such as `begin`: the block it opens) shows in the find box's colour (a setting of its
@@ -161,15 +161,23 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
 - **Locate the cursor**: a short tap on Ctrl alone shows rings, in the find box's colour, shrinking onto every cursor;
   a cursor out of view gets a marker at that edge (top: higher, bottom: lower) with its line number, several in one
   direction one marker with the count. A double tap scrolls to the cursor first (setting, off by default). Also View >
-  Locate the cursor; settings in Editor > Cursor (on / off, the longest tap).
-- **Ruler, column guides and manual tabs**: View > Ruler shows the columns above the editor (the cursor's column
-  marked). Column guides are faint lines after so many characters: a first one, then one every step, and one more
-  (as 80); in the settings (Editor > Ruler and column guides) or right-click on the ruler. A click on the ruler sets a
-  manual tab for this document, a line through the text; click its handle to remove it, drag it to move it,
-  right-click for a colour (the next click takes it too) or Clear all tabs. Tab before a manual tab goes there with
-  spaces, Shift+Tab back to the one before; past them Tab and Shift+Tab work as always. The buttons above the line
-  numbers: Clear tabs, Copy tabs from / to another open document. Actions tabAdd / tabRemove (with a column, or at the
-  cursor) and tabClear. A monospaced editor font only.
+  Locate the cursor; settings in Editor view > Locate the cursor (on / off, the longest tap).
+- **Ruler, column guides, tab stops and helper lines**: View > Ruler shows the columns above the editor (the
+  cursor's column marked). Column guides are faint lines after so many characters: a first one, then one every step,
+  and one more (as 80), in the settings (Editor view > Ruler and column guides). The guides have a colour of their own (a theme
+  colour, default the border colour); three intensity sliders there, for the column guides, the helper lines and the
+  tab stops, mix each line's theme colour into the background, so they are lighter by day and darker at night (a
+  colour from Other colour... is drawn as picked). A click on the ruler sets
+  a tab stop or a helper line for this document; click its handle to remove it, drag it to move it. Right-click
+  opens a panel: on top the actions (Add a tab stop / Add a helper line at that column, a plain click then adds that
+  kind; on a line Tab stop / Helper line, checked by what it is, and Remove this line; clearing; Cancel), below them
+  Settings: the colour of the line to add or of that line, where a click only moves the check and the panel stays
+  open until an action. A tab stop is a line through the text: Tab before one goes there with spaces, Shift+Tab back
+  to the one before; past them Tab and Shift+Tab work as always. A helper line only shows (on the ruler only its
+  line, no handle). The buttons above the line numbers: Clear, "Use rulers from:" and "Copy these rulers to:" another open
+  document (both kinds; the list says which way).
+  Kept per file for the last 100 files with lines, and for drafts. Actions tabAdd / tabRemove / helperAdd / helperRemove (with
+  a column, or at the cursor), tabClear and helperClear. A monospaced editor font only.
 - **Gutter**: line numbers, bookmarks, change markers (not saved yet), git markers (changed since the last commit;
   a click shows the old text and can revert the block) and fold markers (heading sections and code blocks in
   markdown, braces or indentation in code). View > Gutter switches each column. Line numbers: none, every 10 (a
@@ -204,12 +212,12 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   Languages from an UltraEdit word file show their tag groups as UltraEdit's function list does: a header per
   group (TODO, Procs/Funcs/triggers, Regions, Tables for ASA; Functions, Classes, ...), its entries in line order;
   a click on a header folds it (kept per language), and a folded group opens when its entry is the one you are at.
-  Right-click the outline (or Options > Settings, Editor): all groups together in line order, and a bullet in the
+  Right-click the outline (or Options > Settings, Outline): all groups together in line order, and a bullet in the
   group's colour in front of each entry. While the outline is open the same bullets stand in the gutter, on the
   lines of the entries. A click on an entry shows it (the cursor stays where it is), a double-click puts the cursor
   on its text, a long click is a sneak preview: the entry is shown while the button is held (moving along the
   outline shows the entry under the pointer), and on release the pane is back where it was. It stands out (a frame,
-  a badge, a tint), or has a theme of its own: Options > Settings, Editor, Theme of the sneak preview (a light one
+  a badge, a tint), or has a theme of its own: Options > Settings, Outline, Theme of the sneak preview (a light one
   next to a dark editor).
 - **Search** (Ctrl+Shift+F): in the current file, the open files (unsaved edits included) or the files in the
   folder (the open folder, otherwise the folder of the current file), with match case, whole word and regular
@@ -299,13 +307,13 @@ F1 lists every key and action. The main ones of the default set:
 | Ctrl+Shift+B, Ctrl+Shift+E | Sidebar, folder pane |
 | Ctrl+F, F3 / Shift+F3, Ctrl+Shift+R, Ctrl+Shift+F | Find, next / previous (past the last match: stop, go on from the top, or go on until where the search started; a setting), replace, search in files. Found text is marked with a background colour, a box around it, or both (Options > Settings, Find; in the editor and the preview); so are the line numbers of its lines (a setting). The last searches (with their switches) and replacements are kept for all windows and restarts: Up / Down in a find, replace or search field step through them, Alt+Down (or Down in an empty field) lists them, with Clear history; the find bar and the search in files share the searches (setting: how many, 20) |
 | Ctrl+G | Go to line: a line number, or line:column (also Edit > Go to line...) |
-| Ctrl+[ / Ctrl+] | To the opener (before it) / closer (after it) of the pair or word set around the cursor; again: the pair around that one; with Shift: select. The pair is highlighted as you move and type: the innermost one holding the cursor, or the set of the word the cursor is on (`if` ... `else` ... `end if`), only in the language at the cursor, strings and comments left out (Options > Settings, Editor: a background colour, an underline or off; also close brackets and quotes while typing). Edit > Select inside brackets: what lies between |
+| Ctrl+[ / Ctrl+] | To the opener (before it) / closer (after it) of the pair or word set around the cursor; again: the pair around that one; with Shift: select. The pair is highlighted as you move and type: the innermost one holding the cursor, or the set of the word the cursor is on (`if` ... `else` ... `end if`), only in the language at the cursor, strings and comments left out (Options > Settings, Editor view: a background colour, an underline or off; closing brackets and quotes while typing: Editor). Edit > Select inside brackets: what lies between |
 | Ctrl+> / Ctrl+< | Indent / outdent the lines (in keys.json: `Ctrl+Shift+.` and `Ctrl+Shift+Comma`) |
 | Ctrl+PgDn / Ctrl+PgUp | Next / previous section (with Shift: select) |
 | Ctrl+Shift+1 .. 9, Ctrl+Shift+` , Ctrl+Shift+C | Select clipboard 1 to 9, the Windows clipboard, the list |
 | Alt+C, Alt+Shift+arrows | Column mode on / off, select a block (also without column mode) |
 | Ctrl+Alt+click / double-click, Ctrl+D, A / D / R / C, Ctrl+Alt+Right / Left | Multiple cursors: add or remove a cursor, select a find match or word; add / remove / clear occurrences, the next / previous occurrence |
-| Tab / Shift+Tab (manual tabs on the ruler) | To the next manual tab (spaces) / back to the one before; past them as always |
+| Tab / Shift+Tab (tab stops on the ruler) | To the next tab stop (spaces) / back to the one before; past them as always |
 | Ctrl (a short tap), Ctrl, Ctrl | Locate the cursor (rings on every cursor, a marker for one out of view); the double tap scrolls to it (setting) |
 | Ctrl+1, S / T / C, Ctrl+1, 1 | Bookmark 1: store, toggle, clear, go to (likewise 2 to 9) |
 | Ctrl+K, K / N / P / L | Unnumbered bookmark, next, previous, list |

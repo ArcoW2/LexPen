@@ -217,13 +217,19 @@ occurrenceAction('next', 'Next occurrence', 'The current occurrence moves on, wi
 occurrenceAction('previous', 'Previous occurrence', 'The current occurrence moves back, without adding it');
 occurrenceAction('remove', 'Remove occurrence', 'The current occurrence leaves the cursors; the next one is current (none: the previous one)');
 occurrenceAction('clear', 'Clear added cursors', 'Only the current occurrence stays selected');
-// Manual tabs on the ruler (ruler.js), per document: a column (tabAdd 10), else the cursor's column.
-appAction('tabAdd', { title: 'Add tab', hint: 'A manual tab at a column (tabAdd 10), without one at the column of the cursor: Tab goes there', group: 'edit', editor: true,
+// Tab stops and helper lines on the ruler (ruler.js), per document: a column (tabAdd 10), else the cursor's column.
+appAction('tabAdd', { title: 'Add tab stop', hint: 'A tab stop at a column (tabAdd 10), without one at the column of the cursor: Tab goes there (a helper line there becomes a tab stop)', group: 'edit', editor: true,
   run: (params, { pane }) => tabAddAction(pane, params) });
-appAction('tabRemove', { title: 'Remove tab', hint: 'The manual tab at a column (tabRemove 10), without one at the column of the cursor', group: 'edit', editor: true,
+appAction('tabRemove', { title: 'Remove tab stop', hint: 'The tab stop at a column (tabRemove 10), without one at the column of the cursor', group: 'edit', editor: true,
   run: (params, { pane }) => tabRemoveAction(pane, params) });
-appAction('tabClear', { title: 'Clear tabs', hint: 'All manual tabs of this document', group: 'edit', editor: true,
+appAction('tabClear', { title: 'Clear tab stops', hint: 'All tab stops of this document (the helper lines stay)', group: 'edit', editor: true,
   run: (_, { pane }) => clearTabs(paneDoc(pane)) });
+appAction('helperAdd', { title: 'Add helper line', hint: 'A helper line at a column (helperAdd 10), without one at the column of the cursor: it only shows (a tab stop there becomes a helper line)', group: 'edit', editor: true,
+  run: (params, { pane }) => helperAddAction(pane, params) });
+appAction('helperRemove', { title: 'Remove helper line', hint: 'The helper line at a column (helperRemove 10), without one at the column of the cursor', group: 'edit', editor: true,
+  run: (params, { pane }) => helperRemoveAction(pane, params) });
+appAction('helperClear', { title: 'Clear helper lines', hint: 'All helper lines of this document (the tab stops stay)', group: 'edit', editor: true,
+  run: (_, { pane }) => clearLines(paneDoc(pane), 'helper') });
 appAction('indentMore', { title: 'Indent', hint: 'The lines of the cursor or selection one indent step right', group: 'edit', editor: true,
   run: (_, { pane }) => { pane.cm.execCommand('indentMore'); pane.cm.focus(); } });
 appAction('indentLess', { title: 'Outdent', hint: 'The lines of the cursor or selection one indent step left', group: 'edit', editor: true,
@@ -363,7 +369,7 @@ for (const [name, title, hint] of [
 // settings.json, its kind (toggle, choice, font, size) and, for a choice, its options. Title and hint come
 // from the action of the same name where there is one. Sent to the host at start (settingDefs).
 // The settings window shows a tab per group, in this order; the rows of a group in their order below.
-const SETTING_GROUPS = ['General', 'Files', 'Editor', 'Preview', 'Tabs', 'Find', 'App', 'Keys', 'Languages'];
+const SETTING_GROUPS = ['General', 'Files', 'Editor', 'Editor view', 'Preview', 'Outline', 'Tabs', 'Find', 'App', 'Keys', 'Languages'];
 const SETTING_ROWS = [
   { name: 'languageNames', group: 'Languages', kind: 'names', title: 'Names of languages',
     hint: 'A name after a markdown fence (```bash) or in a block, and the language it is: bash=tcc, cmd=batch. Before the languages\' own names and aliases' },
@@ -391,22 +397,26 @@ const SETTING_ROWS = [
   { name: 'indentSize', group: 'Editor', sub: 'Tabs', kind: 'choice', title: 'Indent size',
     hint: 'Where the indent stops are: Tab in the indentation of a line, Indent / Outdent, and a tab in the indentation is shown that wide. A language can set its own (indentSize)',
     options: () => Array.from({ length: 16 }, (_, i) => [i + 1, String(i + 1)]) },
-  { name: 'formatBar', group: 'Editor', kind: 'toggle' },
-  { name: 'bracketHighlight', group: 'Editor', sub: 'Brackets', kind: 'choice', title: 'The pair at the cursor: marked with',
+  { name: 'formatBar', group: 'Editor view', kind: 'toggle' },
+  { name: 'showWhitespace', group: 'Editor view', kind: 'toggle', title: 'Show spaces and tabs',
+    hint: 'In the editor: a space as a small dot, a tab as an arrow (theme colour: whitespace)' },
+  { name: 'showLineEnds', group: 'Editor view', kind: 'toggle', title: 'Show line ends',
+    hint: 'In the editor: \u00B6 at the end of a line for CRLF, \u240A for LF (theme colour: whitespace)' },
+  { name: 'bracketHighlight', group: 'Editor view', sub: 'Brackets', kind: 'choice', title: 'The pair at the cursor: marked with',
     hint: 'The innermost pair or word set (begin ... end) around the cursor; one without its match in another colour',
     options: () => [['colour', 'A background colour'], ['underline', 'An underline (the colour of the find box)'], ['off', 'Not marked']] },
-  { name: 'indentGuides', group: 'Editor', sub: 'Indent guides', kind: 'choice', title: 'Indent guides',
+  { name: 'indentGuides', group: 'Editor view', sub: 'Indent guides', kind: 'choice', title: 'Indent guides',
     hint: 'A thin line at every indent step, from the indent to the unindent',
     options: () => [['comment', 'In the colour of comments'], ['rainbow', 'A colour per level'], ['off', 'None']] },
-  { name: 'indentGuideCursor', group: 'Editor', sub: 'Indent guides', kind: 'toggle', title: 'The guide of the block at the cursor highlighted',
+  { name: 'indentGuideCursor', group: 'Editor view', sub: 'Indent guides', kind: 'toggle', title: 'The guide of the block at the cursor highlighted',
     hint: 'Thin, in the colour of the find box; also with the guides off' },
   { name: 'closeBrackets', group: 'Editor', sub: 'Brackets', kind: 'toggle', title: 'Close brackets and quotes while typing',
     hint: 'An opening sign adds its closer; typing the closer before one steps over it; Backspace removes an empty pair. Signs only, never words' },
-  { name: 'outlineMerged', group: 'Editor', sub: 'Outline', kind: 'toggle', title: 'Outline: groups together, by line',
+  { name: 'outlineMerged', group: 'Outline', kind: 'toggle', title: 'Outline: groups together, by line',
     hint: 'Off: a header per group (its entries in line order); also in the right-click menu of the outline' },
-  { name: 'outlineBullets', group: 'Editor', sub: 'Outline', kind: 'toggle', title: 'Outline: a bullet in the colour of the group',
+  { name: 'outlineBullets', group: 'Outline', kind: 'toggle', title: 'Outline: a bullet in the colour of the group',
     hint: 'In front of every entry of a language with groups; also in the right-click menu of the outline' },
-  { name: 'sneakTheme', group: 'Editor', sub: 'Outline', kind: 'choice', title: 'Theme of the sneak preview',
+  { name: 'sneakTheme', group: 'Outline', kind: 'choice', title: 'Theme of the sneak preview',
     hint: 'A long click on an outline entry shows it while the button is held: in the editor\'s own theme with a tint, or in a theme of its own (a light one next to a dark editor)',
     options: () => [['', 'The editor\'s theme, tinted'], ...themeOptions()] },
   { name: 'leftWraps', group: 'Editor', sub: 'Cursor', kind: 'toggle', title: 'Left at the start of a line goes to the line above',
@@ -416,31 +426,35 @@ const SETTING_ROWS = [
     options: () => [1, 2, 4, 8, 12, 16, 24, 32].map(n => [n, n === 1 ? '1 column' : n + ' columns']) },
   { name: 'virtualSpace', group: 'Editor', sub: 'Cursor', kind: 'toggle', title: 'Cursor past the end of the line',
     hint: 'Up, Down and a click keep the cursor in its column on a shorter line; typing there fills the line with spaces first. Only with a monospaced editor font (with another font this does nothing)' },
-  { name: 'locateCursor', group: 'Editor', sub: 'Cursor', kind: 'toggle', title: 'A short tap on Ctrl shows where the cursor is',
+  { name: 'locateCursor', group: 'Editor view', sub: 'Locate the cursor', kind: 'toggle', title: 'A short tap on Ctrl shows where the cursor is',
     hint: 'Rings shrink onto every cursor, in the colour of the find box; a cursor out of view gets a marker at that edge with its line number (also View > Locate the cursor)' },
-  { name: 'locateCursorTap', group: 'Editor', sub: 'Cursor', kind: 'choice', title: 'The longest tap on Ctrl',
+  { name: 'locateCursorTap', group: 'Editor view', sub: 'Locate the cursor', kind: 'choice', title: 'The longest tap on Ctrl',
     hint: 'Ctrl held longer, or with another key, a click or the mouse wheel, is not a tap',
     options: () => [200, 300, 400, 500, 700, 1000].map(n => [n, n + ' ms']) },
-  { name: 'locateCursorJump', group: 'Editor', sub: 'Cursor', kind: 'toggle', title: 'A double tap on Ctrl scrolls to the cursor',
+  { name: 'locateCursorJump', group: 'Editor view', sub: 'Locate the cursor', kind: 'toggle', title: 'A double tap on Ctrl scrolls to the cursor',
     hint: 'Two taps on Ctrl: the editor scrolls to the cursor (with several: the main one), then shows where it is' },
-  { name: 'ruler', group: 'Editor', sub: 'Ruler and column guides', kind: 'toggle', title: 'The ruler above the editor',
-    hint: 'The columns, the column of the cursor and the guides; a click sets a manual tab (Tab goes there), right-click for colours. Only with a monospaced editor font' },
-  { name: 'columnGuideStart', group: 'Editor', sub: 'Ruler and column guides', kind: 'choice', title: 'Column guide: the first one after',
+  { name: 'ruler', group: 'Editor view', sub: 'Ruler and column guides', kind: 'toggle', title: 'The ruler above the editor',
+    hint: 'The columns, the column of the cursor and the guides; a click sets a tab stop (Tab goes there) or a helper line (only shows), right-click to choose which and a colour. Kept per file. Only with a monospaced editor font' },
+  { name: 'columnGuideStart', group: 'Editor view', sub: 'Ruler and column guides', kind: 'choice', title: 'Column guide: the first one after',
     hint: 'A faint line after this many characters (also right-click on the ruler)', options: () => [[0, 'None'], ...[2, 4, 8, 10, 20, 40, 72, 80, 100, 120].map(n => [n, n + ' characters'])] },
-  { name: 'columnGuideStep', group: 'Editor', sub: 'Ruler and column guides', kind: 'choice', title: 'Column guides: then every',
+  { name: 'columnGuideStep', group: 'Editor view', sub: 'Ruler and column guides', kind: 'choice', title: 'Column guides: then every',
     hint: 'After the first one, a guide every so many characters', options: () => [[0, 'None (only the first)'], ...[2, 4, 8, 10, 20, 40].map(n => [n, n + ' characters'])] },
-  { name: 'columnGuideExtra', group: 'Editor', sub: 'Ruler and column guides', kind: 'choice', title: 'Column guide: one more after',
-    hint: 'One guide of its own, as at 80 (also right-click on the ruler: Column guide here)', options: () => [[0, 'None'], ...[72, 80, 100, 120, 132].map(n => [n, n + ' characters'])] },
-  { name: 'showWhitespace', group: 'Editor', kind: 'toggle', title: 'Show spaces and tabs',
-    hint: 'In the editor: a space as a small dot, a tab as an arrow (theme colour: whitespace)' },
-  { name: 'showLineEnds', group: 'Editor', kind: 'toggle', title: 'Show line ends',
-    hint: 'In the editor: \u00B6 at the end of a line for CRLF, \u240A for LF (theme colour: whitespace)' },
-  { name: 'lineNumbers', group: 'Editor', sub: 'Gutter', kind: 'choice',
+  { name: 'columnGuideExtra', group: 'Editor view', sub: 'Ruler and column guides', kind: 'choice', title: 'Column guide: one more after',
+    hint: 'One guide of its own, as at 80', options: () => [[0, 'None'], ...[72, 80, 100, 120, 132].map(n => [n, n + ' characters'])] },
+  { name: 'columnGuideColour', group: 'Editor view', sub: 'Ruler and column guides', kind: 'choice', title: 'Column guides: colour',
+    hint: 'The colour of the column guides, a colour of the theme (so it follows a theme change)', options: () => GUIDE_COLOURS },
+  { name: 'columnGuideIntensity', group: 'Editor view', sub: 'Ruler and column guides', kind: 'range', range: [0, 100, 5], unit: '%',
+    title: 'Column guides: intensity', hint: 'Intensity of the column guides shown in the editor: higher means brighter, lower fades them into the background' },
+  { name: 'helperLineIntensity', group: 'Editor view', sub: 'Ruler and column guides', kind: 'range', range: [0, 100, 5], unit: '%',
+    title: 'Helper lines: intensity', hint: 'Intensity of the helper lines (set on the ruler) shown in the editor: higher means brighter, lower fades them into the background. A colour from Other colour... is drawn as picked' },
+  { name: 'tabStopIntensity', group: 'Editor view', sub: 'Ruler and column guides', kind: 'range', range: [0, 100, 5], unit: '%',
+    title: 'Tab stops: intensity', hint: 'Intensity of the tab stop lines shown in the editor: higher means brighter, lower fades them into the background. Their handles on the ruler keep full colour; a colour from Other colour... is drawn as picked' },
+  { name: 'lineNumbers', group: 'Editor view', sub: 'Gutter', kind: 'choice',
     options: () => [['none', 'None'], ['tens', 'Every 10 (a dash at 5, a dot on the others)'], ['all', 'Every line']] },
-  { name: 'lineNumberCount', group: 'Editor', sub: 'Gutter', kind: 'choice',
+  { name: 'lineNumberCount', group: 'Editor view', sub: 'Gutter', kind: 'choice',
     options: () => [['absolute', 'Absolute'], ['relative', 'Relative to the cursor']] },
   ...[['bookmarks', 'Bookmarks'], ['changes', 'Change markers'], ['git', 'Git markers'], ['folds', 'Fold markers']]
-    .map(([n, title]) => ({ name: 'gutter.' + n, group: 'Editor', sub: 'Gutter', kind: 'toggle', title,
+    .map(([n, title]) => ({ name: 'gutter.' + n, group: 'Editor view', sub: 'Gutter', kind: 'toggle', title,
       hint: { bookmarks: 'Bookmarks 1 to 9 and unnumbered ones', changes: 'Lines changed since the last save',
         git: 'Lines changed since the last commit (click: the old text)', folds: 'Fold headings, code blocks and braces' }[n] })),
   { name: 'lineBreaks', group: 'Preview', kind: 'toggle' },
@@ -513,6 +527,7 @@ function settingDefs() {
       title: r.title ?? action?.title ?? r.name, hint: r.hint ?? action?.hint ?? '',
       options: r.options?.() ?? (r.kind === 'size' ? [[0, `Default (${r.base()})`], ...FONT_SIZES.map(pt => [pt, pt + ' pt'])] : null),
       monoFirst: r.name === 'editorFont',
+      range: r.range ?? null, unit: r.unit ?? '',
     };
   });
 }

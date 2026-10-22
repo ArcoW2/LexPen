@@ -1011,6 +1011,7 @@ async function showActive(pane) {
       if (pane.cm.getDoc() !== doc) pane.cm.swapDoc(doc);
       setupGutter(pane);
       loadBookmarks(tab.doc).then(() => pane.active === tab && paintBookmarks(pane));
+      loadRulerLines(tab.doc);   // the ruler's tab stops and helper lines (ruler.js)
       if (tab.doc.gitHead === undefined) loadGitHead(tab.doc).then(() => pane.active === tab && paintGit(pane));
       const mode = editorMode(tab.doc), modeKey = JSON.stringify(mode);
       if (pane.modeKey !== modeKey) {   // setting the mode re-colours the whole file, even when it is the same
@@ -1531,6 +1532,7 @@ async function closeTab(tab, force, bulk) {
     dropDoc(doc);
     if (doc.draft && !force) {
       clearTimeout(doc.draftTimer);
+      clearTimeout(doc.mmTabsTimer);   // the host drops its ruler lines with it
       host('draftDelete', { draft: doc.draft });
     }
   }
@@ -1571,6 +1573,7 @@ const flushDrafts = () => Promise.all([...docs].filter(d => d.draftTimer).map(wr
 // Returns false when nothing was saved (dialog cancelled, or the file is edited elsewhere).
 async function saveDoc(doc, saveAs) {
   let path = doc.path;
+  const was = { path: doc.path, draft: doc.draft };   // the ruler's lines move to the new name (ruler.js)
   if (!path || saveAs) {
     path = await host('pickSave', {
       name: path ? nameOf(path) : doc.draft + '.md',
@@ -1605,6 +1608,7 @@ async function saveDoc(doc, saveAs) {
     if (!doc.languageChosen) doc.language = codeLang(path, docText(doc));   // saved as another file type
     unfresh(path);
   }
+  moveRulerLines(doc, was);
   doc.dirty = false;
   doc.disk = 'ok';
   doc.savedText = docText(doc);
@@ -3087,6 +3091,7 @@ events.closeRequest = async ({ peer } = {}) => {
       }
     }
     await flushDrafts();
+    await Promise.all([...docs].filter(d => d.mmTabsTimer).map(storeRulerLines));   // ruler.js
     await Promise.all([...docs].filter(d => d.marks).map(d => saveBookmarks(d)));
     await host('session', { data: sessionData() });
     host('closeNow');
@@ -3210,6 +3215,7 @@ function applyLook(next) {
   const root = document.documentElement;
   root.dataset.mode = look.mode;
   setThemeVars(root, look.app.vars);
+  if (typeof applyRuler === 'function') applyRuler();   // the ruler's canvas takes the theme's colours (ruler.js)
   for (const pane of panes) {
     pane.previewEl.classList.toggle('mm-themed', !!look.preview);
     if (look.preview) pane.previewEl.dataset.theme = look.mode; else delete pane.previewEl.dataset.theme;
@@ -3356,7 +3362,7 @@ function applyLineBreaks(on) {
   md.set({ breaks: on });
 }
 
-// Spaces, tabs and line ends shown in the editor (Options > Settings > Editor; the look: app.css, the colour: the
+// Spaces, tabs and line ends shown in the editor (Options > Settings > Editor view; the look: app.css, the colour: the
 // theme's whitespace). Spaces get their own token from an overlay; tabs and line ends are drawn by CSS alone.
 const WS_OVERLAY = {
   name: 'whitespace',

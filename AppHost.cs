@@ -44,6 +44,7 @@ sealed class AppHost : ApplicationContext
     public DraftStore Drafts { get; } = new(DataFolder.StatePath(DataDir, "Drafts"));
     public ClipboardStore Clipboards { get; } = new(DataFolder.StatePath(DataDir, "clipboards.json"));
     public BookmarkStore Bookmarks { get; } = new(DataFolder.StatePath(DataDir, "bookmarks.json"));
+    public RulerStore Rulers { get; } = new(DataFolder.StatePath(DataDir, "file-rulers.json"));
 
     // Your settings (SettingsFile): the defaults with your settings.json on top.
     JsonObject settings = SettingsFile.Load(DataDir);

@@ -115,6 +115,7 @@ body[data-orient=h] .mm-orient::before { content: "Above each other"; }
 .mm-check.mm-on::before { content: "\2713"; }
 .mm-menu hr { margin: 4px 0; border: 0; border-top: 1px solid var(--border); }
 .mm-menu button:disabled { opacity: .45; cursor: default; background: none; }
+.mm-menu button.mm-menu-caption:disabled { opacity: .75; font-size: .9em; font-style: italic; }   /* a line that tells, as in the ruler menu */
 .mm-menu .mm-key { margin-left: 24px; float: right; color: var(--fg-dim); font-size: calc(12px * var(--ui-scale)); }
 
 .mm-context { position: fixed; right: auto; }   /* right-click menus, placed at the pointer */
@@ -558,7 +559,12 @@ body[data-no-format-bar] .CodeMirror .mm-inner-bar { display: none; }
 .mm-vfill { position: relative; z-index: 1; }   /* a block past shorter lines' ends (virtual.js) */
 .mm-vspacer { position: absolute; width: 1px; height: 1px; visibility: hidden; pointer-events: none; }
 .mm-vspacer[hidden] { display: none; }
-/* The ruler, column guides and manual tabs (ruler.js): guides faint, behind the text; tabs over it, wider, stronger. */
+/* The ruler, column guides, tab stops and helper lines (ruler.js): guides and helper lines faint, behind the text;
+   tab stops over it, wider, stronger. --col-guide: the guides' theme colour (--col-guide-colour, the setting
+   columnGuideColour) mixed into the background, --col-guide-mix (columnGuideIntensity) of it, so lighter by day and
+   darker at night; it follows a theme change. Helper lines and tab stops in a theme colour are mixed the same way in
+   ruler.js (--col-helper-mix, --col-tab-mix). */
+body { --col-guide: color-mix(in srgb, var(--col-guide-colour, var(--border)) var(--col-guide-mix, 40%), var(--bg)); }
 .mm-ruler { display: flex; flex: none; height: 18px; background: var(--bg-bar); border-bottom: 1px solid var(--border); user-select: none; }
 .mm-ruler[hidden] { display: none; }
 .mm-ruler-left { flex: none; display: flex; align-items: center; justify-content: flex-end; gap: 1px; overflow: hidden; padding-right: 2px; box-sizing: border-box; }
@@ -570,10 +576,14 @@ body[data-no-format-bar] .CodeMirror .mm-inner-bar { display: none; }
 .mm-ruler-scale canvas { position: absolute; left: 0; top: 0; }
 .mm-ruler-tab { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; cursor: ew-resize; }
 .mm-ruler-tab::after { content: ''; position: absolute; top: 0; left: 0; width: 7px; height: 7px; background: inherit; }
+.mm-ruler-helper { width: 1px; margin-left: 0; background: currentColor; }
+.mm-ruler-helper::after { display: none; }   /* a helper line: only its line on the ruler, no handle */
+.mm-ruler-probe { position: absolute; visibility: hidden; color: var(--col-guide); }
 .mm-cols { position: absolute; top: 0; overflow: hidden; pointer-events: none; }
 .mm-cols-guides { z-index: 0; }
 .mm-cols-tabs { z-index: 4; }
-.mm-colguide { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--border); }
+.mm-colguide { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--col-guide); }
+.mm-colhelper { position: absolute; top: 0; bottom: 0; width: 1px; }
 .mm-coltab { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; opacity: .85; }
 /* Locate the cursor (locate.js): rings shrinking onto each cursor, a marker at the edge for one out of view. */
 .mm-locate { position: fixed; z-index: 50; overflow: hidden; pointer-events: none; }

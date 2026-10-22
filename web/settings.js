@@ -65,6 +65,16 @@ function control(def) {
     }
     return { box, show: () => {}, focus: box.firstChild };
   }
+  // A slider (range: min, max, step) with its value; it applies while dragging.
+  if (def.kind === 'range') {
+    const [min, max, step] = def.range ?? [0, 100, 1];
+    const input = Object.assign(document.createElement('input'), { type: 'range', min, max, step });
+    const value = document.createElement('span');
+    value.className = 'st-range-value';
+    input.addEventListener('input', () => { value.textContent = input.value + def.unit; set(def.name, +input.value); });
+    box.append(input, value);
+    return { box, focus: input, show: v => { input.value = v; value.textContent = input.value + def.unit; } };
+  }
   // Names to languages (languageNames): pairs in one line, "bash=tcc, cmd=batch"; kept as { bash: "tcc", ... }.
   if (def.kind === 'names') {
     const input = document.createElement('input');
@@ -184,16 +194,23 @@ function buildGroup(group) {
   h.dataset.group = group;
   h.textContent = group;
   section.append(h);
-  let sub = null;
+  let sub = null, box = section;
   for (const def of settings.defs.filter(d => d.group === group)) {
-    if (def.sub && def.sub !== sub) {   // a part of a group, as Editor > Gutter
-      sub = def.sub;
-      const s = document.createElement('div');
-      s.className = 'st-sub';
-      s.dataset.group = group;
-      s.dataset.sub = sub;
-      s.textContent = sub;
-      section.append(s);
+    // A part of a group, as Editor view > Gutter: its header and rows in a box of their own (a hover shows the box).
+    if ((def.sub ?? null) !== sub) {
+      sub = def.sub ?? null;
+      box = section;
+      if (sub) {
+        box = document.createElement('div');
+        box.className = 'st-subgroup';
+        box.dataset.group = group;
+        box.dataset.sub = sub;
+        const s = document.createElement('div');
+        s.className = 'st-sub';
+        s.textContent = sub;
+        box.append(s);
+        section.append(box);
+      }
     }
     const el = document.createElement('div');
     el.className = 'st-row';
@@ -213,7 +230,7 @@ function buildGroup(group) {
       reset.addEventListener('click', () => set(def.name, def.default ?? settings.defaults[def.name]));
       el.append(reset);
     }
-    section.append(el);
+    box.append(el);
     rows.push({ def, el, control: c });
   }
   const order = groupsOf(), after = [...ui.list.children].find(s => order.indexOf(s.dataset.group) > order.indexOf(group));
@@ -304,8 +321,8 @@ function filter(typing = false) {
   }
   for (const s of ui.list.querySelectorAll('.st-section'))
     s.hidden = !rows.some(r => r.def.group === s.dataset.group && !r.el.hidden);
-  for (const h of ui.list.querySelectorAll('.st-sub'))
-    h.hidden = !rows.some(r => r.def.group === h.dataset.group && r.def.sub === h.dataset.sub && !r.el.hidden);
+  for (const b of ui.list.querySelectorAll('.st-subgroup'))
+    b.hidden = !rows.some(r => r.def.group === b.dataset.group && r.def.sub === b.dataset.sub && !r.el.hidden);
   for (const b of ui.tabs.children) b.classList.toggle('st-has', words.length > 0 && found.has(b.dataset.group));
   const total = rows.filter(matches).length;
   ui.count.textContent = !words.length ? '' : total === shown ? `${shown} found` : `${shown} here, ${total} in all tabs`;

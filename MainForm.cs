@@ -510,6 +510,14 @@ sealed class MainForm : Form
                 app.Bookmarks.Set(BookmarkStore.Key(msg["path"]?.GetValue<string>(), msg["draft"]?.GetValue<string>()), msg["list"]!.AsArray());
                 return null;
 
+            // The ruler's lines of a file or draft (RulerStore): opening it puts it first in the list kept.
+            case "rulersGet":
+                return app.Rulers.Open(BookmarkStore.Key(msg["path"]?.GetValue<string>(), msg["draft"]?.GetValue<string>()));
+
+            case "rulersSet":
+                app.Rulers.Set(BookmarkStore.Key(msg["path"]?.GetValue<string>(), msg["draft"]?.GetValue<string>()), msg["lines"]!.AsArray());
+                return null;
+
             // After a reload from disk: the bookmarks the file had, placed in its new text.
             case "bookmarksResolve":
                 return BookmarkStore.Resolve(msg["list"]!.AsArray(), Arg("text"));
@@ -651,6 +659,7 @@ sealed class MainForm : Form
 
             case "draftDelete":
                 app.Drafts.Delete(Arg("draft"));
+                app.Rulers.Set(BookmarkStore.Key(null, Arg("draft")), []);   // its ruler lines (saved: they went to the file)
                 return null;
 
             case "closePrompt":

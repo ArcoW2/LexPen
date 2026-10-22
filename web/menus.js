@@ -119,7 +119,8 @@ async function openMenuLevel(items, x, y, select, above, leftX) {
     // An item of another language (the Format menu's submenu of the cursor line's language) works as its bar button.
     const available = () => it.language ? !!editorPane() : actionAvailable(it.action, params);
     const enabled = isSub || it.enabled !== false && (!it.action || available());
-    const checked = it.checked ?? (it.action && appActions.get(it.action)?.checked?.(params));   // or the item's own
+    // Or the item's own: a value, or a function asked again after an item that keeps the menu open (keep).
+    const checked = typeof it.checked === 'function' ? it.checked() : it.checked ?? (it.action && appActions.get(it.action)?.checked?.(params));
     // The check mark and the arrow are drawn by the style sheet (mm-checked, mm-arrow).
     button.innerHTML = `<span class="mm-mark"></span>` + (icons ? `<span class="mm-icon">${it.icon ?? ''}</span>` : '') + `<span class="mm-label">${html}</span>` +
       (isSub ? '<span class="mm-arrow"></span>' : `<span class="mm-key">${escapeHtml(it.key ?? (it.action ? keyText(it.action, ...params) : ''))}</span>`);
@@ -173,6 +174,12 @@ function chooseMenuItem(level, index) {
   if (entry.isSub) {
     selectMenuItem(level, index, false);
     return openSubmenu(level, true);
+  }
+  // keep: a setting in the menu (the ruler's colours): it runs, the menu stays and its check marks follow.
+  if (entry.item.keep) {
+    entry.item.run();
+    for (const e of level.items) if (typeof e.item.checked === 'function') e.button.classList.toggle('mm-checked', !!e.item.checked());
+    return;
   }
   closeMenus();
   if (entry.item.run) entry.item.run();
