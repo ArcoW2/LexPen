@@ -96,8 +96,11 @@ function paintHunks(cm, gutter, hunks, title) {
 function paintChanges(pane) {
   const cm = pane.cm, doc = pane.active?.doc;
   if (!cm || !doc) return;
+  // The hunks also feed the overview ruler (overview.js), which can show them while the gutter column is off.
+  const wanted = gutterOn('changes') || overviewKind('changes');
+  pane.changeHunks = wanted && doc.savedText !== undefined ? diffLines(linesOf(doc.savedText), linesOf(cm.getValue())) : [];
   if (!gutterOn('changes') || doc.savedText === undefined) return cm.clearGutter(CHANGE_GUTTER);
-  const hunks = diffLines(linesOf(doc.savedText), linesOf(cm.getValue()));
+  const hunks = pane.changeHunks;
   paintHunks(cm, CHANGE_GUTTER, hunks, kind => ({ added: 'Added', changed: 'Changed', removed: 'Removed' })[kind] + ' since the last save');
 }
 
@@ -117,16 +120,16 @@ addEventListener('focus', async () => {
 function paintGit(pane) {
   const cm = pane.cm, doc = pane.active?.doc;
   if (!cm || !doc) return;
-  pane.gitHunks = [];
+  pane.gitHunks = (gutterOn('git') || overviewKind('git')) && doc.gitHead != null ? diffLines(linesOf(doc.gitHead), linesOf(cm.getValue())) : [];
+  scheduleOverview(pane);   // overview.js
   if (!gutterOn('git') || doc.gitHead == null) return cm.clearGutter(GIT_GUTTER);
-  pane.gitHunks = diffLines(linesOf(doc.gitHead), linesOf(cm.getValue()));
   paintHunks(cm, GIT_GUTTER, pane.gitHunks, kind => ({ added: 'Added', changed: 'Changed', removed: 'Removed' })[kind] +
     ' since the last commit (click: the old text)');
 }
 
 function paintGutter(pane) {
   paintChanges(pane);
-  paintGit(pane);
+  paintGit(pane);   // also draws the overview ruler again
 }
 
 function scheduleGutter(pane) {

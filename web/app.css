@@ -898,3 +898,27 @@ body:not([data-preview-nowrap]) .mm-preview pre, .mm-preview pre.mm-long-line { 
 .CodeMirror-hint { color: var(--fg); display: flex; gap: 16px; justify-content: space-between; padding: 0 6px; }
 li.CodeMirror-hint-active { background: var(--select); color: var(--fg); }
 .mm-hint-kind { color: var(--fg-dim); font-size: .85em; }
+
+/* The overview ruler (overview.js): the editor's vertical scroll bar, a strip at its right with the marks and a block. */
+.mm-overview { position: absolute; top: 0; right: 0; width: var(--mm-overview-w, 20px); z-index: 6; cursor: pointer; background: color-mix(in srgb, var(--fg) 7%, transparent);
+  box-shadow: inset 1px 0 0 color-mix(in srgb, var(--fg) 22%, transparent); }   /* a light line along its left */
+/* The strip in place of CodeMirror's own vertical scroll bar: that one hidden, the text up to the strip (CodeMirror
+   keeps room for the bar on its sizer otherwise). */
+.mm-editor-pane { position: relative; }
+.mm-editor-pane .CodeMirror { margin-right: var(--mm-overview-w, 20px); }
+.mm-editor-pane .CodeMirror-vscrollbar { display: none !important; }
+.mm-editor-pane .CodeMirror-sizer { padding-right: 0 !important; }
+.mm-editor-pane .CodeMirror-scrollbar-filler { display: none !important; }
+/* The horizontal scroll bar in the same look: up to the strip, as high as the strip is wide, a light line along its
+   top, a rounded thumb, no arrow buttons. */
+.mm-editor-pane .CodeMirror-hscrollbar { right: 0 !important; height: var(--mm-overview-w, 20px); }
+.mm-editor-pane .CodeMirror-hscrollbar::-webkit-scrollbar { height: var(--mm-overview-w, 20px); }
+.mm-editor-pane .CodeMirror-hscrollbar::-webkit-scrollbar-button { display: none; }
+.mm-editor-pane .CodeMirror-hscrollbar::-webkit-scrollbar-track { background: color-mix(in srgb, var(--fg) 7%, var(--bg));
+  border-top: 1px solid color-mix(in srgb, var(--fg) 22%, var(--bg)); }
+.mm-editor-pane .CodeMirror-hscrollbar::-webkit-scrollbar-thumb { min-width: 24px; border-radius: 3px;
+  background: color-mix(in srgb, var(--fg) 28%, transparent); }
+.mm-editor-pane .CodeMirror-hscrollbar::-webkit-scrollbar-thumb:active { background: color-mix(in srgb, var(--fg) 40%, transparent); }
+.mm-overview-view { position: absolute; z-index: 7; right: 0; top: 0; width: var(--mm-overview-w, 20px); pointer-events: none; border-radius: 3px;
+  background: color-mix(in srgb, var(--fg) 28%, transparent); }
+.mm-overview-view.mm-dragging { background: color-mix(in srgb, var(--fg) 40%, transparent); }

@@ -230,6 +230,12 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   View > **Tab bar**: one row that scrolls, one row with a menu for the tabs out of view, or several rows.
   The arrows button at the left of each tab bar shows the pane's file in the folder pane (opening its folder
   when it lies outside the open one), as Visual Studio's Sync with active document.
+- **Scroll bars with an overview**: the editor's vertical scroll bar is a strip that marks where in the file the
+  find matches (while the find bar is open, every one of them), the unsaved changes, the git changes and the bookmarks
+  are, with a block for the part in view. Drag the block to scroll (it holds on a mark it comes near); a click on a mark
+  puts the cursor on its line (the block lands on the mark), a click elsewhere scrolls there and the drag goes on from
+  there; the wheel over it scrolls; the tooltip says what a mark is. The horizontal scroll bar has the same look.
+  Settings, Editor view > Scroll bars: their width (10 to 40 px) and which marks show (also View > Scroll bar marks).
 - **Word completion**: Ctrl+Space (Edit > Complete word) lists what completes the word before the cursor: the
   keywords of the language at the cursor (a sql block in markdown: SQL's), then the words of the document that a
   "starts with" entry of the language stands for (`'@*'` in SQL: every `@word` of the document, `@@` only the `@@`

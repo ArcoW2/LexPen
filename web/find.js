@@ -6,7 +6,8 @@
 const newFind = () => ({ query: '', replace: '', case: false, word: false, regex: false });
 const finds = [newFind(), newFind()];
 const findOf = pane => setting('findShared') ? finds[0] : finds[pane.index];
-const FIND_LIMIT = 5000;   // matches counted / highlighted; more is shown as "5000+"
+const FIND_TYPE_LINES = 5000, FIND_TYPE_DELAY = 150;   // a file this long: the search waits for a pause in typing
+const FIND_LIMIT = 1000000;   // matches counted / highlighted (all of them in practice); more is shown as "1000000+"
 
 // ---------- The bar ----------
 const chevron = d => `<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`;
@@ -58,9 +59,13 @@ function findBar(pane) {
     else if (action === 'replaceOne') replaceOne(pane);
     else if (action === 'replaceAll') replaceAll(pane);
   });
+  // As you type: the first match from where the search started. In a large file after a short pause in typing, so
+  // the letters keep coming while a first letter is found on thousands of lines.
   bar.input.addEventListener('input', () => {
     findOf(pane).query = bar.input.value;
-    refresh(pane, true);   // as you type: the first match from where the search started
+    clearTimeout(pane.findTypeTimer);
+    if ((pane.cm?.lineCount() ?? 0) < FIND_TYPE_LINES) return refresh(pane, true);
+    pane.findTypeTimer = setTimeout(() => refresh(pane, true), FIND_TYPE_DELAY);
   });
   bar.with.addEventListener('input', () => findOf(pane).replace = bar.with.value);
   // The history (history.js): an entry in the field, a search with its switches; `typed`: the text as typed, the
@@ -142,6 +147,7 @@ function showBar(pane, focus) {
 function closeFind(pane, focusBack) {
   const bar = pane.find;
   if (!bar || bar.el.hidden) return;
+  clearTimeout(pane.findTypeTimer);   // a search still waiting for the pause in typing
   bar.el.hidden = true;
   clearMarks(pane);
   pane.cm?.refresh();
@@ -188,6 +194,7 @@ function refresh(pane, moving) {
   if (regex instanceof Error) return bar.count.textContent = 'Not valid';
   const where = findTarget(pane);
   const matches = where === 'editor' ? editorMatches(pane, regex) : previewMatches(pane, regex);
+  if (where === 'editor' && pane.cm) scheduleFindLines(pane, regex);   // the gutter and the overview ruler, after this key
   mark(pane, where, regex, matches);
   if (moving && matches.length) findGo(pane, 1, true);
   else showCount(pane, matches, null);
@@ -213,7 +220,31 @@ function findGo(pane, dir, fromOrigin) {
 }
 
 // ---------- In the editor ----------
-const editorMatches = (pane, regex) => pane.cm ? matchesIn(pane.cm.getValue(), regex) : [];
+// The matches are found once per text and search: a keystroke asks for them for the count, the marks and the move.
+function editorMatches(pane, regex) {
+  const cm = pane.cm;
+  if (!cm) return [];
+  const key = regex.source + '/' + regex.flags, doc = cm.getDoc(), gen = doc.changeGeneration();
+  const c = pane.matchCache;
+  if (c && c.key === key && c.doc === doc && c.gen === gen) return c.matches;
+  pane.matchCache = { key, doc, gen, matches: matchesIn(cm.getValue(), regex), lines: null };
+  return pane.matchCache.matches;
+}
+
+// The lines with a match (the gutter's marks, the overview ruler), in one pass over the line lengths: asking the
+// editor for each match's position searches from the top every time, which stalls on thousands of matches.
+function editorMatchLines(pane, regex) {
+  const matches = editorMatches(pane, regex), c = pane.matchCache;
+  if (c?.lines) return c.lines;
+  const cm = pane.cm, lines = [], last = cm.lastLine();
+  let line = 0, end = cm.getLine(0).length;   // the index of the line's end (its line break)
+  for (const [start] of matches) {
+    while (start > end && line < last) end += 1 + cm.getLine(++line).length;
+    if (lines[lines.length - 1] !== line) lines.push(line);
+  }
+  if (c) c.lines = lines;
+  return lines;
+}
 
 function goEditor(pane, regex, dir, fromOrigin) {
   const cm = pane.cm, bar = pane.find;
@@ -268,20 +299,47 @@ function boxMatches(pane, regex) {
   clearGutterMarks(pane);
   const cm = pane.cm;
   if (!cm) return;
-  const boxes = (setting('findMark') || 'background') !== 'background', gutter = setting('findGutter') !== false;
-  if (!boxes && !gutter) return;
+  const boxes = (setting('findMark') || 'background') !== 'background';
+  if (!boxes) return;
   const matches = editorMatches(pane, regex);
   cm.operation(() => {
     if (boxes && matches.length <= BOX_LIMIT)
       for (const [s, e] of matches) pane.findBoxes.push(cm.markText(cm.posFromIndex(s), cm.posFromIndex(e),
         { className: 'mm-find-box', startStyle: 'mm-find-box-start', endStyle: 'mm-find-box-end' }));
-    // The setting findGutter: the line numbers of the lines with a match, marked as the matches are.
-    if (gutter) {
-      const lines = new Set(matches.map(([s]) => cm.posFromIndex(s).line));
-      pane.findGutter = [...lines].map(l => cm.addLineClass(l, 'gutter', 'mm-find-line'));
-    }
   });
   markCurrentLine(pane);
+}
+
+// The lines with a match, for the gutter (findGutter) and the overview ruler: worked out after the keystroke is
+// handled, not in it, so typing never waits for thousands of matches.
+function scheduleFindLines(pane, regex) {
+  clearTimeout(pane.findLinesTimer);
+  pane.findLinesTimer = setTimeout(() => {
+    if (!pane.findOverlay) return;   // the bar closed or the search changed meanwhile
+    pane.findLines = editorMatchLines(pane, regex);
+    paintFindGutter(pane);
+    if (typeof scheduleOverview === 'function') scheduleOverview(pane);   // overview.js
+  });
+}
+
+// The setting findGutter: the line numbers of the lines with a match, marked as the matches are. Only the lines in
+// view, and again as others come into view: marking every line of thousands of matches made each keystroke wait.
+function paintFindGutter(pane) {
+  const cm = pane.cm, lines = pane.findLines;
+  if (!cm) return;
+  for (const h of pane.findGutter ?? []) cm.removeLineClass(h, 'gutter', 'mm-find-line');
+  pane.findGutter = [];
+  if (!lines?.length || setting('findGutter') === false) return;
+  if (!pane.findGutterWatched) {
+    pane.findGutterWatched = true;
+    cm.on('viewportChange', () => { if (pane.findLines) paintFindGutter(pane); });
+  }
+  const { from, to } = cm.getViewport();
+  let i = 0, hi = lines.length;
+  while (i < hi) { const m = (i + hi) >> 1; if (lines[m] < from) i = m + 1; else hi = m; }
+  cm.operation(() => {
+    for (; i < lines.length && lines[i] < to; i++) pane.findGutter.push(cm.addLineClass(lines[i], 'gutter', 'mm-find-line'));
+  });
 }
 
 // The line number of the current match's line: marked as the current match (findGutter).
@@ -490,6 +548,8 @@ function drawPreviewBoxes(pane) {
 }
 
 function clearMarks(pane) {
+  clearTimeout(pane.findLinesTimer);
+  if (pane.findLines) { pane.findLines = null; if (typeof scheduleOverview === 'function') scheduleOverview(pane); }
   if (pane.findOverlay) pane.cm?.removeOverlay(pane.findOverlay);
   pane.findOverlay = null;
   for (const m of pane.findBoxes ?? []) m.clear();
@@ -511,6 +571,8 @@ function refreshMarks(pane) {
   pane.findOverlay = null;
   for (const m of pane.findBoxes ?? []) m.clear();
   pane.findBoxes = [];
-  if (regex && !(regex instanceof Error) && findTarget(pane) === 'editor') markEditor(pane, regex);
-  else drawPreviewBoxes(pane);
+  if (regex && !(regex instanceof Error) && findTarget(pane) === 'editor') {
+    markEditor(pane, regex);
+    scheduleFindLines(pane, regex);   // the gutter and the overview ruler again
+  } else drawPreviewBoxes(pane);
 }

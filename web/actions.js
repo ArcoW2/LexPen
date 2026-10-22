@@ -156,6 +156,11 @@ toggleAction('wrap', { title: 'Wrap long lines', hint: 'In the editor (code bloc
   () => setting('wrap'), () => setWrap(!setting('wrap')));
 appAction('locateCursor', { title: 'Locate the cursor', hint: 'Rings shrink onto every cursor; a cursor out of view gets a marker at that edge (also a short tap on Ctrl)', group: 'view',
   enabled: () => !!editorPane(), run: () => locateCursor(editorPane({ from: 'menu' })) });
+toggleAction('overviewMark', { title: 'Scroll bar marks', hint: 'Show or hide this kind of mark on the editor\'s scroll bar', group: 'view',
+  variants: [['find'], ['changes'], ['git'], ['bookmarks']],
+  variantTitles: { find: 'Scroll bar marks: find matches', changes: 'Scroll bar marks: unsaved changes', git: 'Scroll bar marks: git changes', bookmarks: 'Scroll bar marks: bookmarks' } },
+  ([name]) => setting('overview.' + name) !== false,
+  ([name]) => setSetting('overview.' + name, setting('overview.' + name) === false), ['show', 'hide']);
 toggleAction('ruler', { title: 'Ruler', hint: 'Above the editor: the columns, the column of the cursor, column guides, tab stops and helper lines (click it for one)', group: 'view' },
   () => rulerShown(), () => setSetting('ruler', !rulerShown()), ['show', 'hide']);
 toggleAction('sidebar', { title: 'Sidebar', hint: 'Show or hide the folder pane and the search', group: 'view' },
@@ -520,6 +525,14 @@ const SETTING_ROWS = [
         git: 'The gutter marks the lines changed since the last commit (a click shows the old text)', folds: 'The gutter has a marker to fold headings, code blocks and braces' }[n],
       hintOff: { bookmarks: 'No bookmark column in the gutter; bookmarks are kept and their keys still work', changes: 'No change markers in the gutter',
         git: 'No git markers in the gutter', folds: 'No fold markers in the gutter' }[n] })),
+  { name: 'overviewWidth', group: 'Editor view', sub: 'Scroll bars', kind: 'range', range: [10, 40, 2], unit: ' px', title: 'Scroll bars: width',
+    hint: 'How wide the editor\'s scroll bars are (the horizontal one as high); the marks on the vertical one take their share of it' },
+  ...[['find', 'Find matches'], ['changes', 'Unsaved changes'], ['git', 'Git changes'], ['bookmarks', 'Bookmarks']]
+    .map(([n, title]) => ({ name: 'overview.' + n, group: 'Editor view', sub: 'Scroll bars', kind: 'toggle', title: 'Marks: ' + title.toLowerCase(),
+      hint: { find: 'The scroll bar marks the lines with a match of the find bar', changes: 'The scroll bar marks the lines changed since the last save',
+        git: 'The scroll bar marks the lines changed since the last commit', bookmarks: 'The scroll bar marks the bookmarks' }[n],
+      hintOff: { find: 'No find matches on the scroll bar', changes: 'No unsaved changes on the scroll bar',
+        git: 'No git changes on the scroll bar', bookmarks: 'No bookmarks on the scroll bar' }[n] })),
   { name: 'lineBreaks', group: 'Preview', kind: 'toggle',
     hint: 'In the preview, a single line break starts a new line',
     hintOff: 'In the preview, a single line break joins the lines, as in GitHub files (an empty line starts a new paragraph)' },

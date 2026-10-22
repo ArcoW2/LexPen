@@ -545,7 +545,7 @@ function loadEditor() {
   // format.js: the formatting commands and bar; it needs CodeMirror, so it comes second.
   return editorLoaded ??= loadScript('vendor/editor.js').then(() => loadScript('format.js'))
     .then(() => loadScript('bookmarks.js')).then(() => loadScript('gutter.js')).then(() => loadScript('brackets.js'))
-    .then(() => loadScript('guides.js')).then(() => loadScript('complete.js'));
+    .then(() => loadScript('guides.js')).then(() => loadScript('complete.js')).then(() => loadScript('overview.js'));
 }
 
 // The editor mode: the language's, with blocks of other languages and lines you set (documentMode, languages.js).
@@ -602,6 +602,7 @@ async function ensureEditor(pane) {
     tabSize: 4,
     extraKeys: formatKeys(),
     gutters: ['CodeMirror-linenumbers', BM_GUTTER],   // all columns: setupGutter (gutter.js)
+    scrollbarStyle: 'mmHorizontal',   // the vertical scroll bar is the overview strip (overview.js)
   });
   // The last line has no line end (showLineEnds): the line elements know which one is the last.
   pane.cm.on('renderLine', (cm, line, el) => {
@@ -639,6 +640,7 @@ async function ensureEditor(pane) {
   setupRuler(pane);   // the ruler, column guides and manual tabs (ruler.js)
   setupPlaces(pane);   // the places the cursor jumped from, for Position back / forward (places.js)
   setupComplete(pane);   // word completion: the document's words, the pause in typing (complete.js)
+  setupOverview(pane);   // the marks along the scroll bar (overview.js)
   pane.cm.on('drop', (cm, e) => onEditorDrop(pane, e));
   pane.cm.getWrapperElement().addEventListener('wheel', e => {   // Ctrl+wheel: the editor font size
     if (!e.ctrlKey) return;
@@ -1502,6 +1504,12 @@ async function navigate(tab, path, anchor, restoring) {
   const doc = findDoc(path) ?? await loadDoc(path);
 
   if (!restoring && old.path) remember(tab, old.path);
+  // The file left the window (no other tab has it): recently closed, as closing its tab would (Reopen closed tab too).
+  if (last && old.path) {
+    noteOpened('closed', old.path);
+    closedTabs.push({ path: old.path, pane: pane.index, mode: tab.mode, top: pane.active === tab ? pane.previewEl.scrollTop : tab.previewTop });
+    if (closedTabs.length > 20) closedTabs.shift();
+  }
   releaseTabDoc(tab);
   if (old.editTab === tab) old.editTab = tabsOf(old).find(t => t !== tab) ?? null;
   tab.doc = doc;
@@ -3474,6 +3482,11 @@ function applySettings() {
     if (typeof repaintGuides === 'function') repaintGuides();
   }
   if (RULER_SETTINGS.some(changed) && typeof applyRuler === 'function') applyRuler();   // ruler.js
+  if (['overview', 'overviewWidth', 'overview.find', 'overview.changes', 'overview.git', 'overview.bookmarks', 'gutter.changes', 'gutter.git'].some(changed)
+    && typeof applyOverview === 'function') {   // overview.js; the hunks are made for the strip or the gutter
+    for (const pane of panes) if (pane.cm && pane.active) paintGutter(pane);
+    applyOverview();
+  }
   if (changed('formatBar')) applyFormatBar(now.formatBar);
   if (changed('languageNames') && 'languageNames' in was) {   // fences and blocks may now be another language
     languagesVersion++;

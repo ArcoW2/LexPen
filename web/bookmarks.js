@@ -78,6 +78,7 @@ function paintBookmarks(pane) {
     el.title = (numbers.length ? 'Bookmark ' + numbers.join(', ') : 'Bookmark') + ' (click: toggle an unnumbered one)';
     cm.setGutterMarker(line, BM_GUTTER, el);
   }
+  scheduleOverview(pane);   // overview.js
 }
 
 function repaintBookmarks(doc) {

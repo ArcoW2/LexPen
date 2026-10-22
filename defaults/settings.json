@@ -27,6 +27,12 @@
   "lineNumbers": "all",           // the gutter (View > Gutter): line numbers "none", "tens" (a number every 10 lines,
                                   // a dash at 5, a dot on the other lines) or "all"
   "lineNumberCount": "absolute",  // "absolute", or "relative" to the cursor line (that line shows its own number)
+  "overviewWidth": 20,            // the editor's scroll bars: their width in px (10 to 40); the vertical one is the overview
+                                  // ruler, the marks below take their share of it
+  "overview.find": true,          // ...the lines with a find match
+  "overview.changes": true,       // ...the lines changed since the last save
+  "overview.git": true,           // ...the lines changed since the last commit
+  "overview.bookmarks": true,     // ...the bookmarks
   "gutter.bookmarks": true,       // the other gutter columns left of the text
   "gutter.changes": true,         // lines changed since the last save
   "gutter.git": true,             // lines changed since the last commit
