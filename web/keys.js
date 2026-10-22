@@ -12,6 +12,12 @@ const KEY_NAMES = {
   ArrowLeft: 'Left', ArrowRight: 'Right', ArrowUp: 'Up', ArrowDown: 'Down', NumpadAdd: 'NumPlus', NumpadSubtract: 'NumMinus',
 };
 
+function altGrText(e) {
+  if (!e.getModifierState?.('AltGraph') || e.key.length !== 1) return false;
+  const own = /^Key[A-Z]$/.test(e.code) ? e.code[3] : /^Digit\d$/.test(e.code) ? e.code[5] : null;
+  return own !== null && e.key.toUpperCase() !== own;
+}
+
 // A key press as keys.json writes it ("Ctrl+Shift+S"); null for a key it has no name for.
 function strokeOf(e, shift = e.shiftKey) {
   const c = e.code;
@@ -74,6 +80,9 @@ document.addEventListener('keydown', e => {
   if (e.isComposing || ['Control', 'Shift', 'Alt', 'Meta', 'AltGraph'].includes(e.key)) return;
   // A modal window (F1, About) or an open menu handles its own keys.
   if (e.defaultPrevented || document.querySelector('dialog[open]')) return;
+  // AltGr text: with AltGr held (the browser says so), a letter or digit key that gives another character than its
+  // own (US-International: AltGr+U is u acute, AltGr+C the copyright sign) types it; it is not Ctrl+Alt+U.
+  if (!keys.pending && altGrText(e)) return;
   const stroke = strokeOf(e);
   if (keys.pending) {
     const first = keys.pending;

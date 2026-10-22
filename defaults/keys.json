@@ -51,6 +51,7 @@
   "F3": "findNext",
   "Shift+F3": "findPrevious",
   "Ctrl+G": "goToLine",
+  "Ctrl+Alt+U": "insertCharacter",   // the character picker
   "Ctrl+Down": "scrollLine.down",    // the text a line (the cursor stays, or moves along: setting scrollMovesCursor)
   "Ctrl+Up": "scrollLine.up",
   "Ctrl+Shift+G": "findPrevious",

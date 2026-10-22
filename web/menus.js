@@ -23,7 +23,7 @@ const MENUS = [
     ['Cu&t', 'cut'], ['&Copy', 'copy'], ['&Paste', 'paste'], ['Paste &image (asks how to link it)...', 'pasteImage'],
     { label: 'Select c&lipboard', fill: () => clipboardItems() }, '-',
     ['Col&umn mode', 'columnMode.toggle'], '-',
-    ['&Find', 'find'], ['R&eplace', 'replace'], ['&Search in files', 'searchInFiles'], ['Go to line...', 'goToLine'], '-',
+    ['&Find', 'find'], ['R&eplace', 'replace'], ['&Search in files', 'searchInFiles'], ['Go to line...', 'goToLine'], ['Insert c&haracter...', 'insertCharacter'], '-',
     ['Select inside brac&kets', 'selectInsideBrackets'],
     { label: '&Multiple cursors', sub: [['&Add occurrence', 'cursorAdd'], ['&Next occurrence', 'cursorNext'],
       ['&Previous occurrence', 'cursorPrevious'], ['&Remove occurrence', 'cursorRemove'], ['&Clear added cursors', 'cursorClear']] }, '-',

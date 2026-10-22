@@ -1387,7 +1387,7 @@ addEventListener('blur', endTabWalk);
 // The active pane's file: cursor, insert / overwrite, encoding, line endings, language, a pending chord.
 const statusUi = {
   chord: $('.mm-st-chord'), pos: $('.mm-st-pos'), ins: $('.mm-st-ins'), enc: $('.mm-st-enc'),
-  eol: $('.mm-st-eol'), lang: $('.mm-st-lang'), col: $('.mm-st-col'), clip: $('.mm-st-clip'), alive: $('.mm-st-alive'), long: $('.mm-st-long'),
+  eol: $('.mm-st-eol'), lang: $('.mm-st-lang'), col: $('.mm-st-col'), char: $('.mm-st-char'), clip: $('.mm-st-clip'), alive: $('.mm-st-alive'), long: $('.mm-st-long'),
 };
 
 // The heartbeat at the right of the bottom bar: turned by the page itself, so it stands still exactly
@@ -1414,6 +1414,12 @@ function updateStatus() {
     }
   }
   statusUi.pos.textContent = pos;
+  // The character after the cursor (charpicker.js): its code; its name in the tooltip, asked when the mouse is on it.
+  const at = cm && !cm.somethingSelected() ? charAtCursor(cm) : null;
+  statusUi.char.hidden = !at;
+  statusUi.char.textContent = at ? at.label : '';
+  statusUi.char.title = '';
+  statusUi.char.dataset.code = at ? at.code : '';
   statusUi.ins.textContent = cm ? (cm.state.overwrite ? 'OVR' : 'INS') : '';
   statusUi.col.hidden = !column.on;
   statusUi.ins.classList.toggle('mm-on', !!cm?.state.overwrite);
@@ -1430,6 +1436,15 @@ function updateStatus() {
 }
 
 statusUi.lang.addEventListener('mousedown', e => e.preventDefault());   // the focus stays in the editor
+statusUi.char.addEventListener('mousedown', e => e.preventDefault());
+statusUi.char.addEventListener('mouseenter', async () => {
+  const cm = panes[state.activePane].cm, at = cm && charAtCursor(cm);
+  if (at) statusUi.char.title = await charTitle(at);
+});
+statusUi.char.addEventListener('click', () => {
+  const cm = panes[state.activePane].cm, at = cm && charAtCursor(cm);
+  openCharPicker(at && !at.byte ? at.code : null);
+});
 statusUi.lang.addEventListener('click', () => showLanguageList());
 
 events.findHistory = onFindHistory;   // history.js
@@ -1832,7 +1847,8 @@ function sortItems(items) {
 }
 
 async function fillDir(container, path, depth) {
-  const items = await host('list', { path });
+  // Backup files (name.ext.bak) only with the setting showBackupFiles.
+  const items = (await host('list', { path })).filter(i => i.dir || setting('showBackupFiles') || !/\.bak$/i.test(i.name));
   container.replaceChildren();
   for (const item of [...sortItems(items), ...deletedIn(path, items)]) {
     const row = document.createElement('div');
@@ -3415,6 +3431,7 @@ function applySettings() {
   if (FONT_SETTINGS.some(changed)) applyFonts();
   if (changed('wrap')) applyWrap(now.wrap);
   if (changed('previewWrap')) document.body.toggleAttribute('data-preview-nowrap', now.previewWrap === false);
+  if (changed('showBackupFiles') && 'showBackupFiles' in was) refreshTree(false);
   if (changed('tabBar')) applyTabBar(now.tabBar);
   if ((changed('outlineMerged') || changed('outlineBullets')) && 'outlineMerged' in was)
     for (const pane of panes) { pane.outlineFor = null; showOutline(pane); }   // the outline drawn again

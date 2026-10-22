@@ -197,6 +197,9 @@ appAction('scrollLine.down', { title: 'Scroll down a line', hint: 'The text move
   run: (_, { pane, extend }) => scrollLine(pane.cm, 1, extend) });
 appAction('scrollLine.up', { title: 'Scroll up a line', hint: 'The text moves down a line, the view showing one line further up; the cursor stays on its line unless Ctrl+Up / Ctrl+Down move the cursor along (setting); then with Shift: select along', group: 'edit', editor: true, move: true,
   run: (_, { pane, extend }) => scrollLine(pane.cm, -1, extend) });
+// The character picker (charpicker.js), at the character after the cursor.
+appAction('insertCharacter', { title: 'Insert character', hint: 'A picker like the Windows Character Map: the characters of the editor font, search by code, entity or name, gather some and insert them', group: 'edit', editor: true,
+  run: (_, { pane }) => { const at = charAtCursor(pane.cm); openCharPicker(at && !at.byte ? at.code : null); } });
 appAction('goToLine', { title: 'Go to line', hint: 'A line number, or line:column; the cursor goes there', group: 'edit', editor: true,
   run: async (_, { pane }) => {
     const cm = pane.cm, here = cm.getCursor();
@@ -523,6 +526,9 @@ const SETTING_ROWS = [
   { name: 'backup', group: 'Files', kind: 'toggle',
     hint: 'When saving, the old file becomes name.ext.bak (overwritten at the next save)',
     hintOff: 'Saving overwrites the file; no backup is made' },
+  { name: 'showBackupFiles', group: 'Files', kind: 'toggle', title: 'Show backup files in the folder pane',
+    hint: 'The folder pane lists the backup files (name.ext.bak) with the other files',
+    hintOff: 'The folder pane leaves out the backup files (name.ext.bak); they stay on disk' },
   { name: 'trimTrailing', group: 'Files', kind: 'toggle', title: 'Remove whitespace at line ends on save',
     hint: 'On save, spaces and tabs at line ends are removed from the whole file, just before it is written (Ctrl+Z after the save gives them back). A language can keep some (markdown: 2) or never trim (trimTrailing)',
     hintOff: 'On save, spaces and tabs at line ends are kept' },

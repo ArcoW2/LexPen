@@ -268,11 +268,44 @@ sealed class MainForm : Form
     [DllImport("dwmapi.dll")]
     static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
 
+    // The browser view. Right after a LexPen closed (a restart, an update), its browser processes can still hold the
+    // browser's data folder for a moment, and WebView2 answers "the requested resource is in use" (0x800700AA). Then
+    // wait and try again (the control starts over after a failed try); still in use after a few seconds: say so and
+    // close this window instead of the exception dialog.
+    const int ResourceInUse = unchecked((int)0x800700AA);
+
+    async Task<bool> StartBrowser()
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                await web.EnsureCoreWebView2Async(await app.WebEnvironment());
+                return true;
+            }
+            catch (COMException ex) when (ex.HResult == ResourceInUse && attempt < 10)
+            {
+                await Task.Delay(500);
+            }
+            catch (COMException ex) when (ex.HResult == ResourceInUse)
+            {
+                MessageBox.Show(this, "LexPen could not start its browser view: the browser data folder is still in use, " +
+                    "most likely by a LexPen that is closing. Start LexPen again in a moment.", "LexPen",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+        }
+    }
+
     protected override async void OnLoad(EventArgs e)
     {
         base.OnLoad(e);
 
-        await web.EnsureCoreWebView2Async(await app.WebEnvironment());
+        if (!await StartBrowser())
+        {
+            Close();
+            return;
+        }
         var core = web.CoreWebView2;
 
         core.Settings.IsStatusBarEnabled = false;
@@ -498,6 +531,31 @@ sealed class MainForm : Form
                 app.Clipboards.Set(msg["n"]!.GetValue<int>(), Arg("text"), msg["column"]?.GetValue<bool>() == true);
                 app.ClipboardsChanged();
                 return null;
+
+            // The character picker (CharInfo): the characters of a font (all: every assigned one, with those of the
+            // font apart), the blocks, a name, a search by name.
+            case "charList":
+            {
+                var font = CharInfo.FontCharsKept(Arg("font"));
+                var all = msg["all"]?.GetValue<bool>() == true;
+                return new JsonObject
+                {
+                    ["found"] = font is not null,
+                    ["chars"] = new JsonArray([.. (all ? CharInfo.AllChars() : font ?? []).Select(c => (JsonNode?)c)]),
+                    ["inFont"] = all ? new JsonArray([.. (font ?? []).Select(c => (JsonNode?)c)]) : null,
+                    ["blocks"] = new JsonArray([.. CharInfo.Blocks().Select(b => (JsonNode?)new JsonArray(b.First, b.Length, b.Name))]),
+                };
+            }
+
+            case "charName":
+                return CharInfo.Name(msg["code"]!.GetValue<int>());
+
+            case "charSearch":
+            {
+                var words = Arg("words").Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                var chars = msg["all"]?.GetValue<bool>() == true ? CharInfo.AllChars() : CharInfo.FontCharsKept(Arg("font")) ?? [];
+                return new JsonArray([.. CharInfo.Search(chars, words).Select(c => (JsonNode?)c)]);
+            }
 
             case "clipGet":
                 return app.Clipboards.Get(msg["n"]!.GetValue<int>());

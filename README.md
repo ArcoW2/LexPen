@@ -125,6 +125,15 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   keys, not on a click.
 - **Left at the start of a line** (Options > Settings > Editor, on by default): Left (and Shift+Left) at the first
   column goes on to the end of the line above; off, the cursor stays there.
+- **Character picker** (Edit > Insert character..., Ctrl+Alt+U, or a click on the code in the bottom bar): like
+  the Windows Character Map, every character of the editor font in a grid, drawn in that font, a heading per
+  Unicode block and the blocks at the side; All characters shows every assigned one (those the font lacks marked).
+  Search by code (`e9`, `U+E9`, `#233`), entity (`&eacute;`), the character, or words of its name (the names are
+  Windows', as in the Character Map). A click or Enter adds a character to the free field below, Insert puts that
+  at the cursor (on every line of a block), Copy on the clipboard; a double click inserts one at once; Enter on a
+  code in the search inserts it. Recently used on top. The window is resizable and keeps its size. The bottom bar
+  shows the code of the character after the cursor (`U+00E9`; a byte the encoding could not read as `0xFF`), its
+  name in the tooltip.
 - **Home** (Options > Settings > Editor): the first non-blank character first, again: column 1 (the default); or
   column 1 at once. Shift+Home selects; in column mode a block goes the same way.
 - **Ctrl+Up / Ctrl+Down**: the text scrolls a line, the cursor staying on its line; with a setting (Editor >
@@ -321,6 +330,7 @@ F1 lists every key and action. The main ones of the default set:
 | Ctrl+Shift+B, Ctrl+Shift+E | Sidebar, folder pane |
 | Ctrl+F, F3 / Shift+F3, Ctrl+Shift+R, Ctrl+Shift+F | Find, next / previous (past the last match: stop, go on from the top, or go on until where the search started; a setting), replace, search in files. Found text is marked with a background colour, a box around it, or both (Options > Settings, Find; in the editor and the preview); so are the line numbers of its lines (a setting). The last searches (with their switches) and replacements are kept for all windows and restarts: Up / Down in a find, replace or search field step through them, Alt+Down (or Down in an empty field) lists them, with Clear history; the find bar and the search in files share the searches (setting: how many, 20) |
 | Ctrl+G | Go to line: a line number, or line:column (also Edit > Go to line...) |
+| Ctrl+Alt+U | The character picker (Edit > Insert character...) |
 | Ctrl+Up / Ctrl+Down | Scroll the text a line; the cursor stays on its line, or moves along (a setting; then with Shift: select along) |
 | Ctrl+[ / Ctrl+] | To the opener (before it) / closer (after it) of the pair or word set around the cursor; again: the pair around that one; with Shift: select. The pair is highlighted as you move and type: the innermost one holding the cursor, or the set of the word the cursor is on (`if` ... `else` ... `end if`), only in the language at the cursor, strings and comments left out (Options > Settings, Editor view: a background colour, an underline or off; closing brackets and quotes while typing: Editor). Edit > Select inside brackets: what lies between |
 | Ctrl+> / Ctrl+< | Indent / outdent the lines (in keys.json: `Ctrl+Shift+.` and `Ctrl+Shift+Comma`) |

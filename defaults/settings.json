@@ -82,6 +82,7 @@
 
   // ---------- Files ----------
   "backup": true,                 // saving keeps the old file as name.ext.bak
+  "showBackupFiles": false,       // the folder pane lists the .bak files too
   "trimTrailing": true,           // saving removes the spaces and tabs at the line ends of the whole file (a language
                                   // can keep some, or never trim: trimTrailing in its language.yaml)
   "askSaveDrafts": true,          // closing LexPen asks to save changed drafts too (false: they stay drafts, unasked)
