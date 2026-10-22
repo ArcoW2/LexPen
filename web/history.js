@@ -102,7 +102,7 @@ function pickHistory(i) {
   input.setSelectionRange(input.value.length, input.value.length);
 }
 
-// The keys, before the app's own (Alt+Down is next tab elsewhere).
+// The keys, before the app's own (Alt+Down is the next section elsewhere).
 addEventListener('keydown', e => {
   const input = e.target;
   if (!historyFields.has(input)) return;

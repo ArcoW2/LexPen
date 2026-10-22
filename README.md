@@ -88,7 +88,7 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   a default you replaced is shown struck through.
 - **Language actions**: what Format does depends on the language of the file (`defaults\languages\<name>\language.yaml`).
   Markdown has the formatting; every language with comment markers has Toggle comment (Ctrl+/), Toggle block
-  comment (Ctrl+Shift+/) and Remove block comment; Ctrl+PgDn / Ctrl+PgUp (or Alt+Right / Alt+Left) go to the next / previous section
+  comment (Ctrl+Shift+/) and Remove block comment; Ctrl+PgDn / Ctrl+PgUp (or Alt+Down / Alt+Up) go to the next / previous section
   (a heading in markdown, a paragraph in plain text).
 - **The Format menu** holds what the bar above the editor holds, for the language you are in: the comment items,
   then the bar's items in the bar's order with their icons (Format among them; Alt+R opens it). The **Convert
@@ -125,15 +125,17 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   keys, not on a click.
 - **Left at the start of a line** (Options > Settings > Editor, on by default): Left (and Shift+Left) at the first
   column goes on to the end of the line above; off, the cursor stays there.
-- **Character picker** (Edit > Insert character..., Ctrl+Alt+U, or a click on the code in the bottom bar): like
-  the Windows Character Map, every character of the editor font in a grid, drawn in that font, a heading per
-  Unicode block and the blocks at the side; All characters shows every assigned one (those the font lacks marked).
-  Search by code (`e9`, `U+E9`, `#233`), entity (`&eacute;`), the character, or words of its name (the names are
-  Windows', as in the Character Map). A click or Enter adds a character to the free field below, Insert puts that
-  at the cursor (on every line of a block), Copy on the clipboard; a double click inserts one at once; Enter on a
-  code in the search inserts it. Recently used on top. The window is resizable and keeps its size. The bottom bar
-  shows the code of the character after the cursor (`U+00E9`; a byte the encoding could not read as `0xFF`), its
-  name in the tooltip.
+- **Character picker** (Edit > Insert character..., Ctrl+Alt+U, or a click on the code in the bottom bar): a window
+  of its own like the Windows Character Map, not in the way of the document: every character of the editor font in
+  a grid, drawn in that font, a heading per Unicode block and the blocks at the side; All characters shows every
+  assigned one (those the font lacks marked). Search by code (`e9`, `U+E9`, `#233`), entity (`&eacute;`), the
+  character, or words of its name (Windows' names, as in the Character Map). A click or Enter adds a character to
+  the field below; Insert puts the field at the cursor(s) of the LexPen window you worked in last, which comes to the
+  front, and the picker stays open with the field kept (Clear empties it), so you can move the cursor and go on. A
+  double click puts one character there at once, as does Enter on a code in the search. It shows the character at
+  your cursor, recently used ones on top, and keeps its place and size. The bottom bar shows the code of the
+  character after the cursor (`U+00E9`; a byte the encoding could not read as `0xFF`; at a line's end `LF` or
+  `CRLF`, at the end of the text `end`), with its name in the tooltip.
 - **Home** (Options > Settings > Editor): the first non-blank character first, again: column 1 (the default); or
   column 1 at once. Shift+Home selects; in column mode a block goes the same way.
 - **Ctrl+Up / Ctrl+Down**: the text scrolls a line, the cursor staying on its line; with a setting (Editor >
@@ -267,9 +269,15 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   none of its windows has files left (or always, with Keep unnamed projects off); a named one stays until you
   delete it. A new window joins the project of the last window used on its desktop, or starts a new one
   (Options > Settings > General > Windows).
-- **File menu**: New file, Open file, Open folder, Favourites, the recently opened files and folders and the
-  recently closed files (15 each, shared by all windows). An entry that no longer exists is dimmed; choosing it
-  removes it.
+- **File menu**: New file, Open file, Open folder, Favourite files, Favourite folders, the recently opened files
+  and folders and the recently closed files (15 each, shared by all windows). An entry that no longer exists is
+  dimmed; choosing it removes it.
+- **Favourite files and folders**: each list in your order, shared by all windows. File > Favourite files / folders:
+  the list, then Add current (the tab's file; the folder pane's base folder), Add a file / folder... (a picker) and
+  Manage... (a window to put them in order, Up / Down or Ctrl+Up / Ctrl+Down, add, change by the picker, delete).
+  A right-click in the folder pane adds or removes the file or folder under the mouse, the base folder included (the
+  row with its full path under `..`); on a tab, its file. A favourite folder opens in the folder pane: selected when
+  it is inside the folder open there, else as the pane's base folder.
   **Revert to saved** (File menu, and a tab's right-click menu, shown only when the text differs from the file on
   disk): the file as it is on disk; Ctrl+Z gives your changes back.
 - **Drafts**: a new file is kept as a draft (`%LOCALAPPDATA%\LexPen\State\Drafts\editN.md`) until saved, and comes back
@@ -323,8 +331,8 @@ F1 lists every key and action. The main ones of the default set:
 | Ctrl+S / Ctrl+Shift+S | Save / save as |
 | Ctrl+W / Ctrl+F4, Ctrl+Shift+T | Close tab, reopen the last closed tab |
 | Ctrl+Tab / Ctrl+Shift+Tab | Next / previous document |
-| Alt+Up / Alt+Down | Previous / next tab, in the tab bar's order; the focus goes to its editor or preview, as the tab had it last |
-| Alt+Left / Alt+Right, Ctrl+PgUp / Ctrl+PgDn | Previous / next section (paragraph, heading, procedure, ... per language) |
+| Alt+Left / Alt+Right | Previous / next tab, in the tab bar's order; the focus goes to its editor or preview, as the tab had it last |
+| Alt+Up / Alt+Down, Ctrl+PgUp / Ctrl+PgDn | Previous / next section (paragraph, heading, procedure, ... per language) |
 | Mouse back / forward | Back / forward to the tab and file shown before, like a browser |
 | Ctrl+Alt+V, E / P / O | View: the editor, the preview (on / off; one of them stays), the outline |
 | Ctrl+Shift+B, Ctrl+Shift+E | Sidebar, folder pane |
@@ -463,7 +471,7 @@ PowerShell and C# modes and the search, comment and fold add-ons; loaded when th
 | `vendor.ps1` | Rebuilds `web/vendor` |
 
 `%LOCALAPPDATA%\LexPen` holds what you choose: `settings.json` (only what differs from the defaults), `keys.json`,
-`favourites.json`, `tab-colours.json`, `themes\`, `languages\`. What LexPen remembers by itself is in its `State\` subfolder: `state.json`
+`favourites.json`, `favourite-folders.json`, `tab-colours.json`, `themes\`, `languages\`. What LexPen remembers by itself is in its `State\` subfolder: `state.json`
 (recent lists, the fallback window position), `projects.json` (every project and window: tabs and panes, the folder pane's open folders and scroll position, each
 tab's cursor and scroll position, the window's place and desktop; an older `session.json` became project 1),
 `Drafts\`, `clipboards.json`,

@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.Json.Nodes;
 
 namespace LexPen;
 
@@ -105,6 +106,38 @@ static class CharInfo
     /// <summary>The characters whose name holds every word (any case), of the font's list or of all.</summary>
     public static List<int> Search(IEnumerable<int> chars, string[] words) =>
         chars.Where(c => Name(c) is { } name && words.All(w => name.Contains(w, StringComparison.OrdinalIgnoreCase))).ToList();
+
+    /// <summary>The picker's requests, from the picker window and the main windows (the bottom bar's names):
+    /// charList (the characters of a font, or all with those of the font apart, and the blocks), charName, charSearch.</summary>
+    public static (bool Handled, JsonNode? Result) Request(string op, JsonNode msg)
+    {
+        string Arg(string name) => msg[name]!.GetValue<string>();
+        switch (op)
+        {
+            case "charList":
+            {
+                var font = FontCharsKept(Arg("font"));
+                var all = msg["all"]?.GetValue<bool>() == true;
+                return (true, new JsonObject
+                {
+                    ["found"] = font is not null,
+                    ["chars"] = new JsonArray([.. (all ? AllChars() : font ?? []).Select(c => (JsonNode?)c)]),
+                    ["inFont"] = all ? new JsonArray([.. (font ?? []).Select(c => (JsonNode?)c)]) : null,
+                    ["blocks"] = new JsonArray([.. Blocks().Select(b => (JsonNode?)new JsonArray(b.First, b.Length, b.Name))]),
+                });
+            }
+            case "charName":
+                return (true, Name(msg["code"]!.GetValue<int>()));
+            case "charSearch":
+            {
+                var words = Arg("words").Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                var chars = msg["all"]?.GetValue<bool>() == true ? AllChars() : FontCharsKept(Arg("font")) ?? [];
+                return (true, new JsonArray([.. Search(chars, words).Select(c => (JsonNode?)c)]));
+            }
+            default:
+                return (false, null);
+        }
+    }
 
     // Every assigned character up to U+FFFF (for "All characters"): made once, kept.
     static List<int>? all;

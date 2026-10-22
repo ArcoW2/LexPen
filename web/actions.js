@@ -199,7 +199,7 @@ appAction('scrollLine.up', { title: 'Scroll up a line', hint: 'The text moves do
   run: (_, { pane, extend }) => scrollLine(pane.cm, -1, extend) });
 // The character picker (charpicker.js), at the character after the cursor.
 appAction('insertCharacter', { title: 'Insert character', hint: 'A picker like the Windows Character Map: the characters of the editor font, search by code, entity or name, gather some and insert them', group: 'edit', editor: true,
-  run: (_, { pane }) => { const at = charAtCursor(pane.cm); openCharPicker(at && !at.byte ? at.code : null); } });
+  run: (_, { pane }) => openCharPicker(pickerCode(charAtCursor(pane.cm))) });
 appAction('goToLine', { title: 'Go to line', hint: 'A line number, or line:column; the cursor goes there', group: 'edit', editor: true,
   run: async (_, { pane }) => {
     const cm = pane.cm, here = cm.getCursor();

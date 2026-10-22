@@ -22,10 +22,10 @@
   "Ctrl+F4": "closeTab",
   "Ctrl+Shift+T": "reopenTab",
   "Alt+Z": "wrap.toggle",
-  "Alt+Up": "previousTab",           // the tab to the left (the tab bar's order), as UltraEdit's Alt+Up / Down
-  "Alt+Down": "nextTab",
-  "Alt+Left": ["section", -1],       // the previous / next section: paragraph, heading, procedure, ... per language
-  "Alt+Right": ["section", 1],
+  "Alt+Left": "previousTab",         // the tab to the left / right (the tab bar's order): sideways, as the tabs lie
+  "Alt+Right": "nextTab",
+  "Alt+Up": ["section", -1],         // the previous / next section: paragraph, heading, procedure, ... per language
+  "Alt+Down": ["section", 1],
   "Alt+C": "columnMode.toggle",             // column mode: a drag and Shift+arrows select a block (COL in the bottom bar)
   "Alt+Shift+Up": ["blockSelect", "up"],       // a block from the cursor, also without column mode
   "Alt+Shift+Down": ["blockSelect", "down"],

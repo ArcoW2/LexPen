@@ -21,6 +21,7 @@ sealed class AppHost : ApplicationContext
     static string StatePath => Path.Combine(DataFolder.StateDir(DataDir), "state.json");
     static string SessionPath => DataFolder.StatePath(DataDir, "session.json");
     static string FavouritesPath => Path.Combine(DataDir, DataFolder.FavouritesName);
+    static string FavouriteFoldersPath => Path.Combine(DataDir, DataFolder.FavouriteFoldersName);
     // Settings that were kept in the page's storage go to settings.json once; this file says it happened.
     static string PageSettingsMovedPath => Path.Combine(DataFolder.StateDir(DataDir), "page-settings-moved");
 
@@ -37,10 +38,12 @@ sealed class AppHost : ApplicationContext
         public List<string> ClosedFiles { get; set; } = [];
         public List<FindEntry> FindHistory { get; set; } = [];
         public List<string> ReplaceHistory { get; set; } = [];
+        public int[]? CharPicker { get; set; }   // the character picker's place: x, y, width, height
     }
 
     public AppState State { get; } = LoadState();
-    List<string> favourites = LoadFavourites();
+    List<string> favourites = LoadFavourites(FavouritesPath);
+    List<string> favouriteFolders = LoadFavourites(FavouriteFoldersPath);
     public DraftStore Drafts { get; } = new(DataFolder.StatePath(DataDir, "Drafts"));
     public ClipboardStore Clipboards { get; } = new(DataFolder.StatePath(DataDir, "clipboards.json"));
     public BookmarkStore Bookmarks { get; } = new(DataFolder.StatePath(DataDir, "bookmarks.json"));
@@ -280,6 +283,8 @@ sealed class AppHost : ApplicationContext
             w.Post(new JsonObject { ["event"] = "look", ["look"] = look.DeepClone() });
         }
         settingsWindow?.ApplyTheme();
+        charPicker?.ApplyTheme();
+        charPicker?.Post(new JsonObject { ["event"] = "look", ["look"] = look.DeepClone() });
         settingsWindow?.Post(new JsonObject { ["event"] = "look", ["look"] = look.DeepClone() });
     }
 
@@ -334,6 +339,7 @@ sealed class AppHost : ApplicationContext
     /// <summary>The rows of the settings window, as a main window's page describes them (actions.js).</summary>
     public JsonNode? SettingDefs { get; set; }
     SettingsForm? settingsWindow;
+    CharPickerForm? charPicker;
 
     readonly List<MainForm> windows = [];   // opening order: "next window" and the [n] in the title
     readonly List<MainForm> recent = [];    // most recently active first
@@ -547,6 +553,7 @@ sealed class AppHost : ApplicationContext
         if (windows.Count == 0)
         {
             settingsWindow?.Close();
+            charPicker?.Close();
             Drafts.Flush();
             ExitThread();
         }
@@ -674,6 +681,7 @@ sealed class AppHost : ApplicationContext
         settings = SettingsFile.Load(DataDir);
         foreach (var w in windows) w.Post(new JsonObject { ["event"] = "settings", ["settings"] = settings.DeepClone() });
         settingsWindow?.Post(new JsonObject { ["event"] = "settings", ["settings"] = settings.DeepClone() });
+        charPicker?.Post(new JsonObject { ["event"] = "settings", ["settings"] = settings["values"]?.DeepClone() });
         if (Look().ToJsonString() != before) SendLook();
     }
 
@@ -744,6 +752,34 @@ sealed class AppHost : ApplicationContext
         settingsWindow = new SettingsForm(this, from);
         settingsWindow.FormClosed += (_, _) => settingsWindow = null;
         settingsWindow.Show(from);
+    }
+
+    /// <summary>The character picker: one for the app; opened again, brought to the front at that character. The
+    /// main windows hear whether it is open (they then tell it the character after their cursor).</summary>
+    public void OpenCharPicker(MainForm from, int? code)
+    {
+        if (charPicker is { IsDisposed: false })
+        {
+            charPicker.Post(new JsonObject { ["event"] = "goTo", ["code"] = code });
+            BringToFront(charPicker);
+            return;
+        }
+        charPicker = new CharPickerForm(this, from, code);
+        charPicker.FormClosed += (_, _) =>
+        {
+            charPicker = null;
+            foreach (var w in windows) w.Post(new JsonObject { ["event"] = "charPicker", ["open"] = false });
+        };
+        foreach (var w in windows) w.Post(new JsonObject { ["event"] = "charPicker", ["open"] = true });
+        charPicker.Show(from);
+    }
+
+    public void CharPickerCursor(int? code) => charPicker?.Post(new JsonObject { ["event"] = "cursor", ["code"] = code });
+
+    public void SaveCharPicker(int[] bounds)
+    {
+        State.CharPicker = bounds;
+        SaveState();
     }
 
     /// <summary>From the settings window: a window of LexPen to work in (the most recently active one).</summary>
@@ -818,6 +854,7 @@ sealed class AppHost : ApplicationContext
             ["folders"] = Entries(State.RecentFolders, true),
             ["closed"] = Entries(State.ClosedFiles, false),
             ["favourites"] = Entries(favourites, false),
+            ["favouriteFolders"] = Entries(favouriteFolders, true),
         };
     }
 
@@ -845,17 +882,19 @@ sealed class AppHost : ApplicationContext
         SaveState();
     }
 
-    // Favourite files: kept until removed, in the order they were added.
-    public void FavouriteAdd(string path)
-    {
-        favourites = RecentList.Append(favourites, path);
-        SaveFavourites();
-    }
+    // Favourite files and folders (kind "files" or "folders"): kept until removed, in your order (added at the end,
+    // or put in order by Manage).
+    public void FavouriteAdd(string kind, string path) => SetFavourites(kind, RecentList.Append(Favourites(kind), path));
+    public void FavouriteRemove(string kind, string path) => SetFavourites(kind, RecentList.Remove(Favourites(kind), path));
 
-    public void FavouriteRemove(string path)
+    List<string> Favourites(string kind) => kind == "folders" ? favouriteFolders : favourites;
+
+    public void SetFavourites(string kind, List<string> list)
     {
-        favourites = RecentList.Remove(favourites, path);
-        SaveFavourites();
+        list = RecentList.Unique(list);
+        if (kind == "folders") favouriteFolders = list; else favourites = list;
+        Directory.CreateDirectory(DataDir);
+        File.WriteAllText(kind == "folders" ? FavouriteFoldersPath : FavouritesPath, JsonSerializer.Serialize(list));
     }
 
     // ---------- Tab colours, shared by all windows ----------
@@ -905,16 +944,10 @@ sealed class AppHost : ApplicationContext
         catch { return new(); }
     }
 
-    // Favourite files: a choice you make, so a file next to settings.json (a list of paths).
-    void SaveFavourites()
+    // Favourite files and folders: a choice you make, so files next to settings.json (lists of paths).
+    static List<string> LoadFavourites(string path)
     {
-        Directory.CreateDirectory(DataDir);
-        File.WriteAllText(FavouritesPath, JsonSerializer.Serialize(favourites));
-    }
-
-    static List<string> LoadFavourites()
-    {
-        try { return JsonSerializer.Deserialize<List<string>>(File.ReadAllText(FavouritesPath)) ?? []; }
+        try { return JsonSerializer.Deserialize<List<string>>(File.ReadAllText(path)) ?? []; }
         catch { return []; }
     }
 

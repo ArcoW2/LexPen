@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:">
+<title>Characters - LexPen</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="charpicker.css">
+</head>
+<body class="cp-body">
+<div class="mm-cp-top">
+  <input class="mm-cp-search" placeholder="A code (e9, U+E9, #233), &amp;eacute;, a character or words of its name" spellcheck="false">
+  <label class="mm-cp-all"><input type="checkbox"> All characters</label>
+  <input class="mm-cp-zoom" type="range" min="20" max="72" step="2" title="Size">
+</div>
+<div class="mm-cp-recent" title="Recently used" hidden></div>
+<div class="mm-cp-body">
+  <div class="mm-cp-blocks"></div>
+  <div class="mm-cp-grid" tabindex="0"><div class="mm-cp-space"></div></div>
+  <div class="mm-cp-info">
+    <div class="mm-cp-big"></div><div class="mm-cp-code"></div><div class="mm-cp-name"></div><div class="mm-cp-bytes"></div>
+    <div class="mm-cp-cursor" hidden>At the cursor: <span class="mm-cp-cursor-char"></span> <button class="mm-cp-cursor-go">Show</button></div>
+  </div>
+</div>
+<div class="mm-cp-note" hidden></div>
+<div class="mm-cp-bottom">
+  <input class="mm-cp-field" placeholder="Characters to insert" spellcheck="false">
+  <button class="mm-cp-clear" title="Empty the field">C<u>l</u>ear</button>
+  <button class="mm-cp-insert" title="At the cursor(s) of the LexPen window you worked in last (the picker stays open)"><u>I</u>nsert</button>
+  <button class="mm-cp-copy"><u>C</u>opy</button>
+</div>
+<script src="charpage.js"></script>
+</body>
+</html>

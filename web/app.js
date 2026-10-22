@@ -1419,7 +1419,7 @@ function updateStatus() {
   statusUi.char.hidden = !at;
   statusUi.char.textContent = at ? at.label : '';
   statusUi.char.title = '';
-  statusUi.char.dataset.code = at ? at.code : '';
+  tellCharPicker(at);   // while the picker window is open (charpicker.js)
   statusUi.ins.textContent = cm ? (cm.state.overwrite ? 'OVR' : 'INS') : '';
   statusUi.col.hidden = !column.on;
   statusUi.ins.classList.toggle('mm-on', !!cm?.state.overwrite);
@@ -1442,8 +1442,8 @@ statusUi.char.addEventListener('mouseenter', async () => {
   if (at) statusUi.char.title = await charTitle(at);
 });
 statusUi.char.addEventListener('click', () => {
-  const cm = panes[state.activePane].cm, at = cm && charAtCursor(cm);
-  openCharPicker(at && !at.byte ? at.code : null);
+  const cm = panes[state.activePane].cm;
+  openCharPicker(pickerCode(cm && charAtCursor(cm)));
 });
 statusUi.lang.addEventListener('click', () => showLanguageList());
 
@@ -1901,7 +1901,22 @@ function parentOf(path) {
 }
 
 // ".." at the top of the tree: the folder above the open one.
+// The two rows on top: the base folder with its full path (to right-click: copy, favourite folders; not a folder to
+// open or close), and above it `..`, up a folder (none at a drive's root).
 function addUpRow(container) {
+  if (state.root) {
+    const base = document.createElement('div');
+    base.className = 'mm-row mm-base';
+    base.dataset.path = state.root;
+    base.dataset.depth = -1;
+    base.style.paddingLeft = '8px';
+    base.title = state.root;
+    // The path as text in a right-to-left row (app.css), held left-to-right by a mark at each end: a long one is cut
+    // off at its start, so the folder's own name stays in view.
+    const ltr = String.fromCharCode(0x200E);
+    base.textContent = ltr + state.root + ltr;
+    container.prepend(base);
+  }
   const parent = parentOf(state.root || '');
   if (!parent) return;
   const row = document.createElement('div');
@@ -1991,7 +2006,7 @@ ui.tree.addEventListener('keydown', async e => {
     case 'Enter':
       if (row.classList.contains('mm-up')) await goUp();
       else if (isDir) await toggleDir(row);
-      else if (!row.classList.contains('mm-gone')) {
+      else if (!row.classList.contains('mm-gone') && !row.classList.contains('mm-base')) {
         await openFromTree(row.dataset.path, e);
         ui.tree.focus();   // keep walking the tree
       }
@@ -2013,7 +2028,7 @@ function markTreeActive() {
 }
 
 function markFresh() {
-  for (const row of ui.tree.querySelectorAll('.mm-row:not(.mm-up)')) {
+  for (const row of ui.tree.querySelectorAll('.mm-row:not(.mm-up):not(.mm-base)')) {
     const key = row.dataset.path.toLowerCase();
     row.classList.toggle('mm-fresh', freshPaths.has(key));
     row.classList.toggle('mm-fresh-dir', row.classList.contains('mm-dir') && [...freshPaths].some(p => p.startsWith(key + '\\')));
@@ -2073,7 +2088,7 @@ ui.tree.addEventListener('click', e => {
   const row = e.target.closest('.mm-row');
   if (!row) return;
   setTreeCursor(row, false);
-  if (row.classList.contains('mm-gone')) return;
+  if (row.classList.contains('mm-gone') || row.classList.contains('mm-base')) return;
   if (row.classList.contains('mm-up')) goUp();
   else if (row.classList.contains('mm-dir')) toggleDir(row);
   else openFromTree(row.dataset.path, e);
@@ -2088,7 +2103,7 @@ function openFromTree(path, { ctrlKey, shiftKey }) {
 }
 ui.tree.addEventListener('dragstart', e => {
   const row = e.target.closest('.mm-row');
-  if (!row) return;
+  if (!row || row.classList.contains('mm-base')) return;
   draggedPathIsImage = IMAGE_FILE.test(row.dataset.path);
   e.dataTransfer.setData(PATH_TYPE, row.dataset.path);
   e.dataTransfer.setData('text/plain', row.dataset.path);
@@ -3284,6 +3299,7 @@ document.addEventListener('pointerdown', dismissNotices, true);
 
 // ---------- Context menus ----------
 let contextPath = null, menuTab = null, menuPane = null;
+let contextKind = 'files';   // the tree row right-clicked: a file or a folder (favourites)
 
 function showMenu(menu, e, remember) {
   e.preventDefault();
@@ -3301,7 +3317,8 @@ document.addEventListener('contextmenu', e => {
   const row = e.target.closest('.mm-tree .mm-row');
   if (row) showMenu(ui.treeMenu, e, () => {
     contextPath = row.dataset.path;
-    favouriteItem(ui.treeMenu, row.classList.contains('mm-dir') ? null : contextPath);
+    contextKind = row.classList.contains('mm-dir') || row.classList.contains('mm-base') ? 'folders' : 'files';
+    favouriteItem(ui.treeMenu, contextPath, contextKind);   // favourites.js
   });
   else if (!e.target.closest('.mm-tabs, .mm-divider')) hideMenus();   // those open their own menu
 });
@@ -3513,45 +3530,11 @@ ui.splitter.addEventListener('pointerdown', e => {
   }, { once: true });
 });
 
-// ---------- Favourite files ----------
-// Kept by the host (settings, shared by all windows), in the order they were added.
-let favourites = [];
-const isFavourite = path => favourites.some(p => samePath(p, path));
-
-// The "Add to / Remove from favourites" item of a right-click menu; hidden without a file. The list is
-// asked for when the menu opens, so the label follows changes made in other windows.
-function favouriteItem(menu, path) {
-  const item = menu.querySelector('.mm-fav-item');
-  item.hidden = !path;
-  if (!path) return;
-  item.textContent = isFavourite(path) ? 'Remove from favourites' : 'Add to favourites';
-  host('recent').then(lists => {
-    favourites = lists.favourites.map(e => e.path);
-    item.textContent = isFavourite(path) ? 'Remove from favourites' : 'Add to favourites';
-  }, () => {});
-}
-
-async function toggleFavourite(path) {
-  if (!path) return;
-  const on = !isFavourite(path);
-  await host(on ? 'favouriteAdd' : 'favouriteRemove', { path });
-  favourites = on ? [...favourites, path] : favourites.filter(p => !samePath(p, path));
-  toast(on ? `${nameOf(path)} added to favourites.` : `${nameOf(path)} removed from favourites.`, true);
-}
-
-// A favourite that is open somewhere in the window: that tab is selected; else it opens.
-async function openFavourite(path) {
-  const tab = allTabs().find(t => samePath(t.doc.path, path));
-  if (tab) return activate(paneOf(tab), tab);
-  await openFile(path).catch(e => toast(e.message));
-}
-
 async function openRecent(list, path, missing) {
   if (missing) {
-    host(list === 'favourites' ? 'favouriteRemove' : 'recentRemove', { path });
+    host('recentRemove', { path });
     return toast(`${path} no longer exists; removed from the list.`, true);
   }
-  if (list === 'favourites') return openFavourite(path);
   if (list === 'folders') {
     await openFolder(path);
     setSidebar(true);
@@ -3659,7 +3642,7 @@ const commands = {
   copyRelativePath: () => copyText(relativePath(contextPath)),
   favouriteToggle: () => toggleFavourite(activeDoc()?.path),
   tabFavourite: () => menuTab && toggleFavourite(menuTab.doc.path),
-  treeFavourite: () => toggleFavourite(contextPath),
+  treeFavourite: () => toggleFavourite(contextPath, contextKind),
   about: showAbout,
   exit: () => host('exit'),   // the window still asks about unsaved changes
   // Day / night: following Windows, the other mode until Windows changes mode; else the other mode, kept.

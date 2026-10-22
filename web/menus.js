@@ -11,7 +11,8 @@
 const MENUS = [
   ['&File', [
     ['&New file', 'newFile'], ['&Open file...', 'openFile'], ['Open &folder...', 'openFolder'], '-',
-    { label: 'Fa&vourites', fill: () => recentItems('favourites') },
+    { label: 'Fa&vourite files', fill: () => favouriteItems('files') },
+    { label: 'Favo&urite folders', fill: () => favouriteItems('folders') },
     { label: '&Recent files', fill: () => recentItems('files') },
     { label: 'Recent fold&ers', fill: () => recentItems('folders') },
     { label: 'Recently &closed', fill: () => recentItems('closed') }, '-',
@@ -393,15 +394,11 @@ async function showFontList(setting) {
 // takes it off the list.
 async function recentItems(list) {
   const lists = await host('recent');
-  favourites = lists.favourites.map(e => e.path);
   const items = lists[list].map(({ path, exists }) => ({
     label: nameOf(path) || path, plain: true, key: dirOf(path),
     title: exists ? path : `${path}
 No longer exists; click to remove it from the list`,
     cls: exists ? '' : 'mm-missing', run: () => openRecent(list, path, !exists),
   }));
-  if (list !== 'favourites') return items;
-  const path = activeDoc()?.path;
-  return [{ label: path && isFavourite(path) ? '&Remove current file' : '&Add current file', enabled: !!path,
-    run: () => toggleFavourite(path) }, ...(items.length ? ['-'] : []), ...items];
+  return items;
 }

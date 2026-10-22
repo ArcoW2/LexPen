@@ -30,6 +30,12 @@ public class RecentListTests
     }
 
     [Fact]
+    public void UniqueKeepsYourOrderWithoutDoubles()
+    {
+        Assert.Equal([@"C:\b", @"C:\a", @"D:\c"], RecentList.Unique([@"C:\b", @"C:\a", @"c:\B", "", @"D:\c", " "]));
+    }
+
+    [Fact]
     public void RemoveIgnoresCase()
     {
         Assert.Equal([@"C:\a.md"], RecentList.Remove([@"C:\a.md", @"C:\b.md"], @"c:\B.MD"));

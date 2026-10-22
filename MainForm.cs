@@ -417,6 +417,7 @@ sealed class MainForm : Form
 
     JsonNode? Dispatch(JsonNode msg, string[]? files)
     {
+        if (CharInfo.Request(msg["op"]?.GetValue<string>() ?? "", msg) is { Handled: true } chars) return chars.Result;
         string Arg(string name) => msg[name]!.GetValue<string>();
 
         switch (Arg("op"))
@@ -446,10 +447,16 @@ sealed class MainForm : Form
                 var filter = app.FileFilter();   // from the language packs
                 using var d = new OpenFileDialog
                 {
-                    Multiselect = true,
+                    Multiselect = msg["one"]?.GetValue<bool>() != true,
                     Filter = filter,
                     FilterIndex = filter.Split('|').Length / 2,   // starts on All files (the last)
                 };
+                // At a file (Manage, Change): its folder, the file chosen.
+                if (msg["at"]?.GetValue<string>() is { Length: > 0 } at)
+                {
+                    d.InitialDirectory = Path.GetDirectoryName(at);
+                    d.FileName = Path.GetFileName(at);
+                }
                 return d.ShowDialog(this) == DialogResult.OK
                     ? new JsonArray(d.FileNames.Select(f => (JsonNode?)f).ToArray())
                     : null;
@@ -532,30 +539,15 @@ sealed class MainForm : Form
                 app.ClipboardsChanged();
                 return null;
 
-            // The character picker (CharInfo): the characters of a font (all: every assigned one, with those of the
-            // font apart), the blocks, a name, a search by name.
-            case "charList":
-            {
-                var font = CharInfo.FontCharsKept(Arg("font"));
-                var all = msg["all"]?.GetValue<bool>() == true;
-                return new JsonObject
-                {
-                    ["found"] = font is not null,
-                    ["chars"] = new JsonArray([.. (all ? CharInfo.AllChars() : font ?? []).Select(c => (JsonNode?)c)]),
-                    ["inFont"] = all ? new JsonArray([.. (font ?? []).Select(c => (JsonNode?)c)]) : null,
-                    ["blocks"] = new JsonArray([.. CharInfo.Blocks().Select(b => (JsonNode?)new JsonArray(b.First, b.Length, b.Name))]),
-                };
-            }
+            // The character picker (CharPickerForm): opened at a character; the character after the cursor, while it
+            // is open.
+            case "openCharPicker":
+                app.OpenCharPicker(this, msg["code"]?.GetValue<int>());
+                return null;
 
-            case "charName":
-                return CharInfo.Name(msg["code"]!.GetValue<int>());
-
-            case "charSearch":
-            {
-                var words = Arg("words").Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                var chars = msg["all"]?.GetValue<bool>() == true ? CharInfo.AllChars() : CharInfo.FontCharsKept(Arg("font")) ?? [];
-                return new JsonArray([.. CharInfo.Search(chars, words).Select(c => (JsonNode?)c)]);
-            }
+            case "pickerCursor":
+                app.CharPickerCursor(msg["code"]?.GetValue<int>());
+                return null;
 
             case "clipGet":
                 return app.Clipboards.Get(msg["n"]!.GetValue<int>());
@@ -583,6 +575,7 @@ sealed class MainForm : Form
             case "pickFolder":
             {
                 using var d = new FolderBrowserDialog();
+                if (msg["at"]?.GetValue<string>() is { Length: > 0 } at) d.SelectedPath = at;   // Manage, Change
                 return d.ShowDialog(this) == DialogResult.OK ? d.SelectedPath : null;
             }
 
@@ -794,12 +787,17 @@ sealed class MainForm : Form
                 app.RecentRemove(Arg("path"));
                 return null;
 
+            // Favourite files or folders (kind: "files", the default, or "folders"); set: the whole list in an order.
             case "favouriteAdd":
-                app.FavouriteAdd(Arg("path"));
+                app.FavouriteAdd(msg["kind"]?.GetValue<string>() ?? "files", Arg("path"));
                 return null;
 
             case "favouriteRemove":
-                app.FavouriteRemove(Arg("path"));
+                app.FavouriteRemove(msg["kind"]?.GetValue<string>() ?? "files", Arg("path"));
+                return null;
+
+            case "favouriteSet":
+                app.SetFavourites(msg["kind"]?.GetValue<string>() ?? "files", Strings(msg["list"]).ToList());
                 return null;
 
             case "placeImages":

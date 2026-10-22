@@ -83,4 +83,5 @@ static class DataFolder
     }
 
     public const string FavouritesName = "favourites.json";
+    public const string FavouriteFoldersName = "favourite-folders.json";
 }
