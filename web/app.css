@@ -217,6 +217,17 @@ body[data-show-ws] .CodeMirror .cm-tab {
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 8' preserveAspectRatio='none'%3E%3Cpath d='M1 4h13M10.5 1.2L13.8 4 10.5 6.8' fill='none' stroke='black' stroke-width='1.1'/%3E%3C/svg%3E") no-repeat 0.15em 55% / calc(100% - 0.3em) 0.55em;
 }
 body[data-show-eol] .CodeMirror .CodeMirror-line:not(.mm-last-line)::after { color: var(--whitespace); }
+/* A character that cannot be seen (setting showSpecialChars, app.js specialBox): its code in a box, inverted; a byte the
+   encoding of the file could not read in the caution colour. One character for the cursor, however wide. */
+.CodeMirror .mm-special { padding: 0 2px; border-radius: 2px; background: var(--fg); color: var(--bg); font-size: .85em; vertical-align: baseline; }
+.CodeMirror .mm-special.mm-unread { background: var(--caution); color: #fff; }
+/* Ctrl+Up / Ctrl+Down at the start or end of the text (virtual.js flashEdge): a fat line at that edge, three flashes
+   in one second, in the theme's warning colour. */
+.mm-edge-flash { position: absolute; left: 0; right: 0; height: 4px; z-index: 7; pointer-events: none; background: var(--warning);
+  animation: mm-edge-flash 1s steps(1) forwards; }
+.mm-edge-top { top: 0; }
+.mm-edge-bottom { bottom: 0; }
+@keyframes mm-edge-flash { 0% { opacity: 1; } 16.7% { opacity: 0; } 33.3% { opacity: 1; } 50% { opacity: 0; } 66.7% { opacity: 1; } 83.3%, 100% { opacity: 0; } }
 body[data-show-eol] .CodeMirror[data-eol=crlf] .CodeMirror-line:not(.mm-last-line)::after { content: '\00B6'; }
 body[data-show-eol] .CodeMirror[data-eol=lf] .CodeMirror-line:not(.mm-last-line)::after { content: '\240A'; }
 
@@ -733,22 +744,31 @@ body[data-bracket-highlight=underline] .CodeMirror .mm-bracket.mm-bracket-bad { 
 
 /* Indent guides (guides.js): a line class mm-gk-... per set of guide columns sets --mm-guide-img, -pos and -size
    (its rule made by guides.js), --mm-gc the cursor's guide (in ch), set on the editor. Setting indentGuides: comment
-   (the default), rainbow (guide1 to guide6 per nesting depth, repeating), off; indentGuideCursor: the cursor's guide
-   in the find box's colour, on top. */
+   (the default), rainbow (guide1 to guide6 per nesting depth, repeating), colour (one colour, --mm-guide-one), off;
+   each mixed by --mm-guide-mix (indentGuideIntensity). indentGuideCursor: the cursor's guide on top, in --mm-gcur-colour
+   mixed by --mm-gcur-mix. The variables are set on the body (app.js applySettings). */
 .mm-editor-pane .CodeMirror pre.CodeMirror-line {
-  --mm-guide1: color-mix(in srgb, var(--hl-comment) 55%, transparent);
+  --mm-guide1: color-mix(in srgb, var(--hl-comment) var(--mm-guide-mix, 55%), transparent);
   --mm-guide2: var(--mm-guide1); --mm-guide3: var(--mm-guide1); --mm-guide4: var(--mm-guide1);
   --mm-guide5: var(--mm-guide1); --mm-guide6: var(--mm-guide1);
   background-image: var(--mm-guide-img, none); background-position: var(--mm-guide-pos, 0 0);
   background-size: var(--mm-guide-size, auto); background-repeat: no-repeat; background-origin: content-box;
 }
 body[data-indent-guides=rainbow] .mm-editor-pane .CodeMirror pre.CodeMirror-line {
-  --mm-guide1: var(--guide1); --mm-guide2: var(--guide2); --mm-guide3: var(--guide3);
-  --mm-guide4: var(--guide4); --mm-guide5: var(--guide5); --mm-guide6: var(--guide6);
+  --mm-guide1: color-mix(in srgb, var(--guide1) var(--mm-guide-mix, 55%), transparent);
+  --mm-guide2: color-mix(in srgb, var(--guide2) var(--mm-guide-mix, 55%), transparent);
+  --mm-guide3: color-mix(in srgb, var(--guide3) var(--mm-guide-mix, 55%), transparent);
+  --mm-guide4: color-mix(in srgb, var(--guide4) var(--mm-guide-mix, 55%), transparent);
+  --mm-guide5: color-mix(in srgb, var(--guide5) var(--mm-guide-mix, 55%), transparent);
+  --mm-guide6: color-mix(in srgb, var(--guide6) var(--mm-guide-mix, 55%), transparent);
+}
+body[data-indent-guides=colour] .mm-editor-pane .CodeMirror pre.CodeMirror-line {
+  --mm-guide1: color-mix(in srgb, var(--mm-guide-one, var(--accent)) var(--mm-guide-mix, 55%), transparent);
 }
 body[data-indent-guides=off] .mm-editor-pane .CodeMirror pre.CodeMirror-line { --mm-guide-img: none; }
 .mm-editor-pane .CodeMirror pre.CodeMirror-line.mm-guide-cur {
-  background-image: linear-gradient(var(--find-box), var(--find-box)), var(--mm-guide-img, none);
+  --mm-gcur: color-mix(in srgb, var(--mm-gcur-colour, var(--find-box)) var(--mm-gcur-mix, 100%), transparent);
+  background-image: linear-gradient(var(--mm-gcur), var(--mm-gcur)), var(--mm-guide-img, none);
   background-position: var(--mm-gc, 0) 0, var(--mm-guide-pos, 0 0); background-size: 1px 100%, var(--mm-guide-size, auto);
 }
 
@@ -822,7 +842,7 @@ body[data-no-format-bar] .mm-format, .mm-editor-pane[data-lang] .mm-format:not(.
 }
 .mm-preview pre { padding: 14px 16px; overflow: auto; border-radius: 6px; background: var(--bg-code); line-height: 1.5; }
 /* Wrap long lines (setWrap); a very long line always wraps, see LONG_LINE. */
-body:not([data-nowrap]) .mm-preview pre, .mm-preview pre.mm-long-line { white-space: pre-wrap; overflow-wrap: anywhere; }
+body:not([data-preview-nowrap]) .mm-preview pre, .mm-preview pre.mm-long-line { white-space: pre-wrap; overflow-wrap: anywhere; }
 .mm-preview pre code { padding: 0; background: none; font-size: 13px; }
 .mm-preview pre.mermaid { background: none; text-align: center; }
 

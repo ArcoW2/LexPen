@@ -32,6 +32,42 @@ public class TextFileTests : IDisposable
         Assert.Equal(bytes, File.ReadAllBytes(path));
     }
 
+    // A byte the encoding cannot read: a stand-in (TextFile.StandIn + the byte), written back as that byte.
+    [Theory]
+    [InlineData(new byte[] { 0xEF, 0xBB, 0xBF, 0x61, 0xFF, 0x62, 0xC3 }, TextFile.Utf8Bom, "ab")]
+    [InlineData(new byte[] { 0xFF, 0xFE, 0x61, 0x00, 0x00, 0xDC, 0x62, 0x00, 0x63 }, TextFile.Utf16Le, "ab")]
+    [InlineData(new byte[] { 0xFE, 0xFF, 0x00, 0x61, 0xD8, 0x00, 0x00, 0x62 }, TextFile.Utf16Be, "ab")]
+    public void KeepsBytesItCannotRead(byte[] bytes, string encoding, string expected)
+    {
+        var (text, found) = TextFile.Decode(bytes);
+        Assert.Equal(encoding, found);
+        Assert.Equal(expected, text);
+        Assert.Equal(bytes, TextFile.Encode(text, found, "f"));
+    }
+
+    // A real character in the stand-ins' range is kept as the stand-ins of its own bytes, so it is never written
+    // back as one byte.
+    [Theory]
+    [InlineData(TextFile.Utf8)]
+    [InlineData(TextFile.Utf8Bom)]
+    [InlineData(TextFile.Utf16Le)]
+    public void ARealCharacterOfTheRangeComesBackTheSame(string encoding)
+    {
+        var bytes = TextFile.Encode("xy", encoding, "f");
+        var (text, found) = TextFile.Decode(bytes);
+        Assert.Equal(encoding, found);
+        Assert.DoesNotContain('', text);
+        Assert.Equal(bytes, TextFile.Encode(text, found, "f"));
+    }
+
+    [Fact]
+    public void PlainTextHasNoStandIns()
+    {
+        var (text, _) = TextFile.Decode("plain\r\ntext"u8.ToArray());
+        Assert.Equal("plain\r\ntext", text);
+        Assert.DoesNotContain(text, TextFile.IsStandIn);
+    }
+
     [Fact]
     public void AnsiRefusesCharactersItCannotHold()
     {

@@ -104,6 +104,27 @@ static class KeysFile
     }
 
     /// <summary>The merged set for this installation: defaults\keys.json and the user's file in the data folder.</summary>
+    // Actions renamed (plan 23: what it acts on, a dot, what it does): old name -> new name.
+    public static readonly Dictionary<string, string> Renamed = new()
+    {
+        ["pinTab"] = "pin.toggle", ["readOnly"] = "readOnly.toggle", ["togglePreview"] = "split.toggle",
+        ["editorSwitch"] = "editor.toggle", ["previewSwitch"] = "preview.toggle", ["outline"] = "outline.toggle",
+        ["wrap"] = "wrap.toggle", ["ruler"] = "ruler.toggle", ["rulerOn"] = "ruler.show", ["rulerOff"] = "ruler.hide",
+        ["sidebar"] = "sidebar.toggle", ["formatBar"] = "formatBar.toggle", ["compareScroll"] = "compareScroll.toggle",
+        ["theme"] = "theme.toggle", ["columnMode"] = "columnMode.toggle", ["overwrite"] = "overwrite.toggle",
+        ["backup"] = "backup.toggle", ["findShared"] = "findShared.toggle", ["lineBreaks"] = "lineBreaks.toggle",
+        ["movePinned"] = "movePinned.toggle", ["gutterColumn"] = "gutterColumn.toggle",
+        ["paneOrientation"] = "paneOrientation.set", ["tabBar"] = "tabBar.set", ["tabOrder"] = "tabOrder.set",
+        ["findWrap"] = "findWrap.set", ["lineNumbers"] = "lineNumbers.set", ["lineNumberCount"] = "lineNumberCount.set",
+    };
+
+    static readonly System.Text.RegularExpressions.Regex ActionValue = new(
+        "(\"[^\"\\r\\n]*\"\\s*:\\s*\\[?\\s*\")(" + string.Join("|", Renamed.Keys) + ")(\")");
+
+    /// <summary>A keys.json with the old action names renamed: only where a name is an action (the value of a key,
+    /// or the first item of its list); the keys, comments and the rest of the text stay as they are.</summary>
+    public static string RenameActions(string text) => ActionValue.Replace(text, m => m.Groups[1].Value + Renamed[m.Groups[2].Value] + m.Groups[3].Value);
+
     public static JsonObject Load(string dataDir)
     {
         var defaults = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, AppHost.DefaultsFolder, Name));
@@ -111,6 +132,13 @@ static class KeysFile
         string? user = null;
         try { if (File.Exists(userPath)) user = File.ReadAllText(userPath); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+        // Old action names in your keys.json: renamed in the file, once (nothing to do the next time).
+        if (user is not null && RenameActions(user) is var renamed && renamed != user)
+        {
+            try { File.WriteAllText(userPath, renamed); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+            user = renamed;
+        }
         var merged = Merge(defaults, user, userPath);
         merged["userFile"] = userPath;
         // The order of the files, which the message to the page does not keep for an object: the first key

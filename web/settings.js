@@ -68,6 +68,47 @@ function control(def) {
     }
     return { box, show: () => {}, focus: box.firstChild };
   }
+  // A colour: a colour of the theme (its name; it follows the theme) or one picked with the colour dialog (#rrggbb).
+  // A swatch shows it.
+  if (def.kind === 'colour') {
+    const select = document.createElement('select'), swatch = document.createElement('span'), picker = document.createElement('input');
+    swatch.className = 'st-swatch';
+    picker.type = 'color';
+    picker.className = 'st-picker';
+    const add = (value, label) => {
+      const o = document.createElement('option');
+      o.value = value;
+      o.textContent = label;
+      select.append(o);
+      return o;
+    };
+    for (const [value, label] of def.options ?? []) add(value, label);
+    const picked = add('#', 'A colour you picked');
+    add('other', 'Other colour...');
+    let current = '';
+    const show = v => {
+      current = typeof v === 'string' ? v : '';
+      const hex = /^#[0-9a-f]{6}$/i.test(current);
+      picked.hidden = !hex;
+      if (hex) picked.textContent = `A colour you picked (${current})`;
+      select.value = hex ? '#' : current;
+      swatch.style.background = hex ? current : `var(--${current})`;
+      if (hex) picker.value = current;
+    };
+    select.addEventListener('change', () => {
+      if (select.value === 'other') {
+        show(current);   // the list keeps showing the colour in use until one is picked
+        picker.click();
+        return;
+      }
+      if (select.value === '#') return;
+      set(def.name, select.value);
+      show(select.value);
+    });
+    picker.addEventListener('change', () => { set(def.name, picker.value); show(picker.value); });
+    box.append(swatch, select, picker);
+    return { box, focus: select, show };
+  }
   // A slider (range: min, max, step) with its value; it applies while dragging.
   if (def.kind === 'range') {
     const [min, max, step] = def.range ?? [0, 100, 1];

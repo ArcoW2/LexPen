@@ -86,7 +86,11 @@ function extendBlock(cm, dir) {
     case 'down': head.line = Math.min(cm.lastLine(), head.line + 1); break;
     case 'pageUp': head.line = Math.max(cm.firstLine(), head.line - page); break;
     case 'pageDown': head.line = Math.min(cm.lastLine(), head.line + page); break;
-    case 'home': head.col = 0; break;
+    case 'home': {   // as Home (setting homeStop): the first non-blank column first, again: column 0
+      const first = vcolAt(cm, head.line, cm.getLine(head.line).search(/\S|$/));
+      head.col = setting('homeStop') || head.col === first ? 0 : first;
+      break;
+    }
     case 'wordLeft': case 'wordRight': {   // Ctrl+Shift+arrows: the next word end / start on the head's line only
       const step = dir === 'wordRight' ? 1 : -1, end = lineEndCol(cm, head.line);
       if (head.col > end) { if (step < 0) head.col = end; break; }   // past the end: back to it; further right: no word

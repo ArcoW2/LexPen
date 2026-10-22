@@ -30,9 +30,13 @@ const TAB_COLOURS = [[TAB_DEFAULT, '&Orange (a found text)'], ['var(--find-box)'
 const LINE_DEFAULT = { tab: TAB_DEFAULT, helper: HELPER_DEFAULT };
 const RULER_SETTINGS = ['ruler', 'columnGuideStart', 'columnGuideStep', 'columnGuideExtra', 'columnGuideColour', 'columnGuideIntensity',
   'helperLineIntensity', 'tabStopIntensity'];
-// The column guides' colours (setting columnGuideColour): a theme colour's name.
-const GUIDE_COLOURS = [['border', 'The border colour'], ['find-current', 'Orange (a found text)'], ['find-box', 'The find box'],
-  ['accent', 'Blue (the cursor)'], ['tip', 'Green'], ['important', 'Purple'], ['caution', 'Red'], ['warning', 'Brown']];
+// The colours a colour setting offers (kind colour: columnGuideColour, indentGuideColour, indentGuideCursorColour):
+// a theme colour's name (it follows the theme), or a colour picked in the settings window (#rrggbb, as picked).
+const GUIDE_COLOURS = [['border', 'The border colour'], ['hl-comment', 'The comment colour'], ['find-current', 'Orange (a found text)'],
+  ['find-box', 'The find box'], ['accent', 'Blue (the cursor)'], ['tip', 'Green'], ['important', 'Purple'], ['caution', 'Red'],
+  ['warning', 'Brown']];
+const colourCss = (value, fallback) => typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value) ? value
+  : `var(--${GUIDE_COLOURS.some(([name]) => name === value) ? value : fallback})`;
 // A line's colour in the text: a theme colour mixed into the background by its kind's intensity, a picked one as is.
 const mixedColour = t => t.colour.startsWith('var(')
   ? `color-mix(in srgb, ${t.colour} var(${isTabStop(t) ? '--col-tab-mix' : '--col-helper-mix'}), var(--bg))` : t.colour;
@@ -206,8 +210,7 @@ function drawRuler(pane) {
 
 // The settings, the theme or the fonts changed.
 function applyRuler() {
-  const guide = GUIDE_COLOURS.find(([name]) => name === setting('columnGuideColour'))?.[0] ?? 'border';
-  document.body.style.setProperty('--col-guide-colour', `var(--${guide})`);
+  document.body.style.setProperty('--col-guide-colour', colourCss(setting('columnGuideColour'), 'border'));
   document.body.style.setProperty('--col-guide-mix', percent('columnGuideIntensity', 40));
   document.body.style.setProperty('--col-helper-mix', percent('helperLineIntensity', 20));
   document.body.style.setProperty('--col-tab-mix', percent('tabStopIntensity', 50));

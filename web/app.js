@@ -1442,7 +1442,7 @@ function showChord(stroke) {
   statusUi.chord.textContent = stroke ? stroke + ', ...' : '';
 }
 
-statusUi.ins.addEventListener('click', () => runAction('overwrite', [], { from: 'bar' }));
+statusUi.ins.addEventListener('click', () => runAction('overwrite.toggle', [], { from: 'bar' }));
 statusUi.col.addEventListener('mousedown', e => e.preventDefault());   // the focus stays in the editor
 statusUi.col.addEventListener('click', () => setColumnMode(false));
 events.clipboardColumn = ({ column: marked }) => { clips.windowsColumn = marked; };
@@ -2573,8 +2573,8 @@ const LONG_LINE = 10000;   // also where the editor stops colouring a line (Code
 
 const setWrap = on => setSetting('wrap', on);
 
+// Wrap long lines: the editor's (setting wrap); the code blocks of the preview have their own (previewWrap).
 function applyWrap(on) {
-  document.body.toggleAttribute('data-nowrap', !on);
   for (const pane of panes) pane.cm?.setOption('lineWrapping', on);
   relayout();
 }
@@ -3373,14 +3373,37 @@ const WS_OVERLAY = {
   },
 };
 function applyWhitespace() {
-  const spaces = !!setting('showWhitespace');
+  const spaces = !!setting('showWhitespace'), special = !!setting('showSpecialChars');
   document.body.toggleAttribute('data-show-ws', spaces);
   document.body.toggleAttribute('data-show-eol', !!setting('showLineEnds'));
   for (const pane of panes) {
-    if (!pane.cm || !!pane.wsOverlay === spaces) continue;
-    if (spaces) pane.cm.addOverlay(WS_OVERLAY); else pane.cm.removeOverlay(WS_OVERLAY);
-    pane.wsOverlay = spaces;
+    if (!pane.cm) continue;
+    if (!!pane.wsOverlay !== spaces) {
+      if (spaces) pane.cm.addOverlay(WS_OVERLAY); else pane.cm.removeOverlay(WS_OVERLAY);
+      pane.wsOverlay = spaces;
+    }
+    if (!!pane.specialShown !== special) {
+      pane.cm.setOption('specialChars', special ? SPECIAL_CHARS : CodeMirror.defaults.specialChars);
+      pane.cm.setOption('specialCharPlaceholder', special ? specialBox : CodeMirror.defaults.specialCharPlaceholder);
+      pane.specialShown = special;
+    }
   }
+}
+
+// Characters that cannot be seen (setting showSpecialChars): each drawn as its code in a box in inverted colours,
+// still one character (one step of the cursor, removed whole, one column). Control characters as 0x1B, invisible
+// Unicode signs as U+200B, a byte the file's encoding could not read as 0xAB (a stand-in from the host, U+F780 plus
+// the byte: TextFile.StandIn) in the caution colour. A tab is drawn as a tab (CodeMirror takes it before these).
+const SPECIAL_CHARS = /[\u0000-\u001f\u007f-\u009f\u00ad\u061c\u180e\u200b-\u200f\u2028-\u202e\u2060-\u2064\u2066-\u206f\ufeff\ufff9-\ufffc\uf780-\uf87f]/;
+const hex = (n, width) => n.toString(16).toUpperCase().padStart(width, '0');
+function specialBox(ch) {
+  const code = ch.charCodeAt(0), el = document.createElement('span');
+  const unread = code >= 0xF780 && code <= 0xF87F;
+  el.className = 'mm-special' + (unread ? ' mm-unread' : '');
+  el.textContent = unread ? '0x' + hex(code - 0xF780, 2) : code <= 0xFF ? '0x' + hex(code, 2) : 'U+' + hex(code, 4);
+  el.title = unread ? `A byte the encoding of the file could not read (${el.textContent}); saving writes it back as it was`
+    : `An invisible character, ${el.textContent}`;
+  return el;
 }
 
 // Applies the settings that changed since the last time (at start: all of them).
@@ -3391,6 +3414,7 @@ function applySettings() {
   const changed = name => !(name in was) || was[name] !== now[name];
   if (FONT_SETTINGS.some(changed)) applyFonts();
   if (changed('wrap')) applyWrap(now.wrap);
+  if (changed('previewWrap')) document.body.toggleAttribute('data-preview-nowrap', now.previewWrap === false);
   if (changed('tabBar')) applyTabBar(now.tabBar);
   if ((changed('outlineMerged') || changed('outlineBullets')) && 'outlineMerged' in was)
     for (const pane of panes) { pane.outlineFor = null; showOutline(pane); }   // the outline drawn again
@@ -3402,8 +3426,14 @@ function applySettings() {
     document.body.dataset.bracketHighlight = now.bracketHighlight || 'colour';
     if (typeof paintBrackets === 'function') for (const pane of panes) if (pane.cm) paintBrackets(pane.cm);
   }
-  if (changed('indentGuides') || changed('indentGuideCursor')) {   // app.css draws them; guides.js sets the line classes
+  if (['indentGuides', 'indentGuideCursor', 'indentGuideColour', 'indentGuideIntensity', 'indentGuideCursorColour',
+    'indentGuideCursorIntensity'].some(changed)) {   // app.css draws them; guides.js sets the line classes
     document.body.dataset.indentGuides = now.indentGuides || 'comment';
+    const style = document.body.style;
+    style.setProperty('--mm-guide-mix', percent('indentGuideIntensity', 55));
+    style.setProperty('--mm-guide-one', colourCss(now.indentGuideColour, 'accent'));
+    style.setProperty('--mm-gcur-colour', colourCss(now.indentGuideCursorColour, 'find-box'));
+    style.setProperty('--mm-gcur-mix', percent('indentGuideCursorIntensity', 100));
     if (typeof repaintGuides === 'function') repaintGuides();
   }
   if (RULER_SETTINGS.some(changed) && typeof applyRuler === 'function') applyRuler();   // ruler.js
@@ -3413,7 +3443,7 @@ function applySettings() {
     for (const tab of allTabs()) tab.stale = true;
     showAll();
   }
-  if (changed('showWhitespace') || changed('showLineEnds')) applyWhitespace();
+  if (changed('showWhitespace') || changed('showLineEnds') || changed('showSpecialChars')) applyWhitespace();
   if (changed('virtualSpace') && !now.virtualSpace && !column.on)
     for (const pane of panes) if (pane.cm) clearVirtual(pane.cm);
   if ((changed('tabSize') || changed('indentSize')) && 'tabSize' in was)

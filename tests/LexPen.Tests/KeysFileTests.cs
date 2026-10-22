@@ -58,6 +58,23 @@ public class KeysFileTests
     }
 
     [Fact]
+    public void OldActionNamesAreRenamed()
+    {
+        var old = "{\n  // wrap: the old name in a comment stays\n  \"Alt+Z\": \"wrap\",\n  \"Ctrl+1\": [\"gutterColumn\", \"git\"],\n" +
+                  "  \"Ctrl+2\": \"rulerOn\",\n  \"Ctrl+3\" : [ \"ruler\" ],\n  \"Ctrl+4\": \"save\",\n  \"Ctrl+5\": [\"bookmarkGo\", \"outline\"],\n  \"Ctrl+6\": [\"tabBar\", \"rows\"]\n}";
+        var renamed = KeysFile.RenameActions(old);
+        Assert.Contains("// wrap: the old name in a comment stays", renamed);
+        Assert.Contains("\"Alt+Z\": \"wrap.toggle\"", renamed);
+        Assert.Contains("[\"gutterColumn.toggle\", \"git\"]", renamed);
+        Assert.Contains("\"Ctrl+2\": \"ruler.show\"", renamed);
+        Assert.Contains("[ \"ruler.toggle\" ]", renamed);
+        Assert.Contains("\"Ctrl+4\": \"save\"", renamed);
+        Assert.Contains("[\"bookmarkGo\", \"outline\"]", renamed);   // a parameter, not an action
+        Assert.Contains("[\"tabBar.set\", \"rows\"]", renamed);
+        Assert.Equal(renamed, KeysFile.RenameActions(renamed));        // once: the new names are not renamed again
+    }
+
+    [Fact]
     public void ABrokenUserFileLeavesTheDefaults()
     {
         var merged = KeysFile.Merge(Defaults, "{ \"Ctrl+S\": ", "mine.json");

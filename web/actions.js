@@ -112,11 +112,19 @@ appAction('closeTab', { title: 'Close tab', hint: 'Asks about unsaved changes', 
 appAction('reopenTab', { title: 'Reopen closed tab', hint: 'The last tab closed in this window', group: 'files', run: () => reopenTab() });
 appAction('closeAllTabs', { title: 'Close all tabs', hint: 'Of the active pane; pinned tabs stay', group: 'files',
   run: () => closeTabs([...panes[state.activePane].tabs]) });
-appAction('pinTab', { title: 'Pin tab', hint: 'Closing it asks first; closing several tabs leaves it open', group: 'tabs',
-  enabled: () => !!activeTab(), checked: () => !!activeTab()?.pinned, run: () => activeTab() && togglePin(activeTab()) });
-appAction('readOnly', { title: 'Read-only', hint: 'This tab cannot change the file', group: 'tabs',
-  enabled: () => !!activeTab(), checked: () => !!activeTab()?.readOnly || !!activeDoc()?.diskReadOnly,
-  run: () => activeTab() && setReadOnly(activeTab(), !activeTab().readOnly) });
+// An on/off action as three (plan 23): name.toggle (the menus' one, with its check mark) switches it; name.on and
+// name.off (or .show / .hide; words) set it, and do nothing when it already is so. get: on or not; flip: switch it.
+function toggleAction(name, def, get, flip, words = ['on', 'off']) {
+  appAction(name + '.toggle', { ...def, checked: get, run: flip });
+  for (const [word, on] of [[words[0], true], [words[1], false]])
+    appAction(`${name}.${word}`, { ...def, title: `${def.title}: ${word}`, hint: `${def.hint} (${word}; nothing when it already is)`,
+      run: (params, ctx) => { if (!!get(params, ctx) !== on) flip(params, ctx); } });
+}
+
+toggleAction('pin', { title: 'Pin tab', hint: 'Closing it asks first; closing several tabs leaves it open', group: 'tabs',
+  enabled: () => !!activeTab() }, () => !!activeTab()?.pinned, () => activeTab() && togglePin(activeTab()));
+toggleAction('readOnly', { title: 'Read-only', hint: 'This tab cannot change the file', group: 'tabs', enabled: () => !!activeTab() },
+  () => !!activeTab()?.readOnly || !!activeDoc()?.diskReadOnly, () => activeTab() && setReadOnly(activeTab(), !activeTab().readOnly));
 appAction('projects', { title: 'Projects...', hint: 'Every project and its windows: open one, a new project, rename, move this window', group: 'files',
   run: () => openProjectMenu() });
 appAction('newProject', { title: 'New project...', hint: 'A new empty window in a new project', group: 'files',
@@ -133,27 +141,25 @@ appAction('previousTab', { title: 'Previous tab', hint: 'The tab to the left in 
 appAction('back', { title: 'Back', hint: 'To the tab and file shown before, like a browser (also the mouse back button)', group: 'tabs', run: () => commands.back() });
 appAction('forward', { title: 'Forward', hint: 'Again forward (also the mouse forward button)', group: 'tabs', run: () => commands.forward() });
 
-appAction('togglePreview', { title: 'Show / hide the preview', hint: 'Next to the editor', group: 'view', run: () => togglePreview() });
-appAction('editorSwitch', { title: 'Editor', hint: 'Show or hide the editor (at least one of editor and preview stays)', group: 'view',
-  checked: () => !!activeTab() && activeTab().mode !== 'preview', enabled: () => !!activeTab(), run: () => setSwitch('editor') });
-appAction('previewSwitch', { title: 'Preview', hint: 'Show or hide the preview (at least one of editor and preview stays)', group: 'view',
-  checked: () => !!activeTab() && activeTab().mode !== 'edit', enabled: () => !!activeTab(), run: () => setSwitch('preview') });
-appAction('outline', { title: 'Outline', hint: 'The headings (or procedures, classes, ...) at the right of each pane; click one to go there', group: 'view',
-  enabled: () => hasOutline(activeDoc()),
-  checked: () => document.body.hasAttribute('data-outline'), run: () => commands.outline() });
-appAction('wrap', { title: 'Wrap long lines', hint: 'In the editor and in code in the preview', group: 'view',
-  checked: () => setting('wrap'), run: () => setWrap(!setting('wrap')) });
+toggleAction('split', { title: 'Editor and preview side by side', hint: 'The preview next to the editor, or the editor alone', group: 'view',
+  enabled: () => !!activeTab() }, () => activeTab()?.mode === 'split', () => togglePreview());
+toggleAction('editor', { title: 'Editor', hint: 'Show or hide the editor (at least one of editor and preview stays)', group: 'view',
+  enabled: () => !!activeTab() }, () => !!activeTab() && activeTab().mode !== 'preview', () => setSwitch('editor'), ['show', 'hide']);
+toggleAction('preview', { title: 'Preview', hint: 'Show or hide the preview (at least one of editor and preview stays)', group: 'view',
+  enabled: () => !!activeTab() }, () => !!activeTab() && activeTab().mode !== 'edit', () => setSwitch('preview'), ['show', 'hide']);
+toggleAction('outline', { title: 'Outline', hint: 'The headings (or procedures, classes, ...) at the right of each pane; click one to go there', group: 'view',
+  enabled: () => hasOutline(activeDoc()) }, () => document.body.hasAttribute('data-outline'), () => commands.outline(), ['show', 'hide']);
+toggleAction('wrap', { title: 'Wrap long lines', hint: 'In the editor (code blocks in the preview: Options > Settings, Preview)', group: 'view' },
+  () => setting('wrap'), () => setWrap(!setting('wrap')));
 appAction('locateCursor', { title: 'Locate the cursor', hint: 'Rings shrink onto every cursor; a cursor out of view gets a marker at that edge (also a short tap on Ctrl)', group: 'view',
   enabled: () => !!editorPane(), run: () => locateCursor(editorPane({ from: 'menu' })) });
-appAction('ruler', { title: 'Ruler', hint: 'Above the editor: the columns, the column of the cursor, column guides and manual tabs (click it for a tab)', group: 'view',
-  checked: () => rulerShown(), run: () => setSetting('ruler', !rulerShown()) });
-appAction('rulerOn', { title: 'Ruler on', hint: 'Shows the ruler (nothing when it is shown)', group: 'view', run: () => setSetting('ruler', true) });
-appAction('rulerOff', { title: 'Ruler off', hint: 'Hides the ruler (nothing when it is hidden)', group: 'view', run: () => setSetting('ruler', false) });
-appAction('sidebar', { title: 'Sidebar', hint: 'Show or hide the folder pane and the search', group: 'view',
-  checked: () => document.body.dataset.sidebar === 'on', run: () => commands.sidebar() });
+toggleAction('ruler', { title: 'Ruler', hint: 'Above the editor: the columns, the column of the cursor, column guides, tab stops and helper lines (click it for one)', group: 'view' },
+  () => rulerShown(), () => setSetting('ruler', !rulerShown()), ['show', 'hide']);
+toggleAction('sidebar', { title: 'Sidebar', hint: 'Show or hide the folder pane and the search', group: 'view' },
+  () => document.body.dataset.sidebar === 'on', () => commands.sidebar(), ['show', 'hide']);
 appAction('folders', { title: 'Folders', hint: 'The folder pane, with the keyboard in it', group: 'view', run: () => focusTree() });
 appAction('searchView', { title: 'Search', hint: 'The search in the sidebar', group: 'view', run: () => startSearch() });
-appAction('paneOrientation', { title: 'Panes', hint: 'Side by side or above each other', group: 'view',
+appAction('paneOrientation.set', { title: 'Panes', hint: 'Side by side or above each other', group: 'view',
   variants: [['v'], ['h']], variantTitles: { v: 'Panes side by side', h: 'Panes above each other' },
   checked: ([o]) => state.orient === o, run: ([o]) => state.orient === o || commands.orient() });
 const paneAction = (name, title, run, enabled = () => bothShown()) =>
@@ -163,12 +169,12 @@ paneAction('paneHideOther', 'Hide other pane', () => commands.paneHideOther());
 paneAction('paneClose', 'Close this pane', () => commands.paneClose());
 paneAction('paneCloseOther', 'Close other pane', () => commands.paneCloseOther());
 paneAction('paneShow', 'Show hidden pane', () => showHiddenPane(), () => state.hidden !== null);
-appAction('tabBar', { title: 'Tab bar', hint: 'Tabs that do not fit: one row that scrolls, one row with a menu for the tabs out of view, or several rows', group: 'view',
+appAction('tabBar.set', { title: 'Tab bar', hint: 'Tabs that do not fit: one row that scrolls, one row with a menu for the tabs out of view, or several rows', group: 'view',
   variants: [['scroll'], ['menu'], ['rows']],
   variantTitles: { scroll: 'Tab bar: one row that scrolls', menu: 'Tab bar: one row, a menu for the rest', rows: 'Tab bar: several rows' },
   checked: ([kind]) => setting('tabBar') === kind, run: ([kind]) => setSetting('tabBar', kind) });
-appAction('formatBar', { title: 'Formatting bar', hint: 'The bar with bold, headings, lists, tables, ... above the editor', group: 'view',
-  checked: () => setting('formatBar'), run: () => commands.formatBar() });
+toggleAction('formatBar', { title: 'Formatting bar', hint: 'The bar with bold, headings, lists, tables, ... above the editor', group: 'view' },
+  () => setting('formatBar'), () => commands.formatBar(), ['show', 'hide']);
 appAction('searchInFiles', { title: 'Search in files', hint: 'In the file, the open files or the folder; codes ^p ^t ^? ^# ^$ ^w ^^', group: 'view', run: () => startSearch() });
 // In the editor (it has the focus) the zoom is the editor font size; elsewhere the preview zoom.
 const editorFocused = () => panes.some(p => p.cm?.hasFocus());
@@ -178,13 +184,19 @@ appAction('zoomOut', { title: 'Zoom out', hint: 'The editor font size in the edi
   run: () => editorFocused() ? editorSizeBy(-1) : zoomBy(-1) });
 appAction('zoomReset', { title: 'Zoom 100%', hint: 'The editor font at its default size in the editor, else the preview at its normal size', group: 'view',
   run: () => editorFocused() ? setFontSetting('editorSize', 0) : setZoom(1) });
-appAction('theme', { title: 'Day / night', hint: 'Light or dark, for all windows', group: 'view', run: () => commands.theme() });
-appAction('compareScroll', { title: 'Scroll both panes together', hint: 'By source line', group: 'view',
-  checked: () => state.sync, enabled: () => bothShown(), run: () => commands.sync() });
+toggleAction('theme', { title: 'Day / night', hint: 'Light or dark, for all windows', group: 'view' },
+  () => state.theme === 'dark', () => commands.theme(), ['night', 'day']);
+toggleAction('compareScroll', { title: 'Scroll both panes together', hint: 'By source line', group: 'view', enabled: () => bothShown() },
+  () => state.sync, () => commands.sync());
 appAction('commands', { title: 'Keyboard shortcuts and commands', hint: 'This list; Enter runs the selected command', group: 'view', run: () => showPalette() });
 appAction('about', { title: 'About LexPen', hint: 'Version and libraries', group: 'view', run: () => showAbout() });
 
 // Go to line: a line number (or line:column); the cursor goes there, the line in the middle when it was out of view.
+// Ctrl+Down / Ctrl+Up (virtual.js scrollLine): the text a line, the cursor along with the setting scrollMovesCursor.
+appAction('scrollLine.down', { title: 'Scroll down a line', hint: 'The text moves up a line, the view showing one line further down; the cursor stays on its line unless Ctrl+Up / Ctrl+Down move the cursor along (setting); then with Shift: select along', group: 'edit', editor: true, move: true,
+  run: (_, { pane, extend }) => scrollLine(pane.cm, 1, extend) });
+appAction('scrollLine.up', { title: 'Scroll up a line', hint: 'The text moves down a line, the view showing one line further up; the cursor stays on its line unless Ctrl+Up / Ctrl+Down move the cursor along (setting); then with Shift: select along', group: 'edit', editor: true, move: true,
+  run: (_, { pane, extend }) => scrollLine(pane.cm, -1, extend) });
 appAction('goToLine', { title: 'Go to line', hint: 'A line number, or line:column; the cursor goes there', group: 'edit', editor: true,
   run: async (_, { pane }) => {
     const cm = pane.cm, here = cm.getCursor();
@@ -320,8 +332,8 @@ appAction('pasteImage', { title: 'Paste image', hint: 'A picture or image files 
 appAction('undo', { title: 'Undo', group: 'edit', editor: true, run: (_, { pane }) => pane.cm.undo() });
 appAction('redo', { title: 'Redo', group: 'edit', editor: true, run: (_, { pane }) => pane.cm.redo() });
 // ---------- Column mode and blocks (column.js) ----------
-appAction('columnMode', { title: 'Column mode', hint: 'A drag and Shift+arrows select a block; typing, Backspace and Delete work on every line of it; paste goes in as a column (COL in the bottom bar)',
-  group: 'edit', editor: true, checked: () => column.on, run: () => setColumnMode(!column.on) });
+toggleAction('columnMode', { title: 'Column mode', hint: 'A drag and Shift+arrows select a block; typing, Backspace and Delete work on every line of it; paste goes in as a column (COL in the bottom bar)',
+  group: 'edit', editor: true }, () => column.on, () => setColumnMode(!column.on));
 appAction('blockSelect', { title: 'Select a block', hint: 'Grows or shrinks a block (a column selection) from the cursor, also without column mode',
   group: 'edit', editor: true, variants: [['up'], ['down'], ['left'], ['right']],
   variantTitles: { up: 'Select a block: up', down: 'Select a block: down', left: 'Select a block: left', right: 'Select a block: right' },
@@ -329,29 +341,29 @@ appAction('blockSelect', { title: 'Select a block', hint: 'Grows or shrinks a bl
     : toast('A block needs a monospaced editor font (Options > Settings > Editor).') });
 appAction('convertMenu', { title: 'Convert menu at the cursor', hint: 'The conversions (case, tabs and spaces, whitespace at line ends), as a menu at the cursor; also the Convert button of the bar', group: 'format',
   editor: true, run: (_, { pane }) => openPopupAtCursor(pane, CONVERT_ITEMS) });
-appAction('overwrite', { title: 'Insert / overwrite', hint: 'Typing replaces the character at the cursor (OVR in the bottom bar)', group: 'edit', editor: true,
-  run: (_, { pane }) => { pane.cm.toggleOverwrite(); updateStatus(); } });
+toggleAction('overwrite', { title: 'Insert / overwrite', hint: 'Typing replaces the character at the cursor (OVR in the bottom bar)', group: 'edit', editor: true },
+  () => !!editorPane()?.cm?.state.overwrite, (_, { pane }) => { pane.cm.toggleOverwrite(); updateStatus(); });
 
 // ---------- Settings (Options > Settings: the settings window) ----------
 appAction('settings', { title: 'Settings...', hint: 'Every setting, searchable; a change applies at once in every window', group: 'settings',
   run: () => host('openSettings') });
 appAction('chooseLanguage', { title: 'Language...', hint: 'Of the active tab: colouring, outline, bar and actions (also a click on the language in the bottom bar)', group: 'view',
   enabled: () => !!activeDoc(), run: () => showLanguageList() });
-appAction('tabOrder', { title: 'Ctrl+Tab order', hint: 'Recently used, or the order of the tab bar', group: 'settings',
+appAction('tabOrder.set', { title: 'Ctrl+Tab order', hint: 'Recently used, or the order of the tab bar', group: 'settings',
   variants: [['recent'], ['tabs']], variantTitles: { recent: 'Ctrl+Tab in recently used order', tabs: 'Ctrl+Tab in tab bar order' },
   checked: ([order]) => setting('tabOrder') === order, run: ([order]) => setSetting('tabOrder', order) });
-appAction('backup', { title: 'Keep a backup when saving', hint: 'The old file becomes name.bak (overwritten at the next save)', group: 'settings',
-  checked: () => setting('backup'), run: () => setSetting('backup', !setting('backup')) });
-appAction('findWrap', { title: 'Find: at the end of the file', hint: 'Stop with a message, go on from the top, or go on and stop where the search started', group: 'settings',
+toggleAction('backup', { title: 'Keep a backup when saving', hint: 'The old file becomes name.ext.bak (overwritten at the next save)', group: 'settings' },
+  () => setting('backup'), () => setSetting('backup', !setting('backup')));
+appAction('findWrap.set', { title: 'Find: at the end of the file', hint: 'Stop with a message, go on from the top, or go on and stop where the search started', group: 'settings',
   variants: [['end'], ['around'], ['origin']],
   variantTitles: { end: 'Find: stop at the end', around: 'Find: go on from the top', origin: 'Find: go on, stop where the search started' },
   checked: ([mode]) => setting('findWrap') === mode, run: ([mode]) => setSetting('findWrap', mode) });
-appAction('findShared', { title: 'One search for both panes', hint: 'Off: each pane has its own find', group: 'settings',
-  checked: () => setting('findShared'), run: () => commands.findShared() });
-appAction('lineBreaks', { title: 'Single line break starts a new line', hint: 'Off: a single line break joins the lines, as in GitHub files', group: 'settings',
-  checked: () => setting('lineBreaks'), run: () => commands.lineBreaks() });
-appAction('movePinned', { title: 'Move pinned tabs when closing a pane or window', hint: 'To the main pane / another open window of the same project; off, they keep the pane open or close with the window', group: 'settings',
-  checked: () => setting('movePinned'), run: () => setSetting('movePinned', !setting('movePinned')) });
+toggleAction('findShared', { title: 'One find for both panes', hint: 'Both panes share one find (Ctrl+F); off: each pane has its own', group: 'settings' },
+  () => setting('findShared'), () => commands.findShared());
+toggleAction('lineBreaks', { title: 'Single line break starts a new line', hint: 'In the preview; off: a single line break joins the lines, as in GitHub files', group: 'settings' },
+  () => setting('lineBreaks'), () => commands.lineBreaks());
+toggleAction('movePinned', { title: 'Move pinned tabs when closing a pane or window', hint: 'To the main pane / another open window of the same project; off, they keep the pane open or close with the window', group: 'settings' },
+  () => setting('movePinned'), () => setSetting('movePinned', !setting('movePinned')));
 // Fonts: with a font name or a size in points (''/0: the default); without one (F1) the list opens.
 for (const [name, title, hint] of [
   ['editorFont', 'Editor font', 'Monospaced fonts first'], ['editorSize', 'Editor font size', 'In points; also Ctrl+mouse wheel in the editor'],
@@ -380,7 +392,8 @@ const SETTING_ROWS = [
     hint: 'Windows with files but with an unnamed project ("Project n") are kept for reopening',
     hintOff: 'Windows with files for unnamed projects ("Project n") are not remembered for reopening' },
   { name: 'followWindows', group: 'General', sub: 'Theme', kind: 'toggle', title: 'Follow Windows',
-    hint: 'Light or dark as Windows is (Settings > Personalization > Colors), at once; Day / night switches until Windows changes' },
+    hint: 'Light or dark follows Windows (Settings > Personalization > Colors); the Day / Night button switches until Windows changes',
+    hintOff: 'A change between light and dark in Windows does not switch the mode of LexPen' },
   { name: 'themeLight', group: 'General', sub: 'Theme', kind: 'choice', title: 'Theme for light mode',
     hint: 'Your own themes: themes\\ in the data folder', options: () => themeOptions() },
   { name: 'themeDark', group: 'General', sub: 'Theme', kind: 'choice', title: 'Theme for dark mode',
@@ -391,59 +404,93 @@ const SETTING_ROWS = [
   { name: 'editorSize', group: 'Editor', kind: 'size', base: () => ptOf(EDITOR_PX) + ' pt' },
   { name: 'editorLine', group: 'Editor', kind: 'choice',
     options: () => [[0, `Default (${EDITOR_LINE})`], ...LINE_HEIGHTS.map(n => [n, String(n)])] },
-  { name: 'wrap', group: 'Editor', kind: 'toggle' },
+  { name: 'wrap', group: 'Editor', kind: 'toggle',
+    hint: 'Long lines wrap at the edge',
+    hintOff: 'Long lines run on past the edge and scroll sideways' },
   { name: 'tabSize', group: 'Editor', sub: 'Tabs', kind: 'choice', title: 'Tab size',
     hint: 'Where the tab stops are: Tab after text goes to the next one, and a tab after text is shown that wide. A language can set its own (tabSize)',
     options: () => Array.from({ length: 16 }, (_, i) => [i + 1, String(i + 1)]) },
   { name: 'indentSize', group: 'Editor', sub: 'Tabs', kind: 'choice', title: 'Indent size',
     hint: 'Where the indent stops are: Tab in the indentation of a line, Indent / Outdent, and a tab in the indentation is shown that wide. A language can set its own (indentSize)',
     options: () => Array.from({ length: 16 }, (_, i) => [i + 1, String(i + 1)]) },
-  { name: 'formatBar', group: 'Editor view', kind: 'toggle' },
-  { name: 'showWhitespace', group: 'Editor view', kind: 'toggle', title: 'Show spaces and tabs',
-    hint: 'In the editor: a space as a small dot, a tab as an arrow (theme colour: whitespace)' },
-  { name: 'showLineEnds', group: 'Editor view', kind: 'toggle', title: 'Show line ends',
-    hint: 'In the editor: \u00B6 at the end of a line for CRLF, \u240A for LF (theme colour: whitespace)' },
+  { name: 'formatBar', group: 'Editor view', kind: 'toggle',
+    hint: 'The bar with bold, headings, lists, tables, ... is shown above the editor (also View > Formatting bar)',
+    hintOff: 'No formatting bar above the editor; its commands stay in the menus and on their keys (View > Formatting bar shows it)' },
+  { name: 'showWhitespace', group: 'Editor view', sub: 'Invisible characters', kind: 'toggle', title: 'Show spaces and tabs',
+    hint: 'In the editor: a space as a small dot, a tab as an arrow (theme colour: whitespace)',
+    hintOff: 'Spaces and tabs are not marked in the editor' },
+  { name: 'showLineEnds', group: 'Editor view', sub: 'Invisible characters', kind: 'toggle', title: 'Show line ends',
+    hint: 'In the editor: \u00B6 at the end of a line for CRLF, \u240A for LF (theme colour: whitespace)',
+    hintOff: 'Line ends are not marked in the editor' },
+  { name: 'showSpecialChars', group: 'Editor view', sub: 'Invisible characters', kind: 'toggle', title: 'Show characters that cannot be seen',
+    hint: 'Control characters (0x1B), invisible signs (U+200B) and bytes the encoding of the file could not read (0xAB, red) are shown as their code in a box; each is still one character',
+    hintOff: 'Characters that cannot be seen are shown as a small red dot; a byte the encoding of the file could not read is kept and written back all the same' },
   { name: 'bracketHighlight', group: 'Editor view', sub: 'Brackets', kind: 'choice', title: 'The pair at the cursor: marked with',
     hint: 'The innermost pair or word set (begin ... end) around the cursor; one without its match in another colour',
     options: () => [['colour', 'A background colour'], ['underline', 'An underline (the colour of the find box)'], ['off', 'Not marked']] },
   { name: 'indentGuides', group: 'Editor view', sub: 'Indent guides', kind: 'choice', title: 'Indent guides',
-    hint: 'A thin line at every indent step, from the indent to the unindent',
-    options: () => [['comment', 'In the colour of comments'], ['rainbow', 'A colour per level'], ['off', 'None']] },
+    hint: 'A thin line at the indent of every enclosing line, from the indent to the unindent: in the comment colour, a colour per level, one colour (below) or none',
+    options: () => [['comment', 'In the colour of comments'], ['rainbow', 'A colour per level'], ['colour', 'One colour (below)'], ['off', 'None']] },
+  { name: 'indentGuideColour', group: 'Editor view', sub: 'Indent guides', kind: 'colour', title: 'Indent guides: the one colour',
+    hint: 'When the indent guides are in one colour: that colour, a colour of the theme (it follows the theme) or one you pick',
+    options: () => GUIDE_COLOURS },
+  { name: 'indentGuideIntensity', group: 'Editor view', sub: 'Indent guides', kind: 'range', range: [0, 100, 5], unit: '%',
+    title: 'Indent guides: intensity', hint: 'Intensity of the indent guides shown in the editor, whatever their colour: higher means brighter, lower fades them into the background' },
   { name: 'indentGuideCursor', group: 'Editor view', sub: 'Indent guides', kind: 'toggle', title: 'The guide of the block at the cursor highlighted',
-    hint: 'Thin, in the colour of the find box; also with the guides off' },
+    hint: 'The guide of the block the cursor is in is drawn in its own colour (below), also when the indent guides are off',
+    hintOff: 'The guide of the block the cursor is in looks like the other guides (with the indent guides off: none)' },
+  { name: 'indentGuideCursorColour', group: 'Editor view', sub: 'Indent guides', kind: 'colour', title: 'The guide at the cursor: colour',
+    hint: 'When the guide of the block at the cursor is highlighted: its colour, a colour of the theme (it follows the theme) or one you pick',
+    options: () => GUIDE_COLOURS },
+  { name: 'indentGuideCursorIntensity', group: 'Editor view', sub: 'Indent guides', kind: 'range', range: [0, 100, 5], unit: '%',
+    title: 'The guide at the cursor: intensity', hint: 'When the guide of the block at the cursor is highlighted: its intensity; higher means brighter, lower fades it into the background' },
   { name: 'closeBrackets', group: 'Editor', sub: 'Brackets', kind: 'toggle', title: 'Close brackets and quotes while typing',
-    hint: 'An opening sign adds its closer; typing the closer before one steps over it; Backspace removes an empty pair. Signs only, never words' },
+    hint: 'An opening sign adds its closer; typing the closer before one steps over it; Backspace removes an empty pair. Signs only, never words',
+    hintOff: 'Brackets and quotes are typed as they are: nothing is added' },
   { name: 'outlineMerged', group: 'Outline', kind: 'toggle', title: 'Outline: groups together, by line',
-    hint: 'Off: a header per group (its entries in line order); also in the right-click menu of the outline' },
+    hint: 'The outline lists all entries in line order, the groups mixed',
+    hintOff: 'The outline has a header per group, its entries in line order' },
   { name: 'outlineBullets', group: 'Outline', kind: 'toggle', title: 'Outline: a bullet in the colour of the group',
-    hint: 'In front of every entry of a language with groups; also in the right-click menu of the outline' },
+    hint: 'Show a bullet in the colour of its group in front of every entry of a language with groups',
+    hintOff: 'No bullets in front of the entries' },
   { name: 'sneakTheme', group: 'Outline', kind: 'choice', title: 'Theme of the sneak preview',
     hint: 'A long click on an outline entry shows it while the button is held: in the editor\'s own theme with a tint, or in a theme of its own (a light one next to a dark editor)',
     options: () => [['', 'The editor\'s theme, tinted'], ...themeOptions()] },
   { name: 'leftWraps', group: 'Editor', sub: 'Cursor', kind: 'toggle', title: 'Left at the start of a line goes to the line above',
-    hint: 'At the first column, Left (and Shift+Left) goes on to the end of the line above. Off: the cursor stays at the start' },
+    hint: 'At the first column, Left (and Shift+Left) goes on to the end of the line above',
+    hintOff: 'At the first column, Left (and Shift+Left) stays at the start of the line' },
+  { name: 'homeStop', group: 'Editor', sub: 'Cursor', kind: 'toggle', title: 'Home key goes to the first column',
+    hint: 'Home key sets the cursor at the first column',
+    hintOff: 'Home key sets the cursor at the first non-whitespace character on the line; a second Home goes to the first column' },
+  { name: 'scrollMovesCursor', group: 'Editor', sub: 'Cursor', kind: 'toggle', title: 'Ctrl+Up / Ctrl+Down move the cursor along',
+    hint: 'Ctrl+Down scrolls the text a line and the cursor goes a line down with it, keeping its place on the screen (Ctrl+Up the other way); at the end of the text the cursor still goes on to the last line. With Shift the selection goes along',
+    hintOff: 'Ctrl+Down scrolls the text a line and the cursor stays on its line, also when that line leaves the view (Ctrl+Up the other way)' },
   { name: 'scrollMargin', group: 'Editor', sub: 'Cursor', kind: 'choice', title: 'Scroll sideways before the edge',
     hint: 'The editor scrolls left or right when the cursor comes this many columns from the edge (on keys, not on a click); without wrapping',
     options: () => [1, 2, 4, 8, 12, 16, 24, 32].map(n => [n, n === 1 ? '1 column' : n + ' columns']) },
   { name: 'virtualSpace', group: 'Editor', sub: 'Cursor', kind: 'toggle', title: 'Cursor past the end of the line',
-    hint: 'Up, Down and a click keep the cursor in its column on a shorter line; typing there fills the line with spaces first. Only with a monospaced editor font (with another font this does nothing)' },
+    hint: 'Up, Down and a click keep the cursor in its column even after the end of a line; typing there fills the line with spaces first. Only with a monospaced editor font',
+    hintOff: 'On a shorter line the cursor stops at its end (Up and Down return to the column on a longer line). Column mode still goes past the end' },
   { name: 'locateCursor', group: 'Editor view', sub: 'Locate the cursor', kind: 'toggle', title: 'A short tap on Ctrl shows where the cursor is',
-    hint: 'Rings shrink onto every cursor, in the colour of the find box; a cursor out of view gets a marker at that edge with its line number (also View > Locate the cursor)' },
+    hint: 'A short tap on Ctrl: rings shrink onto every cursor, in the colour of the find box; a cursor out of view gets a marker at that edge with its line number (also View > Locate the cursor)',
+    hintOff: 'A tap on Ctrl does nothing; View > Locate the cursor still shows where the cursor is' },
   { name: 'locateCursorTap', group: 'Editor view', sub: 'Locate the cursor', kind: 'choice', title: 'The longest tap on Ctrl',
     hint: 'Ctrl held longer, or with another key, a click or the mouse wheel, is not a tap',
     options: () => [200, 300, 400, 500, 700, 1000].map(n => [n, n + ' ms']) },
   { name: 'locateCursorJump', group: 'Editor view', sub: 'Locate the cursor', kind: 'toggle', title: 'A double tap on Ctrl scrolls to the cursor',
-    hint: 'Two taps on Ctrl: the editor scrolls to the cursor (with several: the main one), then shows where it is' },
+    hint: 'When a short tap on Ctrl shows the cursor: two quick taps scroll the editor to the cursor (with several: the main one), then show where it is',
+    hintOff: 'When a short tap on Ctrl shows the cursor: two quick taps show it as one tap does; the editor does not scroll' },
   { name: 'ruler', group: 'Editor view', sub: 'Ruler and column guides', kind: 'toggle', title: 'The ruler above the editor',
-    hint: 'The columns, the column of the cursor and the guides; a click sets a tab stop (Tab goes there) or a helper line (only shows), right-click to choose which and a colour. Kept per file. Only with a monospaced editor font' },
+    hint: 'The ruler above the editor shows the columns, the column of the cursor and the guides; a click sets a tab stop (Tab goes there) or a helper line (only shows), right-click for the panel. Kept per file. Only with a monospaced editor font',
+    hintOff: 'No ruler (View > Ruler shows it); the tab stops and helper lines of a file still show in the text, and Tab still stops at the tab stops' },
   { name: 'columnGuideStart', group: 'Editor view', sub: 'Ruler and column guides', kind: 'choice', title: 'Column guide: the first one after',
     hint: 'A faint line after this many characters (also right-click on the ruler)', options: () => [[0, 'None'], ...[2, 4, 8, 10, 20, 40, 72, 80, 100, 120].map(n => [n, n + ' characters'])] },
   { name: 'columnGuideStep', group: 'Editor view', sub: 'Ruler and column guides', kind: 'choice', title: 'Column guides: then every',
     hint: 'After the first one, a guide every so many characters', options: () => [[0, 'None (only the first)'], ...[2, 4, 8, 10, 20, 40].map(n => [n, n + ' characters'])] },
   { name: 'columnGuideExtra', group: 'Editor view', sub: 'Ruler and column guides', kind: 'choice', title: 'Column guide: one more after',
     hint: 'One guide of its own, as at 80', options: () => [[0, 'None'], ...[72, 80, 100, 120, 132].map(n => [n, n + ' characters'])] },
-  { name: 'columnGuideColour', group: 'Editor view', sub: 'Ruler and column guides', kind: 'choice', title: 'Column guides: colour',
-    hint: 'The colour of the column guides, a colour of the theme (so it follows a theme change)', options: () => GUIDE_COLOURS },
+  { name: 'columnGuideColour', group: 'Editor view', sub: 'Ruler and column guides', kind: 'colour', title: 'Column guides: colour',
+    hint: 'The colour of the column guides: a colour of the theme (it follows the theme) or one you pick', options: () => GUIDE_COLOURS },
   { name: 'columnGuideIntensity', group: 'Editor view', sub: 'Ruler and column guides', kind: 'range', range: [0, 100, 5], unit: '%',
     title: 'Column guides: intensity', hint: 'Intensity of the column guides shown in the editor: higher means brighter, lower fades them into the background' },
   { name: 'helperLineIntensity', group: 'Editor view', sub: 'Ruler and column guides', kind: 'range', range: [0, 100, 5], unit: '%',
@@ -456,9 +503,16 @@ const SETTING_ROWS = [
     options: () => [['absolute', 'Absolute'], ['relative', 'Relative to the cursor']] },
   ...[['bookmarks', 'Bookmarks'], ['changes', 'Change markers'], ['git', 'Git markers'], ['folds', 'Fold markers']]
     .map(([n, title]) => ({ name: 'gutter.' + n, group: 'Editor view', sub: 'Gutter', kind: 'toggle', title,
-      hint: { bookmarks: 'Bookmarks 1 to 9 and unnumbered ones', changes: 'Lines changed since the last save',
-        git: 'Lines changed since the last commit (click: the old text)', folds: 'Fold headings, code blocks and braces' }[n] })),
-  { name: 'lineBreaks', group: 'Preview', kind: 'toggle' },
+      hint: { bookmarks: 'The gutter shows bookmarks 1 to 9 and unnumbered ones', changes: 'The gutter marks the lines changed since the last save',
+        git: 'The gutter marks the lines changed since the last commit (a click shows the old text)', folds: 'The gutter has a marker to fold headings, code blocks and braces' }[n],
+      hintOff: { bookmarks: 'No bookmark column in the gutter; bookmarks are kept and their keys still work', changes: 'No change markers in the gutter',
+        git: 'No git markers in the gutter', folds: 'No fold markers in the gutter' }[n] })),
+  { name: 'lineBreaks', group: 'Preview', kind: 'toggle',
+    hint: 'In the preview, a single line break starts a new line',
+    hintOff: 'In the preview, a single line break joins the lines, as in GitHub files (an empty line starts a new paragraph)' },
+  { name: 'previewWrap', group: 'Preview', kind: 'toggle', title: 'Wrap long lines in code blocks',
+    hint: 'Long lines in the code blocks of the preview wrap at the edge',
+    hintOff: 'Long lines in the code blocks of the preview run on and scroll sideways (a line of more than 10000 characters wraps all the same, to keep the preview fast)' },
   { name: 'previewThemeLight', group: 'Preview', kind: 'choice', title: 'Theme for the preview in light mode',
     hint: 'Same as the app, or a theme of its own', options: () => [['', 'Same as the app'], ...themeOptions()] },
   { name: 'previewThemeDark', group: 'Preview', kind: 'choice', title: 'Theme for the preview in dark mode',
@@ -466,16 +520,24 @@ const SETTING_ROWS = [
     options: () => [['', 'Same as the app'], ...themeOptions()] },
   { name: 'zoom', group: 'Preview', kind: 'choice', title: 'Preview zoom', hint: 'Also Ctrl+mouse wheel over a preview',
     options: () => Array.from({ length: 26 }, (_, i) => (5 + i) / 10).map(z => [z, Math.round(z * 100) + '%']) },
-  { name: 'backup', group: 'Files', kind: 'toggle' },
+  { name: 'backup', group: 'Files', kind: 'toggle',
+    hint: 'When saving, the old file becomes name.ext.bak (overwritten at the next save)',
+    hintOff: 'Saving overwrites the file; no backup is made' },
   { name: 'trimTrailing', group: 'Files', kind: 'toggle', title: 'Remove whitespace at line ends on save',
-    hint: 'The whole file, just before it is written (Ctrl+Z after the save gives the spaces back). Off: every space is kept. A language can keep some (markdown: 2) or never trim (trimTrailing)' },
+    hint: 'On save, spaces and tabs at line ends are removed from the whole file, just before it is written (Ctrl+Z after the save gives them back). A language can keep some (markdown: 2) or never trim (trimTrailing)',
+    hintOff: 'On save, spaces and tabs at line ends are kept' },
   { name: 'askSaveDrafts', group: 'Files', kind: 'toggle', title: 'Ask to save changed drafts when closing LexPen',
-    hint: 'Off: changed drafts stay drafts without a question (closing a draft tab always asks)' },
+    hint: 'Closing LexPen with changed drafts asks whether to save them (closing a draft tab always asks)',
+    hintOff: 'Closing LexPen keeps changed drafts as drafts without a question (closing a draft tab always asks)' },
   { name: 'tabOrder', group: 'Tabs', kind: 'choice', options: () => [['recent', 'Recently used'], ['tabs', 'Tab bar order']] },
   { name: 'tabBar', group: 'Tabs', kind: 'choice', title: 'Tab bar', hint: 'When the tabs do not fit in one row',
     options: () => [['scroll', 'One row that scrolls'], ['menu', 'One row, a menu for the tabs out of view'], ['rows', 'Several rows']] },
-  { name: 'movePinned', group: 'Tabs', kind: 'toggle' },
-  { name: 'findShared', group: 'Find', kind: 'toggle' },
+  { name: 'movePinned', group: 'Tabs', kind: 'toggle',
+    hint: 'Closing a pane moves its pinned tabs to the main pane; closing a window moves them to another open window of the same project',
+    hintOff: 'Pinned tabs keep their pane open, and close with their window' },
+  { name: 'findShared', group: 'Find', kind: 'toggle',
+    hint: 'Both panes share one find (Ctrl+F)',
+    hintOff: 'Each pane has its own find (Ctrl+F), with its own text and options' },
   { name: 'findWrap', group: 'Find', kind: 'choice', title: 'Search: at the end of the file', hint: 'What find / search next (F3) does past the last match (Shift+F3: before the first)',
     options: () => [['end', 'Stop, with a message'], ['around', 'Go on from the top'], ['origin', 'Go on from the top, stop where the search started']] },
   { name: 'findHistory', group: 'Find', kind: 'choice', title: 'Searches kept in the history',
@@ -484,7 +546,8 @@ const SETTING_ROWS = [
   { name: 'findMark', group: 'Find', kind: 'choice', title: 'Found text: marked with', hint: 'The matches of find and search, in the editor and the preview',
     options: () => [['background', 'A background colour'], ['outline', 'A box around it (the text keeps its own background)'], ['both', 'Both']] },
   { name: 'findGutter', group: 'Find', kind: 'toggle', title: 'Mark the line numbers of lines with found text',
-    hint: 'As the found text is marked; the line with the current match as the current match' },
+    hint: 'Besides the found text, the line numbers of lines with found text are marked too',
+    hintOff: 'The line numbers are not marked; only the found text is' },
   { name: 'appFont', group: 'App', kind: 'font' },
   { name: 'appSize', group: 'App', kind: 'size', base: () => ptOf(APP_PX) + ' pt' },
   { name: 'statusFont', group: 'App', kind: 'font' },
@@ -522,7 +585,7 @@ function settingDefs() {
   const rank = r => SETTING_GROUPS.indexOf(r.group);
   const rows = [...SETTING_ROWS, ...openInRows(), ...formatRows()].sort((a, b) => rank(a) - rank(b));
   return rows.map(r => {
-    const action = appActions.get(r.name);
+    const action = appActions.get(r.name) ?? appActions.get(r.name + '.toggle') ?? appActions.get(r.name + '.set');
     return {
       name: r.name, group: r.group, sub: r.sub ?? null, kind: r.kind, default: r.default,
       title: r.title ?? action?.title ?? r.name, hint: r.hint ?? action?.hint ?? '',
@@ -552,15 +615,15 @@ appAction('bookmarkList', { title: 'Bookmarks of this file', hint: 'A list to ch
   editor: true, run: (_, { pane }) => showBookmarkList(pane) });
 
 // ---------- The gutter (gutter.js): View > Gutter ----------
-appAction('lineNumbers', { title: 'Line numbers', hint: 'None, every 10 (a dash at 5, a dot on the others) or every line', group: 'view',
+appAction('lineNumbers.set', { title: 'Line numbers', hint: 'None, every 10 (a dash at 5, a dot on the others) or every line', group: 'view',
   variants: [['none'], ['tens'], ['all']], variantTitles: { none: 'Line numbers: none', tens: 'Line numbers: every 10', all: 'Line numbers: every line' },
   checked: ([kind]) => setting('lineNumbers') === kind, run: ([kind]) => setSetting('lineNumbers', kind) });
-appAction('lineNumberCount', { title: 'Line number count', hint: 'Absolute, or relative to the cursor line (that line shows its own number)', group: 'view',
+appAction('lineNumberCount.set', { title: 'Line number count', hint: 'Absolute, or relative to the cursor line (that line shows its own number)', group: 'view',
   variants: [['absolute'], ['relative']], variantTitles: { absolute: 'Line numbers: absolute', relative: 'Line numbers: relative to the cursor' },
   checked: ([kind]) => setting('lineNumberCount') === kind, run: ([kind]) => setSetting('lineNumberCount', kind) });
-appAction('gutterColumn', { title: 'Gutter', hint: 'Show or hide this column left of the text', group: 'view',
+toggleAction('gutterColumn', { title: 'Gutter', hint: 'Show or hide this column left of the text', group: 'view',
   variants: [['bookmarks'], ['changes'], ['git'], ['folds']],
   variantTitles: { bookmarks: 'Bookmark gutter', changes: 'Change markers (not saved)',
-    git: 'Git markers (since the last commit)', folds: 'Fold markers' },
-  checked: ([name]) => setting('gutter.' + name),
-  run: ([name]) => setSetting('gutter.' + name, !setting('gutter.' + name)) });   // applySettings sets up the editors
+    git: 'Git markers (since the last commit)', folds: 'Fold markers' } },
+  ([name]) => setting('gutter.' + name) !== false,
+  ([name]) => setSetting('gutter.' + name, setting('gutter.' + name) === false), ['show', 'hide']);   // applySettings sets up the editors   // applySettings sets up the editors

@@ -55,24 +55,33 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
 - **Read-only tabs** (right-click a tab > Read-only): the tab cannot change the file; switching it off is
   refused while another tab or window edits the file. A file with the Windows read-only attribute opens
   read-only. A padlock before the name shows it (underlined: set by you); the tooltip says why.
-- **Wrap long lines** (View menu, Alt+Z, on by default): in the editor and for code in the preview. A line of
-  more than 10,000 characters always wraps in the preview: one such coloured line makes the browser freeze for
-  seconds on every mouse move (see docs/plans/executed/PLAN-long-lines.md).
-- **Spaces, tabs and line ends** (Options > Settings > Editor view, each off by default, apart): in the editor a space
-  shows as a small dot and a tab as an arrow; line ends as a pilcrow (CRLF) or the LF sign, the last line none.
-  Their colour is the theme's `whitespace`.
-- **Indent guides** (Options > Settings > Editor view): a thin line at every indent step, from the indent to the
-  unindent; an empty line takes the level of the lines around it. In the comment colour (the default), a colour
-  per level (rainbow: theme colours `guide1` to `guide6`, lighter at night) or off. The guide of the block the
-  cursor is in (on a line such as `begin`: the block it opens) shows in the find box's colour (a setting of its
-  own). The editor only.
+- **Wrap long lines** (View menu, Alt+Z, on by default): in the editor. The code blocks of the preview have a
+  setting of their own (Options > Settings > Preview, on by default). A line of more than 10,000 characters always
+  wraps in the preview: one such coloured line makes the browser freeze for seconds on every mouse move (see
+  docs/plans/executed/PLAN-long-lines.md).
+- **Invisible characters** (Options > Settings > Editor view > Invisible characters): spaces and tabs, and line
+  ends (each off by default, apart): in the editor a space shows as a small dot and a tab as an arrow; line ends as
+  a pilcrow (CRLF) or the LF sign, the last line none, in the theme's `whitespace` colour. Characters that cannot be
+  seen (on by default): a control character as `0x1B`, an invisible sign as `U+200B`, in a box in inverted
+  colours, still one character (one step of the cursor, removed whole). A byte the encoding of the file cannot
+  read (a file with a byte order mark, UTF-16) is kept as it is and shown as `0xAB` in red; saving writes it back,
+  so a file is never changed by opening and saving it.
+- **Indent guides** (Options > Settings > Editor view): a thin line at the indent of every enclosing line, from
+  the indent to the unindent; an empty line takes the level of the lines around it. In the comment colour (the
+  default), a colour per level (rainbow: theme colours `guide1` to `guide6`, lighter at night), one colour you
+  choose, or off; an intensity slider fades them into the background. The guide of the block the cursor is in (on
+  a line such as `begin`: the block it opens) shows in a colour and intensity of its own (default the find box's
+  colour). A colour is one of the theme (it follows the theme) or one you pick. The editor only.
 - **Menus**: File, Edit, Format, View and Options in the toolbar row. Every item shows its key; Alt+letter opens a
   menu, the arrow keys move, Enter runs, Esc closes one level, an underlined letter runs its item. The focus stays
   in the editor, so a menu item works on the cursor and the selection there.
 - **Keys you can change**: every key runs an action, and every menu item is an action. `defaults\keys.json` is the
   default set; a `keys.json` in `%LOCALAPPDATA%\LexPen` overrides it key by key (`"Ctrl+T": null` takes a key
   away). Chords like `Ctrl+K, K`: the first key waits in the bottom bar for the second. A move (section,
-  bookmark) selects when Shift is added to its key.
+  bookmark) selects when Shift is added to its key. An action is named for what it acts on, then a dot and what it
+  does: `wrap.toggle` switches, `wrap.on` / `wrap.off` (or `ruler.show` / `ruler.hide`) set, and an action with
+  choices sets the one given (`tabBar.set rows`). Old names in your keys.json (`wrap`, `rulerOn`, `tabBar`, ...) are
+  renamed in it at start.
 - **F1**: every action with its key (columns Keys, Command, Action, their names on top while the list scrolls),
   grouped and searchable (on key, title, hint or action name). Enter runs the
   selected one, so F1 is also a command palette and the way to actions without a key. Your own keys are marked;
@@ -116,6 +125,11 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   keys, not on a click.
 - **Left at the start of a line** (Options > Settings > Editor, on by default): Left (and Shift+Left) at the first
   column goes on to the end of the line above; off, the cursor stays there.
+- **Home** (Options > Settings > Editor): the first non-blank character first, again: column 1 (the default); or
+  column 1 at once. Shift+Home selects; in column mode a block goes the same way.
+- **Ctrl+Up / Ctrl+Down**: the text scrolls a line, the cursor staying on its line; with a setting (Editor >
+  Cursor) the cursor moves along, keeping its place on the screen, and at the end still goes on to the last line.
+  Where nothing can scroll, a line at that edge flashes in the theme's warning colour.
 - **Cursor past the end of the line** (Options > Settings > Editor, off by default; always in column mode; a
   monospaced editor font only): Up, Down, PgUp / PgDn and a click keep the cursor in its column on a shorter or
   empty line (with wrapping on: its place on the row), Right goes on past the end, End goes to the real end.
@@ -307,6 +321,7 @@ F1 lists every key and action. The main ones of the default set:
 | Ctrl+Shift+B, Ctrl+Shift+E | Sidebar, folder pane |
 | Ctrl+F, F3 / Shift+F3, Ctrl+Shift+R, Ctrl+Shift+F | Find, next / previous (past the last match: stop, go on from the top, or go on until where the search started; a setting), replace, search in files. Found text is marked with a background colour, a box around it, or both (Options > Settings, Find; in the editor and the preview); so are the line numbers of its lines (a setting). The last searches (with their switches) and replacements are kept for all windows and restarts: Up / Down in a find, replace or search field step through them, Alt+Down (or Down in an empty field) lists them, with Clear history; the find bar and the search in files share the searches (setting: how many, 20) |
 | Ctrl+G | Go to line: a line number, or line:column (also Edit > Go to line...) |
+| Ctrl+Up / Ctrl+Down | Scroll the text a line; the cursor stays on its line, or moves along (a setting; then with Shift: select along) |
 | Ctrl+[ / Ctrl+] | To the opener (before it) / closer (after it) of the pair or word set around the cursor; again: the pair around that one; with Shift: select. The pair is highlighted as you move and type: the innermost one holding the cursor, or the set of the word the cursor is on (`if` ... `else` ... `end if`), only in the language at the cursor, strings and comments left out (Options > Settings, Editor view: a background colour, an underline or off; closing brackets and quotes while typing: Editor). Edit > Select inside brackets: what lies between |
 | Ctrl+> / Ctrl+< | Indent / outdent the lines (in keys.json: `Ctrl+Shift+.` and `Ctrl+Shift+Comma`) |
 | Ctrl+PgDn / Ctrl+PgUp | Next / previous section (with Shift: select) |

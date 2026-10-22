@@ -516,8 +516,13 @@ function jumpTo(cm, spec, dir, extend) {
 // Enter and Tab stay editor keys (in a table they move between cells); everything else is an action.
 const mdKey = run => markdownOnly(cm => { if (!cm.getOption('readOnly')) run(cm); });
 
+// Home (setting homeStop): column 1, or the first non-blank character first (again: column 1, CodeMirror's smart
+// home). A motion: with Shift it selects.
+const homeKey = Object.assign(cm => cm.execCommand(setting('homeStop') ? 'goLineStart' : 'goLineStartSmart'), { motion: true });
+
 function formatKeys() {
   return {
+    Home: homeKey,
     'Enter': cm => {
       const md = markdownOnly(c => { if (!enterInTable(c)) c.execCommand('newlineAndIndentContinueMarkdownList'); })(cm);
       return md === CodeMirror.Pass ? formatEnter(cm) : md;

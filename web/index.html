@@ -13,17 +13,17 @@
 
 <!-- Buttons with data-action run that action; their tooltip shows its key (see showKeys). -->
 <header class="mm-toolbar">
-  <button data-action="sidebar">&#9776;</button>
+  <button data-action="sidebar.toggle">&#9776;</button>
   <nav class="mm-menubar"></nav>
   <span class="mm-doc-name"></span>
   <button data-action="save" class="mm-save">Save</button>
   <button data-cmd="orient" class="mm-orient" title="Panes side by side / above each other (also in the divider's right-click menu)"></button>
   <span class="mm-switches">
-    <button data-action="editorSwitch" class="mm-switch-editor" data-title="Show / hide the editor">Editor</button>
-    <button data-action="previewSwitch" class="mm-switch-preview" data-title="Show / hide the preview">Preview</button>
+    <button data-action="editor.toggle" class="mm-switch-editor" data-title="Show / hide the editor">Editor</button>
+    <button data-action="preview.toggle" class="mm-switch-preview" data-title="Show / hide the preview">Preview</button>
   </span>
-  <button data-action="outline" class="mm-outline-button">Outline</button>
-  <button data-action="theme" class="mm-theme"></button>
+  <button data-action="outline.toggle" class="mm-outline-button">Outline</button>
+  <button data-action="theme.toggle" class="mm-theme"></button>
   <button data-action="zoomReset" class="mm-zoom" data-key-action="zoomIn" data-title="Preview zoom: click for 100%. Zoom in / out">100%</button>
 </header>
 
@@ -105,8 +105,8 @@
   <button data-cmd="tabCopyPath">Copy full name to clipboard</button>
   <button data-cmd="tabShowInTree" class="mm-file-item">Show in folder pane</button>
   <button data-cmd="tabFavourite" class="mm-fav-item">Add to favourites</button>
-  <button data-cmd="tabPin" data-key-of="pinTab">Pin tab</button>
-  <button data-cmd="tabReadOnly" data-key-of="readOnly" class="mm-check">Read-only</button>
+  <button data-cmd="tabPin" data-key-of="pin.toggle">Pin tab</button>
+  <button data-cmd="tabReadOnly" data-key-of="readOnly.toggle" class="mm-check">Read-only</button>
   <button data-cmd="tabRevert" data-key-of="revertToSaved">Revert to saved</button>
   <hr>
   <button data-cmd="tabClose" data-key-of="closeTab">Close</button>

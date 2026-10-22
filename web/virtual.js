@@ -349,3 +349,48 @@ function setupVirtual(pane) {
     End: ending, Home: ending, Enter: ending,
   });
 }
+
+// Ctrl+Down / Ctrl+Up (actions scrollLine.down / scrollLine.up, plan 23): the text scrolls one line, the view starting
+// a line further down (up). The cursor stays on its line, or with the setting scrollMovesCursor moves a line along,
+// keeping its place on the screen; at the end (start) of the text it still goes on to the last (first) line; with
+// Shift (extend) the selection goes along with the cursor. When the view cannot scroll, a fat line flashes at that
+// edge (flashEdge).
+function scrollLine(cm, dir, extend = false) {
+  const info = cm.getScrollInfo(), max = info.height - info.clientHeight;
+  const can = dir > 0 ? info.top < max - 1 : info.top > 0;
+  if (can) {
+    const first = cm.lineAtHeight(info.top + 1, 'local');
+    const at = cm.heightAtLine(first, 'local');
+    // A line partly scrolled off at the top counts as the first: Ctrl+Up shows it whole first.
+    const to = dir > 0 ? cm.heightAtLine(first + 1, 'local') : at < info.top - 1 ? at : cm.heightAtLine(Math.max(cm.firstLine(), first - 1), 'local');
+    cm.scrollTo(null, Math.max(0, Math.min(max, to)));
+  } else flashEdge(cm, dir);
+  if (!setting('scrollMovesCursor')) return;
+  const edge = dir > 0 ? cm.lastLine() : cm.firstLine(), block = blockOf(cm);
+  if (block ? block.head.line === edge : cm.listSelections().every(r => r.head.line === edge)) return;
+  const top = cm.getScrollInfo().top, shift = cm.display.shift;
+  // Column mode (column.js): with Shift the block grows a line, as Shift+Down does; without, a block is let go first.
+  if (extend && column.on) {
+    extendBlock(cm, dir > 0 ? 'down' : 'up');
+    cm.scrollTo(null, top);
+    return;
+  }
+  if (block) collapseBlock(cm);
+  // Shift from this key, not the one CodeMirror remembers from the last key it saw (this key is taken before it
+  // sees it).
+  cm.display.shift = extend;
+  try {
+    if (!extend && setting('virtualSpace') && virtual.mono && cm.listSelections().length === 1) moveVertical(cm, dir);
+    else cm.execCommand(dir > 0 ? 'goLineDown' : 'goLineUp');
+  } finally { cm.display.shift = shift; }
+  cm.scrollTo(null, top);   // the move must not scroll the view again
+}
+
+function flashEdge(cm, dir) {
+  const wrapper = cm.getWrapperElement();
+  wrapper.querySelector('.mm-edge-flash')?.remove();
+  const el = document.createElement('div');
+  el.className = 'mm-edge-flash ' + (dir > 0 ? 'mm-edge-bottom' : 'mm-edge-top');
+  wrapper.append(el);
+  setTimeout(() => el.remove(), 1000);
+}

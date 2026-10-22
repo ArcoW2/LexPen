@@ -21,22 +21,22 @@
   "Ctrl+W": "closeTab",
   "Ctrl+F4": "closeTab",
   "Ctrl+Shift+T": "reopenTab",
-  "Alt+Z": "wrap",
+  "Alt+Z": "wrap.toggle",
   "Alt+Up": "previousTab",           // the tab to the left (the tab bar's order), as UltraEdit's Alt+Up / Down
   "Alt+Down": "nextTab",
   "Alt+Left": ["section", -1],       // the previous / next section: paragraph, heading, procedure, ... per language
   "Alt+Right": ["section", 1],
-  "Alt+C": "columnMode",             // column mode: a drag and Shift+arrows select a block (COL in the bottom bar)
+  "Alt+C": "columnMode.toggle",             // column mode: a drag and Shift+arrows select a block (COL in the bottom bar)
   "Alt+Shift+Up": ["blockSelect", "up"],       // a block from the cursor, also without column mode
   "Alt+Shift+Down": ["blockSelect", "down"],
   "Alt+Shift+Left": ["blockSelect", "left"],
   "Alt+Shift+Right": ["blockSelect", "right"],
 
   // ---------- View ----------
-  "Ctrl+Alt+V, E": "editorSwitch",  // Ctrl+Alt+V, then: E the editor, P the preview (on / off; one of them stays), O the outline
-  "Ctrl+Alt+V, P": "previewSwitch",
-  "Ctrl+Alt+V, O": "outline",
-  "Ctrl+Shift+B": "sidebar",
+  "Ctrl+Alt+V, E": "editor.toggle",  // Ctrl+Alt+V, then: E the editor, P the preview (on / off; one of them stays), O the outline
+  "Ctrl+Alt+V, P": "preview.toggle",
+  "Ctrl+Alt+V, O": "outline.toggle",
+  "Ctrl+Shift+B": "sidebar.toggle",
   "Ctrl+Shift+E": "folders",
   "Ctrl+Shift+F": "searchInFiles",
   "Ctrl+=": "zoomIn",
@@ -51,6 +51,8 @@
   "F3": "findNext",
   "Shift+F3": "findPrevious",
   "Ctrl+G": "goToLine",
+  "Ctrl+Down": "scrollLine.down",    // the text a line (the cursor stays, or moves along: setting scrollMovesCursor)
+  "Ctrl+Up": "scrollLine.up",
   "Ctrl+Shift+G": "findPrevious",
   "Ctrl+Shift+R": "replace",
   "Ctrl+PgDn": ["section", 1],
@@ -65,7 +67,7 @@
   "Ctrl+Alt+Left": "cursorPrevious",
   "Ctrl+Shift+.": "indentMore",      // Ctrl+> and Ctrl+<: indent and outdent the lines (as Tab / Shift+Tab on a selection)
   "Ctrl+Shift+Comma": "indentLess",
-  "Ins": "overwrite",
+  "Ins": "overwrite.toggle",
 
   // ---------- Clipboards: 0 (Ctrl+Shift+`) is the Windows clipboard, 1 to 9 are LexPen's own ----------
   "Ctrl+C": "copy",
