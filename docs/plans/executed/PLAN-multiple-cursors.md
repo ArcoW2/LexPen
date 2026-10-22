@@ -118,10 +118,7 @@ the line above); a block turned into cursors; the wheel keeps the cursors.
 
 ## 4. Open questions
 
-Still open, not part of this execution:
-
-1. Replace in the selection: the find bar has no "in selection" switch now. Add it here (a switch next to case /
-   word / regex, on by itself when the bar opens on a multi-line selection), or as a plan of its own?
+None. The "in selection" switch is added to this plan (6. Added after execution); it is not built yet.
 
 ## 5. Resolved during execution
 
@@ -139,3 +136,16 @@ Still open, not part of this execution:
 - Home / End / PgUp / PgDn, and Up / Down / Right without virtual space, are CodeMirror's own per cursor; Left too,
   unless leftWraps is off or a cursor stands past the end.
 - Edit > Multiple cursors has the five occurrence actions (their keys shown there and in F1).
+
+## 6. Added after execution: find and replace in the selection (not built yet)
+
+The find bar gets an "in selection" switch next to case / word / regex. On by itself when the bar opens on a
+selection over more than one line. With it on, find, the marks, the count, Ctrl+Alt+Right / Left, the Ctrl+D chords
+and replace (also Replace all) stay inside the selection as it was when the switch went on (kept as marks, so edits
+inside it move it along); the selection is shown with a faint background while the switch is on. The answer to the
+question: here, not a plan of its own; the find bar in the editor is meant to be the better find for working in the
+text, while the search in the sidebar stays the one for replacing in files and a list of results.
+
+Tests (in-app): the switch on for a multi-line selection, off for a single line; matches outside not counted or
+marked; next / previous and the Ctrl+D chords stay inside; Replace all only inside; an edit inside moves the range
+along; switching it off finds in the whole file again.

@@ -49,6 +49,11 @@
                                   // for one out of view)
   "locateCursorTap": 400,         // ms: the longest press of Ctrl that counts as a tap
   "locateCursorJump": false,      // a double tap on Ctrl scrolls to the cursor first
+  "ruler": false,                 // the ruler above the editor: columns, the cursor's column, guides; a click on it
+                                  // sets a manual tab for the document (Tab goes there, Shift+Tab back)
+  "columnGuideStart": 0,          // a faint line after this many characters (0: none)
+  "columnGuideStep": 0,           // then one every so many characters (0: only the first)
+  "columnGuideExtra": 0,          // one more guide of its own, as 80 (0: none)
   "showWhitespace": false,        // in the editor: a space as a small dot, a tab as an arrow
   "showLineEnds": false,          // in the editor: a sign at the end of each line (CRLF or LF)
 

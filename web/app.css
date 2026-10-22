@@ -558,6 +558,23 @@ body[data-no-format-bar] .CodeMirror .mm-inner-bar { display: none; }
 .mm-vfill { position: relative; z-index: 1; }   /* a block past shorter lines' ends (virtual.js) */
 .mm-vspacer { position: absolute; width: 1px; height: 1px; visibility: hidden; pointer-events: none; }
 .mm-vspacer[hidden] { display: none; }
+/* The ruler, column guides and manual tabs (ruler.js): guides faint, behind the text; tabs over it, wider, stronger. */
+.mm-ruler { display: flex; flex: none; height: 18px; background: var(--bg-bar); border-bottom: 1px solid var(--border); user-select: none; }
+.mm-ruler[hidden] { display: none; }
+.mm-ruler-left { flex: none; display: flex; align-items: center; justify-content: flex-end; gap: 1px; overflow: hidden; padding-right: 2px; box-sizing: border-box; }
+.mm-ruler-left button { display: flex; width: 16px; height: 16px; padding: 2px; border: 0; border-radius: 2px; background: none; color: var(--fg-dim); cursor: pointer; }
+.mm-ruler-left button:hover { background: var(--hover); color: var(--fg); }
+.mm-ruler-left button[hidden] { display: none; }
+.mm-ruler-scale { position: relative; flex: 1; overflow: hidden; cursor: pointer; }
+.mm-ruler-scale.mm-ruler-off { cursor: default; }
+.mm-ruler-scale canvas { position: absolute; left: 0; top: 0; }
+.mm-ruler-tab { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; cursor: ew-resize; }
+.mm-ruler-tab::after { content: ''; position: absolute; top: 0; left: 0; width: 7px; height: 7px; background: inherit; }
+.mm-cols { position: absolute; top: 0; overflow: hidden; pointer-events: none; }
+.mm-cols-guides { z-index: 0; }
+.mm-cols-tabs { z-index: 4; }
+.mm-colguide { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--border); }
+.mm-coltab { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; opacity: .85; }
 /* Locate the cursor (locate.js): rings shrinking onto each cursor, a marker at the edge for one out of view. */
 .mm-locate { position: fixed; z-index: 50; overflow: hidden; pointer-events: none; }
 .mm-locate-ring { position: absolute; width: 160px; height: 160px; margin: -80px 0 0 -80px; box-sizing: border-box;
@@ -569,10 +586,10 @@ body[data-no-format-bar] .CodeMirror .mm-inner-bar { display: none; }
 .mm-locate-edge[data-dir=down] { bottom: 4px; transform: translateX(-50%); }
 .mm-locate-edge[data-dir=left] { left: 4px; transform: translateY(-50%); }
 .mm-locate-edge[data-dir=right] { right: 4px; transform: translateY(-50%); }
-.mm-locate-edge[data-dir=up]::before { content: 'B2  '; color: var(--find-box); }
-.mm-locate-edge[data-dir=down]::before { content: 'BC  '; color: var(--find-box); }
-.mm-locate-edge[data-dir=left]::before { content: 'C0  '; color: var(--find-box); }
-.mm-locate-edge[data-dir=right]::after { content: '  B6'; color: var(--find-box); }
+.mm-locate-edge[data-dir=up]::before { content: '^  '; color: var(--find-box); font-weight: 700; }
+.mm-locate-edge[data-dir=down]::before { content: 'v  '; color: var(--find-box); font-weight: 700; }
+.mm-locate-edge[data-dir=left]::before { content: '<  '; color: var(--find-box); font-weight: 700; }
+.mm-locate-edge[data-dir=right]::after { content: '  >'; color: var(--find-box); font-weight: 700; }
 @keyframes mm-locate-edge { 0%, 70% { opacity: 1; } 100% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) {
   .mm-locate-ring { width: 24px; height: 24px; margin: -12px 0 0 -12px; animation: mm-locate-fade .7s ease-out forwards; }
@@ -704,25 +721,25 @@ body[data-find-mark=outline] ::highlight(mm-find-cur-0), body[data-find-mark=out
 body[data-bracket-highlight=underline] .CodeMirror .mm-bracket { background: none; border-radius: 0; box-shadow: inset 0 -2px var(--find-box); }
 body[data-bracket-highlight=underline] .CodeMirror .mm-bracket.mm-bracket-bad { box-shadow: inset 0 -2px var(--bracket-no-match); }
 
-/* Indent guides (guides.js): a line class mm-gN gives the number of guides (--mm-gn), --mm-step the indent step and
-   --mm-gc the cursor's guide (in ch), set on the editor. Setting indentGuides: comment (the default), rainbow (guide1
-   to guide6 per level, repeating), off; indentGuideCursor: the cursor's guide in the find box's colour, on top. */
+/* Indent guides (guides.js): a line class mm-gk-... per set of guide columns sets --mm-guide-img, -pos and -size
+   (its rule made by guides.js), --mm-gc the cursor's guide (in ch), set on the editor. Setting indentGuides: comment
+   (the default), rainbow (guide1 to guide6 per nesting depth, repeating), off; indentGuideCursor: the cursor's guide
+   in the find box's colour, on top. */
 .mm-editor-pane .CodeMirror pre.CodeMirror-line {
-  --mm-guide-img: repeating-linear-gradient(to right, color-mix(in srgb, var(--hl-comment) 55%, transparent) 0 1px, transparent 1px var(--mm-step));
-  --mm-guide-pos: 0 0;
-  --mm-guide-size: calc(var(--mm-gn, 0) * var(--mm-step, 2ch)) 100%;
-  background-image: var(--mm-guide-img); background-position: var(--mm-guide-pos); background-size: var(--mm-guide-size);
-  background-repeat: no-repeat; background-origin: content-box;
+  --mm-guide1: color-mix(in srgb, var(--hl-comment) 55%, transparent);
+  --mm-guide2: var(--mm-guide1); --mm-guide3: var(--mm-guide1); --mm-guide4: var(--mm-guide1);
+  --mm-guide5: var(--mm-guide1); --mm-guide6: var(--mm-guide1);
+  background-image: var(--mm-guide-img, none); background-position: var(--mm-guide-pos, 0 0);
+  background-size: var(--mm-guide-size, auto); background-repeat: no-repeat; background-origin: content-box;
 }
 body[data-indent-guides=rainbow] .mm-editor-pane .CodeMirror pre.CodeMirror-line {
-  --mm-guide-img: repeating-linear-gradient(to right, var(--guide1) 0 1px, transparent 1px calc(6 * var(--mm-step))), repeating-linear-gradient(to right, var(--guide2) 0 1px, transparent 1px calc(6 * var(--mm-step))), repeating-linear-gradient(to right, var(--guide3) 0 1px, transparent 1px calc(6 * var(--mm-step))), repeating-linear-gradient(to right, var(--guide4) 0 1px, transparent 1px calc(6 * var(--mm-step))), repeating-linear-gradient(to right, var(--guide5) 0 1px, transparent 1px calc(6 * var(--mm-step))), repeating-linear-gradient(to right, var(--guide6) 0 1px, transparent 1px calc(6 * var(--mm-step)));
-  --mm-guide-pos: calc(0 * var(--mm-step)) 0, calc(1 * var(--mm-step)) 0, calc(2 * var(--mm-step)) 0, calc(3 * var(--mm-step)) 0, calc(4 * var(--mm-step)) 0, calc(5 * var(--mm-step)) 0;
-  --mm-guide-size: max(0px, calc((var(--mm-gn, 0) - 0) * var(--mm-step, 2ch))) 100%, max(0px, calc((var(--mm-gn, 0) - 1) * var(--mm-step, 2ch))) 100%, max(0px, calc((var(--mm-gn, 0) - 2) * var(--mm-step, 2ch))) 100%, max(0px, calc((var(--mm-gn, 0) - 3) * var(--mm-step, 2ch))) 100%, max(0px, calc((var(--mm-gn, 0) - 4) * var(--mm-step, 2ch))) 100%, max(0px, calc((var(--mm-gn, 0) - 5) * var(--mm-step, 2ch))) 100%;
+  --mm-guide1: var(--guide1); --mm-guide2: var(--guide2); --mm-guide3: var(--guide3);
+  --mm-guide4: var(--guide4); --mm-guide5: var(--guide5); --mm-guide6: var(--guide6);
 }
 body[data-indent-guides=off] .mm-editor-pane .CodeMirror pre.CodeMirror-line { --mm-guide-img: none; }
 .mm-editor-pane .CodeMirror pre.CodeMirror-line.mm-guide-cur {
-  background-image: linear-gradient(var(--find-box), var(--find-box)), var(--mm-guide-img);
-  background-position: var(--mm-gc, 0) 0, var(--mm-guide-pos); background-size: 1px 100%, var(--mm-guide-size);
+  background-image: linear-gradient(var(--find-box), var(--find-box)), var(--mm-guide-img, none);
+  background-position: var(--mm-gc, 0) 0, var(--mm-guide-pos, 0 0); background-size: 1px 100%, var(--mm-guide-size, auto);
 }
 
 /* Formatting bar above the editor (format.js): markdown's built-in bar, or a code language's bar (its pack's

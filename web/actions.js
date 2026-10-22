@@ -145,6 +145,10 @@ appAction('wrap', { title: 'Wrap long lines', hint: 'In the editor and in code i
   checked: () => setting('wrap'), run: () => setWrap(!setting('wrap')) });
 appAction('locateCursor', { title: 'Locate the cursor', hint: 'Rings shrink onto every cursor; a cursor out of view gets a marker at that edge (also a short tap on Ctrl)', group: 'view',
   enabled: () => !!editorPane(), run: () => locateCursor(editorPane({ from: 'menu' })) });
+appAction('ruler', { title: 'Ruler', hint: 'Above the editor: the columns, the column of the cursor, column guides and manual tabs (click it for a tab)', group: 'view',
+  checked: () => rulerShown(), run: () => setSetting('ruler', !rulerShown()) });
+appAction('rulerOn', { title: 'Ruler on', hint: 'Shows the ruler (nothing when it is shown)', group: 'view', run: () => setSetting('ruler', true) });
+appAction('rulerOff', { title: 'Ruler off', hint: 'Hides the ruler (nothing when it is hidden)', group: 'view', run: () => setSetting('ruler', false) });
 appAction('sidebar', { title: 'Sidebar', hint: 'Show or hide the folder pane and the search', group: 'view',
   checked: () => document.body.dataset.sidebar === 'on', run: () => commands.sidebar() });
 appAction('folders', { title: 'Folders', hint: 'The folder pane, with the keyboard in it', group: 'view', run: () => focusTree() });
@@ -213,6 +217,13 @@ occurrenceAction('next', 'Next occurrence', 'The current occurrence moves on, wi
 occurrenceAction('previous', 'Previous occurrence', 'The current occurrence moves back, without adding it');
 occurrenceAction('remove', 'Remove occurrence', 'The current occurrence leaves the cursors; the next one is current (none: the previous one)');
 occurrenceAction('clear', 'Clear added cursors', 'Only the current occurrence stays selected');
+// Manual tabs on the ruler (ruler.js), per document: a column (tabAdd 10), else the cursor's column.
+appAction('tabAdd', { title: 'Add tab', hint: 'A manual tab at a column (tabAdd 10), without one at the column of the cursor: Tab goes there', group: 'edit', editor: true,
+  run: (params, { pane }) => tabAddAction(pane, params) });
+appAction('tabRemove', { title: 'Remove tab', hint: 'The manual tab at a column (tabRemove 10), without one at the column of the cursor', group: 'edit', editor: true,
+  run: (params, { pane }) => tabRemoveAction(pane, params) });
+appAction('tabClear', { title: 'Clear tabs', hint: 'All manual tabs of this document', group: 'edit', editor: true,
+  run: (_, { pane }) => clearTabs(paneDoc(pane)) });
 appAction('indentMore', { title: 'Indent', hint: 'The lines of the cursor or selection one indent step right', group: 'edit', editor: true,
   run: (_, { pane }) => { pane.cm.execCommand('indentMore'); pane.cm.focus(); } });
 appAction('indentLess', { title: 'Outdent', hint: 'The lines of the cursor or selection one indent step left', group: 'edit', editor: true,
@@ -412,6 +423,14 @@ const SETTING_ROWS = [
     options: () => [200, 300, 400, 500, 700, 1000].map(n => [n, n + ' ms']) },
   { name: 'locateCursorJump', group: 'Editor', sub: 'Cursor', kind: 'toggle', title: 'A double tap on Ctrl scrolls to the cursor',
     hint: 'Two taps on Ctrl: the editor scrolls to the cursor (with several: the main one), then shows where it is' },
+  { name: 'ruler', group: 'Editor', sub: 'Ruler and column guides', kind: 'toggle', title: 'The ruler above the editor',
+    hint: 'The columns, the column of the cursor and the guides; a click sets a manual tab (Tab goes there), right-click for colours. Only with a monospaced editor font' },
+  { name: 'columnGuideStart', group: 'Editor', sub: 'Ruler and column guides', kind: 'choice', title: 'Column guide: the first one after',
+    hint: 'A faint line after this many characters (also right-click on the ruler)', options: () => [[0, 'None'], ...[2, 4, 8, 10, 20, 40, 72, 80, 100, 120].map(n => [n, n + ' characters'])] },
+  { name: 'columnGuideStep', group: 'Editor', sub: 'Ruler and column guides', kind: 'choice', title: 'Column guides: then every',
+    hint: 'After the first one, a guide every so many characters', options: () => [[0, 'None (only the first)'], ...[2, 4, 8, 10, 20, 40].map(n => [n, n + ' characters'])] },
+  { name: 'columnGuideExtra', group: 'Editor', sub: 'Ruler and column guides', kind: 'choice', title: 'Column guide: one more after',
+    hint: 'One guide of its own, as at 80 (also right-click on the ruler: Column guide here)', options: () => [[0, 'None'], ...[72, 80, 100, 120, 132].map(n => [n, n + ' characters'])] },
   { name: 'showWhitespace', group: 'Editor', kind: 'toggle', title: 'Show spaces and tabs',
     hint: 'In the editor: a space as a small dot, a tab as an arrow (theme colour: whitespace)' },
   { name: 'showLineEnds', group: 'Editor', kind: 'toggle', title: 'Show line ends',

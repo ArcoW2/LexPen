@@ -1,6 +1,6 @@
 # Plan: Column guides, a ruler and manual tabs
 
-Status: draft 2026-10-21, not started. From the list "what UltraEdit or Visual Studio has and LexPen does not".
+Status: executed 2026-10-22 (web/ruler.js; in-app test t87, 37 checks). From the list "what UltraEdit or Visual Studio has and LexPen does not".
 The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
@@ -94,3 +94,23 @@ In-app:
 ## 4. Open questions
 
 None.
+
+## 5. Resolved during execution
+
+- Columns: a manual tab is at the column a cursor stands in (the bottom bar's Col, from 1), so `tabAdd 10` puts the
+  cursor at Col 10. A guide is after so many characters (80: between the 80th and the 81st). On the ruler the numbers
+  stand over their columns; a click sets the tab at the column edge nearest to it.
+- The editor has no right-click menu of its own (the WebView's is shown), so "Column guide here" and "Clear column
+  guides" are in the ruler's right-click menu, with the colours and Clear all tabs.
+- The ruler is off by default (setting `ruler`); View > Ruler, actions `ruler`, `rulerOn`, `rulerOff`.
+- The tabs are kept in memory per document: gone when it closes and after a restart.
+- The colours: orange (a found text, the default), the find box, blue (the cursor), green, purple, red, brown, and
+  Other colour... (the colour picker). The handle is a small square at the top right of the line.
+- A tab dragged onto another one: the dragged one stays, the other goes.
+- Guides use the theme's `border` colour; no theme colour `guide` of its own.
+- Shift+Tab to a manual tab only moves the cursor (nothing is removed). In a markdown table Tab still goes to the next
+  cell first.
+- Found on the way: the locate-the-cursor markers (plan 02) had broken arrow characters in app.css; now plain `^`,
+  `v`, `<`, `>`.
+- Regression: the column-mode test (t52) fails three clipboard checks ("Requested Clipboard operation did not
+  succeed"), the same on main without this change.

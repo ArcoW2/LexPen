@@ -36,7 +36,7 @@ const MENUS = [
   ['Co&nvert', () => convertMenuItems()],
   ['&View', [
     ['&Editor', 'editorSwitch'], ['&Preview', 'previewSwitch'], ['&Outline', 'outline'], '-',
-    ['Locate the &cursor (tap Ctrl)', 'locateCursor'], '-',
+    ['Locate the &cursor (tap Ctrl)', 'locateCursor'], ['R&uler', 'ruler'], '-',
     ['S&idebar', 'sidebar'], ['&Folders', 'folders'], ['&Search', 'searchView'], '-',
     { label: 'P&anes', sub: [['Side &by side', 'paneOrientation', 'v'], ['&Above each other', 'paneOrientation', 'h'], '-',
       ['&Hide this pane', 'paneHide'], ['Hide &other pane', 'paneHideOther'], ['&Close this pane', 'paneClose'],

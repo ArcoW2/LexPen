@@ -162,6 +162,14 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   a cursor out of view gets a marker at that edge (top: higher, bottom: lower) with its line number, several in one
   direction one marker with the count. A double tap scrolls to the cursor first (setting, off by default). Also View >
   Locate the cursor; settings in Editor > Cursor (on / off, the longest tap).
+- **Ruler, column guides and manual tabs**: View > Ruler shows the columns above the editor (the cursor's column
+  marked). Column guides are faint lines after so many characters: a first one, then one every step, and one more
+  (as 80); in the settings (Editor > Ruler and column guides) or right-click on the ruler. A click on the ruler sets a
+  manual tab for this document, a line through the text; click its handle to remove it, drag it to move it,
+  right-click for a colour (the next click takes it too) or Clear all tabs. Tab before a manual tab goes there with
+  spaces, Shift+Tab back to the one before; past them Tab and Shift+Tab work as always. The buttons above the line
+  numbers: Clear tabs, Copy tabs from / to another open document. Actions tabAdd / tabRemove (with a column, or at the
+  cursor) and tabClear. A monospaced editor font only.
 - **Gutter**: line numbers, bookmarks, change markers (not saved yet), git markers (changed since the last commit;
   a click shows the old text and can revert the block) and fold markers (heading sections and code blocks in
   markdown, braces or indentation in code). View > Gutter switches each column. Line numbers: none, every 10 (a
@@ -297,6 +305,7 @@ F1 lists every key and action. The main ones of the default set:
 | Ctrl+Shift+1 .. 9, Ctrl+Shift+` , Ctrl+Shift+C | Select clipboard 1 to 9, the Windows clipboard, the list |
 | Alt+C, Alt+Shift+arrows | Column mode on / off, select a block (also without column mode) |
 | Ctrl+Alt+click / double-click, Ctrl+D, A / D / R / C, Ctrl+Alt+Right / Left | Multiple cursors: add or remove a cursor, select a find match or word; add / remove / clear occurrences, the next / previous occurrence |
+| Tab / Shift+Tab (manual tabs on the ruler) | To the next manual tab (spaces) / back to the one before; past them as always |
 | Ctrl (a short tap), Ctrl, Ctrl | Locate the cursor (rings on every cursor, a marker for one out of view); the double tap scrolls to it (setting) |
 | Ctrl+1, S / T / C, Ctrl+1, 1 | Bookmark 1: store, toggle, clear, go to (likewise 2 to 9) |
 | Ctrl+K, K / N / P / L | Unnumbered bookmark, next, previous, list |

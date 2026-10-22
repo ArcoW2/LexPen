@@ -635,6 +635,7 @@ async function ensureEditor(pane) {
   setupCursors(pane);   // multiple cursors (cursors.js); its keys before virtual.js's
   setupBrackets(pane);   // matching brackets: the highlight, closing signs while typing (brackets.js)
   setupGuides(pane);   // indent guides (guides.js)
+  setupRuler(pane);   // the ruler, column guides and manual tabs (ruler.js)
   pane.cm.on('drop', (cm, e) => onEditorDrop(pane, e));
   pane.cm.getWrapperElement().addEventListener('wheel', e => {   // Ctrl+wheel: the editor font size
     if (!e.ctrlKey) return;
@@ -2557,6 +2558,7 @@ function applyFonts() {
   relayout();
   columnFontChanged();
   virtualFontChanged();
+  if (typeof applyRuler === 'function') applyRuler();   // the columns' width (ruler.js)
 }
 
 // ---------- Wrap long lines (View menu, Alt+Z) ----------
@@ -3398,6 +3400,7 @@ function applySettings() {
     document.body.dataset.indentGuides = now.indentGuides || 'comment';
     if (typeof repaintGuides === 'function') repaintGuides();
   }
+  if (RULER_SETTINGS.some(changed) && typeof applyRuler === 'function') applyRuler();   // ruler.js
   if (changed('formatBar')) applyFormatBar(now.formatBar);
   if (changed('languageNames') && 'languageNames' in was) {   // fences and blocks may now be another language
     languagesVersion++;

@@ -97,8 +97,9 @@ function indentLines(cm, dir, lines = selectedLines(cm)) {
   cm.operation(() => { for (const l of lines) indentLineStop(cm, l, dir); });
 }
 
-// Tab: with a selection its lines one indent stop in. A cursor in the indentation (or at the line's start), or in a
-// markdown list item: its line to the next indent stop. A cursor after text: a tab, or spaces to the next tab stop.
+// Tab: with a selection its lines one indent stop in. A cursor before a manual tab (ruler.js): spaces up to it. A cursor
+// in the indentation (or at the line's start), or in a markdown list item: its line to the next indent stop. A cursor
+// after text: a tab, or spaces to the next tab stop.
 function tabKey(cm) {
   if (cm.isReadOnly()) return;
   if (cm.somethingSelected()) return indentLines(cm, 1);
@@ -107,15 +108,27 @@ function tabKey(cm) {
   cm.operation(() => {
     const heads = cm.listSelections().map(r => r.head).sort((a, b) => b.line - a.line || b.ch - a.ch);
     for (const pos of heads) {
-      const text = cm.getLine(pos.line);
-      if (/^[ \t]*$/.test(text.slice(0, pos.ch)) || listItem(text)) indentLineStop(cm, pos.line, 1);
+      const text = cm.getLine(pos.line), col = textColumn(text, pos.ch, stops), manual = manualTabAfter(cm, col);
+      if (manual != null) cm.replaceRange(' '.repeat(manual - col), pos, pos, '+input');
+      else if (/^[ \t]*$/.test(text.slice(0, pos.ch)) || listItem(text)) indentLineStop(cm, pos.line, 1);
       else {
-        const col = textColumn(text, pos.ch, stops);
         cm.replaceRange(stops.useTabs ? '\t' : ' '.repeat(stops.tab - col % stops.tab), pos, pos, '+input');
       }
     }
   });
 }
 
-// Shift+Tab: the selected lines, or the cursor's line, to the indent stop before.
-const shiftTabKey = cm => indentLines(cm, -1);
+// Shift+Tab: the selected lines, or the cursor's line, to the indent stop before. Without a selection a cursor after a
+// manual tab (ruler.js) goes back to it; the others' lines to the indent stop before.
+function shiftTabKey(cm) {
+  if (cm.somethingSelected() || blockOf(cm)) return indentLines(cm, -1);
+  const back = cm.listSelections().map(r => manualTabBefore(cm, pastColOf(cm, r) ?? vcolAt(cm, r.head.line, r.head.ch)));
+  if (back.every(c => c == null)) return indentLines(cm, -1);
+  const prim = cm.getDoc().sel.primIndex;
+  cm.operation(() => {
+    const rest = cm.listSelections().filter((r, i) => back[i] == null).map(r => r.head.line);
+    if (rest.length) indentLines(cm, -1, [...new Set(rest)]);
+    const items = cm.listSelections().map((r, i) => back[i] != null ? cursorItem(cm, r.head.line, back[i]) : { anchor: r.anchor, head: r.head, col: pastColOf(cm, r) });
+    setItems(cm, items, prim);
+  });
+}

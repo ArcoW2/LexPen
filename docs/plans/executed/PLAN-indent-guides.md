@@ -92,3 +92,17 @@ None.
 | Colours | Comment: the theme's comment colour at 55 %. Rainbow: theme colours `guide1` to `guide6` in dark.json (light colours) and light.json (darker ones); the other themes take them from their base. |
 | Docs | README (an Indent guides bullet; the theme colour names). |
 | Tests | t81 (in the app): 14 checks pass: guides per line, empty lines from their neighbours, the cursor's guide on `begin` and on `if` (the indent they open), on a body line, on `end if` and on an empty line, an edit, rainbow (six layers and the cursor's), off, the cursor's guide off, tabs. Screenshots: comment and rainbow at night, comment by day. Unit tests: 186 pass (the theme colour name `guide6` added to an existing test). Also run: t79 (45), t70 (6). |
+
+## 6. Changed after execution: guides at the enclosing lines' indents (2026-10-22)
+
+A line indented several steps at once (line 1 at column 1, line 2 at column 10) showed a guide per step (five, the
+last one the cursor's), where you wanted one: at column 1, the indent of the line it belongs to, in the cursor's
+colour when the cursor is in that block. Now a line's guides are at the indents of its enclosing lines (the lines
+above it with less indent), not at every indent step; with regular indentation (one step per level) nothing changes.
+
+| Topic | As built |
+|---|---|
+| Where the lines go (replaces 3.1) | Per line, one guide at the indent of each enclosing line, read down from the nearest line above with no indent (at most 20000 lines up). An empty line: the guides left of the level it takes. A line that opens an indent: the cursor's guide at its own indent (not rounded up to a step). |
+| How it is drawn (replaces the row in 5) | A line class per set of guide columns (`mm-gk-0-9`: guides at columns 0 and 9, in `ch`), its CSS rule made by `guides.js` on first use: one 1px gradient per guide. `--mm-step` is gone. |
+| Rainbow | The colour by nesting depth (the first enclosing line `guide1`, the next `guide2`, ...), no longer by column. |
+| Tests | t81: 17 checks pass, the 14 above (rainbow now counts a layer per guide plus the cursor's) and the jump from column 1 to 10: one guide, the cursor's, at column 0 (0-based); rainbow one layer. Screenshot t81-jump.png. |

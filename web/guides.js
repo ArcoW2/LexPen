@@ -1,21 +1,33 @@
 'use strict';
-// Indent guides (docs/plans/22-PLAN-indent-guides.md): a thin vertical line at every indent step left of a line's
-// text, so an indented run of lines shows a line from the indent to the unindent; an empty line takes the smaller
-// level of the lines around it. Setting indentGuides: comment (the theme's comment colour), rainbow (guide1 to guide6
-// per level), off. Setting indentGuideCursor: the guide of the block the cursor is in, in the find box's colour.
-// Drawn by CSS (app.css) from a line class per number of guides (mm-g1, mm-g2, ...) and the indent step (--mm-step,
-// in ch); only the lines in view get their class. Loaded together with the editor (see loadEditor).
+// Indent guides (docs/plans/22-PLAN-indent-guides.md): a thin vertical line at the indent of every enclosing line
+// left of a line's text (the lines above it with less indent), so an indented run of lines shows a line from the
+// indent to the unindent; an indent of several steps at once shows one line, not one per step. An empty line takes
+// the smaller level of the lines around it. Setting indentGuides: comment (the theme's comment colour), rainbow
+// (guide1 to guide6 per nesting depth), off. Setting indentGuideCursor: the guide of the block the cursor is in, in
+// the find box's colour. Drawn by CSS (app.css) from a line class per set of guide columns (mm-gk-0-4: guides at
+// columns 0 and 4, in ch), its rule made here on first use; only the lines in view get their class. Loaded together
+// with the editor (see loadEditor).
 
 const GUIDE_MAX = 40;          // guides per line at most
 const GUIDE_LOOK = 200;        // an empty line: how far to look for the lines around it
-const GUIDE_RUN = 20000;       // the cursor's guide: how far it may run up and down
+const GUIDE_RUN = 20000;       // the cursor's guide: how far it may run up and down; the guides: how far up to look
 
-// One rule per number of guides: the class gives the count, app.css draws them.
-(() => {
-  const style = document.createElement('style');
-  style.textContent = Array.from({ length: GUIDE_MAX }, (_, i) => `.CodeMirror-line.mm-g${i + 1} { --mm-gn: ${i + 1}; }`).join('\n');
-  document.head.append(style);
-})();
+// The rule of a set of guide columns: one 1px gradient per guide, the colour by depth (--mm-guide1 to 6, app.css).
+const guideRules = new Set();
+const guideStyle = document.createElement('style');
+document.head.append(guideStyle);
+function guideClass(cols) {
+  const key = cols.join('-'), cls = 'mm-gk-' + key;
+  if (!guideRules.has(key)) {
+    guideRules.add(key);
+    const c = i => `var(--mm-guide${i % 6 + 1})`;
+    guideStyle.sheet.insertRule(`.mm-editor-pane .CodeMirror pre.CodeMirror-line.${cls} {` +
+      ` --mm-guide-img: ${cols.map((_, i) => `linear-gradient(${c(i)}, ${c(i)})`).join(', ')};` +
+      ` --mm-guide-pos: ${cols.map(col => col + 'ch 0').join(', ')};` +
+      ` --mm-guide-size: ${cols.map(() => '1px 100%').join(', ')}; }`, guideStyle.sheet.cssRules.length);
+  }
+  return cls;
+}
 
 // The visual column where a line's text starts; null for an empty line (or only whitespace).
 function guideIndent(cm, l, stops) {
@@ -38,8 +50,24 @@ function guideLevelCol(cm, l, stops) {
   return Math.min(near(-1), near(1));
 }
 
-// The number of guides of a line: one per indent step left of its text (columns 0, step, 2 step, ...).
-const guideCount = (col, step) => Math.min(GUIDE_MAX, Math.ceil(col / step));
+// The guide columns of the lines from to to: the indents of the enclosing lines left of each line's level. Read
+// down from the nearest line above with no indent (it encloses nothing), keeping the indents still open.
+function guideColumns(cm, from, to, stops) {
+  let start = from;
+  for (let n = 0; start > cm.firstLine() && n < GUIDE_RUN && guideIndent(cm, start, stops) !== 0; start--, n++) ;
+  const open = [], out = new Map();
+  for (let l = start; l <= to; l++) {
+    const own = guideIndent(cm, l, stops);
+    if (own === null) {
+      if (l >= from) { const level = guideLevelCol(cm, l, stops); out.set(l, open.filter(c => c < level).slice(0, GUIDE_MAX)); }
+      continue;
+    }
+    while (open.length && open[open.length - 1] >= own) open.pop();
+    if (l >= from) out.set(l, open.slice(0, GUIDE_MAX));
+    open.push(own);
+  }
+  return out;
+}
 
 function scheduleGuides(cm) {
   clearTimeout(cm.state.mmGuideTimer);
@@ -47,28 +75,28 @@ function scheduleGuides(cm) {
 }
 
 function paintGuides(cm) {
-  const stops = stopsOf(cm), step = stops.indent, mode = setting('indentGuides') || 'comment';
-  cm.getWrapperElement().style.setProperty('--mm-step', step + 'ch');
+  const stops = stopsOf(cm), mode = setting('indentGuides') || 'comment';
   const vp = cm.getViewport(), from = Math.max(cm.firstLine(), vp.from - 20), to = Math.min(cm.lastLine(), vp.to + 20);
+  const cols = mode === 'off' ? null : guideColumns(cm, from, to, stops);
   cm.operation(() => {
     for (let l = from; l <= to; l++) {
-      const h = cm.getLineHandle(l);
-      const n = mode === 'off' ? 0 : guideCount(guideLevelCol(cm, l, stops), step);
-      if ((h.mmGuides ?? 0) === n) continue;
-      if (h.mmGuides) cm.removeLineClass(h, 'text', 'mm-g' + h.mmGuides);
-      if (n) cm.addLineClass(h, 'text', 'mm-g' + n);
-      h.mmGuides = n;
+      const h = cm.getLineHandle(l), c = cols?.get(l) ?? [];
+      const cls = c.length ? guideClass(c) : '';
+      if ((h.mmGuides ?? '') === cls) continue;
+      if (h.mmGuides) cm.removeLineClass(h, 'text', h.mmGuides);
+      if (cls) cm.addLineClass(h, 'text', cls);
+      h.mmGuides = cls;
     }
     paintCursorGuide(cm, stops);
   });
 }
 
 // The cursor's guide. On a line that opens an indent (the next line with text is indented further, as after
-// `begin`): the guide of that indent, from the next line down. Else the last guide left of the cursor line's text
-// (for an empty line: the level it takes), up and down while the lines are indented further (empty lines in
+// `begin`): the guide at its own indent, from the next line down. Else the last guide left of the cursor line's
+// text (for an empty line: the level it takes), up and down while the lines are indented further (empty lines in
 // between included, not at the ends).
 function cursorGuideRun(cm, stops) {
-  const step = stops.indent, line = cm.getCursor('head').line;
+  const line = cm.getCursor('head').line;
   const inside = (l, at) => { const c = guideIndent(cm, l, stops); return c === null ? null : c > at; };
   const edge = (at, start, dir) => {
     let last = null;
@@ -83,12 +111,11 @@ function cursorGuideRun(cm, stops) {
   if (own !== null) {
     let next = null;
     for (let k = line + 1; k <= cm.lastLine() && k - line <= GUIDE_LOOK && next === null; k++) next = guideIndent(cm, k, stops);
-    const at = Math.ceil(own / step) * step;
-    if (next !== null && next > at) return { at, from: line + 1, to: edge(at, line + 1, 1) };
+    if (next !== null && next > own) return { at: own, from: line + 1, to: edge(own, line + 1, 1) };
   }
-  const col = guideLevelCol(cm, line, stops);
-  if (col === 0) return null;
-  const at = (Math.ceil(col / step) - 1) * step;
+  const cols = guideColumns(cm, line, line, stops).get(line);
+  if (!cols.length) return null;
+  const at = cols[cols.length - 1];
   return { at, from: edge(at, line - 1, -1) ?? line, to: edge(at, line + 1, 1) ?? line };
 }
 
