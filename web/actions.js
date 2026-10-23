@@ -558,7 +558,7 @@ const SETTING_ROWS = [
   { name: 'tabStopIntensity', group: 'Editor view', sub: 'Ruler and column guides', kind: 'range', range: [0, 100, 5], unit: '%',
     title: 'Tab stops: intensity', hint: 'Intensity of the tab stop lines shown in the editor: higher means brighter, lower fades them into the background. Their handles on the ruler keep full colour; a colour from Other colour... is drawn as picked' },
   { name: 'inlineCodeIntensity', group: 'Editor view', sub: 'Inline code', kind: 'range', range: [0, 200, 5], unit: '%',
-    title: 'Inline code: intensity', hint: 'A piece of code within a line of text is shown in a rounded box, in the theme colour for inline code. 100%: that colour; lower fades it into the background (0%: no box), higher takes it further from the background' },
+    title: 'Inline code: intensity', hint: 'A piece of code within a line of text is shown in a rounded box, in the editor and in the preview alike, in the theme colour for inline code. 100%: that colour; lower fades it into the background (0%: no box), higher takes it further from the background' },
   { name: 'highlightStyle', group: 'Editor view', sub: 'Highlight', kind: 'choice', title: 'A highlight',
     hint: 'How a highlighted part of the text shows (comparing: the part of the other side that matches a selection): the text keeps its colours either way',
     options: () => [['background', 'A background colour'], ['underline', 'Underlined']] },

@@ -54,7 +54,7 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   editor, in the theme colour `inlineCode` (in the shipped themes 14% of the text colour in the background; its
   text `inlineCodeFg`, the theme's accent half and half with the text colour), at
   Editor view > Inline code > Inline code: intensity (100% the colour; 0% no box; up to 200% further from the
-  background). Code blocks stay as they are.
+  background). The preview shows it the same way, in its code font. Code blocks stay as they are.
 - **Pinned tabs** (right-click a tab > Pin tab): a pin before the name. Closing it alone asks first; Close other
   tabs, Close tabs to the right, Close all tabs (tab menu, the tab bar's own menu and File menu; one pane) and closing a pane leave it
   open. Closing the second pane, or a window while another window of its project stays open, moves pinned tabs to

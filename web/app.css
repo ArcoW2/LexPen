@@ -864,14 +864,16 @@ body[data-no-format-bar] .mm-format, .mm-editor-pane[data-lang] .mm-format:not(.
 .mm-preview blockquote { padding: 0 1em; color: var(--fg-dim); border-left: 4px solid var(--border); }
 .mm-preview blockquote > :last-child { margin-bottom: 0; }
 
+/* Code within a line of text: the editor's box and text colours (theme colours inlineCode, inlineCodeFg, at the setting
+   inlineCodeIntensity), in the code font. */
 .mm-preview code {
-  padding: .15em .4em; border-radius: 4px; background: var(--bg-code);
+  padding: .15em .4em; border-radius: 4px; background: var(--inline-code-mark, var(--inline-code)); color: var(--inline-code-fg);
   font: .88em Consolas, "Cascadia Mono", monospace;
 }
 .mm-preview pre { padding: 14px 16px; overflow: auto; border-radius: 6px; background: var(--bg-code); line-height: 1.5; }
 /* Wrap long lines (setWrap); a very long line always wraps, see LONG_LINE. */
 body:not([data-preview-nowrap]) .mm-preview pre, .mm-preview pre.mm-long-line { white-space: pre-wrap; overflow-wrap: anywhere; }
-.mm-preview pre code { padding: 0; background: none; font-size: 13px; }
+.mm-preview pre code { padding: 0; background: none; color: inherit; font-size: 13px; }
 .mm-preview pre.mermaid { background: none; text-align: center; }
 
 .mm-preview table { display: block; width: max-content; max-width: 100%; overflow: auto; border-collapse: collapse; }

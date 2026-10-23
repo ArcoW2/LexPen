@@ -2848,15 +2848,20 @@ function applyHighlight() {
 
 // The box behind code within a line of text (app.css --md-code-bg): the theme colour inlineCode at the setting
 // inlineCodeIntensity. Again when the theme changes (applyLook).
+// The preview with a theme of its own gets its own, from its colours and background.
 function applyInlineCode() {
-  document.documentElement.style.setProperty('--inline-code-mark', atIntensity('var(--inline-code)', setting('inlineCodeIntensity')));
+  const percent = setting('inlineCodeIntensity');
+  document.documentElement.style.setProperty('--inline-code-mark', atIntensity('var(--inline-code)', percent));
+  for (const pane of panes)
+    if (look?.preview) pane.previewEl.style.setProperty('--inline-code-mark', atIntensity('var(--inline-code)', percent, pane.previewEl));
+    else pane.previewEl.style.removeProperty('--inline-code-mark');
 }
 
 // A colour (any CSS, theme variables too) moved along the line from the background through it: 0% the background,
 // 100% the colour, beyond further away (each channel clamped, up to 200%), as an rgb() for a CSS variable.
-function atIntensity(css, percent) {
+function atIntensity(css, percent, where = document.body) {
   const probe = document.createElement('div');
-  document.body.append(probe);
+  where.append(probe);   // the colours and background of `where` (the preview may have a theme of its own)
   const rgb = value => { probe.style.color = ''; probe.style.color = value; return getComputedStyle(probe).color.match(/[\d.]+/g).slice(0, 3).map(Number); };
   const colour = rgb(css), bg = rgb('var(--bg)');
   probe.remove();
@@ -3333,12 +3338,12 @@ function applyLook(next) {
   setThemeVars(root, look.app.vars);
   if (typeof applyRuler === 'function') applyRuler();   // the ruler's canvas takes the theme's colours (ruler.js)
   applyHighlight();
-  applyInlineCode();
   for (const pane of panes) {
     pane.previewEl.classList.toggle('mm-themed', !!look.preview);
     if (look.preview) pane.previewEl.dataset.theme = look.mode; else delete pane.previewEl.dataset.theme;
     setThemeVars(pane.previewEl, look.preview?.vars);
   }
+  applyInlineCode();   // after the preview's own theme: its box is measured from its background
   if (!before) state.theme = root.dataset.theme = look.mode;   // at start, before anything is shown
   else if (look.mode !== state.theme) applyTheme(look.mode);   // the mode: tab colour rules, diagrams
   // Another list of themes: the settings window's lists follow.
