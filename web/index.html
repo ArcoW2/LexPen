@@ -69,8 +69,6 @@
   <div class="mm-cmp-bar" hidden>
     <span class="mm-cmp-files">Compare</span>
     <span class="mm-cmp-count"></span>
-    <button data-cmp="prev" title="Previous difference (Shift+F7)">&#8593;</button>
-    <button data-cmp="next" title="Next difference (F7)">&#8595;</button>
     <label title="Spaces and tabs: their amount inside a line, all of them at the ends; an empty line against none"><input type="checkbox" data-cmp-opt="compareWhitespace"> Ignore whitespace</label>
     <label><input type="checkbox" data-cmp-opt="compareCase"> Ignore case</label>
     <button data-cmp="align" title="Compare the left cursor line and the right cursor line as each other's match, and what follows from there (Ctrl+F7); again on a tied pair: untie">Align</button>
@@ -86,6 +84,9 @@
   <div class="mm-panes">
     <div class="mm-divider" hidden title="Drag to resize; right-click for the pane menu (orientation, hide, close)">
       <button data-cmd="sync" class="mm-sync" title="Scroll both panes together"></button>
+      <!-- Comparing: the previous and next difference in place of the scroll-together button (compare.js). -->
+      <button data-cmp="prev" class="mm-cmp-go" title="Previous difference (Shift+F7)">&#8593;</button>
+      <button data-cmp="next" class="mm-cmp-go" title="Next difference (F7)">&#8595;</button>
     </div>
   </div>
   <div class="mm-cmp-strip" hidden>

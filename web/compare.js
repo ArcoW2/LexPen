@@ -227,12 +227,13 @@ function compareGo(dir, fromTop) {
   const list = realHunks(), i = Math.max(0, sideIndex()), line = fromTop ? -1 : cmp.sides[i].pane.cm.getCursor().line;
   const h = dir > 0 ? list.find(h => rangeOf(h, i)[0] > line) : list.findLast(h => rangeOf(h, i)[0] < line);
   if (!h) { if (!fromTop) toast(dir > 0 ? 'No more differences below.' : 'No more differences above.', true); return; }
+  // No scrolling of their own: this side is placed (revealFound, app.js), the other follows (followScroll).
   cmp.sides.forEach((s, n) => {
     const cm = s.pane.cm, at = Math.min(rangeOf(h, n)[0], cm.lastLine());
-    cm.setCursor(CodeMirror.Pos(at, 0));
+    cm.setCursor(CodeMirror.Pos(at, 0), null, { scroll: false });
   });
   const cm = cmp.sides[i].pane.cm, at = Math.min(rangeOf(h, i)[0], cm.lastLine());
-  cm.scrollTo(null, Math.max(0, cm.heightAtLine(at, 'local') - cm.getScrollInfo().clientHeight / 3));
+  revealFound(cm, CodeMirror.Pos(at, 0));
   if (!fromTop) cm.focus();
   showCompareCount();
 }
@@ -343,11 +344,13 @@ function drawStrip() {
   const pair = match.hunk?.pairs.find(p => (i === 0 ? p.a : p.b) === cur.line);
   const labels = strip.querySelectorAll('.mm-cmp-label'), texts = strip.querySelectorAll('.mm-cmp-text');
   [0, 1].forEach(n => {
-    const line = lines[n], cm = cmp.sides[n].pane.cm;
-    labels[n].textContent = (n === 0 ? 'L ' : 'R ') + (line == null ? '' : line + 1);
+    const line = lines[n], cm = cmp.sides[n].pane.cm, lang = cmp.sides[n].tab.doc.language;
+    labels[n].innerHTML = `<span>${n === 0 ? 'L' : 'R'} ${line == null ? '' : line + 1}</span>${STRIP_ARROWS[n]}`;
     texts[n].dataset.line = line ?? '';
+    if (lang) texts[n].dataset.lang = lang; else delete texts[n].dataset.lang;   // the language's colours (languages.js)
     texts[n].innerHTML = line == null ? '<span class="mm-cmp-none">(none)</span>'
-      : stripHtml(cm.getLine(line), pair ? (n === 0 ? pair.ac : pair.bc) : match.hunk && !match.hunk.ignorable ? [[0, cm.getLine(line).length]] : []);
+      : stripHtml(cm.getLine(line), pair ? (n === 0 ? pair.ac : pair.bc) : match.hunk && !match.hunk.ignorable ? [[0, cm.getLine(line).length]] : [],
+        cm.getLineTokens(line, true));
   });
   // The cursor's column in view.
   const box = strip.querySelector('.mm-cmp-texts'), span = [...texts[i].querySelectorAll('[data-from]')]
@@ -370,16 +373,22 @@ function matchingLine(i, line) {
   return { line: line + delta, hunk: null };
 }
 
-// A line's text for the strip: spaces as a dot and tabs as an arrow, the differing characters marked; each piece
-// knows where it starts in the line (data-from), for a click.
-function stripHtml(text, ranges) {
+// The strip's gutter: an arrow to the left pane before the left line, one to the right pane before the right line.
+const STRIP_ARROWS = ['M14 8H3M7 4L3 8l4 4', 'M2 8h11M9 4l4 4-4 4'].map(d =>
+  `<svg class="mm-cmp-dir" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="${d}"/></svg>`);
+
+// A line's text for the strip: in the language's colours (the editor's tokens), spaces as a dot and tabs as an arrow,
+// the differing characters marked; each piece knows where it starts in the line (data-from), for a click.
+function stripHtml(text, ranges, tokens = []) {
   const out = [], tab = setting('tabSize') || 4;
   let col = 0;
   const inRange = at => ranges.some(([f, t]) => at >= f && at < t);
+  const kind = new Array(text.length).fill('');
+  for (const t of tokens) if (t.type) kind.fill(t.type.replace(/\S+/g, 'cm-$&'), t.start, t.end);
   for (let at = 0; at < text.length;) {
     const diff = inRange(at);
     let end = at;
-    while (end < text.length && inRange(end) === diff && (text[end] === '\t') === (text[at] === '\t') && end - at < 200) {
+    while (end < text.length && inRange(end) === diff && kind[end] === kind[at] && (text[end] === '\t') === (text[at] === '\t') && end - at < 200) {
       end++;
       if (text[at] === '\t') break;
     }
@@ -389,7 +398,8 @@ function stripHtml(text, ranges) {
       else { piece += text[k] === ' ' ? '\u00b7' : text[k]; col++; }
     }
     const ws = /^[\t ]+$/.test(text.slice(at, end));
-    out.push(`<span data-from="${at}" class="${diff ? 'mm-cmp-char ' : ''}${ws ? 'mm-cmp-ws' : ''}">${escapeHtml(piece)}</span>`);
+    const cls = [diff && 'mm-cmp-char', ws ? 'mm-cmp-ws' : kind[at]].filter(Boolean).join(' ');
+    out.push(`<span data-from="${at}" class="${cls}">${escapeHtml(piece)}</span>`);
     at = end;
   }
   return out.join('') || '<span data-from="0"></span>';
@@ -420,6 +430,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (box) setSetting(box.dataset.cmpOpt, box.checked);
   });
   $('.mm-cmp-strip').addEventListener('click', stripClick);
+  $('.mm-divider').addEventListener('click', e => {
+    const b = e.target.closest('.mm-cmp-go');
+    if (b) compareGo(b.dataset.cmp === 'prev' ? -1 : 1);
+  });
 });
 
 // A compare setting changed (applySettings, app.js).

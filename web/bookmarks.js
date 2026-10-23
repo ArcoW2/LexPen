@@ -132,7 +132,7 @@ async function toggleFreeBookmark(pane, line = cursorOf(pane).line, ch = cursorO
 function moveTo(pane, pos, extend) {
   const cm = pane.cm;
   if (extend) cm.setSelection(cm.getCursor('anchor'), pos); else cm.setCursor(pos);
-  cm.scrollIntoView(pos, 80);
+  revealFound(cm, pos);
   cm.focus();
 }
 

@@ -170,6 +170,21 @@ function updateRelativeNumbers(pane) {
   if (relative && pane.numbersAt !== cm.getCursor().line + 1) cm.setOption('lineNumberFormatter', lineNumberFormatter(pane));
 }
 
+// The cursors' lines in the gutter (setting gutter.cursor), in the colour the ruler shows the cursors' columns in:
+// again when a cursor moved (from cursorActivity in app.js).
+function markCursorLines(pane) {
+  const cm = pane.cm;
+  if (!cm) return;
+  const lines = gutterOn('cursor') ? [...new Set(cm.listSelections().map(r => r.head.line))].map(l => cm.getLineHandle(l)) : [];
+  const had = pane.cursorLines ?? [];
+  if (had.length === lines.length && had.every((h, i) => h === lines[i])) return;
+  cm.operation(() => {
+    for (const h of had) cm.removeLineClass(h, 'gutter', 'mm-cursor-gutter');
+    for (const h of lines) cm.addLineClass(h, 'gutter', 'mm-cursor-gutter');
+  });
+  pane.cursorLines = lines;
+}
+
 // Applies View > Gutter to the pane's editor for its file.
 function setupGutter(pane) {
   const cm = pane.cm, doc = pane.active?.doc;
@@ -192,6 +207,7 @@ function setupGutter(pane) {
     cm.setOption('foldGutter', gutterOn('folds') && { rangeFinder: foldFinder(doc) });
   }
   updateRelativeNumbers(pane);   // another file: another cursor line
+  markCursorLines(pane);
   paintGutter(pane);
 }
 

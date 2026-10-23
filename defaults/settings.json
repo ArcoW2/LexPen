@@ -38,6 +38,7 @@
   "compareCase": false,           // comparing: upper and lower case count as the same
   "compareStrip": true,           // comparing: the line strip below the panes
   "explorerCompare": false,       // Explorer's right-click menu: Select left side to compare, then Compare to <name>
+  "gutter.cursor": true,          // the cursor's line marked in the gutter, in the ruler's cursor colour
   "gutter.bookmarks": true,       // the other gutter columns left of the text
   "gutter.changes": true,         // lines changed since the last save
   "gutter.git": true,             // lines changed since the last commit
@@ -61,6 +62,9 @@
   "homeStop": false,              // Home goes to column 1 (off: to the first non-blank character first)
   "completeDelay": 0,             // ms after the last typed word character before the completion list opens by
                                   // itself (0: only with Ctrl+Space)
+  "revealInView": "stay",         // a found place (find, search result, compare difference, bookmark, Go to line) on screen: "stay" or "center"
+  "revealOutOfView": "keep",      // ... not on screen: "keep" (revealLines from the edge it comes in at) or "center"
+  "revealLines": 5,               // a found place no closer than this to the top or bottom of the view
   "jumpLines": 10,                // a cursor move of more lines than this, without typing, is a jump: the place it left
                                   // is kept for Position back (a found item always)
   "scrollMovesCursor": false,     // Ctrl+Up / Ctrl+Down: the cursor moves a line along with the text

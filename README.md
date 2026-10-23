@@ -183,8 +183,8 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   cursor does (Left at a line's start stays there with leftWraps off; meeting cursors become one); with virtual space
   each one can stand past its line's end (one per line) and typing fills each line up to its own column. Esc: back
   to the first cursor. The bottom bar shows `3 cursors`, or `3 selected, at 4 of 9` with the occurrences.
-- **Locate the cursor**: a short tap on Ctrl alone shows rings, in the find box's colour, shrinking onto every cursor;
-  a cursor out of view gets a marker at that edge (top: higher, bottom: lower) with its line number, several in one
+- **Locate the cursor**: a short tap on Ctrl alone shows rings, in the find box's colour, shrinking onto every cursor,
+  in both panes when two show (side by side, a compare); a cursor out of view gets a marker at that edge (top: higher, bottom: lower) with its line number, several in one
   direction one marker with the count. A double tap scrolls to the cursor first (setting, off by default). Also View >
   Locate the cursor; settings in Editor view > Locate the cursor (on / off, the longest tap).
 - **Ruler, column guides, tab stops and helper lines**: View > Ruler shows the columns above the editor (the
@@ -206,7 +206,8 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
 - **Gutter**: line numbers, bookmarks, change markers (not saved yet), git markers (changed since the last commit;
   a click shows the old text and can revert the block) and fold markers (heading sections and code blocks in
   markdown, braces or indentation in code). View > Gutter switches each column. Line numbers: none, every 10 (a
-  dash at 5, a dot on the others) or every line; absolute or relative to the cursor line.
+  dash at 5, a dot on the others) or every line; absolute or relative to the cursor line. The cursor's line is marked in the
+  gutter, in the colour the ruler shows its column in (setting Show cursor location in the gutter).
 - **Bottom bar**: at the left both panes, each a page with an arrow to where it is (left / right, or up / down
   when above each other) and an eye: struck through while the pane is hidden, grey while it has no documents. A
   click on the eye shows or hides the pane; hiding one while the other is hidden shows the other (never both
@@ -235,11 +236,12 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   `LexPen.exe --compare old.sql new.sql`. The two files side by side in the two panes, editable as usual: lines that
   differ tinted (removed, added, changed; lines are paired by how much they look alike), the changed characters
   marked, filler lines keeping both sides level, the panes scrolling together, the differences on the scroll bars.
-  F7 / Shift+F7: the next / previous difference. The bar above the panes: the count, Ignore whitespace, Ignore
+  F7 / Shift+F7, or the arrows on the divider between the panes: the next / previous difference. The bar above the panes: the count, Ignore whitespace, Ignore
   case, Align (Ctrl+F7: the two cursor lines are each other's match and the comparing goes on from there; again on
   the pair: untied), copy the difference at the cursor across (`<<` / `>>`, or Alt+Left / Alt+Right in a
   difference), Swap, leave (the panes as before). The line strip below: the cursor line and its match one above the
-  other, character under character, spaces and tabs visible. View > Compare has it all too.
+  other, character under character, in the language's colours, spaces and tabs visible; an arrow in its gutter
+  points to the pane each line is from. View > Compare has it all too.
 - **Compare two folders**: File > Compare folders..., a folder's right-click (Compare with folder...), or
   `LexPen.exe --compare old new`. The folder pane shows one tree of both: = equal, ~ different, ? not checked yet,
   < only on the left, > only on the right; a folder by what is inside. First by size and date, then the contents
@@ -271,6 +273,10 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   forward again; also the mouse back / forward buttons. A place moves with the edits; one whose line was deleted is
   skipped. Ctrl + the mouse buttons go through the tabs and files of the window instead (View > Back / Forward in
   the window), like a browser.
+- **Where a found place lands**: a find, a search result, the next compare difference, a bookmark and Go to line
+  bring the place into view the same way (Editor > Jump to a found place). Out of view: 5 lines from the edge it comes
+  in at (the bottom going down, the top going up), or centred. Already in view: the view stays unless the place is
+  within those lines of an edge, or centred. The number of lines is a setting (0 to 20).
 - **Ctrl+Tab**: through the documents in recently used order (hold Ctrl and press Tab again to go further back),
   or in tab bar order (the setting Ctrl+Tab order).
 - **Outline**: Ctrl+Alt+V, O shows the headings of each pane's file at its right; click one to go there (preview
@@ -290,7 +296,8 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   expressions. Codes: `^p` line break (CR, LF or CRLF), `^t` tab, `^?` any character, `^#` digit, `^$` letter,
   `^w` spaces or tabs, `^^` the `^` itself. Click a result to go there.
 - **Compare**: the button on the divider (View > Scroll both panes together) scrolls both panes together, by
-  source line: preview with preview, editor with editor.
+  source line: preview with preview, editor with editor. Not while comparing two files: the compare keeps the
+  panes level itself, and the arrows to the differences take the button's place.
 - **One instance, more windows**: opening a file while LexPen runs adds it as a tab to the most recently used
   window on the virtual desktop you are on; with no LexPen window there, a window opens there with the project
   whose window was closed last on that desktop (or a new project). Hold **Shift**

@@ -268,7 +268,7 @@ function goEditor(pane, regex, dir, fromOrigin) {
   pane.findCurrent = cm.markText(cm.posFromIndex(s), cm.posFromIndex(e),
     { className: 'mm-find-current', startStyle: 'mm-find-current-start', endStyle: 'mm-find-current-end' });
   markCurrentLine(pane);
-  cm.scrollIntoView({ from: cm.posFromIndex(s), to: cm.posFromIndex(e) }, 80);
+  revealFound(cm, cm.posFromIndex(s), cm.posFromIndex(e));
   showCount(pane, matches, i);
 }
 

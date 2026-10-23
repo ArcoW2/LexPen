@@ -367,6 +367,17 @@ body[data-orient=h] .mm-divider { width: auto; height: 6px; cursor: row-resize; 
 .mm-sync::before { content: "\21C5"; }
 body[data-orient=h] .mm-sync::before { content: "\21C4"; }
 .mm-sync.mm-on { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+/* Comparing: the compare scrolls the panes itself, so no scroll-together button; the previous and next difference
+   take its place, one above the other. */
+.mm-cmp-go { display: none; }
+body[data-comparing] .mm-sync { display: none; }
+body[data-comparing] .mm-cmp-go {
+  display: block; position: absolute; width: 24px; height: 24px; padding: 0; border-radius: 50%; cursor: pointer;
+  background: var(--accent); border: 1px solid var(--accent); color: var(--bg); font-size: calc(14px * var(--ui-scale)); font-weight: 700; line-height: 1;
+}
+body[data-comparing] .mm-cmp-go[data-cmp=prev] { transform: translateY(-15px); }
+body[data-comparing] .mm-cmp-go[data-cmp=next] { transform: translateY(15px); }
+body[data-comparing] .mm-cmp-go:hover { filter: brightness(1.15); }
 
 /* The tab strip, with the pane button (hide / close / show hidden pane) at its right end. */
 .mm-tabs-row { flex: none; display: flex; align-items: stretch; background: var(--bg-side); border-bottom: 1px solid var(--border); }
@@ -540,6 +551,7 @@ body[data-no-format-bar] .CodeMirror .mm-inner-bar { display: none; }
 .mm-editor-pane .CodeMirror-scrollbar-filler, .mm-editor-pane .CodeMirror-gutter-filler { background: var(--bg); }
 .mm-editor-pane .CodeMirror-linenumber { color: var(--fg-dim); opacity: .6; }
 .mm-editor-pane .mm-cursor-number .CodeMirror-linenumber { font-style: italic; opacity: 1; }   /* relative numbers: the cursor line's own */
+.mm-editor-pane .CodeMirror-gutter-background.mm-cursor-gutter { background: var(--select); }   /* gutter.cursor: as the ruler's cursor column */
 /* Gutter: bookmarks (bookmarks.js), right of the line numbers. */
 .mm-editor-pane .mm-bookmarks { width: 18px; cursor: pointer; }
 .mm-bm { display: inline-block; min-width: 9px; margin-left: 2px; padding: 0 2px; border-radius: 3px; text-align: center;
@@ -946,6 +958,8 @@ li.CodeMirror-hint-active { background: var(--select); color: var(--fg); }
 .mm-cmp-strip { display: flex; border-top: 1px solid var(--border); background: var(--bg);
   font: var(--editor-size)/var(--editor-line) var(--editor-font); }
 .mm-cmp-labels { padding: 2px 8px; color: var(--fg-dim); border-right: 1px solid var(--border); white-space: pre; min-width: 5em; }
+.mm-cmp-label { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.mm-cmp-dir { flex: none; fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .mm-cmp-texts { flex: 1; overflow-x: auto; padding: 2px 8px; }
 .mm-cmp-text { white-space: pre; cursor: text; min-height: calc(var(--editor-size) * var(--editor-line)); }
 .mm-cmp-ws { color: color-mix(in srgb, var(--fg) 35%, transparent); }

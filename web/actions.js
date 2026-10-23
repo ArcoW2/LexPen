@@ -185,7 +185,7 @@ toggleAction('outline', { title: 'Outline', hint: 'The headings (or procedures, 
   enabled: () => hasOutline(activeDoc()) }, () => document.body.hasAttribute('data-outline'), () => commands.outline(), ['show', 'hide']);
 toggleAction('wrap', { title: 'Wrap long lines', hint: 'In the editor (code blocks in the preview: Options > Settings, Preview)', group: 'view' },
   () => setting('wrap'), () => setWrap(!setting('wrap')));
-appAction('locateCursor', { title: 'Locate the cursor', hint: 'Rings shrink onto every cursor; a cursor out of view gets a marker at that edge (also a short tap on Ctrl)', group: 'view',
+appAction('locateCursor', { title: 'Locate the cursor', hint: 'Rings shrink onto every cursor, in both panes when two show; a cursor out of view gets a marker at that edge (also a short tap on Ctrl)', group: 'view',
   enabled: () => !!editorPane(), run: () => locateCursor(editorPane({ from: 'menu' })) });
 toggleAction('overviewMark', { title: 'Scroll bar marks', hint: 'Show or hide this kind of mark on the editor\'s scroll bar', group: 'view',
   variants: [['find'], ['changes'], ['git'], ['bookmarks'], ['compare']],
@@ -252,7 +252,7 @@ appAction('goToLine', { title: 'Go to line', hint: 'A line number, or line:colum
     const line = Math.min(Math.max(+m[1], 1), cm.lineCount()) - 1;
     const ch = m[2] ? Math.min(Math.max(+m[2], 1) - 1, cm.getLine(line).length) : 0;
     cm.setCursor(CodeMirror.Pos(line, ch));
-    cm.scrollIntoView(CodeMirror.Pos(line, ch), cm.getScrollInfo().clientHeight / 2);
+    revealFound(cm, CodeMirror.Pos(line, ch));
     cm.focus();
   } });
 // Select inside brackets (brackets.js): what lies between the pair or word set at the cursor. No key.
@@ -514,6 +514,14 @@ const SETTING_ROWS = [
     hint: 'How far the cursor must move, without typing, for the place it left to be kept for Position back (Ctrl+Alt+-). A found item is always kept, however close' },
   { name: 'completeDelay', group: 'Editor', sub: 'Completion', kind: 'range', range: [0, 2000, 100], unit: ' ms', title: 'Show completions after a pause in typing',
     hint: 'After typing a word character and stopping this long, the list of completions opens by itself; 0: only with Ctrl+Space' },
+  { name: 'revealInView', group: 'Editor', sub: 'Jump to a found place', kind: 'choice', title: 'A found place already in view',
+    hint: 'A find, a search result, the next compare difference, a bookmark, Go to line: when the place is already on screen',
+    options: () => [['stay', 'The view stays (unless it is within the lines kept from the edge)'], ['center', 'Centred']] },
+  { name: 'revealOutOfView', group: 'Editor', sub: 'Jump to a found place', kind: 'choice', title: 'A found place out of view',
+    hint: 'When the place is not on screen: the view scrolls to it',
+    options: () => [['keep', 'The lines kept from the edge (the top going up, the bottom going down)'], ['center', 'Centred']] },
+  { name: 'revealLines', group: 'Editor', sub: 'Jump to a found place', kind: 'range', range: [0, 20, 1], unit: ' lines', title: 'Lines kept from the edge',
+    hint: 'A found place comes no closer than this many lines to the top or bottom of the view (fewer on a low view)' },
   { name: 'scrollMargin', group: 'Editor', sub: 'Cursor', kind: 'choice', title: 'Scroll sideways before the edge',
     hint: 'The editor scrolls left or right when the cursor comes this many columns from the edge (on keys, not on a click); without wrapping',
     options: () => [1, 2, 4, 8, 12, 16, 24, 32].map(n => [n, n === 1 ? '1 column' : n + ' columns']) },
@@ -550,6 +558,9 @@ const SETTING_ROWS = [
     options: () => [['none', 'None'], ['tens', 'Every 10 (a dash at 5, a dot on the others)'], ['all', 'Every line']] },
   { name: 'lineNumberCount', group: 'Editor view', sub: 'Gutter', kind: 'choice',
     options: () => [['absolute', 'Absolute'], ['relative', 'Relative to the cursor']] },
+  { name: 'gutter.cursor', group: 'Editor view', sub: 'Gutter', kind: 'toggle', title: 'Show cursor location in the gutter',
+    hint: 'The gutter of the cursor\'s line in the colour the ruler shows the cursor\'s column in (every cursor\'s line with more cursors)',
+    hintOff: 'The cursor\'s line is not marked in the gutter' },
   ...[['bookmarks', 'Bookmarks'], ['changes', 'Change markers'], ['git', 'Git markers'], ['folds', 'Fold markers']]
     .map(([n, title]) => ({ name: 'gutter.' + n, group: 'Editor view', sub: 'Gutter', kind: 'toggle', title,
       hint: { bookmarks: 'The gutter shows bookmarks 1 to 9 and unnumbered ones', changes: 'The gutter marks the lines changed since the last save',
@@ -567,7 +578,7 @@ const SETTING_ROWS = [
         git: 'No git changes on the scroll bar', bookmarks: 'No bookmarks on the scroll bar', compare: 'No compare differences on the scroll bar' }[n] })),
   { name: 'explorerCompare', group: 'App', sub: 'Windows Explorer', kind: 'toggle', title: 'Compare entries in Explorer\'s right-click menu',
     hint: 'Explorer\'s right-click menu on files and folders gets Select left side to compare, and then Compare to <name>; on Windows 11 under Show more options (or Shift+right-click). They run the LexPen that turned this on',
-    hintOff: 'No compare entries in Explorer\'s right-click menu (turning this off removes them, and the left side)' },
+    hintOff: 'No compare entries in Explorer\'s right-click menu' },
   { name: 'compareWhitespace', group: 'Editor view', sub: 'Compare', kind: 'toggle', title: 'Ignore whitespace',
     hint: 'Comparing, spaces and tabs count only as a separation: their amount inside a line and those at its ends make no difference, nor an empty line against none',
     hintOff: 'Comparing, every space and tab counts' },

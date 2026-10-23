@@ -296,19 +296,27 @@ function onVirtualSelectionChange(cm, change) {
 }
 
 // ---------- The mouse ----------
-// A click past the end of a line's last row: the cursor at the clicked column (after CodeMirror placed it at the end).
+// A click past the end of a line's last row: the cursor at the clicked column, on the press. CodeMirror does not get
+// the press: it would first put the cursor at the line's end and scroll there (to the left, when the end is out of
+// view). Dragging from there selects from the line's end, as CodeMirror would.
 function onVirtualMouseDown(cm, e) {
   if (e.button !== 0 || e.detail > 1 || e.shiftKey || e.ctrlKey || e.altKey || column.on) return;
-  if (!e.target.closest('.CodeMirror-lines')) return;
-  const x = e.clientX, y = e.clientY;
-  addEventListener('mouseup', () => setTimeout(() => {
-    if (!virtualOn(cm)) return;
-    const head = cm.getCursor(), text = cm.getLine(head.line);
-    if (head.ch !== text.length) return;
-    const end = cm.charCoords(CodeMirror.Pos(head.line, text.length), 'window');
-    if (y < end.top || y > end.bottom || x <= end.left + charWidth(cm) / 2) return;   // not right of the line's end
-    placeAt(cm, head.line, Math.min(lineEndCol(cm, head.line) + Math.round((x - end.left) / charWidth(cm)), maxCol(cm, head.line)), false);
-  }), { once: true, capture: true });
+  if (!e.target.closest('.CodeMirror-lines') || !virtualAllowed() || blockOf(cm)) return;
+  const x = e.clientX, y = e.clientY, at = cm.coordsChar({ left: x, top: y }, 'window'), text = cm.getLine(at.line);
+  if (at.ch !== text.length) return;
+  const end = cm.charCoords(CodeMirror.Pos(at.line, text.length), 'window');
+  if (y < end.top || y > end.bottom || x <= end.left + charWidth(cm) / 2) return;   // not right of the line's end
+  e.preventDefault();
+  cm.focus();
+  placeAt(cm, at.line, Math.min(lineEndCol(cm, at.line) + Math.round((x - end.left) / charWidth(cm)), maxCol(cm, at.line)), false);
+  const move = ev => {
+    if (!(ev.buttons & 1)) return up();
+    if (Math.abs(ev.clientX - x) < 4 && Math.abs(ev.clientY - y) < 4) return;
+    cm.setSelection(CodeMirror.Pos(at.line, text.length), cm.coordsChar({ left: ev.clientX, top: ev.clientY }, 'window'), { origin: '*mouse' });
+  };
+  const up = () => { removeEventListener('mousemove', move, true); removeEventListener('mouseup', up, true); };
+  addEventListener('mousemove', move, true);
+  addEventListener('mouseup', up, true);
 }
 
 // ---------- Per editor ----------
@@ -330,7 +338,7 @@ function setupVirtual(pane) {
   // A font, wrap or size change, scrolling (the block's lines on screen).
   cm.on('update', () => { if (cm.state.mmVirtualEl && !cm.state.mmVirtualEl.hidden || blockOf(cm) || multiOn(cm)) drawVirtual(cm); });
   cm.on('scroll', () => { if (cm.state.mmSpacer && !drawnBox(cm)) placeSpacer(cm, 0); });   // the width follows the view back
-  cm.getWrapperElement().addEventListener('mousedown', e => onVirtualMouseDown(cm, e), true);
+  cm.on('mousedown', onVirtualMouseDown);   // before CodeMirror handles the press; preventDefault keeps it from it
   const when = run => c => virtualOn(c) ? run(c) : CodeMirror.Pass;
   const move = run => c => { fromBlock(c); return when(run)(c); };   // a moving key ends a block at its head
   const ending = c => { clearVirtual(c); return CodeMirror.Pass; };

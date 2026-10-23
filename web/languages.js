@@ -464,7 +464,8 @@ function updatePackColours() {
       }
     for (const [scope, theme, textScope] of [
       [`.mm-editor-pane[data-lang="${name}"] .CodeMirror`, app, `.mm-editor-pane[data-lang="${name}"] .CodeMirror-lines`],
-      [`.mm-code[data-lang="${name}"]`, preview, `.mm-code[data-lang="${name}"]`]]) {
+      [`.mm-code[data-lang="${name}"]`, preview, `.mm-code[data-lang="${name}"]`],
+      [`.mm-cmp-text[data-lang="${name}"]`, app, `.mm-cmp-text[data-lang="${name}"]`]]) {   // the compare's line strip
       for (const type of Object.keys(looks)) {
         if (!/^[\w-]+$/.test(type)) continue;
         const css = lookCss(resolveLook(looks, type, theme));

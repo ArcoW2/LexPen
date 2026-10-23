@@ -629,6 +629,7 @@ async function ensureEditor(pane) {
     updateInnerBar(pane);   // the inner language's bar (format.js)
     markOutline(pane);   // the outline's entry at the cursor
     updateRelativeNumbers(pane);
+    markCursorLines(pane);   // the cursor's line in the gutter (gutter.js)
     saveSession();   // the cursor is kept in the session (after a second without moving)
     refreshFormatBar(pane);
     if (pane.index === state.activePane) updateStatus();
@@ -2505,7 +2506,7 @@ searchUi.results.addEventListener('click', async e => {
   if (tab.mode !== 'preview' && pane.cm) {
     pane.placed = tab.mode === 'split';
     asFound(pane, () => pane.cm.setSelection({ line: hit.line, ch: hit.col }, { line: hit.endLine, ch: hit.endCol }));   // places.js
-    pane.cm.scrollIntoView({ from: { line: hit.line, ch: 0 }, to: { line: hit.endLine, ch: hit.endCol } }, 120);
+    revealFound(pane.cm, { line: hit.line, ch: 0 }, { line: hit.endLine, ch: hit.endCol });
   }
 });
 
@@ -2797,6 +2798,26 @@ function markOutline(pane) {
       current.scrollIntoView({ block: 'nearest' });
     }
   });
+}
+
+// A found place (a find, a search result, a compare difference, a bookmark, Go to line) into view, after the cursor
+// went there. Settings: revealInView (stay: the view stays, unless the place is within revealLines of an edge;
+// center), revealOutOfView (keep: revealLines from the edge it comes in at, the top going up, the bottom going down;
+// center) and revealLines. Never so many lines that the place itself would fall out of view.
+function revealFound(cm, from, to = from) {
+  const info = cm.getScrollInfo(), view = info.clientHeight, lh = cm.defaultTextHeight();
+  const start = cm.charCoords(from, 'local'), top = start.top;
+  const tall = cm.charCoords(to, 'local').bottom - top > view;   // taller than the view: its start
+  const bottom = tall ? start.bottom : cm.charCoords(to, 'local').bottom, height = bottom - top;
+  const lines = Number.isInteger(setting('revealLines')) ? setting('revealLines') : 5;
+  const keep = Math.max(0, Math.min(lines, Math.floor((view - height) / lh / 2))) * lh;
+  const inView = top >= info.top && bottom <= info.top + view;
+  let y = null;
+  if (inView ? setting('revealInView') === 'center' : setting('revealOutOfView') === 'center') y = top - (view - height) / 2;
+  else if (top < info.top + keep) y = top - keep;
+  else if (bottom > info.top + view - keep) y = bottom - view + keep;
+  if (y != null) cm.scrollTo(null, Math.max(0, y));
+  cm.scrollIntoView(tall ? from : { from, to }, 0);   // sideways (up or down it is in view by now)
 }
 
 // Puts the source line at the top of the pane: preview, editor or both. The cursor stays where it is (a click in
@@ -3624,7 +3645,7 @@ const commands = {
   closeTab: () => activeTab() && closeTab(activeTab()),
   nextTab: () => cycleTab(1),
   prevTab: () => cycleTab(-1),
-  sync: () => setSync(!state.sync),
+  sync: () => !comparing() && setSync(!state.sync),   // comparing: the compare scrolls the panes itself
   search: startSearch,
   focusTree,
   viewSearch: () => { setSideView('search'); searchUi.input.focus(); },

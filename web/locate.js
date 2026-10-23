@@ -1,13 +1,14 @@
 'use strict';
 // Locate the cursor (docs/plans/02-PLAN-locate-cursor.md): a short tap on Ctrl alone shows rings that shrink onto every
-// cursor of the editor with the focus, in the find box's colour; a cursor out of view gets a marker at that edge (top:
+// cursor of the editor with the focus and of the other pane's editor when it shows (side by side, a compare), in the
+// find box's colour; a cursor out of view gets a marker at that edge (top:
 // higher, bottom: lower; left / right for a long line) with its line number. Settings locateCursor (the tap on / off),
 // locateCursorTap (the longest tap, ms) and locateCursorJump (a double tap scrolls to the cursor). Also the action
 // locateCursor. Only draws: the document and the selection stay as they are.
 // Loaded after cursors.js, before app.js.
 
 const LOCATE_MS = 1100;   // the rings' animation and the delays between them (app.css), then the layer goes
-const locate = { down: null, lastTap: 0, layer: null, timer: 0 };
+const locate = { down: null, lastTap: 0, layers: [], timer: 0 };
 
 // The pane to show it for: the editor with the focus, else the pane whose find bar has it; never in a dialog.
 function locatePane() {
@@ -40,12 +41,20 @@ function locateView(cm) {
   return { left: span.left, right: span.right, top: rect.top, bottom: rect.bottom - below };
 }
 
+// The pane given (the focus) and the other pane's editor when it shows.
 function locateCursor(pane = locatePane()) {
   if (!pane) return;
-  const cm = pane.cm, view = locateView(cm);
   clearTimeout(locate.timer);
-  locate.layer?.remove();
-  const layer = locate.layer = document.createElement('div');
+  for (const layer of locate.layers) layer.remove();
+  const shown = panes.filter(p => p !== pane && p.cm && p.active && p.el.dataset.mode !== 'preview' && p.el.offsetParent);
+  const layers = locate.layers = [pane, ...shown].map(p => locateLayer(p.cm));
+  locate.timer = setTimeout(() => { for (const layer of layers) layer.remove(); if (locate.layers === layers) locate.layers = []; }, LOCATE_MS);
+}
+
+// The rings and edge markers of one editor, as a layer over its text.
+function locateLayer(cm) {
+  const view = locateView(cm);
+  const layer = document.createElement('div');
   layer.className = 'mm-locate';
   Object.assign(layer.style, { left: view.left + 'px', top: view.top + 'px', width: view.right - view.left + 'px',
     height: view.bottom - view.top + 'px' });
@@ -74,7 +83,7 @@ function locateCursor(pane = locatePane()) {
     layer.append(el);
   }
   document.body.append(layer);
-  locate.timer = setTimeout(() => { layer.remove(); if (locate.layer === layer) locate.layer = null; }, LOCATE_MS);
+  return layer;
 }
 
 // A double tap: the editor scrolls to the (first) cursor, which then gets the rings.
