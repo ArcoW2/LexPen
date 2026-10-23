@@ -17,6 +17,7 @@
     "hover": "rgba(0, 0, 0, .06)",
     "active": "rgba(138, 92, 0, .13)",
     "select": "#f0dc9a",
+    "highlight": "#fff200",
     "paneActive": "#8a5c00",
 
     // Code: the colours a language pack maps its token types onto (tokens: { theme: keyword }).

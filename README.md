@@ -33,7 +33,8 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   (its own colours, then Dark bluish's, then Dark's). A theme is not light or dark itself: the mode it is chosen for is
   (title bar, scrollbars, diagrams, a language's `byTheme: { dark }`). A colour nothing in the chain sets comes
   from the fallbacks in app.css. Colour names: `bg`, `bgSide`, `bgBar`, `bgBarDim`, `bgCode`, `fg`, `fgDim`, `border`, `accent`,
-  `hover`, `active`, `select`, `paneActive`; code: `keyword`, `string`, `comment`, `number`, `title`, `attr`;
+  `hover`, `active`, `select`, `highlight` (a highlighted part of the text: a dark yellow on light, on dark a yellow as
+  bright as the text's contrast allows, a bright yellow on a medium background or where the selection is yellowish), `paneActive`; code: `keyword`, `string`, `comment`, `number`, `title`, `attr`;
   alerts: `note`, `tip`, `important`, `warning`, `caution`; markers: `gitModified`, `gitAdded`, `gitUntracked`,
   `gitDeleted`, `barChanged`, `barRemoved`; find: `findHit`, `findCurrent`, `findCurrentFg`, `findBox`; the pair at the cursor: `bracketMatch`, `bracketNoMatch`; indent guides (rainbow, per level): `guide1` to `guide6`; shown spaces, tabs and line ends: `whitespace`; the gutter beside lines of another language: `gutterBgEmbedded`. Values:
   `#rrggbb`, `#rgb` or `rgba(r, g, b, a)`. Mistakes show in the settings window.
@@ -236,12 +237,14 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   `LexPen.exe --compare old.sql new.sql`. The two files side by side in the two panes, editable as usual: lines that
   differ tinted (removed, added, changed; lines are paired by how much they look alike), the changed characters
   marked, filler lines keeping both sides level, the panes scrolling together, the differences on the scroll bars.
-  F7 / Shift+F7, or the arrows on the divider between the panes: the next / previous difference. The bar above the panes: the count, Ignore whitespace, Ignore
+  F7 / Shift+F7, or the arrows on the divider between the panes: the next / previous difference (a block of changed
+  lines at once, or with the setting line by line). A selection on one side shows on the other over the matching lines. The bar above the panes: the count, Ignore whitespace, Ignore
   case, Align (Ctrl+F7: the two cursor lines are each other's match and the comparing goes on from there; again on
   the pair: untied), copy the difference at the cursor across (`<<` / `>>`, or Alt+Left / Alt+Right in a
   difference), Swap, leave (the panes as before). The line strip below: the cursor line and its match one above the
   other, character under character, in the language's colours, spaces and tabs visible; an arrow in its gutter
-  points to the pane each line is from. View > Compare has it all too.
+  points to the pane each line is from. A window that closes while comparing (files or folders) compares again when its
+  project opens, the cursors where they were; leaving the compare then gives the window as it was before it. View > Compare has it all too.
 - **Compare two folders**: File > Compare folders..., a folder's right-click (Compare with folder...), or
   `LexPen.exe --compare old new`. The folder pane shows one tree of both: = equal, ~ different, ? not checked yet,
   < only on the left, > only on the right; a folder by what is inside. First by size and date, then the contents
@@ -274,7 +277,7 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   skipped. Ctrl + the mouse buttons go through the tabs and files of the window instead (View > Back / Forward in
   the window), like a browser.
 - **Where a found place lands**: a find, a search result, the next compare difference, a bookmark and Go to line
-  bring the place into view the same way (Editor > Jump to a found place). Out of view: 5 lines from the edge it comes
+  bring the place into view the same way (Find > Jump to a found place). Out of view: 5 lines from the edge it comes
   in at (the bottom going down, the top going up), or centred. Already in view: the view stays unless the place is
   within those lines of an edge, or centred. The number of lines is a setting (0 to 20).
 - **Ctrl+Tab**: through the documents in recently used order (hold Ctrl and press Tab again to go further back),

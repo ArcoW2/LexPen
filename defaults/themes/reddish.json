@@ -16,6 +16,7 @@
     "accent": "#ff7b86",
     "active": "rgba(255, 123, 134, .18)",
     "select": "#6a2d36",
+    "highlight": "#6c6400",
     "paneActive": "#ff7b86"
   }
 }

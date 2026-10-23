@@ -14,6 +14,7 @@
     "fgDim": "#9da1a8",
     "border": "#26272b",
     "hover": "rgba(255, 255, 255, .08)",
-    "select": "#24476e"
+    "select": "#24476e",
+    "highlight": "#726a00"
   }
 }

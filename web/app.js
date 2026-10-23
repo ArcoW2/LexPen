@@ -3065,16 +3065,21 @@ ui.divider.addEventListener('contextmenu', e => showMenu(ui.dividerMenu, e, () =
 // ---------- Session ----------
 // Every window keeps its folder, tabs and panes with its project (the host's projects.json, ProjectStore.cs), a
 // second after a change and when it closes; drafts live in Drafts\.
+// While comparing (compare.js): the window as it was before the compare, and the compare itself, which is started
+// again when the window opens (restoreCompare).
 function sessionData() {
+  const c = typeof compareSession === 'function' ? compareSession() : {}, before = c.before;   // compare.js loads after this file
+  const kept = pane => pane.tabs.filter(t => !t.doc.temp && !c.opened?.has(t));   // the compare opens those again
   return {
     root: state.root,
     tree: state.root ? { open: [...expanded], top: Math.round(ui.tree.scrollTop) } : undefined,   // the open folders, the scroll
-    activePane: state.activePane,
-    hidden: state.hidden,
-    panes: panes.map(pane => ({   // a compare's saved text (doc.temp) is not kept
-      active: pane.tabs.filter(t => !t.doc.temp).indexOf(pane.active),
-      tabs: pane.tabs.filter(t => !t.doc.temp).map(tab => ({
-        path: tab.doc.path, draft: tab.doc.draft, mode: tab.mode,
+    activePane: before ? before.activePane : state.activePane,
+    hidden: before ? before.hidden : state.hidden,
+    ...(c.compare && { compare: c.compare }), ...(c.folders && { folderCompare: c.folders }),
+    panes: panes.map((pane, i) => ({   // a compare's saved text (doc.temp) is not kept
+      active: kept(pane).indexOf(before ? before.active[i] : pane.active),
+      tabs: kept(pane).map(tab => ({
+        path: tab.doc.path, draft: tab.doc.draft, mode: c.modes?.get(tab) ?? tab.mode,
         top: pane.active === tab && !pane.el.hidden ? pane.previewEl.scrollTop : tab.previewTop,
         ...(tab.pinned && { pinned: true }), ...(tab.readOnly && { readOnly: true }),
         ...(tab.doc.draft && tab.doc.languageChosen && { language: languageOf(tab.doc) }),   // a file's choice: the host keeps it
@@ -3514,7 +3519,7 @@ function applySettings() {
   }
   if (RULER_SETTINGS.some(changed) && typeof applyRuler === 'function') applyRuler();   // ruler.js
   // compare.js, loaded after this file: at the start the settings can be here before it is.
-  if (['compareWhitespace', 'compareCase', 'compareStrip'].some(changed) && typeof onCompareSettings === 'function') onCompareSettings();
+  if (['compareWhitespace', 'compareCase', 'compareStrip', 'compareStep'].some(changed) && typeof onCompareSettings === 'function') onCompareSettings();
   if (['overview', 'overviewWidth', 'overview.find', 'overview.changes', 'overview.git', 'overview.bookmarks', 'gutter.changes', 'gutter.git'].some(changed)
     && typeof applyOverview === 'function') {   // overview.js; the hunks are made for the strip or the gutter
     for (const pane of panes) if (pane.cm && pane.active) paintGutter(pane);
@@ -3815,7 +3820,7 @@ track((async () => {
   if (start.compare) {
     const { left, right, folders } = start.compare;
     if (folders) startFolderCompare(left, right); else await startCompare({ path: left }, { path: right });
-  }
+  } else if (session) await restoreCompare(session.compare, session.folderCompare);   // the compare it was in
   if (gitWaiting) loadGitLater(gitWaiting);
   saveSession();
 })());

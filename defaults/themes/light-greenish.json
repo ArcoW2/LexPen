@@ -17,6 +17,7 @@
     "hover": "rgba(0, 0, 0, .06)",
     "active": "rgba(30, 122, 67, .12)",
     "select": "#bfe6cb",
+    "highlight": "#f2cf3a",
     "paneActive": "#1e7a43",
 
     // Code: darker where the tinted code background needs it (contrast 4.5:1).

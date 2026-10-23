@@ -15,6 +15,7 @@
     "hover": "rgba(255, 255, 255, .07)",
     "active": "rgba(88, 166, 255, .2)",
     "select": "#264f78",
+    "highlight": "#686100",
     "note": "#58a6ff",
     "tip": "#3fb950",
     "important": "#a371f7",

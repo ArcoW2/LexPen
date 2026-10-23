@@ -16,6 +16,7 @@
     "accent": "#5fd38d",
     "active": "rgba(95, 211, 141, .18)",
     "select": "#2b5a3d",
+    "highlight": "#6f6700",
     "paneActive": "#5fd38d",
 
     // Code: the colours a language pack maps its token types onto (tokens: { theme: keyword }).

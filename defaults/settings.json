@@ -36,6 +36,7 @@
   "overview.compare": true,       // ...comparing, the differences
   "compareWhitespace": false,     // comparing: spaces and tabs count only as a separation
   "compareCase": false,           // comparing: upper and lower case count as the same
+  "compareStep": "block",         // comparing: F7 goes to the next "block" of changed lines, or the next changed "line"
   "compareStrip": true,           // comparing: the line strip below the panes
   "explorerCompare": false,       // Explorer's right-click menu: Select left side to compare, then Compare to <name>
   "gutter.cursor": true,          // the cursor's line marked in the gutter, in the ruler's cursor colour

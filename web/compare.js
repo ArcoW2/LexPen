@@ -11,6 +11,8 @@ const cmp = {
   before: null,                // the window as it was: restored when the compare ends
   hunks: [], ties: [],         // the differences; ties [{ a, b }] as bookmarks in the two documents
   worker: null, run: 0, timer: 0, decor: [null, null],
+  restoreAt: null,             // reopened: the cursors and the scroll to put back after the first compare
+  mirror: null,                // the selection of one side shown on the other (mirrorSelection)
 };
 const COMPARE_DELAY = 300;     // ms after an edit before comparing again
 
@@ -51,6 +53,7 @@ async function startCompare(left, right) {
   showCompareUi(true);
   afterPaneChange();
   runCompare(true);
+  saveSession();
 }
 
 // A side in its pane: an open tab moves there, a file opens there, a saved text gets a read-only tab of its own.
@@ -58,6 +61,7 @@ async function placeSide(pane, what) {
   if (what.saved) {
     const doc = makeDoc({ text: what.saved.savedText ?? docText(what.saved) });
     doc.temp = true;   // not kept in the session (saveSession), closed when the compare ends
+    doc.savedOf = what.saved;   // the session keeps which document's saved text (compareSession)
     doc.label = docName(what.saved) + ' (saved)';
     doc.language = what.saved.language;
     const tab = makeTab(doc, 'edit');
@@ -80,6 +84,8 @@ async function placeSide(pane, what) {
 async function stopCompare() {
   const sides = cmp.sides ?? [], before = cmp.before;
   cmp.on = false;
+  cmp.mirror?.clear();
+  cmp.mirror = null;
   clearTimeout(cmp.timer);
   clearDecor();
   showCompareUi(false);
@@ -102,6 +108,7 @@ async function stopCompare() {
   }
   afterPaneChange();
   await showAll();
+  saveSession();
 }
 
 // ---------- Watching the two editors ----------
@@ -109,7 +116,7 @@ function watchSide(s) {
   const cm = s.pane.cm;
   s.onScroll = () => followScroll(s);
   s.onChange = () => { clearTimeout(cmp.timer); cmp.timer = setTimeout(() => runCompare(), COMPARE_DELAY); };
-  s.onCursor = () => { drawStrip(); showCompareCount(); };
+  s.onCursor = () => { drawStrip(); showCompareCount(); mirrorSelection(s); };
   s.onSwap = () => { if (cmp.on && cm.getDoc() !== s.tab.cmDoc) stopCompare(); };   // another tab here, or closed
   cm.on('scroll', s.onScroll);
   cm.on('changes', s.onChange);
@@ -150,7 +157,14 @@ function runCompare(first) {
     if (data.id !== cmp.run || !cmp.on) return;   // a newer compare is under way, or it ended
     cmp.hunks = data.hunks;
     applyCompare();
-    if (first) compareGo(1, true);
+    if (!first) return;
+    const at = cmp.restoreAt;   // reopened (restoreCompare): the cursors and the scroll as they were
+    cmp.restoreAt = null;
+    if (!at) return compareGo(1, true);
+    cmp.sides.forEach((s, i) => { const c = at.cursors?.[i]; if (Array.isArray(c)) s.pane.cm.setCursor(CodeMirror.Pos(c[0] | 0, c[1] | 0), null, { scroll: false }); });
+    if (Number.isFinite(at.top)) cmp.sides[0].pane.cm.scrollTo(null, at.top);
+    drawStrip();
+    showCompareCount();
   };
   cmp.worker.postMessage({ id, a, b, opts: compareOpts(), ties });
 }
@@ -215,16 +229,30 @@ const realHunks = () => cmp.hunks.filter(h => !h.ignorable);
 const sideIndex = () => cmp.sides?.findIndex(s => s.pane.index === state.activePane) ?? -1;
 const rangeOf = (h, i) => i === 0 ? [h.aFrom, h.aTo] : [h.bFrom, h.bTo];
 
-// The difference the cursor of the active side is in (a removal: on the line after it), else -1.
-function currentHunk() {
+// What F7 steps through and the bar counts: with the setting compareStep 'block' (the default) differences that touch
+// as one block (a run of changed lines is a difference per line pair, diff.js pairUp); 'line': each of them.
+function compareSteps() {
+  const list = realHunks();
+  if (setting('compareStep') === 'line') return list;
+  const blocks = [];
+  for (const h of list) {
+    const last = blocks[blocks.length - 1];
+    if (last && h.aFrom === last.aTo && h.bFrom === last.bTo) Object.assign(last, { aTo: h.aTo, bTo: h.bTo });
+    else blocks.push({ aFrom: h.aFrom, aTo: h.aTo, bFrom: h.bFrom, bTo: h.bTo });
+  }
+  return blocks;
+}
+
+// The difference (of `list`) the cursor of the active side is in (a removal: on the line after it), else -1.
+function currentHunk(list = realHunks()) {
   const i = Math.max(0, sideIndex()), line = cmp.sides[i].pane.cm.getCursor().line;
-  return realHunks().findIndex(h => { const [f, t] = rangeOf(h, i); return f === t ? line === f : line >= f && line < t; });
+  return list.findIndex(h => { const [f, t] = rangeOf(h, i); return f === t ? line === f : line >= f && line < t; });
 }
 
 // F7 / Shift+F7: the next / previous difference after (before) the cursor's line; both cursors there, a third down.
 function compareGo(dir, fromTop) {
   if (!cmp.on) return;
-  const list = realHunks(), i = Math.max(0, sideIndex()), line = fromTop ? -1 : cmp.sides[i].pane.cm.getCursor().line;
+  const list = compareSteps(), i = Math.max(0, sideIndex()), line = fromTop ? -1 : cmp.sides[i].pane.cm.getCursor().line;
   const h = dir > 0 ? list.find(h => rangeOf(h, i)[0] > line) : list.findLast(h => rangeOf(h, i)[0] < line);
   if (!h) { if (!fromTop) toast(dir > 0 ? 'No more differences below.' : 'No more differences above.', true); return; }
   // No scrolling of their own: this side is placed (revealFound, app.js), the other follows (followScroll).
@@ -241,14 +269,38 @@ function compareGo(dir, fromTop) {
 function showCompareCount() {
   const el = $('.mm-cmp-count');
   if (!el || !cmp.on) return;
-  const list = realHunks(), at = currentHunk();
+  const list = compareSteps(), at = currentHunk(list);
   el.textContent = !cmp.hunks.length ? 'No differences' : !list.length ? 'Equal apart from what is ignored'
     : at >= 0 ? `${at + 1} of ${list.length}` : `${list.length} difference${list.length === 1 ? '' : 's'}`;
-  const inside = at >= 0;
+  const inside = currentHunk() >= 0;
   for (const b of document.querySelectorAll('[data-cmp=copyLeft], [data-cmp=copyRight]')) b.disabled = !inside;
   const eols = cmp.sides.map(s => s.tab.doc.eol);
   $('.mm-cmp-note').textContent = eols[0] !== eols[1] ? 'Line endings differ (not counted)' : '';
   $('[data-cmp=untie]').hidden = !cmp.ties.length;
+}
+
+// ---------- The selection on the other side ----------
+// A selection in the side with the focus shows on the other side over the matching lines, in the selection's colour
+// (a mark: the other side's own cursor and selection stay). Lines without a match: from or to the other side's part
+// of that difference.
+function mirrorSelection(s) {
+  const cm = s.pane.cm;
+  if (!cm.hasFocus() && cm.somethingSelected()) return;   // set from elsewhere (compareGo): not the user's selection
+  cmp.mirror?.clear();
+  cmp.mirror = null;
+  if (!cmp.on || !cm.somethingSelected()) return;
+  const i = cmp.sides.indexOf(s), other = cmp.sides[1 - i]?.pane.cm;
+  if (i < 0 || !other) return;
+  const r = cm.listSelections()[cm.getDoc().sel.primIndex] ?? cm.listSelections()[0];
+  const [f, t] = CodeMirror.cmpPos(r.anchor, r.head) <= 0 ? [r.anchor, r.head] : [r.head, r.anchor];
+  const place = (p, end) => {
+    const m = matchingLine(i, p.line);
+    if (m.line != null) return CodeMirror.Pos(Math.min(m.line, other.lastLine()), p.ch);
+    const [of, ot] = rangeOf(m.hunk, 1 - i);
+    return CodeMirror.Pos(Math.min(end ? ot : of, other.lastLine()), 0);
+  };
+  const from = place(f, false), to = place(t, true);
+  if (CodeMirror.cmpPos(from, to) < 0) cmp.mirror = other.markText(from, to, { className: 'mm-cmp-mirror' });
 }
 
 // ---------- Align: ties ----------
@@ -425,6 +477,8 @@ document.addEventListener('DOMContentLoaded', () => {
     ({ prev: () => compareGo(-1), next: () => compareGo(1), align: compareAlign, untie: compareUntieAll,
       copyLeft: () => compareCopy(-1), copyRight: () => compareCopy(1), swap: compareSwap, close: stopCompare })[b.dataset.cmp]?.();
   });
+  // The buttons leave the focus in the editor that had it (copy across, Align, Swap act on its cursor).
+  $('.mm-cmp-bar').addEventListener('mousedown', e => { if (e.target.closest('button')) e.preventDefault(); });
   $('.mm-cmp-bar').addEventListener('change', e => {
     const box = e.target.closest('[data-cmp-opt]');
     if (box) setSetting(box.dataset.cmpOpt, box.checked);
@@ -473,6 +527,57 @@ async function compareToLeftSide(right, folder) {
   else startCompare({ path: left.path }, right);
 }
 
+// ---------- In the session ----------
+// What the session keeps of a compare (sessionData, app.js): the two sides (a file, a draft, a document's saved text),
+// the cursors and the scroll; the window as it was before (before, opened: the tabs the compare opened, modes: the
+// modes of the tabs it showed in the editor). And a folder compare: the two folders, the open ones, the view.
+function compareSession() {
+  const out = {};
+  if (cmp.on && cmp.sides) {
+    const side = s => {
+      const doc = s.tab.doc, of = doc.savedOf;
+      if (doc.temp) return of && { saved: of.path ? { path: of.path } : { draft: of.draft } };
+      return doc.path ? { path: doc.path } : { draft: doc.draft };
+    };
+    const [left, right] = cmp.sides.map(side);
+    if (left && right) {
+      out.compare = { left, right, cursors: cmp.sides.map(s => { const c = s.pane.cm.getCursor(); return [c.line, c.ch]; }),
+        top: Math.round(cmp.sides[0].pane.cm.getScrollInfo().top) };
+      out.before = cmp.before;
+      out.opened = new Set(cmp.sides.filter(s => s.opened).map(s => s.tab));
+      out.modes = new Map(cmp.sides.filter(s => !s.opened && s.mode).map(s => [s.tab, s.mode]));
+    }
+  }
+  if (fcmp.on) out.folders = { left: fcmp.left, right: fcmp.right, open: [...fcmp.open], diffOnly: fcmp.diffOnly };
+  return out;
+}
+
+// The compare the window was in when it closed (startup, app.js); a side that is gone: no compare.
+async function restoreCompare(c, f) {
+  const docOf = d => d?.path ? findDoc(d.path) : d?.draft ? findDraft(d.draft) : null;
+  const what = d => {
+    if (d?.path && !d.saved) return { path: d.path };
+    if (d?.draft) { const tab = allTabs().find(t => t.doc.draft === d.draft); return tab && { tab }; }
+    const doc = docOf(d?.saved);
+    return doc && { saved: doc };
+  };
+  if (c && typeof c === 'object') {
+    const left = what(c.left), right = what(c.right);
+    cmp.restoreAt = { cursors: c.cursors, top: c.top };   // placed once the first compare is in (runCompare)
+    if (left && right) await startCompare(left, right);
+    if (!cmp.on) cmp.restoreAt = null;
+  }
+  if (f && typeof f === 'object' && f.left && f.right) {
+    await startFolderCompare(f.left, f.right);
+    if (!fcmp.on || !fcmp.el) return;
+    if (Array.isArray(f.open)) fcmp.open = new Set(f.open);
+    fcmp.diffOnly = !!f.diffOnly;
+    const radio = fcmp.el.querySelector(`[name=mm-fcmp-show][value=${fcmp.diffOnly ? 'diff' : 'all'}]`);
+    if (radio) radio.checked = true;
+    drawFolderCompare();
+  }
+}
+
 // ---------- Compare two folders (3.5) ----------
 // The folder pane in compare mode: one tree of both folders, each file marked (= equal, ~ different, ? not checked
 // yet, < only on the left, > only on the right), a folder by what is inside it. First by size and date (the host's
@@ -505,10 +610,12 @@ async function startFolderCompare(left, right) {
   }
   drawFolderCompare();
   checkFolderContents(false);
+  saveSession();
 }
 
 function stopFolderCompare() {
   if (!fcmp.on) return;
+  setTimeout(saveSession);   // after fcmp.on is off
   if (fcmp.check) host('folderCheckStop', { check: fcmp.check }).catch(() => {});
   fcmp.on = false;
   fcmp.check = 0;
