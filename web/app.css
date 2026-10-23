@@ -1006,3 +1006,8 @@ body[data-folder-compare] .mm-folder-view > .mm-tree-head, body[data-folder-comp
 .mm-fcmp-row[data-state="!"] { color: var(--warning); }
 .mm-fcmp-row[data-state="~"] .mm-fcmp-mark, .mm-fcmp-row[data-state="<"] .mm-fcmp-mark, .mm-fcmp-row[data-state=">"] .mm-fcmp-mark { color: inherit; }
 .mm-fcmp-none { padding: 12px; color: var(--fg-dim); }
+/* The editor's cursor line in the preview (previewjump.js markPreviewCursor): a bar at its left edge beside its block in
+   the cursor's colour, the line itself over it in the accent (the preview's own with a theme of its own). */
+.mm-pcursor-layer { position: relative; height: 0; pointer-events: none; }
+.mm-pcursor, .mm-pcursor-line { position: absolute; left: 0; width: 4px; background: var(--select); }
+.mm-pcursor-line { background: var(--accent); }   /* the cursor line itself in that block: more pronounced */

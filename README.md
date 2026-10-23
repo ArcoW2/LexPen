@@ -288,6 +288,10 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   code shown coloured, front matter. On something markdown made up (a list number, a picture): the start of its
   line. A tab shown as preview only becomes split view; with the document in the editor in the other pane, that pane
   takes it. Back (Ctrl+Alt+-) returns to where the cursor was.
+  The other way: a bar at the preview's left edge beside the block that holds the editor's cursor line, in the
+  cursor's colour (as on the ruler and in the gutter), and over it in the accent the rendered lines of the cursor line
+  itself (a line of code: that line); a preview with a theme of its own uses its own colours. After a cursor move,
+  with the cursor in the editor's view, the preview scrolls as far as needed to show it.
 - **Where a found place lands**: a find, a search result, the next compare difference, a bookmark and Go to line
   bring the place into view the same way (Find > Jump to a found place). Out of view: 5 lines from the edge it comes
   in at (the bottom going down, the top going up), or centred. Already in view: the view stays unless the place is

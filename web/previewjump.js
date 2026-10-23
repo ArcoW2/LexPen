@@ -123,3 +123,163 @@ async function previewToEditor(pane, e) {
   cm.focus();
   updateStatus();
 }
+
+// ---------- The editor's cursor line in the preview ----------
+// A bar at the preview's left edge beside the block that holds the editor's cursor line, in the colour the ruler and
+// the gutter show the cursor in (--select), and over it, more pronounced (--accent), what the cursor line itself became
+// (a preview with a theme of its own: its own colours):
+// - a line of code (a code file, a line inside a fence): that line;
+// - a line of a paragraph, list item, quote: the rendered lines its text ended up on (its text looked up in the block,
+//   markup left out); when that cannot be found, the whole block.
+// The editor: this pane's in split view, else the other pane's when it shows the same document in the editor; none
+// without one. Drawn in a layer after the preview's content (as find's boxes), so it scrolls along. After a cursor
+// move or an editor scroll, with the cursor in the editor's view, the bar is kept touching the preview's view (wholly
+// in it when it fits).
+function markPreviewCursor(pane, reveal) {
+  const tab = pane.active, el = pane.previewEl;
+  // Another width reflows the text: the lines move.
+  if (!pane.previewCursorWatch) (pane.previewCursorWatch = new ResizeObserver(() => markPreviewCursors())).observe(el);
+  let line = null, editor = null;
+  if (tab && tab.mode !== 'edit' && !pane.el.hidden) {
+    editor = tab.mode === 'split' ? pane
+      : panes.find(p => p !== pane && p.active?.doc === tab.doc && p.active.mode !== 'preview' && !p.el.hidden);
+    if (editor?.cm) line = editor.cm.getCursor().line;
+  }
+  const spot = line == null ? null : previewSpotOf(tab, line);
+  if (!spot) { pane.previewCursor?.remove(); pane.previewCursor = null; return; }
+  let layer = pane.previewCursor;
+  if (!layer || layer.parentElement !== el) {
+    layer?.remove();
+    layer = pane.previewCursor = document.createElement('div');
+    layer.className = 'mm-pcursor-layer';
+    layer.append(Object.assign(document.createElement('div'), { className: 'mm-pcursor' }),
+      Object.assign(document.createElement('div'), { className: 'mm-pcursor-line' }));
+  }
+  if (el.lastElementChild !== layer) el.append(layer);   // after the content (and after find's boxes)
+  const origin = layer.getBoundingClientRect(), [block, own] = layer.children;
+  const place = (bar, r) => Object.assign(bar.style, { top: r.top - origin.top + 'px', height: Math.max(r.bottom - r.top, 2) + 'px' });
+  place(block, spot.block);
+  place(own, spot.line);
+  if (reveal && cursorInView(editor.cm)) keepInView(pane, spot.line);
+}
+
+// Is the editor's cursor on screen in the editor.
+function cursorInView(cm) {
+  const info = cm.getScrollInfo(), at = cm.charCoords(cm.getCursor(), 'local');
+  return at.bottom > info.top && at.top < info.top + info.clientHeight;
+}
+
+// The preview scrolled so the spot (window coordinates) touches its view: wholly in it when it fits, else a part.
+function keepInView(pane, spot) {
+  const el = pane.previewEl, view = el.getBoundingClientRect(), margin = 8, height = spot.bottom - spot.top;
+  let by = 0;
+  if (height <= view.height - 2 * margin) {
+    if (spot.top < view.top + margin) by = spot.top - view.top - margin;
+    else if (spot.bottom > view.bottom - margin) by = spot.bottom - view.bottom + margin;
+  } else if (spot.bottom < view.top + 3 * margin) by = spot.bottom - view.top - 3 * margin;
+  else if (spot.top > view.bottom - 3 * margin) by = spot.top - view.bottom + 3 * margin;
+  if (Math.abs(by) < 1) return;
+  const before = el.scrollTop;
+  pane.ignoreScroll = true;   // not an echo to the editor or the other pane (onPreviewScroll)
+  el.scrollTop += by;
+  if (el.scrollTop === before) pane.ignoreScroll = false;   // it could not move: no scroll event comes
+}
+
+// Where source line `line` is in the preview: { block, line }, each { top, bottom } in window coordinates (the line
+// the whole block when it cannot be told apart), or null.
+function previewSpotOf(tab, line) {
+  const block = previewBlockAt(tab, line);
+  if (!block) return null;
+  const whole = block.getBoundingClientRect();
+  const own = lineSpot(tab, line, block, whole);
+  return { block: { top: whole.top, bottom: whole.bottom }, line: own ?? { top: whole.top, bottom: whole.bottom } };
+}
+
+// The source line's own place inside its block, or null (then the block).
+function lineSpot(tab, line, block, whole) {
+  const rect = r => r && r.height ? { top: r.top, bottom: r.bottom } : null;
+  const start = +(block.dataset.line ?? block.querySelector('[data-line]')?.dataset.line ?? line);
+  const lines = docText(tab.doc).split('\n');
+  // A fence: its code's line (the fence's own lines: the whole box).
+  if (block.tagName === 'PRE' && !block.classList.contains('mm-code')) {
+    const code = block.querySelector('code') ?? block, opener = /^\s*(`{3,}|~{3,}|---\s*$)/.test(lines[start] ?? '') ? 1 : 0;
+    const n = line - start - opener, text = code.textContent, rows = text.split('\n');
+    if (n < 0 || n >= rows.length || (opener && n === rows.length - 1 && rows[n] === '')) return rect(whole);
+    const from = rows.slice(0, n).join('\n').length + (n ? 1 : 0);
+    return rect(textRange(code, from, from + Math.max(rows[n].length, 1))?.getBoundingClientRect()) ?? rect(whole);
+  }
+  // One source line, or a block of one line: the block.
+  if (+block.dataset.line === line && blockLines(tab, block, start, lines.length) <= 1) return rect(whole);
+  // A line inside a block: its text, markup left out, in the block's text (the n-th time when it is there more often).
+  const plain = plainLine(lines[line] ?? '');
+  if (plain.length < 2) return rect(whole);
+  const pattern = new RegExp(plain.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+'), 'g');
+  const before = lines.slice(start, line).map(plainLine).join(' '), n = (before.match(pattern) ?? []).length;
+  const text = block.textContent;
+  let m;
+  for (let i = 0; (m = pattern.exec(text)) && i < n; i++) ;
+  if (!m) return rect(whole);
+  const rects = [...(textRange(block, m.index, m.index + m[0].length)?.getClientRects() ?? [])].filter(r => r.height);
+  return rects.length ? { top: Math.min(...rects.map(r => r.top)), bottom: Math.max(...rects.map(r => r.bottom)) } : rect(whole);
+}
+
+// How many source lines a block takes: up to the next element with a source line further down.
+function blockLines(tab, block, start, count) {
+  const list = previewLineBlocks(tab);
+  const next = list.find(([l]) => l > start);
+  return (next ? next[0] : count) - start;
+}
+
+// A source line's text as markdown shows it: list, heading and quote marks, emphasis, code ticks, link addresses and
+// tags left out, spaces trimmed.
+const plainLine = text => text
+  .replace(/^\s*(>\s*)*(#{1,6}\s+|[-*+]\s+(\[[ xX]\]\s+)?|\d+[.)]\s+)?/, '')
+  .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/<[^>]+>/g, '')
+  .replace(/(\*\*|__|~~|`|\*)/g, '').replace(/\\(.)/g, '$1').trim();
+
+// A DOM range over characters [from, to) of an element's text.
+function textRange(el, from, to) {
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT), range = document.createRange();
+  let at = 0, started = false;
+  for (let t = walker.nextNode(); t; t = walker.nextNode()) {
+    const end = at + t.data.length;
+    if (!started && from <= end) { range.setStart(t, Math.min(from - at, t.data.length)); started = true; }
+    if (started && to <= end) { range.setEnd(t, Math.max(0, to - at)); return range; }
+    at = end;
+  }
+  return started ? range : null;
+}
+
+// The blocks by source line, sorted (kept until the next render: tab.lineBlocks).
+const previewLineBlocks = tab =>
+  tab.lineBlocks ??= [...tab.article.querySelectorAll('[data-line]')].map(e => [+e.dataset.line, e]).sort((a, b) => a[0] - b[0]);
+
+// The preview's block holding source line `line`: the element of that line (a code file has one per line, a markdown
+// block starts there), else the last block starting before it (the innermost of those starting on the same line).
+function previewBlockAt(tab, line) {
+  const article = tab.article;
+  // A fence's line is on its code: the block is the box around it.
+  const box = el => el?.tagName === 'CODE' && el.parentElement?.tagName === 'PRE' ? el.parentElement : el;
+  const exact = [...article.querySelectorAll(`[data-line="${line}"]`)].pop();
+  if (exact) return box(exact);
+  const list = previewLineBlocks(tab);
+  let lo = 0, hi = list.length - 1, found = null;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (list[mid][0] <= line) { found = mid; lo = mid + 1; } else hi = mid - 1;
+  }
+  return found == null ? null : box(list[found][1]);
+}
+
+// All panes, once per frame: after a cursor move or an editor scroll (`reveal`: keep the bar in the preview's view),
+// a render, a layout change.
+function markPreviewCursors(reveal = false) {
+  markPreviewCursors.reveal ||= reveal;
+  if (markPreviewCursors.frame) return;
+  markPreviewCursors.frame = requestAnimationFrame(() => {
+    const keep = markPreviewCursors.reveal;
+    markPreviewCursors.frame = 0;
+    markPreviewCursors.reveal = false;
+    for (const pane of panes) markPreviewCursor(pane, keep);
+  });
+}

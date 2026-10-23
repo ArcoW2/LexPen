@@ -330,7 +330,7 @@ function makeTab(doc, mode) {
     readOnly: false,     // set by the user (tab menu: Read-only)
   };
   // Images and diagrams change the heights the line map was built from.
-  article.addEventListener('load', () => tab.lines = null, true);
+  article.addEventListener('load', () => { tab.lines = null; if (typeof markPreviewCursors === 'function') markPreviewCursors(); }, true);
   if (!doc.editTab || doc.editTab.readOnly) doc.editTab = tab;   // a read-only tab hands the editing on
   return tab;
 }
@@ -631,6 +631,7 @@ async function ensureEditor(pane) {
     markOutline(pane);   // the outline's entry at the cursor
     updateRelativeNumbers(pane);
     markCursorLines(pane);   // the cursor's line in the gutter (gutter.js)
+    if (typeof markPreviewCursors === 'function') markPreviewCursors(true);   // and in the preview, kept in view (previewjump.js)
     saveSession();   // the cursor is kept in the session (after a second without moving)
     refreshFormatBar(pane);
     if (pane.index === state.activePane) updateStatus();
@@ -754,6 +755,7 @@ async function renderNow(tab) {
   const id = ++tab.renderId;
   tab.stale = false;
   tab.lines = null;
+  tab.lineBlocks = null;
   const doc = tab.doc, text = docText(doc), article = tab.article;
 
   // Built in a <template> so images are not requested before their paths are fixed.
@@ -811,6 +813,8 @@ async function renderNow(tab) {
     await mermaid.run({ nodes: diagrams, suppressErrors: true });
   }
   tab.lines = null;
+  tab.lineBlocks = null;   // the blocks by source line (previewjump.js), and the cursor's bar in the preview
+  if (typeof markPreviewCursors === 'function') markPreviewCursors();
 }
 
 function scheduleRender(tab) {
@@ -1004,6 +1008,7 @@ addEventListener('resize', () => { for (const tab of allTabs()) tab.lines = null
 // Shows the pane's active tab (or the welcome page when it has none).
 async function showActive(pane) {
   layout();
+  if (typeof markPreviewCursors === 'function') markPreviewCursors();
   const tab = pane.active;
   if (!tab) {
     pane.el.dataset.mode = 'preview';
@@ -1196,8 +1201,7 @@ function tabElement(pane, tab) {
     (editable(tab) ? '' : tab.readOnly ? '\nRead-only (set by you)' : doc.diskReadOnly ? '\nRead-only file on disk'
       : doc.lock ? '\nRead-only: edited in the other pane' : '\nRead-only: edited in another window');
   if (tab.pinned) el.classList.add('mm-pinned');
-  const rule = applyTabStyle(el, doc, tab === pane.active);
-  if (rule) el.title += '\nTab colour: ' + rule;
+  applyTabStyle(el, doc, tab === pane.active);
   const name = document.createElement('span');
   name.className = 'mm-tab-name';
   name.textContent = docName(doc);
@@ -3072,6 +3076,7 @@ function onEditorScroll(pane) {
   else if (tab.mode === 'split') {
     const info = pane.cm.getScrollInfo(), el = pane.previewEl;
     el.scrollTop = info.top / Math.max(1, info.height - info.clientHeight) * (el.scrollHeight - el.clientHeight);
+    if (typeof markPreviewCursors === 'function') markPreviewCursors(true);   // the cursor's bar kept in the preview's view
   }
   if (pane.ignoreEditorScroll) return pane.ignoreEditorScroll = false;
   const other = syncPartner(pane);
