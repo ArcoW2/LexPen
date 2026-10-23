@@ -1,0 +1,67 @@
+# KQL, the Kusto Query Language of Azure: Log Analytics, Application Insights, Azure Data Explorer, Resource Graph,
+# Sentinel. Coloured by this file: the word lists and patterns below, so you can add your own words. Every part is
+# explained in languages\_template\language.yaml. In a markdown document a query goes in a fence: ```kql (or
+# ```kusto); it is coloured there too.
+name: KQL (Kusto)
+extensions: [.kql, .csl, .kusto]
+aliases: [kql, csl, azure-kql]       # other names it is known by (a markdown fence ```kql); see languages\README.md
+open: edit
+fold: indent
+caseSensitive: true                  # KQL is case sensitive: where, not WHERE
+comments: { line: '//' }
+quotes:
+  - { open: '"', escape: '\' }      # "text \" quoted"
+  - { open: "'", escape: '\' }      # 'text'
+numbers:
+  - '\d+(\.\d+)?(e[+-]?\d+)?(d|h|m|s|ms|microsecond|microseconds|tick|ticks)?\b'   # 42, 1.5, and timespans: 5m, 30d, 100ms
+words:
+  # Statements and tabular operators (those with a hyphen are in the rules below).
+  keyword: [let, set, alias, declare, pattern, restrict, access, query_parameters, where, filter, project, extend,
+    summarize, by, join, kind, on, union, take, limit, top, sort, order, asc, desc, nulls, first, last, render,
+    with, as, distinct, count, getschema, evaluate, parse, datatable, print, search, find, in, has,
+    contains, startswith, endswith, matches, regex, and, or, not, between, invoke, facet, fork, partition, sample,
+    serialize, lookup, consume, externaldata, scan, range, from, to, step, materialize, toscalar, isfuzzy,
+    has_any, has_all, has_cs, contains_cs, startswith_cs, endswith_cs, hasprefix, hassuffix, notcontains,
+    notstartswith, notendswith, notbetween]
+  # Join kinds and other words after kind= or hint.
+  atom: ['true', 'false', 'null', inner, innerunique, leftouter, rightouter, fullouter, leftanti, rightanti, leftsemi,
+    rightsemi, anti, semi, leftantisemi, rightantisemi]
+  type: [bool, boolean, datetime, date, decimal, double, dynamic, guid, int, long, real, string, time, timespan]
+  builtin: [ago, now, bin, bin_at, floor, ceiling, round, abs, exp, log, log10, pow, sqrt, rand, count, countif,
+    dcount, dcountif, sum, sumif, avg, avgif, min, max, minif, maxif, arg_max, arg_min, make_list, make_list_if,
+    make_set, make_set_if, make_bag, percentile, percentiles, stdev, variance, any, take_any, take_anyif,
+    tostring, toint, tolong, todouble, toreal, todatetime, totimespan, tobool, todynamic, todecimal, toguid,
+    parse_json, parse_url, parse_path, extract, extract_all, split, strcat, strcat_array, strcat_delim, strlen,
+    substring, indexof, tolower, toupper, trim, trim_start, trim_end, replace_string, replace_regex, reverse,
+    iff, iif, case, coalesce, isempty, isnotempty, isnull, isnotnull, isnan, format_datetime, format_timespan,
+    datetime_add, datetime_diff, datetime_part, startofday, startofweek, startofmonth, startofyear, endofday,
+    endofweek, endofmonth, endofyear, dayofweek, dayofmonth, dayofyear, hourofday, getmonth, getyear, unixtime_seconds_todatetime,
+    bag_keys, bag_merge, bag_pack, pack, pack_all, pack_array, array_length, array_concat, array_slice,
+    array_index_of, set_union, set_intersect, set_difference, series_stats, series_fit_line, series_decompose,
+    row_number, row_cumsum, prev, next, hash, hash_sha256, column_ifexists, table, cluster, database, ipv4_is_in_range,
+    ipv4_is_private, geo_distance_2points, base64_encode_tostring, base64_decode_tostring, url_encode, url_decode,
+    new_guid, gettype, binary_and, binary_or, binary_xor, not_empty]
+rules:
+  # Operators written with a hyphen, and hints.
+  - { regex: '\b(project-away|project-keep|project-rename|project-reorder|mv-expand|mv-apply|make-series|top-nested|top-hitters|parse-where|parse-kv|sample-distinct|partition-by)\b', token: keyword }
+  - { regex: '\bhint\.\w+', token: keyword }
+  # Verbatim and obfuscated strings: @"c:\path", h"secret", h@'...'.
+  - { regex: '[hH]?@"[^"]*"', token: string }
+  - { regex: "[hH]?@'[^']*'", token: string }
+  - { regex: '[hH]"(?:[^"\]|\.)*"', token: string }
+  # A pipe starts the next step of a query.
+  - { regex: '\|', token: pipe }
+tokens:
+  pipe: { like: keyword, bold: true }
+outline:
+  - { pattern: '^\s*let\s+(\w+)', name: 1, level: 1 }
+actions:
+  snippetLastHour:
+    title: 'Snippet: the last hour'
+    insert: "$0\n| where TimeGenerated > ago(1h)\n| order by TimeGenerated desc\n| take 100"
+  snippetSummarize:
+    title: 'Snippet: count per hour'
+    insert: "$0\n| summarize count() by bin(TimeGenerated, 1h)\n| render timechart"
+  snippetLet:
+    title: 'Snippet: let'
+    insert: "let $0 = ;\n"

@@ -44,10 +44,24 @@ function paintChanges(pane) {
   paintHunks(cm, CHANGE_GUTTER, hunks, kind => ({ added: 'Added', changed: 'Changed', removed: 'Removed' })[kind] + ' since the last save');
 }
 
-// The file at git HEAD: asked from the host when the file is first shown, after a save and when git changes.
+// The file at git HEAD: asked from the host when the file is first shown, after a save and when git changes. First
+// which version the commit holds (gitHeadId, small): the text itself only when that is another one than the one
+// here, so a large file is not sent again on every change in the repository.
 async function loadGitHead(doc) {
   if (!doc.path) return doc.gitHead = null;
+  // Asked again while a load is under way (a save and a change in git at once): the one load answers both.
+  if (doc.gitHeadLoading) return doc.gitHeadLoading;
+  doc.gitHeadLoading = loadGitHeadNow(doc);
+  try { return await doc.gitHeadLoading; } finally { doc.gitHeadLoading = null; }
+}
+
+async function loadGitHeadNow(doc) {
+  const id = await host('gitHeadId', { path: doc.path }).catch(() => null);
+  if (!id) { doc.gitHeadId = null; return doc.gitHead = null; }
+  if (id === doc.gitHeadId && doc.gitHead !== undefined) return doc.gitHead;
   doc.gitHead = await host('gitHead', { path: doc.path }).catch(() => null);
+  doc.gitHeadId = doc.gitHead == null ? null : id;
+  return doc.gitHead;
 }
 
 // A commit is usually made outside LexPen: back in the window, the files on screen ask for HEAD again.

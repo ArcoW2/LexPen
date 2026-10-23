@@ -25,6 +25,7 @@ chrome.webview.addEventListener('message', e => {
   error ? call.reject(new Error(error)) : call.resolve(result);
 });
 
+const SLIDER_DELAY = 200;   // ms a slider rests before the app gets its value
 let settings = null;   // { values, defaults, user, problems, defs }
 const rows = [];       // { def, el, control }
 
@@ -109,13 +110,21 @@ function control(def) {
     box.append(swatch, select, picker);
     return { box, focus: select, show };
   }
-  // A slider (range: min, max, step) with its value; it applies while dragging.
+  // A slider (range: min, max, step) with its value: the value shows while dragging, the app gets it once the slider
+  // rests SLIDER_DELAY ms (each step would redraw every window), and at once on release.
   if (def.kind === 'range') {
     const [min, max, step] = def.range ?? [0, 100, 1];
     const input = Object.assign(document.createElement('input'), { type: 'range', min, max, step });
     const value = document.createElement('span');
     value.className = 'st-range-value';
-    input.addEventListener('input', () => { value.textContent = input.value + def.unit; set(def.name, +input.value); });
+    let timer = 0;
+    const apply = () => { clearTimeout(timer); timer = 0; set(def.name, +input.value); };
+    input.addEventListener('input', () => {
+      value.textContent = input.value + def.unit;
+      clearTimeout(timer);
+      timer = setTimeout(apply, SLIDER_DELAY);
+    });
+    input.addEventListener('change', () => { if (timer) apply(); });
     box.append(input, value);
     return { box, focus: input, show: v => { input.value = v; value.textContent = input.value + def.unit; } };
   }

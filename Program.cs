@@ -40,6 +40,10 @@ static class Program
         // The first LexPen process moves an older data folder layout over, before any window or browser starts.
         if (owner) DataFolder.Migrate(AppHost.DataDir);
         var app = new AppHost();
+        // The UI thread's stalls (every window shares it), in stalls.log; a control of its own to ask the thread for a beat.
+        var beat = new Control();
+        _ = beat.Handle;   // its window handle: BeginInvoke needs one
+        StallLog.Start(beat, DataFolder.StatePath(AppHost.DataDir, "stalls.log"));
         app.WatchSettings();
         app.WatchThemes();
         app.WatchLanguages();

@@ -272,7 +272,7 @@ function showCompareCount() {
   const list = compareSteps(), at = currentHunk(list);
   el.textContent = !cmp.hunks.length ? 'No differences' : !list.length ? 'Equal apart from what is ignored'
     : at >= 0 ? `${at + 1} of ${list.length}` : `${list.length} difference${list.length === 1 ? '' : 's'}`;
-  const inside = currentHunk() >= 0;
+  const inside = currentHunk() >= 0 || !!cmp.sides[Math.max(0, sideIndex())]?.pane.cm.somethingSelected();
   for (const b of document.querySelectorAll('[data-cmp=copyLeft], [data-cmp=copyRight]')) b.disabled = !inside;
   const eols = cmp.sides.map(s => s.tab.doc.eol);
   $('.mm-cmp-note').textContent = eols[0] !== eols[1] ? 'Line endings differ (not counted)' : '';
@@ -332,9 +332,9 @@ function compareUntieAll() {
 // is in no difference (Alt+Left / Alt+Right then go through the tabs as usual).
 function compareCopy(dir) {
   if (!cmp.on) return false;
-  const at = currentHunk();
-  if (at < 0) return false;
-  const h = realHunks()[at], [from, to] = dir > 0 ? [0, 1] : [1, 0];
+  const h = selectedLines() ?? realHunks()[currentHunk()];
+  if (!h) return false;
+  const [from, to] = dir > 0 ? [0, 1] : [1, 0];
   const src = cmp.sides[from].pane.cm, dst = cmp.sides[to].pane.cm;
   if (dst.getOption('readOnly') || !editable(cmp.sides[to].tab)) { toast('That side is read-only.'); return true; }
   const [sf, st] = rangeOf(h, from), [df, dt] = rangeOf(h, to);
@@ -342,6 +342,20 @@ function compareCopy(dir) {
   for (let l = sf; l < st; l++) lines.push(src.getLine(l));
   replaceLines(dst, df, dt, lines);
   return true;
+}
+
+// A selection in the active side as whole lines (a last line it only reaches the start of is not in it), with the
+// lines they match on the other side, as a difference is ({ aFrom, aTo, bFrom, bTo }); null without a selection.
+// A boundary inside a difference with fewer lines on the other side goes to the end of that side's part.
+function selectedLines() {
+  const i = Math.max(0, sideIndex()), cm = cmp.sides[i].pane.cm;
+  if (!cm.somethingSelected()) return null;
+  const r = cm.listSelections()[cm.getDoc().sel.primIndex] ?? cm.listSelections()[0];
+  const [f, t] = CodeMirror.cmpPos(r.anchor, r.head) <= 0 ? [r.anchor, r.head] : [r.head, r.anchor];
+  const from = f.line, to = t.ch > 0 || t.line === f.line ? t.line + 1 : t.line;
+  const across = line => { const m = matchingLine(i, line); return m.line ?? rangeOf(m.hunk, 1 - i)[1]; };
+  const [of, ot] = [across(from), across(to)];
+  return i === 0 ? { aFrom: from, aTo: to, bFrom: of, bTo: ot } : { aFrom: of, aTo: ot, bFrom: from, bTo: to };
 }
 
 // Lines [from, to) of an editor replaced by `lines` (as one undo step).

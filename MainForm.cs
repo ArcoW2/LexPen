@@ -185,6 +185,7 @@ sealed class MainForm : Form
 
     void FlushChanges()
     {
+        using var _ = StallLog.Doing($"file changes for {Text}");
         changeTimer.Stop();
         var message = new JsonObject
         {
@@ -326,7 +327,8 @@ sealed class MainForm : Form
         // Files dropped from Explorer come along as objects that carry their path.
         core.WebMessageReceived += (_, m) =>
         {
-            var json = m.WebMessageAsJson;
+            string json;
+            using (StallLog.Doing($"receiving a message from {Text}")) json = m.WebMessageAsJson;
             // A picture pasted from the clipboard is a file without a path: "".
             var files = m.AdditionalObjects?.OfType<CoreWebView2File>().Select(f =>
             {
@@ -380,18 +382,23 @@ sealed class MainForm : Form
     /// <summary>An event for the page; held back until the page has started.</summary>
     public void Post(JsonObject message)
     {
+        using var _ = StallLog.Doing($"the event {message["event"]} to {Text}");
         var json = message.ToJsonString();
         if (pageReady && !IsDisposed) web.CoreWebView2.PostWebMessageAsJson(json);
         else queue.Add(json);
     }
 
+    // Requests that may carry a whole file: their answer is turned into text off the UI thread as well.
+    static readonly HashSet<string> LargeAnswers = ["read", "gitHead", "search", "folderList", "format"];
+
     async void OnMessage(string json, string[]? files)
     {
         if (IsDisposed) return;
-        var msg = JsonNode.Parse(json)!;
+        JsonNode msg;
+        using (StallLog.Doing($"a request of {json.Length / 1024} KB from {Text}")) msg = JsonNode.Parse(json)!;
         var reply = new JsonObject { ["id"] = msg["id"]!.GetValue<int>() };
-        // A folder search and git status can take a while: off the UI thread, so the window and the
-        // other requests do not wait for them.
+        // Every window shares this one UI thread (StallLog): what can take a while (a folder search, git, reading or
+        // writing a file, a large answer) runs off it, so this window and the others do not wait for it.
         var op = msg["op"]?.GetValue<string>();
         try
         {
@@ -400,14 +407,21 @@ sealed class MainForm : Form
                 "search" => await Task.Run(() => Search(msg)),
                 "gitStatus" => await Task.Run(() => GitStatus(msg["path"]!.GetValue<string>())),
                 "gitHead" => await Task.Run(() => GitHead(msg["path"]!.GetValue<string>())),
+                "gitHeadId" => await Task.Run(() => GitHeadId(msg["path"]!.GetValue<string>())),
                 "folderList" => await Task.Run(() => FolderList(msg)),
                 "format" => await Task.Run(() => Format(msg)),
-                _ => Dispatch(msg, files),
+                "read" => await ReadFile(msg["path"]!.GetValue<string>()),
+                "write" => await WriteFile(msg),
+                _ => DispatchMarked(msg, files, op),
             };
         }
         catch (Exception ex) { reply["error"] = ex.Message; }
         if (IsDisposed) return;
-        web.CoreWebView2.PostWebMessageAsJson(reply.ToJsonString());
+        string answer;
+        if (op is not null && LargeAnswers.Contains(op)) answer = await Task.Run(() => reply.ToJsonString());
+        else using (StallLog.Doing($"the answer to {op} for {Text}")) answer = reply.ToJsonString();
+        if (IsDisposed) return;
+        using (StallLog.Doing($"the answer to {op} for {Text}")) web.CoreWebView2.PostWebMessageAsJson(answer);
 
         if (!pageReady && msg["op"]?.GetValue<string>() == "init")
         {
@@ -601,8 +615,18 @@ sealed class MainForm : Form
                 return app.Clipboards.Get(msg["n"]!.GetValue<int>());
 
             // Bookmarks of a file or draft (BookmarkStore), placed in its current text.
+            // The stored bookmarks; placed in the text (Resolve) only when the page sends it along (bookmarksResolve
+            // otherwise, and only when there are any: a large file's text is not sent for nothing).
             case "bookmarksGet":
-                return BookmarkStore.Resolve(app.Bookmarks.Get(BookmarkStore.Key(msg["path"]?.GetValue<string>(), msg["draft"]?.GetValue<string>())), Arg("text"));
+            {
+                var list = app.Bookmarks.Get(BookmarkStore.Key(msg["path"]?.GetValue<string>(), msg["draft"]?.GetValue<string>()));
+                return msg["text"] is null ? list : BookmarkStore.Resolve(list, Arg("text"));
+            }
+
+            // A line of the page's own for the stall log: a script that ran long.
+            case "stallNote":
+                StallLog.Note($"{Arg("text")} in {Text}");
+                return null;
 
             case "bookmarksSet":
                 app.Bookmarks.Set(BookmarkStore.Key(msg["path"]?.GetValue<string>(), msg["draft"]?.GetValue<string>()), msg["list"]!.AsArray());
@@ -682,23 +706,6 @@ sealed class MainForm : Form
 
             case "list":
                 return List(Arg("path"));
-
-            case "read":
-            {
-                var (text, encoding) = ReadText(Arg("path"));
-                // Read-only on disk: the tab opens read-only (it cannot be saved anyway).
-                var readOnly = (File.GetAttributes(Arg("path")) & FileAttributes.ReadOnly) != 0;
-                // A language chosen for this file before (the selector), else null: by extension.
-                return new JsonObject { ["text"] = text, ["encoding"] = encoding, ["readOnly"] = readOnly, ["language"] = app.FileLanguage(Arg("path")),
-                    ["ranges"] = app.FileRanges(Arg("path")) };
-            }
-
-            // In the encoding the file was read in; `backup`: the old file becomes name.bak.
-            case "write":
-                ownWrites[Arg("path")] = DateTime.UtcNow;
-                TextFile.Write(Arg("path"), Arg("text"), msg["encoding"]?.GetValue<string>() ?? TextFile.Utf8,
-                    msg["backup"]?.GetValue<bool>() == true);
-                return true;
 
             case "watch":
                 Root = Arg("root") is { Length: > 0 } root ? root : null;
@@ -1066,6 +1073,44 @@ sealed class MainForm : Form
     static string? GitHead(string path) =>
         Path.GetDirectoryName(path) is string dir ? Git(dir, "show", "HEAD:./" + Path.GetFileName(path)) : null;
 
+    // Which version of the file the last commit holds (its blob id), so the page asks for the text (GitHead) only
+    // when that changed: a large file is not sent again on every change in the repository.
+    static string? GitHeadId(string path) =>
+        Path.GetDirectoryName(path) is string dir ? Git(dir, "rev-parse", "HEAD:./" + Path.GetFileName(path))?.Trim() : null;
+
+    // A file read off the UI thread. Read-only on disk: the tab opens read-only (it cannot be saved anyway). A
+    // language chosen for this file before (the selector), else null: by extension.
+    async Task<JsonNode?> ReadFile(string path)
+    {
+        var (text, encoding, readOnly) = await Task.Run(() =>
+        {
+            var (t, e) = ReadText(path);
+            return (t, e, (File.GetAttributes(path) & FileAttributes.ReadOnly) != 0);
+        });
+        return new JsonObject { ["text"] = text, ["encoding"] = encoding, ["readOnly"] = readOnly, ["language"] = app.FileLanguage(path),
+            ["ranges"] = app.FileRanges(path) };
+    }
+
+    // A file written off the UI thread, in the encoding it was read in; `backup`: the old file becomes name.bak. Noted
+    // as our own write first, so the watcher does not report it as changed elsewhere.
+    async Task<JsonNode?> WriteFile(JsonNode msg)
+    {
+        var path = msg["path"]!.GetValue<string>();
+        var text = msg["text"]!.GetValue<string>();
+        var encoding = msg["encoding"]?.GetValue<string>() ?? TextFile.Utf8;
+        var backup = msg["backup"]?.GetValue<bool>() == true;
+        ownWrites[path] = DateTime.UtcNow;
+        await Task.Run(() => TextFile.Write(path, text, encoding, backup));
+        return true;
+    }
+
+    // A request answered on the UI thread, marked for the stall log.
+    JsonNode? DispatchMarked(JsonNode msg, string[]? files, string? op)
+    {
+        using var _ = StallLog.Doing($"{op} for {Text}");
+        return Dispatch(msg, files);
+    }
+
     static string? Git(string folder, params string[] args)
     {
         var start = new ProcessStartInfo("git")
@@ -1117,13 +1162,22 @@ sealed class MainForm : Form
         base.WndProc(ref m);
     }
 
+    // Asked without opening the clipboard (IsClipboardFormatAvailable): opening it waits, and retries, while another
+    // program holds it, and every window would wait on this shared thread.
     void PostClipboardColumn()
     {
-        bool column;
-        try { column = Clipboard.ContainsText() && Clipboard.GetDataObject()?.GetDataPresent(ColumnFormat) == true; }
-        catch (ExternalException) { return; }   // another program holds the clipboard just now
+        var column = IsClipboardFormatAvailable(CF_UNICODETEXT) && IsClipboardFormatAvailable(ColumnFormatId);
         Post(new JsonObject { ["event"] = "clipboardColumn", ["column"] = column });
     }
+
+    const uint CF_UNICODETEXT = 13;
+    static readonly uint ColumnFormatId = RegisterClipboardFormat(ColumnFormat);
+
+    [DllImport("user32.dll")]
+    static extern bool IsClipboardFormatAvailable(uint format);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    static extern uint RegisterClipboardFormat(string name);
 
     // Its place and desktop are kept with the window's session (AppHost.WindowPlaceChanged), once it is shown.
     protected override void OnShown(EventArgs e)

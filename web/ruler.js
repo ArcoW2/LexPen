@@ -34,7 +34,7 @@ const RULER_SETTINGS = ['ruler', 'columnGuideStart', 'columnGuideStep', 'columnG
 // a theme colour's name (it follows the theme), or a colour picked in the settings window (#rrggbb, as picked).
 const GUIDE_COLOURS = [['border', 'The border colour'], ['hl-comment', 'The comment colour'], ['find-current', 'Orange (a found text)'],
   ['find-box', 'The find box'], ['accent', 'Blue (the cursor)'], ['tip', 'Green'], ['important', 'Purple'], ['caution', 'Red'],
-  ['warning', 'Brown']];
+  ['warning', 'Brown'], ['highlight', 'Yellow (the highlight)']];
 const colourCss = (value, fallback) => typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value) ? value
   : `var(--${GUIDE_COLOURS.some(([name]) => name === value) ? value : fallback})`;
 // A line's colour in the text: a theme colour mixed into the background by its kind's intensity, a picked one as is.

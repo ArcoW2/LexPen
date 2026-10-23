@@ -1405,6 +1405,16 @@ const statusUi = {
 const ALIVE = ['-', '\\', '|', '/'];
 let aliveStep = 0;
 setInterval(() => statusUi.alive.textContent = ALIVE[aliveStep = (aliveStep + 1) % ALIVE.length], 250);
+// A script that ran more than half a second goes to the host's stall log (StallLog.cs), with the last action and the
+// document, so a stall names its cause.
+try {
+  new PerformanceObserver(list => {
+    for (const e of list.getEntries()) if (e.duration > 500) {
+      const doc = panes[state.activePane]?.active?.doc;
+      host('stallNote', { text: `a script ran ${Math.round(e.duration)} ms; last action ${lastAction ?? '-'}; ${doc ? docName(doc) : 'no document'}` }).catch(() => {});
+    }
+  }).observe({ type: 'longtask' });
+} catch { }   // no long task timing: no notes
 
 function updateStatus() {
   const pane = panes[state.activePane], tab = pane.active, doc = tab?.doc;
@@ -1437,7 +1447,13 @@ function updateStatus() {
   statusUi.eol.textContent = doc ? (doc.eol === '\r\n' ? 'CRLF' : 'LF') : '';
   // The line end each editor shows (showLineEnds): its own document's.
   for (const p of panes) if (p.cm && p.active) p.cm.getWrapperElement().dataset.eol = p.active.doc.eol === '\r\n' ? 'crlf' : 'lf';
-  statusUi.lang.textContent = doc ? languageTitle(doc) : '';
+  // In a block of another language (a fence, lines you gave a language): that one too, "Markdown -> KQL (Kusto)". A
+  // click still changes the file's language.
+  const inner = cm && doc && typeof lineLanguage === 'function' ? lineLanguage(cm, cm.getCursor().line) : null;
+  const innerShown = inner && inner !== languageOf(doc) && packs[inner] ? packs[inner].name : null;
+  statusUi.lang.textContent = doc ? languageTitle(doc) + (innerShown ? ' -> ' + innerShown : '') : '';
+  statusUi.lang.title = innerShown ? `Language: ${languageTitle(doc)}, the cursor in a block of ${innerShown} (click: choose another for the file)`
+    : 'Language (click: choose another)';
   statusUi.long.hidden = !(cm && longLineIn(doc));
   statusUi.clip.textContent = 'Clip: ' + (clips.active === 0 ? 'Win' : clips.active);
   statusUi.clip.classList.toggle('mm-on', clips.active !== 0);
@@ -2820,6 +2836,22 @@ function revealFound(cm, from, to = from) {
   cm.scrollIntoView(tall ? from : { from, to }, 0);   // sideways (up or down it is in view by now)
 }
 
+// A highlight (settings highlightStyle, highlightColour, highlightIntensity): its colour as --highlight-mark, its
+// style as body[data-highlight] (app.css). The intensity moves the colour along the line from the background through
+// it: 0 the background, 100 the colour, beyond it further away (each channel clamped), so it can be more intense than
+// the colour itself. Again when the theme changes (applyLook).
+function applyHighlight() {
+  const probe = document.createElement('div');
+  document.body.append(probe);
+  const rgb = css => { probe.style.color = ''; probe.style.color = css; return getComputedStyle(probe).color.match(/[\d.]+/g).slice(0, 3).map(Number); };
+  const colour = rgb(colourCss(setting('highlightColour'), 'highlight')), bg = rgb('var(--bg)');
+  probe.remove();
+  const v = setting('highlightIntensity'), k = (Number.isFinite(v) ? Math.min(200, Math.max(0, v)) : 100) / 100;
+  const mark = colour.map((c, i) => Math.round(Math.min(255, Math.max(0, bg[i] + (c - bg[i]) * k))));
+  document.documentElement.style.setProperty('--highlight-mark', `rgb(${mark.join(', ')})`);
+  document.body.dataset.highlight = setting('highlightStyle') === 'underline' ? 'underline' : 'background';
+}
+
 // Puts the source line at the top of the pane: preview, editor or both. The cursor stays where it is (a click in
 // the outline; a double-click moves it). `focus`: the editor gets the keys again.
 function goToLine(pane, line, focus = true) {
@@ -3288,6 +3320,7 @@ function applyLook(next) {
   root.dataset.mode = look.mode;
   setThemeVars(root, look.app.vars);
   if (typeof applyRuler === 'function') applyRuler();   // the ruler's canvas takes the theme's colours (ruler.js)
+  applyHighlight();
   for (const pane of panes) {
     pane.previewEl.classList.toggle('mm-themed', !!look.preview);
     if (look.preview) pane.previewEl.dataset.theme = look.mode; else delete pane.previewEl.dataset.theme;
@@ -3518,6 +3551,7 @@ function applySettings() {
     if (typeof repaintGuides === 'function') repaintGuides();
   }
   if (RULER_SETTINGS.some(changed) && typeof applyRuler === 'function') applyRuler();   // ruler.js
+  if (['highlightStyle', 'highlightColour', 'highlightIntensity'].some(changed)) applyHighlight();
   // compare.js, loaded after this file: at the start the settings can be here before it is.
   if (['compareWhitespace', 'compareCase', 'compareStrip', 'compareStep'].some(changed) && typeof onCompareSettings === 'function') onCompareSettings();
   if (['overview', 'overviewWidth', 'overview.find', 'overview.changes', 'overview.git', 'overview.bookmarks', 'gutter.changes', 'gutter.git'].some(changed)

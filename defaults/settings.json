@@ -83,6 +83,9 @@
   "columnGuideExtra": 0,          // one more guide of its own, as 80 (0: none)
   "columnGuideColour": "border",   // the column guides' theme colour: border, find-current (orange), find-box, accent
                                   // (blue), tip (green), important (purple), caution (red), warning (brown)
+  "highlightStyle": "background",  // a highlighted part of the text: a "background" colour or "underline"d
+  "highlightColour": "highlight", // its colour: a theme colour's name (the theme's highlight, yellow) or "#rrggbb"
+  "highlightIntensity": 100,      // percent: 100 the colour, less towards the background, more (to 200) further from it
   "columnGuideIntensity": 40,     // intensity of the column guides: percent of their colour, the rest the background
   "helperLineIntensity": 20,      // intensity of the helper lines: percent of the line's colour, the rest the
                                   // theme's background (a colour from Other colour... is drawn as picked)

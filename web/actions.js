@@ -70,7 +70,10 @@ function editorPane(ctx = {}) {
 const inTextField = ctx => ctx.from === 'key' && !!document.activeElement?.matches('input, textarea, [contenteditable]:not([contenteditable=false])')
   && !document.activeElement.closest('.CodeMirror');
 
+let lastAction = null;   // the last action run, for the stall log (app.js)
+
 function runAction(name, params = [], ctx = {}) {
+  lastAction = name;
   const app = appActions.get(name);
   if (app) {
     if (app.editor) {
@@ -136,10 +139,10 @@ appAction('closeWindow', { title: 'Close window', hint: 'Asks about unsaved chan
 
 appAction('nextDocument', { title: 'Next document', hint: 'Through the tabs of the window', group: 'tabs', run: () => nextDocument(1) });
 appAction('previousDocument', { title: 'Previous document', hint: 'Through the tabs of the window', group: 'tabs', run: () => nextDocument(-1) });
-// While comparing, the key with the cursor in a difference copies it across instead (compare.js).
-appAction('nextTab', { title: 'Next tab', hint: 'The tab to the right in this pane, in tab bar order; comparing, with the cursor in a difference: the left side\'s lines over the right side\'s', group: 'tabs',
+// While comparing, the key with a selection or with the cursor in a difference copies it across instead (compare.js).
+appAction('nextTab', { title: 'Next tab', hint: 'The tab to the right in this pane, in tab bar order; comparing, with a selection or the cursor in a difference: the left side\'s lines over the right side\'s', group: 'tabs',
   run: (_, ctx) => (ctx.from === 'key' && comparing() && compareCopy(1)) || cycleTab(1) });
-appAction('previousTab', { title: 'Previous tab', hint: 'The tab to the left in this pane, in tab bar order; comparing, with the cursor in a difference: the right side\'s lines over the left side\'s', group: 'tabs',
+appAction('previousTab', { title: 'Previous tab', hint: 'The tab to the left in this pane, in tab bar order; comparing, with a selection or the cursor in a difference: the right side\'s lines over the left side\'s', group: 'tabs',
   run: (_, ctx) => (ctx.from === 'key' && comparing() && compareCopy(-1)) || cycleTab(-1) });
 
 // ---------- The compare (compare.js) ----------
@@ -554,6 +557,14 @@ const SETTING_ROWS = [
     title: 'Helper lines: intensity', hint: 'Intensity of the helper lines (set on the ruler) shown in the editor: higher means brighter, lower fades them into the background. A colour from Other colour... is drawn as picked' },
   { name: 'tabStopIntensity', group: 'Editor view', sub: 'Ruler and column guides', kind: 'range', range: [0, 100, 5], unit: '%',
     title: 'Tab stops: intensity', hint: 'Intensity of the tab stop lines shown in the editor: higher means brighter, lower fades them into the background. Their handles on the ruler keep full colour; a colour from Other colour... is drawn as picked' },
+  { name: 'highlightStyle', group: 'Editor view', sub: 'Highlight', kind: 'choice', title: 'A highlight',
+    hint: 'How a highlighted part of the text shows (comparing: the part of the other side that matches a selection): the text keeps its colours either way',
+    options: () => [['background', 'A background colour'], ['underline', 'Underlined']] },
+  { name: 'highlightColour', group: 'Editor view', sub: 'Highlight', kind: 'colour', title: 'Highlight: colour',
+    hint: 'The background or the underline of a highlight: a colour of the theme (it follows the theme; the highlight colour of the theme is yellow) or one you pick',
+    options: () => GUIDE_COLOURS },
+  { name: 'highlightIntensity', group: 'Editor view', sub: 'Highlight', kind: 'range', range: [0, 200, 5], unit: '%',
+    title: 'Highlight: intensity', hint: '100%: the colour itself; lower fades it into the background, higher takes it further from the background (brighter on a dark theme, deeper on a light one)' },
   { name: 'lineNumbers', group: 'Editor view', sub: 'Gutter', kind: 'choice',
     options: () => [['none', 'None'], ['tens', 'Every 10 (a dash at 5, a dot on the others)'], ['all', 'Every line']] },
   { name: 'lineNumberCount', group: 'Editor view', sub: 'Gutter', kind: 'choice',

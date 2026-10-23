@@ -12,7 +12,12 @@ const Pos5 = CodeMirror.Pos;
 async function loadBookmarks(doc) {
   if (doc.marks) return;
   doc.marksLoading ??= (async () => {
-    const list = doc.bmList ?? await host('bookmarksGet', { path: doc.path, draft: doc.draft, text: docText(doc) }).catch(() => []);
+    // The stored ones first; the text goes to the host only when there are bookmarks to place in it.
+    let list = doc.bmList;
+    if (!list) {
+      const stored = await host('bookmarksGet', { path: doc.path, draft: doc.draft }).catch(() => []);
+      list = stored.length ? await host('bookmarksResolve', { list: stored, text: docText(doc) }).catch(() => []) : [];
+    }
     doc.bmList = null;
     if (!doc.marks) setMarks(doc, list);
   })();

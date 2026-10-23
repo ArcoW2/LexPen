@@ -10,7 +10,8 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
 ## Features
 
 - **Languages**: a language pack per language (`defaults\languages\<name>\language.yaml`, `bar.yaml`, icons):
-  markdown, plain text, C#, JSON, YAML, PowerShell, XML, JavaScript, SQL, Delphi / Pascal, and from the UltraEdit
+  markdown, plain text, C#, JSON, YAML, PowerShell, XML, JavaScript, SQL, Delphi / Pascal, KQL (Azure's Kusto
+  queries: `.kql`, `.csl`, a ```` ```kql ```` or ```` ```kusto ```` fence in markdown), and from the UltraEdit
   word files AutoHotkey, Sybase ASA SQL, Batch, C / C++, CSS, HTML, Java, Perl, PHP, Python, Ruby, Shell,
   VBScript and Visual Basic ship. A language inside a language: blocks of whole lines between marker lines (ASA's
   JSON API block, markdown fences coloured by their pack, HTML's script / style / php), and lines you give a
@@ -238,11 +239,12 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   differ tinted (removed, added, changed; lines are paired by how much they look alike), the changed characters
   marked, filler lines keeping both sides level, the panes scrolling together, the differences on the scroll bars.
   F7 / Shift+F7, or the arrows on the divider between the panes: the next / previous difference (a block of changed
-  lines at once, or with the setting line by line). A selection on one side shows on the other over the matching lines. The bar above the panes: the count, Ignore whitespace, Ignore
+  lines at once, or with the setting line by line). A selection on one side shows on the other over the matching lines, as a highlight
+  (Editor view > Highlight: a background colour or underlined, its colour, an intensity of 0 to 200%). The bar above the panes: the count, Ignore whitespace, Ignore
   case, Align (Ctrl+F7: the two cursor lines are each other's match and the comparing goes on from there; again on
-  the pair: untied), copy the difference at the cursor across (`<<` / `>>`, or Alt+Left / Alt+Right in a
-  difference), Swap, leave (the panes as before). The line strip below: the cursor line and its match one above the
-  other, character under character, in the language's colours, spaces and tabs visible; an arrow in its gutter
+  the pair: untied), copy across (`<<` / `>>`, or Alt+Left / Alt+Right): the selected lines and the
+  lines they match on the other side, with or without differences in them, or else the difference at the cursor,
+  Swap, leave (the panes as before). The line strip below: the cursor line and its match one above the other, character under character, in the language's colours, spaces and tabs visible; an arrow in its gutter
   points to the pane each line is from. A window that closes while comparing (files or folders) compares again when its
   project opens, the cursors where they were; leaving the compare then gives the window as it was before it. View > Compare has it all too.
 - **Compare two folders**: File > Compare folders..., a folder's right-click (Compare with folder...), or
@@ -301,6 +303,11 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
 - **Compare**: the button on the divider (View > Scroll both panes together) scrolls both panes together, by
   source line: preview with preview, editor with editor. Not while comparing two files: the compare keeps the
   panes level itself, and the arrows to the differences take the button's place.
+- **Stalls**: every LexPen window shares one process, and its window thread: a long job of one window makes the
+  others wait too. Reading and writing files, git and large answers run beside that thread. When it is still late
+  by more than half a second, `stalls.log` in the data folder's `State` says when, how long and what it was doing (a
+  script of a page that ran long is noted there too). The turning sign at the right of the bottom bar stands still
+  only while the page itself is stuck.
 - **One instance, more windows**: opening a file while LexPen runs adds it as a tab to the most recently used
   window on the virtual desktop you are on; with no LexPen window there, a window opens there with the project
   whose window was closed last on that desktop (or a new project). Hold **Shift**

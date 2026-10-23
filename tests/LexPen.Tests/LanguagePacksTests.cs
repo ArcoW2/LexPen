@@ -21,7 +21,7 @@ public class LanguagePacksTests : IDisposable
     {
         var all = LanguagePacks.Load(Shipped, Path.Combine(dir, "none"));
         Assert.Empty(Problems(all));
-        Assert.Equal(["ahk", "asa", "batch", "cpp", "csharp", "css", "html", "java", "javascript", "json", "markdown", "pascal",
+        Assert.Equal(["ahk", "asa", "batch", "cpp", "csharp", "css", "html", "java", "javascript", "json", "kusto", "markdown", "pascal",
             "perl", "php", "plaintext", "powershell", "python", "ruby", "shell", "sql", "vb", "vbscript", "xml", "yaml"],
             all["packs"]!.AsObject().Select(p => p.Key));
         Assert.DoesNotContain("_template", all["packs"]!.AsObject().Select(p => p.Key));

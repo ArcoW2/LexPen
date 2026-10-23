@@ -957,7 +957,9 @@ li.CodeMirror-hint-active { background: var(--select); color: var(--fg); }
 .mm-cmp-filler { background: repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in srgb, var(--fg) 7%, transparent) 6px 8px); }
 .mm-cmp-filler.mm-cmp-quiet { background: none; }
 .CodeMirror .mm-cmp-tie { box-shadow: inset 3px 0 0 var(--accent); }
-.CodeMirror .mm-cmp-mirror { background: var(--highlight); }   /* the other side's selection (compare.js mirrorSelection) */
+.CodeMirror .mm-cmp-mirror { background: var(--highlight-mark, var(--highlight)); }   /* the other side's selection (compare.js mirrorSelection) */
+/* A highlight underlined (setting highlightStyle): a bar along the bottom of the text, unbroken over the spans. */
+body[data-highlight=underline] .CodeMirror .mm-cmp-mirror { background: none; box-shadow: inset 0 -2px 0 var(--highlight-mark, var(--highlight)); }
 .mm-cmp-strip { display: flex; border-top: 1px solid var(--border); background: var(--bg);
   font: var(--editor-size)/var(--editor-line) var(--editor-font); }
 .mm-cmp-labels { padding: 2px 8px; color: var(--fg-dim); border-right: 1px solid var(--border); white-space: pre; min-width: 5em; }
