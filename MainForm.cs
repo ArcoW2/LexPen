@@ -361,6 +361,16 @@ sealed class MainForm : Form
         core.ContextMenuRequested += (_, m) =>
         {
             foreach (var item in m.MenuItems.Where(i => i.Name == "print").ToList()) m.MenuItems.Remove(item);
+            // Highlights (docs/plans/executed/PLAN-highlights.md): in the editor and the preview, on the selection or the cursor.
+            var env = core.Environment;
+            m.MenuItems.Add(env.CreateContextMenuItem("", null, CoreWebView2ContextMenuItemKind.Separator));
+            foreach (var (label, action) in new[] { ("Highlight", "highlight.toggle"), ("Selection to highlight", "highlight.fromSelection"),
+                ("Highlight note...", "highlight.note"), ("Remove highlight", "highlight.remove") })
+            {
+                var item = env.CreateContextMenuItem(label, null, CoreWebView2ContextMenuItemKind.Command);
+                item.CustomItemSelected += (_, _) => Post(new JsonObject { ["event"] = "contextAction", ["action"] = action });
+                m.MenuItems.Add(item);
+            }
         };
         core.DocumentTitleChanged += (_, _) => UpdateTitle();
         core.DOMContentLoaded += (_, _) => loading.Hide();
@@ -425,6 +435,10 @@ sealed class MainForm : Form
             reply["result"] = op switch
             {
                 "search" => await Task.Run(() => Search(msg)),
+                // Highlights (HighlightStore): the store's files and the .lph files off the UI thread.
+                "highlightsGet" => await Task.Run(() => app.Highlights.Get(msg["path"]?.GetValue<string>(), msg["draft"]?.GetValue<string>())),
+                "highlightsSet" => await SetHighlights(msg),
+                "highlightsMoveAll" => await Task.Run(() => app.Highlights.MoveAll(msg["beside"]?.GetValue<bool>() == true)),
                 "gitStatus" => await Task.Run(() => GitStatus(msg["path"]!.GetValue<string>())),
                 "gitHead" => await Task.Run(() => GitHead(msg["path"]!.GetValue<string>())),
                 "gitHeadId" => await Task.Run(() => GitHeadId(msg["path"]!.GetValue<string>())),
@@ -623,6 +637,15 @@ sealed class MainForm : Form
 
             // The character picker (CharPickerForm): opened at a character; the character after the cursor, while it
             // is open.
+            case "openHighlights":
+                app.OpenHighlights(this);
+                return null;
+
+            // Which document's highlights this window shows (the highlights window lists them).
+            case "highlightsShown":
+                app.HighlightsShown(this, msg.AsObject().DeepClone().AsObject());
+                return null;
+
             case "openCharPicker":
                 app.OpenCharPicker(this, msg["code"]?.GetValue<int>());
                 return null;
@@ -1128,6 +1151,19 @@ sealed class MainForm : Form
         ownWrites[path] = DateTime.UtcNow;
         await Task.Run(() => TextFile.Write(path, text, encoding, backup));
         return true;
+    }
+
+    // A file's highlights written (off the UI thread), then the other windows told.
+    async Task<JsonNode?> SetHighlights(JsonNode msg)
+    {
+        var path = msg["path"]?.GetValue<string>();
+        var draft = msg["draft"]?.GetValue<string>();
+        var list = msg["list"]!.AsArray().DeepClone().AsArray();
+        var beside = msg["beside"]?.GetValue<bool>() == true;
+        if (path is not null) ownWrites[HighlightStore.BesidePath(path)] = DateTime.UtcNow;   // not news for the tree
+        var where = await Task.Run(() => app.Highlights.Set(path, draft, list, beside));
+        app.HighlightsChanged(this, path, draft);
+        return where;
     }
 
     // A request answered on the UI thread, marked for the stall log.

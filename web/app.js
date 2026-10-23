@@ -423,6 +423,11 @@ function makePane(index) {
   }, { passive: false });
   pane.previewEl.addEventListener('click', e => onPreviewClick(pane, e));
   pane.previewEl.addEventListener('dblclick', e => typeof previewToEditor === 'function' && previewToEditor(pane, e));   // previewjump.js
+  pane.previewEl.addEventListener('mousemove', e => {   // a highlight's note as tooltip (highlights.js)
+    if (typeof previewNoteAt !== 'function' || !pane.hlSpots?.length) return;
+    const note = previewNoteAt(pane, e.clientX, e.clientY) ?? '';
+    if (pane.previewEl.title !== note) pane.previewEl.title = note;
+  });
   pane.barEl.addEventListener('click', e => onBarClick(pane, e));
 
   const tabOf = e => pane.tabs.find(t => t.id === +e.target.closest('.mm-tab')?.dataset.tab);
@@ -570,6 +575,7 @@ function materialize(doc) {
   doc.savedGeneration = doc.dirty ? -1 : doc.cmDoc.changeGeneration(true);
   doc.cmDoc.on('change', () => onDocChange(doc));
   attachRanges(doc);   // lines you gave a language follow the edits
+  if (typeof markHighlights === 'function') markHighlights(doc);   // highlights.js: on the main Doc, every tab shows them
   return doc.cmDoc;
 }
 
@@ -592,6 +598,7 @@ function releaseTabDoc(tab) {
   for (const pane of panes) if (pane.cm?.getDoc() === tab.cmDoc) pane.cm.swapDoc(CodeMirror.Doc(''));
   tab.doc.cmDoc.unlinkDoc(tab.cmDoc);
   tab.cmDoc = null;
+  if (typeof remarkHighlights === 'function' && tab.doc.hls?.list.length) remarkHighlights(tab.doc);   // highlights.js
 }
 
 async function ensureEditor(pane) {
@@ -657,6 +664,7 @@ async function ensureEditor(pane) {
 }
 
 function onDocChange(doc) {
+  if (typeof highlightsEdited === 'function') highlightsEdited(doc);   // highlights.js: written again a second later
   const clean = doc.cmDoc.isClean(doc.savedGeneration);
   const before = changed(doc);
   if (doc.draft) {
@@ -689,8 +697,10 @@ function setDocText(doc, text, encoding) {
   doc.eol = eolOf(text);
   if (doc.cmDoc) {
     const kept = doc.marks && bookmarkList(doc);
+    const keptHighlights = typeof keepHighlights === 'function' && keepHighlights(doc);   // highlights.js
     doc.cmDoc.setValue(text);
     if (kept) reloadBookmarks(doc, kept);
+    if (keptHighlights) placeHighlightsAgain(doc, keptHighlights);
     doc.cmDoc.clearHistory();
     doc.savedGeneration = doc.cmDoc.changeGeneration(true);
   }
@@ -714,7 +724,9 @@ async function revertDoc(doc) {
   if (!doc.cmDoc) return reloadDoc(doc, text, encoding);    // never in an editor: no undo to keep
   const cd = doc.cmDoc, keep = panes.filter(p => p.active?.doc === doc && p.cm).map(p => ({ p, top: p.cm.getScrollInfo().top }));
   const cursor = cd.getCursor();
+  const keptHighlights = typeof keepHighlights === 'function' && keepHighlights(doc);   // highlights.js
   cd.replaceRange(text, CodeMirror.Pos(cd.firstLine(), 0), CodeMirror.Pos(cd.lastLine(), cd.getLine(cd.lastLine()).length), 'revert');
+  if (keptHighlights) placeHighlightsAgain(doc, keptHighlights);
   doc.savedText = text;
   if (encoding) doc.encoding = encoding;
   doc.eol = eolOf(text);
@@ -815,6 +827,7 @@ async function renderNow(tab) {
   tab.lines = null;
   tab.lineBlocks = null;   // the blocks by source line (previewjump.js), and the cursor's bar in the preview
   if (typeof markPreviewCursors === 'function') markPreviewCursors();
+  if (typeof drawPreviewHighlights === 'function') for (const pane of panes) if (pane.active === tab) drawPreviewHighlights(pane);   // highlights.js
 }
 
 function scheduleRender(tab) {
@@ -1016,6 +1029,7 @@ async function showActive(pane) {
     pane.barEl.hidden = true;
   } else {
     pane.el.dataset.mode = tab.mode;
+    if (typeof loadHighlights === 'function') { loadHighlights(tab.doc); tellHighlightsWindow(); }   // highlights.js
     const swapped = pane.previewEl.firstChild !== tab.article;
     if (swapped) pane.previewEl.replaceChildren(tab.article);
     if (tab.mode !== 'edit' && tab.stale) render(tab);   // builds the content before the first await
@@ -1661,6 +1675,10 @@ async function saveDoc(doc, saveAs) {
     unfresh(path);
   }
   moveRulerLines(doc, was);
+  if (doc.hls?.list.length && (was.draft || !samePath(was.path, doc.path))) {   // highlights.js: to the new name
+    host('highlightsSet', { path: was.path, draft: was.draft, list: [], beside: false }).catch(() => {});
+    saveHighlights(doc, true);
+  }
   doc.dirty = false;
   doc.disk = 'ok';
   doc.savedText = docText(doc);
@@ -1884,8 +1902,11 @@ function sortItems(items) {
 }
 
 async function fillDir(container, path, depth) {
-  // Backup files (name.ext.bak) only with the setting showBackupFiles.
-  const items = (await host('list', { path })).filter(i => i.dir || setting('showBackupFiles') || !/\.bak$/i.test(i.name));
+  // Backup files (name.ext.bak) only with the setting showBackupFiles; highlights next to a file (name.ext.lph,
+  // highlights.js) never: the file gets a mark instead.
+  const listed = await host('list', { path });
+  const withHighlights = new Set(listed.filter(i => !i.dir && /\.lph$/i.test(i.name)).map(i => i.name.slice(0, -4).toLowerCase()));
+  const items = listed.filter(i => i.dir || (!/\.lph$/i.test(i.name) && (setting('showBackupFiles') || !/\.bak$/i.test(i.name))));
   container.replaceChildren();
   for (const item of [...sortItems(items), ...deletedIn(path, items)]) {
     const row = document.createElement('div');
@@ -1900,6 +1921,10 @@ async function fillDir(container, path, depth) {
     name.className = 'mm-name';
     name.textContent = item.name;
     row.append(name);
+    if (!item.dir && withHighlights.has(item.name.toLowerCase())) {
+      row.classList.add('mm-has-highlights');
+      row.title += '\nHas highlights next to it (' + item.name + '.lph)';
+    }
     const status = gitStatusOf(item);
     if (status) row.dataset.git = status;
     container.append(row);
@@ -3349,6 +3374,7 @@ function applyLook(next) {
     setThemeVars(pane.previewEl, look.preview?.vars);
   }
   applyInlineCode();   // after the preview's own theme: its box is measured from its background
+  if (typeof applyPreviewHighlight === 'function') applyPreviewHighlight();   // highlights.js: the same for the highlights
   if (!before) state.theme = root.dataset.theme = look.mode;   // at start, before anything is shown
   else if (look.mode !== state.theme) applyTheme(look.mode);   // the mode: tab colour rules, diagrams
   // Another list of themes: the settings window's lists follow.
@@ -3576,6 +3602,7 @@ function applySettings() {
   if (RULER_SETTINGS.some(changed) && typeof applyRuler === 'function') applyRuler();   // ruler.js
   if (['highlightStyle', 'highlightColour', 'highlightIntensity'].some(changed)) applyHighlight();
   if (changed('inlineCodeIntensity')) applyInlineCode();
+  if (['previewHighlightStyle', 'previewHighlightColour', 'previewHighlightIntensity'].some(changed) && typeof applyPreviewHighlight === 'function') applyPreviewHighlight();
   // compare.js, loaded after this file: at the start the settings can be here before it is.
   if (['compareWhitespace', 'compareCase', 'compareStrip', 'compareStep'].some(changed) && typeof onCompareSettings === 'function') onCompareSettings();
   if (['overview', 'overviewWidth', 'overview.find', 'overview.changes', 'overview.git', 'overview.bookmarks', 'gutter.changes', 'gutter.git'].some(changed)

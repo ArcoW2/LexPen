@@ -33,6 +33,7 @@
   "overview.changes": true,       // ...the lines changed since the last save
   "overview.git": true,           // ...the lines changed since the last commit
   "overview.bookmarks": true,     // ...the bookmarks
+  "overview.highlights": true,    // ...the highlights
   "overview.compare": true,       // ...comparing, the differences
   "compareWhitespace": false,     // comparing: spaces and tabs count only as a separation
   "compareCase": false,           // comparing: upper and lower case count as the same
@@ -84,6 +85,10 @@
   "columnGuideColour": "border",   // the column guides' theme colour: border, find-current (orange), find-box, accent
                                   // (blue), tip (green), important (purple), caution (red), warning (brown)
   "inlineCodeIntensity": 100,     // the box behind code within a line: 100 the theme colour inlineCode, less towards the background (0: no box), more (to 200) further from it
+  "previewHighlightStyle": "background",  // a highlight in the preview: "background" or "underline" (the editor: highlightStyle)
+  "previewHighlightColour": "highlight",   // its colour: a theme colour's name (the preview theme's own) or "#rrggbb"
+  "previewHighlightIntensity": 100,        // percent: 100 the colour, less towards the background, more (to 200) further from it
+  "highlightsStore": "store",     // where highlights are kept: "store" (LexPen's) or "beside" (name.ext.lph next to the file)
   "highlightStyle": "background",  // a highlighted part of the text: a "background" colour or "underline"d
   "highlightColour": "highlight", // its colour: a theme colour's name (the theme's highlight, yellow) or "#rrggbb"
   "highlightIntensity": 100,      // percent: 100 the colour, less towards the background, more (to 200) further from it

@@ -39,6 +39,7 @@ sealed class AppHost : ApplicationContext
         public List<FindEntry> FindHistory { get; set; } = [];
         public List<string> ReplaceHistory { get; set; } = [];
         public int[]? CharPicker { get; set; }   // the character picker's place: x, y, width, height
+        public int[]? HighlightsWindow { get; set; }   // the highlights window's place: x, y, width, height
     }
 
     public AppState State { get; } = LoadState();
@@ -48,6 +49,7 @@ sealed class AppHost : ApplicationContext
     public ClipboardStore Clipboards { get; } = new(DataFolder.StatePath(DataDir, "clipboards.json"));
     public BookmarkStore Bookmarks { get; } = new(DataFolder.StatePath(DataDir, "bookmarks.json"));
     public RulerStore Rulers { get; } = new(DataFolder.StatePath(DataDir, "file-rulers.json"));
+    public HighlightStore Highlights { get; } = new(DataFolder.StatePath(DataDir, "highlights.json"));
 
     // Your settings (SettingsFile): the defaults with your settings.json on top.
     JsonObject settings = SettingsFile.Load(DataDir);
@@ -285,6 +287,8 @@ sealed class AppHost : ApplicationContext
         settingsWindow?.ApplyTheme();
         charPicker?.ApplyTheme();
         charPicker?.Post(new JsonObject { ["event"] = "look", ["look"] = look.DeepClone() });
+        highlightsWindow?.ApplyTheme();
+        highlightsWindow?.Post(new JsonObject { ["event"] = "look", ["look"] = look.DeepClone() });
         settingsWindow?.Post(new JsonObject { ["event"] = "look", ["look"] = look.DeepClone() });
     }
 
@@ -340,6 +344,7 @@ sealed class AppHost : ApplicationContext
     public JsonNode? SettingDefs { get; set; }
     SettingsForm? settingsWindow;
     CharPickerForm? charPicker;
+    HighlightsForm? highlightsWindow;
 
     readonly List<MainForm> windows = [];   // opening order: "next window" and the [n] in the title
     readonly List<MainForm> recent = [];    // most recently active first
@@ -606,6 +611,7 @@ sealed class AppHost : ApplicationContext
         {
             settingsWindow?.Close();
             charPicker?.Close();
+            highlightsWindow?.Close();
             Drafts.Flush();
             ExitThread();
         }
@@ -740,6 +746,7 @@ sealed class AppHost : ApplicationContext
         foreach (var w in windows) w.Post(new JsonObject { ["event"] = "settings", ["settings"] = settings.DeepClone() });
         settingsWindow?.Post(new JsonObject { ["event"] = "settings", ["settings"] = settings.DeepClone() });
         charPicker?.Post(new JsonObject { ["event"] = "settings", ["settings"] = settings["values"]?.DeepClone() });
+        highlightsWindow?.Post(new JsonObject { ["event"] = "settings", ["settings"] = settings["values"]?.DeepClone() });
         if (Look().ToJsonString() != before) SendLook();
     }
 
@@ -833,6 +840,41 @@ sealed class AppHost : ApplicationContext
     }
 
     public void CharPickerCursor(int? code) => charPicker?.Post(new JsonObject { ["event"] = "cursor", ["code"] = code });
+
+    // ---------- Highlights (HighlightStore, HighlightsForm; docs/plans/executed/PLAN-highlights.md) ----------
+    /// <summary>The highlights of the document last worked in, as its window last told (the highlights window shows them).</summary>
+    public JsonObject? HighlightsShownNow { get; private set; }
+
+    /// <summary>The highlights window: one for the app; opened again, brought to the front.</summary>
+    public void OpenHighlights(MainForm from)
+    {
+        if (highlightsWindow is { IsDisposed: false }) { BringToFront(highlightsWindow); return; }
+        highlightsWindow = new HighlightsForm(this, from);
+        highlightsWindow.FormClosed += (_, _) => highlightsWindow = null;
+        highlightsWindow.Show(from);
+    }
+
+    /// <summary>A window tells which document's highlights it shows (when it is the one last worked in).</summary>
+    public void HighlightsShown(MainForm from, JsonObject shown)
+    {
+        if (from != LastActive) return;
+        HighlightsShownNow = shown;
+        highlightsWindow?.Post(new JsonObject { ["event"] = "shown", ["shown"] = shown.DeepClone() });
+    }
+
+    /// <summary>A file's highlights were written: the other windows showing it read them again; the highlights window
+    /// refreshes its list of all files.</summary>
+    public void HighlightsChanged(MainForm from, string? path, string? draft)
+    {
+        foreach (var w in windows) if (w != from) w.Post(new JsonObject { ["event"] = "highlights", ["path"] = path, ["draft"] = draft });
+        highlightsWindow?.Post(new JsonObject { ["event"] = "changed", ["path"] = path, ["draft"] = draft });
+    }
+
+    public void SaveHighlightsWindow(int[] bounds)
+    {
+        State.HighlightsWindow = bounds;
+        SaveState();
+    }
 
     public void SaveCharPicker(int[] bounds)
     {

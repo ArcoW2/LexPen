@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:">
+<title>Highlights - LexPen</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="highlights.css">
+</head>
+<body class="hv-body">
+<div class="hv-top">
+  <input class="hv-search" placeholder="Search notes and highlighted text (Ctrl+F)" spellcheck="false">
+  <div class="hv-scope">
+    <label><input type="radio" name="hv-scope" value="file" checked> This file</label>
+    <label><input type="radio" name="hv-scope" value="all"> All files</label>
+  </div>
+</div>
+<div class="hv-head"><span class="hv-name"></span><span class="hv-count"></span></div>
+<div class="hv-offer" hidden><button class="hv-search-all">Not in this file: search all files</button></div>
+<div class="hv-list" tabindex="0"></div>
+<div class="hv-menu" hidden>
+  <button data-act="note">Edit note</button>
+  <button data-act="keep">Keep (the text as it is now)</button>
+  <button data-act="attach">Attach to selection</button>
+  <button data-act="remove">Remove highlight</button>
+  <button data-act="forget">Remove this file's highlights</button>
+</div>
+<script src="highlightsview.js"></script>
+</body>
+</html>

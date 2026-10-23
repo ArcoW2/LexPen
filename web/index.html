@@ -205,6 +205,21 @@
   </form>
 </dialog>
 
+<dialog class="mm-about mm-note-dialog">
+  <form method="dialog">
+    <label class="mm-note-label" for="mm-note-text"></label>
+    <textarea id="mm-note-text" class="mm-note-text" rows="5" spellcheck="true" placeholder="A note on this highlight (Ctrl+Enter: OK; empty: no note)"></textarea>
+    <div class="mm-name-buttons"><button value="ok">OK</button><button value="cancel" type="button" class="mm-note-cancel">Cancel</button></div>
+  </form>
+</dialog>
+
+<dialog class="mm-about mm-confirm-dialog">
+  <form method="dialog">
+    <p class="mm-confirm-text"></p>
+    <div class="mm-name-buttons"><button value="ok">OK</button><button value="cancel" type="button" class="mm-confirm-cancel">Cancel</button></div>
+  </form>
+</dialog>
+
 <dialog class="mm-about mm-about-dialog">
   <h1>LexPen</h1>
   <p class="mm-about-line">Fast, intuitive and flexible text and code editor for Windows, with a built-in viewer.</p>
@@ -236,5 +251,7 @@
 <script src="app.js"></script>
 <script src="compare.js"></script>
 <script src="previewjump.js"></script>
+<script src="sourcemap.js"></script>
+<script src="highlights.js"></script>
 </body>
 </html>

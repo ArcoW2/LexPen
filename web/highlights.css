@@ -1,0 +1,32 @@
+/* The highlights window (highlights.html, highlightsview.js): app.css's theme colours, its own layout. */
+.hv-body { margin: 0; height: 100vh; display: flex; flex-direction: column; background: var(--bg); color: var(--fg);
+  font: calc(13px * var(--ui-scale, 1)) var(--app-font, "Segoe UI", system-ui, sans-serif); overflow: hidden; }
+.hv-top { display: flex; flex-direction: column; gap: 6px; padding: 10px 10px 6px; border-bottom: 1px solid var(--border); background: var(--bg-bar); }
+.hv-search { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 5px 8px; }
+.hv-search:focus { outline: none; border-color: var(--accent); }
+.hv-scope { display: flex; gap: 14px; color: var(--fg-dim); }
+.hv-head { display: flex; justify-content: space-between; gap: 8px; padding: 6px 10px; color: var(--fg-dim); border-bottom: 1px solid var(--border); }
+.hv-name { font-weight: 600; color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hv-offer { padding: 8px 10px; }
+.hv-offer button, .hv-menu button { font: inherit; color: var(--fg); background: var(--bg-bar); border: 1px solid var(--border); border-radius: 4px; padding: 4px 10px; cursor: pointer; }
+.hv-list { flex: 1; overflow: auto; outline: none; }
+.hv-group { padding: 8px 10px 4px; font-weight: 600; color: var(--fg); border-top: 1px solid var(--border); }
+.hv-group.hv-missing { color: var(--fg-dim); text-decoration: line-through; }
+.hv-group-sub { padding: 6px 10px 2px; color: var(--fg-dim); font-style: italic; }
+.hv-item { display: grid; grid-template-columns: 3.5em 1fr; gap: 2px 8px; padding: 5px 10px; cursor: pointer; border-left: 3px solid transparent; }
+.hv-item:hover { background: var(--hover); }
+.hv-item.hv-on { background: var(--active); border-left-color: var(--accent); }
+.hv-line { color: var(--fg-dim); text-align: right; font-variant-numeric: tabular-nums; }
+.hv-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hv-text b { background: var(--highlight); color: inherit; font-weight: normal; border-radius: 2px; }
+.hv-note { grid-column: 2; color: var(--fg-dim); white-space: pre-wrap; overflow-wrap: anywhere; }
+.hv-was { grid-column: 2; color: var(--fg-dim); font-size: .92em; }
+.hv-item.hv-adjusted .hv-text { text-decoration: underline dotted; }
+.hv-item.hv-detached { opacity: .6; }
+.hv-mark { background: var(--find-hit); border-radius: 2px; }
+.hv-empty { padding: 14px 10px; color: var(--fg-dim); }
+.hv-menu { position: fixed; z-index: 10; display: flex; flex-direction: column; gap: 2px; padding: 4px; background: var(--bg-bar);
+  border: 1px solid var(--border); border-radius: 6px; box-shadow: 0 4px 14px rgba(0, 0, 0, .25); }
+.hv-menu[hidden] { display: none; }
+.hv-menu button { text-align: left; border: 0; background: none; }
+.hv-menu button:hover { background: var(--hover); }

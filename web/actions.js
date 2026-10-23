@@ -10,7 +10,7 @@ const PASS = Symbol('pass');   // returned by an action that does not apply here
 // F1 shows the actions in these groups, in this order.
 const ACTION_GROUPS = [
   ['files', 'Files'], ['tabs', 'Tabs and documents'], ['view', 'View'], ['edit', 'Edit and find'],
-  ['clipboard', 'Clipboards'], ['bookmarks', 'Bookmarks'], ['format', 'Format'], ['settings', 'Settings'],
+  ['clipboard', 'Clipboards'], ['bookmarks', 'Bookmarks'], ['highlights', 'Highlights'], ['format', 'Format'], ['settings', 'Settings'],
 ];
 
 // ---------- App actions ----------
@@ -191,8 +191,8 @@ toggleAction('wrap', { title: 'Wrap long lines', hint: 'In the editor (code bloc
 appAction('locateCursor', { title: 'Locate the cursor', hint: 'Rings shrink onto every cursor, in both panes when two show; a cursor out of view gets a marker at that edge (also a short tap on Ctrl)', group: 'view',
   enabled: () => !!editorPane(), run: () => locateCursor(editorPane({ from: 'menu' })) });
 toggleAction('overviewMark', { title: 'Scroll bar marks', hint: 'Show or hide this kind of mark on the editor\'s scroll bar', group: 'view',
-  variants: [['find'], ['changes'], ['git'], ['bookmarks'], ['compare']],
-  variantTitles: { find: 'Scroll bar marks: find matches', changes: 'Scroll bar marks: unsaved changes', git: 'Scroll bar marks: git changes', bookmarks: 'Scroll bar marks: bookmarks', compare: 'Scroll bar marks: compare differences' } },
+  variants: [['find'], ['changes'], ['git'], ['bookmarks'], ['highlights'], ['compare']],
+  variantTitles: { find: 'Scroll bar marks: find matches', changes: 'Scroll bar marks: unsaved changes', git: 'Scroll bar marks: git changes', bookmarks: 'Scroll bar marks: bookmarks', highlights: 'Scroll bar marks: highlights', compare: 'Scroll bar marks: compare differences' } },
   ([name]) => setting('overview.' + name) !== false,
   ([name]) => setSetting('overview.' + name, setting('overview.' + name) === false), ['show', 'hide']);
 toggleAction('ruler', { title: 'Ruler', hint: 'Above the editor: the columns, the column of the cursor, column guides, tab stops and helper lines (click it for one)', group: 'view' },
@@ -582,13 +582,14 @@ const SETTING_ROWS = [
         git: 'No git markers in the gutter', folds: 'No fold markers in the gutter' }[n] })),
   { name: 'overviewWidth', group: 'Editor view', sub: 'Scroll bars', kind: 'range', range: [10, 40, 2], unit: ' px', title: 'Scroll bars: width',
     hint: 'How wide the editor\'s scroll bars are (the horizontal one as high); the marks on the vertical one take their share of it' },
-  ...[['find', 'Find matches'], ['changes', 'Unsaved changes'], ['git', 'Git changes'], ['bookmarks', 'Bookmarks'], ['compare', 'Compare differences']]
+  ...[['find', 'Find matches'], ['changes', 'Unsaved changes'], ['git', 'Git changes'], ['bookmarks', 'Bookmarks'], ['highlights', 'Highlights'], ['compare', 'Compare differences']]
     .map(([n, title]) => ({ name: 'overview.' + n, group: 'Editor view', sub: 'Scroll bars', kind: 'toggle', title: 'Marks: ' + title.toLowerCase(),
       hint: { find: 'The scroll bar marks the lines with a match of the find bar', changes: 'The scroll bar marks the lines changed since the last save',
         git: 'The scroll bar marks the lines changed since the last commit', bookmarks: 'The scroll bar marks the bookmarks',
-        compare: 'Comparing, the scroll bar marks the differences' }[n],
+        highlights: 'The scroll bar marks the highlights', compare: 'Comparing, the scroll bar marks the differences' }[n],
       hintOff: { find: 'No find matches on the scroll bar', changes: 'No unsaved changes on the scroll bar',
-        git: 'No git changes on the scroll bar', bookmarks: 'No bookmarks on the scroll bar', compare: 'No compare differences on the scroll bar' }[n] })),
+        git: 'No git changes on the scroll bar', bookmarks: 'No bookmarks on the scroll bar', highlights: 'No highlights on the scroll bar',
+        compare: 'No compare differences on the scroll bar' }[n] })),
   { name: 'explorerCompare', group: 'App', sub: 'Windows Explorer', kind: 'toggle', title: 'Compare entries in Explorer\'s right-click menu',
     hint: 'Explorer\'s right-click menu on files and folders gets Select left side to compare, and then Compare to <name>; on Windows 11 under Show more options (or Shift+right-click). They run the LexPen that turned this on',
     hintOff: 'No compare entries in Explorer\'s right-click menu' },
@@ -606,6 +607,13 @@ const SETTING_ROWS = [
   { name: 'lineBreaks', group: 'Preview', kind: 'toggle',
     hint: 'In the preview, a single line break starts a new line',
     hintOff: 'In the preview, a single line break joins the lines, as in GitHub files (an empty line starts a new paragraph)' },
+  { name: 'previewHighlightStyle', group: 'Preview', sub: 'Highlight', kind: 'choice', title: 'A highlight in the preview',
+    hint: 'How a highlighted part of the text shows in the preview (the editor has its own: Editor view > Highlight)',
+    options: () => [['background', 'A background colour'], ['underline', 'Underlined']] },
+  { name: 'previewHighlightColour', group: 'Preview', sub: 'Highlight', kind: 'colour', title: 'Highlight in the preview: colour',
+    hint: 'A colour of the theme (the preview\'s own when it has one; the highlight colour of the theme is yellow) or one you pick', options: () => GUIDE_COLOURS },
+  { name: 'previewHighlightIntensity', group: 'Preview', sub: 'Highlight', kind: 'range', range: [0, 200, 5], unit: '%',
+    title: 'Highlight in the preview: intensity', hint: '100%: the colour itself; lower fades it into the background, higher takes it further from it' },
   { name: 'previewWrap', group: 'Preview', kind: 'toggle', title: 'Wrap long lines in code blocks',
     hint: 'Long lines in the code blocks of the preview wrap at the edge',
     hintOff: 'Long lines in the code blocks of the preview run on and scroll sideways (a line of more than 10000 characters wraps all the same, to keep the preview fast)' },
@@ -619,6 +627,9 @@ const SETTING_ROWS = [
   { name: 'backup', group: 'Files', kind: 'toggle',
     hint: 'When saving, the old file becomes name.ext.bak (overwritten at the next save)',
     hintOff: 'Saving overwrites the file; no backup is made' },
+  { name: 'highlightsStore', group: 'Files', sub: 'Highlights', kind: 'choice', title: 'Where highlights are kept',
+    hint: 'LexPen\'s own store, or a file next to the highlighted one (report.md.lph) that travels with it (a copy, git, a sync); a .lph found next to a file is always read. Switching moves a file\'s highlights when they are written next; the action Move all highlights moves them all now',
+    options: () => [['store', 'LexPen\'s own store'], ['beside', 'Next to the file (.lph)']] },
   { name: 'showBackupFiles', group: 'Files', kind: 'toggle', title: 'Show backup files in the folder pane',
     hint: 'The folder pane lists the backup files (name.ext.bak) with the other files',
     hintOff: 'The folder pane leaves out the backup files (name.ext.bak); they stay on disk' },
@@ -710,6 +721,26 @@ appAction('bookmarkToggleFree', { title: 'Toggle unnumbered bookmark', hint: 'On
   editor: true, run: (_, { pane }) => toggleFreeBookmark(pane) });
 appAction('bookmarkNext', { title: 'Bookmark', hint: 'Numbered or not; with Shift: select to it', group: 'bookmarks', editor: true, move: true,
   variants: [[1], [-1]], variantTitles: { 1: 'Next bookmark', '-1': 'Previous bookmark' }, run: ([dir], { pane, extend }) => nextBookmark(pane, dir, extend) });
+// Highlights (highlights.js, docs/plans/executed/PLAN-highlights.md): in the editor and in the preview, the pane in use.
+const hlPane = () => panes[state.activePane];
+appAction('highlight.toggle', { title: 'Highlight', hint: 'The selection gets a highlight; nothing selected, the cursor in a highlight: that one removed', group: 'highlights',
+  run: () => highlightToggle(hlPane()) });
+appAction('highlight.fromSelection', { title: 'Selection to highlight', hint: 'The selection becomes a highlight (never removes one)', group: 'highlights',
+  run: () => highlightFromSelection(hlPane()) });
+appAction('highlight.note', { title: 'Highlight note', hint: 'Write or change the note of the highlight at the cursor (a selection: highlighted first)', group: 'highlights',
+  run: () => highlightNote(hlPane()) });
+appAction('highlight.remove', { title: 'Remove highlight', hint: 'The highlight at the cursor, or every one in the selection (one with a note asks first)', group: 'highlights',
+  run: () => highlightRemove(hlPane()) });
+appAction('highlight.clear', { title: 'Remove all highlights in this file', hint: 'Asks first', group: 'highlights',
+  run: () => highlightClear(hlPane()) });
+appAction('highlight.keep', { title: 'Keep the adjusted highlight', hint: 'A highlight whose text changed outside LexPen (dotted): confirmed as it is now', group: 'highlights',
+  run: () => highlightKeep(hlPane()) });
+appAction('highlight.next', { title: 'Highlight', hint: 'The next / previous highlight, selected (in a preview: scrolled to)', group: 'highlights',
+  variants: [[1], [-1]], variantTitles: { 1: 'Next highlight', '-1': 'Previous highlight' }, run: ([dir = 1]) => goHighlight(hlPane(), +dir) });
+appAction('highlight.list', { title: 'Highlights window', hint: 'A window with the highlights and their notes, to search and go to', group: 'highlights',
+  run: () => host('openHighlights') });
+appAction('highlight.moveAll', { title: 'Move all highlights to where the setting says', hint: 'Files > Highlights: into LexPen\'s store, or next to their files (.lph)', group: 'highlights',
+  run: async () => { const n = await host('highlightsMoveAll', { beside: setting('highlightsStore') === 'beside' }); toast(`The highlights of ${n} file${n === 1 ? '' : 's'} moved.`, true); } });
 appAction('bookmarkList', { title: 'Bookmarks of this file', hint: 'A list to choose from', group: 'bookmarks',
   editor: true, run: (_, { pane }) => showBookmarkList(pane) });
 

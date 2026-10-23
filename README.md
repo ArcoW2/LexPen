@@ -160,6 +160,18 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   selected) indents to the next indent stop, Shift+Tab back; Tab after text goes to the next tab stop (spaces, or
   a tab). A tab is shown the same way: in the indentation as wide as an indent step, after text up to the next
   tab stop; the column in the bottom bar and column mode count it so.
+- **Highlights**: select text in the editor or the preview and Highlight it (Ctrl+F8, Edit > Highlights, or the
+  right-click), as with a highlighter pen; any kind of file. A highlight belongs to the document: every editor and
+  preview of it shows it, and it moves with your edits. Ctrl+F8 on a highlight with nothing selected removes it;
+  Selection to highlight only adds; overlapping ones merge. A highlight can carry a note (Highlight note...): a
+  tooltip and a small sign at its end. F8 / Shift+F8 go to the next / previous one. The highlights window
+  (Ctrl+Shift+F8) lists them with their notes, for this file or all files, with a search (notes and text, as you
+  type); a click or Enter goes there and the window stays open. Kept per file in LexPen's store, or with Files >
+  Highlights next to the file as `name.ext.lph` (it then travels with the file; not listed in the folder pane, the
+  file gets a mark). A file changed outside LexPen: they are placed again in the background (never holding up
+  opening it), moved with their text, `adjusted` when their text changed a little (dotted until Keep), `detached`
+  when it is gone (kept in the window, Attach to selection puts it back). Look: Editor view > Highlight and
+  Preview > Highlight; marks on the scroll bar.
 - **Bookmarks**: 1 to 9 and unnumbered ones, at a line and column, kept per file. Ctrl+1, S stores bookmark 1,
   Ctrl+1, 1 (or Ctrl+1, Ctrl+1) goes there, Ctrl+1, T toggles, Ctrl+1, C clears; Ctrl+K, 1 and Ctrl+Q, 1 as in
   WordStar and Delphi; Ctrl+K, K / N / P / L for unnumbered ones, next, previous and the list. They follow
