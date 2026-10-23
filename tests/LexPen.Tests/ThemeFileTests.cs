@@ -29,6 +29,8 @@ public class ThemeFileTests : IDisposable
         Assert.Equal("--bracket-no-match", Names["bracketNoMatch"]);
         Assert.Equal("--guide6", Names["guide6"]);
         Assert.Equal("--highlight", Names["highlight"]);
+        Assert.Equal("--inline-code", Names["inlineCode"]);
+        Assert.Equal("--inline-code-fg", Names["inlineCodeFg"]);
         Assert.DoesNotContain("editorFont", Names.Keys);   // the fonts block is not a theme block
     }
 

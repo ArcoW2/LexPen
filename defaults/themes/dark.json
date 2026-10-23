@@ -16,6 +16,8 @@
     "active": "rgba(88, 166, 255, .2)",
     "select": "#264f78",
     "highlight": "#686100",
+    "inlineCode": "#38393d",
+    "inlineCodeFg": "#98c0f0",
     "note": "#58a6ff",
     "tip": "#3fb950",
     "important": "#a371f7",

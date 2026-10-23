@@ -18,6 +18,8 @@
     "active": "rgba(30, 122, 67, .12)",
     "select": "#bfe6cb",
     "highlight": "#f2cf3a",
+    "inlineCode": "#d2dbd5",
+    "inlineCodeFg": "#1a5230",
     "paneActive": "#1e7a43",
 
     // Code: darker where the tinted code background needs it (contrast 4.5:1).

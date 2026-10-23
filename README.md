@@ -34,7 +34,7 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   (its own colours, then Dark bluish's, then Dark's). A theme is not light or dark itself: the mode it is chosen for is
   (title bar, scrollbars, diagrams, a language's `byTheme: { dark }`). A colour nothing in the chain sets comes
   from the fallbacks in app.css. Colour names: `bg`, `bgSide`, `bgBar`, `bgBarDim`, `bgCode`, `fg`, `fgDim`, `border`, `accent`,
-  `hover`, `active`, `select`, `highlight` (a highlighted part of the text: a dark yellow on light, on dark a yellow as
+  `hover`, `active`, `select`, `inlineCode` (the box behind code within a line of text), `inlineCodeFg` (its text), `highlight` (a highlighted part of the text: a dark yellow on light, on dark a yellow as
   bright as the text's contrast allows, a bright yellow on a medium background or where the selection is yellowish), `paneActive`; code: `keyword`, `string`, `comment`, `number`, `title`, `attr`;
   alerts: `note`, `tip`, `important`, `warning`, `caution`; markers: `gitModified`, `gitAdded`, `gitUntracked`,
   `gitDeleted`, `barChanged`, `barRemoved`; find: `findHit`, `findCurrent`, `findCurrentFg`, `findBox`; the pair at the cursor: `bracketMatch`, `bracketNoMatch`; indent guides (rainbow, per level): `guide1` to `guide6`; shown spaces, tabs and line ends: `whitespace`; the gutter beside lines of another language: `gutterBgEmbedded`. Values:
@@ -50,6 +50,11 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   (editor, editor and preview, or preview). **Editor** and **Preview** in the toolbar (and the View menu) are
   switches; one of them stays on (keys Ctrl+Alt+V, E and Ctrl+Alt+V, P). The splitter between
   them sets their widths (double-click: half and half).
+- **Inline code**: code within a line of text (in markdown the text between backticks) in a rounded box in the
+  editor, in the theme colour `inlineCode` (in the shipped themes 14% of the text colour in the background; its
+  text `inlineCodeFg`, the theme's accent half and half with the text colour), at
+  Editor view > Inline code > Inline code: intensity (100% the colour; 0% no box; up to 200% further from the
+  background). Code blocks stay as they are.
 - **Pinned tabs** (right-click a tab > Pin tab): a pin before the name. Closing it alone asks first; Close other
   tabs, Close tabs to the right, Close all tabs (tab menu, the tab bar's own menu and File menu; one pane) and closing a pane leave it
   open. Closing the second pane, or a window while another window of its project stays open, moves pinned tabs to

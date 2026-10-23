@@ -17,6 +17,8 @@
     "active": "rgba(106, 168, 255, .18)",
     "select": "#2a4a7a",
     "highlight": "#6d6500",
+    "inlineCode": "#313743",
+    "inlineCodeFg": "#a1c4f6",
     "paneActive": "#6aa8ff"
   }
 }

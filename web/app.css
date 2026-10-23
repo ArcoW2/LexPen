@@ -9,6 +9,8 @@
   --fg: #1f2328; --fg-dim: #656d76; --border: #d8dce2;
   --accent: #0969da; --hover: rgba(0, 0, 0, .06); --active: rgba(9, 105, 218, .13); --select: #b6d7ff;
   --highlight: #f2cf3a;   /* a highlighted part of the text (the compare's mirrored selection): a dark yellow on light */
+  --inline-code: #e0e0e1;   /* the box behind code within a line of text: 14% of the text colour in the background */
+  --inline-code-fg: #144681;   /* its text: the theme's main colour (accent) half and half with the text colour */
   --hl-keyword: #cf222e; --hl-string: #0a3069; --hl-comment: #6e7781;
   --hl-number: #0550ae; --hl-title: #8250df; --hl-attr: #116329;
   --note: #0969da; --tip: #1a7f37; --important: #8250df; --warning: #9a6700; --caution: #cf222e;
@@ -28,6 +30,8 @@
   --fg: #d7dae0; --fg-dim: #8b929c; --border: #3a3d44;
   --accent: #58a6ff; --hover: rgba(255, 255, 255, .07); --active: rgba(88, 166, 255, .2); --select: #264f78;
   --highlight: #686100;   /* a dark yellow on dark: as bright as the text's contrast allows (4.5) */
+  --inline-code: #38393d;
+  --inline-code-fg: #98c0f0;
   --hl-keyword: #ff7b72; --hl-string: #a5d6ff; --hl-comment: #8b949e;
   --hl-number: #79c0ff; --hl-title: #d2a8ff; --hl-attr: #7ee787;
   --note: #58a6ff; --tip: #3fb950; --important: #a371f7; --warning: #d29922; --caution: #f85149;
@@ -648,6 +652,16 @@ body { --col-guide: color-mix(in srgb, var(--col-guide-colour, var(--border)) va
 .mm-editor-pane .CodeMirror .cm-link { color: var(--hl-title); text-decoration: none; }
 .mm-editor-pane .CodeMirror .cm-url { color: var(--hl-string); }
 .mm-editor-pane .CodeMirror .cm-comment { color: var(--hl-attr); }           /* inline code and code blocks */
+/* Code within a line of text in a rounded box: the theme colour inlineCode, at the setting inlineCodeIntensity
+   (--inline-code-mark, app.js applyInlineCode). For now markdown's text between backticks: only that has backticks
+   marked formatting-code on its line (a code block's lines have none). A shadow instead of padding: the text keeps its
+   columns. */
+.mm-editor-pane .CodeMirror { --md-code-bg: var(--inline-code-mark, var(--inline-code)); }
+.mm-editor-pane .CodeMirror-line:has(.cm-formatting-code) .cm-comment {
+  color: var(--inline-code-fg); background: var(--md-code-bg); box-shadow: 0 0 0 1px var(--md-code-bg);
+}
+.mm-editor-pane .CodeMirror-line .cm-comment.cm-formatting-code:has(+ .cm-comment:not(.cm-formatting-code)) { border-radius: 4px 0 0 4px; }
+.mm-editor-pane .CodeMirror-line .cm-comment:not(.cm-formatting-code) + .cm-comment.cm-formatting-code { border-radius: 0 4px 4px 0; }
 .mm-editor-pane .CodeMirror .cm-quote { color: var(--hl-comment); font-style: italic; }
 .mm-editor-pane .CodeMirror .cm-hr { color: var(--fg-dim); }
 .mm-editor-pane .CodeMirror .cm-variable-2, .mm-editor-pane .CodeMirror .cm-variable-3, .mm-editor-pane .CodeMirror .cm-keyword { color: inherit; } /* list text */

@@ -2842,15 +2842,26 @@ function revealFound(cm, from, to = from) {
 // it: 0 the background, 100 the colour, beyond it further away (each channel clamped), so it can be more intense than
 // the colour itself. Again when the theme changes (applyLook).
 function applyHighlight() {
+  document.documentElement.style.setProperty('--highlight-mark', atIntensity(colourCss(setting('highlightColour'), 'highlight'), setting('highlightIntensity')));
+  document.body.dataset.highlight = setting('highlightStyle') === 'underline' ? 'underline' : 'background';
+}
+
+// The box behind code within a line of text (app.css --md-code-bg): the theme colour inlineCode at the setting
+// inlineCodeIntensity. Again when the theme changes (applyLook).
+function applyInlineCode() {
+  document.documentElement.style.setProperty('--inline-code-mark', atIntensity('var(--inline-code)', setting('inlineCodeIntensity')));
+}
+
+// A colour (any CSS, theme variables too) moved along the line from the background through it: 0% the background,
+// 100% the colour, beyond further away (each channel clamped, up to 200%), as an rgb() for a CSS variable.
+function atIntensity(css, percent) {
   const probe = document.createElement('div');
   document.body.append(probe);
-  const rgb = css => { probe.style.color = ''; probe.style.color = css; return getComputedStyle(probe).color.match(/[\d.]+/g).slice(0, 3).map(Number); };
-  const colour = rgb(colourCss(setting('highlightColour'), 'highlight')), bg = rgb('var(--bg)');
+  const rgb = value => { probe.style.color = ''; probe.style.color = value; return getComputedStyle(probe).color.match(/[\d.]+/g).slice(0, 3).map(Number); };
+  const colour = rgb(css), bg = rgb('var(--bg)');
   probe.remove();
-  const v = setting('highlightIntensity'), k = (Number.isFinite(v) ? Math.min(200, Math.max(0, v)) : 100) / 100;
-  const mark = colour.map((c, i) => Math.round(Math.min(255, Math.max(0, bg[i] + (c - bg[i]) * k))));
-  document.documentElement.style.setProperty('--highlight-mark', `rgb(${mark.join(', ')})`);
-  document.body.dataset.highlight = setting('highlightStyle') === 'underline' ? 'underline' : 'background';
+  const k = (Number.isFinite(percent) ? Math.min(200, Math.max(0, percent)) : 100) / 100;
+  return `rgb(${colour.map((c, i) => Math.round(Math.min(255, Math.max(0, bg[i] + (c - bg[i]) * k)))).join(', ')})`;
 }
 
 // Puts the source line at the top of the pane: preview, editor or both. The cursor stays where it is (a click in
@@ -3322,6 +3333,7 @@ function applyLook(next) {
   setThemeVars(root, look.app.vars);
   if (typeof applyRuler === 'function') applyRuler();   // the ruler's canvas takes the theme's colours (ruler.js)
   applyHighlight();
+  applyInlineCode();
   for (const pane of panes) {
     pane.previewEl.classList.toggle('mm-themed', !!look.preview);
     if (look.preview) pane.previewEl.dataset.theme = look.mode; else delete pane.previewEl.dataset.theme;
@@ -3553,6 +3565,7 @@ function applySettings() {
   }
   if (RULER_SETTINGS.some(changed) && typeof applyRuler === 'function') applyRuler();   // ruler.js
   if (['highlightStyle', 'highlightColour', 'highlightIntensity'].some(changed)) applyHighlight();
+  if (changed('inlineCodeIntensity')) applyInlineCode();
   // compare.js, loaded after this file: at the start the settings can be here before it is.
   if (['compareWhitespace', 'compareCase', 'compareStrip', 'compareStep'].some(changed) && typeof onCompareSettings === 'function') onCompareSettings();
   if (['overview', 'overviewWidth', 'overview.find', 'overview.changes', 'overview.git', 'overview.bookmarks', 'gutter.changes', 'gutter.git'].some(changed)
