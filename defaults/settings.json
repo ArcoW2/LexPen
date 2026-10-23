@@ -118,6 +118,7 @@
 
   // ---------- Tabs ----------
   "tabOrder": "recent",           // Ctrl+Tab order: "recent" (recently used) or "tabs" (the tab bar)
+  "scrollTogether": "distance",   // scroll together (the button between the panes): "distance" (as the panes are aligned now) or "line" (the same line number)
   "tabBar": "scroll",             // tabs that do not fit: "scroll" (one row that scrolls), "menu" (one row, a menu
                                   // lists the tabs out of view) or "rows" (several rows, all tabs visible)
   "movePinned": true,             // closing a pane or window moves its pinned tabs to the main pane / another

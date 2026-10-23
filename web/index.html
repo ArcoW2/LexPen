@@ -84,6 +84,12 @@
   <div class="mm-panes">
     <div class="mm-divider" hidden title="Drag to resize; right-click for the pane menu (orientation, hide, close)">
       <button data-cmd="sync" class="mm-sync" title="Scroll both panes together"></button>
+      <!-- Level (plan 13): two pieces of text, the right one lower, and the arrow between the panes; above each other:
+           the arrow up-down on the right. -->
+      <button data-cmd="level" class="mm-level" title="Level the two panes so they start scrolling from the same line number">
+        <svg class="mm-level-v" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 2.5h4M2 4.5h4M2 6.5h3M10 5h4M10 7h4M10 9h3M2 13h12M4 11l-2 2 2 2M12 11l2 2-2 2"/></svg>
+        <svg class="mm-level-h" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 3.5h4M1.5 5.5h4M1.5 7.5h3M7 6.5h4M7 8.5h4M7 10.5h3M13.5 2v12M11.5 4l2-2 2 2M11.5 12l2 2 2-2"/></svg>
+      </button>
       <!-- Comparing: the previous and next difference in place of the scroll-together button (compare.js). -->
       <button data-cmp="prev" class="mm-cmp-go" title="Previous difference (Shift+F7)">&#8593;</button>
       <button data-cmp="next" class="mm-cmp-go" title="Next difference (F7)">&#8595;</button>

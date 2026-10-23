@@ -346,7 +346,8 @@ const paneOf = tab => panes.find(p => p.tabs.includes(tab));
 const activeTab = () => panes[state.activePane].active;
 const twoPanes = () => panes[1].tabs.length > 0;
 const bothShown = () => twoPanes() && state.hidden === null;   // two panes, neither hidden
-const editable = tab => tab.doc.lock && tab.doc.editTab === tab && !tab.readOnly && !tab.doc.diskReadOnly;
+// Every tab of a file in this window edits it (the split, plan 13), unless set read-only; another window: the lock.
+const editable = tab => tab.doc.lock && !tab.readOnly && !tab.doc.diskReadOnly;
 
 function makePane(index) {
   const el = document.createElement('section');
@@ -393,6 +394,8 @@ function makePane(index) {
   el.querySelector('.mm-split').addEventListener('pointerdown', e => resizeSplit(e));
   el.querySelector('.mm-split').addEventListener('dblclick', () => setSplit(null));
   el.querySelector('.mm-tabs-more').addEventListener('click', e => showTabsMore(pane, e.currentTarget));
+  // Alt + mouse wheel: this pane alone, the distance to the other taken again (scroll together, plan 13).
+  el.addEventListener('wheel', e => { if (e.altKey && state.sync && keepsDistance()) pane.solo = performance.now(); }, { capture: true, passive: true });
   // The file of the pane's tab in the folder pane (as Visual Studio's "Sync with active document").
   el.querySelector('.mm-sync-tree').addEventListener('click', () => {
     const path = pane.active?.doc.path;
@@ -894,6 +897,7 @@ function layout() {
   ui.panes.style.setProperty('--ratio', `calc(${state.ratio}% - 3px)`);
   for (const pane of panes) pane.el.classList.toggle('mm-active', pane.index === state.activePane);
   ui.sync.classList.toggle('mm-on', state.sync);
+  document.body.toggleAttribute('data-align-line', !keepsDistance());   // no Level button (app.css)
   updatePaneMarks();
 }
 
@@ -3085,8 +3089,8 @@ function editorLine(cm) {
 function setEditorLine(pane, line, again = true) {
   const cm = pane.cm, i = Math.floor(line);
   const a = cm.heightAtLine(i, 'local'), b = cm.heightAtLine(i + 1, 'local');
-  const y = a + (line - i) * (b - a);
-  if (Math.abs(cm.getScrollInfo().top - y) < 1) return;
+  const info = cm.getScrollInfo(), y = Math.max(0, Math.min(a + (line - i) * (b - a), info.height - info.clientHeight));
+  if (Math.abs(info.top - y) < 1) return;
   pane.ignoreEditorScroll = true;
   cm.scrollTo(null, y);
   if (again) requestAnimationFrame(() => setEditorLine(pane, line, false));
@@ -3098,11 +3102,35 @@ function syncPartner(pane) {
   return state.sync && bothShown() && pane.active && other.active ? other : null;
 }
 
+// Scroll together (docs/plans/executed/PLAN-split-view.md): Align scrolling by keeping the line distance (the default)
+// or by the same line number. The distance, in lines (the second pane's top line minus the first's), is taken when
+// scroll together is turned on, and again when another tab shows in either pane; Alt + mouse wheel scrolls one pane
+// alone and takes it again; Level sets it to 0. A pane at its end stops there; the distance stays.
+function keepsDistance() { return setting('scrollTogether') !== 'line'; }
+const paneTopLine = pane => pane.el.dataset.mode !== 'preview' && pane.cm ? editorLine(pane.cm) : previewLine(pane);
+function takeDistance() {
+  state.syncPair = [panes[0].active, panes[1].active];
+  state.syncGap = keepsDistance() && bothShown() ? paneTopLine(panes[1]) - paneTopLine(panes[0]) : 0;
+}
+// The other pane's line for this pane's line.
+function partnerLine(pane, line) {
+  if (!keepsDistance()) return line;
+  if (state.syncPair?.[0] !== panes[0].active || state.syncPair?.[1] !== panes[1].active) takeDistance();
+  return Math.max(0, line + (pane.index === 0 ? state.syncGap : -state.syncGap));
+}
+// Scrolled by Alt + mouse wheel just now: this pane alone.
+function scrolledAlone(pane) {
+  if (!pane.solo || performance.now() - pane.solo > 400) return false;
+  if (syncPartner(pane)) takeDistance();
+  return true;
+}
+
 function onPreviewScroll(pane) {
   markOutline(pane);
   if (pane.ignoreScroll) return pane.ignoreScroll = false;
+  if (scrolledAlone(pane)) return;
   const other = syncPartner(pane);
-  if (other && other.el.dataset.mode !== 'edit') setPreviewLine(other, previewLine(pane));
+  if (other && other.el.dataset.mode !== 'edit') setPreviewLine(other, partnerLine(pane, previewLine(pane)));
 }
 
 function onEditorScroll(pane) {
@@ -3117,14 +3145,51 @@ function onEditorScroll(pane) {
     if (typeof markPreviewCursors === 'function') markPreviewCursors(true);   // the cursor's bar kept in the preview's view
   }
   if (pane.ignoreEditorScroll) return pane.ignoreEditorScroll = false;
+  if (scrolledAlone(pane)) return;
   const other = syncPartner(pane);
-  if (other?.cm && other.el.dataset.mode !== 'preview') setEditorLine(other, editorLine(pane.cm));
+  if (other?.cm && other.el.dataset.mode !== 'preview') setEditorLine(other, partnerLine(pane, editorLine(pane.cm)));
 }
 
 function setSync(on) {
   state.sync = on;
+  if (on) takeDistance();
   layout();
-  toast(on ? 'The two panes scroll together.' : 'The panes scroll on their own.', true);
+  saveSession();
+  toast(!on ? 'The panes scroll on their own.' : keepsDistance() ? 'The two panes scroll together, as they are aligned now.'
+    : 'The two panes scroll together, on the same line number.', true);
+}
+
+// Level: the other pane on the active pane's top line, the distance 0, scroll together on.
+function levelPanes() {
+  if (!bothShown() || comparing()) return;
+  const from = panes[state.activePane], other = panes[1 - from.index], line = paneTopLine(from);
+  if (other.cm && other.el.dataset.mode !== 'preview') setEditorLine(other, line); else setPreviewLine(other, line);
+  state.sync = true;
+  state.syncPair = [panes[0].active, panes[1].active];
+  state.syncGap = 0;
+  layout();
+  saveSession();
+}
+
+// Split: the active file in the other pane too (the pane shown when hidden), at the same place, with its own cursor
+// and scroll position; both edit it. Already open there: that tab, put at this place.
+async function splitToOther() {
+  const from = panes[state.activePane], tab = from.active;
+  if (!tab) return;
+  const to = panes[1 - from.index], inEditor = from.cm && tab.mode !== 'preview';
+  const line = inEditor ? editorLine(from.cm) : previewLine(from), cursor = tab.cmDoc?.getCursor();
+  let twin = to.tabs.find(t => t.doc === tab.doc);
+  if (!twin) {
+    twin = makeTab(tab.doc, tab.mode);
+    insertTab(to, twin);
+  }
+  await activate(to, twin);
+  if (to.index === 1) await showActive(panes[0]);   // the first pane gets its share of the width
+  if (to.cm && twin.mode !== 'preview') {
+    if (cursor) to.cm.setCursor(cursor, null, { scroll: false });
+    setEditorLine(to, line);
+  } else setPreviewLine(to, line);
+  saveSession();
 }
 
 // Dragging the divider resizes the panes; right-click: orientation, hide or close a pane.
@@ -3167,6 +3232,7 @@ function sessionData() {
     tree: state.root ? { open: [...expanded], top: Math.round(ui.tree.scrollTop) } : undefined,   // the open folders, the scroll
     activePane: before ? before.activePane : state.activePane,
     hidden: before ? before.hidden : state.hidden,
+    ...((before ? before.sync : state.sync) && { sync: true, syncGap: before ? 0 : Math.round((state.syncGap ?? 0) * 100) / 100 }),
     ...(c.compare && { compare: c.compare }), ...(c.folders && { folderCompare: c.folders }),
     panes: panes.map((pane, i) => ({   // a compare's saved text (doc.temp) is not kept
       active: kept(pane).indexOf(before ? before.active[i] : pane.active),
@@ -3235,6 +3301,10 @@ async function restore(session, drafts) {
   }
   state.hidden = session?.hidden === 0 || session?.hidden === 1 ? session.hidden : null;
   state.activePane = session?.activePane === 1 && twoPanes() ? 1 : 0;   // layout() moves it off a hidden pane
+  // Scroll together as it was, the panes as far apart.
+  state.sync = !!session?.sync;
+  state.syncGap = Number.isFinite(session?.syncGap) ? session.syncGap : 0;
+  state.syncPair = [panes[0].active, panes[1].active];
 }
 
 // Closing: one prompt for unsaved files and changed drafts, then the host closes the window.
@@ -3523,8 +3593,6 @@ async function setReadOnly(tab, on) {
     }
   } else {
     if (doc.diskReadOnly) return toast(`${docName(doc)} is read-only on disk.`);
-    if (tabsOf(doc).some(t => t !== tab && editable(t)))
-      return toast(`${docName(doc)} is edited in the other pane; set that one read-only first.`);
     if (!doc.lock) return toast(`${docName(doc)} is edited in another window; set that one read-only first.`);
     tab.readOnly = false;
     doc.editTab = tab;
@@ -3592,6 +3660,7 @@ function applySettings() {
   if (changed('previewWrap')) document.body.toggleAttribute('data-preview-nowrap', now.previewWrap === false);
   if (changed('showBackupFiles') && 'showBackupFiles' in was) refreshTree(false);
   if (changed('tabBar')) applyTabBar(now.tabBar);
+  if (changed('scrollTogether')) { takeDistance(); layout(); }
   if ((changed('outlineMerged') || changed('outlineBullets')) && 'outlineMerged' in was)
     for (const pane of panes) { pane.outlineFor = null; showOutline(pane); }   // the outline drawn again
   if (changed('findMark') || changed('findGutter')) {   // app.css: how matches look; boxes and line numbers: find.js
@@ -3751,6 +3820,7 @@ const commands = {
   nextTab: () => cycleTab(1),
   prevTab: () => cycleTab(-1),
   sync: () => !comparing() && setSync(!state.sync),   // comparing: the compare scrolls the panes itself
+  level: () => levelPanes(),
   search: startSearch,
   focusTree,
   viewSearch: () => { setSideView('search'); searchUi.input.focus(); },

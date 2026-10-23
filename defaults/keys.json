@@ -36,6 +36,7 @@
   "Ctrl+Alt+V, E": "editor.toggle",  // Ctrl+Alt+V, then: E the editor, P the preview (on / off; one of them stays), O the outline
   "Ctrl+Alt+V, P": "preview.toggle",
   "Ctrl+Alt+V, O": "outline.toggle",
+  "Ctrl+Alt+S": "split",              // the file in the other pane too (both edit it)
   "Ctrl+Shift+B": "sidebar.toggle",
   "Ctrl+Shift+E": "folders",
   "Ctrl+Shift+F": "searchInFiles",

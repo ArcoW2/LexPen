@@ -373,6 +373,18 @@ body[data-orient=h] .mm-divider { width: auto; height: 6px; cursor: row-resize; 
 .mm-sync::before { content: "\21C5"; }
 body[data-orient=h] .mm-sync::before { content: "\21C4"; }
 .mm-sync.mm-on { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+/* Level (plan 13), under scroll together (beside it with the panes above each other); not there when scrolling
+   aligns by the same line number, nor while comparing. */
+.mm-level {
+  position: absolute; width: 24px; height: 24px; padding: 0; border-radius: 50%; cursor: pointer; transform: translateY(30px);
+  background: var(--bg-bar); border: 1px solid var(--border); color: var(--fg-dim); display: flex; align-items: center; justify-content: center;
+}
+.mm-level:hover, .mm-sync:hover { color: var(--fg); }
+.mm-level svg { display: block; }
+.mm-level .mm-level-h, body[data-orient=h] .mm-level .mm-level-v { display: none; }
+body[data-orient=h] .mm-level .mm-level-h { display: block; }
+body[data-orient=h] .mm-level { transform: translateX(30px); }
+body[data-align-line] .mm-level, body[data-comparing] .mm-level { display: none; }
 /* Comparing: the compare scrolls the panes itself, so no scroll-together button; the previous and next difference
    take its place, one above the other. */
 .mm-cmp-go { display: none; }

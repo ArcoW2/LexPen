@@ -246,7 +246,8 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   The active pane has a blue (day) or yellow (night) border. Clicking a file in the tree shows it in the current
   tab (in a new tab when the current one is changed or a draft); Shift+click opens a new tab, Ctrl+click shows it
   in the other pane, Ctrl+Shift+click opens a new tab there.
-  The same file can be open in both panes: the first copy edits, the other shows the text live, read-only. Drag a
+  The same file can be open in both panes, both editing it (a split): View > **Split into the other pane**
+  (Ctrl+Alt+S) opens it there at the same place, with its own cursor and scroll position. Drag a
   tab along the tab bar to reorder it. Right-click a tab for Close, Close other tabs, Close tabs to the right;
   View > **Tab bar**: one row that scrolls, one row with a menu for the tabs out of view, or several rows.
   The arrows button at the left of each tab bar shows the pane's file in the folder pane (opening its folder
@@ -330,9 +331,13 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   folder (the open folder, otherwise the folder of the current file), with match case, whole word and regular
   expressions. Codes: `^p` line break (CR, LF or CRLF), `^t` tab, `^?` any character, `^#` digit, `^$` letter,
   `^w` spaces or tabs, `^^` the `^` itself. Click a result to go there.
-- **Compare**: the button on the divider (View > Scroll both panes together) scrolls both panes together, by
-  source line: preview with preview, editor with editor. Not while comparing two files: the compare keeps the
-  panes level itself, and the arrows to the differences take the button's place.
+- **Scroll together**: the button on the divider (View > Scroll both panes together) scrolls both panes together, by
+  source line: preview with preview, editor with editor. As they are aligned when you turn it on: scrolling one
+  pane some lines scrolls the other the same lines; a pane at its end stops there. Alt + mouse wheel scrolls one pane
+  alone (the new distance is kept); the Level button under it (View > Level the panes) puts the other pane on the
+  same line number. Options > Settings, Tabs, **Align scrolling by**: keeping the line distance, or the same line
+  number (always; no Level button). Kept in the window's session. Not while comparing two files: the compare keeps
+  the panes level itself, and the arrows to the differences take the buttons' place.
 - **Stalls**: every LexPen window shares one process, and its window thread: a long job of one window makes the
   others wait too. Reading and writing files, git, large answers and the folder watchers' events (a build or a sync
   can raise thousands) run beside that thread. When it is still late

@@ -230,6 +230,10 @@ toggleAction('theme', { title: 'Day / night', hint: 'Light or dark, for all wind
   () => state.theme === 'dark', () => commands.theme(), ['night', 'day']);
 toggleAction('compareScroll', { title: 'Scroll both panes together', hint: 'By source line', group: 'view', enabled: () => bothShown() },
   () => state.sync, () => commands.sync());
+appAction('levelPanes', { title: 'Level the panes', hint: 'Level the two panes so they start scrolling from the same line number', group: 'view',
+  enabled: () => bothShown() && keepsDistance(), run: () => levelPanes() });
+appAction('split', { title: 'Split', hint: 'The file in the other pane too, at the same place, with its own cursor and scroll position; both edit it', group: 'view',
+  run: () => splitToOther() });
 appAction('commands', { title: 'Keyboard shortcuts and commands', hint: 'This list; Enter runs the selected command', group: 'view', run: () => showPalette() });
 appAction('about', { title: 'About LexPen', hint: 'Version and libraries', group: 'view', run: () => showAbout() });
 
@@ -642,6 +646,9 @@ const SETTING_ROWS = [
   { name: 'tabOrder', group: 'Tabs', kind: 'choice', options: () => [['recent', 'Recently used'], ['tabs', 'Tab bar order']] },
   { name: 'tabBar', group: 'Tabs', kind: 'choice', title: 'Tab bar', hint: 'When the tabs do not fit in one row',
     options: () => [['scroll', 'One row that scrolls'], ['menu', 'One row, a menu for the tabs out of view'], ['rows', 'Several rows']] },
+  { name: 'scrollTogether', group: 'Tabs', sub: 'Two panes', kind: 'choice', title: 'Align scrolling by',
+    hint: 'Keeping the line distance: Scroll together scrolls the documents as they are aligned now, without putting them on the same line number first (Level does that; Alt + mouse wheel scrolls one pane alone). The same line number: Scroll together always puts the other pane on the same line number',
+    options: () => [['distance', 'keeping the line distance'], ['line', 'the same line number']] },
   { name: 'movePinned', group: 'Tabs', kind: 'toggle',
     hint: 'Closing a pane moves its pinned tabs to the main pane; closing a window moves them to another open window of the same project',
     hintOff: 'Pinned tabs keep their pane open, and close with their window' },
