@@ -164,7 +164,8 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   right-click), as with a highlighter pen; any kind of file. A highlight belongs to the document: every editor and
   preview of it shows it, and it moves with your edits. Ctrl+F8 on a highlight with nothing selected removes it;
   Selection to highlight only adds; overlapping ones merge. A highlight can carry a note (Highlight note...): a
-  tooltip and a small sign at its end. F8 / Shift+F8 go to the next / previous one. The highlights window
+  tooltip and a small sign at its end. A note on text not highlighted yet (the selection, or else the word at the
+  cursor or right-click) highlights it once the note is written; cancelled, nothing is highlighted. F8 / Shift+F8 go to the next / previous one. The highlights window
   (Ctrl+Shift+F8) lists them with their notes, for this file or all files, with a search (notes and text, as you
   type); a click or Enter goes there and the window stays open. Kept per file in LexPen's store, or with Files >
   Highlights next to the file as `name.ext.lph` (it then travels with the file; not listed in the folder pane, the

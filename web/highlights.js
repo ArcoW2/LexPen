@@ -479,26 +479,56 @@ async function highlightClear(pane) {
   changedHighlights(doc);
 }
 
-// Highlight note: write or change the note of the highlight at the cursor (a selection not highlighted yet: first
-// highlighted). Empty: the note gone, the highlight stays.
+// Highlight note: write or change the note of the highlight at the cursor (or at the preview's right-click). Not in
+// one: the selection, else the word there (the nearest on its line), highlighted with the note once it is written
+// (cancelled or empty: nothing highlighted). Empty on a highlight: the note gone, the highlight stays.
 async function highlightNote(pane, target) {
   const doc = pane.active?.doc;
   if (!doc) return;
   await loadHighlights(doc);
-  let h = target;
+  let h = target, ranges = [];
   if (!h) {
-    const ranges = selectedRanges(pane);
+    ranges = selectedRanges(pane);
     if (ranges === null) return;
-    const at = cursorOffset(pane);
+    const at = menuOffset(pane) ?? cursorOffset(pane);
     h = (ranges.length ? highlightsAt(doc, ranges[0][0], ranges[0][1]) : highlightsAt(doc, at ?? -1))[0];
-    if (!h && ranges.length) { addHighlights(doc, ranges); h = highlightsAt(doc, ranges[0][0], ranges[0][1])[0]; }
+    if (!h && !ranges.length && at != null) ranges = [wordNear(docText(doc), at)].filter(Boolean);
   }
-  if (!h) return toast('Put the cursor in a highlight, or select text, to write a note.', true);
-  const note = await noteBox(h.note ?? '', h.text ?? '');
+  if (!h && !ranges.length) return toast('Put the cursor on a word or in a highlight, or select text, to write a note.', true);
+  const note = await noteBox(h?.note ?? '', h ? h.text ?? '' : docText(doc).slice(...ranges[0]));
   if (note === null) return;
-  h.note = note.trim();
+  if (!h) {
+    if (!note.trim()) return;
+    addHighlights(doc, ranges);   // merged with highlights it touches: their notes first
+    h = highlightsAt(doc, ranges[0][0], ranges[0][1])[0];
+    if (!h) return;
+    h.note = [h.note, note.trim()].filter(Boolean).join('\n');
+  } else h.note = note.trim();
   changedHighlights(doc);
   if (pane.cm && pane.active.mode !== 'preview') pane.cm.focus();
+}
+
+// The word at an offset of the text, else the nearest one on its line: [from, to], or null (no word on the line).
+function wordNear(text, at) {
+  const start = text.lastIndexOf('\n', at - 1) + 1, nl = text.indexOf('\n', at), end = nl < 0 ? text.length : nl;
+  let best = null;
+  for (const m of text.slice(start, end).matchAll(/[\p{L}\p{N}_]+/gu)) {
+    const a = start + m.index, b = a + m[0].length, gap = at < a ? a - at : at > b ? at - b : 0;
+    if (!best || gap < best.gap) best = { a, b, gap };
+  }
+  return best && [best.a, best.b];
+}
+
+// The preview's right-click point, for the menu's Highlight note (the editor's own right-click moves its cursor):
+// kept until the next mouse button or key.
+addEventListener('mousedown', () => hl.menuAt = null, true);
+addEventListener('keydown', () => hl.menuAt = null, true);
+addEventListener('contextmenu', e => hl.menuAt = { target: e.target, x: e.clientX, y: e.clientY }, true);
+function menuOffset(pane) {
+  const m = hl.menuAt;
+  if (!m || !pane.previewEl.contains(m.target) || pane.active?.mode === 'edit') return null;
+  const c = document.caretPositionFromPoint?.(m.x, m.y);
+  return c && pane.previewEl.contains(c.offsetNode) ? sourceOffsetAt(pane.active, c.offsetNode, c.offset) : null;
 }
 
 // Keep: an adjusted highlight confirmed as it is now.

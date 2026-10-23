@@ -727,7 +727,7 @@ appAction('highlight.toggle', { title: 'Highlight', hint: 'The selection gets a 
   run: () => highlightToggle(hlPane()) });
 appAction('highlight.fromSelection', { title: 'Selection to highlight', hint: 'The selection becomes a highlight (never removes one)', group: 'highlights',
   run: () => highlightFromSelection(hlPane()) });
-appAction('highlight.note', { title: 'Highlight note', hint: 'Write or change the note of the highlight at the cursor (a selection: highlighted first)', group: 'highlights',
+appAction('highlight.note', { title: 'Highlight note', hint: 'Write or change the note of the highlight at the cursor; not in one: the selection or the word there gets a highlight with the note (once it is written)', group: 'highlights',
   run: () => highlightNote(hlPane()) });
 appAction('highlight.remove', { title: 'Remove highlight', hint: 'The highlight at the cursor, or every one in the selection (one with a note asks first)', group: 'highlights',
   run: () => highlightRemove(hlPane()) });
