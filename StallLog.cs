@@ -85,13 +85,22 @@ static class StallLog
         {
             try
             {
+                // Opened only for the moment of writing, and shared: another program may read it (and keep it open)
+                // meanwhile.
                 Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-                if (File.Exists(path) && new FileInfo(path).Length > MaxBytes)
+                using var file = new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.ReadWrite | FileShare.Delete);
+                if (file.Length > MaxBytes)
                 {
-                    var lines = File.ReadAllLines(path);
-                    File.WriteAllLines(path, lines[(lines.Length / 2)..]);
+                    string kept;
+                    using (var reader = new StreamReader(file, leaveOpen: true)) kept = reader.ReadToEnd();
+                    kept = kept[(kept.IndexOf('\n', kept.Length / 2) + 1)..];   // the newer half, from a line's start
+                    file.SetLength(0);
+                    using var w = new StreamWriter(file, leaveOpen: true);
+                    w.Write(kept);
                 }
-                File.AppendAllText(path, line + Environment.NewLine);
+                file.Seek(0, SeekOrigin.End);
+                using var writer = new StreamWriter(file);
+                writer.Write(line + Environment.NewLine);
             }
             catch (IOException) { }
         }

@@ -422,6 +422,7 @@ function makePane(index) {
     zoomBy(e.deltaY < 0 ? 1 : -1);
   }, { passive: false });
   pane.previewEl.addEventListener('click', e => onPreviewClick(pane, e));
+  pane.previewEl.addEventListener('dblclick', e => typeof previewToEditor === 'function' && previewToEditor(pane, e));   // previewjump.js
   pane.barEl.addEventListener('click', e => onBarClick(pane, e));
 
   const tabOf = e => pane.tabs.find(t => t.id === +e.target.closest('.mm-tab')?.dataset.tab);

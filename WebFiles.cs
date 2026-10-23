@@ -22,7 +22,7 @@ static class WebFiles
 #if DEBUG
     static readonly string? ProjectWeb = AppHost.FindProjectFolder(AppContext.BaseDirectory, "web");
 #else
-    const string? ProjectWeb = null;
+    static readonly string? ProjectWeb = null;   // readonly, not const: a const null makes every test of it a warning
 #endif
 
     static readonly Dictionary<string, string> Types = new(StringComparer.OrdinalIgnoreCase)

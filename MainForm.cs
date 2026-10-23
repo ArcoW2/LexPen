@@ -78,7 +78,7 @@ sealed class MainForm : Form
     readonly List<string> queue = [];
     // Closing asks the page first (unsaved files, drafts); it answers with "closeNow".
     bool closeApproved, closeAsked;
-    bool active;
+    volatile bool active;
 
     // Auto refresh: one watcher for the folder tree (files and folders appearing or disappearing,
     // documents edited, git's index rewritten), one per folder holding open files. Changes are
@@ -91,13 +91,19 @@ sealed class MainForm : Form
     };
     readonly Dictionary<string, FileSystemWatcher> fileWatchers = new(StringComparer.OrdinalIgnoreCase);
     HashSet<string> watchedFiles = new(StringComparer.OrdinalIgnoreCase);
-    readonly System.Windows.Forms.Timer changeTimer = new() { Interval = 300 };
-    bool treeChanged, gitChanged;
-    readonly HashSet<string> changedFiles = new(StringComparer.OrdinalIgnoreCase);
+    // The watchers' events come in on a thread of their own, not the UI thread (every window shares that one, and a
+    // build or a sync can raise thousands of events): they are collected under `changes`, and the UI thread is asked
+    // once, to start the timer; it reports when nothing came in for ChangeQuiet ms.
+    readonly System.Windows.Forms.Timer changeTimer = new() { Interval = 100 };
+    const int ChangeQuiet = 300;
+    readonly object changes = new();
+    bool treeChanged, gitChanged, changeAsked;
+    long lastChange;
+    readonly Dictionary<string, string> changedFiles = new(StringComparer.OrdinalIgnoreCase);   // path -> changed / removed
     // Files that changed while the window was not active, for the tree highlight.
     readonly HashSet<string> freshFiles = new(StringComparer.OrdinalIgnoreCase);
     // Our own saves are not news for the tree highlight.
-    readonly Dictionary<string, DateTime> ownWrites = new(StringComparer.OrdinalIgnoreCase);
+    readonly System.Collections.Concurrent.ConcurrentDictionary<string, DateTime> ownWrites = new(StringComparer.OrdinalIgnoreCase);
 
     public MainForm(AppHost app, int id, Start start)
     {
@@ -117,7 +123,6 @@ sealed class MainForm : Form
         Activated += (_, _) => active = true;
         Deactivate += (_, _) => active = false;
 
-        treeWatcher.SynchronizingObject = this;
         treeWatcher.Created += (_, e) => OnTreeEvent(e.FullPath);
         treeWatcher.Deleted += (_, e) => OnTreeEvent(e.FullPath);
         treeWatcher.Renamed += (_, e) => { OnTreeEvent(e.OldFullPath); OnTreeEvent(e.FullPath); };
@@ -155,48 +160,64 @@ sealed class MainForm : Form
 
     // Only what the tree shows matters: everything outside hidden folders and node_modules.
     // Edited files and a rewritten git index (stage, commit, checkout) only change the git marks.
+    // On the watcher's thread.
     void OnTreeEvent(string path, bool content = false)
     {
         var parts = Path.GetRelativePath(treeWatcher.Path, path).Split(Path.DirectorySeparatorChar);
         if (parts is [".git", "index"]) NotifyChange(git: true);
         if (parts[..^1].Any(p => p.StartsWith('.') || p == "node_modules")) return;
-        if (!active && File.Exists(path) && !IsOwnWrite(path)) freshFiles.Add(path);
+        if (!active && File.Exists(path) && !IsOwnWrite(path)) lock (changes) freshFiles.Add(path);
         if (content) NotifyChange(git: true);
         else NotifyChange(tree: true);
     }
 
+    // On the watcher's thread: whether the file is still there is asked here, not on the UI thread.
     void OnFileEvent(string path)
     {
         if (!watchedFiles.Contains(path)) return;
-        changedFiles.Add(path);
+        var kind = File.Exists(path) ? "changed" : "removed";
+        lock (changes) changedFiles[path] = kind;
         NotifyChange();
     }
 
     bool IsOwnWrite(string path) =>
         ownWrites.TryGetValue(path, out var at) && DateTime.UtcNow - at < TimeSpan.FromSeconds(3);
 
+    // Any thread: noted; the UI thread is asked only once per batch to start the timer.
     void NotifyChange(bool tree = false, bool git = false)
     {
-        treeChanged |= tree;
-        gitChanged |= git;
-        changeTimer.Stop();
-        changeTimer.Start();
+        lock (changes)
+        {
+            treeChanged |= tree;
+            gitChanged |= git;
+            lastChange = Environment.TickCount64;
+            if (changeAsked) return;
+            changeAsked = true;
+        }
+        try { BeginInvoke(() => changeTimer.Start()); }
+        catch (InvalidOperationException) { lock (changes) changeAsked = false; }   // no window (yet, or any more): the next event asks again
     }
 
+    // The UI thread: once nothing came in for ChangeQuiet ms, one message to the page with all of it.
     void FlushChanges()
     {
-        using var _ = StallLog.Doing($"file changes for {Text}");
-        changeTimer.Stop();
-        var message = new JsonObject
+        JsonObject message;
+        lock (changes)
         {
-            ["event"] = "changed", ["tree"] = treeChanged, ["git"] = gitChanged,
-            ["files"] = new JsonArray(changedFiles.Select(p => (JsonNode?)new JsonObject
-                { ["path"] = p, ["kind"] = File.Exists(p) ? "changed" : "removed" }).ToArray()),
-            ["fresh"] = new JsonArray(freshFiles.Select(p => (JsonNode?)p).ToArray()),
-        };
-        treeChanged = gitChanged = false;
-        changedFiles.Clear();
-        freshFiles.Clear();
+            if (Environment.TickCount64 - lastChange < ChangeQuiet) return;   // still coming in: wait on
+            changeAsked = false;
+            message = new JsonObject
+            {
+                ["event"] = "changed", ["tree"] = treeChanged, ["git"] = gitChanged,
+                ["files"] = new JsonArray(changedFiles.Select(f => (JsonNode?)new JsonObject { ["path"] = f.Key, ["kind"] = f.Value }).ToArray()),
+                ["fresh"] = new JsonArray(freshFiles.Select(f => (JsonNode?)f).ToArray()),
+            };
+            treeChanged = gitChanged = false;
+            changedFiles.Clear();
+            freshFiles.Clear();
+        }
+        changeTimer.Stop();
+        using var _ = StallLog.Doing($"file changes for {Text}");
         Post(message);
     }
 
@@ -224,7 +245,6 @@ sealed class MainForm : Form
             var w = new FileSystemWatcher(dir)
             {
                 NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.Size,
-                SynchronizingObject = this,
             };
             w.Changed += (_, e) => OnFileEvent(e.FullPath);
             w.Created += (_, e) => OnFileEvent(e.FullPath);
@@ -1009,7 +1029,13 @@ sealed class MainForm : Form
     {
         if (new FileInfo(path).Length > MaxFileSize)
             throw new IOException($"{Path.GetFileName(path)} is too large to open (over {MaxFileSize / 1024 / 1024} MB).");
-        var bytes = File.ReadAllBytes(path);
+        // Shared: a file another program has open for writing (a log) can be read all the same.
+        byte[] bytes;
+        using (var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+        {
+            bytes = new byte[file.Length];
+            file.ReadExactly(bytes);
+        }
         // A zero byte means binary, except in UTF-16 text, which starts with a byte order mark.
         var utf16 = bytes is [0xFF, 0xFE, ..] or [0xFE, 0xFF, ..];
         if (!utf16 && Array.IndexOf(bytes, (byte)0, 0, Math.Min(bytes.Length, 8000)) >= 0)

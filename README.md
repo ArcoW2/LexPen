@@ -278,6 +278,11 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   forward again; also the mouse back / forward buttons. A place moves with the edits; one whose line was deleted is
   skipped. Ctrl + the mouse buttons go through the tabs and files of the window instead (View > Back / Forward in
   the window), like a browser.
+- **From the preview to the editor**: a double click on a word in the preview puts the editor's cursor on that word
+  in the source text, selected, and the editor gets the focus: markdown (bold, links, lists, tables, fences),
+  code shown coloured, front matter. On something markdown made up (a list number, a picture): the start of its
+  line. A tab shown as preview only becomes split view; with the document in the editor in the other pane, that pane
+  takes it. Back (Ctrl+Alt+-) returns to where the cursor was.
 - **Where a found place lands**: a find, a search result, the next compare difference, a bookmark and Go to line
   bring the place into view the same way (Find > Jump to a found place). Out of view: 5 lines from the edge it comes
   in at (the bottom going down, the top going up), or centred. Already in view: the view stays unless the place is
@@ -304,9 +309,11 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   source line: preview with preview, editor with editor. Not while comparing two files: the compare keeps the
   panes level itself, and the arrows to the differences take the button's place.
 - **Stalls**: every LexPen window shares one process, and its window thread: a long job of one window makes the
-  others wait too. Reading and writing files, git and large answers run beside that thread. When it is still late
+  others wait too. Reading and writing files, git, large answers and the folder watchers' events (a build or a sync
+  can raise thousands) run beside that thread. When it is still late
   by more than half a second, `stalls.log` in the data folder's `State` says when, how long and what it was doing (a
-  script of a page that ran long is noted there too). The turning sign at the right of the bottom bar stands still
+  script of a page that ran long is noted there too); it is open only for the moment a line is written, and can be
+  read meanwhile. The turning sign at the right of the bottom bar stands still
   only while the page itself is stuck.
 - **One instance, more windows**: opening a file while LexPen runs adds it as a tab to the most recently used
   window on the virtual desktop you are on; with no LexPen window there, a window opens there with the project

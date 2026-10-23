@@ -1,6 +1,6 @@
 # Plan: From the preview to the editor (double click)
 
-Status: draft 2026-10-23, not started.
+Status: executed 2026-10-23 (web/previewjump.js; in-app test t126).
 The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
@@ -63,3 +63,14 @@ tab switches to split view first, so the editor is there to take the cursor.
 ## 4. Open questions
 
 None.
+
+## 5. Resolved during execution
+
+| Topic | As built |
+|---|---|
+| Where the code is | `web/previewjump.js`, loaded after app.js: `sourceRangeOf` (a place in the preview to the source, for plan 28 too), `wordAt`, `previewToEditor`; the preview's `dblclick` calls it. |
+| The word | Taken from the text under the pointer, not from what the browser selected: a click on a link selects nothing, and beside a list number the browser selects the nearest word. It counts only when the pointer is on it; else the place is the block's first line, nothing selected. |
+| Code shown coloured | The preview has an element per line (`data-line`) and no line breaks in its text: the line from that element, the column from the text before the point in it. |
+| Fences | The fence's first line (``` or ~~~, or the `---` of front matter, which is rendered as a yaml fence of the same lines) is skipped; lines you gave a language have none. |
+| Markup left out | Link addresses (`](...)`), tags (`<...>`) and reference definitions are blanked out (same length) before the n-th occurrence is looked up; a block runs to the next element with a source line further down. |
+| Tests | t126, 13 checks pass: bold, a link's text (its address holding the same word) and the same word after it, a heading, a list item, a table cell, code in a fence, the same word twice, a list number (the block's line), back to where the cursor was, preview only (becomes split), two panes (the other pane's editor), a code file (exact). Not tested in the app: a picture and a diagram (the block's line, as the list number). The test clicks links inside the page only: a web link would open the browser. |

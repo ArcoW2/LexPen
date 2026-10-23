@@ -66,7 +66,7 @@ sealed class AppHost : ApplicationContext
 #if DEBUG
     static readonly string? ProjectDefaults = FindProjectFolder(AppContext.BaseDirectory, DefaultsFolder);
 #else
-    const string? ProjectDefaults = null;
+    static readonly string? ProjectDefaults = null;   // readonly, not const: a const null makes every test of it a warning
 #endif
 
     /// <summary>A folder of the project the exe was built from (defaults, web): up from `from` to the folder with
