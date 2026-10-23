@@ -161,6 +161,7 @@ function markPreviewCursor(pane, reveal) {
   place(block, spot.block);
   place(own, spot.line);
   if (reveal && cursorInView(editor.cm)) keepInView(pane, spot.line);
+  if (typeof schedulePreviewOverview === 'function') schedulePreviewOverview(pane);   // its mark on the preview's scroll bar
 }
 
 // Is the editor's cursor on screen in the editor.

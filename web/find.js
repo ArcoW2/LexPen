@@ -506,6 +506,7 @@ function mark(pane, where, regex, matches) {
   if (where === 'editor') return markEditor(pane, regex);
   const ranges = matches.map(([s, e]) => previewRange(pane.find.index, s, e));
   CSS.highlights.set('mm-find-' + pane.index, new Highlight(...ranges));
+  if (typeof schedulePreviewOverview === 'function') schedulePreviewOverview(pane);   // the preview's scroll bar
   pane.previewBoxes = { ranges, current: null };
   drawPreviewBoxes(pane);
 }
@@ -555,6 +556,7 @@ function clearMarks(pane) {
   for (const m of pane.findBoxes ?? []) m.clear();
   pane.findBoxes = [];
   CSS.highlights.delete('mm-find-' + pane.index);
+  if (typeof schedulePreviewOverview === 'function') schedulePreviewOverview(pane);
   pane.previewBoxes = null;
   pane.previewBoxLayer?.remove();
   pane.previewBoxLayer = null;

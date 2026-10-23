@@ -1028,3 +1028,7 @@ body[data-highlight=underline] .CodeMirror .mm-hl { background: none; box-shadow
 /* A file with highlights next to it (name.ext.lph): a small mark in the folder pane. */
 .mm-row.mm-has-highlights .mm-name::after { content: ""; display: inline-block; width: 6px; height: 6px; margin-left: 5px; border-radius: 50%;
   vertical-align: middle; background: var(--highlight); }
+/* The preview's scroll bar (previewoverview.js): the editor's strip in place of the browser's bar; the content keeps
+   clear of it. */
+.mm-preview-pane { scrollbar-width: none; padding-right: var(--mm-overview-w, 20px); box-sizing: border-box; }
+.mm-pv-overview, .mm-pv-overview-view { position: absolute; }

@@ -48,6 +48,7 @@ function applyOverview() {
 }
 
 function scheduleOverview(pane) {
+  if (typeof schedulePreviewOverview === 'function') schedulePreviewOverview(pane);   // and the preview's (previewoverview.js)
   if (!pane?.overviewEl || pane.overviewFrame) return;
   pane.overviewFrame = requestAnimationFrame(() => { pane.overviewFrame = 0; drawOverview(pane); });
 }

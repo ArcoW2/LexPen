@@ -140,13 +140,15 @@ function markHighlights(doc) {
       attributes: h.note ? { title: h.note } : undefined,
     });
     h.rootMark = h.mark.markers?.find(m => m.doc === cmDoc) ?? null;
-    if (h.note) h.sign = cmDoc.setBookmark(to, { widget: noteSign(h.note), shared: true });
+    // The note's sign: one per tab's Doc (a shared bookmark has one widget for all of them, shown in one editor only).
+    if (h.note) { h.signs = []; cmDoc.iterLinkedDocs(d => h.signs.push(d.setBookmark(to, { widget: noteSign(h.note) }))); }
   }
 }
 
 function clearMarks(h) {
-  h.mark?.clear(); h.rootMark?.clear(); h.sign?.clear();
-  h.mark = h.rootMark = h.sign = null;
+  h.mark?.clear(); h.rootMark?.clear();
+  for (const s of h.signs ?? []) s.clear();
+  h.mark = h.rootMark = h.signs = null;
 }
 
 // A tab's linked Doc released (app.js releaseTabDoc): the marks made again on the main Doc, at their places, so every
@@ -154,6 +156,14 @@ function clearMarks(h) {
 function remarkHighlights(doc) {
   for (const h of doc.hls?.list ?? []) h.markKey = null;
   markHighlights(doc);
+}
+
+// A tab's linked Doc made (app.js tabDoc): the note signs in it too.
+function signHighlights(doc, cmDoc) {
+  for (const h of doc.hls?.list ?? []) {
+    const at = h.signs && hlRange(doc, h);
+    if (at) h.signs.push(cmDoc.setBookmark(CodeMirror.Pos(...at.to), { widget: noteSign(h.note) }));
+  }
 }
 
 const noteSign = note => Object.assign(document.createElement('span'), { className: 'mm-hl-sign', title: note });
@@ -352,6 +362,7 @@ function drawPreviewHighlights(pane) {
     if (h.note && ranges.length) pane.hlSpots.push({ h, ranges });
   }
   if (all.length) CSS.highlights.set(name, new Highlight(...all)); else CSS.highlights.delete(name);
+  if (typeof schedulePreviewOverview === 'function') schedulePreviewOverview(pane);   // the preview's scroll bar
   // The note signs, in a layer after the content (as the cursor's bar).
   if (!pane.hlSpots.length) return;
   const layer = pane.hlSigns = document.createElement('div');

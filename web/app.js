@@ -110,7 +110,11 @@ function toast(message, info) {
   clearTimeout(toast.timer);
   toast.timer = setTimeout(() => ui.toast.hidden = true, 5000);
 }
-addEventListener('unhandledrejection', e => toast(e.reason?.message || String(e.reason)));
+// With the page's own place it came from (file:line), so a report can be traced.
+addEventListener('unhandledrejection', e => {
+  const at = /\/(\w+\.js):(\d+)/.exec((e.reason?.stack ?? '').split('\n').find(s => /\.js:\d/.test(s) && !/\/lib\//.test(s)) ?? '');
+  toast((e.reason?.message || String(e.reason)) + (at ? ` (${at[1]}:${at[2]})` : ''));
+});
 
 // ---------- Paths ----------
 const dirOf = path => path.slice(0, path.lastIndexOf('\\'));
@@ -583,7 +587,14 @@ function materialize(doc) {
 // A tab restored from the session gets its cursor and editor scroll position back here (restoreCursor).
 function tabDoc(tab) {
   if (tab.cmDoc) return tab.cmDoc;
-  tab.cmDoc = materialize(tab.doc).linkedDoc({ sharedHist: true });
+  // CodeMirror copies the main Doc's shared marks into a new linked Doc and fails on a shared bookmark (bookmarks.js):
+  // its find() is a place, not a range. Those are left out of the copy (CodeMirror copies no
+  // empty mark anyway); their places stay right on the main Doc.
+  const root = materialize(tab.doc), shared = root.getAllMarks().filter(m => m.parent && m.type === 'bookmark');
+  const parents = shared.map(m => m.parent);
+  for (const m of shared) m.parent = null;
+  try { tab.cmDoc = root.linkedDoc({ sharedHist: true }); } finally { shared.forEach((m, i) => m.parent = parents[i]); }
+  if (typeof signHighlights === 'function') signHighlights(tab.doc, tab.cmDoc);   // highlights.js: the note signs in this tab too
   const at = tab.restoreCursor;
   if (at) {
     tab.cmDoc.setCursor(Math.min(at.line, tab.cmDoc.lastLine()), at.ch);
@@ -828,6 +839,7 @@ async function renderNow(tab) {
   tab.lineBlocks = null;   // the blocks by source line (previewjump.js), and the cursor's bar in the preview
   if (typeof markPreviewCursors === 'function') markPreviewCursors();
   if (typeof drawPreviewHighlights === 'function') for (const pane of panes) if (pane.active === tab) drawPreviewHighlights(pane);   // highlights.js
+  if (typeof schedulePreviewOverviews === 'function') schedulePreviewOverviews();   // the preview's scroll bar (previewoverview.js)
 }
 
 function scheduleRender(tab) {
@@ -1022,6 +1034,7 @@ addEventListener('resize', () => { for (const tab of allTabs()) tab.lines = null
 async function showActive(pane) {
   layout();
   if (typeof markPreviewCursors === 'function') markPreviewCursors();
+  if (typeof schedulePreviewOverviews === 'function') schedulePreviewOverviews();
   const tab = pane.active;
   if (!tab) {
     pane.el.dataset.mode = 'preview';
@@ -3605,6 +3618,8 @@ function applySettings() {
   if (['previewHighlightStyle', 'previewHighlightColour', 'previewHighlightIntensity'].some(changed) && typeof applyPreviewHighlight === 'function') applyPreviewHighlight();
   // compare.js, loaded after this file: at the start the settings can be here before it is.
   if (['compareWhitespace', 'compareCase', 'compareStrip', 'compareStep'].some(changed) && typeof onCompareSettings === 'function') onCompareSettings();
+  if (['overviewWidth', 'overview.find', 'overview.changes', 'overview.git', 'overview.bookmarks', 'overview.highlights'].some(changed) && typeof schedulePreviewOverviews === 'function')
+    schedulePreviewOverviews();   // the preview's scroll bar
   if (['overview', 'overviewWidth', 'overview.find', 'overview.changes', 'overview.git', 'overview.bookmarks', 'gutter.changes', 'gutter.git'].some(changed)
     && typeof applyOverview === 'function') {   // overview.js; the hunks are made for the strip or the gutter
     for (const pane of panes) if (pane.cm && pane.active) paintGutter(pane);

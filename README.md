@@ -282,6 +282,9 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   puts the cursor on its line (the block lands on the mark), a click elsewhere scrolls there and the drag goes on from
   there; the wheel over it scrolls; the tooltip says what a mark is. The horizontal scroll bar has the same look.
   Settings, Editor view > Scroll bars: their width (10 to 40 px) and which marks show (also View > Scroll bar marks).
+  The preview has the same strip in place of its scroll bar: the highlights, the find matches, the bookmarks, the
+  unsaved and git changes at the height their text is shown at, and the editor's cursor line; a click on a mark brings
+  it to the middle of the view.
 - **Word completion**: Ctrl+Space (Edit > Complete word) lists what completes the word before the cursor: the
   keywords of the language at the cursor (a sql block in markdown: SQL's), then the words of the document that a
   "starts with" entry of the language stands for (`'@*'` in SQL: every `@word` of the document, `@@` only the `@@`
