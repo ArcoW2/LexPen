@@ -14,7 +14,8 @@ on a file's right-click menu for opening it, only the compare items.
 
 Next to the full window comes a view window: one pane, read-only, no Folder or Search, only the Outline if you
 want it, a choice kept for all view windows. Explorer gets "View with LexPen", which opens a file in a view window,
-and "Edit with LexPen", which opens it in a full window. View windows belong to a fixed project "View": a file
+and "Edit with LexPen", which opens it in a full window; settings choose which LexPen items Explorer shows
+(Compare, View, Edit) and whether they stand together between two lines or in a "LexPen" submenu. View windows belong to a fixed project "View": a file
 viewed while a view window is visible is added there as a tab, otherwise it opens alone in a new view window; the
 last document shown is kept.
 
@@ -49,7 +50,21 @@ last document shown is kept.
 ### 3.3 Explorer
 
 - "View with LexPen" and "Edit with LexPen" on a file's right-click menu, beside the compare items of
-  `ExplorerMenu.cs`, with LexPen's icon; a setting turns them on or off, as `explorerCompare` does for those.
+  `ExplorerMenu.cs` (Select left side to compare, Compare to <name>), with LexPen's icon.
+- Settings choose which are there and where:
+  - `explorerItems`: any of Compare, View, Edit (Compare is the two compare items together). It takes over
+    `explorerCompare`: a settings file with that on reads as Compare.
+  - `explorerPlace`: "group" (the items next to each other, a line above and below) or "submenu" (one item
+    "LexPen" that opens a submenu with them).
+- How, still per user in HKCU\Software\Classes, no admin:
+  - Group: each item a verb as now; the first gets the registry value `SeparatorBefore`, the last
+    `SeparatorAfter`. Explorer orders the verbs itself, so whether nothing else lands between them is to be tried.
+  - Submenu: one verb "LexPen" with `ExtendedSubCommandsKey`, pointing to a key of LexPen's own whose `shell`
+    holds the items. Compare to <name> is rewritten there when the left side changes, as now.
+  - Both are classic menu entries. On Windows 11 these show under "Show more options" (Shift+F10 or Shift+right
+    click), as the compare items do now. In the new short menu only an app with a package identity (a signed
+    MSIX or sparse package with an IExplorerCommand handler) can appear; that is not part of this plan
+    (question 7).
 - View: as 3.2. Edit: as opening a file now (a double-click on a registered `.md`): a full window of the project
   of the last window used.
 - A command-line switch for each (`/view <file>`, `/edit <file>`), which the menu items call; the single-instance
@@ -63,6 +78,8 @@ last document shown is kept.
 
 - The project "View" cannot be deleted, renamed or merged (ProjectStore).
 - The command-line switches parsed.
+- The registry entries for each choice of `explorerItems` and `explorerPlace` (under LEXPEN_REGISTRY_ROOT, as the
+  compare tests), and switching from one to the other leaves no entries of the first behind.
 - A viewed file joins a visible view window, or opens a new one when none is visible.
 
 ## 4. Open questions
@@ -81,3 +98,7 @@ last document shown is kept.
    desktop? Proposal: this desktop, as `newWindowProject` uses "this desktop".
 6. The tabs of the project "View": kept without limit, or only the last so many (closed ones dropped)? Proposal:
    as a normal project, you close what you no longer want.
+7. Windows 11's short right-click menu: is "Show more options" good enough (as for the compare items now), or do
+   you want the items in the short menu? That needs a signed package and a shell extension: a plan of its own.
+   Proposal: Show more options for now.
+8. The default: Compare only (as now, so nothing changes until you choose), placed as a group? Proposal: yes.
