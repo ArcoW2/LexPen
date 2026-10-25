@@ -125,6 +125,7 @@ sealed class SettingsForm : Form
                 init["defs"] = app.SettingDefs?.DeepClone();
                 init["look"] = app.Look();
                 init["languageProblems"] = app.Languages["problems"]?.DeepClone();
+                init["layout"] = window.Layout?.DeepClone();   // the rows of "this window" (docs/plans/31-PLAN-settings-layers.md)
                 return init;
             }
 
@@ -133,6 +134,11 @@ sealed class SettingsForm : Form
 
             case "settingSet":
                 app.SetSetting(Arg("name"), msg["value"]?.DeepClone());
+                return null;
+
+            // A row of "this window": its main window sets it in its layout (and says so: layoutShown).
+            case "layoutSet":
+                if (!window.IsDisposed) window.Post(new JsonObject { ["event"] = "layoutSet", ["name"] = Arg("name"), ["value"] = msg["value"]?.DeepClone() });
                 return null;
 
             // Opens your keys.json or settings.json in a tab of the main window this one belongs to.

@@ -44,6 +44,8 @@ sealed class MainForm : Form
     public int Id { get; }
     /// <summary>The window's key in its project (ProjectStore).</summary>
     public int Key => start.Key;
+    /// <summary>The layout this window shows now, as its page last said (layoutShown): for its settings window.</summary>
+    public JsonObject? Layout { get; private set; }
 
     /// <summary>Becomes another window of a project, before the page has asked what to open (AppHost.WindowShown).</summary>
     public void Rekey(int key) => start = start with { Key = key };
@@ -814,6 +816,7 @@ sealed class MainForm : Form
             {
                 var merged = (JsonObject)app.Settings.DeepClone();
                 merged["pageSettingsMoved"] = app.PageSettingsMoved;
+                merged["layoutMoved"] = app.LayoutMoved;
                 return merged;
             }
 
@@ -823,6 +826,20 @@ sealed class MainForm : Form
 
             case "settingsImport":
                 app.ImportPageSettings(msg["values"]!.AsObject());
+                return null;
+
+            // This window's layout (docs/plans/31-PLAN-settings-layers.md): what it opens with; what it shows now (for
+            // its settings window); the old values of the page's storage, moved to the settings once.
+            case "windowLayout":
+                return app.LayoutFor(this);
+
+            case "layoutShown":
+                Layout = msg["layout"]?.DeepClone() as JsonObject;
+                app.LayoutShown(this);
+                return null;
+
+            case "layoutImport":
+                app.ImportLayout(msg["values"]!.AsObject());
                 return null;
 
             case "settingDefs":

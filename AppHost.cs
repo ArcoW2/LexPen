@@ -24,6 +24,8 @@ sealed class AppHost : ApplicationContext
     static string FavouriteFoldersPath => Path.Combine(DataDir, DataFolder.FavouriteFoldersName);
     // Settings that were kept in the page's storage go to settings.json once; this file says it happened.
     static string PageSettingsMovedPath => Path.Combine(DataFolder.StateDir(DataDir), "page-settings-moved");
+    // The layout values the page kept in its storage go to defaultLayout in settings.json once; this file says it happened.
+    static string LayoutMovedPath => Path.Combine(DataFolder.StateDir(DataDir), "layout-moved");
 
     /// <summary>What LexPen remembers by itself: window position and size, the recent lists.</summary>
     public sealed class AppState
@@ -782,6 +784,27 @@ sealed class AppHost : ApplicationContext
         File.WriteAllText(PageSettingsMovedPath, "");
         ReloadSettings();
     }
+
+    /// <summary>The layout values the page kept in its own storage (the sidebar, the outline, the panes, ...), moved to
+    /// defaultLayout once (docs/plans/31-PLAN-settings-layers.md).</summary>
+    public bool LayoutMoved => File.Exists(LayoutMovedPath);
+
+    public void ImportLayout(JsonObject values)
+    {
+        if (LayoutMoved) return;
+        SettingsFile.WriteImportedLayout(DataDir, values);
+        File.WriteAllText(LayoutMovedPath, "");
+        ReloadSettings();
+    }
+
+    // ---------- A window's layout (docs/plans/31-PLAN-settings-layers.md) ----------
+
+    /// <summary>The layout a window opens with: its own, else that of the last window of its project (ProjectStore.LayoutOf).</summary>
+    public JsonNode? LayoutFor(MainForm w) => projects.LayoutOf(w.Key);
+
+    /// <summary>A window's layout changed (the page says it): its settings window follows.</summary>
+    public void LayoutShown(MainForm w) =>
+        settingsWindows.GetValueOrDefault(w)?.Post(new JsonObject { ["event"] = "layout", ["layout"] = w.Layout?.DeepClone() });
 
     // Your settings.json changed on disk (a hand edit, another LexPen copy): read again, every window follows.
     FileSystemWatcher? settingsWatcher;

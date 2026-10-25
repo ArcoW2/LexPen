@@ -24,32 +24,17 @@
   "editorLine": 0,                // line height, times the font size; 0 is 1.3
   "editorThemeLight": "",         // the editor in light mode: "" is the app's theme, else a theme of its own
   "editorThemeDark": "",          // the editor in dark mode
-  "wrap": true,                   // wrap long lines in the editor; Alt+Z
   "tabSize": 4,                   // where the tab stops are: a tab after text goes to the next one (1 to 16)
   "indentSize": 2,                // where the indent stops are: Tab in a line's indentation, indent, and a tab
                                   // there (1 to 16); a language pack can set both (tabSize, indentSize)
-  "lineNumbers": "all",           // the gutter (View > Gutter): line numbers "none", "tens" (a number every 10 lines,
-                                  // a dash at 5, a dot on the other lines) or "all"
-  "lineNumberCount": "absolute",  // "absolute", or "relative" to the cursor line (that line shows its own number)
   "overviewWidth": 20,            // the editor's scroll bars: their width in px (10 to 40); the vertical one is the overview
-                                  // ruler, the marks below take their share of it
-  "overview.find": true,          // ...the lines with a find match
-  "overview.changes": true,       // ...the lines changed since the last save
-  "overview.git": true,           // ...the lines changed since the last commit
-  "overview.bookmarks": true,     // ...the bookmarks
-  "overview.highlights": true,    // ...the highlights
-  "overview.compare": true,       // ...comparing, the differences
+                                  // ruler, the marks on it are per window (defaultLayout: overview.*)
   "compareWhitespace": false,     // comparing: spaces and tabs count only as a separation
   "compareCase": false,           // comparing: upper and lower case count as the same
   "compareStep": "block",         // comparing: F7 goes to the next "block" of changed lines, or the next changed "line"
   "compareStrip": true,           // comparing: the line strip below the panes
   "explorerCompare": false,       // Explorer's right-click menu: Select left side to compare, then Compare to <name>
   "gutter.cursor": true,          // the cursor's line marked in the gutter, in the ruler's cursor colour
-  "gutter.bookmarks": true,       // the other gutter columns left of the text
-  "gutter.changes": true,         // lines changed since the last save
-  "gutter.git": true,             // lines changed since the last commit
-  "gutter.folds": true,
-  "formatBar": true,              // the bar with bold, headings, lists, ... above the editor
   "bracketHighlight": "colour",   // the pair or word set (begin ... end) around the cursor: "colour", "underline"
                                   // (in the find box's colour) or "off"
   "closeBrackets": false,         // typing an opening sign or quote adds its closer
@@ -80,9 +65,6 @@
                                   // for one out of view)
   "locateCursorTap": 400,         // ms: the longest press of Ctrl that counts as a tap
   "locateCursorJump": false,      // a double tap on Ctrl scrolls to the cursor first
-  "ruler": false,                 // the ruler above the editor: columns, the cursor's column, guides; a click on it
-                                  // sets a tab stop (Tab goes there, Shift+Tab back) or a helper line (only shows),
-                                  // per document, kept for the last 100 files with lines
   "columnGuideStart": 0,          // a faint line after this many characters (0: none)
   "columnGuideStep": 0,           // then one every so many characters (0: only the first)
   "columnGuideExtra": 0,          // one more guide of its own, as 80 (0: none)
@@ -107,7 +89,6 @@
                                   // not read as their code in a box (0x1B, U+200B, 0xAB)
 
   // ---------- Preview ----------
-  "previewWrap": true,            // wrap long lines in the code blocks of the preview
   "lineBreaks": false,            // a single line break starts a new line (off: joins the lines, as on GitHub)
   "zoom": 1,                      // preview zoom: 1 is 100%, 0.5 to 3
   "previewThemeLight": "",        // the preview in light mode: "" is the app's theme, else a theme of its own
@@ -123,8 +104,6 @@
   // ---------- Tabs ----------
   "tabOrder": "recent",           // Ctrl+Tab order: "recent" (recently used) or "tabs" (the tab bar)
   "scrollTogether": "distance",   // scroll together (the button between the panes): "distance" (as the panes are aligned now) or "line" (the same line number)
-  "tabBar": "scroll",             // tabs that do not fit: "scroll" (one row that scrolls), "menu" (one row, a menu
-                                  // lists the tabs out of view) or "rows" (several rows, all tabs visible)
   "movePinned": true,             // closing a pane or window moves its pinned tabs to the main pane / another
                                   // open window of the same project
 
@@ -141,5 +120,44 @@
   "appFont": "",                  // menus, tabs, panes, bars and dialogs; "" is Segoe UI
   "appSize": 0,                   // in points; 0 is 9.75 pt
   "statusFont": "",               // the bottom bar; "" is the app font
-  "statusSize": 0                 // in points; 0 is the app's size for small texts
+  "statusSize": 0,                // in points; 0 is the app's size for small texts
+
+  // ---------- Layout ----------
+  // What is open and shown in a window is kept per window, with its session (so per project). This is the layout
+  // a new project starts with (View > Layout > Save as default); a name left out here is the value below.
+  "defaultLayout": {
+    "sidebar": true,              // the sidebar (Folder or Search) shown when a folder is open
+    "sideView": "folder",         // "folder" or "search"
+    "sidebarWidth": 0,            // in px; 0 is the standard width
+    "outline": false,             // the outline next to each editor pane
+    "outlineWidth": 0,            // in px; 0 is the standard width
+    "orient": "v",                // two panes: "v" side by side, "h" above each other
+    "ratio": 50,                  // two panes: the first pane's share, in percent
+    "editShare": 0,               // editor and preview side by side: the editor's share, 0.1 to 0.9; 0 is half
+    "searchScope": "file",        // the sidebar search: "file", "open" (the open files) or "folder"
+    "tree": "all",                // the folder pane: "all" files, or "md" (markdown files only)
+    "sort": "name",               // the folder pane: by "name" or "modified"
+    "sortDesc": false,            // the folder pane: descending
+    "formatBar": true,            // the bar with bold, headings, lists, ... above the editor
+    "ruler": false,               // the ruler above the editor: columns, the cursor's column, guides; a click on it
+                                  // sets a tab stop (Tab goes there, Shift+Tab back) or a helper line (only shows),
+                                  // per document, kept for the last 100 files with lines
+    "wrap": true,                 // wrap long lines in the editor; Alt+Z
+    "previewWrap": true,          // wrap long lines in the code blocks of the preview
+    "tabBar": "scroll",           // tabs that do not fit: "scroll" (one row that scrolls), "menu" (one row, a menu
+                                  // lists the tabs out of view) or "rows" (several rows, all tabs visible)
+    "lineNumbers": "all",         // the gutter (View > Gutter): line numbers "none", "tens" (a number every 10 lines,
+                                  // a dash at 5, a dot on the other lines) or "all"
+    "lineNumberCount": "absolute", // "absolute", or "relative" to the cursor line (that line shows its own number)
+    "gutter.bookmarks": true,     // the gutter columns left of the text
+    "gutter.changes": true,       // lines changed since the last save
+    "gutter.git": true,           // lines changed since the last commit
+    "gutter.folds": true,
+    "overview.find": true,        // the marks on the editor's scroll bar: the lines with a find match
+    "overview.changes": true,     // ...the lines changed since the last save
+    "overview.git": true,         // ...the lines changed since the last commit
+    "overview.bookmarks": true,   // ...the bookmarks
+    "overview.highlights": true,  // ...the highlights
+    "overview.compare": true      // ...comparing, the differences
+  }
 }

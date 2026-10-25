@@ -26,7 +26,14 @@ chrome.webview.addEventListener('message', e => {
 });
 
 const SLIDER_DELAY = 200;   // ms a slider rests before the app gets its value
-let settings = null;   // { values, defaults, user, problems, defs }
+let settings = null;   // { values, defaults, user, problems, defs, layout }
+// A row of "this window" (def.layer): its value is in the main window's layout, not in settings.json
+// (docs/plans/31-PLAN-settings-layers.md); a change goes to that window.
+const ofWindow = name => rows.find(r => r.def.name === name)?.def.layer === 'window'
+  || settings.defs?.find(d => d.name === name)?.layer === 'window';
+const valueOf = name => ofWindow(name)
+  ? settings.layout?.[name] ?? settings.values.defaultLayout?.[name] ?? settings.defaults.defaultLayout?.[name] : settings.values[name];
+const defaultOf = def => def.layer === 'window' ? settings.defaults.defaultLayout?.[def.name] : def.default ?? settings.defaults[def.name];
 const rows = [];       // { def, el, control }
 
 // ---------- Look: the app's theme (from the host) and the app font, as the main windows (applyFonts in app.js) ----------
@@ -285,7 +292,7 @@ function buildGroup(group) {
       reset.className = 'st-reset';
       reset.textContent = 'Reset';
       reset.title = 'Back to the default';
-      reset.addEventListener('click', () => set(def.name, def.default ?? settings.defaults[def.name]));
+      reset.addEventListener('click', () => set(def.name, defaultOf(def)));
       el.append(reset);
     }
     box.append(el);
@@ -307,9 +314,10 @@ function show() {
   applyLook();
   for (const { def, el, control: c } of rows) {
     if (def.kind === 'keys') continue;
-    c.show(settings.values[def.name]);
-    if (def.hintOff) el.querySelector('.st-hint').textContent = settings.values[def.name] ? def.hint : def.hintOff;
-    el.classList.toggle('st-changed', settings.user.includes(def.name));
+    const value = valueOf(def.name);
+    c.show(value);
+    if (def.hintOff) el.querySelector('.st-hint').textContent = value ? def.hint : def.hintOff;
+    el.classList.toggle('st-changed', def.layer === 'window' ? JSON.stringify(value) !== JSON.stringify(defaultOf(def)) : settings.user.includes(def.name));
   }
   const problems = [...(settings.problems ?? []), ...(settings.look?.problems ?? []), ...(settings.languageProblems ?? [])];
   ui.problems.hidden = !problems.length;
@@ -320,6 +328,11 @@ function show() {
 const unconfirmed = new Map();
 
 function set(name, value) {
+  if (ofWindow(name)) {
+    settings.layout = { ...settings.layout, [name]: value };
+    host('layoutSet', { name, value });
+    return;
+  }
   settings.values[name] = value;
   unconfirmed.set(name, (unconfirmed.get(name) ?? 0) + 1);
   host('settingSet', { name, value }).catch(e => {
@@ -333,8 +346,14 @@ function set(name, value) {
 
 events.settings = ({ settings: s }) => {
   const mine = Object.fromEntries([...unconfirmed.keys()].map(n => [n, settings.values[n]]));
-  settings = { ...s, defs: settings.defs, look: settings.look, languageProblems: settings.languageProblems };
+  settings = { ...s, defs: settings.defs, look: settings.look, languageProblems: settings.languageProblems, layout: settings.layout };
   Object.assign(settings.values, mine);
+  show();
+};
+
+// The main window's layout changed (a menu, a key, a row here).
+events.layout = ({ layout }) => {
+  settings.layout = layout;
   show();
 };
 

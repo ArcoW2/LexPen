@@ -713,6 +713,7 @@ function settingDefs() {
       options: r.options?.() ?? (r.kind === 'size' ? [[0, `Default (${r.base()})`], ...FONT_SIZES.map(pt => [pt, pt + ' pt'])] : null),
       monoFirst: r.name === 'editorFont',
       range: r.range ?? null, unit: r.unit ?? '',
+      layer: LAYOUT.has(r.name) ? 'window' : 'global',   // docs/plans/31-PLAN-settings-layers.md
     };
   });
 }

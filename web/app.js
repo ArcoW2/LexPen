@@ -33,8 +33,8 @@ const state = {
   activePane: 0,
   hidden: null,         // the pane hidden with its tabs (0 or 1), or null
   sync: false,          // scroll both panes together
-  orient: localStorage.orient === 'h' ? 'h' : 'v',   // panes side by side (v) or above each other (h)
-  ratio: +localStorage.ratio || 50,                   // size of the first pane, in percent
+  orient: 'v',          // panes side by side (v) or above each other (h): the layout's orient
+  ratio: 50,            // size of the first pane, in percent: the layout's ratio
 };
 
 // ---------- Host bridge ----------
@@ -79,6 +79,7 @@ const setting = name => settings.values[name];
 const unconfirmed = new Map();   // name -> count of writes on their way
 
 function setSetting(name, value) {
+  if (LAYOUT.has(name)) return setLayout(name, value);
   if (settings.values[name] === value) return;
   settings.values[name] = value;
   applySettings();
@@ -91,9 +92,52 @@ function setSetting(name, value) {
 events.settings = ({ settings: s }) => {
   const mine = Object.fromEntries([...unconfirmed.keys()].map(n => [n, settings.values[n]]));
   Object.assign(settings, s);
+  mergeLayout();
   Object.assign(settings.values, mine);
   applySettings();
 };
+
+// ---------- This window's layout (docs/plans/31-PLAN-settings-layers.md) ----------
+// What is open and shown in this window, kept with its session, so per window and per project: the names of
+// defaultLayout in the shipped settings.json. A name this window has no value of (yet) comes from your defaultLayout,
+// else the shipped one. settings.values holds them with the global settings, so setting() serves them as any other;
+// setSetting() keeps them here, not in settings.json. Menus, actions and keys stay as they are.
+let LAYOUT = new Set(), layoutOwn = {};
+
+function layoutValue(name) {
+  const shipped = settings.defaults.defaultLayout?.[name], mine = settings.values.defaultLayout?.[name];
+  const fits = v => v !== undefined && v !== null && typeof v === typeof shipped;
+  return fits(layoutOwn[name]) ? layoutOwn[name] : fits(mine) ? mine : shipped;
+}
+
+const windowLayout = () => Object.fromEntries([...LAYOUT].map(n => [n, layoutValue(n)]));
+
+// The layout's values into settings.values (after the host sent the settings, or the window got its layout).
+function mergeLayout() {
+  LAYOUT = new Set(Object.keys(settings.defaults.defaultLayout ?? {}));
+  for (const name of LAYOUT) settings.values[name] = layoutValue(name);
+}
+
+// A layout value changed: applied (unless `applied`: the caller did that already), kept with the session, and told to
+// the host for this window's settings window.
+function setLayout(name, value, applied = false) {
+  if (settings.values[name] === value && layoutOwn[name] === value) return;
+  layoutOwn[name] = settings.values[name] = value;
+  if (applied) { if (appliedSettings) appliedSettings[name] = value; }
+  else applySettings();
+  layoutChanged();
+}
+const keepLayout = (name, value) => setLayout(name, value, true);
+
+function layoutChanged() {
+  if (!started) return;
+  saveSession();
+  clearTimeout(layoutChanged.timer);
+  layoutChanged.timer = setTimeout(() => host('layoutShown', { layout: windowLayout() }), 150);
+}
+
+// From this window's settings window: a row of "this window".
+events.layoutSet = ({ name, value }) => setSetting(name, value);
 chrome.webview.addEventListener('message', e => {
   if (e.data.event) return events[e.data.event]?.(e.data);
   const { id, result, error } = e.data;
@@ -1920,9 +1964,9 @@ const freshPaths = new Set();
 
 // Folders first, then files; each by name or by modified time.
 function sortItems(items) {
-  const desc = localStorage.sortDesc === 'on' ? -1 : 1;
+  const desc = setting('sortDesc') ? -1 : 1;
   const byName = (a, b) => { const x = a.name.toLowerCase(), y = b.name.toLowerCase(); return x < y ? -1 : x > y ? 1 : 0; };
-  const key = localStorage.sort === 'modified' ? (a, b) => a.modified - b.modified || byName(a, b) : byName;
+  const key = setting('sort') === 'modified' ? (a, b) => a.modified - b.modified || byName(a, b) : byName;
   return items.sort((a, b) => b.dir - a.dir || desc * key(a, b));
 }
 
@@ -2215,13 +2259,13 @@ async function openFolder(path, open = []) {
 }
 
 ui.sort.addEventListener('change', () => {
-  localStorage.sort = ui.sort.value;
+  keepLayout('sort', ui.sort.value);
   refreshTree();
 });
 
 function showSort() {
-  ui.sort.value = localStorage.sort === 'modified' ? 'modified' : 'name';
-  document.body.toggleAttribute('data-sort-desc', localStorage.sortDesc === 'on');
+  ui.sort.value = setting('sort') === 'modified' ? 'modified' : 'name';
+  document.body.toggleAttribute('data-sort-desc', !!setting('sortDesc'));
 }
 
 // ---------- Drag and drop ----------
@@ -2606,7 +2650,7 @@ $('.mm-search-view').addEventListener('keydown', e => {
   if (!back.sidebar) setSidebar(false);
   focusPane(panes[state.activePane]);
 });
-searchUi.scope.addEventListener('change', () => { localStorage.searchScope = searchUi.scope.value; runSearch(); });
+searchUi.scope.addEventListener('change', () => { keepLayout('searchScope', searchUi.scope.value); runSearch(); });
 for (const button of document.querySelectorAll('.mm-search-bar [data-opt]')) {
   button.addEventListener('click', () => {
     searchOptions[button.dataset.opt] = !searchOptions[button.dataset.opt];
@@ -2616,7 +2660,8 @@ for (const button of document.querySelectorAll('.mm-search-bar [data-opt]')) {
 }
 
 function setSideView(view) {
-  document.body.dataset.side = localStorage.sideView = view;
+  document.body.dataset.side = view;
+  keepLayout('sideView', view);
 }
 
 // Ctrl+Shift+F: the search, filled with the editor's selection when that is one line.
@@ -2734,8 +2779,7 @@ function headingsOf(doc) {
 
 function setOutline(on) {
   document.body.toggleAttribute('data-outline', on);
-  localStorage.outline = on ? 'on' : 'off';
-  if (localStorage.outlineWidth) document.body.style.setProperty('--outline-w', localStorage.outlineWidth);
+  keepLayout('outline', on);
   for (const pane of panes) {
     if (typeof setupGutter === 'function') setupGutter(pane);   // the outline's column in the gutter, or not
     pane.outlineFor = null;
@@ -3032,16 +3076,15 @@ function resizeOutline(e) {
   edge.addEventListener('pointermove', move);
   edge.addEventListener('pointerup', () => {
     edge.removeEventListener('pointermove', move);
-    localStorage.outlineWidth = document.body.style.getPropertyValue('--outline-w');
+    keepLayout('outlineWidth', parseInt(document.body.style.getPropertyValue('--outline-w')) || 0);
     relayout();
   }, { once: true });
 }
 
 // Editor and preview side by side: the editor's share of the width, 0.1 to 0.9 (half and half when not
-// set). One value for all panes, kept across restarts.
+// set). One value for all panes of the window, kept with its layout.
 function setSplit(share) {
-  if (share) localStorage.editShare = share;
-  else delete localStorage.editShare;
+  keepLayout('editShare', share || 0);
   document.body.style.setProperty('--edit-share', share || 0.5);
   relayout();
 }
@@ -3238,7 +3281,7 @@ ui.divider.addEventListener('pointerdown', e => {
   ui.divider.addEventListener('pointermove', move);
   ui.divider.addEventListener('pointerup', () => {
     ui.divider.removeEventListener('pointermove', move);
-    localStorage.ratio = state.ratio;
+    keepLayout('ratio', state.ratio);
     relayout();
   }, { once: true });
 });
@@ -3261,6 +3304,7 @@ function sessionData() {
   const c = typeof compareSession === 'function' ? compareSession() : {}, before = c.before;   // compare.js loads after this file
   const kept = pane => pane.tabs.filter(t => !t.doc.temp && !c.opened?.has(t));   // the compare opens those again
   return {
+    layout: windowLayout(),   // every name, so a later Save as default changes only new projects
     root: state.root,
     tree: state.root ? { open: [...expanded], top: Math.round(ui.tree.scrollTop) } : undefined,   // the open folders, the scroll
     activePane: before ? before.activePane : state.activePane,
@@ -3621,7 +3665,8 @@ async function copyText(text) {
 
 // Tree filter: all files, or markdown files only (folders always stay).
 function setMarkdownOnly(on) {
-  document.body.dataset.tree = localStorage.tree = on ? 'md' : 'all';
+  document.body.dataset.tree = on ? 'md' : 'all';
+  keepLayout('tree', on ? 'md' : 'all');
   $('.mm-md-only').classList.toggle('mm-on', on);
 }
 
@@ -3789,6 +3834,48 @@ function applySettings() {
   }
   if (Object.keys(now).some(n => (n.startsWith('gutter.') || n === 'lineNumbers' || n === 'lineNumberCount') && changed(n)) && typeof setupGutter === 'function')
     for (const pane of panes) if (pane.cm && pane.active) setupGutter(pane);
+  // The window's layout: the sidebar, the outline, the panes (the setters keep a value they set themselves, so these run
+  // at the start and when the layout comes from elsewhere: the settings window, Reset to default).
+  if (changed('sidebarWidth')) layoutWidth('--sidebar-w', now.sidebarWidth);
+  if (changed('outlineWidth')) layoutWidth('--outline-w', now.outlineWidth);
+  if (changed('tree')) setMarkdownOnly(now.tree === 'md');
+  if (changed('outline')) setOutline(!!now.outline);
+  if (changed('editShare')) setSplit(now.editShare || null);
+  if (changed('sideView')) setSideView(now.sideView === 'search' ? 'search' : 'folder');
+  if (changed('searchScope') && ['file', 'open', 'folder'].includes(now.searchScope)) searchUi.scope.value = now.searchScope;
+  if (changed('sort') || changed('sortDesc')) { showSort(); if ('sort' in was) refreshTree(); }
+  if (changed('orient') || changed('ratio')) {
+    state.orient = now.orient === 'h' ? 'h' : 'v';
+    state.ratio = +now.ratio || 50;
+    if ('orient' in was) { layout(); relayout(); }
+  }
+  if (changed('sidebar') && 'sidebar' in was && state.root) setSidebar(!!now.sidebar);
+}
+
+// A width of the layout in px (0: the standard one, app.css).
+function layoutWidth(property, px) {
+  if (px > 0) document.body.style.setProperty(property, px + 'px');
+  else document.body.style.removeProperty(property);
+}
+
+// The layout values this page kept in its storage before they were per window: moved to defaultLayout in your
+// settings.json once (the host remembers that it happened), so every window opens as before.
+async function moveLayoutStorage() {
+  const ls = localStorage, values = {};
+  if (ls.sidebar) values.sidebar = ls.sidebar !== 'off';
+  if (ls.sideView) values.sideView = ls.sideView === 'search' ? 'search' : 'folder';
+  if (parseInt(ls.sidebarWidth)) values.sidebarWidth = parseInt(ls.sidebarWidth);
+  if (ls.outline) values.outline = ls.outline === 'on';
+  if (parseInt(ls.outlineWidth)) values.outlineWidth = parseInt(ls.outlineWidth);
+  if (ls.orient) values.orient = ls.orient === 'h' ? 'h' : 'v';
+  if (+ls.ratio) values.ratio = +ls.ratio;
+  if (+ls.editShare) values.editShare = +ls.editShare;
+  if (['file', 'open', 'folder'].includes(ls.searchScope)) values.searchScope = ls.searchScope;
+  if (ls.tree) values.tree = ls.tree === 'md' ? 'md' : 'all';
+  if (ls.sort) values.sort = ls.sort === 'modified' ? 'modified' : 'name';
+  if (ls.sortDesc) values.sortDesc = ls.sortDesc === 'on';
+  await host('layoutImport', { values });
+  Object.assign(settings, await host('settings'));
 }
 
 // Settings this page kept in its own storage before settings.json existed: moved there once (the host
@@ -3811,7 +3898,8 @@ async function movePageSettings() {
 const GUTTER_NAMES = ['bookmarks', 'changes', 'git', 'folds'];
 
 function setSidebar(visible) {
-  document.body.dataset.sidebar = localStorage.sidebar = visible ? 'on' : 'off';
+  document.body.dataset.sidebar = visible ? 'on' : 'off';
+  keepLayout('sidebar', visible);
   relayout();
 }
 
@@ -3821,7 +3909,7 @@ ui.splitter.addEventListener('pointerdown', e => {
   ui.splitter.addEventListener('pointermove', move);
   ui.splitter.addEventListener('pointerup', () => {
     ui.splitter.removeEventListener('pointermove', move);
-    localStorage.sidebarWidth = document.body.style.getPropertyValue('--sidebar-w');
+    keepLayout('sidebarWidth', parseInt(document.body.style.getPropertyValue('--sidebar-w')) || 0);
     relayout();
   }, { once: true });
 });
@@ -3883,7 +3971,7 @@ const commands = {
   markdownOnly: () => setMarkdownOnly(document.body.dataset.tree !== 'md'),
   lineBreaks: () => setSetting('lineBreaks', !setting('lineBreaks')),
   sortDir() {
-    localStorage.sortDesc = localStorage.sortDesc === 'on' ? 'off' : 'on';
+    keepLayout('sortDesc', !setting('sortDesc'));
     showSort();
     refreshTree();
   },
@@ -3903,7 +3991,8 @@ const commands = {
   zoomReset: () => setZoom(1),
   outline: () => setOutline(!document.body.hasAttribute('data-outline')),
   orient() {
-    state.orient = localStorage.orient = state.orient === 'v' ? 'h' : 'v';
+    state.orient = state.orient === 'v' ? 'h' : 'v';
+    keepLayout('orient', state.orient);
     layout();
     relayout();
   },
@@ -4025,15 +4114,11 @@ function showKeys() {
 track((async () => {
   Object.assign(settings, await host('settings'));
   if (!settings.pageSettingsMoved) await movePageSettings();
-  applySettings();
+  if (!settings.layoutMoved) await moveLayoutStorage();
+  layoutOwn = (await host('windowLayout')) ?? {};   // its own, or its project's last window's
+  mergeLayout();
+  applySettings();   // the layout too: sidebar, outline, panes
   applyLook(await host('look'));
-  if (localStorage.sidebarWidth) document.body.style.setProperty('--sidebar-w', localStorage.sidebarWidth);
-  setMarkdownOnly(localStorage.tree === 'md');
-  setOutline(localStorage.outline === 'on');
-  setSplit(+localStorage.editShare || null);
-  setSideView(localStorage.sideView === 'search' ? 'search' : 'folder');
-  if (['file', 'open', 'folder'].includes(localStorage.searchScope)) searchUi.scope.value = localStorage.searchScope;
-  showSort();
   layout();
 
   // A window of a project opened again restores its session; folder and files on the command line come on top.
@@ -4052,7 +4137,7 @@ track((async () => {
   const session = start.restore;
   const root = start.folder ?? session?.root ?? null;
 
-  document.body.dataset.sidebar = root && localStorage.sidebar !== 'off' ? 'on' : 'off';
+  document.body.dataset.sidebar = root && setting('sidebar') ? 'on' : 'off';
   // The tree as it was: its open folders and scroll position (when it is the session's folder).
   const tree = root && session?.root === root && session.tree && typeof session.tree === 'object' ? session.tree : null;
   if (root) await openFolder(root, Array.isArray(tree?.open) ? tree.open : []).catch(() => {});
@@ -4072,4 +4157,5 @@ track((async () => {
   } else if (session) await restoreCompare(session.compare, session.folderCompare);   // the compare it was in
   if (gitWaiting) loadGitLater(gitWaiting);
   saveSession();
+  host('layoutShown', { layout: windowLayout() });   // for this window's settings window
 })());

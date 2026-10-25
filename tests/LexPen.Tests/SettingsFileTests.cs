@@ -87,13 +87,13 @@ public class SettingsFileTests
     [Fact]
     public void ARenamedSettingMovesOver()
     {
-        var own = JsonNode.Parse(SettingsFile.Upgrade("""{ "openMarkdownIn": "preview", "wrap": false }""")!)!.AsObject();
-        Assert.Equal(["wrap", "openIn.markdown"], own.Select(p => p.Key));
+        var own = JsonNode.Parse(SettingsFile.Upgrade("""{ "openMarkdownIn": "preview", "theme": "dark" }""")!)!.AsObject();
+        Assert.Equal(["theme", "openIn.markdown"], own.Select(p => p.Key));
         Assert.Equal("preview", own["openIn.markdown"]!.GetValue<string>());
         // A newer choice wins.
         own = JsonNode.Parse(SettingsFile.Upgrade("""{ "openMarkdownIn": "preview", "openIn.markdown": "edit" }""")!)!.AsObject();
         Assert.Equal("edit", own["openIn.markdown"]!.GetValue<string>());
-        Assert.Null(SettingsFile.Upgrade("""{ "wrap": false }"""));
+        Assert.Null(SettingsFile.Upgrade("""{ "theme": "dark" }"""));
     }
 
     [Fact]

@@ -139,6 +139,16 @@ sealed class ProjectStore
     }
 
     public Project? ProjectOf(int key) => Projects.FirstOrDefault(p => p.Windows.Any(w => w.Key == key));
+
+    /// <summary>The layout a window opens with (docs/plans/31-PLAN-settings-layers.md): its own, the `layout` of its
+    /// session; for a new window the one of the last window used of its project that has one; else null (the default
+    /// layout of the settings).</summary>
+    public JsonNode? LayoutOf(int key)
+    {
+        if (WindowOf(key)?.Session?["layout"] is JsonObject own) return own.DeepClone();
+        return ProjectOf(key)?.Windows.Where(w => w.Key != key && w.Session?["layout"] is JsonObject)
+            .OrderByDescending(w => w.Used).FirstOrDefault()?.Session!["layout"]!.DeepClone();
+    }
     public Window? WindowOf(int key) => Projects.SelectMany(p => p.Windows).FirstOrDefault(w => w.Key == key);
     public Project? Get(int id) => Projects.FirstOrDefault(p => p.Id == id);
 

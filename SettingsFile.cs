@@ -44,8 +44,18 @@ static class SettingsFile
     public static string Set(string defaults, string? user, string name, JsonNode? value)
     {
         var defaultValues = Parse(defaults, Name, new JsonArray()) ?? new JsonObject();
-        if (Problem(defaultValues, name, value) is string problem) throw new ArgumentException(problem);
         var own = (user is null ? null : Parse(user, Name, new JsonArray())) ?? new JsonObject();
+        if (MovedToLayout.Contains(name))   // a window's layout now: its value in defaultLayout
+        {
+            var shipped = defaultValues[LayoutName] as JsonObject ?? new JsonObject();
+            if (Problem(shipped, name, value) is string wrong) throw new ArgumentException(wrong);
+            var layout = own[LayoutName] as JsonObject ?? new JsonObject();
+            if (JsonNode.DeepEquals(value, shipped[name])) layout.Remove(name);
+            else layout[name] = value!.DeepClone();
+            if (layout.Count > 0) own[LayoutName] = layout; else own.Remove(LayoutName);
+            return own.ToJsonString(Indented);
+        }
+        if (Problem(defaultValues, name, value) is string problem) throw new ArgumentException(problem);
         if (JsonNode.DeepEquals(value, Standard(defaultValues, name))) own.Remove(name);
         else own[name] = value!.DeepClone();
         return own.ToJsonString(Indented);
@@ -60,7 +70,19 @@ static class SettingsFile
     // already: a newer choice wins), and goes. Done once when your file is read.
     static readonly (string Old, string New)[] Renamed = [("openMarkdownIn", "openIn.markdown")];
 
-    /// <summary>Your file with renamed settings moved over; null when nothing had to change (or it cannot be read).</summary>
+    /// <summary>The layout a new project starts with (docs/plans/31-PLAN-settings-layers.md): one object of the names a
+    /// window keeps with its session (what is open and shown in it). A name missing in yours is the shipped one.</summary>
+    public const string LayoutName = "defaultLayout";
+
+    /// <summary>Settings that became part of a window's layout. In settings.json they are only part of defaultLayout:
+    /// one of them at the top of your file moves into it (a value already there wins), once, when your file is read;
+    /// setting one (Set) sets it there.</summary>
+    public static readonly string[] MovedToLayout = ["wrap", "previewWrap", "tabBar", "formatBar", "ruler", "lineNumbers",
+        "lineNumberCount", "gutter.bookmarks", "gutter.changes", "gutter.git", "gutter.folds", "overview.find",
+        "overview.changes", "overview.git", "overview.bookmarks", "overview.highlights", "overview.compare"];
+
+    /// <summary>Your file with renamed settings moved over, and the settings that are a window's layout now moved into
+    /// defaultLayout; null when nothing had to change (or it cannot be read).</summary>
     public static string? Upgrade(string? user)
     {
         if (user is null || Parse(user, Name, new JsonArray()) is not JsonObject own) return null;
@@ -72,7 +94,31 @@ static class SettingsFile
             if (!own.ContainsKey(renamed)) own[renamed] = value?.DeepClone();
             changed = true;
         }
+        foreach (var name in MovedToLayout)
+        {
+            if (!own.TryGetPropertyValue(name, out var value)) continue;
+            own.Remove(name);
+            if (own[LayoutName] is not JsonObject layout) own[LayoutName] = layout = new JsonObject();
+            if (!layout.ContainsKey(name)) layout[name] = value?.DeepClone();
+            changed = true;
+        }
         return changed ? own.ToJsonString(Indented) : null;
+    }
+
+    /// <summary>Your file with the layout values the page kept in its own storage before (the sidebar, the outline, the
+    /// panes, ...): each one that is a name of the shipped defaultLayout, of its kind, not the shipped value, and not
+    /// in yours yet. Done once (AppHost.ImportLayout).</summary>
+    public static string ImportLayout(string defaults, string? user, JsonObject values)
+    {
+        var shipped = Parse(defaults, Name, new JsonArray())?[LayoutName] as JsonObject ?? new JsonObject();
+        var own = (user is null ? null : Parse(user, Name, new JsonArray())) ?? new JsonObject();
+        var layout = own[LayoutName] as JsonObject ?? new JsonObject();
+        foreach (var (name, value) in values)
+            if (shipped.TryGetPropertyValue(name, out var standard) && Kind(value) == Kind(standard) && !layout.ContainsKey(name)
+                && !JsonNode.DeepEquals(value, standard))
+                layout[name] = value!.DeepClone();
+        if (layout.Count > 0) own[LayoutName] = layout;
+        return own.ToJsonString(Indented);
     }
 
     static JsonObject? Parse(string text, string source, JsonArray problems)
@@ -127,6 +173,16 @@ static class SettingsFile
         var merged = Merge(File.ReadAllText(DefaultsPath), user, userPath);
         merged["userFile"] = userPath;
         return merged;
+    }
+
+    /// <summary>The layout values of the page's storage into your defaultLayout (ImportLayout), written.</summary>
+    public static void WriteImportedLayout(string dataDir, JsonObject values)
+    {
+        var userPath = Path.Combine(dataDir, Name);
+        var user = File.Exists(userPath) ? File.ReadAllText(userPath) : null;
+        var text = ImportLayout(File.ReadAllText(DefaultsPath), user, values);
+        Directory.CreateDirectory(dataDir);
+        File.WriteAllText(userPath, text);
     }
 
     /// <summary>Sets one value in your file (written whole, as plain JSON: comments in it do not survive).</summary>
