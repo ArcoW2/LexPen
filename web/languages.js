@@ -522,7 +522,8 @@ function outlineOf(doc) {
     const width = s => s.replace(/\t/g, ' '.repeat(step)).length;
     const groups = list.filter(g => g && Array.isArray(g.patterns));
     groups.forEach((g, gi) => {
-      const base = Number.isInteger(g.indent) && g.indent >= 1 ? g.indent : 1;   // the group's depth: indent (1 when not set)
+      // The group's depth: indent (1 when not set; "auto": worked out in the merged list, below).
+      const base = Number.isInteger(g.indent) && g.indent >= 1 ? g.indent : 1;
       const found = new Map();                            // line -> entry: within a group the first pattern of a line wins
       for (const p of g.patterns) {
         let re;
@@ -548,12 +549,28 @@ function outlineOf(doc) {
           } else if (Number.isInteger(p.indent)) level = base + Math.floor(width(m[p.indent] ?? '') / step);
           const first = outlineText(parts.find(x => x !== undefined && outlineText(x)) ?? '');   // where its text starts (a double-click)
           const at = m.index + Math.max(0, m[0].indexOf(first)) - starts[line];
-          found.set(line, { level: Math.max(1, Math.min(6, level)), text: shown, line, group: gi, ch: Math.max(0, at) });
+          found.set(line, { level: Math.max(1, Math.min(6, level)), text: shown, line, group: gi, ch: Math.max(0, at), extra: level - base });
         }
       }
       entries.push(...[...found.values()].sort((a, b) => a.line - b.line));
     });
     entries.groups = groups.map((g, gi) => ({ name: String(g.group ?? ''), colour: outlineColour(g.colour, gi) }));
+    // indent: auto, in the merged list (all groups in line order): one deeper than the nearest entry above it from
+    // another group that may be a parent; not one of its own group, nor of a group with parent: false (a TODO inside a
+    // procedure: the regions after it stay under the procedure). Nothing above: depth 1. A pattern's own indent (line,
+    // a capture) adds to it. The grouped view has no line order across groups: there it is the group's depth, 1.
+    const auto = groups.map(g => g.indent === 'auto'), parent = groups.map(g => g.parent !== false);
+    if (auto.some(Boolean)) {
+      const last = new Map();   // group -> its last entry so far that may be a parent, with its place in the list
+      [...entries].sort((a, b) => a.line - b.line).forEach((e, at) => {   // stable: within a line the groups' order
+        if (auto[e.group]) {
+          let above = null;
+          for (const [gi, p] of last) if (gi !== e.group && (!above || p.at > above.at)) above = p;
+          e.mergedLevel = Math.max(1, Math.min(6, (above ? above.entry.mergedLevel ?? above.entry.level : 0) + 1 + e.extra));
+        }
+        if (parent[e.group]) last.set(e.group, { entry: e, at });
+      });
+    }
   }
   doc.outlineVersion = doc.version;
   return doc.outline = entries;
