@@ -6,7 +6,7 @@ using Microsoft.Web.WebView2.WinForms;
 namespace LexPen;
 
 /// <summary>
-/// Options > Settings: one window for the whole app, owned by the window it was opened from, not modal. Its page
+/// Options > Settings: one window per main window, owned by it (on its desktop, closed with it), not modal. Its page
 /// (web\settings.html, WebFiles) shows every setting as a row; a change goes to AppHost.SetSetting at once, and every
 /// LexPen window follows. The rows come from a main window's page (AppHost.SettingDefs), so a setting is
 /// described in one place (actions.js).
@@ -18,6 +18,7 @@ sealed class SettingsForm : Form
         "//   \"Ctrl+Shift+D\": \"bookmarkList\",\n{\n}\n";
 
     readonly AppHost app;
+    readonly MainForm window;   // the main window this one belongs to
     readonly WebView2 web = new() { Dock = DockStyle.Fill };
     bool pageReady;
     readonly List<string> queue = [];
@@ -25,7 +26,8 @@ sealed class SettingsForm : Form
     public SettingsForm(AppHost app, MainForm owner)
     {
         this.app = app;
-        Text = "Settings - LexPen";
+        window = owner;
+        UpdateTitle();
         Icon = owner.Icon;
         ShowInTaskbar = false;
         MinimumSize = new Size(480, 400);
@@ -58,6 +60,10 @@ sealed class SettingsForm : Form
         firstPaint = await core.AddScriptToExecuteOnDocumentCreatedAsync(firstPaintScript = app.FirstPaintScript());
         core.Navigate($"{AppUrl}settings.html");
     }
+
+    /// <summary>The caption names the main window's project, as that window's own caption does.</summary>
+    public void UpdateTitle() =>
+        Text = app.ProjectInfo(window)["display"]?.GetValue<string>() is { Length: > 0 } project ? $"Settings - LexPen - {project}" : "Settings - LexPen";
 
     /// <summary>The caption follows the theme, as the main windows do.</summary>
     public void ApplyTheme()
@@ -129,7 +135,7 @@ sealed class SettingsForm : Form
                 app.SetSetting(Arg("name"), msg["value"]?.DeepClone());
                 return null;
 
-            // Opens your keys.json or settings.json in a tab of the most recently active LexPen window.
+            // Opens your keys.json or settings.json in a tab of the main window this one belongs to.
             case "openFile":
             {
                 var name = Arg("file") == "keys" ? KeysFile.Name : SettingsFile.Name;
@@ -155,8 +161,8 @@ sealed class SettingsForm : Form
 
     void ToWindow(JsonObject message)
     {
-        if (app.LastActive is not MainForm w) return;
-        w.Post(message);
-        AppHost.BringToFront(w);
+        if (window.IsDisposed) return;
+        window.Post(message);
+        AppHost.BringToFront(window);
     }
 }

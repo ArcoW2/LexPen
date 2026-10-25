@@ -164,6 +164,7 @@ sealed class MainForm : Form
     {
         var title = web.CoreWebView2?.DocumentTitle is { Length: > 0 } t ? t : "LexPen";
         Text = app.ProjectInfo(this)["display"]?.GetValue<string>() is { Length: > 0 } project ? $"{title} - {project}" : title;
+        app.SettingsTitle(this);
     }
 
     // Only what the tree shows matters: everything outside hidden folders and node_modules.

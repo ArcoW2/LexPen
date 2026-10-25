@@ -9,7 +9,7 @@ namespace LexPen;
 /// <summary>
 /// Owns all windows of the one running instance. Later launches send their arguments over a named
 /// pipe (see Program); this class routes them to windows (see Router). It also holds what the windows
-/// share: settings (and the one settings window), state, the session, drafts, the edit lock per file and
+/// share: settings (and a settings window per main window), state, the session, drafts, the edit lock per file and
 /// the WebView2 environment. The data folder's layout: see DataFolder.
 /// </summary>
 sealed class AppHost : ApplicationContext
@@ -191,7 +191,7 @@ sealed class AppHost : ApplicationContext
             languagesTimer.Stop();
             LoadLanguages();
             foreach (var w in windows) w.Post(new JsonObject { ["event"] = "languages", ["languages"] = languages.DeepClone() });
-            settingsWindow?.Post(new JsonObject { ["event"] = "languages", ["languages"] = languages.DeepClone() });
+            foreach (var s in settingsWindows.Values) s.Post(new JsonObject { ["event"] = "languages", ["languages"] = languages.DeepClone() });
         };
     }
 
@@ -292,14 +292,14 @@ sealed class AppHost : ApplicationContext
             w.ApplyTheme();
             w.Post(new JsonObject { ["event"] = "look", ["look"] = look.DeepClone() });
         }
-        settingsWindow?.ApplyTheme();
+        foreach (var s in settingsWindows.Values) s.ApplyTheme();
         charPicker?.ApplyTheme();
         charPicker?.Post(new JsonObject { ["event"] = "look", ["look"] = look.DeepClone() });
         highlightsWindow?.ApplyTheme();
         highlightsWindow?.Post(new JsonObject { ["event"] = "look", ["look"] = look.DeepClone() });
         projectsWindow?.ApplyTheme();
         projectsWindow?.Post(new JsonObject { ["event"] = "look", ["look"] = look.DeepClone() });
-        settingsWindow?.Post(new JsonObject { ["event"] = "look", ["look"] = look.DeepClone() });
+        foreach (var s in settingsWindows.Values) s.Post(new JsonObject { ["event"] = "look", ["look"] = look.DeepClone() });
     }
 
     /// <summary>Day / night while following Windows: the other mode, until Windows changes mode.</summary>
@@ -352,7 +352,7 @@ sealed class AppHost : ApplicationContext
     }
     /// <summary>The rows of the settings window, as a main window's page describes them (actions.js).</summary>
     public JsonNode? SettingDefs { get; set; }
-    SettingsForm? settingsWindow;
+    readonly Dictionary<MainForm, SettingsForm> settingsWindows = [];   // per main window, at most one
     CharPickerForm? charPicker;
     HighlightsForm? highlightsWindow;
     ProjectsForm? projectsWindow;
@@ -621,7 +621,7 @@ sealed class AppHost : ApplicationContext
         SaveProjects();
         if (windows.Count == 0)
         {
-            settingsWindow?.Close();
+            foreach (var s in settingsWindows.Values.ToList()) s.Close();
             charPicker?.Close();
             highlightsWindow?.Close();
             projectsWindow?.Close();
@@ -757,7 +757,7 @@ sealed class AppHost : ApplicationContext
         var before = Look().ToJsonString();
         settings = SettingsFile.Load(DataDir);
         foreach (var w in windows) w.Post(new JsonObject { ["event"] = "settings", ["settings"] = settings.DeepClone() });
-        settingsWindow?.Post(new JsonObject { ["event"] = "settings", ["settings"] = settings.DeepClone() });
+        foreach (var s in settingsWindows.Values) s.Post(new JsonObject { ["event"] = "settings", ["settings"] = settings.DeepClone() });
         charPicker?.Post(new JsonObject { ["event"] = "settings", ["settings"] = settings["values"]?.DeepClone() });
         highlightsWindow?.Post(new JsonObject { ["event"] = "settings", ["settings"] = settings["values"]?.DeepClone() });
         projectsWindow?.Post(new JsonObject { ["event"] = "settings", ["settings"] = settings["values"]?.DeepClone() });
@@ -765,7 +765,10 @@ sealed class AppHost : ApplicationContext
     }
 
     /// <summary>A main window described the settings' rows again (another list of themes): the settings window follows.</summary>
-    public void DefsChanged() => settingsWindow?.Post(new JsonObject { ["event"] = "defs", ["defs"] = SettingDefs?.DeepClone() });
+    public void DefsChanged()
+    {
+        foreach (var s in settingsWindows.Values) s.Post(new JsonObject { ["event"] = "defs", ["defs"] = SettingDefs?.DeepClone() });
+    }
 
     /// <summary>The settings a page kept in its own storage before settings.json existed, moved over once.</summary>
     public bool PageSettingsMoved => File.Exists(PageSettingsMovedPath);
@@ -820,18 +823,23 @@ sealed class AppHost : ApplicationContext
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return null; }
     }
 
-    /// <summary>Options > Settings: the one settings window, owned by the window it was asked from.</summary>
+    /// <summary>Options > Settings: the settings window of the window it was asked from, owned by it (so on its
+    /// desktop); that window's own when it has one open, brought to the front. Two windows can each have one.</summary>
     public void OpenSettings(MainForm from)
     {
-        if (settingsWindow is { IsDisposed: false })
+        if (settingsWindows.TryGetValue(from, out var open) && !open.IsDisposed)
         {
-            BringToFront(settingsWindow);
+            BringToFront(open);
             return;
         }
-        settingsWindow = new SettingsForm(this, from);
-        settingsWindow.FormClosed += (_, _) => settingsWindow = null;
+        var settingsWindow = new SettingsForm(this, from);
+        settingsWindows[from] = settingsWindow;
+        settingsWindow.FormClosed += (_, _) => { if (settingsWindows.GetValueOrDefault(from) == settingsWindow) settingsWindows.Remove(from); };
         settingsWindow.Show(from);
     }
+
+    /// <summary>A main window's caption changed (its project renamed, the [n] shifted): its settings window follows.</summary>
+    public void SettingsTitle(MainForm w) => settingsWindows.GetValueOrDefault(w)?.UpdateTitle();
 
     /// <summary>The character picker: one for the app; opened again, brought to the front at that character. The
     /// main windows hear whether it is open (they then tell it the character after their cursor).</summary>
