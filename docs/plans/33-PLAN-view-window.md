@@ -51,7 +51,7 @@ The window's layout of plan 31 (`31-PLAN-settings-layers.md`, 3.2), set to:
 - Every tab in Preview mode; the editor not shown.
 - The tabs themselves are kept (question 2).
 - Its theme set (plan 32) is not touched: that is colour, not layout. Global settings are not touched either.
-- The rest of plan 31's layout (wrap, tab bar, line numbers, gutter columns, scroll bar marks, zoom, the folder
+- The rest of plan 31's layout (wrap, tab bar, line numbers, gutter columns, scroll bar marks, the folder
   filter and sort) is taken from the default layout (plan 31, 3.5): the view layout is the default with the
   values above over it.
 

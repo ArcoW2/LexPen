@@ -158,12 +158,12 @@ projects, the desktops, the app.
 
 ### 3.11 A settings window per main window
 
-Moved to plan 31 (`31-PLAN-settings-layers.md`, 3.6), which is done first: each main window has a settings window
+Moved to plan 31 (`31-PLAN-settings-layers.md`, 3.7), which is done first: each main window has a settings window
 of its own. This plan adds to it:
 
 - The theme set bar (3.8) and where a change to one of 3.2's settings goes (3.7): the set of the owner window. Its
   look is the owner's set, not the last active window's.
-- The row marks of plan 31 (3.7): 3.2's settings are the theme set layer; the tooltip names the set ("Theme set:
+- The row marks of plan 31 (3.8): 3.2's settings are the theme set layer; the tooltip names the set ("Theme set:
   Company (this project's)").
 - Save as default (plan 31, 3.5) saves only the layout, at once. This plan turns it into a small dialog with two
   checkboxes, both on: "The layout of this window" (plan 31, as before) and "The theme set "Company" for new
