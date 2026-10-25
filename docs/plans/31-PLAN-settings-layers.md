@@ -146,7 +146,12 @@ more than the big main screen. So zoom is kept per monitor.
 - The settings window: the rows `editorSize` and `zoom` stay global (the base). Below them a line in the "this
   screen" colour: "On this screen: +2 pt, 125%", with Reset (the same as Zoom 100%), for the monitor of the
   window the settings window belongs to.
-- Not per screen: `appSize` and `statusSize` (the menus and bars), question 1.
+- Not per screen: `appSize` and `statusSize` (the menus and bars) stay global; Windows' scale per monitor does
+  the rest (your answer).
+- No setting "zoom per monitor or global" (question 1, proposal): both are there without one. Zoom in / out
+  (Ctrl+wheel) is this screen; the base rows in the settings window are every screen. View > Zoom > "Use on every
+  screen" makes this screen's zoom the base and removes every monitor's own, for going back to one zoom in one
+  step.
 
 ### 3.7 A settings window per main window
 
@@ -206,7 +211,7 @@ View
   Scroll both panes together
   Layout                >   Save as default / Reset to default
   -- This screen ---------------------
-  Zoom                  >   zoom in / zoom out / 100%
+  Zoom                  >   zoom in / zoom out / 100% / use on every screen
   ------------------------------------
   Locate the cursor
   Pane visibility       >   hide this pane / hide other pane / close this pane / close other pane / show hidden pane
@@ -282,5 +287,6 @@ View
 
 ## 4. Open questions
 
-1. The menus and bars (`appSize`, `statusSize`): global as now, with Windows' scale per monitor doing the rest
-   (proposal), or per screen as well, with the zoom?
+1. A setting to choose between zoom per monitor and one global zoom? Proposal: no (3.6): Ctrl+wheel zooms this
+   screen, the settings rows set the base for every screen, and "Use on every screen" goes back to one zoom. A
+   setting would add a mode to explain, for what these already give.
