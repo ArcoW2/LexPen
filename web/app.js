@@ -2889,12 +2889,12 @@ function showOutline(pane) {
   const groups = headings.groups, merged = !groups || setting('outlineMerged'), bullets = groups && setting('outlineBullets') !== false;
   const folded = outlineFolded(doc);
   const item = h => {
-    const el = document.createElement('div');
+    const el = document.createElement('div'), level = merged ? h.mergedLevel ?? h.level : h.level;   // indent: auto (languages.js)
     el.className = 'mm-outline-item';
     el.dataset.line = h.line;
     el.dataset.ch = h.ch ?? 0;
-    el.dataset.level = h.level;
-    el.style.paddingLeft = 8 + (h.level - 1) * 12 + (groups && !merged ? 10 : 0) + 'px';
+    el.dataset.level = level;
+    el.style.paddingLeft = 8 + (level - 1) * 12 + (groups && !merged ? 10 : 0) + 'px';
     if (h.group !== undefined) el.dataset.group = h.group;
     if (bullets) {
       const b = document.createElement('span');

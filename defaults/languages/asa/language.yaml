@@ -122,6 +122,8 @@ embedded:
 # The tag groups of the word file: procedures / functions / triggers, tables, regions, TODO, API definitions.
 outline:   # the groups of Sybase_ASA_SQL.uew (/TGBegin), in its order
   - group: 'TODO'
+    indent: auto    # under what is above it (a procedure, a region)
+    parent: false   # but never above what follows: a region after a TODO stays under the procedure
     patterns:
       - { pattern: '//.*\s*(TODO|ACW|!@#):*\s+([^0-9].+)$' }   # the tag and the text, joined
   - group: 'APIdefs King Communicator'
@@ -132,6 +134,7 @@ outline:   # the groups of Sybase_ASA_SQL.uew (/TGBegin), in its order
       - { pattern: '^\s*create\s+(?:or\s+replace\s+)?(procedure|function|view|event|domain)\s+([\w".]+)' }
       - { pattern: '^\s*create\s+or\s+replace\s+trigger\s+([\w".]+)' }
   - group: 'Regions'
+    indent: auto    # under the procedure or table above it (merged in line order)
     patterns:
       - { pattern: '(?://\s*---|(?://|--)\$region)\s?((?:(?!\s---).)+)' }
       - { pattern: '^\s*begin\s*(?:--|//)\s*(.+)$' }
