@@ -2,7 +2,8 @@
 
 Status: draft 2026-10-25, your answers of 2026-10-25 worked in (the default taken over by removing Windows' stored
 choice; a column Opens now with; a dialog in the settings window; unchecking removes LexPen's entries; not from a debug
-build; register.ps1 goes; a choice per extension: edit or view). Not started; one question open.
+build; register.ps1 goes; a choice per extension: edit or view; All edit / All view; choosing edit or view checks
+the row). Not started; no questions open.
 The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
@@ -35,12 +36,13 @@ LexPen; what Windows still keeps elsewhere is named, and Windows' Default apps o
   - Language (Sybase ASA SQL);
   - Opens as: Edit or View, a list per row; Edit when not chosen before. Edit: as opening a file is now (never in the
     project for viewing). View: in the project for viewing, in the preview, read-only as its setting says
-    (`--view`, docs/plans/executed/PLAN-view-window.md);
+    (`--view`, docs/plans/executed/PLAN-view-window.md). Choosing one checks the row as well: one click less;
   - Opens now with: the app Windows starts now for it (its name; "LexPen" in the accent colour; "-" for none).
 - A click on a column header sorts by it; again: the other way.
 - A filter field above the table (type `sq` or `sql`): the rows whose extension or language contains it.
 - Checked at the start: the extensions LexPen is registered for now, each with how it opens now.
-- Buttons: Check all, Check none (the rows shown), Assign, Cancel (closes, nothing changed).
+- Buttons: Check all, Check none, All edit, All view (each on the rows shown; All edit and All view check them as
+  well, as choosing in a row does), Assign, Cancel (closes, nothing changed).
 
 ### 3.2 What Assign writes (HKCU\Software\Classes, per user, no admin)
 
@@ -112,5 +114,4 @@ only Windows can write. An app writing it is refused. What other programs do, an
 
 ## 4. Open questions
 
-1. Check all / Check none: also a way to set Opens as for all rows shown at once (All edit, All view)? Proposal: yes,
-   two more buttons next to them; otherwise a row at a time.
+None.
