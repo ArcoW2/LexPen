@@ -2,7 +2,7 @@
 
 Status: draft 2026-10-25, reworked 2026-10-25 on your direction: no separate kind of window; viewing uses a normal
 project, "View" by default, that you change as you like and can choose and reset in the settings. Not started;
-questions open. Split off from the docking plan (24): "The explorer-items belong in a separate plan, including the
+questions open. Needs plan 31 (settings layers: the layout per window) first. Split off from the docking plan (24): "The explorer-items belong in a separate plan, including the
 fixed view project".
 The number in the file name is the priority; rename to reorder.
 
@@ -42,12 +42,17 @@ between two lines or in a "LexPen" submenu.
 
 What "Reset to view layout" sets, and what a new "View" project starts with:
 
+The window's layout of plan 31 (`31-PLAN-settings-layers.md`, 3.2), set to:
+
 - One window: the project's other windows are closed (their sessions dropped).
 - A single editor pane: no split, no compare.
-- No side panes: Folder, Search and Outline closed.
+- No side panes: the sidebar (Folder, Search) and the Outline off.
+- No format bar, no ruler.
 - Every tab in Preview mode; the editor not shown.
 - The tabs themselves are kept (question 2).
-- Its theme set (plan 32) is not touched: that is colour, not layout.
+- Its theme set (plan 32) is not touched: that is colour, not layout. Global settings are not touched either.
+- Which of plan 31's borderline settings (its question 1) end up in the layout decides what else the reset can
+  set; only layout settings are per project.
 
 The layout is only a starting point: open the Folder pane or split the window afterwards and that is what the next
 view gets. Nothing is locked.
@@ -94,7 +99,7 @@ last window used. One change: when that last window is the view project's, the p
 - SettingsFile / actions.js: `viewProject`, `explorerItems`, `explorerPlace`; the "Viewing" group with the project
   list and the reset button (an op, as the settings window's other buttons).
 - ProjectStore: find the view project (by id, else by the name "View"), make it; apply the view layout to a
-  project's window session (pure, so it can be tested).
+  project's window session (the `layout` of plan 31 and the tab modes; pure, so it can be tested).
 - AppHost: View (a file or a folder) and Edit as in 3.3 and 3.4; the view project's name and the reset for the
   settings window and Manage projects.
 - Program: `--view`, `--edit` parsed and passed over the pipe.
