@@ -57,7 +57,7 @@ sealed class SettingsForm : Form
         };
         core.NavigationStarting += (_, n) => { if (!n.Uri.StartsWith(AppUrl)) n.Cancel = true; };
         core.NewWindowRequested += (_, n) => n.Handled = true;
-        firstPaint = await core.AddScriptToExecuteOnDocumentCreatedAsync(firstPaintScript = app.FirstPaintScript());
+        firstPaint = await core.AddScriptToExecuteOnDocumentCreatedAsync(firstPaintScript = app.FirstPaintScript(window));
         core.Navigate($"{AppUrl}settings.html");
     }
 
@@ -69,7 +69,7 @@ sealed class SettingsForm : Form
     public void ApplyTheme()
     {
         var dark = app.Mode == "dark";
-        BackColor = web.DefaultBackgroundColor = app.AppBackground();
+        BackColor = web.DefaultBackgroundColor = app.AppBackground(window);
         var on = dark ? 1 : 0;
         DwmSetWindowAttribute(Handle, 20 /* DWMWA_USE_IMMERSIVE_DARK_MODE */, ref on, sizeof(int));
         UpdateFirstPaint();
@@ -80,7 +80,7 @@ sealed class SettingsForm : Form
     async void UpdateFirstPaint()
     {
         if (web.CoreWebView2 is not { } core || firstPaint is null) return;   // OnLoad registers the first one
-        var script = app.FirstPaintScript();
+        var script = app.FirstPaintScript(window);
         if (script == firstPaintScript) return;
         firstPaintScript = script;
         core.RemoveScriptToExecuteOnDocumentCreated(firstPaint);
@@ -121,9 +121,9 @@ sealed class SettingsForm : Form
         {
             case "init":
             {
-                var init = (JsonObject)app.Settings.DeepClone();
+                var init = app.SettingsFor(window);   // the main window's: its theme set's values
                 init["defs"] = app.SettingDefs?.DeepClone();
-                init["look"] = app.Look();
+                init["look"] = app.Look(window);
                 init["languageProblems"] = app.Languages["problems"]?.DeepClone();
                 init["layout"] = window.PageLayout?.DeepClone();   // the rows of "this window" (docs/plans/executed/PLAN-settings-layers.md)
                 init["window"] = app.ProjectInfo(window)["display"]?.DeepClone();   // its name in the rows' tooltips
@@ -135,7 +135,11 @@ sealed class SettingsForm : Form
                 return new JsonArray(Fonts.List().Select(f => (JsonNode)new JsonObject { ["name"] = f.Name, ["mono"] = f.Mono }).ToArray());
 
             case "settingSet":
-                app.SetSetting(Arg("name"), msg["value"]?.DeepClone());
+                return app.SetSetting(Arg("name"), msg["value"]?.DeepClone(), window);   // a colour: into the window's set
+
+            // The main window's project gets a set of its own (null: none).
+            case "themeSet":
+                if (!window.IsDisposed) app.SetProjectSet(window, msg["set"]?.GetValue<string>());
                 return null;
 
             // A row of "this window": its main window sets it in its layout (and says so: layoutShown).

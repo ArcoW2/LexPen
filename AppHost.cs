@@ -12,6 +12,13 @@ namespace LexPen;
 /// share: settings (and a settings window per main window), state, the session, drafts, the edit lock per file and
 /// the WebView2 environment. The data folder's layout: see DataFolder.
 /// </summary>
+/// <summary>A tool window (character picker, highlights, Manage projects): its page gets messages, its caption the theme.</summary>
+interface IWebPost
+{
+    void Post(JsonObject message);
+    void ApplyTheme();
+}
+
 sealed class AppHost : ApplicationContext
 {
     // LEXPEN_DATA points a test run somewhere else, away from the real session and drafts.
@@ -58,6 +65,116 @@ sealed class AppHost : ApplicationContext
     // Your settings (SettingsFile): the defaults with your settings.json on top.
     JsonObject settings = SettingsFile.Load(DataDir);
     public JsonObject Settings => settings;
+
+    // ---------- Theme sets (ThemeSetFile, docs/plans/32-PLAN-theme-sets.md) ----------
+    // A window shows its project's set, else its desktop's default set, else the app's; "Default" is settings.json
+    // itself. Every window gets its own settings and look from that: settings.json with the set's values over them.
+    static string ThemeSetsPath => Path.Combine(DataDir, ThemeSetFile.FileName);
+    ThemeSetFile.Data themeSets = ThemeSetFile.Load(ThemeSetsPath);
+
+    string? DesktopOf(MainForm? w) => w is null ? null : projects.WindowOf(w.Key)?.Desktop;
+
+    /// <summary>The set a window shows (ThemeSetFile.Resolve); no window: the app's.</summary>
+    public string SetOf(MainForm? w) =>
+        ThemeSetFile.Resolve(themeSets, w is null ? null : projects.ProjectOf(w.Key)?.ThemeSet, DesktopOf(w));
+
+    // The settings' values as a window sees them (not to be changed: for "Default" they are settings.json's own).
+    JsonObject Values(MainForm? w)
+    {
+        var values = settings["values"] as JsonObject ?? [];
+        return SetOf(w) is var set && set != ThemeSetFile.Default ? ThemeSetFile.Apply(values, themeSets.Get(set)) : values;
+    }
+
+    /// <summary>The settings a window's page gets (as SettingsFile.Load gives them), with its set's values over them and
+    /// what the bars show about its set.</summary>
+    public JsonObject SettingsFor(MainForm? w)
+    {
+        var s = (JsonObject)settings.DeepClone();
+        s["values"] = Values(w).DeepClone();
+        s["themeSet"] = SetInfo(w);
+        return s;
+    }
+
+    /// <summary>A window's set for the bars: its name, where it comes from (project, desktop, app), the project's own,
+    /// and every set ("Default" first).</summary>
+    public JsonObject SetInfo(MainForm? w)
+    {
+        var own = w is null ? null : themeSets.Known(projects.ProjectOf(w.Key)?.ThemeSet);
+        return new JsonObject
+        {
+            ["name"] = SetOf(w),
+            ["source"] = ThemeSetFile.Source(themeSets, own, DesktopOf(w)),
+            ["own"] = own,
+            ["sets"] = new JsonArray(themeSets.Sets.Select(s => (JsonNode?)s.Name).Prepend(ThemeSetFile.Default).ToArray()),
+        };
+    }
+
+    // What a window, a settings window or a tool window was sent last, per kind: sent again only when it changed.
+    readonly System.Runtime.CompilerServices.ConditionalWeakTable<Form, Dictionary<string, string>> sent = [];
+
+    bool Changed(Form f, string kind, JsonNode value)
+    {
+        var last = sent.GetOrCreateValue(f);
+        var text = value.ToJsonString();
+        if (last.GetValueOrDefault(kind) == text) return false;
+        last[kind] = text;
+        return true;
+    }
+
+    /// <summary>The settings to every window, each its own (its set's values), when they changed for it.</summary>
+    void SendSettings()
+    {
+        foreach (var w in windows)
+            if (SettingsFor(w) is var s && Changed(w, "settings", s)) w.Post(new JsonObject { ["event"] = "settings", ["settings"] = s });
+        foreach (var (owner, s) in settingsWindows)
+            if (SettingsFor(owner) is var o && Changed(s, "settings", o)) s.Post(new JsonObject { ["event"] = "settings", ["settings"] = o });
+        // The tool windows follow the window last worked in.
+        var values = Values(LastActive);
+        foreach (var tool in new IWebPost?[] { charPicker, highlightsWindow, projectsWindow })
+            if (tool is Form f && Changed(f, "settings", values)) tool.Post(new JsonObject { ["event"] = "settings", ["settings"] = values.DeepClone() });
+    }
+
+    /// <summary>A window's project got another set, its desktop another default, or a set changed: every window that
+    /// shows something else now follows.</summary>
+    void Restyle()
+    {
+        SendSettings();
+        SendLook();
+        foreach (var (owner, s) in settingsWindows) s.Post(new JsonObject { ["event"] = "themeSet", ["themeSet"] = SetInfo(owner) });
+    }
+
+    void SaveThemeSets()
+    {
+        try { ThemeSetFile.Save(ThemeSetsPath, themeSets); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+    }
+
+    /// <summary>A window's project gets a set of its own (null: none, the defaults again).</summary>
+    public void SetProjectSet(MainForm w, string? set)
+    {
+        if (projects.ProjectOf(w.Key) is not { } p) return;
+        p.ThemeSet = themeSets.Known(set);
+        SaveProjects();
+        Restyle();
+    }
+
+    // What else uses a set, for the message after a change: other projects naming it, desktops, the app.
+    string AlsoUsedBy(MainForm from, string set)
+    {
+        var mine = projects.ProjectOf(from.Key);
+        var parts = new List<string>();
+        var others = projects.Projects.Count(p => p != mine && themeSets.Known(p.ThemeSet) == set);
+        if (others > 0) parts.Add(others == 1 ? "1 other project" : $"{others} other projects");
+        var desktop = DesktopOf(from);
+        var desktops = themeSets.Desktops.Where(d => d.Value == set).Select(d => d.Key).ToList();
+        if (desktop is not null && desktops.Contains(desktop, StringComparer.OrdinalIgnoreCase) && themeSets.Known(mine?.ThemeSet) is not null)
+            parts.Add("this desktop's default");
+        var otherDesktops = desktops.Count(d => !string.Equals(d, desktop, StringComparison.OrdinalIgnoreCase));
+        if (otherDesktops > 0) parts.Add(otherDesktops == 1 ? "another desktop's default" : $"{otherDesktops} other desktops' default");
+        if (themeSets.App == set && ThemeSetFile.Source(themeSets, themeSets.Known(mine?.ThemeSet), desktop) != "app") parts.Add("the app's default");
+        return parts.Count <= 1 ? string.Concat(parts) : string.Join(", ", parts[..^1]) + " and " + parts[^1];
+    }
+
     string? SettingText(string name) => settings["values"]?[name]?.GetValueKind() == JsonValueKind.String ? settings["values"]![name]!.GetValue<string>() : null;
     bool SettingFlag(string name) => settings["values"]?[name]?.GetValueKind() == JsonValueKind.True;
 
@@ -214,24 +331,26 @@ sealed class AppHost : ApplicationContext
         themes.FirstOrDefault(t => t.Id == id) ?? themes.FirstOrDefault(t => t.Id == mode)
         ?? new ThemeFile.Theme(mode, mode, null, new Dictionary<string, string>(), false, [mode]);
 
-    // The theme a setting names: an old id of a renamed theme finds the new one (ThemeFile.Renamed).
-    string? ThemeId(string setting) => ThemeFile.Current(SettingText(setting), id => themes.Any(t => t.Id == id));
+    // The theme a setting names (in a window's values: its set's): an old id of a renamed theme finds the new one.
+    string? ThemeId(string setting, JsonObject values) =>
+        ThemeFile.Current(values[setting]?.GetValueKind() == JsonValueKind.String ? values[setting]!.GetValue<string>() : null, id => themes.Any(t => t.Id == id));
 
-    ThemeFile.Theme AppTheme => ThemeFor(ThemeId(Mode == "dark" ? "themeDark" : "themeLight"), Mode);
+    ThemeFile.Theme AppTheme(JsonObject values) => ThemeFor(ThemeId(Mode == "dark" ? "themeDark" : "themeLight", values), Mode);
 
-    /// <summary>Every colour of the app's theme, for the current mode (the mode's fallback for what it lacks).</summary>
-    public Dictionary<string, string> AppColours() => ThemeFile.Complete(AppTheme, Mode == "dark" ? fallbackDark : fallbackLight);
+    /// <summary>Every colour of a window's app theme (its set's), for the current mode (the mode's fallback for what
+    /// it lacks). No window: the window last worked in (the tool windows follow it).</summary>
+    public Dictionary<string, string> AppColours(MainForm? w) => ThemeFile.Complete(AppTheme(Values(w)), Mode == "dark" ? fallbackDark : fallbackLight);
 
     /// <summary>The app's theme background: the window before the page draws.</summary>
-    public Color AppBackground() =>
-        ThemeFile.Rgb(AppColours().GetValueOrDefault("--bg") ?? "") is var (r, g, b) ? Color.FromArgb(r, g, b)
+    public Color AppBackground(MainForm? w) =>
+        ThemeFile.Rgb(AppColours(w).GetValueOrDefault("--bg") ?? "") is var (r, g, b) ? Color.FromArgb(r, g, b)
         : Mode == "dark" ? Color.FromArgb(0x1e, 0x1f, 0x22) : Color.White;
 
     /// <summary>A script that runs before the page's own scripts and its first paint: the mode and the app's
     /// theme colours on the page, so it never shows other colours first.</summary>
-    public string FirstPaintScript()
+    public string FirstPaintScript(MainForm? w)
     {
-        var vars = new JsonObject(AppColours().Select(v => KeyValuePair.Create(v.Key, (JsonNode?)v.Value)));
+        var vars = new JsonObject(AppColours(w).Select(v => KeyValuePair.Create(v.Key, (JsonNode?)v.Value)));
         var mode = JsonValue.Create(Mode).ToJsonString();
         // It runs before <html> exists: an observer sets them on <html> as it appears (a microtask: before the
         // parser runs a page script, and before any paint).
@@ -245,8 +364,9 @@ sealed class AppHost : ApplicationContext
     /// <summary>What every window shows: the app's theme, the editor's and the preview's own ones (or null: the app's), the mode,
     /// the list of themes (for the settings) and problems in theme files. A theme's vars are complete (with the
     /// mode's fallback); chain is its id and its bases, nearest first.</summary>
-    public JsonObject Look()
+    public JsonObject Look(MainForm? w)
     {
+        var values = Values(w);
         var fallback = Mode == "dark" ? fallbackDark : fallbackLight;
         JsonObject Json(ThemeFile.Theme t) => new()
         {
@@ -254,14 +374,14 @@ sealed class AppHost : ApplicationContext
             ["chain"] = new JsonArray(t.Chain.Select(c => (JsonNode?)c).ToArray()),
             ["vars"] = new JsonObject(ThemeFile.Complete(t, fallback).Select(v => KeyValuePair.Create(v.Key, (JsonNode?)v.Value))),
         };
-        var app = AppTheme;
+        var app = AppTheme(values);
         // A theme of its own, or null: none set, or no such theme (reported below).
-        JsonObject? Own(string setting) => ThemeId(setting) is { Length: > 0 } id && themes.Any(t => t.Id == id) ? Json(ThemeFor(id, Mode)) : null;
+        JsonObject? Own(string setting) => ThemeId(setting, values) is { Length: > 0 } id && themes.Any(t => t.Id == id) ? Json(ThemeFor(id, Mode)) : null;
         var dark = Mode == "dark";
         var problems = new JsonArray(themeProblems.Select(p => (JsonNode?)p).ToArray());
         foreach (var name in new[] { "themeLight", "themeDark", "editorThemeLight", "editorThemeDark", "previewThemeLight", "previewThemeDark", "sneakTheme" })
-            if (ThemeId(name) is { Length: > 0 } id && themes.All(t => t.Id != id))
-                problems.Add($"settings.json: \"{name}\": there is no theme \"{id}\".");
+            if (ThemeId(name, values) is { Length: > 0 } id && themes.All(t => t.Id != id))
+                problems.Add($"{(SetOf(w) is var set && set != ThemeSetFile.Default ? $"Theme set \"{set}\"" : "settings.json")}: \"{name}\": there is no theme \"{id}\".");
         return new JsonObject
         {
             ["mode"] = Mode,
@@ -287,22 +407,34 @@ sealed class AppHost : ApplicationContext
     }
 
     /// <summary>The look changed (a setting, a theme file, the Windows mode, Day / night): every window follows.</summary>
+    // Each window its own (its set's); a window whose look did not change is left alone.
     void SendLook()
     {
-        var look = Look();
         foreach (var w in windows)
-        {
-            w.ApplyTheme();
-            w.Post(new JsonObject { ["event"] = "look", ["look"] = look.DeepClone() });
-        }
-        foreach (var s in settingsWindows.Values) s.ApplyTheme();
-        charPicker?.ApplyTheme();
-        charPicker?.Post(new JsonObject { ["event"] = "look", ["look"] = look.DeepClone() });
-        highlightsWindow?.ApplyTheme();
-        highlightsWindow?.Post(new JsonObject { ["event"] = "look", ["look"] = look.DeepClone() });
-        projectsWindow?.ApplyTheme();
-        projectsWindow?.Post(new JsonObject { ["event"] = "look", ["look"] = look.DeepClone() });
-        foreach (var s in settingsWindows.Values) s.Post(new JsonObject { ["event"] = "look", ["look"] = look.DeepClone() });
+            if (Look(w) is var look && Changed(w, "look", look))
+            {
+                w.ApplyTheme();
+                w.Post(new JsonObject { ["event"] = "look", ["look"] = look });
+            }
+        foreach (var (owner, s) in settingsWindows)
+            if (Look(owner) is var look && Changed(s, "look", look))
+            {
+                s.ApplyTheme();
+                s.Post(new JsonObject { ["event"] = "look", ["look"] = look });
+            }
+        SendToolLook();
+    }
+
+    // The tool windows (character picker, highlights, Manage projects) look as the window last worked in.
+    void SendToolLook()
+    {
+        var look = Look(LastActive);
+        foreach (var tool in new IWebPost?[] { charPicker, highlightsWindow, projectsWindow })
+            if (tool is Form f && Changed(f, "look", look))
+            {
+                tool.ApplyTheme();
+                tool.Post(new JsonObject { ["event"] = "look", ["look"] = look.DeepClone() });
+            }
     }
 
     /// <summary>Day / night while following Windows: the other mode, until Windows changes mode.</summary>
@@ -544,6 +676,7 @@ sealed class AppHost : ApplicationContext
             recent.Insert(0, w);
             projects.Touch(w.Key);
             WindowPlaceChanged(w);
+            SendToolLook();   // the tool windows look as this one now
         };
         w.FormClosed += (_, e) => Closed(w, e.CloseReason);
         if (primary is null) SetPrimary(w);
@@ -753,27 +886,34 @@ sealed class AppHost : ApplicationContext
 
     /// <summary>One setting changed (settings window, a menu, a key): written to your settings.json, then every
     /// window and the settings window get the new set at once.</summary>
-    public void SetSetting(string name, JsonNode? value)
+    public JsonObject? SetSetting(string name, JsonNode? value, MainForm? from = null)
     {
+        // A setting of the look, from a window whose set is not "Default": stored in that set (theme-sets.json), at
+        // once; the answer says where, and what else uses it (docs/plans/32-PLAN-theme-sets.md, 3.7).
+        if (from is not null && ThemeSetFile.Names.Contains(name) && SetOf(from) is var set && themeSets.Get(set) is { } inSet)
+        {
+            SettingsFile.Set(File.ReadAllText(SettingsFile.DefaultsPath), null, name, value);   // throws for a wrong value
+            inSet.Values[name] = value?.DeepClone();
+            SaveThemeSets();
+            Restyle();
+            return new JsonObject { ["set"] = set, ["also"] = AlsoUsedBy(from, set) };
+        }
         SettingsFile.Write(DataDir, name, value);
         ReloadSettings();
         // The Explorer menu's entries (ExplorerMenu): written for this exe as the settings now say, or removed.
         if (name is "explorerCompare" or "explorerView" or "explorerEdit" or "explorerPlace")
             ExplorerMenu.Apply(Environment.ProcessPath ?? Application.ExecutablePath, new ExplorerMenu.Choice(SettingFlag("explorerCompare"),
                 SettingFlag("explorerView"), SettingFlag("explorerEdit"), SettingText("explorerPlace") == "submenu"));
+        return from is not null && ThemeSetFile.Names.Contains(name)
+            ? new JsonObject { ["set"] = ThemeSetFile.Default, ["also"] = AlsoUsedBy(from, ThemeSetFile.Default) } : null;
     }
 
     // Also after a hand edit of the file (see WatchSettings).
     void ReloadSettings()
     {
-        var before = Look().ToJsonString();
         settings = SettingsFile.Load(DataDir);
-        foreach (var w in windows) w.Post(new JsonObject { ["event"] = "settings", ["settings"] = settings.DeepClone() });
-        foreach (var s in settingsWindows.Values) s.Post(new JsonObject { ["event"] = "settings", ["settings"] = settings.DeepClone() });
-        charPicker?.Post(new JsonObject { ["event"] = "settings", ["settings"] = settings["values"]?.DeepClone() });
-        highlightsWindow?.Post(new JsonObject { ["event"] = "settings", ["settings"] = settings["values"]?.DeepClone() });
-        projectsWindow?.Post(new JsonObject { ["event"] = "settings", ["settings"] = settings["values"]?.DeepClone() });
-        if (Look().ToJsonString() != before) SendLook();
+        SendSettings();
+        SendLook();   // only the windows whose look changed
     }
 
     /// <summary>A main window described the settings' rows again (another list of themes): the settings window follows.</summary>
@@ -1283,8 +1423,10 @@ sealed class AppHost : ApplicationContext
         var maximized = w.WindowState == FormWindowState.Maximized;
         var desktop = VirtualDesktop.DesktopOf(w.Handle) ?? entry.Desktop;
         if (entry.Bounds is not null && entry.Bounds.SequenceEqual(bounds) && entry.Maximized == maximized && entry.Desktop == desktop) return;
+        var otherDesktop = entry.Desktop != desktop;
         (entry.Bounds, entry.Maximized, entry.Desktop) = (bounds, maximized, desktop);
         SaveProjectsSoon();
+        if (otherDesktop) Restyle();   // another desktop: maybe its default set (docs/plans/32-PLAN-theme-sets.md, 3.6)
     }
 
     // A window moved to another desktop by hand (Win+Tab) gives no event: looked at now and then.

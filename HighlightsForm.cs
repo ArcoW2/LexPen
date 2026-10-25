@@ -12,7 +12,7 @@ namespace LexPen;
 /// LexPen window last worked in (AppHost.LastActive: the event highlightGo), which comes to the front; this window
 /// stays open where it is.
 /// </summary>
-sealed class HighlightsForm : Form
+sealed class HighlightsForm : Form, IWebPost
 {
     const string AppUrl = "https://lexpen.example/";
 
@@ -66,14 +66,14 @@ sealed class HighlightsForm : Form
         };
         core.NavigationStarting += (_, n) => { if (!n.Uri.StartsWith(AppUrl)) n.Cancel = true; };
         core.NewWindowRequested += (_, n) => n.Handled = true;
-        await core.AddScriptToExecuteOnDocumentCreatedAsync(app.FirstPaintScript());
+        await core.AddScriptToExecuteOnDocumentCreatedAsync(app.FirstPaintScript(app.LastActive));
         core.Navigate($"{AppUrl}highlights.html");
     }
 
     /// <summary>The caption follows the theme, as the main windows do.</summary>
     public void ApplyTheme()
     {
-        BackColor = web.DefaultBackgroundColor = app.AppBackground();
+        BackColor = web.DefaultBackgroundColor = app.AppBackground(app.LastActive);
         var on = app.Mode == "dark" ? 1 : 0;
         DwmSetWindowAttribute(Handle, 20 /* DWMWA_USE_IMMERSIVE_DARK_MODE */, ref on, sizeof(int));
     }
@@ -137,7 +137,7 @@ sealed class HighlightsForm : Form
         switch (op)
         {
             case "init":
-                return new JsonObject { ["settings"] = app.Settings["values"]?.DeepClone(), ["look"] = app.Look(), ["shown"] = app.HighlightsShownNow?.DeepClone() };
+                return new JsonObject { ["settings"] = app.SettingsFor(app.LastActive)["values"]?.DeepClone(), ["look"] = app.Look(app.LastActive), ["shown"] = app.HighlightsShownNow?.DeepClone() };
 
             // To a highlight, in the LexPen window last worked in; that window comes to the front, this one stays.
             case "go":
