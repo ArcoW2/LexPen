@@ -158,13 +158,19 @@ projects, the desktops, the app.
 
 ### 3.11 A settings window per main window
 
-Moved to plan 31 (`31-PLAN-settings-layers.md`, 3.5), which is done first: each main window has a settings window
+Moved to plan 31 (`31-PLAN-settings-layers.md`, 3.6), which is done first: each main window has a settings window
 of its own. This plan adds to it:
 
 - The theme set bar (3.8) and where a change to one of 3.2's settings goes (3.7): the set of the owner window. Its
   look is the owner's set, not the last active window's.
-- The row marks of plan 31 (3.6): 3.2's settings are the theme set layer; the tooltip names the set ("Theme set:
+- The row marks of plan 31 (3.7): 3.2's settings are the theme set layer; the tooltip names the set ("Theme set:
   Company (this project's)").
+- Save as default (plan 31, 3.5) gets a second checkbox: "The theme set "Company" for new projects". On, it makes
+  that set the app's default (`app`, 3.5), so a new project without a set of its own shows it. When the desktop
+  of the window has a default set of its own, that one still wins for new projects there; the dialog then says
+  so and offers "this desktop's default" instead. Nothing is copied: the set itself becomes the default.
+- Reset to default (plan 31, 3.5): the project's own set is removed as well, so the window shows the desktop's or
+  the app's default again.
 
 ### 3.12 Host changes
 
@@ -212,3 +218,6 @@ of its own. This plan adds to it:
 4. Undo: only the last change, while its message shows (as written), or a list of the recent changes per set to
    undo one by one (also after the message is gone)? Proposal: the last change, while its message shows; the
    settings window's reset per setting (to the shipped default) stays as it is.
+5. Save as default for the look (3.11): make this window's set the app's default (proposal: nothing is copied, and
+   the set stays one set), or copy its values into the set "Default" (settings.json), as the earlier "Use as
+   default" did?
