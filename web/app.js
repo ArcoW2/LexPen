@@ -3002,7 +3002,7 @@ function markOutline(pane) {
   });
 }
 
-// A found place (a find, a search result, a compare difference, a bookmark, Go to line) into view, after the cursor
+// A place jumped to (a find, a search result, a compare difference, a bookmark, Go to line) into view, after the cursor
 // went there. Settings: revealInView (stay: the view stays, unless the place is within revealLines of an edge;
 // center), revealOutOfView (keep: revealLines from the edge it comes in at, the top going up, the bottom going down;
 // center) and revealLines. Never so many lines that the place itself would fall out of view.
@@ -3016,8 +3016,9 @@ function revealFound(cm, from, to = from) {
   cm.scrollIntoView(tall ? from : { from, to }, 0);   // sideways (up or down it is in view by now)
 }
 
-// The same for a found place in the preview (a find, a highlight): the ranges from `first` to `last`. A line is the
-// line height where the place starts, on screen: the computed one is without the preview zoom, the box with it.
+// The same for a place jumped to in the preview (a find, a highlight, the outline): the ranges from `first` to `last`.
+// A line is the line height where the place starts, on screen: the computed one is without the preview zoom, the box
+// with it.
 function revealFoundInPreview(pane, first, last = first) {
   const el = pane.previewEl, box = el.getBoundingClientRect(), view = el.clientHeight;
   const start = first.getBoundingClientRect(), top = start.top - box.top + el.scrollTop;
@@ -3031,7 +3032,7 @@ function revealFoundInPreview(pane, first, last = first) {
   if (y != null) el.scrollTop = Math.max(0, y);
 }
 
-// Where a found place scrolls to, as the settings say (revealFound): the new top, or null when the view stays. All
+// Where a place jumped to scrolls to, as the settings say (revealFound): the new top, or null when the view stays. All
 // in pixels from the top of the content: the view's top and height, the place's top and bottom, a line's height.
 function revealTop(viewTop, view, top, bottom, lh) {
   const height = bottom - top;
@@ -3083,7 +3084,7 @@ function atIntensity(css, percent, where = document.body) {
 
 // Puts the source line at the top of the pane: preview, editor or both. The cursor stays where it is (a click in
 // the outline; a double-click moves it). `focus`: the editor gets the keys again.
-// `found` (a click in the outline): placed as a found place is, by the settings of Find > Jump to a found place
+// `found` (a click in the outline): placed as a place jumped to is, by the settings of General > Jump to a place
 // (centred, or the lines kept from the edge; revealFound), in the editor and in the preview.
 function goToLine(pane, line, focus = true, found = false) {
   const tab = pane.active;

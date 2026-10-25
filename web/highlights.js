@@ -288,7 +288,7 @@ events.highlights = ({ path, draft }) => {
 
 // ---------- Going through them ----------
 // The next / previous highlight from the cursor (editor) or the top of what is visible (preview): selected, placed as
-// a found place; past the last one as find does at the end of the file (findWrap).
+// a place jumped to; past the last one as find does at the end of the file (findWrap).
 function goHighlight(pane, dir) {
   const tab = pane.active, doc = tab?.doc;
   if (!doc) return;
@@ -309,7 +309,7 @@ function goHighlight(pane, dir) {
   goToHighlight(pane, next.h);
 }
 
-// A highlight shown: in the editor selected (placed as a found place; a preview of it scrolls along by its cursor
+// A highlight shown: in the editor selected (placed as a place jumped to; a preview of it scrolls along by its cursor
 // bar), in a preview only scrolled to and blinking once.
 function goToHighlight(pane, h) {
   const tab = pane.active, doc = tab.doc, r = hlRange(doc, h);
