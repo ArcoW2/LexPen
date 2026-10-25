@@ -2781,7 +2781,7 @@ function applyZoom(zoom) {
   panes.forEach((p, i) => at[i] !== null && setPreviewLine(p, at[i]));
   for (const p of panes) if (p.previewBoxes) drawPreviewBoxes(p);   // found text's boxes: the text has another size (find.js)
 }
-// ---------- Fonts (Options > Settings > Fonts) ----------
+// ---------- Fonts (Options > Settings: Editor view > Font and colours, App) ----------
 // The editor font and the app font, each with a size in points (as Windows shows them). Not chosen:
 // Consolas 14 px in the editor, Segoe UI 13 px for the app. The editor also has a line height (times
 // the font size). The app's smaller texts scale along (--ui-scale in app.css). Settings in settings.json

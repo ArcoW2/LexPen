@@ -29,7 +29,7 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   go in `%LOCALAPPDATA%\LexPen\themes\` (a file with the same name replaces a shipped one) and apply at once.
   LexPen follows Windows' light / dark mode (a setting, on), with a theme chosen for each mode; Day / night
   switches until Windows changes mode. The app, the editor and the preview each have a theme per mode: the
-  editor's and the preview's are the app's unless you choose one (Settings > Editor, Preview), say a parchment
+  editor's and the preview's are the app's unless you choose one (Settings > Editor view, Preview), say a parchment
   editor between sand bars and an ocean preview. Light and Dark (`light.json`, `dark.json`) set every colour; any other theme names any theme as
   its base and lists only what differs: `{ "name": "Lighter ocean", "description": "a softer blue", "base": "dark-ocean", "colors": { "bg": "#1d2533" } }`
   (its own colours, then Dark ocean's, then Dark's). The description is the theme's character: the settings show
