@@ -117,7 +117,10 @@ body[data-orient=h] .mm-orient::before { content: "Above each other"; }
   border: 1px solid var(--border); border-radius: 6px; box-shadow: 0 4px 14px rgba(0, 0, 0, .2);
 }
 .mm-menu button { text-align: left; padding: 5px 12px; white-space: nowrap; }
-.mm-check::before { content: ""; display: inline-block; width: 1.2em; }
+/* A menu with a check item: every item keeps the gutter for the mark, so all the texts line up. */
+.mm-menu:has(> .mm-check) > button { padding-left: calc(12px + 1.2em); }
+.mm-check { position: relative; }
+.mm-check::before { content: ""; position: absolute; left: 12px; }
 .mm-check.mm-on::before { content: "\2713"; }
 .mm-menu hr { margin: 4px 0; border: 0; border-top: 1px solid var(--border); }
 .mm-menu button:disabled { opacity: .45; cursor: default; background: none; }
