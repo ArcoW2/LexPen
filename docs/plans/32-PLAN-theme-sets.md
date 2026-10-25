@@ -1,7 +1,8 @@
 # Plan: theme sets per project (a named combination of themes, colours and intensities)
 
 Status: draft 2026-10-25, decisions 2026-10-25 (the name; the bottom bar; changes apply at once, a bar in the
-settings window saves them to a set); not started; questions open.
+settings window saves them to a set; Use as default writes the look to settings.json, which new projects get);
+not started; questions open.
 The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
@@ -18,7 +19,8 @@ project without one uses the global settings as today. The bottom bar shows the 
 click on it picks another set or opens the Manage theme sets window, which saves, renames, duplicates and deletes
 sets. A colour setting changed while a set is in use applies at once, but is not yet in the set: a bar at the
 bottom of the settings window says so and saves the changes to the current set, to a new set (a name) or to
-another existing set.
+another existing set. "Use as default" writes the current look to settings.json instead: the look of projects
+without a set, which is what a new project gets.
 
 ## 3. Details
 
@@ -67,64 +69,80 @@ The list is one array in one place (host side), so a later colour setting is add
   - Save to 'Company' (the current set).
   - Save as new set: a name field (OK when the name is not taken); the project then uses the new set.
   - Save to another set: a list of the other sets; the project then uses that set.
+  - Use as default: the look as shown (the set with the changes) written to settings.json (3.6).
   - Undo: the changes dropped, back to the set (question 3).
 - The changed settings are marked in the settings window (as a setting differing from its default is now), so
   you see what the bar is about.
 - Saving to a set: every project using that set sees it at once.
 - The bar goes when the changes are saved or undone, and comes back for the next change.
 
-### 3.6 The bottom bar
+### 3.6 Use as default
+
+- Writes 3.2's settings, as the window last worked in shows them (its set and unsaved changes included), to
+  settings.json: the global settings, the default look.
+- Shown by every project without a set, and so by every new project (a new project starts without a set). This
+  is how another set becomes the default for new projects: apply it, Use as default.
+- The project itself keeps its set (and its unsaved changes are dropped: they are in settings.json now, and in
+  no set).
+- Only 3.2's names are written; the other settings in settings.json stay as they are. Asks first: "Use the look
+  of 'Company' as the default? Projects without a theme set change with it."
+
+### 3.7 The bottom bar
 
 - A field "Theme set: Company" (or "Theme set: none") in the bottom bar, with a mark when the project has unsaved
   changes (3.5).
 - A click opens a menu: "None (the settings)", then every set, a check at the one of this window's project;
   picking one sets it for this window's project (and so for every window of it) at once. Below a line: "Save
-  current look as a set..." (asks a name) and "Manage theme sets...".
+  current look as a set..." (asks a name), "Use as default" (3.6) and "Manage theme sets...".
 - Switching sets with unsaved changes: asks first (save to the current set, drop them, Cancel) (question 3).
 - The same menu as Options > Theme set > (question 4).
 
-### 3.7 The Manage theme sets window
+### 3.8 The Manage theme sets window
 
 Built as the projects window (one for the app, its place kept). A list of the sets, each with its name, a few
 swatches (the app, editor and preview backgrounds of the current mode) and the projects that use it. Actions:
 
 - Save current look as... (a name; the values of the window last worked in, set and unsaved changes included).
+- Use as default: the selected set's values to settings.json (3.6).
 - Apply to this project (the window last worked in), and Apply to projects... (checkboxes, or from the
   Manage projects window: a column "Theme set" and Project > Theme set >).
 - Rename (F2), Delete (asks; names the projects that use it), Duplicate.
 - Edit a set: apply it to this project and open the settings window; the bar of 3.5 saves the changes.
 
-### 3.8 Host changes
+### 3.9 Host changes
 
 - ThemeSetFile.cs: load / save theme-sets.json, the list of 3.2's names, apply (values over settings).
 - AppHost: `SettingsFor(MainForm)` and `Look(MainForm?)` with the window's project's set and unsaved changes;
   every place that sends settings or the look to a window uses them. A project's set or its changes changed:
   that project's windows get settings and look again.
+- Use as default: 3.2's values written to settings.json, the other settings untouched.
 - The settings window: a change to one of 3.2's names, with a set in use, goes to the project's unsaved changes
   instead of settings.json; the bar of 3.5 and its ops (save to set, save as new, save to other, undo).
 - ProjectStore: `ThemeSet` per project, read and written; the unsaved changes per project (question 2).
 - MainForm: ops `themeSets` (the menu), `themeSet` (choose for this project), `saveThemeSet`; the bottom bar
   field.
 
-### 3.9 Tests
+### 3.10 Tests
 
 - ThemeSetFile: round trip; only 3.2's names kept; unknown theme ids reported as with settings.
 - The settings a window gets: global values, the set on top, the unsaved changes on top of that; a project
   without a set gets the global ones; a deleted set falls back.
 - A change with a set in use leaves settings.json and the set as they were; saving it writes the set only.
 - Save as new set: a taken name refused; the project uses the new set afterwards.
+- Use as default: settings.json gets 3.2's values of the set (and changes), keeps every other setting; a
+  project without a set shows them; a new project has no set.
 - ProjectStore: `themeSet` round trip; renaming a set renames it in the projects.
 - By hand: two windows of two projects with different sets side by side; the bottom bar menu; the bar in the
   settings window with each of its choices; Day / night with a set; the highlights window following the window
   last worked in.
 
-### 3.10 Open questions
+### 3.11 Open questions
 
 1. Fonts and sizes in a set too, or colours and themes only (this plan)?
 2. Unsaved changes when LexPen closes: kept with the project (they are there again next time, the bar too), or
    dropped (the set as saved)? Proposal: kept with the project.
 3. Undo on the bar, and the question when switching sets with unsaved changes: wanted, or is saving the only
-   way out (switching drops them unasked)? Proposal: both, as written in 3.5 and 3.6.
+   way out (switching drops them unasked)? Proposal: both, as written in 3.5 and 3.7.
 4. Options > Theme set > as well as the bottom bar, or only the bottom bar? Proposal: both, the same menu.
-5. A new project: no set (the global settings), or the set of the project it was made from? Proposal: the set of
-   the project it was made from, so a new window of the company project keeps looking like it.
+5. Use as default drops the project's unsaved changes after writing them to settings.json (the project still
+   shows its set as saved). Or should the changes stay, unsaved, on the project? Proposal: dropped.
