@@ -3084,7 +3084,7 @@ function atIntensity(css, percent, where = document.body) {
 
 // Puts the source line at the top of the pane: preview, editor or both. The cursor stays where it is (a click in
 // the outline; a double-click moves it). `focus`: the editor gets the keys again.
-// `found` (a click in the outline): placed as a place jumped to is, by the settings of General > Jump to a line
+// `found` (a click in the outline): placed as a place jumped to is, by the settings of Editor > Jump to a line
 // (centred, or the lines kept from the edge; revealFound), in the editor and in the preview.
 function goToLine(pane, line, focus = true, found = false) {
   const tab = pane.active;

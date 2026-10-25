@@ -549,13 +549,13 @@ const SETTING_ROWS = [
     hint: 'After typing a word character and stopping this long, the list of completions opens by itself; 0: only with Ctrl+Space' },
   // Where the view puts a place jumped to: a find, a search result, a compare difference, a bookmark, a highlight, Go
   // to line, a click in the outline (revealFound in app.js).
-  { name: 'revealInView', group: 'General', sub: 'Jump to a line', kind: 'choice', title: 'A line already in view', keywords: JUMP_KEYWORDS,
+  { name: 'revealInView', group: 'Editor', sub: 'Jump to a line', kind: 'choice', title: 'A line already in view', keywords: JUMP_KEYWORDS,
     hint: 'A find, a search result, the next compare difference, a bookmark, a highlight, Go to line, a click in the outline: when the line is already on screen',
     options: () => [['stay', 'The view stays (unless it is within the lines kept from the edge)'], ['center', 'Centred']] },
-  { name: 'revealOutOfView', group: 'General', sub: 'Jump to a line', kind: 'choice', title: 'A line out of view', keywords: JUMP_KEYWORDS,
+  { name: 'revealOutOfView', group: 'Editor', sub: 'Jump to a line', kind: 'choice', title: 'A line out of view', keywords: JUMP_KEYWORDS,
     hint: 'When the line is not on screen: the view scrolls to it',
     options: () => [['keep', 'The lines kept from the edge (the top going up, the bottom going down)'], ['center', 'Centred']] },
-  { name: 'revealLines', group: 'General', sub: 'Jump to a line', kind: 'range', range: [0, 20, 1], unit: ' lines', title: 'Lines kept from the edge',
+  { name: 'revealLines', group: 'Editor', sub: 'Jump to a line', kind: 'range', range: [0, 20, 1], unit: ' lines', title: 'Lines kept from the edge',
     keywords: JUMP_KEYWORDS,
     hint: 'A line jumped to comes no closer than this many lines to the top or bottom of the view (fewer on a low view)' },
   { name: 'scrollMargin', group: 'Editor', sub: 'Cursor', kind: 'choice', title: 'Scroll sideways before the edge',
