@@ -834,6 +834,13 @@ sealed class MainForm : Form
                 app.OpenThemeSets(this);
                 return null;
 
+            // Save as default: what to save (asks when the theme set is part of it); the Undo of the set part.
+            case "saveAsDefault":
+                return app.SaveAsDefault(this, this);
+
+            case "themeSetCommand":
+                return app.ThemeSetCommand(this, msg);
+
             // This project's own theme set (null: none, the desktop's or the app's default).
             case "themeSet":
                 app.SetProjectSet(this, msg["set"]?.GetValue<string>());

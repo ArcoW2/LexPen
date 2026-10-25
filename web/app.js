@@ -142,10 +142,20 @@ events.layoutSet = ({ name, value }) => setSetting(name, value);
 
 // View > Layout > Save as default: this window's layout becomes defaultLayout in settings.json, the layout new
 // projects start with; at once, the message offers Undo (the default as it was).
-function saveLayoutAsDefault() {
+// With a theme set of its own that new projects do not get yet, the host asks first: the layout and the set, one of
+// them, or nothing (docs/plans/32-PLAN-theme-sets.md, 3.11); Undo puts back both.
+async function saveLayoutAsDefault() {
+  const answer = await host('saveAsDefault');
+  if (!answer) return;
   const before = settings.user.includes('defaultLayout') ? settings.values.defaultLayout : settings.defaults.defaultLayout;
-  setSetting('defaultLayout', windowLayout());
-  toast('This window\'s layout is now the default for new projects.', true, { label: 'Undo', run: () => setSetting('defaultLayout', before) });
+  if (answer.layout) setSetting('defaultLayout', windowLayout());
+  const set = answer.set;
+  const what = [answer.layout && "This window's layout", set && `the theme set "${set.name}"`].filter(Boolean).join(' and ');
+  toast(`${what[0].toUpperCase() + what.slice(1)} ${answer.layout && set ? 'are' : 'is'} now the default for new projects` +
+    (set?.for === 'desktop' ? ' on this desktop.' : '.'), true, { label: 'Undo', run: () => {
+    if (answer.layout) setSetting('defaultLayout', before);
+    if (set) host('themeSetCommand', { kind: 'use', for: set.for, desktop: set.desktop, name: set.before });
+  } });
 }
 
 // View > Layout > Reset to default: this window's layout back to defaultLayout; its tabs and folder stay.
@@ -154,7 +164,10 @@ function resetLayoutToDefault() {
   mergeLayout();
   applySettings();
   layoutChanged();
-  toast('This window has the default layout again.', true);
+  // The project's own theme set goes too: the desktop's or the app's default again (docs/plans/32-PLAN-theme-sets.md).
+  const own = settings.themeSet?.own;
+  if (own) host('themeSet', { set: null });
+  toast(own ? `This window has the default layout and theme set again (no longer "${own}").` : 'This window has the default layout again.', true);
 }
 chrome.webview.addEventListener('message', e => {
   if (e.data.event) return events[e.data.event]?.(e.data);

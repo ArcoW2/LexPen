@@ -141,6 +141,13 @@ sealed class SettingsForm : Form
                 if (!window.IsDisposed) app.OpenThemeSets(window);
                 return null;
 
+            // Save as default for the main window (asks when its theme set is part of it); the Undo of the set part.
+            case "saveAsDefault":
+                return window.IsDisposed ? null : app.SaveAsDefault(this, window);
+
+            case "themeSetCommand":
+                return app.ThemeSetCommand(this, msg);
+
             // The main window's project gets a set of its own (null: none).
             case "themeSet":
                 if (!window.IsDisposed) app.SetProjectSet(window, msg["set"]?.GetValue<string>());

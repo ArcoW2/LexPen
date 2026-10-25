@@ -145,6 +145,54 @@ sealed class AppHost : ApplicationContext
         themeSetsWindow?.Post(new JsonObject { ["event"] = "list", ["list"] = ThemeSetList() });
     }
 
+    /// <summary>Save as default (plan 31's, with the theme set: docs/plans/32-PLAN-theme-sets.md, 3.11). When the window
+    /// shows a set that is not already the one new projects get here, asks what to save: the layout and the set (as
+    /// the app's default, or this desktop's), the layout only, or the set only. The set part is done here; the answer
+    /// tells the page whether to save the layout, and what the set's default was (for Undo). Null: cancelled.</summary>
+    public JsonObject? SaveAsDefault(IWin32Window owner, MainForm w)
+    {
+        var shown = SetOf(w);
+        var desktop = DesktopOf(w);
+        var forNew = ThemeSetFile.Resolve(themeSets, null, desktop);
+        if (shown == forNew) return new JsonObject { ["layout"] = true };   // the set is new projects' already: only the layout
+        var desktopHas = desktop is not null && themeSets.Desktops.ContainsKey(desktop);
+        var bothApp = new TaskDialogRadioButton($"The layout of this window and the theme set \"{shown}\" as the app's default");
+        var bothDesktop = new TaskDialogRadioButton($"The layout of this window and the theme set \"{shown}\" as this desktop's default");
+        var layoutOnly = new TaskDialogRadioButton("Only the layout of this window");
+        var setOnly = new TaskDialogRadioButton($"Only the theme set \"{shown}\", as the app's default");
+        var page = new TaskDialogPage
+        {
+            Caption = "LexPen",
+            Heading = "Save as default for new projects",
+            Text = $"New projects get the default layout, and the default theme set (now \"{forNew}\" here)." +
+                (desktopHas ? $"\n\nThis desktop has a default set of its own, \"{themeSets.Desktops[desktop!]}\": it wins over the app's on this desktop." : ""),
+            Icon = TaskDialogIcon.Information,
+            Buttons = { TaskDialogButton.OK, TaskDialogButton.Cancel },
+            AllowCancel = true,
+        };
+        page.RadioButtons.Add(bothApp);
+        if (desktop is not null) page.RadioButtons.Add(bothDesktop);
+        page.RadioButtons.Add(layoutOnly);
+        page.RadioButtons.Add(setOnly);
+        (desktopHas ? bothDesktop : bothApp).Checked = true;
+        if (TaskDialog.ShowDialog(owner, page) != TaskDialogButton.OK) return null;
+        var result = new JsonObject { ["layout"] = !setOnly.Checked };
+        if (layoutOnly.Checked) return result;
+        var onDesktop = bothDesktop.Checked;
+        result["set"] = new JsonObject
+        {
+            ["name"] = shown,
+            ["for"] = onDesktop ? "desktop" : "app",
+            ["desktop"] = onDesktop ? desktop : null,
+            ["before"] = onDesktop ? themeSets.Desktops.GetValueOrDefault(desktop!) : themeSets.App,
+        };
+        if (onDesktop) themeSets.Desktops[desktop!] = shown;
+        else themeSets.App = shown;
+        SaveThemeSets();
+        Restyle();
+        return result;
+    }
+
     // ---------- Manage theme sets (ThemeSetsForm; docs/plans/32-PLAN-theme-sets.md, 3.10) ----------
 
     /// <summary>The Manage theme sets window: one for the app; opened again, brought to the front.</summary>

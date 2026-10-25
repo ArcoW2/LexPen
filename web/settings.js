@@ -605,11 +605,20 @@ function layoutMessage(text, undo) {
   clearTimeout(layoutMessage.timer);
   if (undo) layoutMessage.timer = setTimeout(() => layoutMessage("This window's layout:"), 8000);
 }
-layoutBar.querySelector('[data-layout="save"]').addEventListener('click', () => {
+// With a theme set the host asks first what to save (docs/plans/32-PLAN-theme-sets.md, 3.11).
+layoutBar.querySelector('[data-layout="save"]').addEventListener('click', async () => {
+  const answer = await host('saveAsDefault');
+  if (!answer) return;
   const before = settings.user.includes('defaultLayout') ? settings.values.defaultLayout : settings.defaults.defaultLayout;
   const layout = Object.fromEntries(Object.keys(settings.defaults.defaultLayout ?? {}).map(n => [n, valueOf(n)]));
-  set('defaultLayout', layout);
-  layoutMessage("This window's layout is now the default for new projects.", () => set('defaultLayout', before));
+  if (answer.layout) set('defaultLayout', layout);
+  const s = answer.set;
+  const what = [answer.layout && "This window's layout", s && `the theme set "${s.name}"`].filter(Boolean).join(' and ');
+  layoutMessage(`${what[0].toUpperCase() + what.slice(1)} ${answer.layout && s ? 'are' : 'is'} now the default for new projects` +
+    (s?.for === 'desktop' ? ' on this desktop.' : '.'), () => {
+    if (answer.layout) set('defaultLayout', before);
+    if (s) host('themeSetCommand', { kind: 'use', for: s.for, desktop: s.desktop, name: s.before });
+  });
 });
 layoutBar.querySelector('[data-layout="reset"]').addEventListener('click', () => host('runInWindow', { name: 'layoutResetDefault' }));
 
