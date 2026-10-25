@@ -1557,7 +1557,11 @@ async function navigate(tab, path, anchor, restoring) {
     return true;
   }
   const old = tab.doc, last = tabsOf(old).length === 1;
-  if (last && old.dirty && old.lock && !await host('confirm', { text: 'Discard unsaved changes?' })) return false;
+  if (last && old.dirty && old.lock) {
+    // Yes saves it, No drops the changes, Cancel stays.
+    const answer = await host('askSave', { text: `Save the changes to ${nameOf(old.path)}?` });
+    if (answer === 'yes' ? !await saveDoc(old) : answer !== 'no') return false;
+  }
   const doc = findDoc(path) ?? await loadDoc(path);
 
   if (!restoring && old.path) remember(tab, old.path);
@@ -1599,7 +1603,11 @@ async function closeTab(tab, force, bulk) {
       const answer = docText(doc).trim() ? await host('askSave', { text: `Save draft ${doc.draft}?` }) : 'no';
       if (answer === 'yes') return await saveDoc(doc) && closeTab(tab, force, bulk);
       if (answer !== 'no') return false;
-    } else if (doc.dirty && doc.lock && !await host('confirm', { text: `Discard unsaved changes to ${nameOf(doc.path)}?` })) return false;
+    } else if (doc.dirty && doc.lock) {
+      // Yes saves it, No drops the changes, Cancel keeps the tab.
+      const answer = await host('askSave', { text: `Save the changes to ${nameOf(doc.path)}?` });
+      if (answer === 'yes' ? !await saveDoc(doc) : answer !== 'no') return false;
+    }
   }
   const pane = paneOf(tab);
   if (!pane) return false;   // closed meanwhile
