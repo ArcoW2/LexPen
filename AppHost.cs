@@ -774,7 +774,7 @@ sealed class AppHost : ApplicationContext
     void RestoreWindows()
     {
         restored = true;
-        foreach (var (_, entry) in projects.StartWindows(KeepUnnamed))
+        foreach (var (_, entry) in projects.StartWindows(KeepUnnamed, FindViewProject()))
             Open(new MainForm.Start(null, [], entry.Key, ToDesktop: true));
         SaveProjects();
     }
@@ -928,7 +928,7 @@ sealed class AppHost : ApplicationContext
                 if (desktop is not null && (moved || i >= 3)) break;
                 await Task.Delay(100);
             }
-        if (w.ReopenHere && desktop is not null && projects.LastClosedOn(desktop) is { } closed
+        if (w.ReopenHere && desktop is not null && projects.LastClosedOn(desktop, FindViewProject()) is { } closed
             && closed.Windows.Where(o => o.Desktop == desktop).MaxBy(o => o.Used) is { } reuse)
         {
             projects.Forget(w.Key, KeepUnnamed);

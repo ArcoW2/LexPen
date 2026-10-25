@@ -62,6 +62,40 @@ public class ViewProjectTests : IDisposable
         foreach (var gone in new[] { "hidden", "sync", "syncGap", "compare" }) Assert.False(s.ContainsKey(gone), gone);
     }
 
+    // The project for viewing is never the one LexPen brings back by itself: at start, or for a new window on a desktop.
+    [Fact]
+    public void TheProjectForViewingIsNotTheLastClosed()
+    {
+        var store = ProjectStore.Load(FilePath);
+        var work = store.NewProject("Work");
+        var view = store.NewProject("View");
+        var w1 = store.AddWindow(work);
+        (w1.Open, w1.Desktop, w1.Used) = (false, "{d}", new DateTime(2026, 1, 1));
+        var w2 = store.AddWindow(view);
+        (w2.Open, w2.Desktop, w2.Used) = (false, "{d}", new DateTime(2026, 2, 1));
+        Assert.Same(view, store.LastClosedOn("{d}"));
+        Assert.Same(work, store.LastClosedOn("{d}", skip: view));
+    }
+
+    static JsonNode Tabs(string path) =>
+        new JsonObject { ["panes"] = new JsonArray(new JsonObject { ["tabs"] = new JsonArray(new JsonObject { ["path"] = path }) }) };
+
+    [Fact]
+    public void AtStartTheProjectForViewingStaysClosed()
+    {
+        var store = ProjectStore.Load(FilePath);
+        var work = store.NewProject("Work");
+        var view = store.NewProject("View");
+        var w1 = store.AddWindow(work);
+        w1.Session = Tabs("a.md");
+        var w2 = store.AddWindow(view);
+        w2.Session = Tabs("b.md");
+        var start = store.StartWindows(keepUnnamed: true, skip: view);
+        Assert.Equal([w1.Key], start.Select(s => s.Window.Key));
+        Assert.Contains(w2, view.Windows);   // kept, closed, with its tabs
+        Assert.False(w2.Open);
+    }
+
     [Fact]
     public void ANewViewWindowWithoutASessionGetsOnlyTheLayout()
     {
