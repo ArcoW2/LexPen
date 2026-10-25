@@ -23,7 +23,7 @@
   --guide1: rgba(207, 34, 46, .45); --guide2: rgba(154, 103, 0, .5); --guide3: rgba(26, 127, 55, .45); --guide4: rgba(27, 124, 131, .45); --guide5: rgba(9, 105, 218, .45); --guide6: rgba(130, 80, 223, .45);
   --whitespace: #b4bac2;   /* shown spaces, tabs and line ends (editor) */
   --gutter-bg-embedded: #e4ebf5;   /* the gutter beside lines of another language (PLAN-embedded-languages.md) */
-  /* The settings window: the line left of a row, by what the setting belongs to (31-PLAN-settings-layers.md). */
+  /* The settings window: the line left of a row, by what the setting belongs to (executed/PLAN-settings-layers.md). */
   --layer-global: #8c959f; --layer-window: #1a7f37; --layer-set: #8250df; --layer-screen: #bc4c00;
 }
 :root[data-theme=dark], .mm-themed[data-theme=dark] {

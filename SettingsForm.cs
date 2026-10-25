@@ -125,7 +125,7 @@ sealed class SettingsForm : Form
                 init["defs"] = app.SettingDefs?.DeepClone();
                 init["look"] = app.Look();
                 init["languageProblems"] = app.Languages["problems"]?.DeepClone();
-                init["layout"] = window.PageLayout?.DeepClone();   // the rows of "this window" (docs/plans/31-PLAN-settings-layers.md)
+                init["layout"] = window.PageLayout?.DeepClone();   // the rows of "this window" (docs/plans/executed/PLAN-settings-layers.md)
                 init["window"] = app.ProjectInfo(window)["display"]?.DeepClone();   // its name in the rows' tooltips
                 init["screen"] = app.ScreenOf(window);   // the zoom of its monitor
                 return init;

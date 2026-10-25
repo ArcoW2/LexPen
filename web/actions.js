@@ -201,7 +201,7 @@ toggleAction('sidebar', { title: 'Sidebar', hint: 'Show or hide the folder pane 
   () => document.body.dataset.sidebar === 'on', () => commands.sidebar(), ['show', 'hide']);
 appAction('folders', { title: 'Folders', hint: 'The folder pane, with the keyboard in it', group: 'view', run: () => focusTree() });
 appAction('searchView', { title: 'Search', hint: 'The search in the sidebar', group: 'view', run: () => startSearch() });
-// The window's layout as the default for new projects, or back to that default (docs/plans/31-PLAN-settings-layers.md).
+// The window's layout as the default for new projects, or back to that default (docs/plans/executed/PLAN-settings-layers.md).
 appAction('layoutSaveDefault', { title: 'Save layout as default', group: 'view',
   hint: 'This window\'s layout (sidebar, outline, panes, bars, gutter, ...) becomes the one a new project starts with',
   run: () => saveLayoutAsDefault() });
@@ -226,7 +226,7 @@ toggleAction('formatBar', { title: 'Formatting bar', hint: 'The bar with bold, h
 appAction('searchInFiles', { title: 'Search in files', hint: 'In the file, the open files or the folder; codes ^p ^t ^? ^# ^$ ^w ^^', group: 'view', run: () => startSearch() });
 // In the editor (it has the focus) the zoom is the editor font size; elsewhere the preview zoom.
 const editorFocused = () => panes.some(p => p.cm?.hasFocus());
-// The zoom is per screen (the monitor the window is on), on top of the settings' base (docs/plans/31-PLAN-settings-layers.md).
+// The zoom is per screen (the monitor the window is on), on top of the settings' base (docs/plans/executed/PLAN-settings-layers.md).
 appAction('zoomIn', { title: 'Zoom in', hint: 'On this screen: the editor font size in the editor, else the preview (also Ctrl+mouse wheel)', group: 'view',
   run: () => editorFocused() ? editorSizeBy(1) : zoomBy(1) });
 appAction('zoomOut', { title: 'Zoom out', hint: 'On this screen: the editor font size in the editor, else the preview', group: 'view',
@@ -729,7 +729,7 @@ function settingDefs() {
       options: r.options?.() ?? (r.kind === 'size' ? [[0, `Default (${r.base()})`], ...FONT_SIZES.map(pt => [pt, pt + ' pt'])] : null),
       monoFirst: r.name === 'editorFont',
       range: r.range ?? null, unit: r.unit ?? '',
-      layer: LAYOUT.has(r.name) ? 'window' : THEME_SET_NAMES.has(r.name) ? 'set' : 'global',   // 31-PLAN-settings-layers.md
+      layer: LAYOUT.has(r.name) ? 'window' : THEME_SET_NAMES.has(r.name) ? 'set' : 'global',   // executed/PLAN-settings-layers.md
     };
   });
 }

@@ -2,7 +2,7 @@ using System.Text.Json.Nodes;
 
 namespace LexPen.Tests;
 
-// A window's layout in settings.json (docs/plans/31-PLAN-settings-layers.md): only defaultLayout, the layout a new
+// A window's layout in settings.json (docs/plans/executed/PLAN-settings-layers.md): only defaultLayout, the layout a new
 // project starts with; the settings that became part of it move there.
 public class SettingsLayoutTests
 {

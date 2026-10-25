@@ -1,12 +1,8 @@
 # Plan: settings layers: global, this window, theme set
 
-Status: draft 2026-10-25; your answers of 2026-10-25 worked in (the borderline settings and the folder filter
-and sort per window, the old names removed from settings.json, layer colours per theme, a settings window per main
-window, one default layout, Save as default at once; the View menu grouped per layer, the settings window marked
-per row; zoom per screen, no setting for per monitor or global). Not started; no questions open. From your agreement on the three layers: "Make a plan for
-this split when it can be executed separately (before the other two)". It can: see 3.12 for the order with plans
-32 and 33.
-The number in the file name is the priority; rename to reorder.
+Status: executed 2026-10-25 on the branch `plan31-settings-layers` (draft 2026-10-25, with your answers of that
+day). Decisions of the run in section 4. From your agreement on the three layers: "Make a plan for this split when
+it can be executed separately (before the other two)"; 3.12 has the order with plans 32 and 33.
 
 ## 1. What this is about
 
@@ -285,6 +281,34 @@ View
 - So: 31, then 32 and 33 in either order. Doing 31 and 32 at once gains nothing: they touch the settings window
   in different places, and 31 alone is already useful (panes per project).
 
-## 4. Open questions
+## 4. Decisions of the run
 
-None.
+- The names of a window's layout are the keys of `defaultLayout` in the shipped defaults\settings.json, not an
+  array in the page: one list, read by the page (LAYOUT in app.js), the settings window and the host's tests.
+- `overview.compare` (the compare's marks on the scroll bar) is part of the layout too, as the other scroll bar
+  marks; `gutter.cursor` stays global (it is no View menu item).
+- In settings.json the moved names live only inside `defaultLayout`; one of them at the top of your file (or set
+  by an old page's import) goes into it (SettingsFile.Upgrade, Set). The page's old storage is read once
+  (`layout-moved` in State\), values equal to the shipped ones are not written.
+- A window saves every layout name with its session, not only what it changed, so a later Save as default changes
+  only new projects.
+- A window's settings window gets the layout from the page (op layoutShown), so its rows follow a menu or a key at
+  once; a row of "this window" goes back to the page (layoutSet), which applies and saves it.
+- Save as default and Reset to default: in View > Layout and in a bar at the bottom of the settings window; the
+  main window's message is a toast that can carry a button (Undo).
+- The layer colours: the theme colours `layerGlobal`, `layerWindow`, `layerSet`, `layerScreen`, set in Light and
+  Dark (every other theme inherits them) and in the fallback of app.css. Until plan 32, the theme set's rows are
+  the names of plan 32's 3.2 (THEME_SET_NAMES in actions.js), with the tooltip "Theme set: Default".
+- Zoom per screen: the monitor's key is its device id (`\\?\DISPLAY#...`), its name the one Windows gives with
+  its size ("Generic PnP Monitor (3440 x 1440)"). A zoom step applies at once in the window and then goes to the
+  host, so quick steps (the mouse wheel) build on each other. The settings window shows this screen's zoom on a
+  line under each of the two base rows (editor font, preview zoom), each with its own Reset.
+- MainForm's layout property is `PageLayout` (`Layout` hid the Control.Layout event).
+- The View menu's old letter clash (Wrap long lines and Position forward both W) is gone: every letter in the menu
+  is unique; Position forward, Back / Forward in the window, Compare and Compare options have none.
+- Tested by hand through the WebView2 DevTools port on a scratch data folder: the upgrade of an old settings.json,
+  the page storage moved once, two projects with their own layout (also after a restart), a new window of a
+  project and a new project, two settings windows each with their own window, Save as default with Undo, Reset to
+  default, the row marks and legend filter in light and dark, the grouped View menu, the zoom in two windows on
+  one monitor, a window moved to the other monitor and back, Use on every screen. Not tested: a laptop on and off
+  its dock (the same monitor recognised by its device id).

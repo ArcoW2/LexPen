@@ -833,7 +833,7 @@ sealed class MainForm : Form
                 app.ImportPageSettings(msg["values"]!.AsObject());
                 return null;
 
-            // This window's layout (docs/plans/31-PLAN-settings-layers.md): what it opens with; what it shows now (for
+            // This window's layout (docs/plans/executed/PLAN-settings-layers.md): what it opens with; what it shows now (for
             // its settings window); the old values of the page's storage, moved to the settings once.
             case "windowLayout":
                 return app.LayoutFor(this);
@@ -847,7 +847,7 @@ sealed class MainForm : Form
                 app.ImportLayout(msg["values"]!.AsObject());
                 return null;
 
-            // The zoom of the monitor this window is on (docs/plans/31-PLAN-settings-layers.md, 3.6).
+            // The zoom of the monitor this window is on (docs/plans/executed/PLAN-settings-layers.md, 3.6).
             case "screen":
                 return app.ScreenOf(this);
 

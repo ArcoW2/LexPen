@@ -140,7 +140,7 @@ sealed class ProjectStore
 
     public Project? ProjectOf(int key) => Projects.FirstOrDefault(p => p.Windows.Any(w => w.Key == key));
 
-    /// <summary>The layout a window opens with (docs/plans/31-PLAN-settings-layers.md): its own, the `layout` of its
+    /// <summary>The layout a window opens with (docs/plans/executed/PLAN-settings-layers.md): its own, the `layout` of its
     /// session; for a new window the one of the last window used of its project that has one; else null (the default
     /// layout of the settings).</summary>
     public JsonNode? LayoutOf(int key)

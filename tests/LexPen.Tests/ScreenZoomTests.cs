@@ -2,7 +2,7 @@ using System.Text.Json;
 
 namespace LexPen.Tests;
 
-// The zoom per monitor (docs/plans/31-PLAN-settings-layers.md, 3.6): on top of the global base, kept in state.json.
+// The zoom per monitor (docs/plans/executed/PLAN-settings-layers.md, 3.6): on top of the global base, kept in state.json.
 public class ScreenZoomTests
 {
     [Fact]

@@ -787,7 +787,7 @@ sealed class AppHost : ApplicationContext
     }
 
     /// <summary>The layout values the page kept in its own storage (the sidebar, the outline, the panes, ...), moved to
-    /// defaultLayout once (docs/plans/31-PLAN-settings-layers.md).</summary>
+    /// defaultLayout once (docs/plans/executed/PLAN-settings-layers.md).</summary>
     public bool LayoutMoved => File.Exists(LayoutMovedPath);
 
     public void ImportLayout(JsonObject values)
@@ -798,7 +798,7 @@ sealed class AppHost : ApplicationContext
         ReloadSettings();
     }
 
-    // ---------- Zoom per screen (docs/plans/31-PLAN-settings-layers.md, 3.6) ----------
+    // ---------- Zoom per screen (docs/plans/executed/PLAN-settings-layers.md, 3.6) ----------
     // The base is global (editorSize, zoom in settings.json); each monitor can add its own (ScreenZoom), kept in
     // state.json: the monitors differ per PC. A window shows the zoom of the monitor it is on, and takes another's
     // when it moves there (its place changing: WindowPlaceChanged).
@@ -847,7 +847,7 @@ sealed class AppHost : ApplicationContext
         foreach (var w in windows) if (w.ScreenKey is not null) SendScreen(w);
     }
 
-    // ---------- A window's layout (docs/plans/31-PLAN-settings-layers.md) ----------
+    // ---------- A window's layout (docs/plans/executed/PLAN-settings-layers.md) ----------
 
     /// <summary>The layout a window opens with: its own, else that of the last window of its project (ProjectStore.LayoutOf).</summary>
     public JsonNode? LayoutFor(MainForm w) => projects.LayoutOf(w.Key);

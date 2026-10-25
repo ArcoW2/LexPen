@@ -41,7 +41,7 @@ const MENUS = [
   // Filled when they open: the bar items, and the conversions, of the file's language and of the cursor line's.
   ['Fo&rmat', () => formatMenuItems()],
   ['Co&nvert', () => convertMenuItems()],
-  // Grouped by what the items belong to (docs/plans/31-PLAN-settings-layers.md): this window (its layout), this screen
+  // Grouped by what the items belong to (docs/plans/executed/PLAN-settings-layers.md): this window (its layout), this screen
   // (the zoom), the actions without a layer, all windows (global settings).
   ['&View', [
     { header: 'This window' },

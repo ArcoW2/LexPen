@@ -42,7 +42,7 @@ between two lines or in a "LexPen" submenu.
 
 What "Reset to view layout" sets, and what a new "View" project starts with:
 
-The window's layout of plan 31 (`31-PLAN-settings-layers.md`, 3.2), set to:
+The window's layout of plan 31 (`executed/PLAN-settings-layers.md`, 3.2), set to:
 
 - One window: the project's other windows are closed (their sessions dropped).
 - A single editor pane: no split, no compare.

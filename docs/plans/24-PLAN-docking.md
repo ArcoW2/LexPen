@@ -58,7 +58,7 @@ viewing uses a normal project, "View" by default, whose windows can dock every p
 
 ### 3.5 Kept
 
-- The places, sizes and tabs: per window, in the window's layout of plan 31 (`31-PLAN-settings-layers.md`: the
+- The places, sizes and tabs: per window, in the window's layout of plan 31 (`executed/PLAN-settings-layers.md`: the
   session's `layout`, where the sidebar and outline state go from localStorage), so a window opens as it was left; a new window takes the layout of the last window of its project (the
   last window used when the project has none), so the view project does not take a full layout from elsewhere.
 

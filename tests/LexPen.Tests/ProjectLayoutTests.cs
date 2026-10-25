@@ -2,7 +2,7 @@ using System.Text.Json.Nodes;
 
 namespace LexPen.Tests;
 
-// The layout a window opens with (ProjectStore.LayoutOf, docs/plans/31-PLAN-settings-layers.md).
+// The layout a window opens with (ProjectStore.LayoutOf, docs/plans/executed/PLAN-settings-layers.md).
 public class ProjectLayoutTests : IDisposable
 {
     readonly string dir = Path.Combine(Path.GetTempPath(), "lexpen-layout-" + Guid.NewGuid().ToString("N"));

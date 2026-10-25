@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 namespace LexPen;
 
 /// <summary>
-/// The monitor a window is on (docs/plans/31-PLAN-settings-layers.md, zoom per screen): a key that follows the monitor,
+/// The monitor a window is on (docs/plans/executed/PLAN-settings-layers.md, zoom per screen): a key that follows the monitor,
 /// not its place in the list or the port it is on (Screen.DeviceName, "\\.\DISPLAY2", can change with docking): the
 /// device id Windows gives the monitor (EnumDisplayDevices with the device interface name), else the DeviceName.
 /// With a name to show: the monitor's own and its size.

@@ -28,7 +28,7 @@ chrome.webview.addEventListener('message', e => {
 const SLIDER_DELAY = 200;   // ms a slider rests before the app gets its value
 let settings = null;   // { values, defaults, user, problems, defs, layout }
 // A row of "this window" (def.layer): its value is in the main window's layout, not in settings.json
-// (docs/plans/31-PLAN-settings-layers.md); a change goes to that window.
+// (docs/plans/executed/PLAN-settings-layers.md); a change goes to that window.
 const ofWindow = name => Object.hasOwn(settings.defaults.defaultLayout ?? {}, name);
 const valueOf = name => ofWindow(name)
   ? settings.layout?.[name] ?? settings.values.defaultLayout?.[name] ?? settings.defaults.defaultLayout?.[name] : settings.values[name];
@@ -289,7 +289,7 @@ function buildGroup(group) {
     el.querySelector('.st-hint').textContent = def.hint;
     const c = control(def);
     el.append(c.box);
-    // The base for every screen; this screen's own zoom on a line of its own, with Reset (docs/plans/31-PLAN-settings-layers.md).
+    // The base for every screen; this screen's own zoom on a line of its own, with Reset (docs/plans/executed/PLAN-settings-layers.md).
     if (def.name === 'editorSize' || def.name === 'zoom') {
       const line = document.createElement('div');
       line.className = 'st-screen';
@@ -314,7 +314,7 @@ function buildGroup(group) {
   show();
 }
 
-// ---------- What a setting belongs to (docs/plans/31-PLAN-settings-layers.md) ----------
+// ---------- What a setting belongs to (docs/plans/executed/PLAN-settings-layers.md) ----------
 // Global (settings.json, every window), this window (its layout, kept with its session), the theme set (the look;
 // until theme sets exist the one set "Default", settings.json), this screen (the zoom per monitor). The legend shows
 // the colours with their names; a click shows only that layer's rows, again all of them.

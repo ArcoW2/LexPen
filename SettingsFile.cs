@@ -70,7 +70,7 @@ static class SettingsFile
     // already: a newer choice wins), and goes. Done once when your file is read.
     static readonly (string Old, string New)[] Renamed = [("openMarkdownIn", "openIn.markdown")];
 
-    /// <summary>The layout a new project starts with (docs/plans/31-PLAN-settings-layers.md): one object of the names a
+    /// <summary>The layout a new project starts with (docs/plans/executed/PLAN-settings-layers.md): one object of the names a
     /// window keeps with its session (what is open and shown in it). A name missing in yours is the shipped one.</summary>
     public const string LayoutName = "defaultLayout";
 

@@ -97,7 +97,7 @@ events.settings = ({ settings: s }) => {
   applySettings();
 };
 
-// ---------- This window's layout (docs/plans/31-PLAN-settings-layers.md) ----------
+// ---------- This window's layout (docs/plans/executed/PLAN-settings-layers.md) ----------
 // What is open and shown in this window, kept with its session, so per window and per project: the names of
 // defaultLayout in the shipped settings.json. A name this window has no value of (yet) comes from your defaultLayout,
 // else the shipped one. settings.values holds them with the global settings, so setting() serves them as any other;
@@ -2702,7 +2702,7 @@ function startSearch() {
   searchUi.input.select();
 }
 
-// ---------- Zoom per screen (docs/plans/31-PLAN-settings-layers.md, 3.6) ----------
+// ---------- Zoom per screen (docs/plans/executed/PLAN-settings-layers.md, 3.6) ----------
 // How readable text is depends on the screen, not on the project. The base is global (editorSize, zoom in the
 // settings); the monitor this window is on adds its own, which the host keeps per monitor: points added to the editor
 // font, a factor on the preview zoom. Zoom in / out / 100% change this screen's (the editor's with the focus there,
