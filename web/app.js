@@ -2876,19 +2876,41 @@ function markOutline(pane) {
 // center), revealOutOfView (keep: revealLines from the edge it comes in at, the top going up, the bottom going down;
 // center) and revealLines. Never so many lines that the place itself would fall out of view.
 function revealFound(cm, from, to = from) {
-  const info = cm.getScrollInfo(), view = info.clientHeight, lh = cm.defaultTextHeight();
+  const info = cm.getScrollInfo(), view = info.clientHeight;
   const start = cm.charCoords(from, 'local'), top = start.top;
   const tall = cm.charCoords(to, 'local').bottom - top > view;   // taller than the view: its start
-  const bottom = tall ? start.bottom : cm.charCoords(to, 'local').bottom, height = bottom - top;
-  const lines = Number.isInteger(setting('revealLines')) ? setting('revealLines') : 5;
-  const keep = Math.max(0, Math.min(lines, Math.floor((view - height) / lh / 2))) * lh;
-  const inView = top >= info.top && bottom <= info.top + view;
-  let y = null;
-  if (inView ? setting('revealInView') === 'center' : setting('revealOutOfView') === 'center') y = top - (view - height) / 2;
-  else if (top < info.top + keep) y = top - keep;
-  else if (bottom > info.top + view - keep) y = bottom - view + keep;
+  const bottom = tall ? start.bottom : cm.charCoords(to, 'local').bottom;
+  const y = revealTop(info.top, view, top, bottom, cm.defaultTextHeight());
   if (y != null) cm.scrollTo(null, Math.max(0, y));
   cm.scrollIntoView(tall ? from : { from, to }, 0);   // sideways (up or down it is in view by now)
+}
+
+// The same for a found place in the preview (a find, a highlight): the ranges from `first` to `last`. A line is the
+// line height where the place starts, on screen: the computed one is without the preview zoom, the box with it.
+function revealFoundInPreview(pane, first, last = first) {
+  const el = pane.previewEl, box = el.getBoundingClientRect(), view = el.clientHeight;
+  const start = first.getBoundingClientRect(), top = start.top - box.top + el.scrollTop;
+  const tall = last.getBoundingClientRect().bottom - start.top > view;   // taller than the view: its start
+  const bottom = (tall ? start.bottom : last.getBoundingClientRect().bottom) - box.top + el.scrollTop;
+  const node = first.startContainer, block = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+  const article = block?.closest('.mm-preview');
+  const scale = article?.offsetHeight ? article.getBoundingClientRect().height / article.offsetHeight : 1;
+  const lh = (parseFloat(getComputedStyle(block ?? el).lineHeight) || start.height) * scale;
+  const y = revealTop(el.scrollTop, view, top, bottom, lh);
+  if (y != null) el.scrollTop = Math.max(0, y);
+}
+
+// Where a found place scrolls to, as the settings say (revealFound): the new top, or null when the view stays. All
+// in pixels from the top of the content: the view's top and height, the place's top and bottom, a line's height.
+function revealTop(viewTop, view, top, bottom, lh) {
+  const height = bottom - top;
+  const lines = Number.isInteger(setting('revealLines')) ? setting('revealLines') : 5;
+  const keep = Math.max(0, Math.min(lines, Math.floor((view - height) / lh / 2))) * lh;
+  const inView = top >= viewTop && bottom <= viewTop + view;
+  if (inView ? setting('revealInView') === 'center' : setting('revealOutOfView') === 'center') return top - (view - height) / 2;
+  if (top < viewTop + keep) return top - keep;
+  if (bottom > viewTop + view - keep) return bottom - view + keep;
+  return null;
 }
 
 // A highlight (settings highlightStyle, highlightColour, highlightIntensity): its colour as --highlight-mark, its
@@ -3575,6 +3597,7 @@ document.addEventListener('contextmenu', e => {
     contextPath = row.dataset.path;
     contextKind = row.classList.contains('mm-dir') || row.classList.contains('mm-base') ? 'folders' : 'files';
     favouriteItem(ui.treeMenu, contextPath, contextKind);   // favourites.js
+    ui.treeMenu.querySelector('[data-cmd=treeSetRoot]').hidden = contextKind !== 'folders' || samePath(contextPath, state.root);
     // The compare (compare.js): a file with the file in the editor or a picked one; a folder with a picked folder.
     const active = activeDoc()?.path, file = contextKind === 'files';
     ui.treeMenu.querySelector('[data-cmd=treeCompareActive]').hidden = !file || !active || samePath(active, contextPath);
@@ -3927,6 +3950,11 @@ const commands = {
   favouriteToggle: () => toggleFavourite(activeDoc()?.path),
   tabFavourite: () => menuTab && toggleFavourite(menuTab.doc.path),
   treeFavourite: () => toggleFavourite(contextPath, contextKind),
+  // The folder becomes the tree's root; its subfolders that were open stay open.
+  treeSetRoot: () => {
+    const under = contextPath.replace(/\\$/, '').toLowerCase() + '\\';
+    return openFolder(contextPath, [...expanded].filter(dir => dir.toLowerCase().startsWith(under)));
+  },
   treeCompareActive: () => activeTab() && startCompare({ tab: activeTab() }, { path: contextPath }),
   async treeCompareWith() {
     const left = contextPath, [right] = await host('pickFile', { one: true, at: left }) ?? [];

@@ -1,6 +1,8 @@
 # Plan: Docking: tool panes that float or dock
 
-Status: draft 2026-10-22, not started; questions open. From your answer on the character picker window (plan 15
+Status: draft 2026-10-22, extended 2026-10-25 (Folder and Search apart); brought in line with plan 33
+2026-10-25 (no view window of its own: viewing is a normal project, so all windows are the same kind); not
+started; questions open. From your answer on the character picker window (plan 15
 follow-up): "docking should be a new plan".
 The number in the file name is the priority; rename to reorder.
 
@@ -15,15 +17,20 @@ one outline for whichever document is active.
 
 The tool panes (Folder, Search, Outline, Settings, the character picker) become dockable: each can float as a
 window of its own or dock at the left, the right or the bottom of a LexPen window, alone or as a tab beside others
-docked there. Dragging a pane's title shows where it can go; a pane remembers its place, per window layout. The
-Outline, docked, follows the active document (one outline for all) instead of one per editor pane.
+docked there. Folder and Search are two panes, no longer two tabs of one side pane. Dragging a pane's title shows
+where it can go; a pane remembers its place, per window. The Outline, docked, follows the active document.
+
+All windows are equal: every window can dock every pane. The view project of plan 33 is a normal project; its
+look for viewing is only its own windows' layout.
 
 ## 3. Details (a first outline; to be worked out once the questions are answered)
 
 ### 3.1 The panes
 
-- Folder, Search (now the two tabs of the side pane), Outline, Settings (now a window of its own), Characters (the
-  picker, plan 15 follow-up). Later ones (a bookmark list, the clipboards, ...) the same way.
+- Folder and Search: two panes of their own (now the two tabs of the side pane). Docked at one place they can
+  still be tabs beside each other, as now; but each can also float or dock somewhere else.
+- Outline, Settings (now a window of its own), Characters (the picker, plan 15 follow-up). Later ones (a bookmark
+  list, the clipboards, ...) the same way.
 - Each has a title bar with its name, a menu (float, dock left / right / bottom, close) and a close button.
 
 ### 3.2 Where a pane can be
@@ -40,12 +47,22 @@ Outline, docked, follows the active document (one outline for all) instead of on
   or pane becomes active.
 - Or as now: an outline per editor pane at its right. A setting chooses (question 2).
 
-### 3.4 Kept
+### 3.4 All windows are equal
 
-- The places, sizes and tabs: per window, kept with the session (as the side pane's width and the open folders
-  now), so a window opens as it was left; a new window takes the layout of the last one.
+The answer to "are all windows equal?": yes. Plan 33 (`33-PLAN-view-window.md`) has no view window of its own:
+viewing uses a normal project, "View" by default, whose windows can dock every pane like any other.
 
-### 3.5 Tests
+- The view project keeps its layout as any project does (3.5): what you dock there stays there for the next view.
+- Plan 33's "Reset to view layout" includes the docking: no panes docked or floating for that project's window,
+  so only the editor pane in Preview is left.
+
+### 3.5 Kept
+
+- The places, sizes and tabs: per window, in the window's layout of plan 31 (`31-PLAN-settings-layers.md`: the
+  session's `layout`, where the sidebar and outline state go from localStorage), so a window opens as it was left; a new window takes the layout of the last window of its project (the
+  last window used when the project has none), so the view project does not take a full layout from elsewhere.
+
+### 3.6 Tests
 
 - To be written with the details.
 
@@ -58,7 +75,7 @@ Outline, docked, follows the active document (one outline for all) instead of on
 2. The outline: one for the active document when docked, and as now (one per editor pane) when not; or always one
    for the active document? Proposal: a setting, default as now.
 3. Several LexPen windows: one layout for all, or each window its own (the floating panes owned by the window they
-   belong to)? Proposal: each window its own, a new window copying the last one's.
+   belong to)? Proposal: each window its own, a new window copying the last one's of the same project.
 4. Docking at the top as well, or left, right and bottom only? Proposal: left, right, bottom.
 5. Where the panes go at first (the default layout): Folder and Search tabbed at the left, Outline per editor pane,
    Settings and Characters floating, as now? Proposal: as now, so nothing moves until you move it.
