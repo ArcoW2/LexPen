@@ -67,7 +67,7 @@ sealed class AppHost : ApplicationContext
     JsonObject settings = SettingsFile.Load(DataDir);
     public JsonObject Settings => settings;
 
-    // ---------- Theme sets (ThemeSetFile, docs/plans/32-PLAN-theme-sets.md) ----------
+    // ---------- Theme sets (ThemeSetFile, docs/plans/executed/PLAN-theme-sets.md) ----------
     // A window shows its project's set, else its desktop's default set, else the app's; "Default" is settings.json
     // itself. Every window gets its own settings and look from that: settings.json with the set's values over them.
     static string ThemeSetsPath => Path.Combine(DataDir, ThemeSetFile.FileName);
@@ -145,7 +145,7 @@ sealed class AppHost : ApplicationContext
         themeSetsWindow?.Post(new JsonObject { ["event"] = "list", ["list"] = ThemeSetList() });
     }
 
-    /// <summary>Save as default (plan 31's, with the theme set: docs/plans/32-PLAN-theme-sets.md, 3.11). When the window
+    /// <summary>Save as default (plan 31's, with the theme set: docs/plans/executed/PLAN-theme-sets.md, 3.11). When the window
     /// shows a set that is not already the one new projects get here, asks what to save: the layout and the set (as
     /// the app's default, or this desktop's), the layout only, or the set only. The set part is done here; the answer
     /// tells the page whether to save the layout, and what the set's default was (for Undo). Null: cancelled.</summary>
@@ -193,7 +193,7 @@ sealed class AppHost : ApplicationContext
         return result;
     }
 
-    // ---------- Manage theme sets (ThemeSetsForm; docs/plans/32-PLAN-theme-sets.md, 3.10) ----------
+    // ---------- Manage theme sets (ThemeSetsForm; docs/plans/executed/PLAN-theme-sets.md, 3.10) ----------
 
     /// <summary>The Manage theme sets window: one for the app; opened again, brought to the front.</summary>
     public void OpenThemeSets(MainForm from)
@@ -1105,7 +1105,7 @@ sealed class AppHost : ApplicationContext
     public JsonObject? SetSetting(string name, JsonNode? value, MainForm? from = null)
     {
         // A setting of the look, from a window whose set is not "Default": stored in that set (theme-sets.json), at
-        // once; the answer says where, and what else uses it (docs/plans/32-PLAN-theme-sets.md, 3.7).
+        // once; the answer says where, and what else uses it (docs/plans/executed/PLAN-theme-sets.md, 3.7).
         if (from is not null && ThemeSetFile.Names.Contains(name) && SetOf(from) is var set && themeSets.Get(set) is { } inSet)
         {
             SettingsFile.Set(File.ReadAllText(SettingsFile.DefaultsPath), null, name, value);   // throws for a wrong value
@@ -1642,7 +1642,7 @@ sealed class AppHost : ApplicationContext
         var otherDesktop = entry.Desktop != desktop;
         (entry.Bounds, entry.Maximized, entry.Desktop) = (bounds, maximized, desktop);
         SaveProjectsSoon();
-        if (otherDesktop) Restyle();   // another desktop: maybe its default set (docs/plans/32-PLAN-theme-sets.md, 3.6)
+        if (otherDesktop) Restyle();   // another desktop: maybe its default set (docs/plans/executed/PLAN-theme-sets.md, 3.6)
     }
 
     // A window moved to another desktop by hand (Win+Tab) gives no event: looked at now and then.

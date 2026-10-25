@@ -81,7 +81,7 @@ const MENUS = [
   ['&Projects', () => projectMenuItems()],
   ['&Options', [
     ['&Settings...', 'settings'],
-    { label: '&Theme set', fill: () => themeSetMenuItems() },   // this project's set (docs/plans/32-PLAN-theme-sets.md)
+    { label: '&Theme set', fill: () => themeSetMenuItems() },   // this project's set (docs/plans/executed/PLAN-theme-sets.md)
     '-',
     ['&Keyboard shortcuts and commands', 'commands'], ['&About LexPen', 'about'],
   ]],

@@ -5,7 +5,7 @@ using Microsoft.Web.WebView2.WinForms;
 namespace LexPen;
 
 /// <summary>
-/// The Manage theme sets window (docs/plans/32-PLAN-theme-sets.md, 3.10): one for the whole app, not modal, its place
+/// The Manage theme sets window (docs/plans/executed/PLAN-theme-sets.md, 3.10): one for the whole app, not modal, its place
 /// kept (AppState.ThemeSetsWindow), as the Manage projects window. Its page (web\themesets.html, themesets.js) lists the
 /// sets ("Default" first) with their look and what uses them, and the desktops with their default set; it makes,
 /// duplicates, renames and deletes sets, and uses one for the project of the window last worked in, its desktop or the

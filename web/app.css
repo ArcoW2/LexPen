@@ -248,7 +248,7 @@ body[data-show-eol] .CodeMirror[data-eol=lf] .CodeMirror-line:not(.mm-last-line)
 
 /* The window's project (bottom bar, left): a click opens the Projects menu. */
 .mm-status .mm-st-project { font-weight: 600; color: var(--fg); max-width: 22em; overflow: hidden; text-overflow: ellipsis; }
-.mm-status .mm-st-set { color: var(--fg-dim); max-width: 16em; overflow: hidden; text-overflow: ellipsis; }   /* the theme set (docs/plans/32-PLAN-theme-sets.md) */
+.mm-status .mm-st-set { color: var(--fg-dim); max-width: 16em; overflow: hidden; text-overflow: ellipsis; }   /* the theme set (docs/plans/executed/PLAN-theme-sets.md) */
 
 /* Asking a name (a project). */
 .mm-name-dialog { min-width: 26em; }

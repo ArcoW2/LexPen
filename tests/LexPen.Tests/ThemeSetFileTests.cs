@@ -2,7 +2,7 @@ using System.Text.Json.Nodes;
 
 namespace LexPen.Tests;
 
-// Theme sets (ThemeSetFile, docs/plans/32-PLAN-theme-sets.md).
+// Theme sets (ThemeSetFile, docs/plans/executed/PLAN-theme-sets.md).
 public class ThemeSetFileTests : IDisposable
 {
     readonly string dir = Path.Combine(Path.GetTempPath(), "lexpen-sets-" + Guid.NewGuid().ToString("N"));

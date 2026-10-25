@@ -456,7 +456,7 @@ events.settings = ({ settings: s }) => {
   show();
 };
 
-// ---------- The theme set (docs/plans/32-PLAN-theme-sets.md) ----------
+// ---------- The theme set (docs/plans/executed/PLAN-theme-sets.md) ----------
 const SET_SOURCE = { project: "this project's own", desktop: "this desktop's default", app: "the app's default" };
 const setBar = $('.st-set'), setSelect = $('.st-set-select');
 
@@ -605,7 +605,7 @@ function layoutMessage(text, undo) {
   clearTimeout(layoutMessage.timer);
   if (undo) layoutMessage.timer = setTimeout(() => layoutMessage("This window's layout:"), 8000);
 }
-// With a theme set the host asks first what to save (docs/plans/32-PLAN-theme-sets.md, 3.11).
+// With a theme set the host asks first what to save (docs/plans/executed/PLAN-theme-sets.md, 3.11).
 layoutBar.querySelector('[data-layout="save"]').addEventListener('click', async () => {
   const answer = await host('saveAsDefault');
   if (!answer) return;

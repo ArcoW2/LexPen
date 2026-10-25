@@ -4,7 +4,7 @@ using System.Text.Json.Nodes;
 namespace LexPen;
 
 /// <summary>
-/// Theme sets (docs/plans/32-PLAN-theme-sets.md): a named combination of the settings that decide the look (Names). A
+/// Theme sets (docs/plans/executed/PLAN-theme-sets.md): a named combination of the settings that decide the look (Names). A
 /// window shows its project's set, else the default set of the virtual desktop it is on, else the app's default set
 /// (Resolve). The look of settings.json is itself the set "Default", which cannot be renamed or deleted; the other sets
 /// are in theme-sets.json in the data folder (yours to copy to another PC), with which set is the app's default and

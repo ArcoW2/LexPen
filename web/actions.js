@@ -727,7 +727,7 @@ const formatRows = () => PACK_NAMES.filter(name => packs[name].format?.style).fl
       hint: `${packs[name].name}: ${key}`, options: () => [['', `As the language says (${values.find(v => v[0] === own)?.[1] ?? own})`], ...values] };
   }));
 
-// The settings of a theme set (docs/plans/32-PLAN-theme-sets.md, 3.2): the look. Until theme sets exist they are in
+// The settings of a theme set (docs/plans/executed/PLAN-theme-sets.md, 3.2): the look. Until theme sets exist they are in
 // settings.json as any other, but the settings window already marks them as the theme set's.
 const THEME_SET_NAMES = new Set(['themeLight', 'themeDark', 'editorThemeLight', 'editorThemeDark', 'previewThemeLight',
   'previewThemeDark', 'sneakTheme', 'highlightColour', 'highlightIntensity', 'previewHighlightColour', 'previewHighlightIntensity',

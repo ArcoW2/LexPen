@@ -1,5 +1,5 @@
 'use strict';
-// The Manage theme sets window's page (themesets.html; ThemeSetsForm hosts it), docs/plans/32-PLAN-theme-sets.md, 3.10:
+// The Manage theme sets window's page (themesets.html; ThemeSetsForm hosts it), docs/plans/executed/PLAN-theme-sets.md, 3.10:
 // the sets ("Default" first: settings.json itself) with their look in the current mode (the app's, the editor's and the
 // preview's background) and what uses them; the desktops with their default set. A set is selected by a click (Up /
 // Down); New makes one from the look the window last worked in shows, Duplicate copies the selected one; Rename (F2)

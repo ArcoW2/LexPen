@@ -19,7 +19,7 @@ sealed class ProjectStore
         public string Name = "";
         public DateTime Used;
         public DateTime? Created;        // null: made before LexPen kept it (the id order is the creation order)
-        public string? ThemeSet;         // its own theme set (docs/plans/32-PLAN-theme-sets.md), or null: the defaults
+        public string? ThemeSet;         // its own theme set (docs/plans/executed/PLAN-theme-sets.md), or null: the defaults
         public List<Window> Windows = [];
     }
 

@@ -143,7 +143,7 @@ events.layoutSet = ({ name, value }) => setSetting(name, value);
 // View > Layout > Save as default: this window's layout becomes defaultLayout in settings.json, the layout new
 // projects start with; at once, the message offers Undo (the default as it was).
 // With a theme set of its own that new projects do not get yet, the host asks first: the layout and the set, one of
-// them, or nothing (docs/plans/32-PLAN-theme-sets.md, 3.11); Undo puts back both.
+// them, or nothing (docs/plans/executed/PLAN-theme-sets.md, 3.11); Undo puts back both.
 async function saveLayoutAsDefault() {
   const answer = await host('saveAsDefault');
   if (!answer) return;
@@ -164,7 +164,7 @@ function resetLayoutToDefault() {
   mergeLayout();
   applySettings();
   layoutChanged();
-  // The project's own theme set goes too: the desktop's or the app's default again (docs/plans/32-PLAN-theme-sets.md).
+  // The project's own theme set goes too: the desktop's or the app's default again (docs/plans/executed/PLAN-theme-sets.md).
   const own = settings.themeSet?.own;
   if (own) host('themeSet', { set: null });
   toast(own ? `This window has the default layout and theme set again (no longer "${own}").` : 'This window has the default layout again.', true);
@@ -3526,7 +3526,7 @@ events.adoptDrafts = async ({ drafts }) => {
 // ---------- Projects (the host's ProjectStore): the Projects menu, the bottom bar, names ----------
 // A project has windows; every window is in one. The menu lists every project (checked: open) with its windows
 // (checked: open) and what can be done with them; the host does it (AppHost.ProjectCommand).
-// ---------- The theme set (docs/plans/32-PLAN-theme-sets.md) ----------
+// ---------- The theme set (docs/plans/executed/PLAN-theme-sets.md) ----------
 // The bottom bar shows the set this window shows (its project's own, its desktop's default or the app's); a click, or
 // Options > Theme set, chooses the project's own, or opens Manage theme sets.
 const setChip = $('.mm-st-set');

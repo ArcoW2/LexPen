@@ -821,7 +821,7 @@ sealed class MainForm : Form
             // Settings (SettingsFile): read, change one (every window follows), the rows of the settings window.
             case "settings":
             {
-                var merged = app.SettingsFor(this);   // with its theme set's values (docs/plans/32-PLAN-theme-sets.md)
+                var merged = app.SettingsFor(this);   // with its theme set's values (docs/plans/executed/PLAN-theme-sets.md)
                 merged["pageSettingsMoved"] = app.PageSettingsMoved;
                 merged["layoutMoved"] = app.LayoutMoved;
                 return merged;
