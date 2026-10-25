@@ -3677,12 +3677,19 @@ events.view = async ({ folder, files }) => {
   for (const path of files || []) await viewFile(path).catch(e => toast(e.message));
 };
 
-// A viewed file: in the preview; a tab opened for it is read-only with the setting viewReadOnly (the tab menu's
-// Read-only takes that off), so it cannot be changed by accident. A tab already open stays as it is.
+// A viewed file: in the preview. As a click in the folder pane (openFromTree), it replaces the document shown,
+// unless that one is a draft, has changes or is pinned (then a tab of its own); a file already open in the pane: that
+// tab, as it is. A tab it gets is read-only with the setting viewReadOnly (the tab menu's Read-only takes that off),
+// so it cannot be changed by accident; without the setting it can be edited at once.
 async function viewFile(path) {
-  const fresh = !panes[state.activePane].tabs.some(t => samePath(t.doc.path, path));
-  const tab = await openFile(path, { mode: 'preview' });
-  if (fresh && setting('viewReadOnly')) await setReadOnly(tab, true);
+  const pane = panes[state.activePane], shown = pane.active;
+  if (pane.tabs.some(t => samePath(t.doc.path, path))) return openFile(path, { pane });
+  let tab;
+  if (shown && !shown.doc.draft && !shown.doc.dirty && !shown.pinned && await navigate(shown, path)) {
+    tab = shown;
+    if (tab.mode !== 'preview') { tab.mode = 'preview'; await showActive(pane); }
+  } else tab = await openFile(path, { pane, mode: 'preview' });
+  if (!!tab.readOnly !== !!setting('viewReadOnly')) await setReadOnly(tab, !!setting('viewReadOnly'));
   return tab;
 }
 

@@ -153,6 +153,9 @@ Further decisions:
   submenu: one item LexPen per kind, its items in HKCU\Software\Classes\LexPen.Menu.Files and LexPen.Menu.Folders
   (ExtendedSubCommandsKey). View and Edit carry LexPen's own icon. Every setting change rewrites the entries whole,
   so switching leaves nothing of the other place behind.
+- A viewed file replaces the document shown, as a click in the folder pane does (your request after the run),
+  also when the window of the project for viewing first has to open: unless that document is a draft, has changes or
+  is pinned (then a tab of its own); a file already open there brings its tab to the front.
 - Manage projects shows "(for viewing)" after the name of the project for viewing.
 - Tested by hand on a scratch data folder through the running debug build and its pipe (`--view`, `--edit`): a view
   making the project "View" in the view layout, a second file joining that window, a folder in its Folder pane, Edit
