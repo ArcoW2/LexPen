@@ -2,7 +2,7 @@ using System.Text.Json.Nodes;
 
 namespace LexPen.Tests;
 
-// The project for viewing (ViewProject, docs/plans/33-PLAN-view-window.md).
+// The project for viewing (ViewProject, docs/plans/executed/PLAN-view-window.md).
 public class ViewProjectTests : IDisposable
 {
     readonly string dir = Path.Combine(Path.GetTempPath(), "lexpen-view-" + Guid.NewGuid().ToString("N"));

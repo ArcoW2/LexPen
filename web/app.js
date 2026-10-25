@@ -3666,7 +3666,7 @@ events.tabColours = ({ text }) => {
   refreshTabs();
 };
 
-// View in LexPen in this window (the project for viewing, docs/plans/33-PLAN-view-window.md): a file as a tab in the
+// View in LexPen in this window (the project for viewing, docs/plans/executed/PLAN-view-window.md): a file as a tab in the
 // preview (one already open comes to the front as it is), a folder as the Folder pane's folder, shown.
 events.view = async ({ folder, files }) => {
   if (folder) {
@@ -4249,7 +4249,7 @@ track((async () => {
   if (root) await openFolder(root, Array.isArray(tree?.open) ? tree.open : []).catch(() => {});
   if (tree && Number.isFinite(tree.top)) ui.tree.scrollTop = tree.top;
   if (start.restore !== undefined || start.drafts) await restore(session, start.drafts || []);
-  // View in LexPen (docs/plans/33-PLAN-view-window.md): the files in the preview, the folder in the Folder pane.
+  // View in LexPen (docs/plans/executed/PLAN-view-window.md): the files in the preview, the folder in the Folder pane.
   for (const path of start.files) await (start.view ? viewFile(path) : openFile(path)).catch(e => toast(e.message));
   if (start.view && start.folder) { setSidebar(true); setSideView('folder'); }
   syncWatch();

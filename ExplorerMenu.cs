@@ -4,7 +4,7 @@ namespace LexPen;
 
 /// <summary>
 /// LexPen in Windows Explorer's right-click menu (docs/plans/executed/PLAN-explorer-compare.md,
-/// docs/plans/33-PLAN-view-window.md). Compare: "Select left side to compare" on files and folders, and once a left side
+/// docs/plans/executed/PLAN-view-window.md). Compare: "Select left side to compare" on files and folders, and once a left side
 /// is chosen "Compare to &lt;its name&gt;", which runs --compare. View: "View in LexPen" on files and folders (--view).
 /// Edit: "Edit in LexPen" on files (--edit). Which of them, and where (Choice): next to each other between two lines,
 /// or in a submenu "LexPen". Registry entries for the current user only (HKCU\Software\Classes, or

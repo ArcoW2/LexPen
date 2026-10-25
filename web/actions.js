@@ -452,7 +452,7 @@ const SETTING_ROWS = [
   { name: 'keepUnnamedProjects', group: 'General', sub: 'Windows', kind: 'toggle', title: 'Keep unnamed projects',
     hint: 'Windows with files but with an unnamed project ("Project n") are kept for reopening',
     hintOff: 'Windows with files for unnamed projects ("Project n") are not remembered for reopening' },
-  // The project for viewing (docs/plans/33-PLAN-view-window.md): Explorer's View in LexPen opens files there.
+  // The project for viewing (docs/plans/executed/PLAN-view-window.md): Explorer's View in LexPen opens files there.
   { name: 'viewProject', group: 'General', sub: 'Viewing', kind: 'project', title: 'Project for viewing',
     hint: 'View in LexPen (Explorer) opens files and folders in this project. A normal project: what you change there (panes, colours) stays for the next view' },
   { name: 'viewReadOnly', group: 'General', sub: 'Viewing', kind: 'toggle', title: 'Viewed documents read-only',

@@ -97,7 +97,7 @@ public class ExplorerMenuTests : IDisposable
         return key?.GetValueNames().Contains(name) == true;
     }
 
-    // View and Edit in LexPen (docs/plans/33-PLAN-view-window.md): next to each other between two lines, Edit on files only.
+    // View and Edit in LexPen (docs/plans/executed/PLAN-view-window.md): next to each other between two lines, Edit on files only.
     [Fact]
     public void TheItemsAsAGroupBetweenTwoLines()
     {

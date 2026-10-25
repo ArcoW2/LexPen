@@ -861,7 +861,7 @@ sealed class AppHost : ApplicationContext
     /// <summary>The layout a window opens with: its own, else that of the last window of its project (ProjectStore.LayoutOf).</summary>
     public JsonNode? LayoutFor(MainForm w) => projects.LayoutOf(w.Key) ?? (ForViewing(w) ? ViewLayout() : null);
 
-    // ---------- The project for viewing (docs/plans/33-PLAN-view-window.md) ----------
+    // ---------- The project for viewing (docs/plans/executed/PLAN-view-window.md) ----------
 
     int ViewProjectId => settings["values"]?["viewProject"]?.GetValueKind() == JsonValueKind.Number ? settings["values"]!["viewProject"]!.GetValue<int>() : 0;
     ProjectStore.Project? FindViewProject() => ViewProject.Find(projects, ViewProjectId);
@@ -1380,7 +1380,7 @@ sealed class AppHost : ApplicationContext
                 ["id"] = p.Id, ["name"] = p.Name, ["display"] = ProjectStore.Display(p), ["mine"] = p == mine,
                 ["open"] = p.Windows.Any(w => open.ContainsKey(w.Key)),
                 ["windows"] = new JsonArray(p.Windows.Select(w => (JsonNode?)Window(w)).ToArray()),
-                ["view"] = p == viewing,   // the project for viewing (docs/plans/33-PLAN-view-window.md)
+                ["view"] = p == viewing,   // the project for viewing (docs/plans/executed/PLAN-view-window.md)
             };
             if (details)
             {

@@ -55,7 +55,7 @@ static class Program
 
     // "-n" or "--new-window": a new window, as with Shift held. "-c" or "--compare": the two paths compared (two files
     // or two folders), in a new window. "--view": the files and folders in the project for viewing (Explorer's View in
-    // LexPen, docs/plans/33-PLAN-view-window.md). "--edit": as without a switch (Explorer's Edit in LexPen). Everything
+    // LexPen, docs/plans/executed/PLAN-view-window.md). "--edit": as without a switch (Explorer's Edit in LexPen). Everything
     // else is a file or folder.
     internal static (bool NewWindow, bool Compare, bool View, string[] Paths) ParseArgs(string[] args)
     {

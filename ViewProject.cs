@@ -3,7 +3,7 @@ using System.Text.Json.Nodes;
 namespace LexPen;
 
 /// <summary>
-/// The project for viewing (docs/plans/33-PLAN-view-window.md): View in LexPen opens files and folders there. It is the
+/// The project for viewing (docs/plans/executed/PLAN-view-window.md): View in LexPen opens files and folders there. It is the
 /// project the setting viewProject names (its id), else the one named "View" (AppHost makes it on the first view). A
 /// normal project otherwise: what you change there is kept. Its layout to start with, and what Reset to view layout
 /// gives it, is the view layout: the default layout with the sidebar, the outline, the format bar and the ruler off, one

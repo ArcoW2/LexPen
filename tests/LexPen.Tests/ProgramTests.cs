@@ -33,7 +33,7 @@ public class ProgramTests
         Assert.Equal([@"C:\a\old.sql", @"C:\a\new.sql"], paths);
     }
 
-    // Explorer's View in LexPen and Edit in LexPen (docs/plans/33-PLAN-view-window.md): --edit is as no switch.
+    // Explorer's View in LexPen and Edit in LexPen (docs/plans/executed/PLAN-view-window.md): --edit is as no switch.
     [Fact]
     public void ViewAndEditSwitchesAreTakenOutOfThePaths()
     {

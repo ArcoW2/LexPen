@@ -158,7 +158,7 @@ sealed class SettingsForm : Form
                 app.SetScreenZoom(window, msg["editor"]?.GetValue<bool>() == true ? 0 : null, msg["preview"]?.GetValue<bool>() == true ? 1 : null);
                 return null;
 
-            // The project for viewing (docs/plans/33-PLAN-view-window.md): the projects to choose from; its reset.
+            // The project for viewing (docs/plans/executed/PLAN-view-window.md): the projects to choose from; its reset.
             case "projects":
                 return app.ProjectNames();
 
