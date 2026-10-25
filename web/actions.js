@@ -556,14 +556,14 @@ const SETTING_ROWS = [
   // Where the view puts a place jumped to: a find, a search result, a compare difference, a bookmark, a highlight, Go
   // to line, a click in the outline (revealFound in app.js).
   { name: 'revealInView', group: 'Editor', sub: 'Jump to a line', kind: 'choice', title: 'A line already in view', keywords: JUMP_KEYWORDS,
-    hint: 'A find, a search result, the next compare difference, a bookmark, a highlight, Go to line, a click in the outline: when the line is already on screen',
+    hint: 'A find, a search result, the next compare difference, a bookmark, a highlight, Go to line, a click in the outline: when the line is already on screen. In the editor and in the preview alike',
     options: () => [['stay', 'The view stays (unless it is within the lines kept from the edge)'], ['center', 'Centred']] },
   { name: 'revealOutOfView', group: 'Editor', sub: 'Jump to a line', kind: 'choice', title: 'A line out of view', keywords: JUMP_KEYWORDS,
     hint: 'When the line is not on screen: the view scrolls to it',
     options: () => [['keep', 'The lines kept from the edge (the top going up, the bottom going down)'], ['center', 'Centred']] },
   { name: 'revealLines', group: 'Editor', sub: 'Jump to a line', kind: 'range', range: [0, 20, 1], unit: ' lines', title: 'Lines kept from the edge',
     keywords: JUMP_KEYWORDS,
-    hint: 'A line jumped to comes no closer than this many lines to the top or bottom of the view (fewer on a low view)' },
+    hint: 'A line jumped to comes no closer than this many lines to the top or bottom of the view (fewer on a low view); in the preview the lines of the text shown there' },
 
   { name: 'locateCursor', group: 'Editor view', sub: 'Locate the cursor', kind: 'toggle', title: 'A short tap on Ctrl shows where the cursor is',
     hint: 'A short tap on Ctrl: rings shrink onto every cursor, in the colour of the find box; a cursor out of view gets a marker at that edge with its line number (also View > Locate the cursor)',
