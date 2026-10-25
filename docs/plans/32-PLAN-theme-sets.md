@@ -1,7 +1,8 @@
 # Plan: theme sets per project (a named combination of themes, colours and intensities)
 
 Status: draft 2026-10-25, decisions 2026-10-25 (the name; the bottom bar; changes apply at once, a bar in the
-settings window saves them to a set; Use as default writes the look to settings.json, which new projects get);
+settings window saves them to a set; Use as default writes the look to settings.json, which new projects get;
+the bar in the settings window always there, in the warning colour while changes are unsaved);
 not started; questions open.
 The number in the file name is the priority; rename to reorder.
 
@@ -17,10 +18,11 @@ project all bluish), and to switch the whole look in one step.
 A theme set is a named snapshot of those settings. A project can name a set; its windows then show that set, a
 project without one uses the global settings as today. The bottom bar shows the set of the window's project; a
 click on it picks another set or opens the Manage theme sets window, which saves, renames, duplicates and deletes
-sets. A colour setting changed while a set is in use applies at once, but is not yet in the set: a bar at the
-bottom of the settings window says so and saves the changes to the current set, to a new set (a name) or to
-another existing set. "Use as default" writes the current look to settings.json instead: the look of projects
-without a set, which is what a new project gets.
+sets. The settings window has a theme set bar at its bottom, always: it shows the set in use (or none), picks
+another, and saves the current look to the current set, to another existing set or to a new one (a name), also
+when no set is in use. A colour setting changed while a set is in use applies at once but is not yet in the set;
+the bar then turns the warning colour until the changes are saved or undone. "Use as default" writes the current
+look to settings.json: the look of projects without a set, which is what a new project gets.
 
 ## 3. Details
 
@@ -60,21 +62,36 @@ The list is one array in one place (host side), so a later colour setting is add
   side. The settings window, the highlights window, the character picker and the projects window follow the
   window last worked in (AppHost.LastActive).
 
-### 3.5 Changing a colour setting while a set is in use
+### 3.5 The theme set bar in the settings window
 
-- No set in use (the window last worked in): the change goes to settings.json, as today.
+Always at the bottom of the settings window, above its footer line (`.st-foot`), for the project of the window
+last worked in (the one the settings window follows).
+
+- Shows "Theme set: Company", or "Theme set: none (the default)" when the project has no set.
+- Choose another: a list of "None (the default)" and every set; picking one sets it for the project at once.
+- Save to 'Company': the current set (only when a set is in use).
+- Save to another set: a list of the other sets; the project then uses that set.
+- Save as new set: a name field (OK when the name is not taken); the project then uses the new set. With no set
+  in use this is how the current settings become a set.
+- Use as default (3.6), and Undo (the unsaved changes dropped, back to the set; question 3).
+
+Its colour:
+
+- Normally the standard bar colour (`--bg-bar`, as the settings window's top bar and footer).
+- The warning colour while the project has unsaved changes, with the text "Changes not saved to theme set
+  'Company'": a background mixed from the theme's `--warning` (now a text colour) and `--bg-bar`, so it works in
+  every theme. Saved or undone: back to the standard colour.
+
+What a change does:
+
+- No set in use: the change goes to settings.json, as today; there is nothing unsaved, the bar stays in its
+  standard colour (Save as new set still makes a set of it).
 - A set in use: the change applies at once, in every window of that project, but it is not written to the set
-  or to settings.json. It is kept as an unsaved change of the project (3.4's top layer).
-- The settings window then shows a bar at its bottom: "Changes not saved to theme set 'Company'", with:
-  - Save to 'Company' (the current set).
-  - Save as new set: a name field (OK when the name is not taken); the project then uses the new set.
-  - Save to another set: a list of the other sets; the project then uses that set.
-  - Use as default: the look as shown (the set with the changes) written to settings.json (3.6).
-  - Undo: the changes dropped, back to the set (question 3).
+  or to settings.json. It is kept as an unsaved change of the project (3.4's top layer), and the bar turns the
+  warning colour.
 - The changed settings are marked in the settings window (as a setting differing from its default is now), so
   you see what the bar is about.
 - Saving to a set: every project using that set sees it at once.
-- The bar goes when the changes are saved or undone, and comes back for the next change.
 
 ### 3.6 Use as default
 
@@ -94,7 +111,8 @@ The list is one array in one place (host side), so a later colour setting is add
 - A click opens a menu: "None (the settings)", then every set, a check at the one of this window's project;
   picking one sets it for this window's project (and so for every window of it) at once. Below a line: "Save
   current look as a set..." (asks a name), "Use as default" (3.6) and "Manage theme sets...".
-- Switching sets with unsaved changes: asks first (save to the current set, drop them, Cancel) (question 3).
+- Switching sets with unsaved changes (here or on the theme set bar): asks first (save to the current set, drop
+  them, Cancel) (question 3).
 - The same menu as Options > Theme set > (question 4).
 
 ### 3.8 The Manage theme sets window
@@ -107,7 +125,8 @@ swatches (the app, editor and preview backgrounds of the current mode) and the p
 - Apply to this project (the window last worked in), and Apply to projects... (checkboxes, or from the
   Manage projects window: a column "Theme set" and Project > Theme set >).
 - Rename (F2), Delete (asks; names the projects that use it), Duplicate.
-- Edit a set: apply it to this project and open the settings window; the bar of 3.5 saves the changes.
+- Edit a set: apply it to this project and open the settings window; its theme set bar (3.5) saves the
+  changes.
 
 ### 3.9 Host changes
 
@@ -117,7 +136,8 @@ swatches (the app, editor and preview backgrounds of the current mode) and the p
   that project's windows get settings and look again.
 - Use as default: 3.2's values written to settings.json, the other settings untouched.
 - The settings window: a change to one of 3.2's names, with a set in use, goes to the project's unsaved changes
-  instead of settings.json; the bar of 3.5 and its ops (save to set, save as new, save to other, undo).
+  instead of settings.json; the theme set bar of 3.5, always shown, its colour following the unsaved changes, and its ops (choose, save
+  to set, save as new, save to other, use as default, undo).
 - ProjectStore: `ThemeSet` per project, read and written; the unsaved changes per project (question 2).
 - MainForm: ops `themeSets` (the menu), `themeSet` (choose for this project), `saveThemeSet`; the bottom bar
   field.
@@ -132,8 +152,9 @@ swatches (the app, editor and preview backgrounds of the current mode) and the p
 - Use as default: settings.json gets 3.2's values of the set (and changes), keeps every other setting; a
   project without a set shows them; a new project has no set.
 - ProjectStore: `themeSet` round trip; renaming a set renames it in the projects.
-- By hand: two windows of two projects with different sets side by side; the bottom bar menu; the bar in the
-  settings window with each of its choices; Day / night with a set; the highlights window following the window
+- By hand: two windows of two projects with different sets side by side; the bottom bar menu; the theme set bar in
+  the settings window with each of its choices, with and without a set in use, its colour before and after a
+  change; Day / night with a set; the highlights window following the window
   last worked in.
 
 ### 3.11 Open questions
