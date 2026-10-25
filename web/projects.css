@@ -39,6 +39,8 @@
 .pv-window b { color: var(--fg); font-weight: 600; }
 .pv-files { display: block; padding-left: 1.5em; white-space: normal; overflow-wrap: anywhere; }
 .pv-files .pv-draft { color: var(--warning); }
+.pv-file { display: flex; align-items: center; gap: 4px; }
+.pv-pin, .pv-no-pin { flex: none; width: 12px; height: 12px; }
 .pv-mark { background: var(--find-hit); border-radius: 2px; }
 .pv-empty { padding: 14px 10px; color: var(--fg-dim); }
 .pv-bottom { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-top: 1px solid var(--border); background: var(--bg-bar); }

@@ -1267,7 +1267,7 @@ sealed class AppHost : ApplicationContext
 
     /// <summary>The Projects menu: every project (newest used first, this window's first), its windows, which are open.
     /// With details (the Manage projects window): also when it was created and last used, its drafts, and per window
-    /// the names of its tabs (a file's name, a draft's first line).</summary>
+    /// the names of its tabs (a file's name, a draft's first line) and which are pinned.</summary>
     public JsonArray ProjectList(MainForm? from, bool details = false)
     {
         var mine = from is null ? null : projects.ProjectOf(from.Key);
@@ -1284,9 +1284,14 @@ sealed class AppHost : ApplicationContext
                 ["tabs"] = Tabs(w).Count(),
             };
             if (details)
-                o["files"] = new JsonArray(Tabs(w).Select(t => (JsonNode?)(t["draft"]?.GetValue<string>() is string id
-                    ? new JsonObject { ["draft"] = id, ["name"] = DraftTitle(texts.GetValueOrDefault(id)) }
-                    : new JsonObject { ["name"] = Path.GetFileName(t["path"]?.GetValue<string>() ?? ""), ["path"] = t["path"]?.GetValue<string>() })).ToArray());
+                o["files"] = new JsonArray(Tabs(w).Select(t =>
+                {
+                    var f = t["draft"]?.GetValue<string>() is string id
+                        ? new JsonObject { ["draft"] = id, ["name"] = DraftTitle(texts.GetValueOrDefault(id)) }
+                        : new JsonObject { ["name"] = Path.GetFileName(t["path"]?.GetValue<string>() ?? ""), ["path"] = t["path"]?.GetValue<string>() };
+                    if (t["pinned"]?.GetValueKind() == JsonValueKind.True) f["pinned"] = true;
+                    return (JsonNode?)f;
+                }).ToArray());
             return o;
         }
         return new JsonArray(projects.Projects.OrderByDescending(p => p == mine).ThenByDescending(p => p.Used).Select(p =>
