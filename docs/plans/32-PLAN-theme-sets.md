@@ -5,7 +5,8 @@ default set per virtual desktop and for the app, a project's own set always firs
 the set "Default"; a change is stored at once in the set shown, no unsaved state; which set is used for what is
 chosen in the Manage theme sets window, the quick select of the project's set kept in the
 bars. Extended 2026-10-25: a settings window per main window (3.11), as the one shared settings window shows
-the wrong project's set. Not started; questions open.
+the wrong project's set; a window moved to another desktop takes that desktop's default set unless its project
+has its own (3.6). Not started; questions open.
 The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
@@ -83,8 +84,17 @@ The list is one array in one place (host side), so a later colour setting is add
 ### 3.6 A default set per desktop
 
 - Each Windows virtual desktop can name a default set, for the windows on it whose project has no set.
-- A window moved to another desktop (Win+Tab) takes that desktop's default; LexPen already looks at the desktops
-  of its windows now and then (AppHost's desktop timer), the look follows from that.
+- A window moved to another desktop (Win+Tab, or Move to in the task view) follows 3.5 again on its new desktop:
+  - Its project has a set of its own: nothing changes; the project's set always wins.
+  - Else: it takes the new desktop's default set; the new desktop has none: the app's default set.
+  - Moved back: the old desktop's default again. Nothing is stored for the move; the set is worked out from where
+    the window is.
+  - LexPen notices the move from its desktop timer (AppHost, already looking at the desktops of its windows now and
+    then); the look follows then, not at the moment of the move.
+  - Two windows of one project without a set of its own, on two desktops with different defaults, look
+    different. That is intended: the desktop decides.
+  - The window's settings window (3.11) shows the new set in its theme set bar; whether Windows moves an owned
+    window along with its owner is to be checked by hand.
 - The desktop id is the desktop's GUID, which LexPen already gets per window (VirtualDesktop.DesktopOf, the
   documented IVirtualDesktopManager) and keeps with each window's place.
 - The desktops' names: the documented interface gives only the id of a window's desktop, not the list of desktops
@@ -192,6 +202,8 @@ and a colour change made "for B" lands in A's set.
   and writes settings.json and keeps every other setting there; "Default" cannot be renamed or deleted.
 - The set of a window: the project's over the desktop's over the app's; a new project has none; a desktop without
   a default falls to the app's; `app` missing is "Default".
+- A window moved to another desktop: without a project set it takes the new desktop's default (or the app's when
+  that desktop has none); with a project set it keeps the project's; moved back, the old desktop's default.
 - A change stored in the set shown, and only there (settings.json untouched for another set; theme-sets.json
   untouched for "Default"); Undo puts back the old value.
 - "Also used by": counted from the projects and desktops naming the set, the window's own project left out.
