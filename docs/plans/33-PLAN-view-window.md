@@ -51,8 +51,9 @@ The window's layout of plan 31 (`31-PLAN-settings-layers.md`, 3.2), set to:
 - Every tab in Preview mode; the editor not shown.
 - The tabs themselves are kept (question 2).
 - Its theme set (plan 32) is not touched: that is colour, not layout. Global settings are not touched either.
-- Which of plan 31's borderline settings (its question 1) end up in the layout decides what else the reset can
-  set; only layout settings are per project.
+- The rest of plan 31's layout (wrap, tab bar, line numbers, gutter columns, scroll bar marks, zoom, the folder
+  filter and sort) is taken from the default layout (plan 31, 3.5): the view layout is the default with the
+  values above over it.
 
 The layout is only a starting point: open the Folder pane or split the window afterwards and that is what the next
 view gets. Nothing is locked.

@@ -165,7 +165,9 @@ of its own. This plan adds to it:
   look is the owner's set, not the last active window's.
 - The row marks of plan 31 (3.7): 3.2's settings are the theme set layer; the tooltip names the set ("Theme set:
   Company (this project's)").
-- Save as default (plan 31, 3.5) gets a second checkbox: "The theme set "Company" for new projects". On, it makes
+- Save as default (plan 31, 3.5) saves only the layout, at once. This plan turns it into a small dialog with two
+  checkboxes, both on: "The layout of this window" (plan 31, as before) and "The theme set "Company" for new
+  projects" (only when the window shows a set). The second, on, makes
   that set the app's default (`app`, 3.5), so a new project without a set of its own shows it. When the desktop
   of the window has a default set of its own, that one still wins for new projects there; the dialog then says
   so and offers "this desktop's default" instead. Nothing is copied: the set itself becomes the default.

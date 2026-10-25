@@ -1,6 +1,8 @@
 # Plan: settings layers: global, this window, theme set
 
-Status: draft 2026-10-25, not started; questions open. From your agreement on the three layers: "Make a plan for
+Status: draft 2026-10-25; your answers of 2026-10-25 worked in (the borderline settings and the folder filter
+and sort per window, the old names removed from settings.json, layer colours per theme, a settings window per main
+window, one default layout, Save as default at once). Not started; one question open. From your agreement on the three layers: "Make a plan for
 this split when it can be executed separately (before the other two)". It can: see 3.10 for the order with plans
 32 and 33.
 The number in the file name is the priority; rename to reorder.
@@ -27,7 +29,7 @@ what is open and shown in a window, kept with its session in projects.json and s
 32): colours and themes. The pane state now in localStorage, and the window-type settings now in settings.json,
 move to the window layer; a new window copies the layout of the last window of its project, a new project starts
 from the default layout. "Save as default" makes this window's layout the default in one step, "Reset to default"
-goes back to it; with plan 32 the same step can make this window's theme set the default. The settings window
+goes back to it. The settings window
 belongs to the window it was opened from, and every row carries a coloured line on its left that says which layer
 it belongs to.
 
@@ -43,7 +45,7 @@ it belongs to.
 
 - Mode (Day / night, Follow Windows) stays global: it picks the light or dark half of whatever theme applies.
 - Until plan 32 is in, the theme set layer is simply global (settings.json); its rows are already marked as such
-  (3.6), so plan 32 changes where they are stored, not what the user sees.
+  (3.7), so plan 32 changes where they are stored, not what the user sees.
 - The rule for a user: colours belong to the theme set, what is open belongs to the window, everything else is
   global.
 
@@ -56,19 +58,22 @@ From localStorage (pane state, no settings row today):
 - `orient` (panes side by side / above each other), `ratio` (the first pane's size), `editShare` (the editor /
   preview split).
 - `searchScope`.
-- `tree` (all files / markdown only), `sort`, `sortDesc`: the folder pane's filter and order (question 2).
+- `tree` (all files / markdown only), `sort`, `sortDesc`: the folder pane's filter and order.
 
-From settings.json (settings rows today, toggled from the View menu):
+From settings.json (settings rows today, most also in the View menu):
 
-- `formatBar`, `ruler`, `lineNumbers`, `zoom`.
-- Borderline, proposed to stay global: `wrap`, `tabBar`, `lineNumberCount`, the gutter columns, the scroll bar
-  marks, `previewWrap` (question 1).
+- `formatBar`, `ruler`, `lineNumbers`, `lineNumberCount`, `zoom` (the preview's).
+- `wrap`, `previewWrap`, `tabBar`.
+- The gutter columns (`gutter.bookmarks`, `gutter.changes`, `gutter.git`, `gutter.folds`) and the scroll bar marks
+  (`overview.find`, `overview.changes`, `overview.git`, `overview.bookmarks`, `overview.highlights`).
 
 Stays where it is:
 
 - localStorage: `outlineFolded.<language>` (per language, not per window), `settingsTab` (the settings window's own
   tab).
 - The session's present contents (folder, tabs, modes, hidden pane, scroll together): already per window.
+- `editorSize` stays global: it is the editor font, with `editorFont`. Note that Zoom in / out with the focus in the
+  editor changes `editorSize`, so in the editor it zooms every window, in the preview only this one (question 2).
 
 The rule for a setting later added: is it about what this window shows, switched from the View menu, and would
 you want it different in another project (the view project)? Then this window; else global.
@@ -92,8 +97,8 @@ you want it different in another project (the view project)? Then this window; e
   used last.
 - The first start after this change: `defaultLayout` (3.5) is made from the values of today, from localStorage and
   settings.json. Every saved session without a `layout` takes it. So nothing changes on screen the first time.
-- settings.json: the moved names are no longer written; their values went into `defaultLayout`. They are left in
-  the file, unread after that first start (question 3).
+- settings.json: their values went into `defaultLayout`, then the moved names are removed from the file. They are
+  not read or written after that.
 - localStorage: the moved keys are read once for `defaultLayout`, then no longer written. Removing them is a later
   clean-up, not part of this plan.
 
@@ -110,15 +115,9 @@ layout of its own, kept global:
 - Where: View > Layout > Save as default / Reset to default; and in the settings window, a bar at the bottom for
   the window it belongs to: "This window's layout: Save as default, Reset to default" (the "this window" colour
   of 3.7 on its left).
-- Save as default replaces the default without a question, with a short message in the bar and Undo (the old
-  default kept with the message), as plan 32's changes to a set.
-- With plan 32: Save as default asks what to save, in one small dialog with two checkboxes, both on:
-  - "The layout of this window" (this plan).
-  - "The theme set "Company" for new projects" (plan 32): only when the window shows a set.
-  Reset to default the same: the layout, and the project's own set removed (so it shows the desktop's or the
-  app's default).
-- Not part of this plan: more named layouts (a "View" layout, a "Review" layout) to choose from, as theme sets.
-  Plan 33's view layout is a fixed one; named layouts can come later if one default is not enough (question 7).
+- Save as default replaces the default at once, without a question, with a short message in the bar and Undo
+  (the old default kept with the message).
+- One default layout; no named layouts. Plan 33's view layout is a fixed one, applied by its own reset.
 
 ### 3.6 A settings window per main window
 
@@ -144,13 +143,14 @@ window opened from project A.
 ### 3.7 Each row shows its layer
 
 - Every row in the settings window has a coloured line on its left, one colour per layer: global, this window,
-  theme set. The colours are theme tokens (`--layer-global`, `--layer-window`, `--layer-set`), set by each theme
-  as its other colours, so they read in light and dark.
+  theme set. The colours are theme tokens (`--layer-global`, `--layer-window`, `--layer-set`), per theme: the
+  base themes give defaults, which the other themes inherit (as their other colours), and a theme can set its own,
+  so they read in light and dark.
 - Colour is not the only sign: the line's tooltip names the layer ("This window: Company [2]", "Theme set:
   Default", "Global: every window"), and a legend at the top of the settings window shows the three colours with
   their names. The legend's items filter the rows to one layer (a click; again for all).
 - A group whose rows all belong to one layer: the line runs along the whole group.
-- The View menu items for "this window" settings: no mark (the menu is the window's anyway); question 4.
+- The View menu: grouped by layer or marked (question 1).
 
 ### 3.8 Host changes
 
@@ -162,8 +162,8 @@ window opened from project A.
 - SettingsForm: keeps its owner; ToWindow to the owner.
 - ProjectStore: nothing new to store (the layout is inside the session); a helper for "the layout of the last window
   used of this project, else of any project", pure, so it can be tested.
-- SettingsFile: the moved names no longer written; `defaultLayout` read and written; made once from the old values
-  (3.4).
+- SettingsFile: `defaultLayout` read and written; made once from the old values, after which the moved names are
+  removed from settings.json (3.4).
 - Page (app.js, actions.js): the layout names, `setting` / `setSetting` for them, the layout in `sessionData` and
   `restore`, the fallback from localStorage and settings.
 - Settings page (settings.js, settings.html): the layer per row from the definitions (a `layer` on each, default
@@ -175,7 +175,8 @@ window opened from project A.
 - ProjectStore: a session's `layout` round trip; the layout of a new window from the last window of the project;
   a new project from `defaultLayout`.
 - SettingsFile: `defaultLayout` made once from the moved names (and the localStorage values passed in), then the
-  moved names not written; `defaultLayout` round trip; every other setting written as before.
+  moved names gone from the file; a second start does not make it again; `defaultLayout` round trip; every other
+  setting kept as before.
 - Save as default / Reset to default: the window's layout to and from `defaultLayout`, tabs and folder untouched;
   Undo puts back the old default.
 - The settings windows: asked twice from one window gives one; from two windows gives two; closing a main window
@@ -192,25 +193,15 @@ window opened from project A.
 - This plan first; it needs neither of the others.
 - Plan 33 (view project) needs this plan: "Reset to view layout" writes the window's layout, which only exists
   per window after this. Its look per project needs plan 32, but works without it (the global colours).
-- Plan 32 (theme sets) needs this plan's settings window per main window (3.6), adds the theme set layer to the
-  row marks (3.7) and the theme set to Save as default (3.5); otherwise it is independent of plan 33.
+- Plan 32 (theme sets) needs this plan's settings window per main window (3.6) and builds on its row marks (3.7)
+  and Save as default (3.5); what it adds to them is written in plan 32 itself. Otherwise it is independent of
+  plan 33.
 - So: 31, then 32 and 33 in either order. Doing 31 and 32 at once gains nothing: they touch the settings window
   in different places, and 31 alone is already useful (panes per project).
 
 ## 4. Open questions
 
-1. The borderline settings (`wrap`, `tabBar`, `lineNumberCount`, the gutter columns, the scroll bar marks,
-   `previewWrap`): global (proposal), or this window? Each one you want different in the view project belongs to
-   this window.
-2. The folder pane's filter and sort (`tree`, `sort`, `sortDesc`): this window (proposal: a docs project shows
-   markdown only, another all files), or global as a preference?
-3. settings.json: leave the moved names in the file, unread after the first start (proposal), or remove them then?
-4. The View menu: mark the items that belong to this window, or not (proposal: not; the settings window says it)?
-5. The layer colours: one fixed set for every theme, or per theme (proposal: per theme, with defaults in the base
-   theme, so every theme has them without a change)?
-6. A settings window per main window (3.6), or one per project (shared by that project's windows)? Proposal: per
-   main window; it is owned by that window, so it stays on its desktop, and two windows of one project show the
-   same layout and set only when they are alike anyway.
-7. One default layout (this plan), or named layouts to choose from as with theme sets (a "View", a "Review")?
-   Proposal: one default now; plan 33's view layout fixed; named layouts only when one default proves too few.
-8. Save as default: replace at once with Undo (proposal, as plan 32's set changes), or ask first?
+1. The View menu: grouped per layer (your answer), or a mark per item when grouping looks wrong. To be decided on
+   the mock-ups (in the conversation of 2026-10-25; the chosen one is written in here).
+2. Zoom in the editor changes `editorSize`, a global setting, so it zooms every window (3.2). Leave it so, or make
+   the editor zoom a layout value too (an offset on `editorSize` per window)?
