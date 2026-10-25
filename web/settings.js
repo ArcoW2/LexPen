@@ -93,7 +93,7 @@ function control(def) {
     for (const [label, op, args] of buttons) {
       const b = document.createElement('button');
       b.textContent = label;
-      b.addEventListener('click', () => host(op, args));
+      b.addEventListener('click', () => op === 'fileTypes' ? openFileTypes() : host(op, args));   // a dialog here, or the host
       box.append(b);
     }
     return { box, show: () => {}, focus: box.firstChild };
@@ -558,6 +558,7 @@ ui.search.addEventListener('input', () => filter(true));
 const visibleRows = () => rows.filter(r => !r.el.hidden);
 
 addEventListener('keydown', e => {
+  if (ftDialog.open) return;   // the File types dialog has its own keys (Esc closes it, not the window)
   if (e.ctrlKey && !e.altKey && (e.key === 'Tab' || e.key === 'PageDown' || e.key === 'PageUp') && settings?.defs) {
     e.preventDefault();
     return stepTab(e.key === 'PageUp' || e.key === 'Tab' && e.shiftKey ? -1 : 1);
@@ -588,6 +589,89 @@ addEventListener('keydown', e => {
 }, true);
 
 $('.st-foot [data-open]').addEventListener('click', e => host('openFile', { file: e.target.dataset.open }));
+
+// ---------- File types (docs/plans/executed/PLAN-file-types.md) ----------
+// Every extension of the language packs: checked when LexPen opens it, how (edit or view; choosing one checks the row),
+// the app Windows starts now. The filter narrows the rows; Check all / none and All edit / view act on the rows shown;
+// Assign on every row: it clears the filter and the host asks first. A debug build refuses Assign (the host says so).
+const ftDialog = $('.st-ft'), ftFilter = $('.st-ft-filter'), ftBody = ftDialog.querySelector('tbody'), ftNote = $('.st-ft-note');
+const ft = { rows: [], sort: 'extension', desc: false };
+
+function ftShown() {
+  const words = ftFilter.value.toLowerCase().split(/\s+/).filter(Boolean);
+  return ft.rows.filter(r => words.every(w => (r.extension + ' ' + r.languageName).toLowerCase().includes(w)));
+}
+
+function ftDraw() {
+  const key = r => String(ft.sort === 'opensWith' ? r.opensWith ?? '' : r[ft.sort] ?? '').toLowerCase();
+  const rows = ftShown().sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : a.extension < b.extension ? -1 : 1) * (ft.desc ? -1 : 1));
+  for (const th of ftDialog.querySelectorAll('th[data-sort]')) {
+    th.classList.toggle('st-on', th.dataset.sort === ft.sort);
+    th.classList.toggle('st-desc', th.dataset.sort === ft.sort && ft.desc);
+  }
+  ftBody.replaceChildren(...rows.map(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td><input type="checkbox"></td><td></td><td></td><td><select><option value="edit">Edit</option><option value="view">View</option></select></td><td></td>';
+    const [check, ext, language, , now] = tr.children, box = check.firstChild, select = tr.querySelector('select');
+    box.checked = r.checked;
+    ext.textContent = r.extension;
+    language.textContent = r.languageName;
+    select.value = r.as;
+    now.textContent = r.opensWith ?? '-';
+    now.className = r.lexpen ? 'st-ft-lexpen' : r.opensWith ? '' : 'st-ft-dim';
+    box.addEventListener('change', () => { r.checked = box.checked; });
+    select.addEventListener('change', () => { r.as = select.value; r.checked = box.checked = true; });   // one click less
+    return tr;
+  }));
+}
+
+async function ftLoad() {
+  const list = await host('fileTypes');
+  ft.rows = list.map(r => ({ ...r, checked: !!r.mode, as: r.mode ?? 'edit' }));
+  ftDraw();
+}
+
+async function openFileTypes() {
+  ftFilter.value = '';
+  ftNote.textContent = '';
+  ftNote.classList.remove('st-error');
+  ftDialog.showModal();
+  ftFilter.focus();
+  await ftLoad();
+}
+events.fileTypes = () => openFileTypes();   // F1 > File types
+
+ftFilter.addEventListener('input', ftDraw);
+for (const th of ftDialog.querySelectorAll('th[data-sort]')) th.addEventListener('click', () => {
+  ft.desc = ft.sort === th.dataset.sort ? !ft.desc : false;
+  ft.sort = th.dataset.sort;
+  ftDraw();
+});
+ftDialog.querySelector('.st-ft-buttons').addEventListener('click', async e => {
+  const what = e.target.closest('[data-ft]')?.dataset.ft;
+  if (!what) return;
+  if (what === 'cancel') return ftDialog.close();
+  if (what === 'assign') {
+    ftFilter.value = '';   // Assign is for every row: all of them shown
+    ftDraw();
+    ftNote.classList.remove('st-error');
+    try {
+      const done = await host('assignFileTypes', { chosen: ft.rows.filter(r => r.checked).map(r => ({ extension: r.extension, mode: r.as })) });
+      if (done.cancelled) return;
+      ftNote.textContent = `Assigned: ${done.assigned} to LexPen, ${done.off} taken off` + (done.kept.length ? `; Windows keeps another app for ${done.kept.join(', ')}` : '.');
+      await ftLoad();
+    } catch (error) {
+      ftNote.textContent = error.message;
+      ftNote.classList.add('st-error');
+    }
+    return;
+  }
+  for (const r of ftShown()) {
+    if (what === 'all' || what === 'none') r.checked = what === 'all';
+    else { r.as = what; r.checked = true; }
+  }
+  ftDraw();
+});
 
 // ---------- This window's layout: Save as default, Reset to default ----------
 // Save: the main window's layout becomes defaultLayout (the layout new projects start with), at once; the bar says so,

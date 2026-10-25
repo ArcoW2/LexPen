@@ -130,6 +130,8 @@ toggleAction('readOnly', { title: 'Read-only', hint: 'This tab cannot change the
   () => !!activeTab()?.readOnly || !!activeDoc()?.diskReadOnly, () => activeTab() && setReadOnly(activeTab(), !activeTab().readOnly));
 appAction('projects', { title: 'Projects...', hint: 'Every project and its windows: open one, a new project, rename, move this window', group: 'files',
   run: () => openProjectMenu() });
+appAction('fileTypes', { title: 'File types...', hint: 'Which file types a double-click in Explorer opens in LexPen (Settings > App > Windows Explorer)', group: 'files',
+  run: () => host('openFileTypes') });
 appAction('newProject', { title: 'New project...', hint: 'A new empty window in a new project', group: 'files',
   run: async () => { const name = await askName('New project', ''); if (name !== null) host('project', { kind: 'new', name }); } });
 appAction('renameProject', { title: 'Rename this project...', hint: 'The name of this window\'s project', group: 'files', run: () => renameProject() });
@@ -636,6 +638,10 @@ const SETTING_ROWS = [
   { name: 'explorerPlace', group: 'App', sub: 'Windows Explorer', kind: 'choice', title: 'The LexPen items in Explorer\'s menu',
     hint: 'Next to each other with a line above and below, or in one item LexPen that opens a submenu with them. On Windows 11 under Show more options (or Shift+right-click)',
     options: () => [['group', 'Next to each other, between two lines'], ['submenu', 'In a submenu LexPen']] },
+  // File types (docs/plans/executed/PLAN-file-types.md): which extensions a double-click in Explorer opens in LexPen.
+  { name: 'fileTypes', group: 'App', sub: 'Windows Explorer', kind: 'buttons', title: 'File types',
+    hint: 'Which file types a double-click in Explorer opens in LexPen, each to edit or to view',
+    keywords: 'extension association default app open double-click register', buttons: [['File types...', 'fileTypes']] },
   { name: 'compareWhitespace', group: 'Editor view', sub: 'Compare', kind: 'toggle', title: 'Ignore whitespace',
     hint: 'Comparing, spaces and tabs count only as a separation: their amount inside a line and those at its ends make no difference, nor an empty line against none',
     hintOff: 'Comparing, every space and tab counts' },

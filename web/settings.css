@@ -71,6 +71,33 @@
 .st-changed .st-reset { visibility: visible; }
 .st-reset:hover { text-decoration: underline; }
 .st-none { padding: 24px 10px; color: var(--fg-dim); }
+/* File types (docs/plans/executed/PLAN-file-types.md): a dialog over the settings, a table of the extensions. */
+.st-ft { width: min(760px, 92vw); height: min(560px, 86vh); padding: 0; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; }
+.st-ft[open] { display: flex; flex-direction: column; }
+.st-ft::backdrop { background: rgba(0, 0, 0, .35); }
+.st-ft-top { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--bg-bar); border-bottom: 1px solid var(--border); }
+.st-ft-title { font-weight: 600; }
+.st-ft-filter { flex: 1; padding: 4px 8px; font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 4px; }
+.st-ft-filter:focus { outline: none; border-color: var(--accent); }
+.st-ft-scroll { flex: 1; overflow: auto; }
+.st-ft-table { width: 100%; border-collapse: collapse; }
+.st-ft-table th { position: sticky; top: 0; z-index: 1; padding: 6px 10px; text-align: left; font-weight: normal; color: var(--fg-dim); background: var(--bg); border-bottom: 1px solid var(--border); cursor: pointer; white-space: nowrap; }
+.st-ft-table th:first-child { width: 28px; cursor: default; }
+.st-ft-table th:hover[data-sort] { color: var(--fg); }
+.st-ft-table th.st-on { color: var(--accent); }
+.st-ft-table th.st-on::after { content: " \25B2"; font-size: .8em; }
+.st-ft-table th.st-on.st-desc::after { content: " \25BC"; }
+.st-ft-table td { padding: 3px 10px; border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent); white-space: nowrap; }
+.st-ft-table tr:hover td { background: var(--hover); }
+.st-ft-table select { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 1px 4px; }
+.st-ft-lexpen { color: var(--accent); }
+.st-ft-dim { color: var(--fg-dim); }
+.st-ft-note { padding: 6px 14px; min-height: 1.3em; color: var(--fg-dim); border-top: 1px solid var(--border); }
+.st-ft-note.st-error { color: var(--caution); }
+.st-ft-buttons { display: flex; align-items: center; gap: 6px; padding: 8px 14px; background: var(--bg-bar); border-top: 1px solid var(--border); }
+.st-ft-gap { flex: 1; }
+.st-ft-buttons button { padding: 3px 12px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--fg); }
+.st-ft-buttons button:hover { border-color: var(--accent); }
 /* The theme set of the main window's project (docs/plans/executed/PLAN-theme-sets.md): which set it shows, choose its own,
    Manage; after a change of a colour setting, where it was stored, with Undo. */
 .st-set { flex: none; display: flex; align-items: center; gap: 8px; padding: 6px 16px; background: var(--bg-bar); border-top: 1px solid var(--border); }

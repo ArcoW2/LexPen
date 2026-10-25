@@ -17,6 +17,30 @@
 <nav class="st-tabs" aria-label="Groups"></nav>
 <div class="st-problems" hidden></div>
 <main class="st-list" tabindex="-1"></main>
+<!-- File types (docs/plans/executed/PLAN-file-types.md): which extensions Explorer opens in LexPen, to edit or to view. -->
+<dialog class="st-ft">
+  <div class="st-ft-top">
+    <span class="st-ft-title">File types</span>
+    <input class="st-ft-filter" type="search" placeholder="Filter on extension or language" spellcheck="false">
+  </div>
+  <div class="st-ft-scroll">
+    <table class="st-ft-table">
+      <thead><tr><th></th><th data-sort="extension">Extension</th><th data-sort="languageName">Language</th>
+        <th data-sort="as">Opens as</th><th data-sort="opensWith">Opens now with</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <div class="st-ft-note"></div>
+  <div class="st-ft-buttons">
+    <button data-ft="all" title="Checks the rows shown">Check all</button>
+    <button data-ft="none" title="Unchecks the rows shown">Check none</button>
+    <button data-ft="edit" title="The rows shown: opened to edit, and checked">All edit</button>
+    <button data-ft="view" title="The rows shown: opened to view (the project for viewing), and checked">All view</button>
+    <span class="st-ft-gap"></span>
+    <button data-ft="assign" title="Every row, also the ones the filter hides: asks first">Assign</button>
+    <button data-ft="cancel">Cancel</button>
+  </div>
+</dialog>
 <div class="st-set">
   <span class="st-layer" data-layer="set"></span>
   <span class="st-set-text">Theme set of this project:</span>

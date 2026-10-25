@@ -1360,6 +1360,9 @@ sealed class AppHost : ApplicationContext
         settingsWindow.Show(from);
     }
 
+    /// <summary>A message to a main window's settings window (queued until its page is ready).</summary>
+    public void SettingsWindowPost(MainForm w, JsonObject message) => settingsWindows.GetValueOrDefault(w)?.Post(message);
+
     /// <summary>A main window's caption changed (its project renamed, the [n] shifted): its settings window follows.</summary>
     public void SettingsTitle(MainForm w) => settingsWindows.GetValueOrDefault(w)?.UpdateTitle();
 
