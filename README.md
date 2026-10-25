@@ -29,7 +29,7 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   go in `%LOCALAPPDATA%\LexPen\themes\` (a file with the same name replaces a shipped one) and apply at once.
   LexPen follows Windows' light / dark mode (a setting, on), with a theme chosen for each mode; Day / night
   switches until Windows changes mode. The app, the editor and the preview each have a theme per mode: the
-  editor's and the preview's are the app's unless you choose one (Settings > Editor, Preview), say a parchment
+  editor's and the preview's are the app's unless you choose one (Settings > Editor view, Preview), say a parchment
   editor between sand bars and an ocean preview. Light and Dark (`light.json`, `dark.json`) set every colour; any other theme names any theme as
   its base and lists only what differs: `{ "name": "Lighter ocean", "description": "a softer blue", "base": "dark-ocean", "colors": { "bg": "#1d2533" } }`
   (its own colours, then Dark ocean's, then Dark's). The description is the theme's character: the settings show
@@ -313,8 +313,9 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   cursor's colour (as on the ruler and in the gutter), and over it in the accent the rendered lines of the cursor line
   itself (a line of code: that line); a preview with a theme of its own uses its own colours. After a cursor move,
   with the cursor in the editor's view, the preview scrolls as far as needed to show it.
-- **Where a found place lands**: a find, a search result, the next compare difference, a bookmark and Go to line
-  bring the place into view the same way (Find > Jump to a found place). Out of view: 5 lines from the edge it comes
+- **Where a line jumped to lands**: a find, a search result, the next compare difference, a bookmark, a highlight,
+  Go to line and a click in the outline bring the line into view the same way (Editor > Jump to a line), in the
+  editor and in the preview. Out of view: 5 lines from the edge it comes
   in at (the bottom going down, the top going up), or centred. Already in view: the view stays unless the place is
   within those lines of an edge, or centred. The number of lines is a setting (0 to 20).
 - **Ctrl+Tab**: through the documents in recently used order (hold Ctrl and press Tab again to go further back),

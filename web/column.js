@@ -112,7 +112,7 @@ function extendBlock(cm, dir) {
 // Column mode on or off (the window, all its tabs); the selection changes along (below).
 function setColumnMode(on) {
   if (on && !editorMonospaced())
-    return toast('Column mode needs a monospaced editor font (Options > Settings > Editor): with another font the columns do not line up.');
+    return toast('Column mode needs a monospaced editor font (Options > Settings > Editor view > Font and colours): with another font the columns do not line up.');
   column.on = on;
   if (!on && !setting('virtualSpace')) for (const pane of panes) if (pane.cm) clearVirtual(pane.cm);
   // The selection changes with the mode: a block becomes the selection from its anchor to its head (a column past a

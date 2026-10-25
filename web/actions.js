@@ -399,7 +399,7 @@ appAction('blockSelect', { title: 'Select a block', hint: 'Grows or shrinks a bl
   group: 'edit', editor: true, variants: [['up'], ['down'], ['left'], ['right']],
   variantTitles: { up: 'Select a block: up', down: 'Select a block: down', left: 'Select a block: left', right: 'Select a block: right' },
   run: ([dir], { pane }) => editorMonospaced() ? extendBlock(pane.cm, dir)
-    : toast('A block needs a monospaced editor font (Options > Settings > Editor).') });
+    : toast('A block needs a monospaced editor font (Options > Settings > Editor view > Font and colours).') });
 appAction('convertMenu', { title: 'Convert menu at the cursor', hint: 'The conversions (case, tabs and spaces, whitespace at line ends), as a menu at the cursor; also the Convert button of the bar', group: 'format',
   editor: true, run: (_, { pane }) => openPopupAtCursor(pane, CONVERT_ITEMS) });
 toggleAction('overwrite', { title: 'Insert / overwrite', hint: 'Typing replaces the character at the cursor (OVR in the bottom bar)', group: 'edit', editor: true },
@@ -443,6 +443,8 @@ for (const [name, title, hint] of [
 // from the action of the same name where there is one. Sent to the host at start (settingDefs).
 // The settings window shows a tab per group, in this order; the rows of a group in their order below.
 const SETTING_GROUPS = ['General', 'Files', 'Editor', 'Editor view', 'Preview', 'Outline', 'Tabs', 'Find', 'App', 'Keys', 'Languages'];
+// Words the rows of Jump to a line are searched for by: what one is doing, not "jump".
+const JUMP_KEYWORDS = 'find search goto go to cursor caret show scroll centre center';
 const SETTING_ROWS = [
   { name: 'languageNames', group: 'Languages', kind: 'names', title: 'Names of languages',
     hint: 'A name after a markdown fence (```bash) or in a block, and the language it is: bash=tcc, cmd=batch. Before the languages\' own names and aliases' },
@@ -465,24 +467,12 @@ const SETTING_ROWS = [
     hint: 'Light or dark follows Windows (Settings > Personalization > Colors); the Day / Night button switches until Windows changes',
     hintOff: 'A change between light and dark in Windows does not switch the mode of LexPen' },
   { name: 'themeLight', group: 'General', sub: 'Theme', kind: 'choice', title: 'Theme of the app in light mode',
-    hint: 'Your own themes: themes\\ in the data folder. The editor and the preview can have a theme of their own (Editor, Preview)',
+    hint: 'Your own themes: themes\\ in the data folder. The editor and the preview can have a theme of their own (Editor view, Preview)',
     options: () => themeOptions() },
   { name: 'themeDark', group: 'General', sub: 'Theme', kind: 'choice', title: 'Theme of the app in dark mode',
     hint: 'A theme with a light base works too', options: () => themeOptions() },
   { name: 'theme', group: 'General', sub: 'Theme', kind: 'choice', title: 'Day / night when not following Windows',
     hint: 'Also the Day / night button', options: () => [['light', 'Day (light mode)'], ['dark', 'Night (dark mode)']] },
-  { name: 'editorFont', group: 'Editor', kind: 'font' },
-  { name: 'editorSize', group: 'Editor', kind: 'size', base: () => ptOf(EDITOR_PX) + ' pt' },
-  { name: 'editorLine', group: 'Editor', kind: 'choice',
-    options: () => [[0, `Default (${EDITOR_LINE})`], ...LINE_HEIGHTS.map(n => [n, String(n)])] },
-  { name: 'editorThemeLight', group: 'Editor', kind: 'choice', title: 'Theme for the editor in light mode',
-    hint: 'Same as the app, or a theme of its own', options: () => [['', 'Same as the app'], ...themeOptions()] },
-  { name: 'editorThemeDark', group: 'Editor', kind: 'choice', title: 'Theme for the editor in dark mode',
-    hint: 'Same as the app, or a theme of its own (as an editor that stands out from the bars and the preview)',
-    options: () => [['', 'Same as the app'], ...themeOptions()] },
-  { name: 'wrap', group: 'Editor', kind: 'toggle',
-    hint: 'Long lines wrap at the edge',
-    hintOff: 'Long lines run on past the edge and scroll sideways' },
   { name: 'tabSize', group: 'Editor', sub: 'Tabs', kind: 'choice', title: 'Tab size',
     hint: 'Where the tab stops are: Tab after text goes to the next one, and a tab after text is shown that wide. A language can set its own (tabSize)',
     options: () => Array.from({ length: 16 }, (_, i) => [i + 1, String(i + 1)]) },
@@ -492,6 +482,18 @@ const SETTING_ROWS = [
   { name: 'formatBar', group: 'Editor view', kind: 'toggle',
     hint: 'The bar with bold, headings, lists, tables, ... is shown above the editor (also View > Formatting bar)',
     hintOff: 'No formatting bar above the editor; its commands stay in the menus and on their keys (View > Formatting bar shows it)' },
+  { name: 'wrap', group: 'Editor view', kind: 'toggle',
+    hint: 'Long lines wrap at the edge',
+    hintOff: 'Long lines run on past the edge and scroll sideways' },
+  { name: 'editorFont', group: 'Editor view', sub: 'Font and colours', kind: 'font' },
+  { name: 'editorSize', group: 'Editor view', sub: 'Font and colours', kind: 'size', base: () => ptOf(EDITOR_PX) + ' pt' },
+  { name: 'editorLine', group: 'Editor view', sub: 'Font and colours', kind: 'choice',
+    options: () => [[0, `Default (${EDITOR_LINE})`], ...LINE_HEIGHTS.map(n => [n, String(n)])] },
+  { name: 'editorThemeLight', group: 'Editor view', sub: 'Font and colours', kind: 'choice', title: 'Theme for the editor in light mode',
+    hint: 'Same as the app, or a theme of its own', options: () => [['', 'Same as the app'], ...themeOptions()] },
+  { name: 'editorThemeDark', group: 'Editor view', sub: 'Font and colours', kind: 'choice', title: 'Theme for the editor in dark mode',
+    hint: 'Same as the app, or a theme of its own (as an editor that stands out from the bars and the preview)',
+    options: () => [['', 'Same as the app'], ...themeOptions()] },
   { name: 'showWhitespace', group: 'Editor view', sub: 'Invisible characters', kind: 'toggle', title: 'Show spaces and tabs',
     hint: 'In the editor: a space as a small dot, a tab as an arrow (theme colour: whitespace)',
     hintOff: 'Spaces and tabs are not marked in the editor' },
@@ -543,22 +545,26 @@ const SETTING_ROWS = [
     hintOff: 'Ctrl+Down scrolls the text a line and the cursor stays on its line, also when that line leaves the view (Ctrl+Up the other way)' },
   { name: 'jumpLines', group: 'Editor', sub: 'Cursor', kind: 'range', range: [1, 100, 1], unit: ' lines', title: 'A jump: a move of more than',
     hint: 'How far the cursor must move, without typing, for the place it left to be kept for Position back (Ctrl+Alt+-). A found item is always kept, however close' },
-  { name: 'completeDelay', group: 'Editor', sub: 'Completion', kind: 'range', range: [0, 2000, 100], unit: ' ms', title: 'Show completions after a pause in typing',
-    hint: 'After typing a word character and stopping this long, the list of completions opens by itself; 0: only with Ctrl+Space' },
-  { name: 'revealInView', group: 'Find', sub: 'Jump to a found place', kind: 'choice', title: 'A found place already in view',
-    hint: 'A find, a search result, the next compare difference, a bookmark, Go to line: when the place is already on screen',
-    options: () => [['stay', 'The view stays (unless it is within the lines kept from the edge)'], ['center', 'Centred']] },
-  { name: 'revealOutOfView', group: 'Find', sub: 'Jump to a found place', kind: 'choice', title: 'A found place out of view',
-    hint: 'When the place is not on screen: the view scrolls to it',
-    options: () => [['keep', 'The lines kept from the edge (the top going up, the bottom going down)'], ['center', 'Centred']] },
-  { name: 'revealLines', group: 'Find', sub: 'Jump to a found place', kind: 'range', range: [0, 20, 1], unit: ' lines', title: 'Lines kept from the edge',
-    hint: 'A found place comes no closer than this many lines to the top or bottom of the view (fewer on a low view)' },
   { name: 'scrollMargin', group: 'Editor', sub: 'Cursor', kind: 'choice', title: 'Scroll sideways before the edge',
     hint: 'The editor scrolls left or right when the cursor comes this many columns from the edge (on keys, not on a click); without wrapping',
     options: () => [1, 2, 4, 8, 12, 16, 24, 32].map(n => [n, n === 1 ? '1 column' : n + ' columns']) },
   { name: 'virtualSpace', group: 'Editor', sub: 'Cursor', kind: 'toggle', title: 'Cursor past the end of the line',
     hint: 'Up, Down and a click keep the cursor in its column even after the end of a line; typing there fills the line with spaces first. Only with a monospaced editor font',
     hintOff: 'On a shorter line the cursor stops at its end (Up and Down return to the column on a longer line). Column mode still goes past the end' },
+  { name: 'completeDelay', group: 'Editor', sub: 'Completion', kind: 'range', range: [0, 2000, 100], unit: ' ms', title: 'Show completions after a pause in typing',
+    hint: 'After typing a word character and stopping this long, the list of completions opens by itself; 0: only with Ctrl+Space' },
+  // Where the view puts a place jumped to: a find, a search result, a compare difference, a bookmark, a highlight, Go
+  // to line, a click in the outline (revealFound in app.js).
+  { name: 'revealInView', group: 'Editor', sub: 'Jump to a line', kind: 'choice', title: 'A line already in view', keywords: JUMP_KEYWORDS,
+    hint: 'A find, a search result, the next compare difference, a bookmark, a highlight, Go to line, a click in the outline: when the line is already on screen. In the editor and in the preview alike',
+    options: () => [['stay', 'The view stays (unless it is within the lines kept from the edge)'], ['center', 'Centred']] },
+  { name: 'revealOutOfView', group: 'Editor', sub: 'Jump to a line', kind: 'choice', title: 'A line out of view', keywords: JUMP_KEYWORDS,
+    hint: 'When the line is not on screen: the view scrolls to it',
+    options: () => [['keep', 'The lines kept from the edge (the top going up, the bottom going down)'], ['center', 'Centred']] },
+  { name: 'revealLines', group: 'Editor', sub: 'Jump to a line', kind: 'range', range: [0, 20, 1], unit: ' lines', title: 'Lines kept from the edge',
+    keywords: JUMP_KEYWORDS,
+    hint: 'A line jumped to comes no closer than this many lines to the top or bottom of the view (fewer on a low view); in the preview the lines of the text shown there' },
+
   { name: 'locateCursor', group: 'Editor view', sub: 'Locate the cursor', kind: 'toggle', title: 'A short tap on Ctrl shows where the cursor is',
     hint: 'A short tap on Ctrl: rings shrink onto every cursor, in the colour of the find box; a cursor out of view gets a marker at that edge with its line number (also View > Locate the cursor)',
     hintOff: 'A tap on Ctrl does nothing; View > Locate the cursor still shows where the cursor is' },
@@ -747,6 +753,7 @@ function settingDefs() {
       options: r.options?.() ?? (r.kind === 'size' ? [[0, `Default (${r.base()})`], ...FONT_SIZES.map(pt => [pt, pt + ' pt'])] : null),
       monoFirst: r.name === 'editorFont',
       range: r.range ?? null, unit: r.unit ?? '', buttons: r.buttons ?? null,
+      keywords: r.keywords ?? '',   // more words the settings window's search finds the row by
       layer: LAYOUT.has(r.name) ? 'window' : THEME_SET_NAMES.has(r.name) ? 'set' : 'global',   // executed/PLAN-settings-layers.md
     };
   });

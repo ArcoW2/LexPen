@@ -461,7 +461,7 @@ function makePane(index) {
     const head = e.target.closest('[data-group-head]');
     if (head) return toggleOutlineGroup(pane, head);      // a group's header: fold or unfold
     const item = e.target.closest('[data-line]');
-    if (item) goToLine(pane, +item.dataset.line);         // there, the cursor stays (a double-click moves it)
+    if (item) goToLine(pane, +item.dataset.line, true, true);   // placed as a find; the cursor stays (a double-click moves it)
   });
   // A long click: a sneak preview (startSneak).
   pane.outlineEl.addEventListener('pointerdown', e => { pane.sneakEnded = false; startSneak(pane, e); });
@@ -2781,7 +2781,7 @@ function applyZoom(zoom) {
   panes.forEach((p, i) => at[i] !== null && setPreviewLine(p, at[i]));
   for (const p of panes) if (p.previewBoxes) drawPreviewBoxes(p);   // found text's boxes: the text has another size (find.js)
 }
-// ---------- Fonts (Options > Settings > Fonts) ----------
+// ---------- Fonts (Options > Settings: Editor view > Font and colours, App) ----------
 // The editor font and the app font, each with a size in points (as Windows shows them). Not chosen:
 // Consolas 14 px in the editor, Segoe UI 13 px for the app. The editor also has a line height (times
 // the font size). The app's smaller texts scale along (--ui-scale in app.css). Settings in settings.json
@@ -3002,7 +3002,7 @@ function markOutline(pane) {
   });
 }
 
-// A found place (a find, a search result, a compare difference, a bookmark, Go to line) into view, after the cursor
+// A place jumped to (a find, a search result, a compare difference, a bookmark, Go to line) into view, after the cursor
 // went there. Settings: revealInView (stay: the view stays, unless the place is within revealLines of an edge;
 // center), revealOutOfView (keep: revealLines from the edge it comes in at, the top going up, the bottom going down;
 // center) and revealLines. Never so many lines that the place itself would fall out of view.
@@ -3016,8 +3016,9 @@ function revealFound(cm, from, to = from) {
   cm.scrollIntoView(tall ? from : { from, to }, 0);   // sideways (up or down it is in view by now)
 }
 
-// The same for a found place in the preview (a find, a highlight): the ranges from `first` to `last`. A line is the
-// line height where the place starts, on screen: the computed one is without the preview zoom, the box with it.
+// The same for a place jumped to in the preview (a find, a highlight, the outline): the ranges from `first` to `last`.
+// A line is the line height where the place starts, on screen: the computed one is without the preview zoom, the box
+// with it.
 function revealFoundInPreview(pane, first, last = first) {
   const el = pane.previewEl, box = el.getBoundingClientRect(), view = el.clientHeight;
   const start = first.getBoundingClientRect(), top = start.top - box.top + el.scrollTop;
@@ -3031,7 +3032,7 @@ function revealFoundInPreview(pane, first, last = first) {
   if (y != null) el.scrollTop = Math.max(0, y);
 }
 
-// Where a found place scrolls to, as the settings say (revealFound): the new top, or null when the view stays. All
+// Where a place jumped to scrolls to, as the settings say (revealFound): the new top, or null when the view stays. All
 // in pixels from the top of the content: the view's top and height, the place's top and bottom, a line's height.
 function revealTop(viewTop, view, top, bottom, lh) {
   const height = bottom - top;
@@ -3083,17 +3084,24 @@ function atIntensity(css, percent, where = document.body) {
 
 // Puts the source line at the top of the pane: preview, editor or both. The cursor stays where it is (a click in
 // the outline; a double-click moves it). `focus`: the editor gets the keys again.
-function goToLine(pane, line, focus = true) {
+// `found` (a click in the outline): placed as a place jumped to is, by the settings of Editor > Jump to a line
+// (centred, or the lines kept from the edge; revealFound), in the editor and in the preview.
+function goToLine(pane, line, focus = true, found = false) {
   const tab = pane.active;
   if (!tab) return;
   if (tab.mode !== 'edit') {
     const el = tab.article.querySelector(`[data-line="${line}"]`);
-    if (el) pane.previewEl.scrollTop = el.getBoundingClientRect().top - pane.previewEl.getBoundingClientRect().top + pane.previewEl.scrollTop - 8;
+    if (el && found) {
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      revealFoundInPreview(pane, range);
+    } else if (el) pane.previewEl.scrollTop = el.getBoundingClientRect().top - pane.previewEl.getBoundingClientRect().top + pane.previewEl.scrollTop - 8;
     else setPreviewLine(pane, line);
   }
   if (tab.mode !== 'preview' && pane.cm) {
     pane.placed = tab.mode === 'split';
-    pane.cm.scrollTo(null, pane.cm.heightAtLine(line, 'local'));
+    if (found) revealFound(pane.cm, CodeMirror.Pos(line, 0));
+    else pane.cm.scrollTo(null, pane.cm.heightAtLine(line, 'local'));
     if (focus) pane.cm.focus();
   }
 }

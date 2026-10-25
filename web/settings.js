@@ -529,7 +529,8 @@ function filter(typing = false) {
   const matches = r => {
     // This screen: the rows with a line of this screen's zoom (the editor font size, the preview zoom).
     if (layerShown && (r.def.layer ?? 'global') !== layerShown && !(layerShown === 'screen' && r.el.querySelector('.st-screen'))) return false;
-    const text = (r.def.title + ' ' + r.def.hint + ' ' + (r.def.hintOff ?? '') + ' ' + r.def.group + ' ' + (r.def.sub ?? '')).toLowerCase();
+    const text = (r.def.title + ' ' + r.def.hint + ' ' + (r.def.hintOff ?? '') + ' ' + r.def.group + ' ' + (r.def.sub ?? '') + ' ' +
+      (r.def.keywords ?? '')).toLowerCase();
     return words.every(w => text.includes(w));
   };
   const found = new Set(rows.filter(matches).map(r => r.def.group));
