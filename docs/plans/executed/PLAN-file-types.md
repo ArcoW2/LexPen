@@ -127,7 +127,8 @@ only Windows can write. An app writing it is refused. What other programs do, an
 - Opens now with: "-" when Windows has nothing (its own "Pick an application"); "Runs itself" for a file that runs
   itself (.cmd); LexPen in the accent colour.
 - The question of Assign names the extensions per way of opening and the ones taken off (the first ones, then "and n
-  more"); after Assign the dialog stays open with the list read again, and a line says what was done.
+  more"); after Assign the dialog closes (your request after the run). While nothing is changed its last button is
+  Close, after a change Cancel.
 - Also from F1: File types... opens this window's settings with the dialog.
 - The registry tests (ExplorerMenu's and these) run one after the other: both set LEXPEN_REGISTRY_ROOT.
 - Tested by hand in the debug build: the dialog's list (with what Windows opens each with now), the filter, sorting,

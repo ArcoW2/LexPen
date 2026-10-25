@@ -619,10 +619,17 @@ function ftDraw() {
     select.value = r.as;
     now.textContent = r.opensWith ?? '-';
     now.className = r.lexpen ? 'st-ft-lexpen' : r.opensWith ? '' : 'st-ft-dim';
-    box.addEventListener('change', () => { r.checked = box.checked; });
-    select.addEventListener('change', () => { r.as = select.value; r.checked = box.checked = true; });   // one click less
+    box.addEventListener('change', () => { r.checked = box.checked; ftChanged(); });
+    select.addEventListener('change', () => { r.as = select.value; r.checked = box.checked = true; ftChanged(); });   // one click less
     return tr;
   }));
+  ftChanged();
+}
+
+// Nothing changed since the dialog opened: the last button is Close; else Cancel (closing it throws the changes away).
+function ftChanged() {
+  const changed = ft.rows.some(r => r.checked !== !!r.mode || r.checked && r.as !== (r.mode ?? 'edit'));
+  ftDialog.querySelector('[data-ft=cancel]').textContent = changed ? 'Cancel' : 'Close';
 }
 
 async function ftLoad() {
@@ -658,8 +665,7 @@ ftDialog.querySelector('.st-ft-buttons').addEventListener('click', async e => {
     try {
       const done = await host('assignFileTypes', { chosen: ft.rows.filter(r => r.checked).map(r => ({ extension: r.extension, mode: r.as })) });
       if (done.cancelled) return;
-      ftNote.textContent = `Assigned: ${done.assigned} to LexPen, ${done.off} taken off` + (done.kept.length ? `; Windows keeps another app for ${done.kept.join(', ')}` : '.');
-      await ftLoad();
+      ftDialog.close();   // assigned (what Windows keeps for another app the host has said already)
     } catch (error) {
       ftNote.textContent = error.message;
       ftNote.classList.add('st-error');
