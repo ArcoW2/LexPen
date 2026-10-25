@@ -774,7 +774,7 @@ sealed class AppHost : ApplicationContext
     void RestoreWindows()
     {
         restored = true;
-        foreach (var (_, entry) in projects.StartWindows(KeepUnnamed))
+        foreach (var (_, entry) in projects.StartWindows(KeepUnnamed, FindViewProject()))
             Open(new MainForm.Start(null, [], entry.Key, ToDesktop: true));
         SaveProjects();
     }
@@ -839,7 +839,13 @@ sealed class AppHost : ApplicationContext
             if (t.Window is int i)
             {
                 w = windows[i];
-                if (t.Files.Count > 0) w.Post(new JsonObject { ["event"] = "open", ["files"] = ToArray(t.Files) });
+                // A file another window of this project has open already goes to that window: never twice in a project.
+                var target = w;
+                foreach (var group in t.Files.GroupBy(f => HolderOf(target, f) ?? target).ToList())
+                {
+                    group.Key.Post(new JsonObject { ["event"] = "open", ["files"] = ToArray(group.ToList()) });
+                    w = group.Key;   // the window that shows the last of them comes to the front
+                }
             }
             // A new window for files (not Shift, not a folder): on a desktop whose last window was closed, that
             // project comes back instead of a new one.
@@ -922,7 +928,7 @@ sealed class AppHost : ApplicationContext
                 if (desktop is not null && (moved || i >= 3)) break;
                 await Task.Delay(100);
             }
-        if (w.ReopenHere && desktop is not null && projects.LastClosedOn(desktop) is { } closed
+        if (w.ReopenHere && desktop is not null && projects.LastClosedOn(desktop, FindViewProject()) is { } closed
             && closed.Windows.Where(o => o.Desktop == desktop).MaxBy(o => o.Used) is { } reuse)
         {
             projects.Forget(w.Key, KeepUnnamed);
@@ -1027,6 +1033,15 @@ sealed class AppHost : ApplicationContext
     }
 
     // ---------- Edit lock ----------
+
+    // Another open window of the target's project that has the file open (the windows with it: locks), when the target
+    // has not; else null.
+    MainForm? HolderOf(MainForm target, string path)
+    {
+        if (!locks.TryGetValue(path, out var list) || list.Contains(target)) return null;
+        var project = projects.ProjectOf(target.Key);
+        return list.FirstOrDefault(x => !x.IsDisposed && project is not null && projects.ProjectOf(x.Key) == project);
+    }
 
     /// <summary>Registers the window for the file; true when it may edit it (the first one wins).</summary>
     public bool Lock(string path, MainForm w)
