@@ -3,7 +3,7 @@
 Status: draft 2026-10-25; your answers of 2026-10-25 worked in (the borderline settings and the folder filter
 and sort per window, the old names removed from settings.json, layer colours per theme, a settings window per main
 window, one default layout, Save as default at once; the View menu grouped per layer, the settings window marked
-per row; zoom per screen). Not started; one question open. From your agreement on the three layers: "Make a plan for
+per row; zoom per screen, no setting for per monitor or global). Not started; no questions open. From your agreement on the three layers: "Make a plan for
 this split when it can be executed separately (before the other two)". It can: see 3.12 for the order with plans
 32 and 33.
 The number in the file name is the priority; rename to reorder.
@@ -148,7 +148,7 @@ more than the big main screen. So zoom is kept per monitor.
   window the settings window belongs to.
 - Not per screen: `appSize` and `statusSize` (the menus and bars) stay global; Windows' scale per monitor does
   the rest (your answer).
-- No setting "zoom per monitor or global" (question 1, proposal): both are there without one. Zoom in / out
+- No setting "zoom per monitor or global" (your answer): both are there without one. Zoom in / out
   (Ctrl+wheel) is this screen; the base rows in the settings window are every screen. View > Zoom > "Use on every
   screen" makes this screen's zoom the base and removes every monitor's own, for going back to one zoom in one
   step.
@@ -287,6 +287,4 @@ View
 
 ## 4. Open questions
 
-1. A setting to choose between zoom per monitor and one global zoom? Proposal: no (3.6): Ctrl+wheel zooms this
-   screen, the settings rows set the base for every screen, and "Use on every screen" goes back to one zoom. A
-   setting would add a mode to explain, for what these already give.
+None.
