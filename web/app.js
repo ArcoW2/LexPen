@@ -3575,6 +3575,7 @@ document.addEventListener('contextmenu', e => {
     contextPath = row.dataset.path;
     contextKind = row.classList.contains('mm-dir') || row.classList.contains('mm-base') ? 'folders' : 'files';
     favouriteItem(ui.treeMenu, contextPath, contextKind);   // favourites.js
+    ui.treeMenu.querySelector('[data-cmd=treeSetRoot]').hidden = contextKind !== 'folders' || samePath(contextPath, state.root);
     // The compare (compare.js): a file with the file in the editor or a picked one; a folder with a picked folder.
     const active = activeDoc()?.path, file = contextKind === 'files';
     ui.treeMenu.querySelector('[data-cmd=treeCompareActive]').hidden = !file || !active || samePath(active, contextPath);
@@ -3927,6 +3928,11 @@ const commands = {
   favouriteToggle: () => toggleFavourite(activeDoc()?.path),
   tabFavourite: () => menuTab && toggleFavourite(menuTab.doc.path),
   treeFavourite: () => toggleFavourite(contextPath, contextKind),
+  // The folder becomes the tree's root; its subfolders that were open stay open.
+  treeSetRoot: () => {
+    const under = contextPath.replace(/\\$/, '').toLowerCase() + '\\';
+    return openFolder(contextPath, [...expanded].filter(dir => dir.toLowerCase().startsWith(under)));
+  },
   treeCompareActive: () => activeTab() && startCompare({ tab: activeTab() }, { path: contextPath }),
   async treeCompareWith() {
     const left = contextPath, [right] = await host('pickFile', { one: true, at: left }) ?? [];
