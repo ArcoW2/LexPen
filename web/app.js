@@ -3732,7 +3732,7 @@ events.view = async ({ folder, files }) => {
 // so it cannot be changed by accident; without the setting it can be edited at once.
 async function viewFile(path, last = false) {
   const pane = panes[state.activePane], shown = pane.active;
-  if (pane.tabs.some(t => samePath(t.doc.path, path))) return openFile(path, { pane });
+  if (allTabs().some(t => samePath(t.doc.path, path))) return goToOrOpen(path);
   let tab;
   if (shown && !shown.doc.draft && !shown.doc.dirty && !shown.pinned && await navigate(shown, path)) {
     tab = shown;
@@ -3766,8 +3766,19 @@ events.open = async ({ folder, files }) => {
     await openFolder(folder);
     setSidebar(true);
   }
-  for (const path of files || []) await openFile(path).catch(e => toast(e.message));
+  for (const path of files || []) await goToOrOpen(path).catch(e => toast(e.message));
 };
+
+// A file from outside (Explorer, a launch, View in LexPen): its tab when this window has it already, in either pane,
+// so it is never there twice; else a new tab (openFile, with its options).
+async function goToOrOpen(path, options) {
+  const tab = allTabs().find(t => samePath(t.doc.path, path));
+  if (!tab) return openFile(path, options);
+  const pane = paneOf(tab);
+  await activate(pane, tab);
+  focusPane(pane);
+  return tab;
+}
 
 // The "reloaded" banner and its dot stay until a click anywhere in the window or Esc: switching to the
 // window alone (Alt+Tab, taskbar) is not enough to have seen it.
@@ -4309,7 +4320,7 @@ track((async () => {
   // View in LexPen (docs/plans/executed/PLAN-view-window.md): the files in the preview, the folder in the Folder pane.
   // A window of a project opened again for them (it was closed): the files after its tabs as they were.
   const reopened = start.restore !== undefined && start.restore !== null;
-  for (const path of start.files) await (start.view ? viewFile(path, reopened) : openFile(path, { last: reopened })).catch(e => toast(e.message));
+  for (const path of start.files) await (start.view ? viewFile(path, reopened) : goToOrOpen(path, { last: reopened })).catch(e => toast(e.message));
   if (start.view && start.folder) { setSidebar(true); setSideView('folder'); }
   syncWatch();
   syncWatchFiles();
