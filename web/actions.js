@@ -201,6 +201,12 @@ toggleAction('sidebar', { title: 'Sidebar', hint: 'Show or hide the folder pane 
   () => document.body.dataset.sidebar === 'on', () => commands.sidebar(), ['show', 'hide']);
 appAction('folders', { title: 'Folders', hint: 'The folder pane, with the keyboard in it', group: 'view', run: () => focusTree() });
 appAction('searchView', { title: 'Search', hint: 'The search in the sidebar', group: 'view', run: () => startSearch() });
+// The window's layout as the default for new projects, or back to that default (docs/plans/executed/PLAN-settings-layers.md).
+appAction('layoutSaveDefault', { title: 'Save layout as default', group: 'view',
+  hint: 'This window\'s layout (sidebar, outline, panes, bars, gutter, ...) becomes the one a new project starts with',
+  run: () => saveLayoutAsDefault() });
+appAction('layoutResetDefault', { title: 'Reset layout to default', group: 'view',
+  hint: 'This window\'s layout back to the default one; its tabs and folder stay', run: () => resetLayoutToDefault() });
 appAction('paneOrientation.set', { title: 'Panes', hint: 'Side by side or above each other', group: 'view',
   variants: [['v'], ['h']], variantTitles: { v: 'Panes side by side', h: 'Panes above each other' },
   checked: ([o]) => state.orient === o, run: ([o]) => state.orient === o || commands.orient() });
@@ -220,12 +226,15 @@ toggleAction('formatBar', { title: 'Formatting bar', hint: 'The bar with bold, h
 appAction('searchInFiles', { title: 'Search in files', hint: 'In the file, the open files or the folder; codes ^p ^t ^? ^# ^$ ^w ^^', group: 'view', run: () => startSearch() });
 // In the editor (it has the focus) the zoom is the editor font size; elsewhere the preview zoom.
 const editorFocused = () => panes.some(p => p.cm?.hasFocus());
-appAction('zoomIn', { title: 'Zoom in', hint: 'The editor font size in the editor, else the preview (also Ctrl+mouse wheel)', group: 'view',
+// The zoom is per screen (the monitor the window is on), on top of the settings' base (docs/plans/executed/PLAN-settings-layers.md).
+appAction('zoomIn', { title: 'Zoom in', hint: 'On this screen: the editor font size in the editor, else the preview (also Ctrl+mouse wheel)', group: 'view',
   run: () => editorFocused() ? editorSizeBy(1) : zoomBy(1) });
-appAction('zoomOut', { title: 'Zoom out', hint: 'The editor font size in the editor, else the preview', group: 'view',
+appAction('zoomOut', { title: 'Zoom out', hint: 'On this screen: the editor font size in the editor, else the preview', group: 'view',
   run: () => editorFocused() ? editorSizeBy(-1) : zoomBy(-1) });
-appAction('zoomReset', { title: 'Zoom 100%', hint: 'The editor font at its default size in the editor, else the preview at its normal size', group: 'view',
-  run: () => editorFocused() ? setFontSetting('editorSize', 0) : setZoom(1) });
+appAction('zoomReset', { title: 'Zoom 100%', hint: 'This screen back to the zoom of every screen (the settings): the editor font in the editor, else the preview', group: 'view',
+  run: () => zoomReset(editorFocused()) });
+appAction('zoomEveryScreen', { title: 'Zoom: use on every screen', hint: 'This screen\'s zoom (editor font and preview) becomes the settings\' one; no screen keeps its own', group: 'view',
+  run: () => zoomOnEveryScreen() });
 toggleAction('theme', { title: 'Day / night', hint: 'Light or dark, for all windows', group: 'view' },
   () => state.theme === 'dark', () => commands.theme(), ['night', 'day']);
 toggleAction('compareScroll', { title: 'Scroll both panes together', hint: 'By source line', group: 'view', enabled: () => bothShown() },
@@ -700,6 +709,13 @@ const formatRows = () => PACK_NAMES.filter(name => packs[name].format?.style).fl
       hint: `${packs[name].name}: ${key}`, options: () => [['', `As the language says (${values.find(v => v[0] === own)?.[1] ?? own})`], ...values] };
   }));
 
+// The settings of a theme set (docs/plans/32-PLAN-theme-sets.md, 3.2): the look. Until theme sets exist they are in
+// settings.json as any other, but the settings window already marks them as the theme set's.
+const THEME_SET_NAMES = new Set(['themeLight', 'themeDark', 'editorThemeLight', 'editorThemeDark', 'previewThemeLight',
+  'previewThemeDark', 'sneakTheme', 'highlightColour', 'highlightIntensity', 'previewHighlightColour', 'previewHighlightIntensity',
+  'inlineCodeIntensity', 'indentGuideColour', 'indentGuideIntensity', 'indentGuideCursorColour', 'indentGuideCursorIntensity',
+  'columnGuideColour', 'columnGuideIntensity', 'helperLineIntensity', 'tabStopIntensity']);
+
 function settingDefs() {
   // In the order of the groups (a stable sort keeps the rows' own order within a group).
   const rank = r => SETTING_GROUPS.indexOf(r.group);
@@ -713,6 +729,7 @@ function settingDefs() {
       options: r.options?.() ?? (r.kind === 'size' ? [[0, `Default (${r.base()})`], ...FONT_SIZES.map(pt => [pt, pt + ' pt'])] : null),
       monoFirst: r.name === 'editorFont',
       range: r.range ?? null, unit: r.unit ?? '',
+      layer: LAYOUT.has(r.name) ? 'window' : THEME_SET_NAMES.has(r.name) ? 'set' : 'global',   // executed/PLAN-settings-layers.md
     };
   });
 }

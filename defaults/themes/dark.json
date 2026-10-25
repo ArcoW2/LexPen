@@ -46,6 +46,10 @@
     "guide6": "rgba(210, 168, 255, .5)",
     "whitespace": "#5a606a",
     "gutterBgEmbedded": "#2b3342",
+    "layerGlobal": "#6e7681",
+    "layerWindow": "#3fb950",
+    "layerSet": "#a371f7",
+    "layerScreen": "#db6d28",
 
     // Code: the colours a language pack maps its token types onto (tokens: { theme: keyword }).
     "keyword": "#ff7b72",

@@ -23,6 +23,8 @@
   --guide1: rgba(207, 34, 46, .45); --guide2: rgba(154, 103, 0, .5); --guide3: rgba(26, 127, 55, .45); --guide4: rgba(27, 124, 131, .45); --guide5: rgba(9, 105, 218, .45); --guide6: rgba(130, 80, 223, .45);
   --whitespace: #b4bac2;   /* shown spaces, tabs and line ends (editor) */
   --gutter-bg-embedded: #e4ebf5;   /* the gutter beside lines of another language (PLAN-embedded-languages.md) */
+  /* The settings window: the line left of a row, by what the setting belongs to (executed/PLAN-settings-layers.md). */
+  --layer-global: #8c959f; --layer-window: #1a7f37; --layer-set: #8250df; --layer-screen: #bc4c00;
 }
 :root[data-theme=dark], .mm-themed[data-theme=dark] {
   color-scheme: dark;
@@ -44,6 +46,7 @@
   --guide1: rgba(255, 123, 114, .5); --guide2: rgba(229, 192, 123, .5); --guide3: rgba(126, 231, 135, .45); --guide4: rgba(86, 182, 194, .5); --guide5: rgba(121, 192, 255, .5); --guide6: rgba(210, 168, 255, .5);
   --whitespace: #5a606a;
   --gutter-bg-embedded: #2b3342;
+  --layer-global: #6e7681; --layer-window: #3fb950; --layer-set: #a371f7; --layer-screen: #db6d28;
 }
 
 /* Which way "more contrast" goes: away from the background (darker on light, lighter on dark). A language
@@ -123,6 +126,9 @@ body[data-orient=h] .mm-orient::before { content: "Above each other"; }
 .mm-check::before { content: ""; position: absolute; left: 12px; }
 .mm-check.mm-on::before { content: "\2713"; }
 .mm-menu hr { margin: 4px 0; border: 0; border-top: 1px solid var(--border); }
+/* A group's name in a menu (View: This window, This screen, All windows): a line with the name under it. */
+.mm-menu-header { margin: 4px 0 2px; padding: 4px 12px 2px; font-size: calc(11px * var(--ui-scale)); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--fg-dim); border-top: 1px solid var(--border); }
+.mm-menu-header:first-child { margin-top: 0; border-top: 0; }
 .mm-menu button:disabled { opacity: .45; cursor: default; background: none; }
 .mm-menu button.mm-menu-caption:disabled { opacity: .75; font-size: .9em; font-style: italic; }   /* a line that tells, as in the ruler menu */
 .mm-menu .mm-key { margin-left: 24px; float: right; color: var(--fg-dim); font-size: calc(12px * var(--ui-scale)); }
@@ -533,6 +539,7 @@ body[data-outline] .mm-outline-button { background: var(--active); color: var(--
 }
 /* Confirmations instead of errors. Page background as text color: white on the light theme's blue, dark on the dark theme's. */
 .mm-toast.mm-info { background: var(--accent); color: var(--bg); }
+.mm-toast-action { margin-left: 8px; padding: 1px 8px; border: 1px solid currentColor; border-radius: 4px; background: none; color: inherit; }
 
 /* Busy bar: a strip sliding along the top edge while something is loading.
    It fades in after a short delay so quick operations do not flicker. */

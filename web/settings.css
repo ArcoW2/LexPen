@@ -29,6 +29,24 @@
 .st-sub { margin: 6px 0 2px 10px; font-size: calc(15px * var(--ui-scale)); font-weight: 600; color: var(--fg); }
 .st-row.st-in-sub { margin-left: 18px; }
 .st-row { display: flex; align-items: center; gap: 12px; padding: 8px 10px; border-left: 3px solid transparent; border-radius: 4px; }
+/* What a setting belongs to (executed/PLAN-settings-layers.md): a line left of the row, its tooltip names it; rows of one
+   layer next to each other make one line. */
+.st-layer { flex: none; align-self: stretch; width: 3px; margin: -8px 0 -8px -6px; }
+.st-layer[data-layer=global] { background: var(--layer-global); }
+.st-layer[data-layer=window] { background: var(--layer-window); }
+.st-layer[data-layer=set] { background: var(--layer-set); }
+.st-layer[data-layer=screen] { background: var(--layer-screen); }
+.st-legend { display: flex; gap: 4px; margin-left: auto; }
+.st-legend button { display: flex; align-items: center; gap: 6px; padding: 3px 8px; border: 1px solid transparent; border-radius: 4px;
+  background: none; color: var(--fg-dim); font-size: calc(12px * var(--ui-scale)); white-space: nowrap; }
+.st-legend button:hover { color: var(--fg); border-color: var(--border); }
+.st-legend button.st-on { color: var(--fg); border-color: var(--accent); }
+.st-legend .st-layer { align-self: auto; width: 3px; height: 14px; margin: 0; }
+.st-screen { display: flex; align-items: center; gap: 8px; margin-top: 4px; color: var(--fg); font-size: calc(12px * var(--ui-scale)); }
+.st-screen[hidden] { display: none; }
+.st-screen .st-layer { align-self: auto; height: 14px; margin: 0; }
+.st-screen button { padding: 1px 8px; border: 0; background: none; color: var(--accent); font-size: inherit; }
+.st-screen button:hover { text-decoration: underline; }
 .st-row:focus-within { background: var(--hover); }
 .st-row.st-changed { border-left-color: var(--accent); }
 .st-text { flex: 1; min-width: 0; }
@@ -54,6 +72,12 @@
 .st-changed .st-reset { visibility: visible; }
 .st-reset:hover { text-decoration: underline; }
 .st-none { padding: 24px 10px; color: var(--fg-dim); }
+/* This window's layout (docs/plans/executed/PLAN-settings-layers.md): Save as default, Reset to default; a message with Undo. */
+.st-layout { flex: none; display: flex; align-items: center; gap: 8px; padding: 6px 16px; background: var(--bg-bar); border-top: 1px solid var(--border);
+  box-shadow: inset 3px 0 0 var(--layer-window); }
+.st-layout-text { color: var(--fg-dim); }
+.st-layout button { padding: 3px 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--fg); }
+.st-layout button:hover { border-color: var(--accent); }
 .st-foot { flex: none; padding: 8px 16px; color: var(--fg-dim); font-size: calc(12px * var(--ui-scale)); border-top: 1px solid var(--border); background: var(--bg-bar); }
 .st-link { padding: 1px 6px; font-size: inherit; }
 .st-names { width: 26em; padding: 3px 6px; font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 4px; }

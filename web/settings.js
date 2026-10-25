@@ -26,7 +26,13 @@ chrome.webview.addEventListener('message', e => {
 });
 
 const SLIDER_DELAY = 200;   // ms a slider rests before the app gets its value
-let settings = null;   // { values, defaults, user, problems, defs }
+let settings = null;   // { values, defaults, user, problems, defs, layout }
+// A row of "this window" (def.layer): its value is in the main window's layout, not in settings.json
+// (docs/plans/executed/PLAN-settings-layers.md); a change goes to that window.
+const ofWindow = name => Object.hasOwn(settings.defaults.defaultLayout ?? {}, name);
+const valueOf = name => ofWindow(name)
+  ? settings.layout?.[name] ?? settings.values.defaultLayout?.[name] ?? settings.defaults.defaultLayout?.[name] : settings.values[name];
+const defaultOf = def => def.layer === 'window' ? settings.defaults.defaultLayout?.[def.name] : def.default ?? settings.defaults[def.name];
 const rows = [];       // { def, el, control }
 
 // ---------- Look: the app's theme (from the host) and the app font, as the main windows (applyFonts in app.js) ----------
@@ -275,17 +281,29 @@ function buildGroup(group) {
     el.dataset.name = def.name;
     el.dataset.group = def.group;
     if (def.sub) el.classList.add('st-in-sub');
-    el.innerHTML = '<div class="st-text"><div class="st-title"></div><div class="st-hint"></div></div>';
+    el.innerHTML = '<span class="st-layer"></span><div class="st-text"><div class="st-title"></div><div class="st-hint"></div></div>';
+    const mark = el.querySelector('.st-layer');
+    mark.dataset.layer = def.layer ?? 'global';
+    mark.title = layerTip(mark.dataset.layer);
     el.querySelector('.st-title').textContent = def.title;
     el.querySelector('.st-hint').textContent = def.hint;
     const c = control(def);
     el.append(c.box);
+    // The base for every screen; this screen's own zoom on a line of its own, with Reset (docs/plans/executed/PLAN-settings-layers.md).
+    if (def.name === 'editorSize' || def.name === 'zoom') {
+      const line = document.createElement('div');
+      line.className = 'st-screen';
+      line.innerHTML = '<span class="st-layer" data-layer="screen"></span><span class="st-screen-text"></span><button>Reset</button>';
+      line.querySelector('.st-layer').title = layerTip('screen');
+      line.querySelector('button').addEventListener('click', () => host('screenZoomReset', def.name === 'zoom' ? { preview: true } : { editor: true }));
+      el.querySelector('.st-text').append(line);
+    }
     if (def.kind !== 'keys') {
       const reset = document.createElement('button');
       reset.className = 'st-reset';
       reset.textContent = 'Reset';
       reset.title = 'Back to the default';
-      reset.addEventListener('click', () => set(def.name, def.default ?? settings.defaults[def.name]));
+      reset.addEventListener('click', () => set(def.name, defaultOf(def)));
       el.append(reset);
     }
     box.append(el);
@@ -294,6 +312,39 @@ function buildGroup(group) {
   const order = groupsOf(), after = [...ui.list.children].find(s => order.indexOf(s.dataset.group) > order.indexOf(group));
   ui.list.insertBefore(section, after ?? null);
   show();
+}
+
+// ---------- What a setting belongs to (docs/plans/executed/PLAN-settings-layers.md) ----------
+// Global (settings.json, every window), this window (its layout, kept with its session), the theme set (the look;
+// until theme sets exist the one set "Default", settings.json), this screen (the zoom per monitor). The legend shows
+// the colours with their names; a click shows only that layer's rows, again all of them.
+const LAYERS = [['global', 'Global'], ['window', 'This window'], ['set', 'Theme set'], ['screen', 'This screen']];
+let layerShown = null;
+
+function layerTip(layer) {
+  if (layer === 'window') return 'This window: ' + (settings.window || 'the window this one belongs to');
+  if (layer === 'set') return 'Theme set: Default';
+  if (layer === 'screen') return 'This screen: ' + (settings.screen?.name || 'the monitor the window is on');
+  return 'Global: every window';
+}
+
+function buildLegend() {
+  const legend = $('.st-legend');
+  legend.replaceChildren();
+  for (const [layer, name] of LAYERS) {
+    const b = document.createElement('button');
+    b.dataset.layer = layer;
+    b.title = layerTip(layer) + ' (a click shows only these; again: all)';
+    b.innerHTML = '<span class="st-layer"></span>';
+    b.firstChild.dataset.layer = layer;
+    b.append(name);
+    b.addEventListener('click', () => {
+      layerShown = layerShown === layer ? null : layer;
+      for (const x of legend.children) x.classList.toggle('st-on', x.dataset.layer === layerShown);
+      filter();
+    });
+    legend.append(b);
+  }
 }
 
 // Next / previous tab (Ctrl+Tab, Ctrl+Shift+Tab, Ctrl+PgDn / PgUp).
@@ -307,19 +358,51 @@ function show() {
   applyLook();
   for (const { def, el, control: c } of rows) {
     if (def.kind === 'keys') continue;
-    c.show(settings.values[def.name]);
-    if (def.hintOff) el.querySelector('.st-hint').textContent = settings.values[def.name] ? def.hint : def.hintOff;
-    el.classList.toggle('st-changed', settings.user.includes(def.name));
+    const value = valueOf(def.name);
+    c.show(value);
+    if (def.hintOff) el.querySelector('.st-hint').textContent = value ? def.hint : def.hintOff;
+    el.classList.toggle('st-changed', def.layer === 'window' ? JSON.stringify(value) !== JSON.stringify(defaultOf(def)) : settings.user.includes(def.name));
   }
+  showScreenZoom();
   const problems = [...(settings.problems ?? []), ...(settings.look?.problems ?? []), ...(settings.languageProblems ?? [])];
   ui.problems.hidden = !problems.length;
   ui.problems.textContent = problems.join('\n');
 }
 
+// This screen's own zoom under the base rows: the editor's step, the preview's factor; hidden when it has none.
+function showScreenZoom() {
+  const s = settings.screen ?? {};
+  for (const { def, el } of rows) {
+    const line = el.querySelector('.st-screen');
+    if (!line) continue;
+    let text = '';
+    if (def.name === 'editorSize' && s.editorStep) {
+      const pt = (valueOf('editorSize') || 10.5) + s.editorStep;   // 10.5 pt: the editor's default size (app.js)
+      text = `On this screen: ${s.editorStep > 0 ? '+' : ''}${s.editorStep} pt, so ${pt} pt`;
+    }
+    if (def.name === 'zoom' && s.previewFactor && s.previewFactor !== 1)
+      text = `On this screen: ${Math.round((valueOf('zoom') || 1) * s.previewFactor * 100)}%`;
+    line.hidden = !text;
+    line.querySelector('.st-screen-text').textContent = text;
+    line.querySelector('.st-layer').title = layerTip('screen');
+  }
+}
+
+// The zoom of the main window's monitor changed (a zoom there, the window moved to another monitor).
+events.screen = s => {
+  settings.screen = s;
+  show();
+};
+
 // As setSetting in app.js: a value set here and not yet confirmed wins over a set the host sent meanwhile.
 const unconfirmed = new Map();
 
 function set(name, value) {
+  if (ofWindow(name)) {
+    settings.layout = { ...settings.layout, [name]: value };
+    host('layoutSet', { name, value });
+    return;
+  }
   settings.values[name] = value;
   unconfirmed.set(name, (unconfirmed.get(name) ?? 0) + 1);
   host('settingSet', { name, value }).catch(e => {
@@ -333,8 +416,15 @@ function set(name, value) {
 
 events.settings = ({ settings: s }) => {
   const mine = Object.fromEntries([...unconfirmed.keys()].map(n => [n, settings.values[n]]));
-  settings = { ...s, defs: settings.defs, look: settings.look, languageProblems: settings.languageProblems };
+  settings = { ...s, defs: settings.defs, look: settings.look, languageProblems: settings.languageProblems, layout: settings.layout,
+    window: settings.window, screen: settings.screen };
   Object.assign(settings.values, mine);
+  show();
+};
+
+// The main window's layout changed (a menu, a key, a row here).
+events.layout = ({ layout }) => {
+  settings.layout = layout;
   show();
 };
 
@@ -362,9 +452,10 @@ events.defs = ({ defs }) => {
 // is shown.
 function filter(typing = false) {
   const words = ui.search.value.toLowerCase().split(/\s+/).filter(Boolean);
-  if (words.length) for (const group of groupsOf()) buildGroup(group);
-  document.body.classList.toggle('st-searching', words.length > 0);
+  if (words.length || layerShown) for (const group of groupsOf()) buildGroup(group);
+  document.body.classList.toggle('st-searching', words.length > 0 || !!layerShown);
   const matches = r => {
+    if (layerShown && (r.def.layer ?? 'global') !== layerShown) return false;
     const text = (r.def.title + ' ' + r.def.hint + ' ' + (r.def.hintOff ?? '') + ' ' + r.def.group + ' ' + (r.def.sub ?? '')).toLowerCase();
     return words.every(w => text.includes(w));
   };
@@ -382,9 +473,10 @@ function filter(typing = false) {
     s.hidden = !rows.some(r => r.def.group === s.dataset.group && !r.el.hidden);
   for (const b of ui.list.querySelectorAll('.st-subgroup'))
     b.hidden = !rows.some(r => r.def.group === b.dataset.group && r.def.sub === b.dataset.sub && !r.el.hidden);
-  for (const b of ui.tabs.children) b.classList.toggle('st-has', words.length > 0 && found.has(b.dataset.group));
+  const narrowed = words.length > 0 || !!layerShown;
+  for (const b of ui.tabs.children) b.classList.toggle('st-has', narrowed && found.has(b.dataset.group));
   const total = rows.filter(matches).length;
-  ui.count.textContent = !words.length ? '' : total === shown ? `${shown} found` : `${shown} here, ${total} in all tabs`;
+  ui.count.textContent = !narrowed ? '' : total === shown ? `${shown} found` : `${shown} here, ${total} in all tabs`;
 }
 ui.search.addEventListener('input', () => filter(true));
 
@@ -423,10 +515,37 @@ addEventListener('keydown', e => {
 
 $('.st-foot [data-open]').addEventListener('click', e => host('openFile', { file: e.target.dataset.open }));
 
+// ---------- This window's layout: Save as default, Reset to default ----------
+// Save: the main window's layout becomes defaultLayout (the layout new projects start with), at once; the bar says so,
+// with Undo (the default as it was). Reset: the main window takes the default layout again (its tabs and folder stay).
+const layoutBar = $('.st-layout'), layoutText = layoutBar.querySelector('.st-layout-text');
+function layoutMessage(text, undo) {
+  layoutText.textContent = text;
+  for (const b of layoutBar.querySelectorAll('[data-layout]')) b.hidden = !!undo;
+  layoutBar.querySelector('.st-undo')?.remove();
+  if (undo) {
+    const b = document.createElement('button');
+    b.className = 'st-undo';
+    b.textContent = 'Undo';
+    b.addEventListener('click', () => { undo(); layoutMessage("This window's layout:"); });
+    layoutBar.append(b);
+  }
+  clearTimeout(layoutMessage.timer);
+  if (undo) layoutMessage.timer = setTimeout(() => layoutMessage("This window's layout:"), 8000);
+}
+layoutBar.querySelector('[data-layout="save"]').addEventListener('click', () => {
+  const before = settings.user.includes('defaultLayout') ? settings.values.defaultLayout : settings.defaults.defaultLayout;
+  const layout = Object.fromEntries(Object.keys(settings.defaults.defaultLayout ?? {}).map(n => [n, valueOf(n)]));
+  set('defaultLayout', layout);
+  layoutMessage("This window's layout is now the default for new projects.", () => set('defaultLayout', before));
+});
+layoutBar.querySelector('[data-layout="reset"]').addEventListener('click', () => host('runInWindow', { name: 'layoutResetDefault' }));
+
 // ---------- Start ----------
 (async () => {
   settings = await host('init');
   await usableFonts().catch(() => []);
+  buildLegend();
   build();
   ui.search.focus();
 })();

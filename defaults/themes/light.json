@@ -46,6 +46,11 @@
     "guide6": "rgba(130, 80, 223, .45)",
     "whitespace": "#b4bac2",
     "gutterBgEmbedded": "#e4ebf5",
+    // The settings window: the line left of a row, by what the setting belongs to.
+    "layerGlobal": "#8c959f",
+    "layerWindow": "#1a7f37",
+    "layerSet": "#8250df",
+    "layerScreen": "#bc4c00",
 
     // Code: the colours a language pack maps its token types onto (tokens: { theme: keyword }).
     "keyword": "#cf222e",

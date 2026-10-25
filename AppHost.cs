@@ -9,7 +9,7 @@ namespace LexPen;
 /// <summary>
 /// Owns all windows of the one running instance. Later launches send their arguments over a named
 /// pipe (see Program); this class routes them to windows (see Router). It also holds what the windows
-/// share: settings (and the one settings window), state, the session, drafts, the edit lock per file and
+/// share: settings (and a settings window per main window), state, the session, drafts, the edit lock per file and
 /// the WebView2 environment. The data folder's layout: see DataFolder.
 /// </summary>
 sealed class AppHost : ApplicationContext
@@ -24,6 +24,8 @@ sealed class AppHost : ApplicationContext
     static string FavouriteFoldersPath => Path.Combine(DataDir, DataFolder.FavouriteFoldersName);
     // Settings that were kept in the page's storage go to settings.json once; this file says it happened.
     static string PageSettingsMovedPath => Path.Combine(DataFolder.StateDir(DataDir), "page-settings-moved");
+    // The layout values the page kept in its storage go to defaultLayout in settings.json once; this file says it happened.
+    static string LayoutMovedPath => Path.Combine(DataFolder.StateDir(DataDir), "layout-moved");
 
     /// <summary>What LexPen remembers by itself: window position and size, the recent lists.</summary>
     public sealed class AppState
@@ -41,6 +43,7 @@ sealed class AppHost : ApplicationContext
         public int[]? CharPicker { get; set; }   // the character picker's place: x, y, width, height
         public int[]? HighlightsWindow { get; set; }   // the highlights window's place: x, y, width, height
         public int[]? ProjectsWindow { get; set; }   // the Manage projects window's place: x, y, width, height
+        public Dictionary<string, ScreenZoom> Screens { get; set; } = [];   // the zoom per monitor, by its key (Monitors)
     }
 
     public AppState State { get; } = LoadState();
@@ -191,7 +194,7 @@ sealed class AppHost : ApplicationContext
             languagesTimer.Stop();
             LoadLanguages();
             foreach (var w in windows) w.Post(new JsonObject { ["event"] = "languages", ["languages"] = languages.DeepClone() });
-            settingsWindow?.Post(new JsonObject { ["event"] = "languages", ["languages"] = languages.DeepClone() });
+            foreach (var s in settingsWindows.Values) s.Post(new JsonObject { ["event"] = "languages", ["languages"] = languages.DeepClone() });
         };
     }
 
@@ -292,14 +295,14 @@ sealed class AppHost : ApplicationContext
             w.ApplyTheme();
             w.Post(new JsonObject { ["event"] = "look", ["look"] = look.DeepClone() });
         }
-        settingsWindow?.ApplyTheme();
+        foreach (var s in settingsWindows.Values) s.ApplyTheme();
         charPicker?.ApplyTheme();
         charPicker?.Post(new JsonObject { ["event"] = "look", ["look"] = look.DeepClone() });
         highlightsWindow?.ApplyTheme();
         highlightsWindow?.Post(new JsonObject { ["event"] = "look", ["look"] = look.DeepClone() });
         projectsWindow?.ApplyTheme();
         projectsWindow?.Post(new JsonObject { ["event"] = "look", ["look"] = look.DeepClone() });
-        settingsWindow?.Post(new JsonObject { ["event"] = "look", ["look"] = look.DeepClone() });
+        foreach (var s in settingsWindows.Values) s.Post(new JsonObject { ["event"] = "look", ["look"] = look.DeepClone() });
     }
 
     /// <summary>Day / night while following Windows: the other mode, until Windows changes mode.</summary>
@@ -352,7 +355,7 @@ sealed class AppHost : ApplicationContext
     }
     /// <summary>The rows of the settings window, as a main window's page describes them (actions.js).</summary>
     public JsonNode? SettingDefs { get; set; }
-    SettingsForm? settingsWindow;
+    readonly Dictionary<MainForm, SettingsForm> settingsWindows = [];   // per main window, at most one
     CharPickerForm? charPicker;
     HighlightsForm? highlightsWindow;
     ProjectsForm? projectsWindow;
@@ -621,7 +624,7 @@ sealed class AppHost : ApplicationContext
         SaveProjects();
         if (windows.Count == 0)
         {
-            settingsWindow?.Close();
+            foreach (var s in settingsWindows.Values.ToList()) s.Close();
             charPicker?.Close();
             highlightsWindow?.Close();
             projectsWindow?.Close();
@@ -757,7 +760,7 @@ sealed class AppHost : ApplicationContext
         var before = Look().ToJsonString();
         settings = SettingsFile.Load(DataDir);
         foreach (var w in windows) w.Post(new JsonObject { ["event"] = "settings", ["settings"] = settings.DeepClone() });
-        settingsWindow?.Post(new JsonObject { ["event"] = "settings", ["settings"] = settings.DeepClone() });
+        foreach (var s in settingsWindows.Values) s.Post(new JsonObject { ["event"] = "settings", ["settings"] = settings.DeepClone() });
         charPicker?.Post(new JsonObject { ["event"] = "settings", ["settings"] = settings["values"]?.DeepClone() });
         highlightsWindow?.Post(new JsonObject { ["event"] = "settings", ["settings"] = settings["values"]?.DeepClone() });
         projectsWindow?.Post(new JsonObject { ["event"] = "settings", ["settings"] = settings["values"]?.DeepClone() });
@@ -765,7 +768,10 @@ sealed class AppHost : ApplicationContext
     }
 
     /// <summary>A main window described the settings' rows again (another list of themes): the settings window follows.</summary>
-    public void DefsChanged() => settingsWindow?.Post(new JsonObject { ["event"] = "defs", ["defs"] = SettingDefs?.DeepClone() });
+    public void DefsChanged()
+    {
+        foreach (var s in settingsWindows.Values) s.Post(new JsonObject { ["event"] = "defs", ["defs"] = SettingDefs?.DeepClone() });
+    }
 
     /// <summary>The settings a page kept in its own storage before settings.json existed, moved over once.</summary>
     public bool PageSettingsMoved => File.Exists(PageSettingsMovedPath);
@@ -779,6 +785,76 @@ sealed class AppHost : ApplicationContext
         File.WriteAllText(PageSettingsMovedPath, "");
         ReloadSettings();
     }
+
+    /// <summary>The layout values the page kept in its own storage (the sidebar, the outline, the panes, ...), moved to
+    /// defaultLayout once (docs/plans/executed/PLAN-settings-layers.md).</summary>
+    public bool LayoutMoved => File.Exists(LayoutMovedPath);
+
+    public void ImportLayout(JsonObject values)
+    {
+        if (LayoutMoved) return;
+        SettingsFile.WriteImportedLayout(DataDir, values);
+        File.WriteAllText(LayoutMovedPath, "");
+        ReloadSettings();
+    }
+
+    // ---------- Zoom per screen (docs/plans/executed/PLAN-settings-layers.md, 3.6) ----------
+    // The base is global (editorSize, zoom in settings.json); each monitor can add its own (ScreenZoom), kept in
+    // state.json: the monitors differ per PC. A window shows the zoom of the monitor it is on, and takes another's
+    // when it moves there (its place changing: WindowPlaceChanged).
+
+    /// <summary>What a window's page gets: its monitor's key, name and zoom.</summary>
+    public JsonObject ScreenOf(MainForm w)
+    {
+        if (w.ScreenKey is null) (w.ScreenKey, w.ScreenName) = Monitors.Of(w);
+        var zoom = State.Screens.GetValueOrDefault(w.ScreenKey);
+        return new JsonObject { ["key"] = w.ScreenKey, ["name"] = w.ScreenName, ["editorStep"] = zoom?.EditorStep ?? 0, ["previewFactor"] = zoom?.PreviewFactor ?? 1 };
+    }
+
+    void SendScreen(MainForm w)
+    {
+        var screen = ScreenOf(w);
+        screen["event"] = "screen";
+        w.Post(screen);
+        settingsWindows.GetValueOrDefault(w)?.Post((JsonObject)screen.DeepClone());
+    }
+
+    // The window may be on another monitor now (moved, resized, maximised, the DPI changed).
+    void ScreenChanged(MainForm w)
+    {
+        if (w.ScreenKey is null || w.WindowState == FormWindowState.Minimized) return;   // not asked yet: the page asks first
+        var (key, name) = Monitors.Of(w);
+        if (key == w.ScreenKey) return;
+        (w.ScreenKey, w.ScreenName) = (key, name);
+        SendScreen(w);
+    }
+
+    /// <summary>Zoom in / out / 100% in a window: its monitor's zoom (null: that part stays); every window on that
+    /// monitor follows.</summary>
+    public void SetScreenZoom(MainForm from, double? editorStep, double? previewFactor)
+    {
+        var key = ScreenOf(from)["key"]!.GetValue<string>();
+        ScreenZoom.Set(State.Screens, key, editorStep, previewFactor);
+        SaveState();
+        foreach (var w in windows) if (w.ScreenKey == key) SendScreen(w);
+    }
+
+    /// <summary>View > Zoom > Use on every screen (the page made this screen's zoom the base): no monitor has its own.</summary>
+    public void ClearScreenZooms()
+    {
+        State.Screens.Clear();
+        SaveState();
+        foreach (var w in windows) if (w.ScreenKey is not null) SendScreen(w);
+    }
+
+    // ---------- A window's layout (docs/plans/executed/PLAN-settings-layers.md) ----------
+
+    /// <summary>The layout a window opens with: its own, else that of the last window of its project (ProjectStore.LayoutOf).</summary>
+    public JsonNode? LayoutFor(MainForm w) => projects.LayoutOf(w.Key);
+
+    /// <summary>A window's layout changed (the page says it): its settings window follows.</summary>
+    public void LayoutShown(MainForm w) =>
+        settingsWindows.GetValueOrDefault(w)?.Post(new JsonObject { ["event"] = "layout", ["layout"] = w.PageLayout?.DeepClone() });
 
     // Your settings.json changed on disk (a hand edit, another LexPen copy): read again, every window follows.
     FileSystemWatcher? settingsWatcher;
@@ -820,18 +896,23 @@ sealed class AppHost : ApplicationContext
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return null; }
     }
 
-    /// <summary>Options > Settings: the one settings window, owned by the window it was asked from.</summary>
+    /// <summary>Options > Settings: the settings window of the window it was asked from, owned by it (so on its
+    /// desktop); that window's own when it has one open, brought to the front. Two windows can each have one.</summary>
     public void OpenSettings(MainForm from)
     {
-        if (settingsWindow is { IsDisposed: false })
+        if (settingsWindows.TryGetValue(from, out var open) && !open.IsDisposed)
         {
-            BringToFront(settingsWindow);
+            BringToFront(open);
             return;
         }
-        settingsWindow = new SettingsForm(this, from);
-        settingsWindow.FormClosed += (_, _) => settingsWindow = null;
+        var settingsWindow = new SettingsForm(this, from);
+        settingsWindows[from] = settingsWindow;
+        settingsWindow.FormClosed += (_, _) => { if (settingsWindows.GetValueOrDefault(from) == settingsWindow) settingsWindows.Remove(from); };
         settingsWindow.Show(from);
     }
+
+    /// <summary>A main window's caption changed (its project renamed, the [n] shifted): its settings window follows.</summary>
+    public void SettingsTitle(MainForm w) => settingsWindows.GetValueOrDefault(w)?.UpdateTitle();
 
     /// <summary>The character picker: one for the app; opened again, brought to the front at that character. The
     /// main windows hear whether it is open (they then tell it the character after their cursor).</summary>
@@ -1117,6 +1198,7 @@ sealed class AppHost : ApplicationContext
     /// <summary>The window moved, changed size or desktop: kept with its session.</summary>
     public void WindowPlaceChanged(MainForm w)
     {
+        ScreenChanged(w);
         if (projects.WindowOf(w.Key) is not { } entry || w.WindowState == FormWindowState.Minimized) return;
         var b = w.WindowState == FormWindowState.Normal ? w.Bounds : w.RestoreBounds;
         int[] bounds = [b.X, b.Y, b.Width, b.Height];

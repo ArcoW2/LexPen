@@ -44,6 +44,13 @@ sealed class MainForm : Form
     public int Id { get; }
     /// <summary>The window's key in its project (ProjectStore).</summary>
     public int Key => start.Key;
+    /// <summary>The layout this window shows now, as its page last said (layoutShown): for its settings window.</summary>
+    public JsonObject? PageLayout { get; private set; }
+    /// <summary>The monitor this window is on (Monitors): its key and name, for the zoom per screen (AppHost.ScreenOf).</summary>
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+    public string? ScreenKey { get; set; }
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+    public string? ScreenName { get; set; }
 
     /// <summary>Becomes another window of a project, before the page has asked what to open (AppHost.WindowShown).</summary>
     public void Rekey(int key) => start = start with { Key = key };
@@ -164,6 +171,7 @@ sealed class MainForm : Form
     {
         var title = web.CoreWebView2?.DocumentTitle is { Length: > 0 } t ? t : "LexPen";
         Text = app.ProjectInfo(this)["display"]?.GetValue<string>() is { Length: > 0 } project ? $"{title} - {project}" : title;
+        app.SettingsTitle(this);
     }
 
     // Only what the tree shows matters: everything outside hidden folders and node_modules.
@@ -813,6 +821,7 @@ sealed class MainForm : Form
             {
                 var merged = (JsonObject)app.Settings.DeepClone();
                 merged["pageSettingsMoved"] = app.PageSettingsMoved;
+                merged["layoutMoved"] = app.LayoutMoved;
                 return merged;
             }
 
@@ -822,6 +831,32 @@ sealed class MainForm : Form
 
             case "settingsImport":
                 app.ImportPageSettings(msg["values"]!.AsObject());
+                return null;
+
+            // This window's layout (docs/plans/executed/PLAN-settings-layers.md): what it opens with; what it shows now (for
+            // its settings window); the old values of the page's storage, moved to the settings once.
+            case "windowLayout":
+                return app.LayoutFor(this);
+
+            case "layoutShown":
+                PageLayout = msg["layout"]?.DeepClone() as JsonObject;
+                app.LayoutShown(this);
+                return null;
+
+            case "layoutImport":
+                app.ImportLayout(msg["values"]!.AsObject());
+                return null;
+
+            // The zoom of the monitor this window is on (docs/plans/executed/PLAN-settings-layers.md, 3.6).
+            case "screen":
+                return app.ScreenOf(this);
+
+            case "screenZoom":
+                app.SetScreenZoom(this, msg["editorStep"]?.GetValue<double>(), msg["previewFactor"]?.GetValue<double>());
+                return null;
+
+            case "screenZoomClear":
+                app.ClearScreenZooms();
                 return null;
 
             case "settingDefs":

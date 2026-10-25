@@ -158,7 +158,7 @@ projects, the desktops, the app.
 
 ### 3.11 A settings window per main window
 
-Moved to plan 31 (`31-PLAN-settings-layers.md`, 3.7), which is done first: each main window has a settings window
+Moved to plan 31 (`executed/PLAN-settings-layers.md`, 3.7), which is done first: each main window has a settings window
 of its own. This plan adds to it:
 
 - The theme set bar (3.8) and where a change to one of 3.2's settings goes (3.7): the set of the owner window. Its
