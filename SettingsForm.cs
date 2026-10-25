@@ -158,6 +158,14 @@ sealed class SettingsForm : Form
                 app.SetScreenZoom(window, msg["editor"]?.GetValue<bool>() == true ? 0 : null, msg["preview"]?.GetValue<bool>() == true ? 1 : null);
                 return null;
 
+            // The project for viewing (docs/plans/33-PLAN-view-window.md): the projects to choose from; its reset.
+            case "projects":
+                return app.ProjectNames();
+
+            case "viewReset":
+                BeginInvoke(() => app.ResetViewLayout(this));   // after this reply: it asks first
+                return null;
+
             // An action of the main window this one belongs to, without bringing it to the front (Reset to default).
             case "runInWindow":
                 if (!window.IsDisposed) window.Post(new JsonObject { ["event"] = "runAction", ["name"] = Arg("name") });

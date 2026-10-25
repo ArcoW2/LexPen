@@ -3666,6 +3666,45 @@ events.tabColours = ({ text }) => {
   refreshTabs();
 };
 
+// View in LexPen in this window (the project for viewing, docs/plans/33-PLAN-view-window.md): a file as a tab in the
+// preview (one already open comes to the front as it is), a folder as the Folder pane's folder, shown.
+events.view = async ({ folder, files }) => {
+  if (folder) {
+    await openFolder(folder).catch(e => toast(e.message));
+    setSidebar(true);
+    setSideView('folder');
+  }
+  for (const path of files || []) await viewFile(path).catch(e => toast(e.message));
+};
+
+// A viewed file: in the preview; a tab opened for it is read-only with the setting viewReadOnly (the tab menu's
+// Read-only takes that off), so it cannot be changed by accident. A tab already open stays as it is.
+async function viewFile(path) {
+  const fresh = !panes[state.activePane].tabs.some(t => samePath(t.doc.path, path));
+  const tab = await openFile(path, { mode: 'preview' });
+  if (fresh && setting('viewReadOnly')) await setReadOnly(tab, true);
+  return tab;
+}
+
+// Settings > Reset to view layout: the layout the host gives, one pane (the second's tabs into the first), every tab in
+// the preview, no compare; the tabs and the folder stay.
+events.viewLayout = async ({ layout }) => {
+  if (comparing()) await stopCompare();
+  if (panes[1].tabs.length) {
+    const active = panes[1].active;
+    for (const tab of [...panes[1].tabs]) await intoMainPane(tab);
+    if (active && paneOf(active)) await activate(panes[0], active);
+    afterPaneChange();
+  }
+  for (const tab of allTabs()) tab.mode = 'preview';
+  layoutOwn = { ...layout };
+  mergeLayout();
+  applySettings();
+  layoutChanged();
+  await showAll();
+  saveSession();
+};
+
 events.open = async ({ folder, files }) => {
   if (folder) {
     await openFolder(folder);
@@ -4210,7 +4249,9 @@ track((async () => {
   if (root) await openFolder(root, Array.isArray(tree?.open) ? tree.open : []).catch(() => {});
   if (tree && Number.isFinite(tree.top)) ui.tree.scrollTop = tree.top;
   if (start.restore !== undefined || start.drafts) await restore(session, start.drafts || []);
-  for (const path of start.files) await openFile(path).catch(e => toast(e.message));
+  // View in LexPen (docs/plans/33-PLAN-view-window.md): the files in the preview, the folder in the Folder pane.
+  for (const path of start.files) await (start.view ? viewFile(path) : openFile(path)).catch(e => toast(e.message));
+  if (start.view && start.folder) { setSidebar(true); setSideView('folder'); }
   syncWatch();
   syncWatchFiles();
   await showAll();

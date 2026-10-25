@@ -120,7 +120,8 @@ function rowHtml(p, ws) {
   let html = `<div class="${cls}" data-id="${p.id}">` +
     `<button class="pv-fold" tabindex="-1" title="Its windows and files (Right / Left)"></button>` +
     `<input type="checkbox" class="pv-check" tabindex="-1"${view.checked.has(p.id) ? ' checked' : ''}>` +
-    `<span class="pv-name${p.name ? '' : ' pv-unnamed'}" title="${escapeHtml(p.display)}">${name}</span>` +
+    `<span class="pv-name${p.name ? '' : ' pv-unnamed'}" title="${escapeHtml(p.display)}">${name}` +
+    (p.view ? '<span class="pv-viewing" title="View in LexPen opens files here (Settings > General > Viewing)"> (for viewing)</span>' : '') + `</span>` +
     `<span class="pv-state${p.open ? ' pv-open-now' : ''}">${p.open ? 'open' : 'closed'}</span>` +
     `<span class="pv-folders" title="${escapeHtml(folders.join('\n'))}">${marked(folders.join('; ') || '(no folder)', ws)}</span>` +
     `<span class="pv-num">${tabsOf(p)}</span>` +

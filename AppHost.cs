@@ -391,8 +391,18 @@ sealed class AppHost : ApplicationContext
 
     /// <summary>Opens or activates windows for the paths of one launch. The first launch opens the windows of the
     /// projects first (ProjectStore.StartWindows), each on its own virtual desktop.</summary>
-    public void Launch(IReadOnlyList<string> paths, bool shift, bool compare = false)
+    public void Launch(IReadOnlyList<string> paths, bool shift, bool compare = false, bool view = false)
     {
+        if (view)
+        {
+            if (!restored)
+            {
+                RestoreWindows();
+                if (windows.Count > 0) { ViewWhenSettled(paths); return; }
+            }
+            View(paths);
+            return;
+        }
         if (compare)
         {
             if (!restored) RestoreWindows();
@@ -469,11 +479,12 @@ sealed class AppHost : ApplicationContext
         Route(paths, shift);
     }
 
+    // Opening (and Edit in LexPen) never lands in the project for viewing: its windows are not in the choice.
     void Route(IReadOnlyList<string> paths, bool shift)
     {
         var items = paths.Select(p => (Path: p, Dir: Directory.Exists(p))).ToList();
-        var here = recent.Where(w => VirtualDesktop.OnCurrentDesktop(w.Handle)).Select(w => windows.IndexOf(w)).ToList();
-        var targets = Router.Route(items, windows.Select(w => w.Root).ToList(), here, shift);
+        var here = recent.Where(w => VirtualDesktop.OnCurrentDesktop(w.Handle) && !ForViewing(w)).Select(w => windows.IndexOf(w)).ToList();
+        var targets = Router.Route(items, windows.Select(w => ForViewing(w) ? null : w.Root).ToList(), here, shift);
 
         MainForm? front = null;
         foreach (var t in targets)
@@ -588,7 +599,7 @@ sealed class AppHost : ApplicationContext
     ProjectStore.Project ProjectForNewWindow()
     {
         if (SettingText("newWindowProject") != "new"
-            && recent.FirstOrDefault(w => VirtualDesktop.OnCurrentDesktop(w.Handle)) is { } last
+            && recent.FirstOrDefault(w => VirtualDesktop.OnCurrentDesktop(w.Handle) && !ForViewing(w)) is { } last
             && projects.ProjectOf(last.Key) is { } p)
             return p;
         return projects.NewProject("");
@@ -660,7 +671,7 @@ sealed class AppHost : ApplicationContext
                 await using var writer = new StreamWriter(server, leaveOpen: true) { AutoFlush = true };
                 await writer.WriteLineAsync("ok");
                 var paths = msg["paths"]?.AsArray().Select(p => p!.GetValue<string>()).ToList() ?? [];
-                Launch(paths, msg["shift"]?.GetValue<bool>() == true, msg["compare"]?.GetValue<bool>() == true);
+                Launch(paths, msg["shift"]?.GetValue<bool>() == true, msg["compare"]?.GetValue<bool>() == true, msg["view"]?.GetValue<bool>() == true);
             }
             catch (Exception ex) when (ex is IOException or JsonException) { }
         }
@@ -744,14 +755,12 @@ sealed class AppHost : ApplicationContext
     /// window and the settings window get the new set at once.</summary>
     public void SetSetting(string name, JsonNode? value)
     {
-        // The Explorer menu's compare entries (ExplorerMenu): written for this exe, or removed.
-        if (name == "explorerCompare")
-        {
-            if (value?.GetValue<bool>() == true) ExplorerMenu.Install(Environment.ProcessPath ?? Application.ExecutablePath);
-            else ExplorerMenu.Remove();
-        }
         SettingsFile.Write(DataDir, name, value);
         ReloadSettings();
+        // The Explorer menu's entries (ExplorerMenu): written for this exe as the settings now say, or removed.
+        if (name is "explorerCompare" or "explorerView" or "explorerEdit" or "explorerPlace")
+            ExplorerMenu.Apply(Environment.ProcessPath ?? Application.ExecutablePath, new ExplorerMenu.Choice(SettingFlag("explorerCompare"),
+                SettingFlag("explorerView"), SettingFlag("explorerEdit"), SettingText("explorerPlace") == "submenu"));
     }
 
     // Also after a hand edit of the file (see WatchSettings).
@@ -850,7 +859,76 @@ sealed class AppHost : ApplicationContext
     // ---------- A window's layout (docs/plans/executed/PLAN-settings-layers.md) ----------
 
     /// <summary>The layout a window opens with: its own, else that of the last window of its project (ProjectStore.LayoutOf).</summary>
-    public JsonNode? LayoutFor(MainForm w) => projects.LayoutOf(w.Key);
+    public JsonNode? LayoutFor(MainForm w) => projects.LayoutOf(w.Key) ?? (ForViewing(w) ? ViewLayout() : null);
+
+    // ---------- The project for viewing (docs/plans/33-PLAN-view-window.md) ----------
+
+    int ViewProjectId => settings["values"]?["viewProject"]?.GetValueKind() == JsonValueKind.Number ? settings["values"]!["viewProject"]!.GetValue<int>() : 0;
+    ProjectStore.Project? FindViewProject() => ViewProject.Find(projects, ViewProjectId);
+    bool ForViewing(MainForm w) => FindViewProject() is { } p && projects.ProjectOf(w.Key) == p;
+    JsonObject ViewLayout() => ViewProject.Layout(settings["defaults"]?["defaultLayout"] as JsonObject, settings["values"]?["defaultLayout"] as JsonObject);
+
+    async void ViewWhenSettled(IReadOnlyList<string> paths)
+    {
+        await Task.WhenAny(Task.WhenAll(windows.Select(w => w.Settled.Task)), Task.Delay(5000));
+        View(paths);
+    }
+
+    /// <summary>View in LexPen: the files (in Preview) and a folder (in the Folder pane) in the project for viewing (made
+    /// as "View" when there is none): in its window on this desktop when one is shown, else in its last closed window,
+    /// else a new window of it.</summary>
+    void View(IReadOnlyList<string> paths)
+    {
+        var p = FindViewProject() ?? projects.NewProject(ViewProject.Name);
+        var folder = paths.FirstOrDefault(Directory.Exists);
+        var files = paths.Where(path => !Directory.Exists(path)).ToList();
+        var shown = recent.FirstOrDefault(w => projects.ProjectOf(w.Key) == p && w.WindowState != FormWindowState.Minimized
+            && VirtualDesktop.OnCurrentDesktop(w.Handle));
+        if (shown is not null)
+        {
+            shown.Post(new JsonObject { ["event"] = "view", ["folder"] = folder, ["files"] = ToArray(files) });
+            BringToFront(shown);
+            return;
+        }
+        var closed = p.Windows.Where(o => !o.Open).MaxBy(o => o.Used);
+        var w = Open(new MainForm.Start(folder, files, closed?.Key ?? 0, View: true), project: p);
+        SaveProjects();
+        BringToFront(w);
+    }
+
+    /// <summary>Settings > Reset to view layout: the project for viewing gets the view layout (one window, one pane, no
+    /// side panes, every tab in Preview); its tabs and folder stay. Asks first, naming the project.</summary>
+    public void ResetViewLayout(IWin32Window owner)
+    {
+        if (FindViewProject() is not { } p)
+        {
+            MessageBox.Show(owner, "There is no project for viewing yet: the first View in LexPen makes it, named \"View\".",
+                "LexPen", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+        if (MessageBox.Show(owner, $"Give the project \"{ProjectStore.Display(p)}\" the view layout?\n\nOne window with one pane, no sidebar, " +
+            "outline, formatting bar or ruler, every tab in the preview. Its tabs and folder stay; its other windows close.",
+            "LexPen", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+        var layout = ViewLayout();
+        var open = windows.Where(w => projects.ProjectOf(w.Key) == p).OrderBy(w => recent.IndexOf(w)).ToList();
+        if (open.Count > 0)
+        {
+            p.Windows.RemoveAll(o => !o.Open);
+            foreach (var other in open.Skip(1)) other.Close();
+            open[0].Post(new JsonObject { ["event"] = "viewLayout", ["layout"] = layout });
+        }
+        else if (p.Windows.MaxBy(o => o.Used) is { } last)
+        {
+            last.Session = ViewProject.ToViewLayout(last.Session, layout);
+            p.Windows.RemoveAll(o => o != last);
+        }
+        SaveProjects();
+        if (projectsWindow is not null) ProjectsChanged();
+    }
+
+    /// <summary>The projects for the settings window's list (Project for viewing): id and name, newest used first.</summary>
+    public JsonArray ProjectNames() => new(projects.Projects.OrderByDescending(p => p.Used)
+        .Select(p => (JsonNode?)new JsonObject { ["id"] = p.Id, ["name"] = ProjectStore.Display(p) }).ToArray());
 
     /// <summary>A window's layout changed (the page says it): its settings window follows.</summary>
     public void LayoutShown(MainForm w) =>
@@ -1271,6 +1349,7 @@ sealed class AppHost : ApplicationContext
     public JsonArray ProjectList(MainForm? from, bool details = false)
     {
         var mine = from is null ? null : projects.ProjectOf(from.Key);
+        var viewing = FindViewProject();
         var open = windows.ToDictionary(w => w.Key);
         var texts = details ? DraftTexts() : [];
         static IEnumerable<JsonNode> Tabs(ProjectStore.Window w) =>
@@ -1301,6 +1380,7 @@ sealed class AppHost : ApplicationContext
                 ["id"] = p.Id, ["name"] = p.Name, ["display"] = ProjectStore.Display(p), ["mine"] = p == mine,
                 ["open"] = p.Windows.Any(w => open.ContainsKey(w.Key)),
                 ["windows"] = new JsonArray(p.Windows.Select(w => (JsonNode?)Window(w)).ToArray()),
+                ["view"] = p == viewing,   // the project for viewing (docs/plans/33-PLAN-view-window.md)
             };
             if (details)
             {

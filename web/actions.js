@@ -452,6 +452,15 @@ const SETTING_ROWS = [
   { name: 'keepUnnamedProjects', group: 'General', sub: 'Windows', kind: 'toggle', title: 'Keep unnamed projects',
     hint: 'Windows with files but with an unnamed project ("Project n") are kept for reopening',
     hintOff: 'Windows with files for unnamed projects ("Project n") are not remembered for reopening' },
+  // The project for viewing (docs/plans/33-PLAN-view-window.md): Explorer's View in LexPen opens files there.
+  { name: 'viewProject', group: 'General', sub: 'Viewing', kind: 'project', title: 'Project for viewing',
+    hint: 'View in LexPen (Explorer) opens files and folders in this project. A normal project: what you change there (panes, colours) stays for the next view' },
+  { name: 'viewReadOnly', group: 'General', sub: 'Viewing', kind: 'toggle', title: 'Viewed documents read-only',
+    hint: 'A file View in LexPen opens is read-only; to change it, take off Read-only in its tab menu',
+    hintOff: 'A file View in LexPen opens can be edited at once' },
+  { name: 'viewReset', group: 'General', sub: 'Viewing', kind: 'buttons', title: 'Reset to view layout',
+    hint: 'The project for viewing gets the view layout again: one window, one pane, no sidebar, outline, formatting bar or ruler, every tab in the preview. Its tabs stay',
+    buttons: [['Reset to view layout', 'viewReset']] },
   { name: 'followWindows', group: 'General', sub: 'Theme', kind: 'toggle', title: 'Follow Windows',
     hint: 'Light or dark follows Windows (Settings > Personalization > Colors); the Day / Night button switches until Windows changes',
     hintOff: 'A change between light and dark in Windows does not switch the mode of LexPen' },
@@ -612,6 +621,15 @@ const SETTING_ROWS = [
   { name: 'explorerCompare', group: 'App', sub: 'Windows Explorer', kind: 'toggle', title: 'Compare entries in Explorer\'s right-click menu',
     hint: 'Explorer\'s right-click menu on files and folders gets Select left side to compare, and then Compare to <name>; on Windows 11 under Show more options (or Shift+right-click). They run the LexPen that turned this on',
     hintOff: 'No compare entries in Explorer\'s right-click menu' },
+  { name: 'explorerView', group: 'App', sub: 'Windows Explorer', kind: 'toggle', title: 'View in LexPen in Explorer\'s right-click menu',
+    hint: 'On files and folders: opens them in the project for viewing (General > Viewing), a file in the preview, a folder in the Folder pane',
+    hintOff: 'No View in LexPen in Explorer\'s right-click menu' },
+  { name: 'explorerEdit', group: 'App', sub: 'Windows Explorer', kind: 'toggle', title: 'Edit in LexPen in Explorer\'s right-click menu',
+    hint: 'On files: opens them as opening a file does, never in the project for viewing',
+    hintOff: 'No Edit in LexPen in Explorer\'s right-click menu' },
+  { name: 'explorerPlace', group: 'App', sub: 'Windows Explorer', kind: 'choice', title: 'The LexPen items in Explorer\'s menu',
+    hint: 'Next to each other with a line above and below, or in one item LexPen that opens a submenu with them. On Windows 11 under Show more options (or Shift+right-click)',
+    options: () => [['group', 'Next to each other, between two lines'], ['submenu', 'In a submenu LexPen']] },
   { name: 'compareWhitespace', group: 'Editor view', sub: 'Compare', kind: 'toggle', title: 'Ignore whitespace',
     hint: 'Comparing, spaces and tabs count only as a separation: their amount inside a line and those at its ends make no difference, nor an empty line against none',
     hintOff: 'Comparing, every space and tab counts' },
@@ -728,7 +746,7 @@ function settingDefs() {
       hintOff: r.hintOff ?? null,   // a toggle whose hint says what happens: hint when on, hintOff when off
       options: r.options?.() ?? (r.kind === 'size' ? [[0, `Default (${r.base()})`], ...FONT_SIZES.map(pt => [pt, pt + ' pt'])] : null),
       monoFirst: r.name === 'editorFont',
-      range: r.range ?? null, unit: r.unit ?? '',
+      range: r.range ?? null, unit: r.unit ?? '', buttons: r.buttons ?? null,
       layer: LAYOUT.has(r.name) ? 'window' : THEME_SET_NAMES.has(r.name) ? 'set' : 'global',   // executed/PLAN-settings-layers.md
     };
   });
