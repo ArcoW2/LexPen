@@ -175,6 +175,58 @@ public class ProjectStoreTests : IDisposable
     }
 
     [Fact]
+    public void ANewProjectKnowsWhenItWasMade()
+    {
+        var store = ProjectStore.Load(FilePath);
+        var p = store.NewProject("New");
+        Assert.NotNull(p.Created);
+        store.Save();
+        Assert.Equal(p.Created, ProjectStore.Load(FilePath).Get(p.Id)!.Created);
+        // A file from before: no date.
+        File.WriteAllText(FilePath, """{ "projects": [ { "id": 3, "name": "Old", "used": "2026-01-02T03:04:05Z", "windows": [] } ] }""");
+        Assert.Null(ProjectStore.Load(FilePath).Get(3)!.Created);
+    }
+
+    [Fact]
+    public void ClosingAWholeProjectKeepsEveryWindowWithFiles()
+    {
+        var store = ProjectStore.Load(FilePath);
+        var p = store.NewProject("");
+        var a = store.AddWindow(p);
+        a.Session = Session(@"D:.md", "edit1");
+        var b = store.AddWindow(p);
+        b.Session = Session(@"D:.md");
+        var empty = store.AddWindow(p);
+        store.CloseWithProject(a.Key, keepUnnamed: true);   // the others still open: kept all the same
+        store.CloseWithProject(empty.Key, keepUnnamed: true);
+        store.CloseWithProject(b.Key, keepUnnamed: true);
+        Assert.Equal([a, b], p.Windows);                     // the one without files went
+        Assert.All(p.Windows, w => Assert.False(w.Open));
+        Assert.Contains(p, store.Projects);
+        Assert.Equal(["edit1"], ProjectStore.DraftsOf(a));    // its drafts stay with it
+    }
+
+    [Fact]
+    public void MergingMovesEveryWindowIntoTheTarget()
+    {
+        var store = ProjectStore.Load(FilePath);
+        var target = store.NewProject("LexPen");
+        var t1 = store.AddWindow(target);
+        var other = store.NewProject("Docs");
+        var o1 = store.AddWindow(other);
+        o1.Session = Session("edit2");
+        o1.Open = false;
+        var unnamed = store.NewProject("");
+        var u1 = store.AddWindow(unnamed);
+        store.Merge(target, [other, unnamed, target]);
+        Assert.Equal([t1, o1, u1], target.Windows);           // open and closed, in order
+        Assert.Equal("LexPen", target.Name);
+        Assert.Equal([target], store.Projects);
+        Assert.Equal(["edit2"], store.AllDrafts());
+        Assert.Same(target, store.ProjectOf(u1.Key));
+    }
+
+    [Fact]
     public void TheLastProjectClosedOnADesktop()
     {
         var store = ProjectStore.Load(FilePath);

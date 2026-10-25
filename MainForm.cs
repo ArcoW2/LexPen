@@ -78,6 +78,14 @@ sealed class MainForm : Form
     readonly List<string> queue = [];
     // Closing asks the page first (unsaved files, drafts); it answers with "closeNow".
     bool closeApproved, closeAsked;
+
+    /// <summary>Closing with its project (Manage projects): the answer about unsaved documents, already given
+    /// ("save" or "discard"), so the page does not ask; null for a close by hand.</summary>
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+    public string? CloseAnswer { get; set; }
+    /// <summary>Called when the page cancels such a close (a save failed or was cancelled).</summary>
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+    public Action? CloseCancelled { get; set; }
     volatile bool active;
 
     // Auto refresh: one watcher for the folder tree (files and folders appearing or disappearing,
@@ -641,6 +649,16 @@ sealed class MainForm : Form
                 app.OpenHighlights(this);
                 return null;
 
+            // Projects > Manage projects (ProjectsForm).
+            case "openProjects":
+                app.OpenProjects(this);
+                return null;
+
+            // The page's answer to a question of the host (AppHost.Ask: the unsaved work of this window).
+            case "answer":
+                app.Answer(msg["ask"]!.GetValue<int>(), msg["result"]);
+                return null;
+
             // Which document's highlights this window shows (the highlights window lists them).
             case "highlightsShown":
                 app.HighlightsShown(this, msg.AsObject().DeepClone().AsObject());
@@ -857,6 +875,8 @@ sealed class MainForm : Form
 
             case "closeCancel":
                 closeAsked = false;
+                CloseCancelled?.Invoke();
+                CloseCancelled = null;
                 return null;
 
             case "session":
@@ -1264,10 +1284,15 @@ sealed class MainForm : Form
                 return;
             }
             closeAsked = true;
-            // Pinned tabs go to another open window of this project, if there is one (the page decides, per setting).
-            Post(new JsonObject { ["event"] = "closeRequest", ["peer"] = app.PeerOf(this)?.Id });
+            // Pinned tabs go to another open window of this project, if there is one (the page decides, per setting);
+            // closing with the project, they stay (the whole project closes) and the answer is given.
+            Post(CloseAnswer is null
+                ? new JsonObject { ["event"] = "closeRequest", ["peer"] = app.PeerOf(this)?.Id }
+                : new JsonObject { ["event"] = "closeRequest", ["answer"] = CloseAnswer });
             return;
         }
+
+        app.ReleaseOwned(this);
 
         if (Primary)
             app.SaveBounds(WindowState == FormWindowState.Normal ? Bounds : RestoreBounds,

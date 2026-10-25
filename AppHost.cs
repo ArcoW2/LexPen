@@ -40,6 +40,7 @@ sealed class AppHost : ApplicationContext
         public List<string> ReplaceHistory { get; set; } = [];
         public int[]? CharPicker { get; set; }   // the character picker's place: x, y, width, height
         public int[]? HighlightsWindow { get; set; }   // the highlights window's place: x, y, width, height
+        public int[]? ProjectsWindow { get; set; }   // the Manage projects window's place: x, y, width, height
     }
 
     public AppState State { get; } = LoadState();
@@ -296,6 +297,8 @@ sealed class AppHost : ApplicationContext
         charPicker?.Post(new JsonObject { ["event"] = "look", ["look"] = look.DeepClone() });
         highlightsWindow?.ApplyTheme();
         highlightsWindow?.Post(new JsonObject { ["event"] = "look", ["look"] = look.DeepClone() });
+        projectsWindow?.ApplyTheme();
+        projectsWindow?.Post(new JsonObject { ["event"] = "look", ["look"] = look.DeepClone() });
         settingsWindow?.Post(new JsonObject { ["event"] = "look", ["look"] = look.DeepClone() });
     }
 
@@ -352,6 +355,7 @@ sealed class AppHost : ApplicationContext
     SettingsForm? settingsWindow;
     CharPickerForm? charPicker;
     HighlightsForm? highlightsWindow;
+    ProjectsForm? projectsWindow;
 
     readonly List<MainForm> windows = [];   // opening order: "next window" and the [n] in the title
     readonly List<MainForm> recent = [];    // most recently active first
@@ -604,7 +608,8 @@ sealed class AppHost : ApplicationContext
         // Closed by hand, the last window too: the project's rules (ProjectStore.CloseByHand); the project comes back
         // when LexPen starts on that desktop (LastClosedOn). Windows closing it (log-off, shutdown, Task Manager) or a
         // crash: the windows stay open in their projects and all come back at the next start, each on its desktop.
-        if (reason is not (CloseReason.WindowsShutDown or CloseReason.TaskManagerClosing))
+        if (w.CloseAnswer is not null) projects.CloseWithProject(w.Key, KeepUnnamed);   // Manage projects: Close, Delete
+        else if (reason is not (CloseReason.WindowsShutDown or CloseReason.TaskManagerClosing))
             projects.CloseByHand(w.Key, KeepUnnamed);
         // The most recently active window takes over as primary.
         if (primary == w)
@@ -619,6 +624,7 @@ sealed class AppHost : ApplicationContext
             settingsWindow?.Close();
             charPicker?.Close();
             highlightsWindow?.Close();
+            projectsWindow?.Close();
             Drafts.Flush();
             ExitThread();
         }
@@ -754,6 +760,7 @@ sealed class AppHost : ApplicationContext
         settingsWindow?.Post(new JsonObject { ["event"] = "settings", ["settings"] = settings.DeepClone() });
         charPicker?.Post(new JsonObject { ["event"] = "settings", ["settings"] = settings["values"]?.DeepClone() });
         highlightsWindow?.Post(new JsonObject { ["event"] = "settings", ["settings"] = settings["values"]?.DeepClone() });
+        projectsWindow?.Post(new JsonObject { ["event"] = "settings", ["settings"] = settings["values"]?.DeepClone() });
         if (Look().ToJsonString() != before) SendLook();
     }
 
@@ -1095,6 +1102,7 @@ sealed class AppHost : ApplicationContext
         projectsTimer.Stop();
         try { projects.Save(); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }   // the next change tries again
+        projectsWindow?.Post(new JsonObject { ["event"] = "projects" });   // its list follows
     }
 
     /// <summary>A window's session from the page (a second after a change, and when it closes): written at once, the
@@ -1175,26 +1183,60 @@ sealed class AppHost : ApplicationContext
         return recent.FirstOrDefault(o => o != w && projects.ProjectOf(o.Key) == p);
     }
 
-    /// <summary>The Projects menu: every project (newest used first, this window's first), its windows, which are open.</summary>
-    public JsonArray ProjectList(MainForm from)
+    /// <summary>The Projects menu: every project (newest used first, this window's first), its windows, which are open.
+    /// With details (the Manage projects window): also when it was created and last used, its drafts, and per window
+    /// the names of its tabs (a file's name, a draft's first line).</summary>
+    public JsonArray ProjectList(MainForm? from, bool details = false)
     {
-        var mine = projects.ProjectOf(from.Key);
+        var mine = from is null ? null : projects.ProjectOf(from.Key);
         var open = windows.ToDictionary(w => w.Key);
-        return new JsonArray(projects.Projects.OrderByDescending(p => p == mine).ThenByDescending(p => p.Used).Select(p => (JsonNode?)new JsonObject
+        var texts = details ? DraftTexts() : [];
+        static IEnumerable<JsonNode> Tabs(ProjectStore.Window w) =>
+            (w.Session?["panes"]?.AsArray() ?? []).SelectMany(pane => pane?["tabs"]?.AsArray() ?? []).OfType<JsonNode>();
+        JsonObject Window(ProjectStore.Window w)
         {
-            ["id"] = p.Id, ["name"] = p.Name, ["display"] = ProjectStore.Display(p), ["mine"] = p == mine,
-            ["open"] = p.Windows.Any(w => open.ContainsKey(w.Key)),
-            ["windows"] = new JsonArray(p.Windows.Select(w => (JsonNode?)new JsonObject
+            var o = new JsonObject
             {
-                ["key"] = w.Key, ["open"] = open.ContainsKey(w.Key), ["mine"] = w.Key == from.Key,
+                ["key"] = w.Key, ["open"] = open.ContainsKey(w.Key), ["mine"] = w.Key == from?.Key,
                 ["folder"] = (open.TryGetValue(w.Key, out var ow) ? ow.Root : null) ?? w.Session?["root"]?.GetValue<string>(),
-                ["tabs"] = (w.Session?["panes"]?.AsArray() ?? []).Sum(pane => pane?["tabs"]?.AsArray().Count ?? 0),
-            }).ToArray()),
+                ["tabs"] = Tabs(w).Count(),
+            };
+            if (details)
+                o["files"] = new JsonArray(Tabs(w).Select(t => (JsonNode?)(t["draft"]?.GetValue<string>() is string id
+                    ? new JsonObject { ["draft"] = id, ["name"] = DraftTitle(texts.GetValueOrDefault(id)) }
+                    : new JsonObject { ["name"] = Path.GetFileName(t["path"]?.GetValue<string>() ?? ""), ["path"] = t["path"]?.GetValue<string>() })).ToArray());
+            return o;
+        }
+        return new JsonArray(projects.Projects.OrderByDescending(p => p == mine).ThenByDescending(p => p.Used).Select(p =>
+        {
+            var o = new JsonObject
+            {
+                ["id"] = p.Id, ["name"] = p.Name, ["display"] = ProjectStore.Display(p), ["mine"] = p == mine,
+                ["open"] = p.Windows.Any(w => open.ContainsKey(w.Key)),
+                ["windows"] = new JsonArray(p.Windows.Select(w => (JsonNode?)Window(w)).ToArray()),
+            };
+            if (details)
+            {
+                o["used"] = p.Used == DateTime.MinValue ? null : p.Used.ToString("o");
+                o["created"] = p.Created?.ToString("o");
+                o["drafts"] = p.Windows.SelectMany(ProjectStore.DraftsOf).Count(id => !string.IsNullOrWhiteSpace(texts.GetValueOrDefault(id)));
+            }
+            return (JsonNode?)o;
         }).ToArray());
     }
 
-    /// <summary>The Projects menu's commands. Windows opened from it come on the desktop you are on.</summary>
-    public void ProjectCommand(MainForm from, string kind, JsonNode? msg)
+    // Every draft on disk: id -> text.
+    Dictionary<string, string> DraftTexts() => Drafts.LoadAll().OfType<JsonNode>()
+        .ToDictionary(d => d["id"]!.GetValue<string>(), d => d["text"]?.GetValue<string>() ?? "", StringComparer.OrdinalIgnoreCase);
+
+    // A draft as a list shows it: its first line that has text.
+    static string DraftTitle(string? text) =>
+        (text ?? "").Split('\n').Select(l => l.Trim().TrimStart('#').Trim()).FirstOrDefault(l => l.Length > 0) is { } line
+            ? (line.Length > 60 ? line[..60] + "..." : line) : "(empty draft)";
+
+    /// <summary>The Projects menu's commands (from: its window; null: the Manage projects window). Windows opened
+    /// from it come on the desktop you are on.</summary>
+    public void ProjectCommand(MainForm? from, string kind, JsonNode? msg)
     {
         int Id() => msg!["project"]!.GetValue<int>();   // "id" is the call's own number
         string Name() => msg?["name"]?.GetValue<string>() ?? "";
@@ -1210,8 +1252,9 @@ sealed class AppHost : ApplicationContext
                 break;
             case "window":
                 var key = msg!["key"]!.GetValue<int>();
-                BringToFront(windows.FirstOrDefault(w => w.Key == key)
-                    ?? (projects.WindowOf(key) is not null ? Open(new MainForm.Start(null, [], key)) : from));
+                if ((windows.FirstOrDefault(w => w.Key == key)
+                    ?? (projects.WindowOf(key) is not null ? Open(new MainForm.Start(null, [], key)) : from)) is { } shown)
+                    BringToFront(shown);
                 break;
             case "newWindow":
                 if (projects.Get(Id()) is { } target) BringToFront(Open(new MainForm.Start(null, []), project: target));
@@ -1220,17 +1263,318 @@ sealed class AppHost : ApplicationContext
                 BringToFront(Open(new MainForm.Start(null, []), project: projects.NewProject(Name())));
                 break;
             case "rename":
-                if (projects.ProjectOf(from.Key) is { } mine) projects.Rename(mine, Name());
+                if (from is not null && projects.ProjectOf(from.Key) is { } mine) projects.Rename(mine, Name());
                 break;
             case "move":
                 var to = msg?["project"] is null ? projects.NewProject(Name()) : projects.Get(Id());
-                if (to is not null) projects.MoveWindow(from.Key, to, KeepUnnamed);
+                if (from is not null && to is not null) projects.MoveWindow(from.Key, to, KeepUnnamed);
                 break;
             case "delete":
                 if (projects.Get(Id()) is { } gone) projects.Delete(gone);
                 break;
         }
         ProjectsChanged();
+    }
+
+    // ---------- Manage projects (ProjectsForm; docs/plans/executed/PLAN-manage-projects.md) ----------
+
+    /// <summary>The Manage projects window: one for the app; opened again, brought to the front.</summary>
+    public void OpenProjects(MainForm from)
+    {
+        if (projectsWindow is { IsDisposed: false }) { BringToFront(projectsWindow); return; }
+        projectsWindow = new ProjectsForm(this, from);
+        projectsWindow.FormClosed += (_, _) => projectsWindow = null;
+        projectsWindow.Show(from);
+    }
+
+    public void SaveProjectsWindow(int[] bounds)
+    {
+        State.ProjectsWindow = bounds;
+        SaveState();
+    }
+
+    /// <summary>A main window closes: the projects window it owns goes to another one, so it stays open.</summary>
+    public void ReleaseOwned(MainForm w)
+    {
+        if (projectsWindow is { IsDisposed: false } pw && pw.Owner == w)
+            pw.Owner = recent.FirstOrDefault(o => o != w && !o.IsDisposed);
+    }
+
+    public void RenameProject(int id, string name)
+    {
+        if (projects.Get(id) is not { } p) return;
+        projects.Rename(p, name);
+        ProjectsChanged();
+    }
+
+    /// <summary>Merges the projects into the first one (the first checked): asks first. True when merged.</summary>
+    public bool MergeProjects(IWin32Window owner, List<int> ids)
+    {
+        var list = ids.Select(projects.Get).OfType<ProjectStore.Project>().Distinct().ToList();
+        if (list.Count < 2) return false;
+        var (to, from) = (list[0], list.Skip(1).ToList());
+        var names = from.Select(ProjectStore.Display).ToList();
+        var named = names.Count == 1 ? names[0] : string.Join(", ", names[..^1]) + " and " + names[^1];
+        var merge = new TaskDialogButton("Merge");
+        var page = new TaskDialogPage
+        {
+            Caption = "LexPen",
+            Heading = $"Merge {list.Count} projects into '{ProjectStore.Display(to)}'?",
+            Text = $"Their windows move to '{ProjectStore.Display(to)}'; {named} {(names.Count == 1 ? "is" : "are")} removed.",
+            Icon = TaskDialogIcon.Information,
+            Buttons = { merge, TaskDialogButton.Cancel },
+            DefaultButton = merge,
+            AllowCancel = true,
+        };
+        if (TaskDialog.ShowDialog(owner, page) != merge) return false;
+        projects.Merge(to, from);
+        ProjectsChanged();
+        return true;
+    }
+
+    // What is unsaved in a project: documents (open windows only) and drafts (with text; empty ones apart).
+    // Silent: one of its windows did not answer, the project is left alone.
+    sealed class Unsaved(ProjectStore.Project project)
+    {
+        public ProjectStore.Project Project = project;
+        public List<string> Documents = [];
+        public List<(string Id, string Title)> Drafts = [];
+        public List<string> Empty = [];
+        public bool Open, Silent;
+    }
+
+    async Task<List<Unsaved>> UnsavedOf(List<ProjectStore.Project> list)
+    {
+        var texts = DraftTexts();
+        var result = new List<Unsaved>();
+        foreach (var p in list)
+        {
+            var u = new Unsaved(p);
+            foreach (var entry in p.Windows.ToList())
+            {
+                if (windows.FirstOrDefault(o => o.Key == entry.Key) is not { } w)
+                {
+                    foreach (var id in ProjectStore.DraftsOf(entry))
+                        if (string.IsNullOrWhiteSpace(texts.GetValueOrDefault(id))) u.Empty.Add(id);
+                        else u.Drafts.Add((id, DraftTitle(texts[id])));
+                    continue;
+                }
+                u.Open = true;
+                if (await Ask(w, "unsavedList") is not JsonObject answer) { u.Silent = true; continue; }
+                u.Documents.AddRange(answer["documents"]?.AsArray().Select(n => n!.GetValue<string>()) ?? []);
+                foreach (var d in answer["drafts"]?.AsArray() ?? [])
+                    u.Drafts.Add((d!["id"]!.GetValue<string>(), d["title"]?.GetValue<string>() ?? ""));
+                u.Empty.AddRange(answer["empty"]?.AsArray().Select(n => n!.GetValue<string>()) ?? []);
+            }
+            u.Documents = u.Documents.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            result.Add(u);
+        }
+        return result;
+    }
+
+    static string Count(int n, string one) => n == 1 ? $"1 {one}" : $"{n} {one}s";
+
+    // The lines of the question: per project what is unsaved, the total, the names under "Show details".
+    static (string Lines, string Details) Describe(List<Unsaved> list, bool drafts)
+    {
+        string What(Unsaved u)
+        {
+            var parts = new List<string>();
+            if (u.Documents.Count > 0) parts.Add(Count(u.Documents.Count, "unsaved document"));
+            if (drafts && u.Drafts.Count > 0) parts.Add(Count(u.Drafts.Count, "draft"));
+            if (u.Silent) parts.Add("a window does not answer: left alone");
+            return parts.Count > 0 ? string.Join(", ", parts) : "nothing unsaved";
+        }
+        var lines = string.Join("\n", list.Select(u => $"  {ProjectStore.Display(u.Project)}{(u.Open ? " (open)" : "")}: {What(u)}"));
+        if (list.Count > 1)
+        {
+            var totals = new List<string>();
+            var documents = list.Sum(u => u.Documents.Count);
+            var draftCount = drafts ? list.Sum(u => u.Drafts.Count) : 0;
+            if (documents > 0) totals.Add(Count(documents, "unsaved document"));
+            if (draftCount > 0) totals.Add(Count(draftCount, "draft"));
+            if (totals.Count > 0) lines += "\nTotal: " + string.Join(", ", totals) + ".";
+        }
+        var details = new System.Text.StringBuilder();
+        foreach (var u in list.Where(u => u.Documents.Count > 0 || drafts && u.Drafts.Count > 0))
+        {
+            details.AppendLine(ProjectStore.Display(u.Project) + ":");
+            foreach (var d in u.Documents) details.AppendLine("    " + d);
+            if (drafts) foreach (var (_, title) in u.Drafts) details.AppendLine("    Draft: " + title);
+        }
+        return (lines, details.ToString().TrimEnd());
+    }
+
+    // The delete question: "keep" (save the documents, keep the drafts), "documents" (save the documents only),
+    // "none" (save nothing), or null (Cancel). The buttons follow what is unsaved.
+    static string? DeleteQuestion(IWin32Window owner, List<Unsaved> list)
+    {
+        var several = list.Count > 1;
+        var word = several ? "projects" : "project";
+        var documents = list.Sum(u => u.Documents.Count);
+        var drafts = list.Sum(u => u.Drafts.Count);
+        var (lines, details) = Describe(list, true);
+        var page = new TaskDialogPage
+        {
+            Caption = "LexPen",
+            Heading = several ? $"Delete {list.Count} projects?" : $"Delete the project '{ProjectStore.Display(list[0].Project)}'?",
+            Icon = TaskDialogIcon.Warning,
+            AllowCancel = true,
+        };
+        var answers = new Dictionary<TaskDialogButton, string>();
+        void Button(string text, string answer)
+        {
+            var b = new TaskDialogButton(text);
+            page.Buttons.Add(b);
+            answers[b] = answer;
+        }
+        const string Untouched = "Saved files are not touched: only the {0} (their windows and tabs) {1} deleted.";
+        var untouched = string.Format(Untouched, word, several ? "are" : "is");
+        if (documents == 0 && drafts == 0)
+        {
+            page.Text = lines + "\n\n" + untouched;
+            Button("Delete", "none");
+        }
+        else if (documents == 0)
+        {
+            page.Text = $"The {word} will be deleted, drafts can be kept in the current window.\n\n" + lines;
+            Button($"Keep drafts, then delete {word}", "keep");
+            Button($"Delete drafts and {word}", "none");
+        }
+        else
+        {
+            page.Text = lines + "\n\n" + untouched;
+            if (drafts > 0) Button($"Save documents, keep drafts, then delete {word}", "keep");
+            Button($"Save documents only, then delete {word}", "documents");
+            Button("Delete without saving", "none");
+        }
+        page.Buttons.Add(TaskDialogButton.Cancel);
+        page.DefaultButton = page.Buttons[0];
+        if (details.Length > 0)
+            page.Expander = new TaskDialogExpander(details) { CollapsedButtonText = "Show details", ExpandedButtonText = "Hide details" };
+        return TaskDialog.ShowDialog(owner, page) is var result && answers.TryGetValue(result, out var a) ? a : null;
+    }
+
+    // The close question, only for unsaved documents (drafts stay with their windows): "save", "discard" or null.
+    static string? CloseQuestion(IWin32Window owner, List<Unsaved> list)
+    {
+        var word = list.Count > 1 ? "projects" : "project";
+        var (lines, details) = Describe(list, false);
+        var save = new TaskDialogButton($"Save documents, then close");
+        var discard = new TaskDialogButton("Close without saving");
+        var page = new TaskDialogPage
+        {
+            Caption = "LexPen",
+            Heading = list.Count > 1 ? $"Close {list.Count} projects?" : $"Close the project '{ProjectStore.Display(list[0].Project)}'?",
+            Text = lines + $"\n\nDrafts stay with the {word}.",
+            Icon = TaskDialogIcon.Warning,
+            Buttons = { save, discard, TaskDialogButton.Cancel },
+            DefaultButton = save,
+            AllowCancel = true,
+        };
+        if (details.Length > 0)
+            page.Expander = new TaskDialogExpander(details) { CollapsedButtonText = "Show details", ExpandedButtonText = "Hide details" };
+        var result = TaskDialog.ShowDialog(owner, page);
+        return result == save ? "save" : result == discard ? "discard" : null;
+    }
+
+    /// <summary>Manage projects > Close: closes the open windows of the projects (kept in them), after the question
+    /// about unsaved documents.</summary>
+    public async Task CloseProjects(IWin32Window owner, List<int> ids)
+    {
+        var list = ids.Select(projects.Get).OfType<ProjectStore.Project>()
+            .Where(p => windows.Any(w => projects.ProjectOf(w.Key) == p)).Distinct().ToList();
+        if (list.Count == 0) return;
+        var unsaved = await UnsavedOf(list);
+        var answer = unsaved.Any(u => u.Documents.Count > 0 || u.Silent) ? CloseQuestion(owner, unsaved) : "save";
+        if (answer is null) return;
+        KeepOneWindow(list);
+        foreach (var u in unsaved.Where(u => !u.Silent)) await CloseAll(u.Project, answer);
+        ProjectsChanged();
+    }
+
+    /// <summary>Manage projects > Delete: after the question, closes the projects' open windows and deletes the
+    /// projects; their drafts go to the window last worked in ("keep") or are deleted.</summary>
+    public async Task DeleteProjects(IWin32Window owner, List<int> ids)
+    {
+        var list = ids.Select(projects.Get).OfType<ProjectStore.Project>().Distinct().ToList();
+        if (list.Count == 0) return;
+        var unsaved = await UnsavedOf(list);
+        if (DeleteQuestion(owner, unsaved) is not { } answer) return;
+        KeepOneWindow(list);
+        List<string> keep = [], drop = [];
+        foreach (var u in unsaved.Where(u => !u.Silent))
+        {
+            if (!await CloseAll(u.Project, answer == "none" ? "discard" : "save")) continue;
+            if (projects.Get(u.Project.Id) is { } p) projects.Delete(p);   // closing may have dropped it already
+            drop.AddRange(u.Empty);
+            (answer == "keep" ? keep : drop).AddRange(u.Drafts.Select(d => d.Id));
+        }
+        Drafts.Flush();   // the closed windows wrote their drafts
+        foreach (var id in drop)
+        {
+            Drafts.Delete(id);
+            Rulers.Set(BookmarkStore.Key(null, id), []);
+        }
+        if (keep.Count > 0 && LastActive is { } target)
+        {
+            var texts = DraftTexts();
+            target.Post(new JsonObject
+            {
+                ["event"] = "adoptDrafts",
+                ["drafts"] = new JsonArray(keep.Where(texts.ContainsKey)
+                    .Select(id => (JsonNode?)new JsonObject { ["id"] = id, ["text"] = texts[id] }).ToArray()),
+            });
+        }
+        ProjectsChanged();
+    }
+
+    // When every open window is in the projects that close, a new window in a new project opens first: LexPen
+    // stays (and kept drafts have a place to go).
+    void KeepOneWindow(List<ProjectStore.Project> closing)
+    {
+        if (windows.All(w => closing.Contains(projects.ProjectOf(w.Key)!)))
+            Open(new MainForm.Start(null, []), project: projects.NewProject(""));
+    }
+
+    async Task<bool> CloseAll(ProjectStore.Project p, string answer)
+    {
+        foreach (var w in windows.Where(w => projects.ProjectOf(w.Key) == p).ToList())
+            if (!await CloseWith(w, answer)) return false;
+        return true;
+    }
+
+    // Closes a window with the answer about its unsaved documents already given ("save" or "discard"): its page
+    // does not ask again. True when it closed; false when saving failed or was cancelled (the window stays).
+    static Task<bool> CloseWith(MainForm w, string answer)
+    {
+        var done = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        w.FormClosed += (_, _) => done.TrySetResult(true);
+        w.CloseCancelled = () => { w.CloseAnswer = null; done.TrySetResult(false); };
+        w.CloseAnswer = answer;
+        w.Close();
+        return done.Task;
+    }
+
+    // ---------- Questions to a window's page, answered later (op "answer") ----------
+    readonly Dictionary<int, TaskCompletionSource<JsonNode?>> asks = [];
+    int lastAsk;
+
+    // Null when the page does not answer within a few seconds.
+    async Task<JsonNode?> Ask(MainForm w, string ev)
+    {
+        var id = ++lastAsk;
+        var answer = new TaskCompletionSource<JsonNode?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        asks[id] = answer;
+        w.Post(new JsonObject { ["event"] = ev, ["ask"] = id });
+        var first = await Task.WhenAny(answer.Task, Task.Delay(5000));
+        asks.Remove(id);
+        return first == answer.Task ? answer.Task.Result : null;
+    }
+
+    public void Answer(int ask, JsonNode? result)
+    {
+        if (asks.Remove(ask, out var answer)) answer.TrySetResult(result?.DeepClone());
     }
 
     static JsonArray ToArray(IEnumerable<string> items) => new(items.Select(i => (JsonNode?)i).ToArray());
