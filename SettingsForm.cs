@@ -242,7 +242,10 @@ sealed class SettingsForm : Form
         var kept = list.Where(c => !FileTypes.OpensWith(c.Extension, exe).Ours).Select(c => c.Extension).ToList();
         if (kept.Count > 0)
         {
-            MessageBox.Show(this, $"Windows keeps another app for {Some(kept)}.\n\nDefault apps opens at LexPen: choose LexPen there for these.",
+            MessageBox.Show(this, $"LexPen could not set every file type: Windows keeps another app for\n\n{Some(kept)}\n\n" +
+                "After OK, Windows Settings opens at Apps > Default apps > LexPen. Choose LexPen there for each of these file types.\n\n" +
+                "Only LexPen is chosen there: whether a file type opens to edit or to view is what you set here, in LexPen's File types; " +
+                "Windows has no setting for it.",
                 "LexPen", MessageBoxButtons.OK, MessageBoxIcon.Information);
             System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("ms-settings:defaultapps?registeredAppUser=LexPen") { UseShellExecute = true });
         }
