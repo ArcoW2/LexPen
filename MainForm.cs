@@ -830,6 +830,10 @@ sealed class MainForm : Form
             case "settingSet":
                 return app.SetSetting(Arg("name"), msg["value"]?.DeepClone(), this);   // a colour: into this window's set
 
+            case "openThemeSets":
+                app.OpenThemeSets(this);
+                return null;
+
             // This project's own theme set (null: none, the desktop's or the app's default).
             case "themeSet":
                 app.SetProjectSet(this, msg["set"]?.GetValue<string>());

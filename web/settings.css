@@ -72,6 +72,17 @@
 .st-changed .st-reset { visibility: visible; }
 .st-reset:hover { text-decoration: underline; }
 .st-none { padding: 24px 10px; color: var(--fg-dim); }
+/* The theme set of the main window's project (docs/plans/32-PLAN-theme-sets.md): which set it shows, choose its own,
+   Manage; after a change of a colour setting, where it was stored, with Undo. */
+.st-set { flex: none; display: flex; align-items: center; gap: 8px; padding: 6px 16px; background: var(--bg-bar); border-top: 1px solid var(--border); }
+.st-set .st-layer { align-self: stretch; margin: -6px 0 -6px -16px; }
+.st-set-text, .st-set-source { color: var(--fg-dim); }
+.st-set-select { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 2px 4px; }
+.st-set-message { color: var(--fg); }
+.st-set-gap { flex: 1; }
+.st-set button { padding: 3px 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--fg); }
+.st-set button:hover { border-color: var(--accent); }
+.st-set [hidden] { display: none; }
 /* This window's layout (docs/plans/executed/PLAN-settings-layers.md): Save as default, Reset to default; a message with Undo. */
 .st-layout { flex: none; display: flex; align-items: center; gap: 8px; padding: 6px 16px; background: var(--bg-bar); border-top: 1px solid var(--border);
   box-shadow: inset 3px 0 0 var(--layer-window); }

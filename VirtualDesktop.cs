@@ -34,6 +34,27 @@ static class VirtualDesktop
         }
     }
 
+    /// <summary>The desktops in their order, each with the name you gave it (null: not renamed), as Windows keeps them
+    /// in the registry (HKCU\...\Explorer\VirtualDesktops). That is not documented: only for showing names (the theme
+    /// sets' desktops, docs/plans/32-PLAN-theme-sets.md); empty when it cannot be read. Ids as DesktopOf gives them.</summary>
+    public static List<(string Id, string? Name)> List()
+    {
+        var list = new List<(string, string?)>();
+        try
+        {
+            using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Explorer\VirtualDesktops");
+            if (key?.GetValue("VirtualDesktopIDs") is not byte[] ids) return list;
+            for (var i = 0; i + 16 <= ids.Length; i += 16)
+            {
+                var id = new Guid(ids.AsSpan(i, 16));
+                using var desktop = key.OpenSubKey($@"Desktops\{id:B}");
+                list.Add((id.ToString(), desktop?.GetValue("Name") is string { Length: > 0 } name ? name : null));
+            }
+        }
+        catch (Exception ex) when (ex is System.Security.SecurityException or IOException or UnauthorizedAccessException) { }
+        return list;
+    }
+
     /// <summary>Whether Windows has virtual desktops for us (the interface could be made).</summary>
     public static bool Available => Manager is not null;
 

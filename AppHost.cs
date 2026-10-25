@@ -50,6 +50,7 @@ sealed class AppHost : ApplicationContext
         public int[]? CharPicker { get; set; }   // the character picker's place: x, y, width, height
         public int[]? HighlightsWindow { get; set; }   // the highlights window's place: x, y, width, height
         public int[]? ProjectsWindow { get; set; }   // the Manage projects window's place: x, y, width, height
+        public int[]? ThemeSetsWindow { get; set; }  // the Manage theme sets window's place: x, y, width, height
         public Dictionary<string, ScreenZoom> Screens { get; set; } = [];   // the zoom per monitor, by its key (Monitors)
     }
 
@@ -130,7 +131,7 @@ sealed class AppHost : ApplicationContext
             if (SettingsFor(owner) is var o && Changed(s, "settings", o)) s.Post(new JsonObject { ["event"] = "settings", ["settings"] = o });
         // The tool windows follow the window last worked in.
         var values = Values(LastActive);
-        foreach (var tool in new IWebPost?[] { charPicker, highlightsWindow, projectsWindow })
+        foreach (var tool in new IWebPost?[] { charPicker, highlightsWindow, projectsWindow, themeSetsWindow })
             if (tool is Form f && Changed(f, "settings", values)) tool.Post(new JsonObject { ["event"] = "settings", ["settings"] = values.DeepClone() });
     }
 
@@ -141,6 +142,170 @@ sealed class AppHost : ApplicationContext
         SendSettings();
         SendLook();
         foreach (var (owner, s) in settingsWindows) s.Post(new JsonObject { ["event"] = "themeSet", ["themeSet"] = SetInfo(owner) });
+        themeSetsWindow?.Post(new JsonObject { ["event"] = "list", ["list"] = ThemeSetList() });
+    }
+
+    // ---------- Manage theme sets (ThemeSetsForm; docs/plans/32-PLAN-theme-sets.md, 3.10) ----------
+
+    /// <summary>The Manage theme sets window: one for the app; opened again, brought to the front.</summary>
+    public void OpenThemeSets(MainForm from)
+    {
+        if (themeSetsWindow is { IsDisposed: false }) { BringToFront(themeSetsWindow); return; }
+        themeSetsWindow = new ThemeSetsForm(this, from);
+        themeSetsWindow.FormClosed += (_, _) => themeSetsWindow = null;
+        themeSetsWindow.Show(from);
+    }
+
+    public void SaveThemeSetsWindow(int[] bounds)
+    {
+        State.ThemeSetsWindow = bounds;
+        SaveState();
+    }
+
+    // A set's look in the current mode: the app's, the editor's and the preview's background (its own theme, else the app's).
+    JsonObject Swatches(JsonObject values)
+    {
+        var fallback = Mode == "dark" ? fallbackDark : fallbackLight;
+        var dark = Mode == "dark";
+        string Bg(string? id) => ThemeFile.Complete(ThemeFor(id, Mode), fallback).GetValueOrDefault("--bg") ?? "";
+        var app = ThemeId(dark ? "themeDark" : "themeLight", values);
+        string Own(string setting) => ThemeId(setting, values) is { Length: > 0 } id && themes.Any(t => t.Id == id) ? Bg(id) : Bg(app);
+        return new JsonObject
+        {
+            ["app"] = Bg(app),
+            ["editor"] = Own(dark ? "editorThemeDark" : "editorThemeLight"),
+            ["preview"] = Own(dark ? "previewThemeDark" : "previewThemeLight"),
+        };
+    }
+
+    // The desktops for the Manage window: the ones Windows has (in its order, with their names), then the ones a set
+    // names or a window was on that Windows no longer has (gone: another PC, or removed).
+    List<(string Id, string Name, bool Gone)> Desktops()
+    {
+        var known = VirtualDesktop.List();
+        var list = known.Select((d, i) => (d.Id, d.Name ?? $"Desktop {i + 1}", false)).ToList();
+        var extra = themeSets.Desktops.Keys.Concat(projects.Projects.SelectMany(p => p.Windows).Select(w => w.Desktop).OfType<string>())
+            .Distinct(StringComparer.OrdinalIgnoreCase).Where(id => list.All(d => !string.Equals(d.Id, id, StringComparison.OrdinalIgnoreCase)));
+        foreach (var id in extra)
+            if (themeSets.Desktops.ContainsKey(id) || known.Count == 0) list.Add((id, known.Count == 0 ? $"Desktop {list.Count + 1}" : "A desktop that is gone", known.Count > 0));
+        return list;
+    }
+
+    /// <summary>What the Manage theme sets window shows: the sets with their look and what uses them, the desktops
+    /// with their default set, and the window last worked in (its project, desktop and set).</summary>
+    public JsonArray ThemeSetListSets()
+    {
+        var desktops = Desktops();
+        var values = settings["values"] as JsonObject ?? [];
+        return new JsonArray(themeSets.Sets.Select(s => s.Name).Prepend(ThemeSetFile.Default).Select(name => (JsonNode?)new JsonObject
+        {
+            ["name"] = name,
+            ["default"] = name == ThemeSetFile.Default,
+            ["swatches"] = Swatches(ThemeSetFile.Apply(values, themeSets.Get(name))),
+            ["projects"] = new JsonArray(projects.Projects.Where(p => themeSets.Known(p.ThemeSet) == name).Select(p => (JsonNode?)ProjectStore.Display(p)).ToArray()),
+            ["desktops"] = new JsonArray(desktops.Where(d => themeSets.Desktops.TryGetValue(d.Id, out var set) && set == name).Select(d => (JsonNode?)d.Name).ToArray()),
+            ["app"] = themeSets.App == name,
+        }).ToArray());
+    }
+
+    public JsonObject ThemeSetList()
+    {
+        var w = LastActive;
+        var desktop = DesktopOf(w);
+        var desktops = Desktops();
+        return new JsonObject
+        {
+            ["sets"] = ThemeSetListSets(),
+            ["desktops"] = new JsonArray(desktops.Select(d => (JsonNode?)new JsonObject
+            {
+                ["id"] = d.Id, ["name"] = d.Name, ["gone"] = d.Gone, ["here"] = string.Equals(d.Id, desktop, StringComparison.OrdinalIgnoreCase),
+                ["set"] = themeSets.Desktops.GetValueOrDefault(d.Id),
+            }).ToArray()),
+            ["window"] = w is null ? null : new JsonObject
+            {
+                ["project"] = projects.ProjectOf(w.Key) is { } p ? ProjectStore.Display(p) : "",
+                ["desktop"] = desktop is null ? null : desktops.FirstOrDefault(d => string.Equals(d.Id, desktop, StringComparison.OrdinalIgnoreCase)).Name,
+                ["info"] = SetInfo(w),
+            },
+        };
+    }
+
+    /// <summary>A command of the Manage theme sets window: new, duplicate, rename, delete, use (for the project of the
+    /// window last worked in, its desktop, a desktop, the app), removeDesktop, edit. Names are checked here; a
+    /// refusal comes back as an error the page shows.</summary>
+    public JsonNode? ThemeSetCommand(IWin32Window owner, JsonNode msg)
+    {
+        string? Arg(string name) => msg[name]?.GetValue<string>();
+        var w = LastActive;
+        string Free(string? name, string? self = null) =>
+            name is not null && ThemeSetFile.Free(themeSets, name, self) ? name.Trim()
+            : throw new InvalidOperationException(string.IsNullOrWhiteSpace(name) ? "A theme set needs a name." : $"\"{name.Trim()}\" is taken: choose another name.");
+        switch (Arg("kind"))
+        {
+            case "new":
+                themeSets.Sets.Add(ThemeSetFile.Make(Free(Arg("name")), Values(w)));
+                break;
+            case "duplicate":
+                var source = Arg("from") ?? ThemeSetFile.Default;
+                themeSets.Sets.Add(ThemeSetFile.Make(Free(Arg("name")), ThemeSetFile.Apply(settings["values"] as JsonObject ?? [], themeSets.Get(source))));
+                break;
+            case "rename":
+                var from = themeSets.Get(Arg("from")) ?? throw new InvalidOperationException("\"Default\" cannot be renamed.");
+                var to = Free(Arg("name"), from.Name);
+                foreach (var p in projects.Projects.Where(p => themeSets.Known(p.ThemeSet) == from.Name)) p.ThemeSet = to;
+                ThemeSetFile.Rename(themeSets, from.Name, to);
+                SaveProjects();
+                break;
+            case "delete":
+                var set = themeSets.Get(Arg("name")) ?? throw new InvalidOperationException("\"Default\" cannot be deleted.");
+                var users = projects.Projects.Where(p => themeSets.Known(p.ThemeSet) == set.Name).Select(ProjectStore.Display).ToList();
+                var desktopsUsing = themeSets.Desktops.Count(d => d.Value == set.Name);
+                var said = new List<string>();
+                if (users.Count > 0) said.Add($"the project{(users.Count == 1 ? "" : "s")} {string.Join(", ", users)} (back to the desktop's or the app's default)");
+                if (desktopsUsing > 0) said.Add(desktopsUsing == 1 ? "a desktop (no default of its own any more)" : $"{desktopsUsing} desktops (no default of their own any more)");
+                if (themeSets.App == set.Name) said.Add("the app (back to \"Default\")");
+                if (MessageBox.Show(owner, $"Delete the theme set \"{set.Name}\"?" + (said.Count > 0 ? "\n\nIt is used by " + string.Join("; ", said) + "." : ""),
+                    "LexPen", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return false;
+                foreach (var p in projects.Projects.Where(p => themeSets.Known(p.ThemeSet) == set.Name)) p.ThemeSet = null;
+                ThemeSetFile.Delete(themeSets, set.Name);
+                SaveProjects();
+                break;
+            case "use":
+                var name = msg["name"] is null ? null : themeSets.Known(Arg("name"));
+                switch (Arg("for"))
+                {
+                    case "project" when w is not null && projects.ProjectOf(w.Key) is { } p:
+                        p.ThemeSet = name;
+                        SaveProjects();
+                        break;
+                    case "desktop" when (Arg("desktop") ?? DesktopOf(w)) is { } d:
+                        if (name is null) themeSets.Desktops.Remove(d); else themeSets.Desktops[d] = name;
+                        break;
+                    case "app":
+                        themeSets.App = name ?? ThemeSetFile.Default;
+                        break;
+                }
+                break;
+            case "removeDesktop":
+                themeSets.Desktops.Remove(Arg("desktop") ?? "");
+                break;
+            case "edit":   // use it for the project of the window last worked in, and open that window's settings
+                if (w is not null && projects.ProjectOf(w.Key) is { } edited)
+                {
+                    edited.ThemeSet = themeSets.Known(Arg("name"));
+                    SaveProjects();
+                    SaveThemeSets();
+                    Restyle();
+                    OpenSettings(w);
+                    return true;
+                }
+                break;
+            default:
+                throw new InvalidOperationException($"Unknown theme set command '{Arg("kind")}'.");
+        }
+        SaveThemeSets();
+        Restyle();
+        return true;
     }
 
     void SaveThemeSets()
@@ -429,7 +594,7 @@ sealed class AppHost : ApplicationContext
     void SendToolLook()
     {
         var look = Look(LastActive);
-        foreach (var tool in new IWebPost?[] { charPicker, highlightsWindow, projectsWindow })
+        foreach (var tool in new IWebPost?[] { charPicker, highlightsWindow, projectsWindow, themeSetsWindow })
             if (tool is Form f && Changed(f, "look", look))
             {
                 tool.ApplyTheme();
@@ -491,6 +656,7 @@ sealed class AppHost : ApplicationContext
     CharPickerForm? charPicker;
     HighlightsForm? highlightsWindow;
     ProjectsForm? projectsWindow;
+    ThemeSetsForm? themeSetsWindow;
 
     readonly List<MainForm> windows = [];   // opening order: "next window" and the [n] in the title
     readonly List<MainForm> recent = [];    // most recently active first
@@ -723,6 +889,7 @@ sealed class AppHost : ApplicationContext
             foreach (var other in closed.Windows.Where(o => o != reuse && !o.Open).ToList())
                 Open(new MainForm.Start(null, [], other.Key));
             w.UpdateRole();
+            Restyle();   // another project now: maybe another theme set than its page asked for at its start
         }
         WindowPlaceChanged(w);
         w.Settled.TrySetResult();
@@ -772,6 +939,7 @@ sealed class AppHost : ApplicationContext
             charPicker?.Close();
             highlightsWindow?.Close();
             projectsWindow?.Close();
+            themeSetsWindow?.Close();
             Drafts.Flush();
             ExitThread();
         }
@@ -1607,6 +1775,8 @@ sealed class AppHost : ApplicationContext
     {
         if (projectsWindow is { IsDisposed: false } pw && pw.Owner == w)
             pw.Owner = recent.FirstOrDefault(o => o != w && !o.IsDisposed);
+        if (themeSetsWindow is { IsDisposed: false } tw && tw.Owner == w)
+            tw.Owner = recent.FirstOrDefault(o => o != w && !o.IsDisposed);
     }
 
     public void RenameProject(int id, string name)

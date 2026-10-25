@@ -137,6 +137,10 @@ sealed class SettingsForm : Form
             case "settingSet":
                 return app.SetSetting(Arg("name"), msg["value"]?.DeepClone(), window);   // a colour: into the window's set
 
+            case "openThemeSets":
+                if (!window.IsDisposed) app.OpenThemeSets(window);
+                return null;
+
             // The main window's project gets a set of its own (null: none).
             case "themeSet":
                 if (!window.IsDisposed) app.SetProjectSet(window, msg["set"]?.GetValue<string>());

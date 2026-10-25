@@ -346,7 +346,7 @@ let layerShown = null;
 
 function layerTip(layer) {
   if (layer === 'window') return 'This window: ' + (settings.window || 'the window this one belongs to');
-  if (layer === 'set') return 'Theme set: Default';
+  if (layer === 'set') return settings.themeSet ? `Theme set: ${settings.themeSet.name} (${SET_SOURCE[settings.themeSet.source]})` : 'Theme set: Default';
   if (layer === 'screen') return 'This screen: ' + (settings.screen?.name || 'the monitor the window is on');
   return 'Global: every window';
 }
@@ -387,6 +387,8 @@ function show() {
     el.classList.toggle('st-changed', def.layer === 'window' ? JSON.stringify(value) !== JSON.stringify(defaultOf(def)) : settings.user.includes(def.name));
   }
   showScreenZoom();
+  showSetBar();
+  for (const r of rows) if (r.def.layer === 'set') r.el.querySelector('.st-layer').title = layerTip('set');
   const problems = [...(settings.problems ?? []), ...(settings.look?.problems ?? []), ...(settings.languageProblems ?? [])];
   ui.problems.hidden = !problems.length;
   ui.problems.textContent = problems.join('\n');
@@ -420,7 +422,16 @@ events.screen = s => {
 // As setSetting in app.js: a value set here and not yet confirmed wins over a set the host sent meanwhile.
 const unconfirmed = new Map();
 
-function set(name, value) {
+function set(name, value, quiet) {
+  // A setting of the theme set: stored in the set the main window shows; the bar says where, with Undo.
+  if (rows.find(r => r.def.name === name)?.def.layer === 'set' && !quiet) {
+    const before = settings.values[name];
+    settings.values[name] = value;
+    host('settingSet', { name, value }).then(info => {
+      if (info) setMessage(`Stored in theme set "${info.set}"` + (info.also ? ` (also used by ${info.also})` : ''), () => { set(name, before, true); show(); });
+    }).catch(e => { ui.problems.hidden = false; ui.problems.textContent = e.message; });
+    return;
+  }
   if (ofWindow(name)) {
     settings.layout = { ...settings.layout, [name]: value };
     host('layoutSet', { name, value });
@@ -442,6 +453,44 @@ events.settings = ({ settings: s }) => {
   settings = { ...s, defs: settings.defs, look: settings.look, languageProblems: settings.languageProblems, layout: settings.layout,
     window: settings.window, screen: settings.screen };
   Object.assign(settings.values, mine);
+  show();
+};
+
+// ---------- The theme set (docs/plans/32-PLAN-theme-sets.md) ----------
+const SET_SOURCE = { project: "this project's own", desktop: "this desktop's default", app: "the app's default" };
+const setBar = $('.st-set'), setSelect = $('.st-set-select');
+
+function showSetBar() {
+  const s = settings.themeSet;
+  setBar.hidden = !s;
+  if (!s) return;
+  setSelect.replaceChildren(...[['', "None (the desktop's or the app's default)"], ...s.sets.map(n => [n, n])]
+    .map(([value, text]) => Object.assign(document.createElement('option'), { value, textContent: text })));
+  setSelect.value = s.own ?? '';
+  $('.st-set-source').textContent = s.own ? '' : `shows ${s.name}, ${SET_SOURCE[s.source]}`;
+  setBar.querySelector('.st-layer').title = layerTip('set');
+}
+
+// For a few moments after a change: where it was stored (and what else uses that set), with Undo.
+function setMessage(text, undo) {
+  const message = $('.st-set-message'), button = $('.st-set-undo');
+  const normal = [setSelect, $('.st-set-text'), $('.st-set-source')];
+  message.textContent = text;
+  message.hidden = button.hidden = false;
+  for (const el of normal) el.hidden = true;
+  button.onclick = () => { undo(); end(); };
+  const end = () => {
+    message.hidden = button.hidden = true;
+    for (const el of normal) el.hidden = false;
+  };
+  clearTimeout(setMessage.timer);
+  setMessage.timer = setTimeout(end, 8000);
+}
+
+setSelect.addEventListener('change', () => host('themeSet', { set: setSelect.value || null }));
+$('.st-set-manage').addEventListener('click', () => host('openThemeSets'));
+events.themeSet = ({ themeSet }) => {
+  settings.themeSet = themeSet;
   show();
 };
 

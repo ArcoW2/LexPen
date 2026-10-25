@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:">
+<title>Manage theme sets - LexPen</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="themesets.css">
+</head>
+<body class="ts-body">
+<div class="ts-top">
+  <span class="ts-window"></span>
+</div>
+<div class="ts-head ts-grid"><span>Theme set</span><span>Look</span><span>Used by</span></div>
+<div class="ts-list" tabindex="0"></div>
+<div class="ts-buttons">
+  <button data-cmd="new" title="A set from the look the window last worked in shows now">New...</button>
+  <button data-cmd="duplicate" title="A copy of the selected set, to change without changing the set itself">Duplicate...</button>
+  <button data-cmd="rename" title="F2">Rename...</button>
+  <button data-cmd="delete" title="Del">Delete</button>
+  <span class="ts-gap"></span>
+  <button data-cmd="edit" title="Use it for this project and open the settings: changes go into the set">Edit in settings</button>
+</div>
+<div class="ts-use">
+  <span>Use the selected set for:</span>
+  <button data-use="project">This project</button>
+  <button data-use="desktop">This desktop</button>
+  <button data-use="app">The app</button>
+  <span class="ts-gap"></span>
+  <button data-none="project" title="The project shows its desktop's or the app's default again">This project: none</button>
+  <button data-none="desktop" title="The windows on this desktop show the app's default">This desktop: none</button>
+</div>
+<div class="ts-section">Desktops</div>
+<div class="ts-desktops"></div>
+<div class="ts-error" hidden></div>
+<dialog class="ts-dialog">
+  <form method="dialog">
+    <label class="ts-dialog-label"></label>
+    <input class="ts-dialog-input" spellcheck="false">
+    <div class="ts-dialog-buttons"><button value="ok">OK</button><button value="cancel" formnovalidate>Cancel</button></div>
+  </form>
+</dialog>
+<script src="themesets.js"></script>
+</body>
+</html>

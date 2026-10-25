@@ -1,0 +1,33 @@
+/* The Manage theme sets window (themesets.html, themesets.js): app.css's theme colours, its own layout. */
+.ts-body { margin: 0; height: 100vh; display: flex; flex-direction: column; background: var(--bg); color: var(--fg);
+  font: calc(13px * var(--ui-scale, 1)) var(--app-font, "Segoe UI", system-ui, sans-serif); overflow: hidden; }
+.ts-top { padding: 8px 12px; border-bottom: 1px solid var(--border); background: var(--bg-bar); color: var(--fg-dim); }
+.ts-grid { display: grid; grid-template-columns: minmax(160px, 1fr) 84px minmax(160px, 2fr); align-items: center; gap: 0 12px; padding: 5px 12px; }
+.ts-head { color: var(--fg-dim); border-bottom: 1px solid var(--border); font-size: .92em; }
+.ts-list { flex: 1; min-height: 80px; overflow: auto; outline: none; }
+.ts-row { border-left: 3px solid transparent; cursor: default; }
+.ts-row:hover { background: var(--hover); }
+.ts-row.ts-on { background: var(--active); border-left-color: var(--layer-set, var(--accent)); }
+.ts-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ts-dim { color: var(--fg-dim); font-weight: normal; }
+.ts-swatches { display: flex; gap: 4px; }
+.ts-swatch { width: 22px; height: 16px; border-radius: 3px; border: 1px solid var(--border); }
+.ts-used { color: var(--fg-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ts-buttons, .ts-use { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-top: 1px solid var(--border); background: var(--bg-bar); }
+.ts-use > span:first-child { color: var(--fg-dim); }
+.ts-gap { flex: 1; }
+.ts-buttons button, .ts-use button, .ts-remove { font: inherit; padding: 3px 10px; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 4px; }
+.ts-buttons button:hover:not(:disabled), .ts-use button:hover:not(:disabled), .ts-remove:hover { border-color: var(--accent); }
+button:disabled { opacity: .45; }
+.ts-section { padding: 8px 12px 2px; font-weight: 600; border-top: 1px solid var(--border); }
+.ts-desktops { max-height: 30%; overflow: auto; padding: 2px 12px 8px; }
+.ts-desktop { display: flex; align-items: center; gap: 10px; padding: 3px 0; }
+.ts-dname { min-width: 12em; }
+.ts-dset { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 2px 4px; }
+.ts-error { padding: 6px 12px; color: var(--caution); border-top: 1px solid var(--border); }
+.ts-dialog { color: var(--fg); background: var(--bg-bar); border: 1px solid var(--border); border-radius: 6px; padding: 14px; min-width: 320px; }
+.ts-dialog::backdrop { background: rgba(0, 0, 0, .3); }
+.ts-dialog-label { display: block; margin-bottom: 8px; }
+.ts-dialog-input { box-sizing: border-box; width: 100%; font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--accent); border-radius: 4px; padding: 4px 6px; }
+.ts-dialog-buttons { display: flex; justify-content: flex-end; gap: 6px; margin-top: 12px; }
+.ts-dialog-buttons button { font: inherit; padding: 3px 14px; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 4px; }

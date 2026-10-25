@@ -95,6 +95,7 @@ events.settings = ({ settings: s }) => {
   mergeLayout();
   Object.assign(settings.values, mine);
   applySettings();
+  showThemeSet();
 };
 
 // ---------- This window's layout (docs/plans/executed/PLAN-settings-layers.md) ----------
@@ -3512,6 +3513,34 @@ events.adoptDrafts = async ({ drafts }) => {
 // ---------- Projects (the host's ProjectStore): the Projects menu, the bottom bar, names ----------
 // A project has windows; every window is in one. The menu lists every project (checked: open) with its windows
 // (checked: open) and what can be done with them; the host does it (AppHost.ProjectCommand).
+// ---------- The theme set (docs/plans/32-PLAN-theme-sets.md) ----------
+// The bottom bar shows the set this window shows (its project's own, its desktop's default or the app's); a click, or
+// Options > Theme set, chooses the project's own, or opens Manage theme sets.
+const setChip = $('.mm-st-set');
+const SET_SOURCE = { project: "this project's own", desktop: "this desktop's default", app: "the app's default" };
+function showThemeSet() {
+  const s = settings.themeSet;
+  setChip.hidden = !s;
+  if (!s) return;
+  setChip.textContent = 'Theme set: ' + s.name;
+  setChip.title = `Theme set ${s.name}: ${SET_SOURCE[s.source] ?? ''} (click: choose this project's set)`;
+}
+function themeSetMenuItems() {
+  const s = settings.themeSet ?? { sets: ['Default'], own: null };
+  return [
+    { label: "None (the desktop's or the app's default)", plain: true, checked: !s.own, run: () => host('themeSet', { set: null }) },
+    ...s.sets.map(name => ({ label: name, plain: true, checked: s.own === name, run: () => host('themeSet', { set: name }) })),
+    '-', { label: 'Manage theme sets...', plain: true, run: () => host('openThemeSets') },
+  ];
+}
+setChip.addEventListener('mousedown', e => e.preventDefault());   // the focus stays in the editor
+setChip.addEventListener('click', () => {
+  closeMenus();
+  hideMenus();
+  const r = setChip.getBoundingClientRect();
+  openMenuLevel(themeSetMenuItems(), r.left, r.top, true, true);
+});
+
 const projectChip = $('.mm-st-project');
 function setProject(project) {
   state.project = project ?? null;
@@ -4231,6 +4260,7 @@ track((async () => {
   Object.assign(screenZoom, await host('screen'));   // the zoom of the monitor it is on
   mergeLayout();
   applySettings();   // the layout too: sidebar, outline, panes
+  showThemeSet();
   applyLook(await host('look'));
   layout();
 
