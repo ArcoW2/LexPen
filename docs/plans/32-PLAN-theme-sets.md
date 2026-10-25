@@ -2,7 +2,8 @@
 
 Status: draft 2026-10-25, decisions 2026-10-25 (the name; the bottom bar; changes apply at once, a bar in the
 settings window saves them to a set; Use as default writes the look to settings.json, which new projects get;
-the bar in the settings window always there, in the warning colour while changes are unsaved);
+the bar in the settings window always there, in the warning colour while changes are unsaved; a default set per
+virtual desktop, a project's own set always first);
 not started; questions open.
 The number in the file name is the priority; rename to reorder.
 
@@ -22,7 +23,9 @@ sets. The settings window has a theme set bar at its bottom, always: it shows th
 another, and saves the current look to the current set, to another existing set or to a new one (a name), also
 when no set is in use. A colour setting changed while a set is in use applies at once but is not yet in the set;
 the bar then turns the warning colour until the changes are saved or undone. "Use as default" writes the current
-look to settings.json: the look of projects without a set, which is what a new project gets.
+look to settings.json: the look of projects without a set, which is what a new project gets. A virtual desktop
+can have a default set of its own, used instead of settings.json by the windows on it whose project has no set;
+a project's own set always comes first.
 
 ## 3. Details
 
@@ -56,8 +59,10 @@ The list is one array in one place (host side), so a later colour setting is add
 ### 3.4 How a set applies
 
 - The global settings stay what they are (settings.json). A set is a layer on top, per window: the host
-  builds the look (AppHost.Look) and the settings a page gets from the global values with the set's values
-  over them, and the unsaved changes (3.5) over those.
+  builds the look (AppHost.Look) and the settings a page gets from the global values with a set's values over
+  them, and the unsaved changes (3.5) over those.
+- Which set: the project's own set; without one, the default set of the desktop the window is on (3.7); without
+  that, none (settings.json alone). A project's set always wins over a desktop's default.
 - Each main window shows the set of its own project: two windows of two projects look different side by
   side. The settings window, the highlights window, the character picker and the projects window follow the
   window last worked in (AppHost.LastActive).
@@ -104,7 +109,32 @@ What a change does:
 - Only 3.2's names are written; the other settings in settings.json stay as they are. Asks first: "Use the look
   of 'Company' as the default? Projects without a theme set change with it."
 
-### 3.7 The bottom bar
+### 3.7 A default set per desktop
+
+- Each Windows virtual desktop can name a default set. A window whose project has no set of its own shows the
+  default set of the desktop it is on; a desktop without one: settings.json, as before.
+- A project with a set of its own shows it on every desktop: the project's set always overrides a desktop's.
+- A window moved to another desktop (Win+Tab) takes that desktop's default; LexPen already looks at the desktops
+  of its windows now and then (AppHost's desktop timer), the look follows from that.
+- Kept in theme-sets.json: `"desktops": { "<desktop id>": "Company" }`. The id is the desktop's GUID, which
+  LexPen already gets per window (VirtualDesktop.DesktopOf, the documented IVirtualDesktopManager) and keeps
+  with each window's place.
+- Setting it:
+  - The bottom bar menu (3.8) and the theme set bar (3.5): "Use as default for this desktop" (the desktop the
+    window is on) and "No default for this desktop".
+  - The Manage theme sets window (3.9): a list of the desktops, each with its name and a choice of set (or none).
+- The desktops' names: the documented interface gives only the id of a window's desktop, not the list of desktops
+  or their names. Windows keeps both in the registry (under
+  HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\VirtualDesktops: the ids in order, and a name per
+  desktop you renamed). That is not documented, so
+  LexPen reads it only for showing names: when it fails, a desktop is named by its position ("Desktop 2") or, in
+  the Manage list, shown only once a LexPen window has been on it (question 6).
+- A desktop that is gone (removed, or another PC: the ids differ per PC): its entry stays, unused; the Manage
+  window shows it as gone, with Remove.
+- Theme set bar and bottom bar, for a window showing a desktop's default: "Theme set: Company (this desktop's
+  default)". Saving changes there (Save to 'Company') changes the set, so every desktop and project using it.
+
+### 3.8 The bottom bar
 
 - A field "Theme set: Company" (or "Theme set: none") in the bottom bar, with a mark when the project has unsaved
   changes (3.5).
@@ -115,20 +145,21 @@ What a change does:
   them, Cancel) (question 3).
 - The same menu as Options > Theme set > (question 4).
 
-### 3.8 The Manage theme sets window
+### 3.9 The Manage theme sets window
 
 Built as the projects window (one for the app, its place kept). A list of the sets, each with its name, a few
 swatches (the app, editor and preview backgrounds of the current mode) and the projects that use it. Actions:
 
 - Save current look as... (a name; the values of the window last worked in, set and unsaved changes included).
 - Use as default: the selected set's values to settings.json (3.6).
+- Desktops: each desktop, its name and its default set (3.7).
 - Apply to this project (the window last worked in), and Apply to projects... (checkboxes, or from the
   Manage projects window: a column "Theme set" and Project > Theme set >).
 - Rename (F2), Delete (asks; names the projects that use it), Duplicate.
 - Edit a set: apply it to this project and open the settings window; its theme set bar (3.5) saves the
   changes.
 
-### 3.9 Host changes
+### 3.10 Host changes
 
 - ThemeSetFile.cs: load / save theme-sets.json, the list of 3.2's names, apply (values over settings).
 - AppHost: `SettingsFor(MainForm)` and `Look(MainForm?)` with the window's project's set and unsaved changes;
@@ -138,11 +169,13 @@ swatches (the app, editor and preview backgrounds of the current mode) and the p
 - The settings window: a change to one of 3.2's names, with a set in use, goes to the project's unsaved changes
   instead of settings.json; the theme set bar of 3.5, always shown, its colour following the unsaved changes, and its ops (choose, save
   to set, save as new, save to other, use as default, undo).
+- The set of a window: the project's, else its desktop's default (3.7); a window's desktop changing (the desktop
+  timer) sends it settings and look again when the set differs.
 - ProjectStore: `ThemeSet` per project, read and written; the unsaved changes per project (question 2).
 - MainForm: ops `themeSets` (the menu), `themeSet` (choose for this project), `saveThemeSet`; the bottom bar
   field.
 
-### 3.10 Tests
+### 3.11 Tests
 
 - ThemeSetFile: round trip; only 3.2's names kept; unknown theme ids reported as with settings.
 - The settings a window gets: global values, the set on top, the unsaved changes on top of that; a project
@@ -152,18 +185,27 @@ swatches (the app, editor and preview backgrounds of the current mode) and the p
 - Use as default: settings.json gets 3.2's values of the set (and changes), keeps every other setting; a
   project without a set shows them; a new project has no set.
 - ProjectStore: `themeSet` round trip; renaming a set renames it in the projects.
+- The set of a window: the project's set over the desktop's default, the desktop's default over settings.json;
+  renaming or deleting a set updates or drops it in `desktops`.
 - By hand: two windows of two projects with different sets side by side; the bottom bar menu; the theme set bar in
   the settings window with each of its choices, with and without a set in use, its colour before and after a
   change; Day / night with a set; the highlights window following the window
   last worked in.
 
-### 3.11 Open questions
+### 3.12 Open questions
 
 1. Fonts and sizes in a set too, or colours and themes only (this plan)?
 2. Unsaved changes when LexPen closes: kept with the project (they are there again next time, the bar too), or
    dropped (the set as saved)? Proposal: kept with the project.
 3. Undo on the bar, and the question when switching sets with unsaved changes: wanted, or is saving the only
-   way out (switching drops them unasked)? Proposal: both, as written in 3.5 and 3.7.
+   way out (switching drops them unasked)? Proposal: both, as written in 3.5 and 3.8.
 4. Options > Theme set > as well as the bottom bar, or only the bottom bar? Proposal: both, the same menu.
 5. Use as default drops the project's unsaved changes after writing them to settings.json (the project still
    shows its set as saved). Or should the changes stay, unsaved, on the project? Proposal: dropped.
+6. The desktop names come from an undocumented registry key. Fine to read it for names (falling back to
+   "Desktop n"), or only list desktops by number and the LexPen windows on them? Proposal: read it, with the
+   fallback.
+7. A colour setting changed in a window that shows its desktop's default (its project has no set): written to
+   settings.json at once (as with no set at all), or an unsaved change of the desktop's set (the bar in the
+   warning colour, Save to 'Company')? Proposal: an unsaved change, the same as for a project's set; written to
+   settings.json, it would not even show, the desktop's set being over it.
