@@ -503,18 +503,15 @@ see the `GitVersion` target in `LexPen.csproj`), so each commit gets its own ver
 the first commit, it is `1.0.0`. The version, short commit hash, build time, runtime and library versions
 are shown under **Options > About LexPen**.
 
-## Open .md files with LexPen
+## Open files with LexPen (file types)
 
-`register.ps1` registers the published exe as a handler for `.md` files for the current user (no admin needed):
-
-```powershell
-.\register.ps1            # register .\publish\LexPen.exe
-.\register.ps1 -Exe C:\Tools\LexPen\LexPen.exe
-.\register.ps1 -Remove    # undo
-```
-
-Windows only lets the user choose the default app, so if another app already owns `.md` the script
-opens **Settings > Default apps** where you pick LexPen.
+**Options > Settings > App > Windows Explorer > File types...** (also F1 > File types): every extension the language
+packs know, with a checkbox, its language, how it opens (Edit, or View in the project for viewing) and the app
+Windows opens it with now; sortable by each column, a filter on extension or language. Check all, Check none, All
+edit and All view act on the rows shown; Assign on all of them, after a question. It registers the published LexPen
+for the current user (no admin needed), and takes a choice you made for another app off those extensions. One Windows
+keeps for another app (Windows protects a few) is named, and **Settings > Default apps** opens at LexPen to choose
+it there. A debug build does not assign.
 
 ## Front-end libraries
 
@@ -570,7 +567,6 @@ PowerShell and C# modes and the search, comment and fold add-ons; loaded when th
 | `defaults/` | Copied next to the exe: `keys.json` and `settings.json` (the defaults), `languages/` (the language packs), `themes/` |
 | `img/icon/` | App icon: `lexpen.ico` (`lexpen.svg` is its source, `make-ico.ps1` rebuilds `lexpen.ico` and `lexpen.png`) |
 | `demo.md` | Formatting showcase |
-| `register.ps1` | `.md` file association |
 | `vendor.ps1` | Rebuilds `web/vendor` |
 
 `%LOCALAPPDATA%\LexPen` holds what you choose: `settings.json` (only what differs from the defaults), `keys.json`,

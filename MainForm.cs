@@ -834,6 +834,12 @@ sealed class MainForm : Form
                 app.OpenThemeSets(this);
                 return null;
 
+            // F1 > File types: this window's settings with the File types dialog open (docs/plans/executed/PLAN-file-types.md).
+            case "openFileTypes":
+                app.OpenSettings(this);
+                app.SettingsWindowPost(this, new JsonObject { ["event"] = "fileTypes" });
+                return null;
+
             // Save as default: what to save (asks when the theme set is part of it); the Undo of the set part.
             case "saveAsDefault":
                 return app.SaveAsDefault(this, this);

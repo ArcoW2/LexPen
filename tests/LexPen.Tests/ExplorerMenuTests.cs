@@ -3,6 +3,8 @@ using Microsoft.Win32;
 namespace LexPen.Tests;
 
 // The registry entries go below a key of their own (LEXPEN_REGISTRY_ROOT), removed afterwards: never the real menu.
+// One collection with FileTypesTests: both set LEXPEN_REGISTRY_ROOT, so they must not run at the same time.
+[Collection("Registry")]
 public class ExplorerMenuTests : IDisposable
 {
     readonly string testKey = @"Software\LexPenTest-" + Guid.NewGuid().ToString("N");

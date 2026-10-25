@@ -181,6 +181,14 @@ sealed class SettingsForm : Form
                 BeginInvoke(() => app.ResetViewLayout(this));   // after this reply: it asks first
                 return null;
 
+            // File types (docs/plans/executed/PLAN-file-types.md): every extension of the language packs, how LexPen opens it and
+            // what Windows starts now; Assign asks first, then registers, and names what Windows keeps for another app.
+            case "fileTypes":
+                return FileTypes.List(app.Languages, Environment.ProcessPath ?? Application.ExecutablePath);
+
+            case "assignFileTypes":
+                return AssignFileTypes(msg["chosen"]?.AsArray() ?? []);
+
             // An action of the main window this one belongs to, without bringing it to the front (Reset to default).
             case "runInWindow":
                 if (!window.IsDisposed) window.Post(new JsonObject { ["event"] = "runAction", ["name"] = Arg("name") });
@@ -198,6 +206,48 @@ sealed class SettingsForm : Form
             default:
                 throw new InvalidOperationException($"Unknown request '{msg["op"]}'.");
         }
+    }
+
+    // Assign of the File types dialog: the extensions checked, each "edit" or "view"; the others LexPen had are taken off.
+    JsonObject AssignFileTypes(JsonArray chosen)
+    {
+#if DEBUG
+        throw new InvalidOperationException("Assign registers the LexPen that runs it: a debug build does not. Use the published LexPen.");
+#else
+        var exe = Environment.ProcessPath ?? Application.ExecutablePath;
+        var extensions = app.Languages["extensions"] as JsonObject ?? [];
+        var packs = app.Languages["packs"] as JsonObject;
+        var list = chosen.OfType<JsonObject>().Select(c => c["extension"]!.GetValue<string>()).Where(e => extensions.ContainsKey(e))
+            .Select(e => (Extension: e, Mode: chosen.OfType<JsonObject>().First(c => c["extension"]!.GetValue<string>() == e)["mode"]?.GetValue<string>() == "view" ? "view" : "edit"))
+            .Select(c =>
+            {
+                var language = extensions[c.Extension]!.GetValue<string>();
+                return new FileTypes.Choice(c.Extension, language, packs?[language]?["name"]?.GetValue<string>() ?? language, c.Mode);
+            }).ToList();
+        var off = extensions.Select(e => e.Key).Where(e => FileTypes.ModeOf(e) is not null && list.All(c => c.Extension != e)).ToList();
+        static string Some(IEnumerable<string> names)
+        {
+            var all = names.ToList();
+            return all.Count <= 12 ? string.Join(", ", all) : string.Join(", ", all.Take(12)) + $" and {all.Count - 12} more";
+        }
+        var question = new List<string>();
+        if (list.Any(c => c.Mode == "edit")) question.Add("Open in LexPen to edit: " + Some(list.Where(c => c.Mode == "edit").Select(c => c.Extension)));
+        if (list.Any(c => c.Mode == "view")) question.Add("Open in LexPen to view: " + Some(list.Where(c => c.Mode == "view").Select(c => c.Extension)));
+        if (off.Count > 0) question.Add("Take LexPen off: " + Some(off));
+        if (question.Count == 0) question.Add("No extension opens in LexPen.");
+        if (MessageBox.Show(this, "Assign these file types?\n\n" + string.Join("\n\n", question), "LexPen",
+            MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return new JsonObject { ["cancelled"] = true };
+        FileTypes.Assign(exe, list, extensions.Select(e => e.Key));
+        // What Windows starts now: an association it protects stays with another app; Default apps for those.
+        var kept = list.Where(c => !FileTypes.OpensWith(c.Extension, exe).Ours).Select(c => c.Extension).ToList();
+        if (kept.Count > 0)
+        {
+            MessageBox.Show(this, $"Windows keeps another app for {Some(kept)}.\n\nDefault apps opens at LexPen: choose LexPen there for these.",
+                "LexPen", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("ms-settings:defaultapps?registeredAppUser=LexPen") { UseShellExecute = true });
+        }
+        return new JsonObject { ["assigned"] = list.Count, ["off"] = off.Count, ["kept"] = new JsonArray(kept.Select(k => (JsonNode?)k).ToArray()) };
+#endif
     }
 
     void ToWindow(JsonObject message)

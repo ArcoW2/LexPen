@@ -1,10 +1,7 @@
 # Plan: file types: which extensions open in LexPen (Explorer's Open), as edit or view
 
-Status: draft 2026-10-25, your answers of 2026-10-25 worked in (the default taken over by removing Windows' stored
-choice; a column Opens now with; a dialog in the settings window; unchecking removes LexPen's entries; not from a debug
-build; register.ps1 goes; a choice per extension: edit or view; All edit / All view; choosing edit or view checks
-the row). Not started; no questions open.
-The number in the file name is the priority; rename to reorder.
+Status: executed 2026-10-25 on the branch `plan34-file-types` (draft 2026-10-25, with your answers of that day).
+Decisions of the run in section 4.
 
 ## 1. What this is about
 
@@ -45,7 +42,8 @@ LexPen; what Windows still keeps elsewhere is named, and Windows' Default apps o
   - Check all, Check none, All edit and All view act only on the rows the filter shows; a row the filter hides keeps
     its checkbox and its way of opening. Their tooltips say so ("the rows shown"). All edit and All view check the
     rows as well, as choosing in a row does.
-  - Assign acts on every row, also the ones the filter hides: what is checked is assigned, what is not is taken off.
+  - Assign acts on every row: it first clears the filter (every row shown), then asks whether to assign the settings
+    as they are now ("Open .sql, .md, ... in LexPen (... as view), take LexPen off .ini?"); No changes nothing.
 
 ### 3.2 What Assign writes (HKCU\Software\Classes, per user, no admin)
 
@@ -115,6 +113,23 @@ only Windows can write. An app writing it is refused. What other programs do, an
   project for viewing; an extension you had chosen another app for: LexPen after Assign (or named, with Default apps);
   Opens now with following.
 
-## 4. Open questions
+## 4. Decisions of the run
 
-None.
+- Removing a choice of yours (3.3), checked on this PC without changing anything: the UserChoice key of an
+  extension denies you only setting a value, and gives you full control otherwise, so removing it is allowed. The
+  protection driver (UCPD) runs here: what it keeps for another app is named after Assign, with Default apps.
+- Not tried for real: Assign on your associations. A debug build refuses it (your answer), and the tests write below a
+  test key; the first Assign is yours, from the published LexPen.
+- The file types are per language and way of opening (`LexPen.asa.edit`, `LexPen.markdown.view`); one no extension
+  uses any more goes. register.ps1's `LexPen.Document` goes on the first Assign; register.ps1 is removed and the
+  README's install section points to File types.
+- Nothing checked: LexPen also leaves Default apps (its Capabilities and RegisteredApplications go).
+- Opens now with: "-" when Windows has nothing (its own "Pick an application"); "Runs itself" for a file that runs
+  itself (.cmd); LexPen in the accent colour.
+- The question of Assign names the extensions per way of opening and the ones taken off (the first ones, then "and n
+  more"); after Assign the dialog stays open with the list read again, and a line says what was done.
+- Also from F1: File types... opens this window's settings with the dialog.
+- The registry tests (ExplorerMenu's and these) run one after the other: both set LEXPEN_REGISTRY_ROOT.
+- Tested by hand in the debug build: the dialog's list (with what Windows opens each with now), the filter, sorting,
+  Check all / none and All edit / view on the rows shown only, choosing View checking its row, Assign clearing the
+  filter and being refused in a debug build.
