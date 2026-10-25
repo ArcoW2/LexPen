@@ -461,8 +461,7 @@ function goPreview(pane, regex, dir, fromOrigin) {
   CSS.highlights.set('mm-find-cur-' + pane.index, new Highlight(range));
   pane.previewBoxes.current = range;
   drawPreviewBoxes(pane);
-  const r = range.getBoundingClientRect(), box = pane.previewEl.getBoundingClientRect();
-  if (r.top < box.top + 20 || r.bottom > box.bottom - 20) pane.previewEl.scrollTop += r.top - box.top - box.height / 3;
+  revealFoundInPreview(pane, range);
   showCount(pane, matches, i);
 }
 

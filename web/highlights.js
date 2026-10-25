@@ -323,8 +323,7 @@ function goToHighlight(pane, h) {
   }
   const text = docText(doc), ranges = previewRangesOf(tab, hlOffset(text, r.from), hlOffset(text, r.to));
   if (!ranges.length) return;
-  const box = ranges[0].getBoundingClientRect(), view = pane.previewEl.getBoundingClientRect();
-  if (box.top < view.top + 20 || box.bottom > view.bottom - 20) pane.previewEl.scrollTop += box.top - view.top - view.height / 3;
+  revealFoundInPreview(pane, ranges[0], ranges.at(-1));
   CSS.highlights.set('mm-hl-blink', new Highlight(...ranges));
   setTimeout(() => CSS.highlights.delete('mm-hl-blink'), 700);
 }
