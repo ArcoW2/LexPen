@@ -3853,6 +3853,7 @@ const commands = {
     relayout();
   },
   tabOtherPane: () => menuTab && moveToPane(menuTab, panes[1 - paneOf(menuTab).index]),
+  tabSplit: async () => { if (menuTab) { await activate(paneOf(menuTab), menuTab); await splitToOther(); } },
   tabNextWindow: () => menuTab && moveTab(menuTab, 'next'),
   tabNewWindow: () => menuTab && moveTab(menuTab, 'new'),
   tabCopyPath: () => menuTab?.doc.path && copyText(menuTab.doc.path),
