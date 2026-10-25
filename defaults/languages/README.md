@@ -77,7 +77,7 @@ One flow, for every language:
    - `contrast: 10`: lightness points further from the background (stronger); `-10`: closer (subtler).
    - `bold`, `italic`, `underline`, `strikethrough`: `true` / `false`.
    - `color: '#c0c0ff'`: a fixed colour; better inside `byTheme`, one colour rarely suits light and dark.
-   - `byTheme: { dark: {...}, light: {...}, bluish: {...} }`: changes for one theme (and the themes built on it)
+   - `byTheme: { dark: {...}, light: {...}, dark-ocean: {...} }`: changes for one theme (and the themes built on it)
      or for the mode.
 
    A type of your own without a look looks like text: give it one (`label: { like: def, bold: true }`).

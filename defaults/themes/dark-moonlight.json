@@ -1,0 +1,25 @@
+// Dark moonlight.
+// A theme lists only what differs from its base; the base may be any theme. The names are in the README (Themes).
+{
+  "name": "Dark moonlight",
+  "description": "grey-blue, quieter than ocean",
+  "base": "dark",
+  "colors": {
+    // The app: backgrounds, text, borders, selection, alerts, markers, find.
+    "bg": "#1c1f24",
+    "bgSide": "#22262c",
+    "bgBar": "#282c33",
+    "bgCode": "#252930",
+    "bgBarDim": "#181b1f",
+    "fg": "#d9dee6",
+    "fgDim": "#929aa6",
+    "border": "#363c46",
+    "accent": "#8fb0d8",
+    "active": "rgba(143, 176, 216, .18)",
+    "select": "#33465e",
+    "highlight": "#686100",
+    "inlineCode": "#363a41",
+    "inlineCodeFg": "#b0c6e2",
+    "paneActive": "#8fb0d8"
+  }
+}

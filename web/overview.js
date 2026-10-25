@@ -57,7 +57,7 @@ function scheduleOverview(pane) {
 function overviewMarks(pane) {
   const cm = pane.cm, doc = pane.active?.doc, out = [];
   if (!doc || pane.el.dataset.mode === 'preview') return out;
-  const css = getComputedStyle(document.body), colour = name => css.getPropertyValue(name).trim();
+  const css = getComputedStyle(pane.editorEl), colour = name => css.getPropertyValue(name).trim();   // the editor may have a theme of its own
   const hunks = (list, kind, changed, added) => {
     for (const h of list ?? []) {
       const from = Math.min(h.bFrom, cm.lastLine()), to = Math.max(from, Math.min(h.bTo - 1, cm.lastLine()));

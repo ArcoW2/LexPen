@@ -446,9 +446,10 @@ const SETTING_ROWS = [
   { name: 'followWindows', group: 'General', sub: 'Theme', kind: 'toggle', title: 'Follow Windows',
     hint: 'Light or dark follows Windows (Settings > Personalization > Colors); the Day / Night button switches until Windows changes',
     hintOff: 'A change between light and dark in Windows does not switch the mode of LexPen' },
-  { name: 'themeLight', group: 'General', sub: 'Theme', kind: 'choice', title: 'Theme for light mode',
-    hint: 'Your own themes: themes\\ in the data folder', options: () => themeOptions() },
-  { name: 'themeDark', group: 'General', sub: 'Theme', kind: 'choice', title: 'Theme for dark mode',
+  { name: 'themeLight', group: 'General', sub: 'Theme', kind: 'choice', title: 'Theme of the app in light mode',
+    hint: 'Your own themes: themes\\ in the data folder. The editor and the preview can have a theme of their own (Editor, Preview)',
+    options: () => themeOptions() },
+  { name: 'themeDark', group: 'General', sub: 'Theme', kind: 'choice', title: 'Theme of the app in dark mode',
     hint: 'A theme with a light base works too', options: () => themeOptions() },
   { name: 'theme', group: 'General', sub: 'Theme', kind: 'choice', title: 'Day / night when not following Windows',
     hint: 'Also the Day / night button', options: () => [['light', 'Day (light mode)'], ['dark', 'Night (dark mode)']] },
@@ -456,6 +457,11 @@ const SETTING_ROWS = [
   { name: 'editorSize', group: 'Editor', kind: 'size', base: () => ptOf(EDITOR_PX) + ' pt' },
   { name: 'editorLine', group: 'Editor', kind: 'choice',
     options: () => [[0, `Default (${EDITOR_LINE})`], ...LINE_HEIGHTS.map(n => [n, String(n)])] },
+  { name: 'editorThemeLight', group: 'Editor', kind: 'choice', title: 'Theme for the editor in light mode',
+    hint: 'Same as the app, or a theme of its own', options: () => [['', 'Same as the app'], ...themeOptions()] },
+  { name: 'editorThemeDark', group: 'Editor', kind: 'choice', title: 'Theme for the editor in dark mode',
+    hint: 'Same as the app, or a theme of its own (as an editor that stands out from the bars and the preview)',
+    options: () => [['', 'Same as the app'], ...themeOptions()] },
   { name: 'wrap', group: 'Editor', kind: 'toggle',
     hint: 'Long lines wrap at the edge',
     hintOff: 'Long lines run on past the edge and scroll sideways' },
@@ -672,13 +678,10 @@ const SETTING_ROWS = [
   { name: 'keys', group: 'Keys', kind: 'keys', title: 'Keys', hint: 'Every action and its keys: F1. Your own keys go in your keys.json, on top of the defaults.' },
 ];
 
-// The themes from the host (look.themes: Light and Dark first, then by name), with their base and marked when
-// they are yours: "Lighter bluish (on Bluish, yours)".
-const themeOptions = () => (look?.themes ?? []).map(t => {
-  const on = t.base && `on ${look.themes.find(b => b.id === t.base)?.name ?? t.base}`;
-  const notes = [on, t.mine && 'yours'].filter(Boolean).join(', ');
-  return [t.id, notes ? `${t.name} (${notes})` : t.name];
-});
+// The themes from the host (look.themes: Light and Dark first, then by name), with their character and marked
+// when they are yours: "Dark sand: browner than parchment", "Lighter ocean: a softer blue (yours)".
+const themeOptions = () => (look?.themes ?? []).map(t =>
+  [t.id, (t.description ? `${t.name}: ${t.description}` : t.name) + (t.mine ? ' (yours)' : '')]);
 
 // General > Open in: a row per language (its pack's "open" unless you choose).
 const openInRows = () => PACK_NAMES.map(name => ({

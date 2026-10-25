@@ -417,9 +417,12 @@ function resolveLook(looks, type, theme, seen = new Set()) {
   let spec = looks[type];
   if (!spec || typeof spec !== 'object' || seen.has(type)) return {};
   seen.add(type);
-  // byTheme: the theme itself, then its bases (nearest first), then the mode (light / dark).
+  // byTheme: the theme itself, then its bases (nearest first), then the mode (light / dark). A key may be the old
+  // id of a renamed theme (look.renamed: old -> new).
   const mode = typeof look !== 'undefined' ? look?.mode : undefined;
-  const changes = spec.byTheme && theme && [...(theme.chain ?? [theme.id]), mode].map(k => spec.byTheme[k]).find(c => c);
+  const renamed = (typeof look !== 'undefined' ? look?.renamed : null) ?? {};
+  const byTheme = k => spec.byTheme[k] ?? Object.keys(renamed).filter(old => renamed[old] === k).map(old => spec.byTheme[old]).find(c => c);
+  const changes = spec.byTheme && theme && [...(theme.chain ?? [theme.id]), mode].map(byTheme).find(c => c);
   if (changes && typeof changes === 'object') spec = { ...spec, ...changes };
   const from = spec.like ? resolveLook(looks, String(spec.like), theme, seen) : {};
   let color = validColour(spec.color)
@@ -440,7 +443,7 @@ function lookCss(l) {
   return css.join('; ');
 }
 
-// The CSS of every code language's looks: in the editor for the app's theme, in the preview for the preview's.
+// The CSS of every code language's looks: in the editor for the editor's theme, in the preview for the preview's.
 // Markdown keeps its own editor colours (app.css).
 function updatePackColours() {
   let style = document.getElementById('mm-pack-colours');
@@ -450,20 +453,21 @@ function updatePackColours() {
     document.head.append(style);
   }
   const app = typeof look !== 'undefined' ? look?.app : null, preview = typeof look !== 'undefined' ? look?.preview ?? app : null;
+  const editor = typeof look !== 'undefined' ? look?.editor ?? app : null;
   const rules = [], inner = [];
   for (const name of Object.keys(packs)) {
     if (name === 'markdown' || !/^[\w-]+$/.test(name)) continue;
     const looks = tokenLooks(name);
     // The same language inside another one (a block, a fence, lines you set): after the outer language's rules,
     // and more specific, so its own looks win.
-    for (const [scope, theme] of [['.mm-editor-pane .CodeMirror', app], ['.mm-preview-pane', preview]])
+    for (const [scope, theme] of [['.mm-editor-pane .CodeMirror', editor], ['.mm-preview-pane', preview]])
       for (const type of Object.keys(looks)) {
         if (!/^[\w-]+$/.test(type)) continue;
         const css = lookCss(resolveLook(looks, type, theme));
         if (css) inner.push(type === 'text' ? `${scope} .cm-in-${name} { ${css} }` : `${scope} .cm-in-${name}.cm-${type} { ${css} }`);
       }
     for (const [scope, theme, textScope] of [
-      [`.mm-editor-pane[data-lang="${name}"] .CodeMirror`, app, `.mm-editor-pane[data-lang="${name}"] .CodeMirror-lines`],
+      [`.mm-editor-pane[data-lang="${name}"] .CodeMirror`, editor, `.mm-editor-pane[data-lang="${name}"] .CodeMirror-lines`],
       [`.mm-code[data-lang="${name}"]`, preview, `.mm-code[data-lang="${name}"]`],
       [`.mm-cmp-text[data-lang="${name}"]`, app, `.mm-cmp-text[data-lang="${name}"]`]]) {   // the compare's line strip
       for (const type of Object.keys(looks)) {

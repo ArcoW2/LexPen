@@ -1,7 +1,8 @@
-// Dark: the night colours, complete: the root of the dark themes (Black and the dark bluish, greenish, reddish, yellowish build on it).
+// Dark: the night colours, complete: the root of the dark themes (Black and the other dark themes build on it).
 // Every colour name is set here; a theme on this base lists only what it changes. The names are in the README (Themes).
 {
   "name": "Dark",
+  "description": "neutral grey",
   "colors": {
     // The app: backgrounds, text, borders, selection, alerts, markers, find, brackets, indent guides.
     "bg": "#1e1f22",

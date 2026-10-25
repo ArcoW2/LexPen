@@ -10,8 +10,8 @@
   "keepUnnamedProjects": true,    // a project you did not name, with files, when its last window closes: kept as
                                   // "Project n" (true) or dropped (false); one without files is always dropped
   "followWindows": true,          // light or dark as Windows is (Settings > Personalization > Colors), at once
-  "themeLight": "light",          // the theme for light mode (a file name in themes\ without .json)
-  "themeDark": "dark",            // the theme for dark mode
+  "themeLight": "light",          // the app's theme for light mode (a file name in themes\ without .json)
+  "themeDark": "dark",            // the app's theme for dark mode
   "theme": "light",               // "light" or "dark": the mode when not following Windows (Day / night)
   "openIn.*": "",                 // how a file opens, per language ("openIn.markdown", "openIn.sql", ...): "edit",
                                   // "split" (editor and preview), "preview", or "" as the language pack says
@@ -20,6 +20,8 @@
   "editorFont": "",               // a font name; "" is Consolas
   "editorSize": 0,                // in points; 0 is 10.5 pt (also Ctrl+mouse wheel in the editor)
   "editorLine": 0,                // line height, times the font size; 0 is 1.3
+  "editorThemeLight": "",         // the editor in light mode: "" is the app's theme, else a theme of its own
+  "editorThemeDark": "",          // the editor in dark mode
   "wrap": true,                   // wrap long lines in the editor; Alt+Z
   "tabSize": 4,                   // where the tab stops are: a tab after text goes to the next one (1 to 16)
   "indentSize": 2,                // where the indent stops are: Tab in a line's indentation, indent, and a tab

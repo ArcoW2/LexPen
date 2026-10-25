@@ -176,20 +176,25 @@ function control(def) {
       select.append(o);
     }
   }
-  select.addEventListener('change', () => set(def.name, JSON.parse(select.value)));
+  // The chosen text as a tooltip: a list narrower than its text cuts it off.
+  const tip = () => select.title = select.selectedOptions[0]?.textContent ?? '';
+  select.addEventListener('change', () => { tip(); set(def.name, JSON.parse(select.value)); });
   box.append(...(sample ? [sample, select] : [select]));
   return {
     box, focus: select,
     show: v => {
       const value = JSON.stringify(v);
-      // A value that is not in the list (typed into settings.json by hand) is shown as it is.
+      // A value that is not in the list (typed into settings.json by hand) is shown as it is; the old id of a
+      // renamed theme as the theme it is now.
       if (![...select.options].some(o => o.value === value)) {
+        const now = typeof v === 'string' && settings.look?.renamed?.[v];
         const o = document.createElement('option');
         o.value = value;
-        o.textContent = String(v);
+        o.textContent = [...select.options].find(x => now && x.value === JSON.stringify(now))?.textContent ?? String(v);
         select.append(o);
       }
       select.value = value;
+      tip();
       if (sample) sample.style.fontFamily = v ? `${quote(v)}, monospace` : '';
     },
   };
