@@ -49,7 +49,7 @@ look for viewing is only its own windows' layout.
 
 ### 3.4 All windows are equal
 
-The answer to "are all windows equal?": yes. Plan 33 (`33-PLAN-view-window.md`) has no view window of its own:
+The answer to "are all windows equal?": yes. Plan 33 (`executed/PLAN-view-window.md`) has no view window of its own:
 viewing uses a normal project, "View" by default, whose windows can dock every pane like any other.
 
 - The view project keeps its layout as any project does (3.5): what you dock there stays there for the next view.

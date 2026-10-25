@@ -6,7 +6,11 @@
   "languageNames": {},            // names of languages of your own, before the packs' own names and aliases: a
                                   // markdown fence or an embedded block naming "bash" can be TCC: { "bash": "tcc" }
   "newWindowProject": "same",     // a new window: "same" (the project of the last window used on this desktop)
-                                  // or "new" (always a new project)
+                                  // or "new" (always a new project); never the project for viewing
+  "viewProject": 0,               // the project View in LexPen opens files and folders in: its id (Manage projects);
+                                  // 0 is the project named "View" (made on the first view)
+  "viewReadOnly": true,           // View in LexPen opens a file read-only (the tab menu's Read-only takes that off);
+                                  // false: it can be edited at once
   "keepUnnamedProjects": true,    // a project you did not name, with files, when its last window closes: kept as
                                   // "Project n" (true) or dropped (false); one without files is always dropped
   "projectsSort": "used-desc",    // Manage projects: the order of the list, "name", "created" or "used", then
@@ -34,6 +38,10 @@
   "compareStep": "block",         // comparing: F7 goes to the next "block" of changed lines, or the next changed "line"
   "compareStrip": true,           // comparing: the line strip below the panes
   "explorerCompare": false,       // Explorer's right-click menu: Select left side to compare, then Compare to <name>
+  "explorerView": false,          // ...View in LexPen, on files and folders (the project for viewing, viewProject)
+  "explorerEdit": false,          // ...Edit in LexPen, on files (as opening one, never in the project for viewing)
+  "explorerPlace": "group",       // ...the LexPen items: "group" (next to each other, a line above and below) or
+                                  // "submenu" (one item LexPen with them)
   "gutter.cursor": true,          // the cursor's line marked in the gutter, in the ruler's cursor colour
   "bracketHighlight": "colour",   // the pair or word set (begin ... end) around the cursor: "colour", "underline"
                                   // (in the find box's colour) or "off"

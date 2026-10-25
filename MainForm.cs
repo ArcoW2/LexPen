@@ -36,8 +36,9 @@ sealed class MainForm : Form
 
     /// <summary>What a window opens with. <see cref="Key"/>: its window in a project (ProjectStore), with its session;
     /// <see cref="ToDesktop"/>: back on the virtual desktop it was on (at start).</summary>
-    // Compare: two files or two folders to compare (--compare), the page starts it.
-    public sealed record Start(string? Folder, List<string> Files, int Key = 0, bool ToDesktop = false, string[]? Compare = null);
+    // Compare: two files or two folders to compare (--compare), the page starts it. View: the files and the folder come
+    // from View in LexPen (the files in Preview, the folder in the Folder pane).
+    public sealed record Start(string? Folder, List<string> Files, int Key = 0, bool ToDesktop = false, string[]? Compare = null, bool View = false);
 
     readonly AppHost app;
     Start start;
@@ -543,6 +544,7 @@ sealed class MainForm : Form
                     ["tabColours"] = app.TabColours(),
                     ["folder"] = start.Folder,
                     ["files"] = new JsonArray(start.Files.Select(f => (JsonNode?)f).ToArray()),
+                    ["view"] = start.View,
                 };
                 if (start.Compare is [var left, var right])
                     init["compare"] = new JsonObject { ["left"] = left, ["right"] = right, ["folders"] = Directory.Exists(left) };

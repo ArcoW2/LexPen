@@ -120,7 +120,8 @@ function rowHtml(p, ws) {
   let html = `<div class="${cls}" data-id="${p.id}">` +
     `<button class="pv-fold" tabindex="-1" title="Its windows and files (Right / Left)"></button>` +
     `<input type="checkbox" class="pv-check" tabindex="-1"${view.checked.has(p.id) ? ' checked' : ''}>` +
-    `<span class="pv-name${p.name ? '' : ' pv-unnamed'}" title="${escapeHtml(p.display)}">${name}</span>` +
+    `<span class="pv-name${p.name ? '' : ' pv-unnamed'}" title="${escapeHtml(p.display)}">${name}` +
+    (p.view ? '<span class="pv-viewing" title="View in LexPen opens files here (Settings > General > Viewing)"> (for viewing)</span>' : '') + `</span>` +
     `<span class="pv-state${p.open ? ' pv-open-now' : ''}">${p.open ? 'open' : 'closed'}</span>` +
     `<span class="pv-folders" title="${escapeHtml(folders.join('\n'))}">${marked(folders.join('; ') || '(no folder)', ws)}</span>` +
     `<span class="pv-num">${tabsOf(p)}</span>` +
@@ -129,7 +130,9 @@ function rowHtml(p, ws) {
     `<span class="pv-date">${dateText(p.used, true)}</span></div>`;
   if (unfolded) {
     html += `<div class="pv-details" data-id="${p.id}">` + (p.windows.length ? p.windows.map((w, i) => {
-      const files = (w.files ?? []).map(f => f.draft ? `<span class="pv-draft">\u270E ${marked(f.name, ws)}</span>` : marked(f.name, ws)).join(', ');
+      // A tab per line; a pinned one with the pin of the tab bar in front.
+      const files = (w.files ?? []).map(f => `<span class="pv-file">${f.pinned ? PIN_ICON : '<span class="pv-no-pin"></span>'}` +
+        (f.draft ? `<span class="pv-draft">\u270E ${marked(f.name, ws)}</span>` : marked(f.name, ws)) + '</span>').join('');
       return `<button class="pv-window" data-key="${w.key}" title="Open just this window"><b>Window ${i + 1}</b>: ` +
         `${marked(w.folder ?? '(no folder)', ws)}, ${w.open ? 'open' : 'closed'}` +
         `<span class="pv-files">${files || '(no tabs)'}</span></button>`;
@@ -137,6 +140,10 @@ function rowHtml(p, ws) {
   }
   return html;
 }
+
+// The pin of a pinned tab, as the tab bar draws it (PIN_ICON in app.js).
+const PIN_ICON = '<svg class="pv-pin" viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-label="Pinned">' +
+  '<path d="M9.8 1.5l4.7 4.7-1.4 1.4-.7-.7-2.6 2.6.3 3-1.4 1.4-2.9-2.9-3.6 3.6-.7-.7 3.6-3.6-2.9-2.9 1.4-1.4 3 .3 2.6-2.6-.7-.7z"/></svg>';
 
 function draw() {
   const ws = words(), { by, desc } = sortOf();

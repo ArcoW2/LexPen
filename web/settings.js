@@ -66,8 +66,31 @@ function control(def) {
     box.append(input);
     return { box, show: v => input.checked = !!v, focus: input };
   }
-  if (def.kind === 'keys') {
-    for (const [label, op, args] of [['Show keys and commands (F1)', 'showCommands'], ['Open my keys.json', 'openFile', { file: 'keys' }]]) {
+  // A project (viewProject): its id; 0 the project named "View". The list comes from the host when shown or focused.
+  if (def.kind === 'project') {
+    const select = document.createElement('select');
+    let value = 0;
+    const fill = async () => {
+      const list = await host('projects').catch(() => []);
+      select.replaceChildren();
+      for (const [id, name] of [[0, 'The project named "View" (made on the first view)'], ...list.map(p => [p.id, p.name])]) {
+        const o = document.createElement('option');
+        o.value = JSON.stringify(id);
+        o.textContent = name;
+        select.append(o);
+      }
+      select.value = JSON.stringify(value);
+    };
+    select.addEventListener('focus', fill);
+    select.addEventListener('change', () => set(def.name, JSON.parse(select.value)));
+    box.append(select);
+    fill();
+    return { box, focus: select, show: v => { value = v; select.value = JSON.stringify(v); } };
+  }
+  if (def.kind === 'keys' || def.kind === 'buttons') {
+    const buttons = def.kind === 'buttons' ? def.buttons ?? []
+      : [['Show keys and commands (F1)', 'showCommands'], ['Open my keys.json', 'openFile', { file: 'keys' }]];
+    for (const [label, op, args] of buttons) {
       const b = document.createElement('button');
       b.textContent = label;
       b.addEventListener('click', () => host(op, args));
@@ -298,7 +321,7 @@ function buildGroup(group) {
       line.querySelector('button').addEventListener('click', () => host('screenZoomReset', def.name === 'zoom' ? { preview: true } : { editor: true }));
       el.querySelector('.st-text').append(line);
     }
-    if (def.kind !== 'keys') {
+    if (def.kind !== 'keys' && def.kind !== 'buttons') {
       const reset = document.createElement('button');
       reset.className = 'st-reset';
       reset.textContent = 'Reset';
@@ -357,7 +380,7 @@ function stepTab(dir) {
 function show() {
   applyLook();
   for (const { def, el, control: c } of rows) {
-    if (def.kind === 'keys') continue;
+    if (def.kind === 'keys' || def.kind === 'buttons') continue;
     const value = valueOf(def.name);
     c.show(value);
     if (def.hintOff) el.querySelector('.st-hint').textContent = value ? def.hint : def.hintOff;
