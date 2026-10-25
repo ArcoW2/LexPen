@@ -126,6 +126,7 @@ sealed class SettingsForm : Form
                 init["look"] = app.Look();
                 init["languageProblems"] = app.Languages["problems"]?.DeepClone();
                 init["layout"] = window.Layout?.DeepClone();   // the rows of "this window" (docs/plans/31-PLAN-settings-layers.md)
+                init["window"] = app.ProjectInfo(window)["display"]?.DeepClone();   // its name in the rows' tooltips
                 return init;
             }
 

@@ -23,6 +23,8 @@
   --guide1: rgba(207, 34, 46, .45); --guide2: rgba(154, 103, 0, .5); --guide3: rgba(26, 127, 55, .45); --guide4: rgba(27, 124, 131, .45); --guide5: rgba(9, 105, 218, .45); --guide6: rgba(130, 80, 223, .45);
   --whitespace: #b4bac2;   /* shown spaces, tabs and line ends (editor) */
   --gutter-bg-embedded: #e4ebf5;   /* the gutter beside lines of another language (PLAN-embedded-languages.md) */
+  /* The settings window: the line left of a row, by what the setting belongs to (31-PLAN-settings-layers.md). */
+  --layer-global: #8c959f; --layer-window: #1a7f37; --layer-set: #8250df; --layer-screen: #bc4c00;
 }
 :root[data-theme=dark], .mm-themed[data-theme=dark] {
   color-scheme: dark;
@@ -44,6 +46,7 @@
   --guide1: rgba(255, 123, 114, .5); --guide2: rgba(229, 192, 123, .5); --guide3: rgba(126, 231, 135, .45); --guide4: rgba(86, 182, 194, .5); --guide5: rgba(121, 192, 255, .5); --guide6: rgba(210, 168, 255, .5);
   --whitespace: #5a606a;
   --gutter-bg-embedded: #2b3342;
+  --layer-global: #6e7681; --layer-window: #3fb950; --layer-set: #a371f7; --layer-screen: #db6d28;
 }
 
 /* Which way "more contrast" goes: away from the background (darker on light, lighter on dark). A language

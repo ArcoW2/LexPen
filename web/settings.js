@@ -281,7 +281,10 @@ function buildGroup(group) {
     el.dataset.name = def.name;
     el.dataset.group = def.group;
     if (def.sub) el.classList.add('st-in-sub');
-    el.innerHTML = '<div class="st-text"><div class="st-title"></div><div class="st-hint"></div></div>';
+    el.innerHTML = '<span class="st-layer"></span><div class="st-text"><div class="st-title"></div><div class="st-hint"></div></div>';
+    const mark = el.querySelector('.st-layer');
+    mark.dataset.layer = def.layer ?? 'global';
+    mark.title = layerTip(mark.dataset.layer);
     el.querySelector('.st-title').textContent = def.title;
     el.querySelector('.st-hint').textContent = def.hint;
     const c = control(def);
@@ -300,6 +303,39 @@ function buildGroup(group) {
   const order = groupsOf(), after = [...ui.list.children].find(s => order.indexOf(s.dataset.group) > order.indexOf(group));
   ui.list.insertBefore(section, after ?? null);
   show();
+}
+
+// ---------- What a setting belongs to (docs/plans/31-PLAN-settings-layers.md) ----------
+// Global (settings.json, every window), this window (its layout, kept with its session), the theme set (the look;
+// until theme sets exist the one set "Default", settings.json), this screen (the zoom per monitor). The legend shows
+// the colours with their names; a click shows only that layer's rows, again all of them.
+const LAYERS = [['global', 'Global'], ['window', 'This window'], ['set', 'Theme set'], ['screen', 'This screen']];
+let layerShown = null;
+
+function layerTip(layer) {
+  if (layer === 'window') return 'This window: ' + (settings.window || 'the window this one belongs to');
+  if (layer === 'set') return 'Theme set: Default';
+  if (layer === 'screen') return 'This screen: the monitor the window is on';
+  return 'Global: every window';
+}
+
+function buildLegend() {
+  const legend = $('.st-legend');
+  legend.replaceChildren();
+  for (const [layer, name] of LAYERS) {
+    const b = document.createElement('button');
+    b.dataset.layer = layer;
+    b.title = layerTip(layer) + ' (a click shows only these; again: all)';
+    b.innerHTML = '<span class="st-layer"></span>';
+    b.firstChild.dataset.layer = layer;
+    b.append(name);
+    b.addEventListener('click', () => {
+      layerShown = layerShown === layer ? null : layer;
+      for (const x of legend.children) x.classList.toggle('st-on', x.dataset.layer === layerShown);
+      filter();
+    });
+    legend.append(b);
+  }
 }
 
 // Next / previous tab (Ctrl+Tab, Ctrl+Shift+Tab, Ctrl+PgDn / PgUp).
@@ -345,7 +381,8 @@ function set(name, value) {
 
 events.settings = ({ settings: s }) => {
   const mine = Object.fromEntries([...unconfirmed.keys()].map(n => [n, settings.values[n]]));
-  settings = { ...s, defs: settings.defs, look: settings.look, languageProblems: settings.languageProblems, layout: settings.layout };
+  settings = { ...s, defs: settings.defs, look: settings.look, languageProblems: settings.languageProblems, layout: settings.layout,
+    window: settings.window };
   Object.assign(settings.values, mine);
   show();
 };
@@ -380,9 +417,10 @@ events.defs = ({ defs }) => {
 // is shown.
 function filter(typing = false) {
   const words = ui.search.value.toLowerCase().split(/\s+/).filter(Boolean);
-  if (words.length) for (const group of groupsOf()) buildGroup(group);
-  document.body.classList.toggle('st-searching', words.length > 0);
+  if (words.length || layerShown) for (const group of groupsOf()) buildGroup(group);
+  document.body.classList.toggle('st-searching', words.length > 0 || !!layerShown);
   const matches = r => {
+    if (layerShown && (r.def.layer ?? 'global') !== layerShown) return false;
     const text = (r.def.title + ' ' + r.def.hint + ' ' + (r.def.hintOff ?? '') + ' ' + r.def.group + ' ' + (r.def.sub ?? '')).toLowerCase();
     return words.every(w => text.includes(w));
   };
@@ -400,9 +438,10 @@ function filter(typing = false) {
     s.hidden = !rows.some(r => r.def.group === s.dataset.group && !r.el.hidden);
   for (const b of ui.list.querySelectorAll('.st-subgroup'))
     b.hidden = !rows.some(r => r.def.group === b.dataset.group && r.def.sub === b.dataset.sub && !r.el.hidden);
-  for (const b of ui.tabs.children) b.classList.toggle('st-has', words.length > 0 && found.has(b.dataset.group));
+  const narrowed = words.length > 0 || !!layerShown;
+  for (const b of ui.tabs.children) b.classList.toggle('st-has', narrowed && found.has(b.dataset.group));
   const total = rows.filter(matches).length;
-  ui.count.textContent = !words.length ? '' : total === shown ? `${shown} found` : `${shown} here, ${total} in all tabs`;
+  ui.count.textContent = !narrowed ? '' : total === shown ? `${shown} found` : `${shown} here, ${total} in all tabs`;
 }
 ui.search.addEventListener('input', () => filter(true));
 
@@ -471,6 +510,7 @@ layoutBar.querySelector('[data-layout="reset"]').addEventListener('click', () =>
 (async () => {
   settings = await host('init');
   await usableFonts().catch(() => []);
+  buildLegend();
   build();
   ui.search.focus();
 })();

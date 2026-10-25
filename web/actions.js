@@ -706,6 +706,13 @@ const formatRows = () => PACK_NAMES.filter(name => packs[name].format?.style).fl
       hint: `${packs[name].name}: ${key}`, options: () => [['', `As the language says (${values.find(v => v[0] === own)?.[1] ?? own})`], ...values] };
   }));
 
+// The settings of a theme set (docs/plans/32-PLAN-theme-sets.md, 3.2): the look. Until theme sets exist they are in
+// settings.json as any other, but the settings window already marks them as the theme set's.
+const THEME_SET_NAMES = new Set(['themeLight', 'themeDark', 'editorThemeLight', 'editorThemeDark', 'previewThemeLight',
+  'previewThemeDark', 'sneakTheme', 'highlightColour', 'highlightIntensity', 'previewHighlightColour', 'previewHighlightIntensity',
+  'inlineCodeIntensity', 'indentGuideColour', 'indentGuideIntensity', 'indentGuideCursorColour', 'indentGuideCursorIntensity',
+  'columnGuideColour', 'columnGuideIntensity', 'helperLineIntensity', 'tabStopIntensity']);
+
 function settingDefs() {
   // In the order of the groups (a stable sort keeps the rows' own order within a group).
   const rank = r => SETTING_GROUPS.indexOf(r.group);
@@ -719,7 +726,7 @@ function settingDefs() {
       options: r.options?.() ?? (r.kind === 'size' ? [[0, `Default (${r.base()})`], ...FONT_SIZES.map(pt => [pt, pt + ' pt'])] : null),
       monoFirst: r.name === 'editorFont',
       range: r.range ?? null, unit: r.unit ?? '',
-      layer: LAYOUT.has(r.name) ? 'window' : 'global',   // docs/plans/31-PLAN-settings-layers.md
+      layer: LAYOUT.has(r.name) ? 'window' : THEME_SET_NAMES.has(r.name) ? 'set' : 'global',   // 31-PLAN-settings-layers.md
     };
   });
 }
