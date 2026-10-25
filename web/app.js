@@ -43,8 +43,11 @@ let lastId = 0;
 
 // Shows the busy bar for as long as the promise is pending.
 let busyCount = 0;
+// The busy bar is an element of its own: an attribute on body (with the progress cursor all of the page inherited)
+// made the browser restyle the whole page twice per host call, about a second with a large file in the preview.
+const busyBar = document.querySelector('.mm-busy');
 function track(promise) {
-  const update = change => document.body.toggleAttribute('data-busy', (busyCount += change) > 0);
+  const update = change => busyBar.toggleAttribute('data-on', (busyCount += change) > 0);
   update(1);
   promise.then(() => update(-1), () => update(-1));
   return promise;

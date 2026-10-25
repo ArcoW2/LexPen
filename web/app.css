@@ -543,10 +543,11 @@ body[data-outline] .mm-outline-button { background: var(--active); color: var(--
 .mm-toast-action { margin-left: 8px; padding: 1px 8px; border: 1px solid currentColor; border-radius: 4px; background: none; color: inherit; }
 
 /* Busy bar: a strip sliding along the top edge while something is loading.
-   It fades in after a short delay so quick operations do not flicker. */
-body[data-busy] { cursor: progress; }
-body[data-busy]::after {
-  content: ""; position: fixed; top: 0; left: 0; z-index: 30; width: 35%; height: 3px;
+   It fades in after a short delay so quick operations do not flicker. An element of its own (track in app.js), and
+   no progress cursor: a cursor on body is inherited by the whole page, and changing it restyles all of it. */
+.mm-busy:not([data-on]) { display: none; }
+.mm-busy {
+  position: fixed; top: 0; left: 0; z-index: 30; width: 35%; height: 3px; pointer-events: none;
   background: linear-gradient(90deg, transparent, var(--accent), transparent);
   opacity: 0; animation: mm-busy-slide 1s linear infinite, mm-busy-show 0s linear .15s forwards;
 }
