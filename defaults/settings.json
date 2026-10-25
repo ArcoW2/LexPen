@@ -9,6 +9,8 @@
                                   // or "new" (always a new project)
   "keepUnnamedProjects": true,    // a project you did not name, with files, when its last window closes: kept as
                                   // "Project n" (true) or dropped (false); one without files is always dropped
+  "projectsSort": "used-desc",    // Manage projects: the order of the list, "name", "created" or "used", then
+                                  // "-asc" or "-desc"
   "followWindows": true,          // light or dark as Windows is (Settings > Personalization > Colors), at once
   "themeLight": "light",          // the app's theme for light mode (a file name in themes\ without .json)
   "themeDark": "dark",            // the app's theme for dark mode

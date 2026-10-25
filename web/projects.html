@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:">
+<title>Manage projects - LexPen</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="projects.css">
+</head>
+<body class="pv-body">
+<div class="pv-menubar mm-menubar" role="menubar"></div>
+<div class="pv-top">
+  <input class="pv-search" placeholder="Filter on name, folder or file (Ctrl+F)" spellcheck="false">
+</div>
+<div class="pv-head pv-grid">
+  <span></span>
+  <input type="checkbox" class="pv-all" title="All / none of the projects shown">
+  <button class="pv-sort" data-sort="name">Name</button>
+  <span>State</span>
+  <span>Folders</span>
+  <span class="pv-num">Tabs</span>
+  <span class="pv-num">Drafts</span>
+  <button class="pv-sort" data-sort="created">Created</button>
+  <button class="pv-sort" data-sort="used">Last used</button>
+</div>
+<div class="pv-list" tabindex="0"></div>
+<div class="pv-bottom">
+  <span class="pv-count"></span>
+  <button class="pv-open">Open selected</button>
+  <button class="pv-close">Close selected</button>
+</div>
+<dialog class="pv-dialog">
+  <form method="dialog">
+    <label class="pv-dialog-label"></label>
+    <input class="pv-dialog-input" spellcheck="false" placeholder="Empty: a number">
+    <div class="pv-dialog-buttons"><button value="ok">OK</button><button value="cancel" formnovalidate>Cancel</button></div>
+  </form>
+</dialog>
+<script src="projectsview.js"></script>
+</body>
+</html>

@@ -18,6 +18,7 @@ sealed class ProjectStore
         public int Id;
         public string Name = "";
         public DateTime Used;
+        public DateTime? Created;        // null: made before LexPen kept it (the id order is the creation order)
         public List<Window> Windows = [];
     }
 
@@ -67,6 +68,7 @@ sealed class ProjectStore
                 Id = po["id"]?.GetValue<int>() ?? store.nextProject++,
                 Name = po["name"]?.GetValue<string>() ?? "",
                 Used = Time(po["used"]),
+                Created = po["created"] is null ? null : Time(po["created"]),
             };
             foreach (var wn in po["windows"]?.AsArray() ?? [])
             {
@@ -101,7 +103,7 @@ sealed class ProjectStore
             ["nextWindow"] = nextWindow,
             ["projects"] = new JsonArray(Projects.Select(p => (JsonNode?)new JsonObject
             {
-                ["id"] = p.Id, ["name"] = p.Name, ["used"] = p.Used.ToString("o"),
+                ["id"] = p.Id, ["name"] = p.Name, ["used"] = p.Used.ToString("o"), ["created"] = p.Created?.ToString("o"),
                 ["windows"] = new JsonArray(p.Windows.Select(w => (JsonNode?)new JsonObject
                 {
                     ["key"] = w.Key, ["open"] = w.Open, ["session"] = w.Session?.DeepClone(),
@@ -122,7 +124,8 @@ sealed class ProjectStore
 
     public Project NewProject(string name)
     {
-        var p = new Project { Id = nextProject++, Name = name.Trim(), Used = DateTime.UtcNow };
+        var now = DateTime.UtcNow;
+        var p = new Project { Id = nextProject++, Name = name.Trim(), Used = now, Created = now };
         Projects.Add(p);
         return p;
     }
@@ -183,6 +186,32 @@ sealed class ProjectStore
         if (others || !HasFiles(w)) p.Windows.Remove(w);
         else (w.Open, w.Used) = (false, DateTime.UtcNow);   // Used: when it closed (LastClosedOn)
         if (!others) DropIfUnwanted(p, keepUnnamed);
+    }
+
+    /// <summary>
+    /// A window closed with its whole project (Manage projects > Close): unlike CloseByHand it is kept also while
+    /// other windows of the project are still open (they close next), unless it has no files. When it was the last
+    /// open one: the project's own rules (DropIfUnwanted).
+    /// </summary>
+    public void CloseWithProject(int key, bool keepUnnamed)
+    {
+        if (ProjectOf(key) is not { } p || WindowOf(key) is not { } w) return;
+        if (!HasFiles(w)) p.Windows.Remove(w);
+        else (w.Open, w.Used) = (false, DateTime.UtcNow);
+        if (!p.Windows.Any(o => o.Open)) DropIfUnwanted(p, keepUnnamed);
+    }
+
+    /// <summary>Merges projects into one: their windows (open and closed, each with its session and drafts) move to
+    /// <paramref name="to"/>, which keeps its name; the projects left empty go.</summary>
+    public void Merge(Project to, IEnumerable<Project> from)
+    {
+        foreach (var p in from.Where(p => p != to).ToList())
+        {
+            to.Windows.AddRange(p.Windows);
+            p.Windows.Clear();
+            Projects.Remove(p);
+        }
+        to.Used = DateTime.UtcNow;
     }
 
     /// <summary>Forgets a window (a new one that turned out to be another project's, AppHost.Open); its project per

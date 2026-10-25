@@ -3312,14 +3312,18 @@ async function restore(session, drafts) {
 
 // Closing: one prompt for unsaved files and changed drafts, then the host closes the window.
 // Pinned tabs go to `peer`, another open window of this project (the host says which), when the setting says so.
-events.closeRequest = async ({ peer } = {}) => {
+// `answer` (Manage projects: the window closes with its project): "save" or "discard" for the unsaved documents,
+// already asked; the drafts are written as always (the host keeps or deletes them).
+events.closeRequest = async ({ peer, answer } = {}) => {
   try {
     if (peer && setting('movePinned'))
       for (const tab of allTabs().filter(t => t.pinned)) if (paneOf(tab)) await moveTab(tab, peer, { closing: true });
     const dirty = [...docs].filter(d => d.path && d.dirty && d.lock);
     // Changed drafts are asked about only with the setting; otherwise they stay drafts, unasked.
-    const drafts = setting('askSaveDrafts') ? [...docs].filter(d => d.draft && d.draftChanged && docText(d).trim()) : [];
-    if (dirty.length || drafts.length) {
+    const drafts = !answer && setting('askSaveDrafts') ? [...docs].filter(d => d.draft && d.draftChanged && docText(d).trim()) : [];
+    if (answer === 'save') {
+      for (const doc of dirty) if (!await saveDoc(doc)) return host('closeCancel');
+    } else if (!answer && (dirty.length || drafts.length)) {
       const answer = await host('closePrompt', { dirty: dirty.map(d => d.path), drafts: drafts.map(d => d.draft) });
       if (answer === 'cancel') return host('closeCancel');
       if (answer === 'save') {
@@ -3336,6 +3340,33 @@ events.closeRequest = async ({ peer } = {}) => {
     host('closeCancel');
     throw e;
   }
+};
+
+// The host asks what is unsaved here (Manage projects: before closing or deleting this window's project): the
+// documents with unsaved changes this window edits, the drafts with text (a title: the first line) and the empty ones.
+const draftTitle = doc => docText(doc).split('\n').map(l => l.trim().replace(/^#+\s*/, '')).find(l => l) ?? '';
+events.unsavedList = ({ ask }) => {
+  const drafts = [...docs].filter(d => d.draft);
+  host('answer', { ask, result: {
+    documents: [...docs].filter(d => d.path && d.dirty && d.lock).map(d => d.path),
+    drafts: drafts.filter(d => docText(d).trim()).map(d => ({ id: d.draft, title: draftTitle(d) })),
+    empty: drafts.filter(d => !docText(d).trim()).map(d => d.draft),
+  } });
+};
+
+// Drafts of deleted projects, kept (Manage projects > Delete): each opens as a draft tab here and belongs to this
+// window's project from now on. A window just opened for them waits until it has started.
+events.adoptDrafts = async ({ drafts }) => {
+  while (!started) await new Promise(r => setTimeout(r, 100));
+  const pane = panes[state.activePane];
+  let last = null;
+  for (const { id, text } of drafts ?? []) {
+    if (findDraft(id)) continue;
+    last = makeTab(makeDoc({ draft: id, text }), 'split');
+    insertTab(pane, last);
+  }
+  if (last) await activate(pane, last);
+  saveSession();
 };
 
 // ---------- Projects (the host's ProjectStore): the Projects menu, the bottom bar, names ----------
@@ -3383,6 +3414,7 @@ async function projectMenuItems() {
     ],
   });
   return [
+    { label: '&Manage projects...', title: 'All projects in a window: open, close, merge, rename, delete', run: () => host('openProjects') }, '-',
     ...list.map(projectItem), '-',
     { label: '&New project...', title: 'A new empty window in a new project', run: () => ask('New project', name => host('project', { kind: 'new', name })) },
     '-',
