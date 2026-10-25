@@ -41,8 +41,11 @@ LexPen; what Windows still keeps elsewhere is named, and Windows' Default apps o
 - A click on a column header sorts by it; again: the other way.
 - A filter field above the table (type `sq` or `sql`): the rows whose extension or language contains it.
 - Checked at the start: the extensions LexPen is registered for now, each with how it opens now.
-- Buttons: Check all, Check none, All edit, All view (each on the rows shown; All edit and All view check them as
-  well, as choosing in a row does), Assign, Cancel (closes, nothing changed).
+- Buttons: Check all, Check none, All edit, All view, Assign, Cancel (closes, nothing changed).
+  - Check all, Check none, All edit and All view act only on the rows the filter shows; a row the filter hides keeps
+    its checkbox and its way of opening. Their tooltips say so ("the rows shown"). All edit and All view check the
+    rows as well, as choosing in a row does.
+  - Assign acts on every row, also the ones the filter hides: what is checked is assigned, what is not is taken off.
 
 ### 3.2 What Assign writes (HKCU\Software\Classes, per user, no admin)
 
