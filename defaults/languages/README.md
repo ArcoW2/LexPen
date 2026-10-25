@@ -176,6 +176,7 @@ An action in `actions` has a `title`, an optional `hint`, and one of:
 outline:
   - group: 'TODO'
     colour: accent                     # optional: the bullet's colour (#rrggbb or a theme colour)
+    indent: 2                          # optional: the entries' depth, 1 (not indented) when left out
     patterns:
       - { pattern: '//.*\s*(TODO|ACW):*\s+(.+)$' }
   - group: 'Functions'
@@ -189,9 +190,13 @@ outline:
 | `pattern` | A JavaScript regular expression, matched per line (`^` / `$` at the line's start and end) |
 | `name` | A capture number, or a list of them, joined with a space. In groups without it: every capture that matched, joined (`TODO fix this`); in a plain list: capture 1 |
 | `case` | `true`: minds case. Patterns in groups ignore case otherwise (as UltraEdit's); a plain list's patterns use `flags` (`i`) |
-| `indent` | In groups: `line` (the entry indented as its line is, in indent steps: methods under their class) or a capture number (its width) |
+| `indent` | In groups: `line` (the entry indented as its line is, in indent steps: methods under their class) or a capture number (its width), counted from the group's own `indent` |
 | `level` | A fixed depth (1 to 6); in a plain list also a capture whose length is the depth |
 | `span` | `true`: the pattern is matched against the whole text, so it may run over lines (a C function's `{` on the next line); the entry is the line the match starts on. Else `\s` would run into the next line |
+
+A group's `indent` (a number, 1 when left out) is the depth of its entries: `indent: 2` shows them one step in. An
+entry's text loses the dashes and equals signs around it (`// ------ Tables ------` shows `Tables`), and a line of
+nothing else (`// ----------`) is no entry: dashes are no way to indent, the group's `indent` is.
 
 A group without entries is not shown. Within a group a line counts once (its first matching pattern); a line can be in
 more than one group.

@@ -488,6 +488,10 @@ function updatePackColours() {
 const hasOutline = doc => !!doc && (!doc.language || Array.isArray(packOf(doc)?.outline));
 // The bullet colours of groups without a colour of their own, by their place.
 const OUTLINE_COLOURS = ['#e5534b', '#57ab5a', '#539bf5', '#c69026', '#b083f0', '#39c5cf', '#e0823d', '#d65e9b'];
+// An entry's text without the dashes or equals signs a comment line draws around it (// ------ Tables ------: Tables);
+// a text of nothing else (a line of dashes) is no entry. The depth comes from the group's indent, not from dashes.
+const outlineText = s => s.replace(/^[\s=-]+|[\s=-]+$/g, '');
+const isOutlineText = s => /[\p{L}\p{N}]/u.test(s);
 
 function outlineOf(doc) {
   if (!doc.language) return headingsOf(doc);
@@ -503,7 +507,8 @@ function outlineOf(doc) {
         const m = p.re.exec(t);
         if (!m) continue;
         const level = typeof p.level === 'number' ? p.level : m[p.level]?.length ?? 1;
-        const shown = m[p.name ?? 1] ?? m[0].trim();
+        const shown = outlineText(m[p.name ?? 1] ?? m[0].trim());
+        if (!isOutlineText(shown)) continue;
         const ch = Math.max(0, m.index + Math.max(0, m[0].indexOf(shown)));   // where its text starts (a double-click)
         entries.push({ level: Math.max(1, Math.min(6, level)), text: shown, line, ch });
         break;
@@ -517,6 +522,7 @@ function outlineOf(doc) {
     const width = s => s.replace(/\t/g, ' '.repeat(step)).length;
     const groups = list.filter(g => g && Array.isArray(g.patterns));
     groups.forEach((g, gi) => {
+      const base = Number.isInteger(g.indent) && g.indent >= 1 ? g.indent : 1;   // the group's depth: indent (1 when not set)
       const found = new Map();                            // line -> entry: within a group the first pattern of a line wins
       for (const p of g.patterns) {
         let re;
@@ -533,14 +539,15 @@ function outlineOf(doc) {
           // The shown text: the named capture(s), else every capture that matched, joined (as UltraEdit).
           const names = p.name === undefined ? null : [].concat(p.name);
           const parts = names ? names.map(n => m[n]) : m.slice(1);
-          const shown = parts.filter(x => x !== undefined && x.trim()).map(x => x.trim()).join(' ') || m[0].trim().split('\n')[0];
-          let level = typeof p.level === 'number' ? p.level : 1;
+          const shown = outlineText(parts.filter(x => x !== undefined && x.trim()).map(x => x.trim()).join(' ') || m[0].trim().split('\n')[0]);
+          if (!isOutlineText(shown)) continue;
+          let level = typeof p.level === 'number' ? p.level : base;
           if (p.indent === 'line') {
             const own = text.slice(starts[line], text.indexOf('\n', starts[line]) < 0 ? undefined : text.indexOf('\n', starts[line]));
-            level = 1 + Math.floor(width(own.match(/^[ \t]*/)[0]) / step);
-          } else if (Number.isInteger(p.indent)) level = 1 + Math.floor(width(m[p.indent] ?? '') / step);
-          const first = parts.find(x => x !== undefined && x.trim()) ?? '';   // where its text starts (a double-click)
-          const at = m.index + Math.max(0, m[0].indexOf(first.trim())) - starts[line];
+            level = base + Math.floor(width(own.match(/^[ \t]*/)[0]) / step);
+          } else if (Number.isInteger(p.indent)) level = base + Math.floor(width(m[p.indent] ?? '') / step);
+          const first = outlineText(parts.find(x => x !== undefined && outlineText(x)) ?? '');   // where its text starts (a double-click)
+          const at = m.index + Math.max(0, m[0].indexOf(first)) - starts[line];
           found.set(line, { level: Math.max(1, Math.min(6, level)), text: shown, line, group: gi, ch: Math.max(0, at) });
         }
       }

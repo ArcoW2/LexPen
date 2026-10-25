@@ -132,6 +132,7 @@ outline:   # the groups of Sybase_ASA_SQL.uew (/TGBegin), in its order
       - { pattern: '^\s*create\s+(?:or\s+replace\s+)?(procedure|function|view|event|domain)\s+([\w".]+)' }
       - { pattern: '^\s*create\s+or\s+replace\s+trigger\s+([\w".]+)' }
   - group: 'Regions'
+    indent: 2   # under the procedures and tables: one step in
     patterns:
       - { pattern: '(?://\s*---|(?://|--)\$region)\s?((?:(?!\s---).)+)' }
       - { pattern: '^\s*begin\s*(?:--|//)\s*(.+)$' }
