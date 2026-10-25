@@ -2702,11 +2702,53 @@ function startSearch() {
   searchUi.input.select();
 }
 
-// ---------- Preview zoom ----------
-// One level for all previews (the editor keeps its size), in steps of 10%, kept across restarts.
+// ---------- Zoom per screen (docs/plans/31-PLAN-settings-layers.md, 3.6) ----------
+// How readable text is depends on the screen, not on the project. The base is global (editorSize, zoom in the
+// settings); the monitor this window is on adds its own, which the host keeps per monitor: points added to the editor
+// font, a factor on the preview zoom. Zoom in / out / 100% change this screen's (the editor's with the focus there,
+// else the preview's); every window on the monitor follows (events.screen), and a window moved to another monitor
+// takes that one's.
 const ZOOM_MIN = 0.5, ZOOM_MAX = 3;
+const screenZoom = { key: '', name: '', editorStep: 0, previewFactor: 1 };
+const clampZoom = z => Math.round(Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, z)) * 100) / 100;
+const previewZoom = () => clampZoom((setting('zoom') || 1) * screenZoom.previewFactor);
+const baseEditorPt = () => fontSetting('editorSize') || ptOf(EDITOR_PX);
+const editorPt = () => Math.max(6, Math.min(48, baseEditorPt() + screenZoom.editorStep));
 
-const setZoom = zoom => setSetting('zoom', Math.round(Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoom)) * 10) / 10);
+events.screen = s => {
+  const was = { ...screenZoom };
+  Object.assign(screenZoom, s);
+  if (was.editorStep !== screenZoom.editorStep) applyFonts();
+  if (was.previewFactor !== screenZoom.previewFactor) applyZoom(previewZoom());
+};
+
+// This screen's zoom changed here: applied at once (quick steps, as the mouse wheel, build on each other), then to
+// the host, which tells the other windows on the monitor.
+function setScreenZoom(change) {
+  events.screen({ ...screenZoom, ...change });
+  host('screenZoom', change);
+}
+
+// The preview in steps of 10% (of what it shows), on this screen.
+const zoomBy = step => {
+  const target = clampZoom(Math.round((previewZoom() + step / 10) * 10) / 10);
+  setScreenZoom({ previewFactor: Math.round(target / (setting('zoom') || 1) * 10000) / 10000 });
+};
+
+// Zoom 100%: this screen back to the base, the editor's or the preview's.
+function zoomReset(editor) {
+  setScreenZoom(editor ? { editorStep: 0 } : { previewFactor: 1 });
+  if (editor) toast(`Editor font ${baseEditorPt()} pt on this screen, as on every screen`, true);
+}
+
+// View > Zoom > Use on every screen: this screen's zoom becomes the base, no monitor keeps its own.
+async function zoomOnEveryScreen() {
+  const pt = editorPt(), zoom = previewZoom();
+  setSetting('editorSize', pt === ptOf(EDITOR_PX) ? 0 : pt);
+  setSetting('zoom', zoom);
+  await host('screenZoomClear');
+  toast(`Editor font ${pt} pt and preview ${Math.round(zoom * 100)}% on every screen`, true);
+}
 
 function applyZoom(zoom) {
   // Keep each pane at the line it shows.
@@ -2718,8 +2760,6 @@ function applyZoom(zoom) {
   panes.forEach((p, i) => at[i] !== null && setPreviewLine(p, at[i]));
   for (const p of panes) if (p.previewBoxes) drawPreviewBoxes(p);   // found text's boxes: the text has another size (find.js)
 }
-const zoomBy = step => setZoom(setting('zoom') + step / 10);
-
 // ---------- Fonts (Options > Settings > Fonts) ----------
 // The editor font and the app font, each with a size in points (as Windows shows them). Not chosen:
 // Consolas 14 px in the editor, Segoe UI 13 px for the app. The editor also has a line height (times
@@ -2738,7 +2778,7 @@ function applyFonts() {
   const font = (name, rest) => name ? `"${name.replace(/["\\]/g, '')}", ${rest}` : rest;
   const root = document.documentElement.style;
   root.setProperty('--editor-font', font(fontSetting('editorFont'), EDITOR_FONT));
-  root.setProperty('--editor-size', (fontSetting('editorSize') ? pxOf(fontSetting('editorSize')) : EDITOR_PX) + 'px');
+  root.setProperty('--editor-size', pxOf(editorPt()) + 'px');   // the base and this screen's step
   root.setProperty('--editor-line', fontSetting('editorLine') || EDITOR_LINE);
   root.setProperty('--app-font', font(fontSetting('appFont'), APP_FONT));
   root.setProperty('--ui-scale', fontSetting('appSize') ? pxOf(fontSetting('appSize')) / APP_PX : 1);
@@ -2779,10 +2819,11 @@ function longLineIn(doc) {
 const hasLongLine = text => text.length > LONG_LINE && text.split('\n').some(line => line.length > LONG_LINE);
 
 // Ctrl+mouse wheel and the zoom keys in the editor: a point bigger or smaller, from 6 to 48.
+// The editor font a point bigger or smaller on this screen (Ctrl+wheel, Zoom in / out in the editor).
 function editorSizeBy(step) {
-  const pt = fontSetting('editorSize') || ptOf(EDITOR_PX);
-  setFontSetting('editorSize', Math.max(6, Math.min(48, step > 0 ? Math.floor(pt) + 1 : Math.ceil(pt) - 1)));
-  toast(`Editor font ${fontSetting('editorSize')} pt`, true);
+  const pt = editorPt(), next = Math.max(6, Math.min(48, step > 0 ? Math.floor(pt) + 1 : Math.ceil(pt) - 1));
+  setScreenZoom({ editorStep: next - baseEditorPt() });
+  toast(`Editor font ${next} pt on this screen`, true);
 }
 
 // ---------- Outline ----------
@@ -3848,7 +3889,7 @@ function applySettings() {
     for (const pane of panes) if (pane.cm) clearVirtual(pane.cm);
   if ((changed('tabSize') || changed('indentSize')) && 'tabSize' in was)
     for (const pane of panes) if (pane.cm && pane.active) applyTabStops(pane, pane.active.doc);
-  if (changed('zoom')) applyZoom(now.zoom);
+  if (changed('zoom')) applyZoom(previewZoom());
   if (changed('lineBreaks')) {
     applyLineBreaks(now.lineBreaks);
     if ('lineBreaks' in was) {
@@ -4013,7 +4054,7 @@ const commands = {
   viewFolder: () => setSideView('folder'),
   zoomIn: () => zoomBy(1),
   zoomOut: () => zoomBy(-1),
-  zoomReset: () => setZoom(1),
+  zoomReset: () => zoomReset(false),
   outline: () => setOutline(!document.body.hasAttribute('data-outline')),
   orient() {
     state.orient = state.orient === 'v' ? 'h' : 'v';
@@ -4141,6 +4182,7 @@ track((async () => {
   if (!settings.pageSettingsMoved) await movePageSettings();
   if (!settings.layoutMoved) await moveLayoutStorage();
   layoutOwn = (await host('windowLayout')) ?? {};   // its own, or its project's last window's
+  Object.assign(screenZoom, await host('screen'));   // the zoom of the monitor it is on
   mergeLayout();
   applySettings();   // the layout too: sidebar, outline, panes
   applyLook(await host('look'));

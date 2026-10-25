@@ -45,7 +45,12 @@ sealed class MainForm : Form
     /// <summary>The window's key in its project (ProjectStore).</summary>
     public int Key => start.Key;
     /// <summary>The layout this window shows now, as its page last said (layoutShown): for its settings window.</summary>
-    public JsonObject? Layout { get; private set; }
+    public JsonObject? PageLayout { get; private set; }
+    /// <summary>The monitor this window is on (Monitors): its key and name, for the zoom per screen (AppHost.ScreenOf).</summary>
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+    public string? ScreenKey { get; set; }
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+    public string? ScreenName { get; set; }
 
     /// <summary>Becomes another window of a project, before the page has asked what to open (AppHost.WindowShown).</summary>
     public void Rekey(int key) => start = start with { Key = key };
@@ -834,12 +839,24 @@ sealed class MainForm : Form
                 return app.LayoutFor(this);
 
             case "layoutShown":
-                Layout = msg["layout"]?.DeepClone() as JsonObject;
+                PageLayout = msg["layout"]?.DeepClone() as JsonObject;
                 app.LayoutShown(this);
                 return null;
 
             case "layoutImport":
                 app.ImportLayout(msg["values"]!.AsObject());
+                return null;
+
+            // The zoom of the monitor this window is on (docs/plans/31-PLAN-settings-layers.md, 3.6).
+            case "screen":
+                return app.ScreenOf(this);
+
+            case "screenZoom":
+                app.SetScreenZoom(this, msg["editorStep"]?.GetValue<double>(), msg["previewFactor"]?.GetValue<double>());
+                return null;
+
+            case "screenZoomClear":
+                app.ClearScreenZooms();
                 return null;
 
             case "settingDefs":

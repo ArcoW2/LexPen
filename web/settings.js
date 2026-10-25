@@ -289,6 +289,15 @@ function buildGroup(group) {
     el.querySelector('.st-hint').textContent = def.hint;
     const c = control(def);
     el.append(c.box);
+    // The base for every screen; this screen's own zoom on a line of its own, with Reset (docs/plans/31-PLAN-settings-layers.md).
+    if (def.name === 'editorSize' || def.name === 'zoom') {
+      const line = document.createElement('div');
+      line.className = 'st-screen';
+      line.innerHTML = '<span class="st-layer" data-layer="screen"></span><span class="st-screen-text"></span><button>Reset</button>';
+      line.querySelector('.st-layer').title = layerTip('screen');
+      line.querySelector('button').addEventListener('click', () => host('screenZoomReset', def.name === 'zoom' ? { preview: true } : { editor: true }));
+      el.querySelector('.st-text').append(line);
+    }
     if (def.kind !== 'keys') {
       const reset = document.createElement('button');
       reset.className = 'st-reset';
@@ -315,7 +324,7 @@ let layerShown = null;
 function layerTip(layer) {
   if (layer === 'window') return 'This window: ' + (settings.window || 'the window this one belongs to');
   if (layer === 'set') return 'Theme set: Default';
-  if (layer === 'screen') return 'This screen: the monitor the window is on';
+  if (layer === 'screen') return 'This screen: ' + (settings.screen?.name || 'the monitor the window is on');
   return 'Global: every window';
 }
 
@@ -354,10 +363,36 @@ function show() {
     if (def.hintOff) el.querySelector('.st-hint').textContent = value ? def.hint : def.hintOff;
     el.classList.toggle('st-changed', def.layer === 'window' ? JSON.stringify(value) !== JSON.stringify(defaultOf(def)) : settings.user.includes(def.name));
   }
+  showScreenZoom();
   const problems = [...(settings.problems ?? []), ...(settings.look?.problems ?? []), ...(settings.languageProblems ?? [])];
   ui.problems.hidden = !problems.length;
   ui.problems.textContent = problems.join('\n');
 }
+
+// This screen's own zoom under the base rows: the editor's step, the preview's factor; hidden when it has none.
+function showScreenZoom() {
+  const s = settings.screen ?? {};
+  for (const { def, el } of rows) {
+    const line = el.querySelector('.st-screen');
+    if (!line) continue;
+    let text = '';
+    if (def.name === 'editorSize' && s.editorStep) {
+      const pt = (valueOf('editorSize') || 10.5) + s.editorStep;   // 10.5 pt: the editor's default size (app.js)
+      text = `On this screen: ${s.editorStep > 0 ? '+' : ''}${s.editorStep} pt, so ${pt} pt`;
+    }
+    if (def.name === 'zoom' && s.previewFactor && s.previewFactor !== 1)
+      text = `On this screen: ${Math.round((valueOf('zoom') || 1) * s.previewFactor * 100)}%`;
+    line.hidden = !text;
+    line.querySelector('.st-screen-text').textContent = text;
+    line.querySelector('.st-layer').title = layerTip('screen');
+  }
+}
+
+// The zoom of the main window's monitor changed (a zoom there, the window moved to another monitor).
+events.screen = s => {
+  settings.screen = s;
+  show();
+};
 
 // As setSetting in app.js: a value set here and not yet confirmed wins over a set the host sent meanwhile.
 const unconfirmed = new Map();
@@ -382,7 +417,7 @@ function set(name, value) {
 events.settings = ({ settings: s }) => {
   const mine = Object.fromEntries([...unconfirmed.keys()].map(n => [n, settings.values[n]]));
   settings = { ...s, defs: settings.defs, look: settings.look, languageProblems: settings.languageProblems, layout: settings.layout,
-    window: settings.window };
+    window: settings.window, screen: settings.screen };
   Object.assign(settings.values, mine);
   show();
 };

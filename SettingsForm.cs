@@ -125,8 +125,9 @@ sealed class SettingsForm : Form
                 init["defs"] = app.SettingDefs?.DeepClone();
                 init["look"] = app.Look();
                 init["languageProblems"] = app.Languages["problems"]?.DeepClone();
-                init["layout"] = window.Layout?.DeepClone();   // the rows of "this window" (docs/plans/31-PLAN-settings-layers.md)
+                init["layout"] = window.PageLayout?.DeepClone();   // the rows of "this window" (docs/plans/31-PLAN-settings-layers.md)
                 init["window"] = app.ProjectInfo(window)["display"]?.DeepClone();   // its name in the rows' tooltips
+                init["screen"] = app.ScreenOf(window);   // the zoom of its monitor
                 return init;
             }
 
@@ -151,6 +152,11 @@ sealed class SettingsForm : Form
                 ToWindow(new JsonObject { ["event"] = "open", ["files"] = new JsonArray(path) });
                 return null;
             }
+
+            // The zoom of the main window's monitor back to the base (the editor's, the preview's or both).
+            case "screenZoomReset":
+                app.SetScreenZoom(window, msg["editor"]?.GetValue<bool>() == true ? 0 : null, msg["preview"]?.GetValue<bool>() == true ? 1 : null);
+                return null;
 
             // An action of the main window this one belongs to, without bringing it to the front (Reset to default).
             case "runInWindow":

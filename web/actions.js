@@ -226,12 +226,15 @@ toggleAction('formatBar', { title: 'Formatting bar', hint: 'The bar with bold, h
 appAction('searchInFiles', { title: 'Search in files', hint: 'In the file, the open files or the folder; codes ^p ^t ^? ^# ^$ ^w ^^', group: 'view', run: () => startSearch() });
 // In the editor (it has the focus) the zoom is the editor font size; elsewhere the preview zoom.
 const editorFocused = () => panes.some(p => p.cm?.hasFocus());
-appAction('zoomIn', { title: 'Zoom in', hint: 'The editor font size in the editor, else the preview (also Ctrl+mouse wheel)', group: 'view',
+// The zoom is per screen (the monitor the window is on), on top of the settings' base (docs/plans/31-PLAN-settings-layers.md).
+appAction('zoomIn', { title: 'Zoom in', hint: 'On this screen: the editor font size in the editor, else the preview (also Ctrl+mouse wheel)', group: 'view',
   run: () => editorFocused() ? editorSizeBy(1) : zoomBy(1) });
-appAction('zoomOut', { title: 'Zoom out', hint: 'The editor font size in the editor, else the preview', group: 'view',
+appAction('zoomOut', { title: 'Zoom out', hint: 'On this screen: the editor font size in the editor, else the preview', group: 'view',
   run: () => editorFocused() ? editorSizeBy(-1) : zoomBy(-1) });
-appAction('zoomReset', { title: 'Zoom 100%', hint: 'The editor font at its default size in the editor, else the preview at its normal size', group: 'view',
-  run: () => editorFocused() ? setFontSetting('editorSize', 0) : setZoom(1) });
+appAction('zoomReset', { title: 'Zoom 100%', hint: 'This screen back to the zoom of every screen (the settings): the editor font in the editor, else the preview', group: 'view',
+  run: () => zoomReset(editorFocused()) });
+appAction('zoomEveryScreen', { title: 'Zoom: use on every screen', hint: 'This screen\'s zoom (editor font and preview) becomes the settings\' one; no screen keeps its own', group: 'view',
+  run: () => zoomOnEveryScreen() });
 toggleAction('theme', { title: 'Day / night', hint: 'Light or dark, for all windows', group: 'view' },
   () => state.theme === 'dark', () => commands.theme(), ['night', 'day']);
 toggleAction('compareScroll', { title: 'Scroll both panes together', hint: 'By source line', group: 'view', enabled: () => bothShown() },

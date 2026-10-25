@@ -42,6 +42,11 @@
 .st-legend button:hover { color: var(--fg); border-color: var(--border); }
 .st-legend button.st-on { color: var(--fg); border-color: var(--accent); }
 .st-legend .st-layer { align-self: auto; width: 3px; height: 14px; margin: 0; }
+.st-screen { display: flex; align-items: center; gap: 8px; margin-top: 4px; color: var(--fg); font-size: calc(12px * var(--ui-scale)); }
+.st-screen[hidden] { display: none; }
+.st-screen .st-layer { align-self: auto; height: 14px; margin: 0; }
+.st-screen button { padding: 1px 8px; border: 0; background: none; color: var(--accent); font-size: inherit; }
+.st-screen button:hover { text-decoration: underline; }
 .st-row:focus-within { background: var(--hover); }
 .st-row.st-changed { border-left-color: var(--accent); }
 .st-text { flex: 1; min-width: 0; }

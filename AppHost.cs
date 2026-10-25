@@ -43,6 +43,7 @@ sealed class AppHost : ApplicationContext
         public int[]? CharPicker { get; set; }   // the character picker's place: x, y, width, height
         public int[]? HighlightsWindow { get; set; }   // the highlights window's place: x, y, width, height
         public int[]? ProjectsWindow { get; set; }   // the Manage projects window's place: x, y, width, height
+        public Dictionary<string, ScreenZoom> Screens { get; set; } = [];   // the zoom per monitor, by its key (Monitors)
     }
 
     public AppState State { get; } = LoadState();
@@ -797,6 +798,55 @@ sealed class AppHost : ApplicationContext
         ReloadSettings();
     }
 
+    // ---------- Zoom per screen (docs/plans/31-PLAN-settings-layers.md, 3.6) ----------
+    // The base is global (editorSize, zoom in settings.json); each monitor can add its own (ScreenZoom), kept in
+    // state.json: the monitors differ per PC. A window shows the zoom of the monitor it is on, and takes another's
+    // when it moves there (its place changing: WindowPlaceChanged).
+
+    /// <summary>What a window's page gets: its monitor's key, name and zoom.</summary>
+    public JsonObject ScreenOf(MainForm w)
+    {
+        if (w.ScreenKey is null) (w.ScreenKey, w.ScreenName) = Monitors.Of(w);
+        var zoom = State.Screens.GetValueOrDefault(w.ScreenKey);
+        return new JsonObject { ["key"] = w.ScreenKey, ["name"] = w.ScreenName, ["editorStep"] = zoom?.EditorStep ?? 0, ["previewFactor"] = zoom?.PreviewFactor ?? 1 };
+    }
+
+    void SendScreen(MainForm w)
+    {
+        var screen = ScreenOf(w);
+        screen["event"] = "screen";
+        w.Post(screen);
+        settingsWindows.GetValueOrDefault(w)?.Post((JsonObject)screen.DeepClone());
+    }
+
+    // The window may be on another monitor now (moved, resized, maximised, the DPI changed).
+    void ScreenChanged(MainForm w)
+    {
+        if (w.ScreenKey is null || w.WindowState == FormWindowState.Minimized) return;   // not asked yet: the page asks first
+        var (key, name) = Monitors.Of(w);
+        if (key == w.ScreenKey) return;
+        (w.ScreenKey, w.ScreenName) = (key, name);
+        SendScreen(w);
+    }
+
+    /// <summary>Zoom in / out / 100% in a window: its monitor's zoom (null: that part stays); every window on that
+    /// monitor follows.</summary>
+    public void SetScreenZoom(MainForm from, double? editorStep, double? previewFactor)
+    {
+        var key = ScreenOf(from)["key"]!.GetValue<string>();
+        ScreenZoom.Set(State.Screens, key, editorStep, previewFactor);
+        SaveState();
+        foreach (var w in windows) if (w.ScreenKey == key) SendScreen(w);
+    }
+
+    /// <summary>View > Zoom > Use on every screen (the page made this screen's zoom the base): no monitor has its own.</summary>
+    public void ClearScreenZooms()
+    {
+        State.Screens.Clear();
+        SaveState();
+        foreach (var w in windows) if (w.ScreenKey is not null) SendScreen(w);
+    }
+
     // ---------- A window's layout (docs/plans/31-PLAN-settings-layers.md) ----------
 
     /// <summary>The layout a window opens with: its own, else that of the last window of its project (ProjectStore.LayoutOf).</summary>
@@ -804,7 +854,7 @@ sealed class AppHost : ApplicationContext
 
     /// <summary>A window's layout changed (the page says it): its settings window follows.</summary>
     public void LayoutShown(MainForm w) =>
-        settingsWindows.GetValueOrDefault(w)?.Post(new JsonObject { ["event"] = "layout", ["layout"] = w.Layout?.DeepClone() });
+        settingsWindows.GetValueOrDefault(w)?.Post(new JsonObject { ["event"] = "layout", ["layout"] = w.PageLayout?.DeepClone() });
 
     // Your settings.json changed on disk (a hand edit, another LexPen copy): read again, every window follows.
     FileSystemWatcher? settingsWatcher;
@@ -1148,6 +1198,7 @@ sealed class AppHost : ApplicationContext
     /// <summary>The window moved, changed size or desktop: kept with its session.</summary>
     public void WindowPlaceChanged(MainForm w)
     {
+        ScreenChanged(w);
         if (projects.WindowOf(w.Key) is not { } entry || w.WindowState == FormWindowState.Minimized) return;
         var b = w.WindowState == FormWindowState.Normal ? w.Bounds : w.RestoreBounds;
         int[] bounds = [b.X, b.Y, b.Width, b.Height];

@@ -62,7 +62,7 @@ const MENUS = [
     ['Scroll both panes &together', 'compareScroll.toggle'],
     { label: 'La&yout', sub: [['&Save as default', 'layoutSaveDefault'], ['&Reset to default', 'layoutResetDefault']] },
     { header: 'This screen' },
-    { label: '&Zoom', sub: [['Zoom &in', 'zoomIn'], ['Zoom &out', 'zoomOut'], ['&100%', 'zoomReset']] },
+    { label: '&Zoom', sub: [['Zoom &in', 'zoomIn'], ['Zoom &out', 'zoomOut'], ['&100%', 'zoomReset'], '-', ['Use on &every screen', 'zoomEveryScreen']] },
     '-',
     ['Locate the &cursor (tap Ctrl)', 'locateCursor'],
     { label: 'Pane &visibility', sub: [['&Hide this pane', 'paneHide'], ['Hide &other pane', 'paneHideOther'], ['&Close this pane', 'paneClose'],
