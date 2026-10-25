@@ -461,7 +461,7 @@ function makePane(index) {
     const head = e.target.closest('[data-group-head]');
     if (head) return toggleOutlineGroup(pane, head);      // a group's header: fold or unfold
     const item = e.target.closest('[data-line]');
-    if (item) goToLine(pane, +item.dataset.line);         // there, the cursor stays (a double-click moves it)
+    if (item) goToLine(pane, +item.dataset.line, true, true);   // placed as a find; the cursor stays (a double-click moves it)
   });
   // A long click: a sneak preview (startSneak).
   pane.outlineEl.addEventListener('pointerdown', e => { pane.sneakEnded = false; startSneak(pane, e); });
@@ -3083,17 +3083,24 @@ function atIntensity(css, percent, where = document.body) {
 
 // Puts the source line at the top of the pane: preview, editor or both. The cursor stays where it is (a click in
 // the outline; a double-click moves it). `focus`: the editor gets the keys again.
-function goToLine(pane, line, focus = true) {
+// `found` (a click in the outline): placed as a found place is, by the settings of Find > Jump to a found place
+// (centred, or the lines kept from the edge; revealFound), in the editor and in the preview.
+function goToLine(pane, line, focus = true, found = false) {
   const tab = pane.active;
   if (!tab) return;
   if (tab.mode !== 'edit') {
     const el = tab.article.querySelector(`[data-line="${line}"]`);
-    if (el) pane.previewEl.scrollTop = el.getBoundingClientRect().top - pane.previewEl.getBoundingClientRect().top + pane.previewEl.scrollTop - 8;
+    if (el && found) {
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      revealFoundInPreview(pane, range);
+    } else if (el) pane.previewEl.scrollTop = el.getBoundingClientRect().top - pane.previewEl.getBoundingClientRect().top + pane.previewEl.scrollTop - 8;
     else setPreviewLine(pane, line);
   }
   if (tab.mode !== 'preview' && pane.cm) {
     pane.placed = tab.mode === 'split';
-    pane.cm.scrollTo(null, pane.cm.heightAtLine(line, 'local'));
+    if (found) revealFound(pane.cm, CodeMirror.Pos(line, 0));
+    else pane.cm.scrollTo(null, pane.cm.heightAtLine(line, 'local'));
     if (focus) pane.cm.focus();
   }
 }
