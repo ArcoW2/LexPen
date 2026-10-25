@@ -43,8 +43,11 @@ let lastId = 0;
 
 // Shows the busy bar for as long as the promise is pending.
 let busyCount = 0;
+// The busy bar is an element of its own: an attribute on body (with the progress cursor all of the page inherited)
+// made the browser restyle the whole page twice per host call, about a second with a large file in the preview.
+const busyBar = document.querySelector('.mm-busy');
 function track(promise) {
-  const update = change => document.body.toggleAttribute('data-busy', (busyCount += change) > 0);
+  const update = change => busyBar.toggleAttribute('data-on', (busyCount += change) > 0);
   update(1);
   promise.then(() => update(-1), () => update(-1));
   return promise;
@@ -1225,9 +1228,13 @@ async function activate(pane, tab) {
   saveSession();
 }
 
-function insertTab(pane, tab) {
-  const at = pane.tabs.indexOf(pane.active);
-  pane.tabs.splice(at < 0 ? pane.tabs.length : at + 1, 0, tab);
+// A new tab: after the active one, but never before or among the pinned tabs (after the last of them); `last`: at the
+// end (a file opened into a window that was closed, its tabs as they were).
+function insertTab(pane, tab, last = false) {
+  const active = pane.tabs.indexOf(pane.active);
+  let at = last || active < 0 ? pane.tabs.length : active + 1;
+  if (!tab.pinned) at = Math.max(at, pane.tabs.findLastIndex(t => t.pinned) + 1);
+  pane.tabs.splice(at, 0, tab);
 }
 
 // Takes the tab out of its pane; the neighbor becomes active.
@@ -1611,12 +1618,12 @@ statusUi.clip.addEventListener('click', () => showClipboardList());
 
 // ---------- Opening and closing ----------
 // Opens a file in a tab of the pane, or activates the tab that already shows it there.
-async function openFile(path, { pane = panes[state.activePane], anchor, mode } = {}) {
+async function openFile(path, { pane = panes[state.activePane], anchor, mode, last } = {}) {
   let tab = pane.tabs.find(t => samePath(t.doc.path, path));
   if (!tab) {
     const doc = findDoc(path) ?? await loadDoc(path);
     tab = pane.tabs.find(t => t.doc === doc) ?? makeTab(doc, mode);
-    if (!pane.tabs.includes(tab)) insertTab(pane, tab);
+    if (!pane.tabs.includes(tab)) insertTab(pane, tab, last);
   }
   noteOpened('files', tab.doc.path);
   await activate(pane, tab);
@@ -3723,14 +3730,14 @@ events.view = async ({ folder, files }) => {
 // unless that one is a draft, has changes or is pinned (then a tab of its own); a file already open in the pane: that
 // tab, as it is. A tab it gets is read-only with the setting viewReadOnly (the tab menu's Read-only takes that off),
 // so it cannot be changed by accident; without the setting it can be edited at once.
-async function viewFile(path) {
+async function viewFile(path, last = false) {
   const pane = panes[state.activePane], shown = pane.active;
   if (pane.tabs.some(t => samePath(t.doc.path, path))) return openFile(path, { pane });
   let tab;
   if (shown && !shown.doc.draft && !shown.doc.dirty && !shown.pinned && await navigate(shown, path)) {
     tab = shown;
     if (tab.mode !== 'preview') { tab.mode = 'preview'; await showActive(pane); }
-  } else tab = await openFile(path, { pane, mode: 'preview' });
+  } else tab = await openFile(path, { pane, mode: 'preview', last });
   if (!!tab.readOnly !== !!setting('viewReadOnly')) await setReadOnly(tab, !!setting('viewReadOnly'));
   return tab;
 }
@@ -4300,7 +4307,9 @@ track((async () => {
   if (tree && Number.isFinite(tree.top)) ui.tree.scrollTop = tree.top;
   if (start.restore !== undefined || start.drafts) await restore(session, start.drafts || []);
   // View in LexPen (docs/plans/executed/PLAN-view-window.md): the files in the preview, the folder in the Folder pane.
-  for (const path of start.files) await (start.view ? viewFile(path) : openFile(path)).catch(e => toast(e.message));
+  // A window of a project opened again for them (it was closed): the files after its tabs as they were.
+  const reopened = start.restore !== undefined && start.restore !== null;
+  for (const path of start.files) await (start.view ? viewFile(path, reopened) : openFile(path, { last: reopened })).catch(e => toast(e.message));
   if (start.view && start.folder) { setSidebar(true); setSideView('folder'); }
   syncWatch();
   syncWatchFiles();

@@ -9,7 +9,9 @@
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="app.css">
 </head>
-<body data-busy>
+<body>
+<!-- Busy bar (track in app.js): on while the page waits for LexPen; an element of its own, see app.css. -->
+<div class="mm-busy" data-on></div>
 
 <!-- Buttons with data-action run that action; their tooltip shows its key (see showKeys). -->
 <header class="mm-toolbar">
