@@ -201,6 +201,12 @@ toggleAction('sidebar', { title: 'Sidebar', hint: 'Show or hide the folder pane 
   () => document.body.dataset.sidebar === 'on', () => commands.sidebar(), ['show', 'hide']);
 appAction('folders', { title: 'Folders', hint: 'The folder pane, with the keyboard in it', group: 'view', run: () => focusTree() });
 appAction('searchView', { title: 'Search', hint: 'The search in the sidebar', group: 'view', run: () => startSearch() });
+// The window's layout as the default for new projects, or back to that default (docs/plans/31-PLAN-settings-layers.md).
+appAction('layoutSaveDefault', { title: 'Save layout as default', group: 'view',
+  hint: 'This window\'s layout (sidebar, outline, panes, bars, gutter, ...) becomes the one a new project starts with',
+  run: () => saveLayoutAsDefault() });
+appAction('layoutResetDefault', { title: 'Reset layout to default', group: 'view',
+  hint: 'This window\'s layout back to the default one; its tabs and folder stay', run: () => resetLayoutToDefault() });
 appAction('paneOrientation.set', { title: 'Panes', hint: 'Side by side or above each other', group: 'view',
   variants: [['v'], ['h']], variantTitles: { v: 'Panes side by side', h: 'Panes above each other' },
   checked: ([o]) => state.orient === o, run: ([o]) => state.orient === o || commands.orient() });

@@ -138,6 +138,23 @@ function layoutChanged() {
 
 // From this window's settings window: a row of "this window".
 events.layoutSet = ({ name, value }) => setSetting(name, value);
+
+// View > Layout > Save as default: this window's layout becomes defaultLayout in settings.json, the layout new
+// projects start with; at once, the message offers Undo (the default as it was).
+function saveLayoutAsDefault() {
+  const before = settings.user.includes('defaultLayout') ? settings.values.defaultLayout : settings.defaults.defaultLayout;
+  setSetting('defaultLayout', windowLayout());
+  toast('This window\'s layout is now the default for new projects.', true, { label: 'Undo', run: () => setSetting('defaultLayout', before) });
+}
+
+// View > Layout > Reset to default: this window's layout back to defaultLayout; its tabs and folder stay.
+function resetLayoutToDefault() {
+  layoutOwn = {};
+  mergeLayout();
+  applySettings();
+  layoutChanged();
+  toast('This window has the default layout again.', true);
+}
 chrome.webview.addEventListener('message', e => {
   if (e.data.event) return events[e.data.event]?.(e.data);
   const { id, result, error } = e.data;
@@ -147,8 +164,16 @@ chrome.webview.addEventListener('message', e => {
 });
 
 // Errors and warnings are red; `info` (a confirmation) is blue.
-function toast(message, info) {
+// `action` ({ label, run }): a button in the message, as Undo.
+function toast(message, info, action) {
   ui.toast.textContent = message;
+  if (action) {
+    const b = document.createElement('button');
+    b.className = 'mm-toast-action';
+    b.textContent = action.label;
+    b.addEventListener('click', () => { ui.toast.hidden = true; action.run(); });
+    ui.toast.append(' ', b);
+  }
   ui.toast.classList.toggle('mm-info', !!info);
   ui.toast.hidden = false;
   clearTimeout(toast.timer);

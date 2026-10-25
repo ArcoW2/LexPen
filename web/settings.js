@@ -29,8 +29,7 @@ const SLIDER_DELAY = 200;   // ms a slider rests before the app gets its value
 let settings = null;   // { values, defaults, user, problems, defs, layout }
 // A row of "this window" (def.layer): its value is in the main window's layout, not in settings.json
 // (docs/plans/31-PLAN-settings-layers.md); a change goes to that window.
-const ofWindow = name => rows.find(r => r.def.name === name)?.def.layer === 'window'
-  || settings.defs?.find(d => d.name === name)?.layer === 'window';
+const ofWindow = name => Object.hasOwn(settings.defaults.defaultLayout ?? {}, name);
 const valueOf = name => ofWindow(name)
   ? settings.layout?.[name] ?? settings.values.defaultLayout?.[name] ?? settings.defaults.defaultLayout?.[name] : settings.values[name];
 const defaultOf = def => def.layer === 'window' ? settings.defaults.defaultLayout?.[def.name] : def.default ?? settings.defaults[def.name];
@@ -441,6 +440,32 @@ addEventListener('keydown', e => {
 }, true);
 
 $('.st-foot [data-open]').addEventListener('click', e => host('openFile', { file: e.target.dataset.open }));
+
+// ---------- This window's layout: Save as default, Reset to default ----------
+// Save: the main window's layout becomes defaultLayout (the layout new projects start with), at once; the bar says so,
+// with Undo (the default as it was). Reset: the main window takes the default layout again (its tabs and folder stay).
+const layoutBar = $('.st-layout'), layoutText = layoutBar.querySelector('.st-layout-text');
+function layoutMessage(text, undo) {
+  layoutText.textContent = text;
+  for (const b of layoutBar.querySelectorAll('[data-layout]')) b.hidden = !!undo;
+  layoutBar.querySelector('.st-undo')?.remove();
+  if (undo) {
+    const b = document.createElement('button');
+    b.className = 'st-undo';
+    b.textContent = 'Undo';
+    b.addEventListener('click', () => { undo(); layoutMessage("This window's layout:"); });
+    layoutBar.append(b);
+  }
+  clearTimeout(layoutMessage.timer);
+  if (undo) layoutMessage.timer = setTimeout(() => layoutMessage("This window's layout:"), 8000);
+}
+layoutBar.querySelector('[data-layout="save"]').addEventListener('click', () => {
+  const before = settings.user.includes('defaultLayout') ? settings.values.defaultLayout : settings.defaults.defaultLayout;
+  const layout = Object.fromEntries(Object.keys(settings.defaults.defaultLayout ?? {}).map(n => [n, valueOf(n)]));
+  set('defaultLayout', layout);
+  layoutMessage("This window's layout is now the default for new projects.", () => set('defaultLayout', before));
+});
+layoutBar.querySelector('[data-layout="reset"]').addEventListener('click', () => host('runInWindow', { name: 'layoutResetDefault' }));
 
 // ---------- Start ----------
 (async () => {

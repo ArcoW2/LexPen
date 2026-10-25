@@ -151,6 +151,11 @@ sealed class SettingsForm : Form
                 return null;
             }
 
+            // An action of the main window this one belongs to, without bringing it to the front (Reset to default).
+            case "runInWindow":
+                if (!window.IsDisposed) window.Post(new JsonObject { ["event"] = "runAction", ["name"] = Arg("name") });
+                return null;
+
             // F1 (keyboard shortcuts and commands) in the most recently active LexPen window.
             case "showCommands":
                 ToWindow(new JsonObject { ["event"] = "runAction", ["name"] = "commands" });
