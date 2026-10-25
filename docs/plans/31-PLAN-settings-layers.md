@@ -2,8 +2,9 @@
 
 Status: draft 2026-10-25; your answers of 2026-10-25 worked in (the borderline settings and the folder filter
 and sort per window, the old names removed from settings.json, layer colours per theme, a settings window per main
-window, one default layout, Save as default at once). Not started; one question open. From your agreement on the three layers: "Make a plan for
-this split when it can be executed separately (before the other two)". It can: see 3.10 for the order with plans
+window, one default layout, Save as default at once; the View menu grouped per layer, the settings window marked
+per row). Not started; one question open. From your agreement on the three layers: "Make a plan for
+this split when it can be executed separately (before the other two)". It can: see 3.11 for the order with plans
 32 and 33.
 The number in the file name is the priority; rename to reorder.
 
@@ -73,7 +74,7 @@ Stays where it is:
   tab).
 - The session's present contents (folder, tabs, modes, hidden pane, scroll together): already per window.
 - `editorSize` stays global: it is the editor font, with `editorFont`. Note that Zoom in / out with the focus in the
-  editor changes `editorSize`, so in the editor it zooms every window, in the preview only this one (question 2).
+  editor changes `editorSize`, so in the editor it zooms every window, in the preview only this one (question 1).
 
 The rule for a setting later added: is it about what this window shows, switched from the View menu, and would
 you want it different in another project (the view project)? Then this window; else global.
@@ -150,9 +151,52 @@ window opened from project A.
   Default", "Global: every window"), and a legend at the top of the settings window shows the three colours with
   their names. The legend's items filter the rows to one layer (a click; again for all).
 - A group whose rows all belong to one layer: the line runs along the whole group.
-- The View menu: grouped by layer or marked (question 1).
+- Not grouped per layer in the settings window: one group (Editor view) holds all three layers, so indent guides
+  on / off would land under Global and their colour under Theme set. The groups stay as they are; the line marks
+  the layer.
 
-### 3.8 Host changes
+### 3.8 The View menu, grouped per layer
+
+The View menu is grouped instead of marked: nearly everything in it belongs to this window. Two headers (a
+non-clickable label line, new in menus.js: an item `{ header: 'This window' }`), and the actions without a layer
+between them:
+
+```
+View
+  -- This window ---------------------
+  Editor
+  Preview
+  Outline
+  Sidebar / Folders / Search
+  Ruler
+  Formatting bar
+  Wrap long lines
+  Tab bar               >
+  Gutter                >
+  Scroll bar marks      >
+  Pane orientation      >   side by side / above each other
+  Scroll both panes together
+  Zoom                  >
+  Layout                >   Save as default / Reset to default
+  ------------------------------------
+  Locate the cursor
+  Pane visibility       >   hide this pane / hide other pane / close this pane / close other pane / show hidden pane
+  Level the panes, Split into the other pane
+  Position back / forward, Back / Forward
+  Language...
+  Compare               >   next, previous, align, swap, leave
+  -- All windows ---------------------
+  Compare options       >   ignore whitespace, ignore case, line strip
+  Day / night
+```
+
+- Panes is split: Pane orientation (a setting, this window) and Pane visibility (actions on the panes).
+- The compare options leave the Compare submenu for Compare options under All windows; Compare keeps its actions.
+- Zoom: under This window; where the editor zoom belongs is question 1.
+- The accelerator letters (`&`) are kept where the item keeps its label, and chosen anew for the new and moved
+  items, without clashes inside the menu.
+
+### 3.9 Host changes
 
 - AppHost: settings windows per owner (in place of the one `settingsWindow`); OpenSettings brings the owner's to
   the front or makes one; the posts that go to `settingsWindow` now (settings, look, defs, languages, theme) go to
@@ -166,11 +210,12 @@ window opened from project A.
   removed from settings.json (3.4).
 - Page (app.js, actions.js): the layout names, `setting` / `setSetting` for them, the layout in `sessionData` and
   `restore`, the fallback from localStorage and settings.
+- Menus (menus.js): the header item; the View menu as 3.8.
 - Settings page (settings.js, settings.html): the layer per row from the definitions (a `layer` on each, default
   global), the line, the tooltip, the legend and its filter; a layout row's value from and to the owner; the
   layout bar (3.5).
 
-### 3.9 Tests
+### 3.10 Tests
 
 - ProjectStore: a session's `layout` round trip; the layout of a new window from the last window of the project;
   a new project from `defaultLayout`.
@@ -186,9 +231,10 @@ window opened from project A.
   change looks as before; a layout row changed in the settings window and from the View menu, each following the
   other; the coloured lines, tooltips and legend filter in light and dark; Settings opened in two projects on two
   desktops, each its own; a window set up and saved as default, then a new project opening so; Reset to default
-  in another project.
+  in another project; the View menu as 3.8, headers not clickable and skipped by the arrow keys, every accelerator
+  letter unique in it.
 
-### 3.10 Order with plans 32 and 33
+### 3.11 Order with plans 32 and 33
 
 - This plan first; it needs neither of the others.
 - Plan 33 (view project) needs this plan: "Reset to view layout" writes the window's layout, which only exists
@@ -201,7 +247,5 @@ window opened from project A.
 
 ## 4. Open questions
 
-1. The View menu: grouped per layer (your answer), or a mark per item when grouping looks wrong. To be decided on
-   the mock-ups (in the conversation of 2026-10-25; the chosen one is written in here).
-2. Zoom in the editor changes `editorSize`, a global setting, so it zooms every window (3.2). Leave it so, or make
+1. Zoom in the editor changes `editorSize`, a global setting, so it zooms every window (3.2). Leave it so, or make
    the editor zoom a layout value too (an offset on `editorSize` per window)?
