@@ -19,6 +19,7 @@ sealed class ProjectStore
         public string Name = "";
         public DateTime Used;
         public DateTime? Created;        // null: made before LexPen kept it (the id order is the creation order)
+        public string? ThemeSet;         // its own theme set (docs/plans/32-PLAN-theme-sets.md), or null: the defaults
         public List<Window> Windows = [];
     }
 
@@ -69,6 +70,7 @@ sealed class ProjectStore
                 Name = po["name"]?.GetValue<string>() ?? "",
                 Used = Time(po["used"]),
                 Created = po["created"] is null ? null : Time(po["created"]),
+                ThemeSet = po["themeSet"]?.GetValueKind() == JsonValueKind.String ? po["themeSet"]!.GetValue<string>() : null,
             };
             foreach (var wn in po["windows"]?.AsArray() ?? [])
             {
@@ -104,6 +106,7 @@ sealed class ProjectStore
             ["projects"] = new JsonArray(Projects.Select(p => (JsonNode?)new JsonObject
             {
                 ["id"] = p.Id, ["name"] = p.Name, ["used"] = p.Used.ToString("o"), ["created"] = p.Created?.ToString("o"),
+                ["themeSet"] = p.ThemeSet,
                 ["windows"] = new JsonArray(p.Windows.Select(w => (JsonNode?)new JsonObject
                 {
                     ["key"] = w.Key, ["open"] = w.Open, ["session"] = w.Session?.DeepClone(),
