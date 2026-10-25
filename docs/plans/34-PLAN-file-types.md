@@ -1,94 +1,116 @@
-# Plan: file types: which extensions open in LexPen (Explorer's Open)
+# Plan: file types: which extensions open in LexPen (Explorer's Open), as edit or view
 
-Status: draft 2026-10-25, not started; questions open.
+Status: draft 2026-10-25, your answers of 2026-10-25 worked in (the default taken over by removing Windows' stored
+choice; a column Opens now with; a dialog in the settings window; unchecking removes LexPen's entries; not from a debug
+build; register.ps1 goes; a choice per extension: edit or view). Not started; one question open.
 The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
 
 Explorer opens a file with a double-click (its Open) in the app Windows has as the default for the file's extension.
 LexPen only registers itself for `.md`, and only by hand (`register.ps1`). Every other extension a language pack knows
-(`.sql`, `.cs`, `.json`, `.yaml`, ...) opens elsewhere, unless you set each one in Windows' Settings yourself.
+(`.sql`, `.cs`, `.json`, `.yaml`, ...) opens elsewhere, unless you set each one in Windows' Settings yourself. And a
+double-click always edits: there is no way to have some file types open in the project for viewing.
 
 ## 2. The solution, in brief
 
-A File types window, from Settings > App > Windows Explorer: a table of every extension the language packs know, with
-its language and a checkbox; sortable by extension or by language. Check all, Check none, Assign, Cancel. Assign
-registers LexPen for the checked extensions (and takes it off the unchecked ones it had), for the current user, no
-admin. Where Windows already has another app chosen for an extension, Windows does not let an app take that over:
-LexPen then says which ones, and opens Windows' Default apps at LexPen's page to confirm them there.
+A File types dialog in the settings window (Settings > App > Windows Explorer): a table of every extension the
+language packs know, with a checkbox, its language, how it opens (Edit or View, Edit by default) and the app Windows
+opens it with now; sortable by each column. Check all, Check none, Assign, Cancel. Assign registers LexPen for the
+checked extensions, each as edit or view, and takes it off the unchecked ones it had; for the current user, no admin.
+Where you chose another app for an extension before, Assign removes that stored choice so Windows falls back to
+LexPen; what Windows still keeps elsewhere is named, and Windows' Default apps opens at LexPen's page for it.
 
 ## 3. Details
 
-### 3.1 The window
+### 3.1 The dialog
 
-- Opened from Settings > App > Windows Explorer: a row "File types" with a button "File types...", and from F1.
-- A table, one row per extension the language packs give (`extensions:` in each pack's language.yaml, your own packs
+- In the settings window: Settings > App > Windows Explorer gets a row "File types" with a button "File types...",
+  which opens the dialog over the settings (as the settings window's own dialogs). Also from F1.
+- One row per extension the language packs give (`extensions:` in each pack's language.yaml, your own packs
   included); an extension two packs name: the one LexPen uses (as LanguagePacks does now).
-- Columns: a checkbox, Extension (`.sql`), Language (Sybase ASA SQL); a click on a column header sorts by it (again:
-  the other way). Proposal for a third column, Opens now with: the app Windows starts now (question 2).
-- Checked at the start: the extensions LexPen is registered for now.
+- Columns:
+  - a checkbox: LexPen opens it;
+  - Extension (`.sql`);
+  - Language (Sybase ASA SQL);
+  - Opens as: Edit or View, a list per row; Edit when not chosen before. Edit: as opening a file is now (never in the
+    project for viewing). View: in the project for viewing, in the preview, read-only as its setting says
+    (`--view`, docs/plans/executed/PLAN-view-window.md);
+  - Opens now with: the app Windows starts now for it (its name; "LexPen" in the accent colour; "-" for none).
+- A click on a column header sorts by it; again: the other way.
+- A filter field above the table (type `sq` or `sql`): the rows whose extension or language contains it.
+- Checked at the start: the extensions LexPen is registered for now, each with how it opens now.
 - Buttons: Check all, Check none (the rows shown), Assign, Cancel (closes, nothing changed).
-- A filter field above the table (type `sq` or `sql`): the rows of an extension or language that contain it; Check all
-  and Check none act on those.
 
 ### 3.2 What Assign writes (HKCU\Software\Classes, per user, no admin)
 
-As `register.ps1` does for `.md` now, per checked extension:
+Per checked extension:
 
-- A file type per language: `LexPen.<language>` (`LexPen.sql`), its name (`Sybase ASA SQL file`), LexPen's icon, its
-  command `"<exe>" "%1"` (the LexPen that assigns: the published one, not a debug build; question 5).
-- `.<ext>\OpenWithProgids\LexPen.<language>`: LexPen offered under Open with.
-- `.<ext>` (its default value) set to `LexPen.<language>` only when it is empty or LexPen's already: another app's
-  value is not taken over.
+- A file type per language and way of opening: `LexPen.<language>.edit` and `LexPen.<language>.view`
+  (`LexPen.sql.view`), its name (`Sybase ASA SQL file`), LexPen's icon, its command: `"<exe>" "%1"` for edit,
+  `"<exe>" --view "%1"` for view.
+- `.<ext>` (its default value) set to that file type, and `.<ext>\OpenWithProgids\<it>`: LexPen offered under Open
+  with as well.
 - `Applications\LexPen.exe\SupportedTypes\.<ext>`, and LexPen's Capabilities\FileAssociations: LexPen listed under
   Settings > Apps > Default apps with every extension.
-- Per unchecked extension that LexPen had: these entries removed; Windows falls back to what else is registered.
-- Then SHChangeNotify, so Explorer sees it at once.
+- Your own earlier choice for the extension (3.3) removed, so Windows starts LexPen.
 
-### 3.3 What Windows does not allow, and what LexPen does about it
+Per unchecked extension that LexPen had: these entries removed (your answer): its default value only when it is
+LexPen's, Open with, SupportedTypes, Capabilities. Windows falls back to what else is registered.
 
-Since Windows 8 the default app of an extension that you chose yourself (UserChoice) can only be changed by you, in
-Windows: an app writing it is refused (the value is protected by a hash). So Assign can make LexPen the default only
-for extensions without such a choice. After Assign, LexPen asks Windows per checked extension which app it would start
-(AssocQueryString, as `register.ps1` does) and:
+Then SHChangeNotify, so Explorer sees it at once.
 
-- All LexPen: says so.
-- Some not: lists them ("Windows keeps another app for .json, .yaml: confirm LexPen for them in Default apps") and
-  opens `ms-settings:defaultapps?registeredAppUser=LexPen`, LexPen's own page there, where each extension is one
-  click.
-- Not done: tools that write UserChoice by computing that hash themselves. They are not documented, break with
-  Windows updates and are flagged by virus scanners.
+The exe is the LexPen that assigns. A debug build refuses, with a message (your answer): it would register the debug
+exe.
+
+The old file type of register.ps1 (`LexPen.Document` for `.md`) goes on the first Assign; register.ps1 itself goes
+(your answer: not needed for `.md` alone).
+
+### 3.3 Taking over a default you chose for another app
+
+When you once chose an app for an extension (Open with > Always, or Settings > Default apps), Windows keeps that choice
+apart, per user: HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.<ext>\UserChoice, with a hash that
+only Windows can write. An app writing it is refused. What other programs do, and what this plan does:
+
+- Remove that UserChoice key (and UserChoiceLatest, its newer form on recent Windows 11, when it is there). Removing
+  is allowed where writing is not. Windows then has no choice of yours and starts the default of
+  HKCU\Software\Classes\.<ext>: LexPen.
+- Not done: writing a UserChoice with a hash computed by LexPen (the tools that do are not documented, break with
+  Windows updates and are flagged by virus scanners).
+- Windows 11 protects some associations against this (a driver, UCPD: the browsers' http and https, `.pdf`); which
+  ones, and whether more follow, is not documented. So after Assign LexPen asks Windows per checked extension which
+  app it would start (AssocQueryString) and:
+  - all LexPen: says so;
+  - some not: names them ("Windows keeps another app for .pdf: confirm LexPen for it in Default apps") and opens
+    `ms-settings:defaultapps?registeredAppUser=LexPen`, LexPen's own page there.
+- To be tried by hand first, on this PC: removing UserChoice for an extension chosen for another app, and what Windows
+  shows after (it may show "an app default was reset" or ask which app on the next double-click).
 
 ### 3.4 Host changes
 
-- FileTypes.cs: the list (extension, language, registered now, the app Windows starts now), Assign (write and remove as
-  3.2), what Windows starts now per extension; under LEXPEN_REGISTRY_ROOT for the tests, as ExplorerMenu.
-- AppHost / SettingsForm: ops `fileTypes` (the list) and `assignFileTypes` (the checked ones; the answer lists the
-  extensions Windows keeps elsewhere); the Default apps page opened from there.
-- The window: a dialog in the settings window (question 3), settings.js / settings.css.
-- register.ps1: its `.md` part done by this from the app (question 6).
+- FileTypes.cs: the list (extension, language, registered now and how, the app Windows starts now); Assign (write and
+  remove as 3.2, the UserChoice of 3.3); the app Windows starts per extension; under LEXPEN_REGISTRY_ROOT for the
+  tests (as ExplorerMenu), the UserChoice part under a test key as well.
+- SettingsForm: ops `fileTypes` (the list) and `assignFileTypes` (the checked ones with their way of opening; the answer
+  names the extensions Windows keeps for another app); the Default apps page opened from there.
+- The dialog: settings.html / settings.js / settings.css; the row in actions.js (App > Windows Explorer).
+- register.ps1 removed; README's install text says Settings > App > Windows Explorer > File types instead.
 
 ### 3.5 Tests
 
-- The registry entries for a checked extension (file type, OpenWithProgids, the default value when empty, Capabilities,
-  SupportedTypes), under a test key.
-- Another app's default value for an extension is not overwritten; LexPen's own is.
-- Unchecking removes LexPen's entries and nothing else.
-- The list from the packs: an extension per row, its language; an extension two packs name once.
-- By hand: Assign for a few extensions; a double-click in Explorer opens them in LexPen; one with a choice of your own
-  (a .json you open with another app): named after Assign, Default apps opened at LexPen.
+- The registry entries for a checked extension, edit and view (file type and its command, default value, Open with,
+  Capabilities, SupportedTypes), under a test key.
+- Unchecking removes LexPen's entries and nothing else; another app's default value of an extension LexPen did not have
+  stays.
+- A UserChoice under the test key is removed for a checked extension, kept for an unchecked one.
+- The list from the packs: an extension per row with its language; an extension two packs name once; how it opens now
+  read back (edit or view).
+- The old LexPen.Document entries gone after Assign.
+- By hand: Assign for a few extensions, some as View; a double-click in Explorer opens them in LexPen, as edit or in the
+  project for viewing; an extension you had chosen another app for: LexPen after Assign (or named, with Default apps);
+  Opens now with following.
 
 ## 4. Open questions
 
-1. Windows lets you, not LexPen, change a default you chose yourself (3.3): Assign does what Windows allows and opens
-   Default apps for the rest. Is that acceptable? Proposal: yes; there is no supported way around it.
-2. A third column, Opens now with (the app Windows starts now for the extension)? Proposal: yes; it shows at once
-   which ones are LexPen's already and which ones Windows keeps for another app.
-3. Where: a dialog inside the settings window (proposal: it belongs to Windows Explorer's settings there), or a window
-   of its own as Manage projects?
-4. Unchecking an extension LexPen had: remove LexPen's entries (proposal), or only stop being the default and stay
-   under Open with?
-5. Assign from a debug build would register the debug exe. Refuse there (proposal: a message, as it is meant for the
-   published LexPen), or allow it?
-6. register.ps1: keep it as it is, or take its `.md` part out (this window does it from the app)? Proposal: keep it for
-   a first install from the command line, and say so in its comment.
+1. Check all / Check none: also a way to set Opens as for all rows shown at once (All edit, All view)? Proposal: yes,
+   two more buttons next to them; otherwise a row at a time.
