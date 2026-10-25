@@ -364,7 +364,7 @@ function buildLegend() {
     b.addEventListener('click', () => {
       layerShown = layerShown === layer ? null : layer;
       for (const x of legend.children) x.classList.toggle('st-on', x.dataset.layer === layerShown);
-      filter();
+      filter(true);   // as typing: the tab shown has none of them, the first tab that has one
     });
     legend.append(b);
   }
@@ -394,21 +394,21 @@ function show() {
   ui.problems.textContent = problems.join('\n');
 }
 
-// This screen's own zoom under the base rows: the editor's step, the preview's factor; hidden when it has none.
+// This screen's zoom under the base rows: the editor's step, the preview's factor; Reset only when it has its own.
 function showScreenZoom() {
   const s = settings.screen ?? {};
   for (const { def, el } of rows) {
     const line = el.querySelector('.st-screen');
     if (!line) continue;
-    let text = '';
+    let own = '';
     if (def.name === 'editorSize' && s.editorStep) {
       const pt = (valueOf('editorSize') || 10.5) + s.editorStep;   // 10.5 pt: the editor's default size (app.js)
-      text = `On this screen: ${s.editorStep > 0 ? '+' : ''}${s.editorStep} pt, so ${pt} pt`;
+      own = `${s.editorStep > 0 ? '+' : ''}${s.editorStep} pt, so ${pt} pt`;
     }
     if (def.name === 'zoom' && s.previewFactor && s.previewFactor !== 1)
-      text = `On this screen: ${Math.round((valueOf('zoom') || 1) * s.previewFactor * 100)}%`;
-    line.hidden = !text;
-    line.querySelector('.st-screen-text').textContent = text;
+      own = `${Math.round((valueOf('zoom') || 1) * s.previewFactor * 100)}%`;
+    line.querySelector('.st-screen-text').textContent = 'On this screen: ' + (own || 'as on every screen');
+    line.querySelector('button').hidden = !own;
     line.querySelector('.st-layer').title = layerTip('screen');
   }
 }
@@ -527,12 +527,13 @@ function filter(typing = false) {
   if (words.length || layerShown) for (const group of groupsOf()) buildGroup(group);
   document.body.classList.toggle('st-searching', words.length > 0 || !!layerShown);
   const matches = r => {
-    if (layerShown && (r.def.layer ?? 'global') !== layerShown) return false;
+    // This screen: the rows with a line of this screen's zoom (the editor font size, the preview zoom).
+    if (layerShown && (r.def.layer ?? 'global') !== layerShown && !(layerShown === 'screen' && r.el.querySelector('.st-screen'))) return false;
     const text = (r.def.title + ' ' + r.def.hint + ' ' + (r.def.hintOff ?? '') + ' ' + r.def.group + ' ' + (r.def.sub ?? '')).toLowerCase();
     return words.every(w => text.includes(w));
   };
   const found = new Set(rows.filter(matches).map(r => r.def.group));
-  if (typing && words.length && !found.has(tab) && found.size) {
+  if (typing && (words.length || layerShown) && !found.has(tab) && found.size) {
     tab = groupsOf().find(g => found.has(g));
     for (const b of ui.tabs.children) b.classList.toggle('st-on', b.dataset.group === tab);
   }

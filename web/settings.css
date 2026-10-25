@@ -48,7 +48,6 @@
 .st-screen button { padding: 1px 8px; border: 0; background: none; color: var(--accent); font-size: inherit; }
 .st-screen button:hover { text-decoration: underline; }
 .st-row:focus-within { background: var(--hover); }
-.st-row.st-changed { border-left-color: var(--accent); }
 .st-text { flex: 1; min-width: 0; }
 .st-title { font-weight: 600; }
 .st-hint { margin-top: 2px; color: var(--fg-dim); font-size: calc(12px * var(--ui-scale)); }
@@ -76,7 +75,9 @@
    Manage; after a change of a colour setting, where it was stored, with Undo. */
 .st-set { flex: none; display: flex; align-items: center; gap: 8px; padding: 6px 16px; background: var(--bg-bar); border-top: 1px solid var(--border); }
 .st-set .st-layer { align-self: stretch; margin: -6px 0 -6px -16px; }
-.st-set-text, .st-set-source { color: var(--fg-dim); }
+.st-set-text, .st-set-source { color: var(--fg-dim); white-space: nowrap; }
+.st-set-source { min-width: 0; overflow: hidden; text-overflow: ellipsis; }   /* a narrow window: cut off, not wrapped */
+.st-set button { white-space: nowrap; }
 .st-set-select { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 2px 4px; }
 .st-set-message { color: var(--fg); }
 .st-set-gap { flex: 1; }
