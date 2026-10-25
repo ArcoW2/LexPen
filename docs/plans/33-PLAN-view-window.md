@@ -1,62 +1,85 @@
-# Plan: View with LexPen: a view window and the project "View"
+# Plan: View in LexPen: a project for viewing, and Explorer items
 
-Status: draft 2026-10-25, not started; questions open. Split off from the docking plan (24) on your request: "The
-explorer-items belong in a separate plan, including the fixed view project".
+Status: draft 2026-10-25, reworked 2026-10-25 on your direction: no separate kind of window; viewing uses a normal
+project, "View" by default, that you change as you like and can choose and reset in the settings. Not started;
+questions open. Split off from the docking plan (24): "The explorer-items belong in a separate plan, including the
+fixed view project".
 The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
 
-Every LexPen window is the same full editor. To only read a file (from Explorer, say) you get the side pane, the
-format bar, two panes and the project's tabs, where one read-only page would do. And Explorer has no LexPen items
-on a file's right-click menu for opening it, only the compare items.
+To only read a file (from Explorer, say) LexPen opens it in whatever project you last worked in, with that
+project's side panes, split and tabs, and in the editor. And Explorer has no LexPen items on a file's or folder's
+right-click menu for opening it, only the compare items.
 
 ## 2. The solution, in brief
 
-Next to the full window comes a view window: one pane, read-only, no Folder or Search, only the Outline if you
-want it, a choice kept for all view windows. Explorer gets "View with LexPen", which opens a file in a view window,
-and "Edit with LexPen", which opens it in a full window; settings choose which LexPen items Explorer shows
-(Compare, View, Edit) and whether they stand together between two lines or in a "LexPen" submenu. View windows belong to a fixed project "View": a file
-viewed while a view window is visible is added there as a tab, otherwise it opens alone in a new view window; the
-last document shown is kept.
+One project is the view project: "View" by default, a setting chooses another. "View in LexPen" in Explorer always
+opens the file in that project (a folder: in its Folder pane). It is a normal project: whatever you change there
+(its theme set, a Folder pane opened, a split) is kept for the next view. A settings button resets it to the view
+layout: one window, a single pane, no side panes, Preview only. "Edit in LexPen" opens a file as opening one does
+now. Settings choose which LexPen items Explorer shows (Compare, View, Edit) and whether they stand together
+between two lines or in a "LexPen" submenu.
 
-## 3. Details (a first outline; to be worked out once the questions are answered)
+## 3. Details
 
-### 3.1 Two kinds of window
+### 3.1 The view project
 
-| | Full window | View window |
-|---|---|---|
-| Editor panes | one or two, split, compare | one |
-| Editing | yes | no: read-only, no format bar, no edit commands in the menus |
-| Folder, Search | yes | no |
-| Outline | yes | yes, on or off; the choice is kept for all view windows |
-| Settings, Characters | yes | Settings only (question 4) |
-| Project | any | the fixed project "View" |
-| Opened by | as now, "Edit with LexPen" | "View with LexPen" |
+- A setting `viewProject`: the id of the project used for viewing (the id, not the name: names can be empty and
+  can change). Missing, or naming a project that is gone: the project named "View"; when there is none, LexPen
+  makes it, with the view layout (3.2), on the first view.
+- A normal project in every other way: it can be renamed, its windows keep their session (tabs, panes, place,
+  desktop) as any project's do, and with plan 32 it can have a theme set of its own (a different colour for
+  viewing).
+- Settings, in a group "Viewing":
+  - "Project for viewing": a list of the projects, "View" first. Choosing one only names it; its layout is not
+    touched.
+  - "Reset to view layout": the view layout (3.2) applied to the chosen project, after a question that names it.
+- Manage projects marks the view project ("(for viewing)" after its name). Deleting it is allowed; the setting
+  then falls back as above (question 4).
 
-- The view window shows the file in the mode its language opens in (preview for markdown, the editor read-only
-  for code), and can switch between the preview and the read-only editor (question 3).
-- One command takes the file from a view window to a full window to edit it: "Edit in LexPen".
-- With docking (plan 24), the view window docks only the Outline, with a layout of its own.
+### 3.2 The view layout
 
-### 3.2 The project "View"
+What "Reset to view layout" sets, and what a new "View" project starts with:
 
-- A fixed project, always there, not deleted, renamed or merged (Manage projects shows it, greyed out for those).
-- Its windows' tabs are the documents viewed; Ctrl+Tab and the tab bar switch between them. The last document
-  shown is kept, so a view window opened from the project comes back on it.
-- Viewing a file (View with LexPen, or the command line): a view window visible on this desktop (not minimised)
-  gets it as a tab and comes to the front; none visible: a new view window with only that document.
-- A file already a tab in that view window: that tab comes to the front, no second copy.
+- One window: the project's other windows are closed (their sessions dropped).
+- A single editor pane: no split, no compare.
+- No side panes: Folder, Search and Outline closed.
+- Every tab in Preview mode; the editor not shown.
+- The tabs themselves are kept (question 2).
+- Its theme set (plan 32) is not touched: that is colour, not layout.
 
-### 3.3 Explorer
+The layout is only a starting point: open the Folder pane or split the window afterwards and that is what the next
+view gets. Nothing is locked.
 
-- "View with LexPen" and "Edit with LexPen" on a file's right-click menu, beside the compare items of
-  `ExplorerMenu.cs` (Select left side to compare, Compare to <name>), with LexPen's icon.
+### 3.3 Viewing a file or a folder
+
+- A file: a window of the view project on this desktop (open, not minimised) gets it as a tab, in Preview, and
+  comes to the front; a file already a tab there: that tab comes to the front. No such window: the view project is
+  opened (as opening a project from Manage projects does now) and the file added to it as a tab.
+- A file that has no preview (code, plain text): shown in the editor, read-only (question 1).
+- A folder: as a file, but instead of a tab the Folder pane opens on that folder as its root (as "Set as root of
+  the folder pane"), with its first level open. The Folder pane stays open afterwards, as any change does (3.2).
+- The command line: `--view <path>` (a file or a folder). The Explorer item calls it; the single-instance pipe
+  passes it to the running LexPen, as the other switches.
+
+### 3.4 Edit in LexPen
+
+As opening a file is now (a double-click on a registered `.md`, Open with): a full window of the project of the
+last window used. One change: when that last window is the view project's, the project before it is used, so
+"Edit" never lands in the viewing project (question 3). The command line: `--edit <file>`.
+
+### 3.5 Explorer
+
+- "View in LexPen" on a file's and a folder's right-click menu; "Edit in LexPen" on a file's. Beside the compare
+  items of `ExplorerMenu.cs` (Select left side to compare, Compare to <name>), with LexPen's icon.
 - Settings choose which are there and where:
   - `explorerItems`: any of Compare, View, Edit (Compare is the two compare items together). It takes over
     `explorerCompare`: a settings file with that on reads as Compare.
   - `explorerPlace`: "group" (the items next to each other, a line above and below) or "submenu" (one item
     "LexPen" that opens a submenu with them).
 - How, still per user in HKCU\Software\Classes, no admin:
+  - Files under `*\shell`, folders under `Directory\shell`.
   - Group: each item a verb as now; the first gets the registry value `SeparatorBefore`, the last
     `SeparatorAfter`. Explorer orders the verbs itself, so whether nothing else lands between them is to be tried.
   - Submenu: one verb "LexPen" with `ExtendedSubCommandsKey`, pointing to a key of LexPen's own whose `shell`
@@ -64,41 +87,48 @@ last document shown is kept.
   - Both are classic menu entries. On Windows 11 these show under "Show more options" (Shift+F10 or Shift+right
     click), as the compare items do now. In the new short menu only an app with a package identity (a signed
     MSIX or sparse package with an IExplorerCommand handler) can appear; that is not part of this plan
-    (question 7).
-- View: as 3.2. Edit: as opening a file now (a double-click on a registered `.md`): a full window of the project
-  of the last window used.
-- A command-line switch for each (`/view <file>`, `/edit <file>`), which the menu items call; the single-instance
-  pipe passes it to the running LexPen.
+    (question 6).
 
-### 3.4 Kept
+### 3.6 Host changes
 
-- View windows: the outline on or off, the window's size and place, the documents and the last one shown.
+- SettingsFile / actions.js: `viewProject`, `explorerItems`, `explorerPlace`; the "Viewing" group with the project
+  list and the reset button (an op, as the settings window's other buttons).
+- ProjectStore: find the view project (by id, else by the name "View"), make it; apply the view layout to a
+  project's window session (pure, so it can be tested).
+- AppHost: View (a file or a folder) and Edit as in 3.3 and 3.4; the view project's name and the reset for the
+  settings window and Manage projects.
+- Program: `--view`, `--edit` parsed and passed over the pipe.
+- ExplorerMenu: the items and places of 3.5, written and removed as the settings change.
+- The page (app.js): a session with every tab in Preview opens so; a folder to show as root of the Folder pane.
 
-### 3.5 Tests
+### 3.7 Tests
 
-- The project "View" cannot be deleted, renamed or merged (ProjectStore).
+- The view project: by id; the id gone falls back to "View"; none named "View": made, with the view layout.
+- The view layout applied: one window, single pane, no side panes, every tab Preview, the tabs kept, the theme set
+  untouched.
+- Edit with the view project as last used: the project before it.
 - The command-line switches parsed.
 - The registry entries for each choice of `explorerItems` and `explorerPlace` (under LEXPEN_REGISTRY_ROOT, as the
-  compare tests), and switching from one to the other leaves no entries of the first behind.
-- A viewed file joins a visible view window, or opens a new one when none is visible.
+  compare tests), files and folders, and switching from one to the other leaves no entries of the first behind.
+- By hand: View in LexPen twice (the second joins the first window as a tab); a folder (Folder pane at that root);
+  change the view project (open Folder, another colour), close, view again (kept); Reset to view layout; choose
+  another project for viewing; Edit in LexPen while the view window was the last used.
 
 ## 4. Open questions
 
-1. You wrote that both "View with LexPen" and "Edit with LexPen" open the single-pane, view-only window. I took
-   it that only View does, and Edit opens a full window to edit in. Is that right, or should Edit open a single
-   pane too, but editable (a third kind: a quick edit window)?
-2. "Overview is selectable and is remembered": I read Overview as the outline pane. Or do you mean the overview
-   ruler (the scroll bar with the marks)?
-3. The view window: only the preview, or the preview and the read-only editor to switch between (a file without a
-   preview, as code, shows the editor read-only anyway)? Proposal: both, the language's open mode first.
-4. Which other commands does a view window keep: find in the file (yes, I assume), print, copy, bookmarks,
-   highlights and notes (these write to the store, not to the file), Settings? Proposal: find, copy, print,
-   Settings; no bookmarks, highlights or notes.
-5. A visible view window gets the next viewed file as a tab. Visible on this desktop only, or on any virtual
-   desktop? Proposal: this desktop, as `newWindowProject` uses "this desktop".
-6. The tabs of the project "View": kept without limit, or only the last so many (closed ones dropped)? Proposal:
-   as a normal project, you close what you no longer want.
-7. Windows 11's short right-click menu: is "Show more options" good enough (as for the compare items now), or do
+1. A file without a preview (code, plain text): the editor read-only, or the editor as normal (editable)?
+   Proposal: read-only, as it is viewing; Edit in LexPen to change it.
+2. Reset to view layout: keep the project's tabs, or close them too? Proposal: keep them; closing tabs is one
+   step anyway.
+3. Edit in LexPen when the window last used is the view project's: skip it for the project before (as 3.4), or
+   just use it (it is a normal project after all)? Proposal: skip it.
+4. Deleting the view project: allowed (the setting falls back to "View", made anew on the next view), or refused
+   while it is the one chosen? Proposal: allowed.
+5. A view project window on another virtual desktop only: open one more window of it on this desktop, or bring
+   that one over? Proposal: this desktop only, as `newWindowProject` uses "this desktop"; none here opens the
+   project here.
+6. Windows 11's short right-click menu: is "Show more options" good enough (as for the compare items now), or do
    you want the items in the short menu? That needs a signed package and a shell extension: a plan of its own.
    Proposal: Show more options for now.
-8. The default: Compare only (as now, so nothing changes until you choose), placed as a group? Proposal: yes.
+7. The default for `explorerItems`: Compare only (as now, so nothing changes until you choose), placed as a group?
+   Proposal: yes.

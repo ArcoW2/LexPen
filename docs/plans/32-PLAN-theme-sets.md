@@ -4,7 +4,8 @@ Status: draft 2026-10-25, reworked 2026-10-25 on your decisions: the name; the s
 default set per virtual desktop and for the app, a project's own set always first; the look of settings.json is
 the set "Default"; a change is stored at once in the set shown, no unsaved state; which set is used for what is
 chosen in the Manage theme sets window, the quick select of the project's set kept in the
-bars. Not started; questions open.
+bars. Extended 2026-10-25: a settings window per main window (3.11), as the one shared settings window shows
+the wrong project's set. Not started; questions open.
 The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
@@ -22,7 +23,8 @@ set, "Default", which cannot be renamed or deleted. The bottom bar and a bar at 
 show the set in use and pick another for the project. A colour setting changed is stored at once in the set
 shown, with a short message naming the set (and what else uses it) and an Undo; nothing is ever unsaved. The
 Manage theme sets window makes, duplicates, renames and deletes sets, and chooses a set for this project, this
-desktop or the app.
+desktop or the app. Each main window gets a settings window of its own, so the settings of project B are never
+shown in project A's.
 
 ## 3. Details
 
@@ -75,8 +77,8 @@ The list is one array in one place (host side), so a later colour setting is add
 - The host builds the look (AppHost.Look) and the settings a page gets from settings.json with that set's values
   over them (for "Default": settings.json alone).
 - Each main window shows its own set: two windows of two projects, or of two desktops, look different side by
-  side. The settings window, the highlights window, the character picker and the projects window follow the
-  window last worked in (AppHost.LastActive).
+  side. The settings window belongs to the main window it was opened from (3.11). The highlights window, the
+  character picker and the projects window follow the window last worked in (AppHost.LastActive).
 
 ### 3.6 A default set per desktop
 
@@ -110,7 +112,8 @@ The list is one array in one place (host side), so a later colour setting is add
 ### 3.8 The theme set bar in the settings window
 
 Always at the bottom of the settings window, above its footer line (`.st-foot`), in the standard bar colour
-(`--bg-bar`, as the settings window's top bar and footer), for the window last worked in.
+(`--bg-bar`, as the settings window's top bar and footer), for the main window that settings window belongs to
+(3.11).
 
 - Shows the set in use and where it comes from: "Theme set: Company (this project's)", "Theme set: Company (this
   desktop's default)" or "Theme set: Default (the app's default)".
@@ -143,7 +146,28 @@ projects, the desktops, the app.
 - Desktops: a list of the desktops, each with its name and its default set (or none); gone ones with Remove.
 - Edit a set: use it for this project and open the settings window; changes are stored in it (3.7).
 
-### 3.11 Host changes
+### 3.11 A settings window per main window
+
+The defect: Options > Settings opens one settings window for the whole app (AppHost.OpenSettings,
+`settingsWindow`). Opened from project A, then asked for from project B on another virtual desktop, LexPen brings
+A's settings window to the front. With theme sets that is wrong, not just odd: its theme set bar shows A's set,
+and a colour change made "for B" lands in A's set.
+
+- Each main window has at most one settings window of its own, owned by it (`Show(owner)`): it stays on that
+  window's desktop, minimises with it and closes with it.
+- Options > Settings in a window that already has one brings that one to the front; in a window without one,
+  opens a new one. Two windows can each have a settings window open at the same time.
+- The caption names the window: "Settings - LexPen - <project name> [n]", as the main window's caption, so two
+  open ones are told apart.
+- What is per window: the theme set bar (3.8) and where a change to one of 3.2's settings goes (3.7): the set of
+  the owner window. Its look (theme, colours) is the owner's set, not the last active window's.
+- What stays shared: every other setting is still global (settings.json). A change in one settings window shows
+  at once in every other open one, as the main windows follow now.
+- Requests from the page that act on "the" main window (showCommands, the keys file) go to the owner, no longer
+  to AppHost.LastActive.
+- The last main window closing still closes every settings window (as now).
+
+### 3.12 Host changes
 
 - ThemeSetFile.cs: load / save theme-sets.json (`app`, `desktops`, `sets`), the list of 3.2's names, the
   "Default" set read from and written to settings.json, apply (a set's values over settings).
@@ -154,11 +178,15 @@ projects, the desktops, the app.
 - The settings window: a change to one of 3.2's names goes to the set shown (3.7), with the message, the "also
   used by" from the projects and desktops, and Undo (the old value kept with the message); the theme set bar
   (3.8) and its ops (choose the project's set, manage).
+- One settings window per main window (3.11): AppHost keeps them per owner (in place of the one `settingsWindow`);
+  OpenSettings brings the owner's to the front or makes one; the posts that now go to `settingsWindow` (settings,
+  look, defs, languages, theme) go to each open one, with that owner's set. SettingsForm keeps its owner and sends
+  its window requests there (ToWindow), not to LastActive.
 - ProjectStore: `ThemeSet` per project, read and written.
 - MainForm: ops `themeSets` (the menu), `themeSet` (choose for this project); the bottom bar field.
 - The Manage theme sets window: a form and page as ProjectsForm / projects.html.
 
-### 3.12 Tests
+### 3.13 Tests
 
 - ThemeSetFile: round trip; only 3.2's names kept; unknown theme ids reported as with settings; "Default" reads
   and writes settings.json and keeps every other setting there; "Default" cannot be renamed or deleted.
@@ -169,12 +197,15 @@ projects, the desktops, the app.
 - "Also used by": counted from the projects and desktops naming the set, the window's own project left out.
 - Rename and delete: projects, desktops and `app` follow or fall back.
 - ProjectStore: `themeSet` round trip.
+- The settings windows: Settings asked twice from the same window gives one; from two windows gives two, each
+  with its owner's set; closing a main window closes its settings window.
 - By hand: two windows of two projects with different sets side by side; a window moved to a desktop with a
   default; the bottom bar menu; the theme set bar with its message and Undo; the Manage window's Use for this
   project / this desktop / the app; Day / night with a set; the highlights window following the window last
-  worked in.
+  worked in; project A on desktop 1 and project B on desktop 2, Settings opened in both: each shows its own set,
+  a colour change in B's lands in B's set, a non-colour setting changed in one shows in the other.
 
-### 3.13 Open questions
+### 3.14 Open questions
 
 1. Fonts and sizes in a set too, or colours and themes only (this plan)?
 2. Options > Theme set > as well as the bottom bar, or only the bottom bar? Proposal: both, the same menu.
@@ -184,3 +215,6 @@ projects, the desktops, the app.
 4. Undo: only the last change, while its message shows (as written), or a list of the recent changes per set to
    undo one by one (also after the message is gone)? Proposal: the last change, while its message shows; the
    settings window's reset per setting (to the shipped default) stays as it is.
+5. A settings window per main window (3.11), or one per project (shared by that project's windows)? Proposal: per
+   main window; it is owned by that window, so it stays on its desktop, and two windows of one project show the
+   same set anyway.
