@@ -126,6 +126,9 @@ body[data-orient=h] .mm-orient::before { content: "Above each other"; }
 .mm-check::before { content: ""; position: absolute; left: 12px; }
 .mm-check.mm-on::before { content: "\2713"; }
 .mm-menu hr { margin: 4px 0; border: 0; border-top: 1px solid var(--border); }
+/* A group's name in a menu (View: This window, This screen, All windows): a line with the name under it. */
+.mm-menu-header { margin: 4px 0 2px; padding: 4px 12px 2px; font-size: calc(11px * var(--ui-scale)); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--fg-dim); border-top: 1px solid var(--border); }
+.mm-menu-header:first-child { margin-top: 0; border-top: 0; }
 .mm-menu button:disabled { opacity: .45; cursor: default; background: none; }
 .mm-menu button.mm-menu-caption:disabled { opacity: .75; font-size: .9em; font-style: italic; }   /* a line that tells, as in the ruler menu */
 .mm-menu .mm-key { margin-left: 24px; float: right; color: var(--fg-dim); font-size: calc(12px * var(--ui-scale)); }

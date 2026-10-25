@@ -5,7 +5,8 @@
 // stays where it was (the editor), so an item works on the cursor and the selection there.
 // Loaded before app.js.
 
-// An item: [label with &letter, action, ...parameters], '-' (a line), { label, sub: [items] } or
+// An item: [label with &letter, action, ...parameters], '-' (a line), { header: text } (a line with a name, not an
+// item: the View menu's groups), { label, sub: [items] } or
 // { label, fill: async () => items } (a submenu, filled when it opens), or { label, run, plain: true }
 // (an entry of a recent list: a file, not an action). `font`: the key column (a sample) is shown in that font.
 const MENUS = [
@@ -40,16 +41,13 @@ const MENUS = [
   // Filled when they open: the bar items, and the conversions, of the file's language and of the cursor line's.
   ['Fo&rmat', () => formatMenuItems()],
   ['Co&nvert', () => convertMenuItems()],
+  // Grouped by what the items belong to (docs/plans/31-PLAN-settings-layers.md): this window (its layout), this screen
+  // (the zoom), the actions without a layer, all windows (global settings).
   ['&View', [
-    ['&Editor', 'editor.toggle'], ['&Preview', 'preview.toggle'], ['&Outline', 'outline.toggle'], '-',
-    ['Locate the &cursor (tap Ctrl)', 'locateCursor'], ['R&uler', 'ruler.toggle'], '-',
-    ['S&idebar', 'sidebar.toggle'], ['&Folders', 'folders'], ['&Search', 'searchView'], '-',
-    { label: 'P&anes', sub: [['Side &by side', 'paneOrientation.set', 'v'], ['&Above each other', 'paneOrientation.set', 'h'], '-',
-      ['&Hide this pane', 'paneHide'], ['Hide &other pane', 'paneHideOther'], ['&Close this pane', 'paneClose'],
-      ['C&lose other pane', 'paneCloseOther'], ['&Show hidden pane', 'paneShow']] },
-    ['Scroll both panes &together', 'compareScroll.toggle'], ['Le&vel the panes', 'levelPanes'], ['Split i&nto the other pane', 'split'], '-',
-    ['Position bac&k', 'positionBack'], ['Position for&ward', 'positionForward'], ['Back in the window', 'back'], ['Forward in the window', 'forward'], '-',
-    ['&Language...', 'chooseLanguage'], ['&Wrap long lines', 'wrap.toggle'], ['For&matting bar', 'formatBar.toggle'],
+    { header: 'This window' },
+    ['&Editor', 'editor.toggle'], ['&Preview', 'preview.toggle'], ['&Outline', 'outline.toggle'],
+    ['S&idebar', 'sidebar.toggle'], ['&Folders', 'folders'], ['&Search', 'searchView'],
+    ['R&uler', 'ruler.toggle'], ['For&matting bar', 'formatBar.toggle'], ['&Wrap long lines', 'wrap.toggle'],
     { label: 'Tab ba&r', sub: [['One row that &scrolls', 'tabBar.set', 'scroll'], ['One row, a &menu for the rest', 'tabBar.set', 'menu'],
       ['Several &rows', 'tabBar.set', 'rows']] },
     { label: '&Gutter', sub: [{ label: '&Line numbers', sub: [['&None', 'lineNumbers.set', 'none'], ['Every &10', 'lineNumbers.set', 'tens'],
@@ -57,15 +55,27 @@ const MENUS = [
       ['&Relative to the cursor', 'lineNumberCount.set', 'relative']] }, ['&Bookmarks', 'gutterColumn.toggle', 'bookmarks'],
       ['&Change markers (not saved)', 'gutterColumn.toggle', 'changes'], ['&Git markers (since the last commit)', 'gutterColumn.toggle', 'git'],
       ['&Fold markers', 'gutterColumn.toggle', 'folds']] },
-    { label: 'Compare', sub: [['&Next difference', 'compareNext'], ['&Previous difference', 'comparePrevious'],
-      ['&Align the cursor lines', 'compareAlign'], ['&Swap the files', 'compareSwap'], '-',
-      ['Ignore &whitespace', 'compareWhitespace.toggle'], ['Ignore &case', 'compareCase.toggle'], ['&Line strip', 'compareStrip.toggle'], '-',
-      ['L&eave the compare', 'compareClose']] },
     { label: 'Scroll &bar marks', sub: [['&Find matches', 'overviewMark.toggle', 'find'],
       ['&Unsaved changes', 'overviewMark.toggle', 'changes'], ['&Git changes', 'overviewMark.toggle', 'git'],
-      ['&Bookmarks', 'overviewMark.toggle', 'bookmarks'], ['&Highlights', 'overviewMark.toggle', 'highlights'], ['&Compare differences', 'overviewMark.toggle', 'compare']] }, '-',
-    ['&Day / night', 'theme.toggle'],
+      ['&Bookmarks', 'overviewMark.toggle', 'bookmarks'], ['&Highlights', 'overviewMark.toggle', 'highlights'], ['&Compare differences', 'overviewMark.toggle', 'compare']] },
+    { label: 'Pane orient&ation', sub: [['Side &by side', 'paneOrientation.set', 'v'], ['&Above each other', 'paneOrientation.set', 'h']] },
+    ['Scroll both panes &together', 'compareScroll.toggle'],
+    { label: 'La&yout', sub: [['&Save as default', 'layoutSaveDefault'], ['&Reset to default', 'layoutResetDefault']] },
+    { header: 'This screen' },
     { label: '&Zoom', sub: [['Zoom &in', 'zoomIn'], ['Zoom &out', 'zoomOut'], ['&100%', 'zoomReset']] },
+    '-',
+    ['Locate the &cursor (tap Ctrl)', 'locateCursor'],
+    { label: 'Pane &visibility', sub: [['&Hide this pane', 'paneHide'], ['Hide &other pane', 'paneHideOther'], ['&Close this pane', 'paneClose'],
+      ['C&lose other pane', 'paneCloseOther'], ['&Show hidden pane', 'paneShow']] },
+    ['Level the pa&nes', 'levelPanes'], ['Split into the ot&her pane', 'split'],
+    ['Position bac&k', 'positionBack'], ['Position forward', 'positionForward'], ['Back in the window', 'back'], ['Forward in the window', 'forward'],
+    ['&Language...', 'chooseLanguage'],
+    { label: 'Compare', sub: [['&Next difference', 'compareNext'], ['&Previous difference', 'comparePrevious'],
+      ['&Align the cursor lines', 'compareAlign'], ['&Swap the files', 'compareSwap'], '-', ['L&eave the compare', 'compareClose']] },
+    { header: 'All windows' },
+    { label: 'Compare options', sub: [['Ignore &whitespace', 'compareWhitespace.toggle'], ['Ignore &case', 'compareCase.toggle'],
+      ['&Line strip', 'compareStrip.toggle']] },
+    ['&Day / night', 'theme.toggle'],
   ]],
   // Filled when it opens: every project with its windows (app.js, projectMenuItems).
   ['&Projects', () => projectMenuItems()],
@@ -125,6 +135,13 @@ async function openMenuLevel(items, x, y, select, above, leftX) {
   const icons = items.some(i => i?.icon);   // a menu with icons (Format): every item gets the place of one
   for (const item of items) {
     if (item === '-') { el.append(document.createElement('hr')); continue; }
+    if (item?.header) {   // a group's name: not an item (the arrows and letters pass it)
+      const h = document.createElement('div');
+      h.className = 'mm-menu-header';
+      h.textContent = item.header;
+      el.append(h);
+      continue;
+    }
     const button = document.createElement('button');
     button.tabIndex = -1;
     const it = Array.isArray(item) ? { label: item[0], action: item[1], params: item.slice(2) } : item;
