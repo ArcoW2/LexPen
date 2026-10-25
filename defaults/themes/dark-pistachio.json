@@ -1,0 +1,25 @@
+// Dark pistachio.
+// A theme lists only what differs from its base; the base may be any theme. The names are in the README (Themes).
+{
+  "name": "Dark pistachio",
+  "description": "yellow-green",
+  "base": "dark",
+  "colors": {
+    // The app: backgrounds, text, borders, selection, alerts, markers, find.
+    "bg": "#1d2116",
+    "bgSide": "#23281b",
+    "bgBar": "#292f20",
+    "bgCode": "#262b1d",
+    "bgBarDim": "#181b12",
+    "fg": "#e2e8d2",
+    "fgDim": "#9ea58c",
+    "border": "#3c4430",
+    "accent": "#b5cf6b",
+    "active": "rgba(181, 207, 107, .18)",
+    "select": "#4a5a2a",
+    "highlight": "#6f6700",
+    "inlineCode": "#373c2f",
+    "inlineCodeFg": "#cfe09a",
+    "paneActive": "#b5cf6b"
+  }
+}

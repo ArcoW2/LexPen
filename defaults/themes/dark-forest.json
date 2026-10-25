@@ -1,7 +1,8 @@
-// Dark greenish: Dark, tinted green; an example to copy from.
+// Dark forest: an example to copy from.
 // A theme lists only what differs from its base; the base may be any theme. The names are in the README (Themes).
 {
-  "name": "Dark greenish",
+  "name": "Dark forest",
+  "description": "green tint",
   "base": "dark",
   "colors": {
     // The app: backgrounds, text, borders, selection, alerts, markers, find.

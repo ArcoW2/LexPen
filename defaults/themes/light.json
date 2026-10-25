@@ -1,7 +1,8 @@
-// Light: the day colours, complete: the root of the light themes (the light yellowish, reddish, bluish, greenish build on it).
+// Light: the day colours, complete: the root of the light themes (the other light themes build on it).
 // Every colour name is set here; a theme on this base lists only what it changes. The names are in the README (Themes).
 {
   "name": "Light",
+  "description": "neutral white",
   "colors": {
     // The app: backgrounds, text, borders, selection, alerts, markers, find, brackets, indent guides.
     "bg": "#ffffff",

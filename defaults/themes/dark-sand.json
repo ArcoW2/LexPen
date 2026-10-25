@@ -1,0 +1,25 @@
+// Dark sand.
+// A theme lists only what differs from its base; the base may be any theme. The names are in the README (Themes).
+{
+  "name": "Dark sand",
+  "description": "browner than parchment",
+  "base": "dark",
+  "colors": {
+    // The app: backgrounds, text, borders, selection, alerts, markers, find.
+    "bg": "#221d18",
+    "bgSide": "#29231d",
+    "bgBar": "#2f2822",
+    "bgCode": "#2b251f",
+    "bgBarDim": "#1c1814",
+    "fg": "#eae0d4",
+    "fgDim": "#a69888",
+    "border": "#463b31",
+    "accent": "#d09a5c",
+    "active": "rgba(208, 154, 92, .18)",
+    "select": "#5a4430",
+    "highlight": "#8d8300",
+    "inlineCode": "#3d362f",
+    "inlineCodeFg": "#e3c39c",
+    "paneActive": "#d09a5c"
+  }
+}

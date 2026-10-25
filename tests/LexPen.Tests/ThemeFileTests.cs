@@ -84,12 +84,12 @@ public class ThemeFileTests : IDisposable
     {
         var problems = new List<string>();
         var themes = Mine(problems,
-            ("lighter", """{ "name": "Lighter bluish", "base": "bluish", "colors": { "bg": "#1d2533" } }"""));
+            ("lighter", """{ "name": "Lighter ocean", "base": "dark-ocean", "colors": { "bg": "#1d2533" } }"""));
         Assert.Empty(problems);
         var t = themes.Single(t => t.Id == "lighter");
-        Assert.Equal(["lighter", "bluish", "dark"], t.Chain);
+        Assert.Equal(["lighter", "dark-ocean", "dark"], t.Chain);
         Assert.Equal("#1d2533", t.Vars["--bg"]);           // its own
-        Assert.Equal("#6aa8ff", t.Vars["--accent"]);       // Bluish's
+        Assert.Equal("#6aa8ff", t.Vars["--accent"]);       // Dark ocean's
         Assert.Equal("#ff7b72", t.Vars["--hl-keyword"]);   // Dark's
     }
 
@@ -97,8 +97,8 @@ public class ThemeFileTests : IDisposable
     public void YourDarkRecoloursEveryThemeOnIt()
     {
         var themes = Mine([], ("dark", """{ "name": "My dark", "colors": { "keyword": "#123456" } }"""));
-        Assert.Equal("#123456", themes.Single(t => t.Id == "bluish").Vars["--hl-keyword"]);
-        Assert.False(themes.Single(t => t.Id == "bluish").Vars.ContainsKey("--hl-string"));   // My dark has no string: the fallback's
+        Assert.Equal("#123456", themes.Single(t => t.Id == "dark-ocean").Vars["--hl-keyword"]);
+        Assert.False(themes.Single(t => t.Id == "dark-ocean").Vars.ContainsKey("--hl-string"));   // My dark has no string: the fallback's
     }
 
     [Fact]
@@ -183,9 +183,43 @@ public class ThemeFileTests : IDisposable
         var problems = new List<string>();
         var themes = ThemeFile.Load(Path.Combine(Defaults, "themes"), Path.Combine(dir, "none"), Names, problems);
         Assert.Empty(problems);
-        Assert.Equal(["light", "dark", "black", "bluish", "greenish", "reddish", "dark-yellowish", "light-bluish", "light-greenish", "light-reddish", "yellowish"],
-            themes.Select(t => t.Id));
-        Assert.Equal([null, null, "dark", "dark", "dark", "dark", "dark", "light", "light", "light", "light"], themes.Select(t => t.BaseId));
+        Assert.Equal(["light", "dark", "black", "dark-forest", "dark-moonlight", "dark-ocean", "dark-parchment", "dark-pistachio",
+            "dark-sand", "dark-wine", "light-blossom", "light-lichen", "light-parchment", "light-pistachio", "light-sand", "light-seafoam",
+            "light-sky"], themes.Select(t => t.Id));
+        // Every shipped theme builds on Light or Dark, as its file name says (Black on Dark), and has a description.
+        Assert.All(themes.Skip(2), t => Assert.Equal(t.Id.StartsWith("light-") ? "light" : "dark", t.BaseId));
+        Assert.All(themes, t => Assert.False(string.IsNullOrEmpty(t.Description), t.Id));
+    }
+
+    [Fact]
+    public void ADescriptionIsReadAndOneThatIsNoTextIsReported()
+    {
+        var problems = new List<string>();
+        Assert.Equal("a softer blue", ThemeFile.Parse("x", """{ "description": " a softer blue " }""", true, Names, problems, "x.json")!.Description);
+        Assert.Null(ThemeFile.Parse("y", """{ "description": 12 }""", true, Names, problems, "y.json")!.Description);
+        Assert.Null(ThemeFile.Parse("z", """{ }""", true, Names, problems, "z.json")!.Description);
+        Assert.Single(problems, p => p.Contains("\"description\" must be a text"));
+    }
+
+    [Fact]
+    public void AnOldIdOfARenamedThemeFindsTheNewOne()
+    {
+        var problems = new List<string>();
+        var themes = Mine(problems, ("old", """{ "base": "bluish", "colors": { "bg": "#1d2533" } }"""));
+        Assert.Empty(problems);
+        Assert.Equal(["old", "dark-ocean", "dark"], themes.Single(t => t.Id == "old").Chain);
+        Assert.Equal("dark-ocean", ThemeFile.Current("bluish", id => themes.Any(t => t.Id == id)));
+        Assert.Equal("light-parchment", ThemeFile.Current("yellowish", _ => false));
+        Assert.Equal("nope", ThemeFile.Current("nope", _ => false));
+    }
+
+    [Fact]
+    public void YourThemeWithAnOldNameStaysYours()
+    {
+        var themes = Mine([], ("bluish", """{ "name": "My bluish", "base": "dark" }"""), ("on", """{ "base": "bluish" }"""));
+        Assert.Contains(themes, t => t.Id == "bluish" && t.Mine);
+        Assert.Equal(["on", "bluish", "dark"], themes.Single(t => t.Id == "on").Chain);
+        Assert.Equal("bluish", ThemeFile.Current("bluish", id => themes.Any(t => t.Id == id)));
     }
 
     // ---------- Readable contrast (WCAG 2): text 7:1, dim text and code colours 4.5:1, comments and the accent 3:1 ----------

@@ -1,0 +1,29 @@
+// Light pistachio.
+// A theme lists only what differs from its base; the base may be any theme. The names are in the README (Themes).
+{
+  "name": "Light pistachio",
+  "description": "pale yellow-green",
+  "base": "light",
+  "colors": {
+    // The app: backgrounds, text, borders, selection, alerts, markers, find.
+    "bg": "#f5f8ea",
+    "bgSide": "#ecf1dc",
+    "bgBar": "#e3ead0",
+    "bgCode": "#eaf0dd",
+    "bgBarDim": "#d8e0c2",
+    "fg": "#222817",
+    "fgDim": "#5e6650",
+    "border": "#d2dbb9",
+    "accent": "#5b7a1e",
+    "hover": "rgba(0, 0, 0, .06)",
+    "active": "rgba(91, 122, 30, .13)",
+    "select": "#dbe8b4",
+    "highlight": "#f2cf3a",
+    "inlineCode": "#dbdecf",
+    "inlineCodeFg": "#3c5214",
+    "paneActive": "#5b7a1e",
+
+    // Code: darker where the tinted code background needs it (contrast 4.5:1).
+    "title": "#6a36b8"
+  }
+}

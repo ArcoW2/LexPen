@@ -24,14 +24,18 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   `%LOCALAPPDATA%\LexPen\languages\` (start from `defaults\languages\_template`; the guide: `defaults\languages\README.md`; a
   folder with a shipped name replaces it) and apply at once; mistakes show in the settings window. How a file
   opens: per language, the pack's choice unless you set it (settings window, General > Open in).
-- **Themes**: Light, Dark, Black (OLED), Dark bluish, Dark greenish, Dark reddish, Dark yellowish, Light bluish, Light
-  greenish, Light reddish and Light yellowish ship in `defaults\themes`; your own
+- **Themes**: Light, Dark, Black (OLED); Dark ocean, forest, wine, parchment, sand, moonlight and pistachio; Light
+  sky, seafoam, blossom, parchment, sand, lichen and pistachio ship in `defaults\themes`; your own
   go in `%LOCALAPPDATA%\LexPen\themes\` (a file with the same name replaces a shipped one) and apply at once.
   LexPen follows Windows' light / dark mode (a setting, on), with a theme chosen for each mode; Day / night
-  switches until Windows changes mode. The preview can have a theme of its own per mode (a light preview next to
-  a dark editor). Light and Dark (`light.json`, `dark.json`) set every colour; any other theme names any theme as
-  its base and lists only what differs: `{ "name": "Lighter bluish", "base": "bluish", "colors": { "bg": "#1d2533" } }`
-  (its own colours, then Dark bluish's, then Dark's). A theme is not light or dark itself: the mode it is chosen for is
+  switches until Windows changes mode. The app, the editor and the preview each have a theme per mode: the
+  editor's and the preview's are the app's unless you choose one (Settings > Editor, Preview), say a parchment
+  editor between sand bars and an ocean preview. Light and Dark (`light.json`, `dark.json`) set every colour; any other theme names any theme as
+  its base and lists only what differs: `{ "name": "Lighter ocean", "description": "a softer blue", "base": "dark-ocean", "colors": { "bg": "#1d2533" } }`
+  (its own colours, then Dark ocean's, then Dark's). The description is the theme's character: the settings show
+  "Lighter ocean: a softer blue". Renamed shipped themes (bluish, greenish, reddish, yellowish and their light and
+  dark ones) are still found by their old file name in settings.json, as a base and in a language's `byTheme`;
+  a file of yours with an old name no longer replaces a shipped theme, it is a theme of its own. A theme is not light or dark itself: the mode it is chosen for is
   (title bar, scrollbars, diagrams, a language's `byTheme: { dark }`). A colour nothing in the chain sets comes
   from the fallbacks in app.css. Colour names: `bg`, `bgSide`, `bgBar`, `bgBarDim`, `bgCode`, `fg`, `fgDim`, `border`, `accent`,
   `hover`, `active`, `select`, `inlineCode` (the box behind code within a line of text), `inlineCodeFg` (its text), `highlight` (a highlighted part of the text: a dark yellow on light, on dark a yellow as

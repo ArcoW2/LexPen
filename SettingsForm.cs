@@ -30,7 +30,7 @@ sealed class SettingsForm : Form
         ShowInTaskbar = false;
         MinimumSize = new Size(480, 400);
         StartPosition = FormStartPosition.Manual;
-        var size = new Size(Math.Min(780, owner.Width), Math.Min(880, owner.Height));
+        var size = new Size(Math.Min(920, owner.Width), Math.Min(880, owner.Height));
         var at = owner.WindowState == FormWindowState.Normal ? owner.Bounds : owner.RestoreBounds;
         Bounds = new Rectangle(at.X + (at.Width - size.Width) / 2, at.Y + (at.Height - size.Height) / 2, size.Width, size.Height);
         Controls.Add(web);

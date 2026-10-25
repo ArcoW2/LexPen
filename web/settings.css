@@ -35,8 +35,11 @@
 .st-title { font-weight: 600; }
 .st-hint { margin-top: 2px; color: var(--fg-dim); font-size: calc(12px * var(--ui-scale)); }
 .st-control { flex: none; display: flex; align-items: center; gap: 8px; }
+/* A list as wide as its longest text, between a minimum and a maximum that grows with the window (and both with
+   the app's font scale): a wider window shows more of a long text. */
 .st-control select {
-  min-width: 180px; max-width: 280px; padding: 4px 6px; font: inherit; color: var(--fg);
+  min-width: calc(180px * var(--ui-scale)); max-width: clamp(calc(180px * var(--ui-scale)), 45vw, calc(640px * var(--ui-scale)));
+  padding: 4px 6px; font: inherit; color: var(--fg);
   background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
 }
 .st-control input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); }

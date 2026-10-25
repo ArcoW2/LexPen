@@ -1,7 +1,8 @@
-// Dark reddish: Dark, tinted red; an example to copy from.
+// Dark wine: an example to copy from.
 // A theme lists only what differs from its base; the base may be any theme. The names are in the README (Themes).
 {
-  "name": "Dark reddish",
+  "name": "Dark wine",
+  "description": "red tint",
   "base": "dark",
   "colors": {
     // The app: backgrounds, text, borders, selection, alerts, markers, find.

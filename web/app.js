@@ -2888,19 +2888,24 @@ function revealFound(cm, from, to = from) {
 // it: 0 the background, 100 the colour, beyond it further away (each channel clamped), so it can be more intense than
 // the colour itself. Again when the theme changes (applyLook).
 function applyHighlight() {
-  document.documentElement.style.setProperty('--highlight-mark', atIntensity(colourCss(setting('highlightColour'), 'highlight'), setting('highlightIntensity')));
+  const colour = colourCss(setting('highlightColour'), 'highlight'), percent = setting('highlightIntensity');
+  document.documentElement.style.setProperty('--highlight-mark', atIntensity(colour, percent));
+  for (const pane of panes)   // the editor with a theme of its own: from its colours and background
+    if (look?.editor) pane.editorEl.style.setProperty('--highlight-mark', atIntensity(colour, percent, pane.editorEl));
+    else pane.editorEl.style.removeProperty('--highlight-mark');
   document.body.dataset.highlight = setting('highlightStyle') === 'underline' ? 'underline' : 'background';
 }
 
 // The box behind code within a line of text (app.css --md-code-bg): the theme colour inlineCode at the setting
 // inlineCodeIntensity. Again when the theme changes (applyLook).
-// The preview with a theme of its own gets its own, from its colours and background.
+// The editor or the preview with a theme of its own gets its own, from its colours and background.
 function applyInlineCode() {
   const percent = setting('inlineCodeIntensity');
   document.documentElement.style.setProperty('--inline-code-mark', atIntensity('var(--inline-code)', percent));
   for (const pane of panes)
-    if (look?.preview) pane.previewEl.style.setProperty('--inline-code-mark', atIntensity('var(--inline-code)', percent, pane.previewEl));
-    else pane.previewEl.style.removeProperty('--inline-code-mark');
+    for (const [el, own] of [[pane.editorEl, look?.editor], [pane.previewEl, look?.preview]])
+      if (own) el.style.setProperty('--inline-code-mark', atIntensity('var(--inline-code)', percent, el));
+      else el.style.removeProperty('--inline-code-mark');
 }
 
 // A colour (any CSS, theme variables too) moved along the line from the background through it: 0% the background,
@@ -2977,12 +2982,10 @@ function endSneak(pane) {
   pane.sneak = null;
   pane.sneakEnded = true;                                  // the click that follows the release does nothing
   pane.el.removeAttribute('data-sneak');
-  if (pane.el.hasAttribute('data-sneak-themed')) {          // back to the editor's theme, and the preview's own
+  if (pane.el.hasAttribute('data-sneak-themed')) {          // back to the editor's own theme, and the preview's
     pane.el.removeAttribute('data-sneak-themed');
-    setThemeVars(pane.editorEl, null);
-    delete pane.editorEl.dataset.theme;
-    setThemeVars(pane.previewEl, look.preview?.vars);
-    if (look.preview) pane.previewEl.dataset.theme = look.mode; else delete pane.previewEl.dataset.theme;
+    themePane(pane.editorEl, look.editor);
+    themePane(pane.previewEl, look.preview);
   }
   pane.el.querySelector('.mm-sneak-badge')?.remove();
   if (s.mark && pane.cm) pane.cm.removeLineClass(s.mark, 'background', 'mm-sneak-line');
@@ -3431,7 +3434,7 @@ function applyTheme(theme) {
 }
 
 // ---------- The look: themes (defaults\themes, your themes\) and light / dark mode ----------
-// The host decides (AppHost.Look): the app's theme, a theme of the preview's own or null, the mode. A theme comes
+// The host decides (AppHost.Look): the app's theme, a theme of the editor's and of the preview's own or null, the mode. A theme comes
 // with all its colours (through its bases), set as inline variables; light or dark is the mode (data-theme), which
 // picks the app.css fallback, color-scheme, the tab colour rules and the diagrams.
 let look = null;
@@ -3443,6 +3446,13 @@ function setThemeVars(el, vars) {
   themedVars.set(el, Object.keys(vars ?? {}));
 }
 
+// A pane part (the editor, the preview) in a theme of its own, or in the app's (theme null).
+function themePane(el, theme) {
+  el.classList.toggle('mm-themed', !!theme);
+  if (theme) el.dataset.theme = look.mode; else delete el.dataset.theme;
+  setThemeVars(el, theme?.vars);
+}
+
 function applyLook(next) {
   const before = look;
   look = next;
@@ -3450,13 +3460,13 @@ function applyLook(next) {
   root.dataset.mode = look.mode;
   setThemeVars(root, look.app.vars);
   if (typeof applyRuler === 'function') applyRuler();   // the ruler's canvas takes the theme's colours (ruler.js)
-  applyHighlight();
   for (const pane of panes) {
-    pane.previewEl.classList.toggle('mm-themed', !!look.preview);
-    if (look.preview) pane.previewEl.dataset.theme = look.mode; else delete pane.previewEl.dataset.theme;
-    setThemeVars(pane.previewEl, look.preview?.vars);
+    themePane(pane.editorEl, look.editor);
+    themePane(pane.previewEl, look.preview);
+    if (typeof scheduleOverview === 'function') scheduleOverview(pane);   // the overviews draw in the pane's colours
   }
-  applyInlineCode();   // after the preview's own theme: its box is measured from its background
+  applyHighlight();   // after the editor's own theme: its colour is measured from its background
+  applyInlineCode();   // after the editor's and the preview's own themes: the box is measured from their background
   if (typeof applyPreviewHighlight === 'function') applyPreviewHighlight();   // highlights.js: the same for the highlights
   if (!before) state.theme = root.dataset.theme = look.mode;   // at start, before anything is shown
   else if (look.mode !== state.theme) applyTheme(look.mode);   // the mode: tab colour rules, diagrams

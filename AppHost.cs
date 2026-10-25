@@ -210,7 +210,10 @@ sealed class AppHost : ApplicationContext
         themes.FirstOrDefault(t => t.Id == id) ?? themes.FirstOrDefault(t => t.Id == mode)
         ?? new ThemeFile.Theme(mode, mode, null, new Dictionary<string, string>(), false, [mode]);
 
-    ThemeFile.Theme AppTheme => ThemeFor(SettingText(Mode == "dark" ? "themeDark" : "themeLight"), Mode);
+    // The theme a setting names: an old id of a renamed theme finds the new one (ThemeFile.Renamed).
+    string? ThemeId(string setting) => ThemeFile.Current(SettingText(setting), id => themes.Any(t => t.Id == id));
+
+    ThemeFile.Theme AppTheme => ThemeFor(ThemeId(Mode == "dark" ? "themeDark" : "themeLight"), Mode);
 
     /// <summary>Every colour of the app's theme, for the current mode (the mode's fallback for what it lacks).</summary>
     public Dictionary<string, string> AppColours() => ThemeFile.Complete(AppTheme, Mode == "dark" ? fallbackDark : fallbackLight);
@@ -235,7 +238,7 @@ sealed class AppHost : ApplicationContext
             ".observe(document, { childList: true }); })();";
     }
 
-    /// <summary>What every window shows: the app's theme, the preview's own one (or null: the app's), the mode,
+    /// <summary>What every window shows: the app's theme, the editor's and the preview's own ones (or null: the app's), the mode,
     /// the list of themes (for the settings) and problems in theme files. A theme's vars are complete (with the
     /// mode's fallback); chain is its id and its bases, nearest first.</summary>
     public JsonObject Look()
@@ -248,20 +251,24 @@ sealed class AppHost : ApplicationContext
             ["vars"] = new JsonObject(ThemeFile.Complete(t, fallback).Select(v => KeyValuePair.Create(v.Key, (JsonNode?)v.Value))),
         };
         var app = AppTheme;
-        var previewId = SettingText(Mode == "dark" ? "previewThemeDark" : "previewThemeLight");
-        var sneakId = SettingText("sneakTheme");   // the outline's sneak preview: a theme of its own, or null
+        // A theme of its own, or null: none set, or no such theme (reported below).
+        JsonObject? Own(string setting) => ThemeId(setting) is { Length: > 0 } id && themes.Any(t => t.Id == id) ? Json(ThemeFor(id, Mode)) : null;
+        var dark = Mode == "dark";
         var problems = new JsonArray(themeProblems.Select(p => (JsonNode?)p).ToArray());
-        foreach (var name in new[] { "themeLight", "themeDark", "previewThemeLight", "previewThemeDark", "sneakTheme" })
-            if (SettingText(name) is { Length: > 0 } id && themes.All(t => t.Id != id))
+        foreach (var name in new[] { "themeLight", "themeDark", "editorThemeLight", "editorThemeDark", "previewThemeLight", "previewThemeDark", "sneakTheme" })
+            if (ThemeId(name) is { Length: > 0 } id && themes.All(t => t.Id != id))
                 problems.Add($"settings.json: \"{name}\": there is no theme \"{id}\".");
         return new JsonObject
         {
             ["mode"] = Mode,
             ["app"] = Json(app),
-            ["preview"] = string.IsNullOrEmpty(previewId) || themes.All(t => t.Id != previewId) ? null : Json(ThemeFor(previewId, Mode)),
-            ["sneak"] = string.IsNullOrEmpty(sneakId) || themes.All(t => t.Id != sneakId) ? null : Json(ThemeFor(sneakId, Mode)),
+            ["editor"] = Own(dark ? "editorThemeDark" : "editorThemeLight"),
+            ["preview"] = Own(dark ? "previewThemeDark" : "previewThemeLight"),
+            ["sneak"] = Own("sneakTheme"),   // the outline's sneak preview
             ["themes"] = new JsonArray(themes.Select(t => (JsonNode?)new JsonObject
-                { ["id"] = t.Id, ["name"] = t.Name, ["base"] = t.BaseId, ["mine"] = t.Mine }).ToArray()),
+                { ["id"] = t.Id, ["name"] = t.Name, ["description"] = t.Description, ["base"] = t.BaseId, ["mine"] = t.Mine }).ToArray()),
+            // Old ids of renamed themes -> new: a language pack's byTheme may still use an old one (languages.js).
+            ["renamed"] = new JsonObject(ThemeFile.Renamed.Select(r => KeyValuePair.Create(r.Key, (JsonNode?)r.Value))),
             ["problems"] = problems,
         };
     }

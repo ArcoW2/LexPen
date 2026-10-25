@@ -1,0 +1,30 @@
+// Light sand.
+// A theme lists only what differs from its base; the base may be any theme. The names are in the README (Themes).
+{
+  "name": "Light sand",
+  "description": "browner than parchment",
+  "base": "light",
+  "colors": {
+    // The app: backgrounds, text, borders, selection, alerts, markers, find.
+    "bg": "#f8f1e7",
+    "bgSide": "#f0e7da",
+    "bgBar": "#e9dece",
+    "bgCode": "#eee5d8",
+    "bgBarDim": "#e0d3c0",
+    "fg": "#2b2219",
+    "fgDim": "#6c5d4c",
+    "border": "#d9c9b2",
+    "accent": "#8a5a2b",
+    "hover": "rgba(0, 0, 0, .06)",
+    "active": "rgba(138, 90, 43, .13)",
+    "select": "#ead2b0",
+    "highlight": "#f2cf3a",
+    "inlineCode": "#ddd5ca",
+    "inlineCodeFg": "#5c3c1c",
+    "paneActive": "#8a5a2b",
+
+    // Code: darker where the tinted code background needs it (contrast 4.5:1).
+    "keyword": "#a8151f",
+    "title": "#6a36b8"
+  }
+}
