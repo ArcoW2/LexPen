@@ -11,7 +11,7 @@ namespace LexPen;
 /// projects through AppHost (open, close, merge, rename, delete, new). The list follows every change of the
 /// projects (AppHost.ProjectsChanged, a window opened or closed).
 /// </summary>
-sealed class ProjectsForm : Form
+sealed class ProjectsForm : Form, IWebPost
 {
     const string AppUrl = "https://lexpen.example/";
 
@@ -65,14 +65,14 @@ sealed class ProjectsForm : Form
         };
         core.NavigationStarting += (_, n) => { if (!n.Uri.StartsWith(AppUrl)) n.Cancel = true; };
         core.NewWindowRequested += (_, n) => n.Handled = true;
-        await core.AddScriptToExecuteOnDocumentCreatedAsync(app.FirstPaintScript());
+        await core.AddScriptToExecuteOnDocumentCreatedAsync(app.FirstPaintScript(app.LastActive));
         core.Navigate($"{AppUrl}projects.html");
     }
 
     /// <summary>The caption follows the theme, as the main windows do.</summary>
     public void ApplyTheme()
     {
-        BackColor = web.DefaultBackgroundColor = app.AppBackground();
+        BackColor = web.DefaultBackgroundColor = app.AppBackground(app.LastActive);
         var on = app.Mode == "dark" ? 1 : 0;
         DwmSetWindowAttribute(Handle, 20 /* DWMWA_USE_IMMERSIVE_DARK_MODE */, ref on, sizeof(int));
     }
@@ -112,7 +112,7 @@ sealed class ProjectsForm : Form
         switch (op)
         {
             case "init":
-                return new JsonObject { ["settings"] = app.Settings["values"]?.DeepClone(), ["look"] = app.Look(), ["list"] = app.ProjectList(null, true) };
+                return new JsonObject { ["settings"] = app.SettingsFor(app.LastActive)["values"]?.DeepClone(), ["look"] = app.Look(app.LastActive), ["list"] = app.ProjectList(null, true) };
 
             case "list":
                 return app.ProjectList(null, true);

@@ -95,6 +95,7 @@ events.settings = ({ settings: s }) => {
   mergeLayout();
   Object.assign(settings.values, mine);
   applySettings();
+  showThemeSet();
 };
 
 // ---------- This window's layout (docs/plans/executed/PLAN-settings-layers.md) ----------
@@ -141,10 +142,20 @@ events.layoutSet = ({ name, value }) => setSetting(name, value);
 
 // View > Layout > Save as default: this window's layout becomes defaultLayout in settings.json, the layout new
 // projects start with; at once, the message offers Undo (the default as it was).
-function saveLayoutAsDefault() {
+// With a theme set of its own that new projects do not get yet, the host asks first: the layout and the set, one of
+// them, or nothing (docs/plans/executed/PLAN-theme-sets.md, 3.11); Undo puts back both.
+async function saveLayoutAsDefault() {
+  const answer = await host('saveAsDefault');
+  if (!answer) return;
   const before = settings.user.includes('defaultLayout') ? settings.values.defaultLayout : settings.defaults.defaultLayout;
-  setSetting('defaultLayout', windowLayout());
-  toast('This window\'s layout is now the default for new projects.', true, { label: 'Undo', run: () => setSetting('defaultLayout', before) });
+  if (answer.layout) setSetting('defaultLayout', windowLayout());
+  const set = answer.set;
+  const what = [answer.layout && "This window's layout", set && `the theme set "${set.name}"`].filter(Boolean).join(' and ');
+  toast(`${what[0].toUpperCase() + what.slice(1)} ${answer.layout && set ? 'are' : 'is'} now the default for new projects` +
+    (set?.for === 'desktop' ? ' on this desktop.' : '.'), true, { label: 'Undo', run: () => {
+    if (answer.layout) setSetting('defaultLayout', before);
+    if (set) host('themeSetCommand', { kind: 'use', for: set.for, desktop: set.desktop, name: set.before });
+  } });
 }
 
 // View > Layout > Reset to default: this window's layout back to defaultLayout; its tabs and folder stay.
@@ -153,7 +164,10 @@ function resetLayoutToDefault() {
   mergeLayout();
   applySettings();
   layoutChanged();
-  toast('This window has the default layout again.', true);
+  // The project's own theme set goes too: the desktop's or the app's default again (docs/plans/executed/PLAN-theme-sets.md).
+  const own = settings.themeSet?.own;
+  if (own) host('themeSet', { set: null });
+  toast(own ? `This window has the default layout and theme set again (no longer "${own}").` : 'This window has the default layout again.', true);
 }
 chrome.webview.addEventListener('message', e => {
   if (e.data.event) return events[e.data.event]?.(e.data);
@@ -3512,6 +3526,34 @@ events.adoptDrafts = async ({ drafts }) => {
 // ---------- Projects (the host's ProjectStore): the Projects menu, the bottom bar, names ----------
 // A project has windows; every window is in one. The menu lists every project (checked: open) with its windows
 // (checked: open) and what can be done with them; the host does it (AppHost.ProjectCommand).
+// ---------- The theme set (docs/plans/executed/PLAN-theme-sets.md) ----------
+// The bottom bar shows the set this window shows (its project's own, its desktop's default or the app's); a click, or
+// Options > Theme set, chooses the project's own, or opens Manage theme sets.
+const setChip = $('.mm-st-set');
+const SET_SOURCE = { project: "this project's own", desktop: "this desktop's default", app: "the app's default" };
+function showThemeSet() {
+  const s = settings.themeSet;
+  setChip.hidden = !s;
+  if (!s) return;
+  setChip.textContent = 'Theme set: ' + s.name;
+  setChip.title = `Theme set ${s.name}: ${SET_SOURCE[s.source] ?? ''} (click: choose this project's set)`;
+}
+function themeSetMenuItems() {
+  const s = settings.themeSet ?? { sets: ['Default'], own: null };
+  return [
+    { label: "None (the desktop's or the app's default)", plain: true, checked: !s.own, run: () => host('themeSet', { set: null }) },
+    ...s.sets.map(name => ({ label: name, plain: true, checked: s.own === name, run: () => host('themeSet', { set: name }) })),
+    '-', { label: 'Manage theme sets...', plain: true, run: () => host('openThemeSets') },
+  ];
+}
+setChip.addEventListener('mousedown', e => e.preventDefault());   // the focus stays in the editor
+setChip.addEventListener('click', () => {
+  closeMenus();
+  hideMenus();
+  const r = setChip.getBoundingClientRect();
+  openMenuLevel(themeSetMenuItems(), r.left, r.top, true, true);
+});
+
 const projectChip = $('.mm-st-project');
 function setProject(project) {
   state.project = project ?? null;
@@ -3677,12 +3719,19 @@ events.view = async ({ folder, files }) => {
   for (const path of files || []) await viewFile(path).catch(e => toast(e.message));
 };
 
-// A viewed file: in the preview; a tab opened for it is read-only with the setting viewReadOnly (the tab menu's
-// Read-only takes that off), so it cannot be changed by accident. A tab already open stays as it is.
+// A viewed file: in the preview. As a click in the folder pane (openFromTree), it replaces the document shown,
+// unless that one is a draft, has changes or is pinned (then a tab of its own); a file already open in the pane: that
+// tab, as it is. A tab it gets is read-only with the setting viewReadOnly (the tab menu's Read-only takes that off),
+// so it cannot be changed by accident; without the setting it can be edited at once.
 async function viewFile(path) {
-  const fresh = !panes[state.activePane].tabs.some(t => samePath(t.doc.path, path));
-  const tab = await openFile(path, { mode: 'preview' });
-  if (fresh && setting('viewReadOnly')) await setReadOnly(tab, true);
+  const pane = panes[state.activePane], shown = pane.active;
+  if (pane.tabs.some(t => samePath(t.doc.path, path))) return openFile(path, { pane });
+  let tab;
+  if (shown && !shown.doc.draft && !shown.doc.dirty && !shown.pinned && await navigate(shown, path)) {
+    tab = shown;
+    if (tab.mode !== 'preview') { tab.mode = 'preview'; await showActive(pane); }
+  } else tab = await openFile(path, { pane, mode: 'preview' });
+  if (!!tab.readOnly !== !!setting('viewReadOnly')) await setReadOnly(tab, !!setting('viewReadOnly'));
   return tab;
 }
 
@@ -4224,6 +4273,7 @@ track((async () => {
   Object.assign(screenZoom, await host('screen'));   // the zoom of the monitor it is on
   mergeLayout();
   applySettings();   // the layout too: sidebar, outline, panes
+  showThemeSet();
   applyLook(await host('look'));
   layout();
 

@@ -283,7 +283,7 @@ sealed class MainForm : Form
     public void ApplyTheme()
     {
         var dark = app.Mode == "dark";
-        BackColor = web.DefaultBackgroundColor = app.AppBackground();
+        BackColor = web.DefaultBackgroundColor = app.AppBackground(this);
         UpdateFirstPaint();
         var on = dark ? 1 : 0;
         DwmSetWindowAttribute(Handle, 20 /* DWMWA_USE_IMMERSIVE_DARK_MODE */, ref on, sizeof(int));
@@ -297,7 +297,7 @@ sealed class MainForm : Form
     async void UpdateFirstPaint()
     {
         if (web.CoreWebView2 is not { } core || firstPaint is null) return;   // OnLoad registers the first one
-        var script = app.FirstPaintScript();
+        var script = app.FirstPaintScript(this);
         if (script == firstPaintScript) return;
         firstPaintScript = script;
         core.RemoveScriptToExecuteOnDocumentCreated(firstPaint);
@@ -406,7 +406,7 @@ sealed class MainForm : Form
         };
 
         await Settled.Task;   // on its desktop, in its project (AppHost.WindowShown)
-        firstPaint = await core.AddScriptToExecuteOnDocumentCreatedAsync(firstPaintScript = app.FirstPaintScript());
+        firstPaint = await core.AddScriptToExecuteOnDocumentCreatedAsync(firstPaintScript = app.FirstPaintScript(this));
         core.Navigate($"{AppUrl}index.html");
     }
 
@@ -821,14 +821,29 @@ sealed class MainForm : Form
             // Settings (SettingsFile): read, change one (every window follows), the rows of the settings window.
             case "settings":
             {
-                var merged = (JsonObject)app.Settings.DeepClone();
+                var merged = app.SettingsFor(this);   // with its theme set's values (docs/plans/executed/PLAN-theme-sets.md)
                 merged["pageSettingsMoved"] = app.PageSettingsMoved;
                 merged["layoutMoved"] = app.LayoutMoved;
                 return merged;
             }
 
             case "settingSet":
-                app.SetSetting(Arg("name"), msg["value"]?.DeepClone());
+                return app.SetSetting(Arg("name"), msg["value"]?.DeepClone(), this);   // a colour: into this window's set
+
+            case "openThemeSets":
+                app.OpenThemeSets(this);
+                return null;
+
+            // Save as default: what to save (asks when the theme set is part of it); the Undo of the set part.
+            case "saveAsDefault":
+                return app.SaveAsDefault(this, this);
+
+            case "themeSetCommand":
+                return app.ThemeSetCommand(this, msg);
+
+            // This project's own theme set (null: none, the desktop's or the app's default).
+            case "themeSet":
+                app.SetProjectSet(this, msg["set"]?.GetValue<string>());
                 return null;
 
             case "settingsImport":
@@ -868,7 +883,7 @@ sealed class MainForm : Form
 
             // The look (themes, light / dark mode); Day / night while following Windows.
             case "look":
-                return app.Look();
+                return app.Look(this);
 
             // Language packs: all of them, and a language chosen for a file.
             case "languages":

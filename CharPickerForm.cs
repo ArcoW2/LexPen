@@ -10,7 +10,7 @@ namespace LexPen;
 /// (web\charpicker.html, charpage.js) shows the characters (CharInfo); Insert goes to the LexPen window last worked
 /// in (AppHost.LastActive) as the event insertText, and that window comes to the front, so typing goes on there.
 /// </summary>
-sealed class CharPickerForm : Form
+sealed class CharPickerForm : Form, IWebPost
 {
     const string AppUrl = "https://lexpen.example/";
 
@@ -66,14 +66,14 @@ sealed class CharPickerForm : Form
         };
         core.NavigationStarting += (_, n) => { if (!n.Uri.StartsWith(AppUrl)) n.Cancel = true; };
         core.NewWindowRequested += (_, n) => n.Handled = true;
-        await core.AddScriptToExecuteOnDocumentCreatedAsync(app.FirstPaintScript());
+        await core.AddScriptToExecuteOnDocumentCreatedAsync(app.FirstPaintScript(app.LastActive));
         core.Navigate($"{AppUrl}charpicker.html");
     }
 
     /// <summary>The caption follows the theme, as the main windows do.</summary>
     public void ApplyTheme()
     {
-        BackColor = web.DefaultBackgroundColor = app.AppBackground();
+        BackColor = web.DefaultBackgroundColor = app.AppBackground(app.LastActive);
         var on = app.Mode == "dark" ? 1 : 0;
         DwmSetWindowAttribute(Handle, 20 /* DWMWA_USE_IMMERSIVE_DARK_MODE */, ref on, sizeof(int));
     }
@@ -115,7 +115,7 @@ sealed class CharPickerForm : Form
             {
                 var code = startCode;
                 startCode = null;
-                return new JsonObject { ["settings"] = app.Settings["values"]?.DeepClone(), ["look"] = app.Look(), ["code"] = code };
+                return new JsonObject { ["settings"] = app.SettingsFor(app.LastActive)["values"]?.DeepClone(), ["look"] = app.Look(app.LastActive), ["code"] = code };
             }
 
             // Into the LexPen window last worked in, at its cursors; that window comes to the front.

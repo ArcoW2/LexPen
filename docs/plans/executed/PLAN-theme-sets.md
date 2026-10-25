@@ -1,13 +1,8 @@
 # Plan: theme sets per project (a named combination of themes, colours and intensities)
 
-Status: draft 2026-10-25, reworked 2026-10-25 on your decisions: the name; the set shown in the bottom bar; a
-default set per virtual desktop and for the app, a project's own set always first; the look of settings.json is
-the set "Default"; a change is stored at once in the set shown, no unsaved state; which set is used for what is
-chosen in the Manage theme sets window, the quick select of the project's set kept in the
-bars. Extended 2026-10-25: a settings window per main window (3.11, now in plan 31, which comes first); a
-window moved to another desktop takes that desktop's default set unless its project
-has its own (3.6). Not started; questions open.
-The number in the file name is the priority; rename to reorder.
+Status: executed 2026-10-25 on the branch `plan32-theme-sets`, after plans 31 and 33 (draft and reworks
+2026-10-25). The open questions were not answered before the run: their proposals were taken, see section 4, with
+the decisions of the run.
 
 ## 1. What this is about
 
@@ -210,16 +205,41 @@ of its own. This plan adds to it:
   worked in; project A on desktop 1 and project B on desktop 2, Settings opened in both: each shows its own set,
   a colour change in B's lands in B's set, a non-colour setting changed in one shows in the other.
 
-### 3.14 Open questions
+## 4. Decisions of the run
 
-1. Fonts and sizes in a set too, or colours and themes only (this plan)?
-2. Options > Theme set > as well as the bottom bar, or only the bottom bar? Proposal: both, the same menu.
-3. The desktop names come from an undocumented registry key. Fine to read it for names (falling back to
-   "Desktop n"), or only list desktops by number and the LexPen windows on them? Proposal: read it, with the
-   fallback.
-4. Undo: only the last change, while its message shows (as written), or a list of the recent changes per set to
-   undo one by one (also after the message is gone)? Proposal: the last change, while its message shows; the
-   settings window's reset per setting (to the shipped default) stays as it is.
-5. Save as default for the look (3.11): make this window's set the app's default (proposal: nothing is copied, and
-   the set stays one set), or copy its values into the set "Default" (settings.json), as the earlier "Use as
-   default" did?
+The open questions, with the proposal taken (yours to overrule):
+
+1. Colours and themes only (3.2); fonts and sizes stay global (the zoom per screen of plan 31 is the per-screen part).
+2. Both: the bottom bar's field and Options > Theme set give the same menu (None, every set, Manage theme sets...).
+3. The desktops' names are read from the registry (VirtualDesktop.List), else "Desktop n"; a desktop a set names
+   that Windows no longer has shows as gone, with Remove.
+4. Undo: the last change, while its message shows (a few seconds); the per-setting Reset stays as it is.
+5. Save as default makes the set itself the default (nothing copied), as the app's or this desktop's default.
+
+Further decisions:
+
+- Each window gets settings and look of its own from the host (AppHost.SettingsFor, Look(window)); they are sent
+  again only to a window for which they changed. The tool windows (character picker, highlights, Manage projects,
+  Manage theme sets) look as the window last worked in, and follow when another window becomes active.
+- A setting of a set changed from a window (its settings window, a menu, a key) goes into the set that window
+  shows (theme-sets.json), or settings.json for "Default"; settingSet answers with the set and what else uses it,
+  which the settings window's theme set bar shows, with Undo.
+- The list of a set's settings is ThemeSetFile.Names; the settings window marks its rows from THEME_SET_NAMES in
+  actions.js, and a test keeps the two the same.
+- A window that becomes a project's closed window at its start (the reopen-here rule) gets that project's set at
+  once (its page asked before the switch).
+- Save as default asks in a task dialog only when the window's set is not already the one new projects get there:
+  the layout and the set (as the app's default, or this desktop's; preselected when the desktop has one of its
+  own), the layout only, or the set only. It is the host's dialog, so the View menu and the settings window ask the
+  same.
+- Reset to default also removes the project's own set.
+- The Manage theme sets window: the sets with three swatches (the app's, the editor's and the preview's background in
+  the current mode) and what uses them; New (from the look shown now), Duplicate, Rename, Delete (asks, naming what
+  falls back), Edit in settings (uses it for the project and opens the settings); Use for this project, this
+  desktop, the app, and none for the project or the desktop; the desktops with a list to choose each one's set.
+- Tested by hand on a scratch data folder (the debug build, through the WebView2 DevTools port): a project's own set
+  (another theme, its own highlight intensity) beside a window on "Default"; a colour change stored in the set and
+  not in settings.json, with the message and Undo; the bottom bar field; the theme set bar; the Manage window with a
+  new set as a desktop's default, a project without a set then showing it; Save as default with the set and its
+  Undo; Reset to default. Not tested by hand: a window moved to another desktop by hand (Win+Tab; the desktop timer
+  restyles it), and whether Windows moves an owned settings window along with its owner.
