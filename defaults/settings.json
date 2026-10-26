@@ -144,7 +144,7 @@
     "ratio": 50,                  // two panes: the first pane's share, in percent
     "editShare": 0,               // editor and preview side by side: the editor's share, 0.1 to 0.9; 0 is half
     "searchScope": "file",        // the sidebar search: "file", "open" (the open files) or "folder"
-    "tree": "all",                // the folder pane: "all" files, or "md" (markdown files only)
+    "tree": "all",                // the folder pane: "all" files, or "known" (the file types the language packs know)
     "sort": "name",               // the folder pane: by "name" or "modified"
     "sortDesc": false,            // the folder pane: descending
     "formatBar": true,            // the bar with bold, headings, lists, ... above the editor

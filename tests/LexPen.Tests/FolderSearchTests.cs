@@ -6,6 +6,7 @@ public class FolderSearchTests : IDisposable
 {
     readonly string root = Path.Combine(Path.GetTempPath(), "LexPen.Search." + Guid.NewGuid().ToString("N"));
     static readonly HashSet<string> None = [];
+    static readonly HashSet<string> Markdown = new([".md"], StringComparer.OrdinalIgnoreCase);
 
     public FolderSearchTests()
     {
@@ -28,21 +29,21 @@ public class FolderSearchTests : IDisposable
     [Fact]
     public void FindsInAllTextFilesButSkipsWhatTheTreeSkips()
     {
-        var result = FolderSearch.Search(root, "alpha", ignoreCase: true, markdownOnly: false, None);
+        var result = FolderSearch.Search(root, "alpha", ignoreCase: true, extensions: null, None);
         Assert.Equal(["a.md", "code.cs", "b.md"], Names(result));
     }
 
     [Fact]
-    public void MarkdownOnlyAndCase()
+    public void KnownExtensionsOnlyAndCase()
     {
-        var result = FolderSearch.Search(root, "alpha", ignoreCase: false, markdownOnly: true, None);
+        var result = FolderSearch.Search(root, "alpha", ignoreCase: false, extensions: Markdown, None);
         Assert.Equal(["b.md"], Names(result));
     }
 
     [Fact]
     public void LinesAndColumnsWithCrlf()
     {
-        var result = FolderSearch.Search(root, "Alpha", ignoreCase: false, markdownOnly: true, None);
+        var result = FolderSearch.Search(root, "Alpha", ignoreCase: false, extensions: Markdown, None);
         var matches = result["files"]![0]!["matches"]!.AsArray();
         Assert.Equal(2, matches.Count);
         Assert.Equal(1, matches[1]!["line"]!.GetValue<int>());
@@ -54,7 +55,7 @@ public class FolderSearchTests : IDisposable
     public void ALineBreakInThePatternMatchesCrlfAndLf()
     {
         // ^p in the page becomes (?:\r\n|\n|\r)
-        var result = FolderSearch.Search(root, @"one(?:\r\n|\n|\r)second", ignoreCase: false, markdownOnly: true, None);
+        var result = FolderSearch.Search(root, @"one(?:\r\n|\n|\r)second", ignoreCase: false, extensions: Markdown, None);
         var match = result["files"]![0]!["matches"]![0]!;
         Assert.Equal(0, match["line"]!.GetValue<int>());
         Assert.Equal(1, match["endLine"]!.GetValue<int>());
@@ -65,8 +66,8 @@ public class FolderSearchTests : IDisposable
     public void SkippedFilesAndTheLimit()
     {
         var skip = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { Path.Combine(root, "a.md") };
-        Assert.Equal(["code.cs", "b.md"], Names(FolderSearch.Search(root, "alpha", true, false, skip)));
-        var limited = FolderSearch.Search(root, "alpha", true, false, None, max: 2);
+        Assert.Equal(["code.cs", "b.md"], Names(FolderSearch.Search(root, "alpha", true, null, skip)));
+        var limited = FolderSearch.Search(root, "alpha", true, null, None, max: 2);
         Assert.True(limited["truncated"]!.GetValue<bool>());
         Assert.Equal(2, limited["files"]!.AsArray().Sum(f => f!["matches"]!.AsArray().Count));
     }
