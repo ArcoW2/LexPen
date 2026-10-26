@@ -353,7 +353,8 @@ const findDraft = id => [...docs].find(d => d.draft === id);
 const docText = doc => doc.cmDoc ? doc.cmDoc.getValue() : doc.text;
 const diskText = doc => doc.cmDoc ? doc.cmDoc.getValue(doc.eol) : doc.text;   // with the file's own line endings
 const eolOf = text => text.includes('\r\n') ? '\r\n' : '\n';
-const docName = doc => doc.label ?? (doc.path ? nameOf(doc.path) : doc.draft);   // label: a compare's saved text
+// label: a compare's saved text; draftName: a draft's name (Rename draft), else its id (edit3).
+const docName = doc => doc.label ?? (doc.path ? nameOf(doc.path) : doc.draftName || doc.draft);
 const changed = doc => doc.dirty || doc.draftChanged;
 
 function makeDoc({ path = null, draft = null, text = '', encoding = 'UTF-8' }) {
@@ -566,6 +567,7 @@ function makePane(index) {
       ui.tabMenu.querySelector('[data-cmd=tabPin]').textContent = tab.pinned ? 'Unpin tab' : 'Pin tab';
       ui.tabMenu.querySelector('[data-cmd=tabReadOnly]').classList.toggle('mm-on', tab.readOnly || tab.doc.diskReadOnly);
       ui.tabMenu.querySelector('[data-cmd=tabShowInTree]').hidden = !tab.doc.path;
+      ui.tabMenu.querySelector('[data-cmd=tabRenameDraft]').hidden = !tab.doc.draft;
       ui.tabMenu.querySelector('[data-cmd=tabRevert]').hidden = !canRevert(tab.doc);
       const other = panes[1 - index].active;   // the compare (compare.js)
       ui.tabMenu.querySelector('[data-cmd=tabCompareOther]').hidden = !twoPanes() || !other || other.doc === tab.doc;
@@ -1321,7 +1323,7 @@ function tabElement(pane, tab) {
   if (dot) el.dataset.dot = dot;
   el.dataset.tab = tab.id;
   el.draggable = true;
-  el.title = (doc.path || `Draft ${doc.draft}, not saved as a file yet`) + (tab.pinned ? '\nPinned: asks before closing' : '') +
+  el.title = (doc.path || `Draft ${doc.draftName ? `${doc.draftName} (${doc.draft})` : doc.draft}, not saved as a file yet`) + (tab.pinned ? '\nPinned: asks before closing' : '') +
     (editable(tab) ? '' : tab.readOnly ? '\nRead-only (set by you)' : doc.diskReadOnly ? '\nRead-only file on disk'
       : doc.lock ? '\nRead-only: edited in the other pane' : '\nRead-only: edited in another window');
   if (tab.pinned) el.classList.add('mm-pinned');
@@ -1444,7 +1446,7 @@ async function cycleTab(step) {
 let hoverTab = null;
 function showDocName() {
   const doc = (hoverTab && paneOf(hoverTab) ? hoverTab : activeTab())?.doc;
-  ui.docName.textContent = ui.docName.title = doc ? doc.path || `${doc.draft} (draft, not saved as a file yet)` : '';
+  ui.docName.textContent = ui.docName.title = doc ? doc.path || `${docName(doc)} (draft, not saved as a file yet)` : '';
 }
 
 function updateChrome() {
@@ -1693,7 +1695,7 @@ async function closeTab(tab, force, bulk) {
   if (last && !force) {
     if (doc.draft) {
       // Yes saves it as a file (Save As), No drops it, Cancel keeps the tab.
-      const answer = docText(doc).trim() ? await host('askSave', { text: `Save draft ${doc.draft}?` }) : 'no';
+      const answer = docText(doc).trim() ? await host('askSave', { text: `Save draft ${docName(doc)}?` }) : 'no';
       if (answer === 'yes') return await saveDoc(doc) && closeTab(tab, force, bulk);
       if (answer !== 'no') return false;
     } else if (doc.dirty && doc.lock) {
@@ -1760,7 +1762,7 @@ async function saveDoc(doc, saveAs) {
   const was = { path: doc.path, draft: doc.draft };   // the ruler's lines move to the new name (ruler.js)
   if (!path || saveAs) {
     path = await host('pickSave', {
-      name: path ? nameOf(path) : doc.draft + '.md',
+      name: path ? nameOf(path) : doc.draftName || doc.draft + '.md',   // a draft's name as given (Rename draft)
       dir: path ? dirOf(path) : state.root || '',
     });
     if (!path) return false;
@@ -1778,7 +1780,7 @@ async function saveDoc(doc, saveAs) {
   if (doc.draft) {
     clearTimeout(doc.draftTimer);
     host('draftDelete', { draft: doc.draft });
-    doc.draft = null;
+    doc.draft = doc.draftName = null;
     doc.draftChanged = false;
   }
   if (!samePath(path, doc.path) && doc.marks) {
@@ -2590,7 +2592,7 @@ async function moveTab(tab, target, { pane, screenX, screenY, closing } = {}) {
   const source = paneOf(tab);
   const payload = {
     path: doc.path, draft: doc.draft, text: docText(doc), eol: doc.eol, encoding: doc.encoding,
-    dirty: whole && doc.dirty, draftChanged: doc.draftChanged,
+    dirty: whole && doc.dirty, draftChanged: doc.draftChanged, draftName: doc.draftName ?? null,
     history: whole && doc.cmDoc ? doc.cmDoc.getHistory() : null,
     mode: tab.mode, top: source.active === tab ? source.previewEl.scrollTop : tab.previewTop,
     bookmarks: doc.marks ? bookmarkList(doc) : doc.bmList ?? null,
@@ -2637,6 +2639,7 @@ events.adoptTab = async ({ tab: p, pane: index }) => {
     }
     doc.dirty = !!p.dirty;
     doc.draftChanged = !!p.draftChanged;
+    if (p.draft) doc.draftName = p.draftName ?? null;
     if (doc.cmDoc) {
       doc.cmDoc.setValue(p.text);
       if (p.history) doc.cmDoc.setHistory(p.history); else doc.cmDoc.clearHistory();
@@ -2758,7 +2761,7 @@ function showSearchResults(groups, truncated, folder) {
     const head = document.createElement('div');
     head.className = 'mm-result-file';
     head.title = group.path || `Draft ${group.draft}`;
-    head.innerHTML = `<span class="mm-result-name">${escapeHtml(group.path ? nameOf(group.path) : group.draft)}</span>` +
+    head.innerHTML = `<span class="mm-result-name">${escapeHtml(group.path ? nameOf(group.path) : findDraft(group.draft)?.draftName || group.draft)}</span>` +
       `<span class="mm-result-dir">${escapeHtml(group.path && !samePath(dirOf(group.path), state.root) ? relativePath(dirOf(group.path)) : '')}</span>` +
       `<span class="mm-result-count">${group.matches.length}</span>`;
     const list = document.createElement('div');
@@ -3574,7 +3577,7 @@ async function restore(session, drafts) {
   const draftDoc = id => {
     const saved = waiting.get(id);
     waiting.delete(id);
-    return findDraft(id) ?? (saved && makeDoc({ draft: id, text: saved.text }));
+    return findDraft(id) ?? (saved && Object.assign(makeDoc({ draft: id, text: saved.text }), { draftName: saved.name || null }));
   };
   for (const [i, saved] of (session?.panes || []).entries()) {
     const pane = panes[i];
@@ -3626,7 +3629,7 @@ events.closeRequest = async ({ peer, answer } = {}) => {
     if (answer === 'save') {
       for (const doc of dirty) if (!await saveDoc(doc)) return host('closeCancel');
     } else if (!answer && (dirty.length || drafts.length)) {
-      const answer = await host('closePrompt', { dirty: dirty.map(d => d.path), drafts: drafts.map(d => d.draft) });
+      const answer = await host('closePrompt', { dirty: dirty.map(d => d.path), drafts: drafts.map(docName) });
       if (answer === 'cancel') return host('closeCancel');
       if (answer === 'save') {
         for (const doc of dirty) if (!await saveDoc(doc)) return host('closeCancel');
@@ -3651,7 +3654,7 @@ events.unsavedList = ({ ask }) => {
   const drafts = [...docs].filter(d => d.draft);
   host('answer', { ask, result: {
     documents: [...docs].filter(d => d.path && d.dirty && d.lock).map(d => d.path),
-    drafts: drafts.filter(d => docText(d).trim()).map(d => ({ id: d.draft, title: draftTitle(d) })),
+    drafts: drafts.filter(d => docText(d).trim()).map(d => ({ id: d.draft, title: d.draftName || draftTitle(d) })),
     empty: drafts.filter(d => !docText(d).trim()).map(d => d.draft),
   } });
 };
@@ -3760,6 +3763,23 @@ async function projectMenuItems() {
 async function renameProject() {
   const name = await askName('Name of this project', state.project?.name ?? '');
   if (name !== null) host('project', { kind: 'rename', name });
+}
+
+// Rename draft (the tab menu, F1): a name for a draft not saved as a file yet, shown in its tab (still italic) and
+// offered by Save as. An extension a language pack knows switches the draft to that language. Empty: the id again.
+async function renameDraft(doc) {
+  if (!doc?.draft) return toast('Only a draft (a new document not saved as a file yet) can be renamed here.', true);
+  const name = await askName('Name of this draft (with an extension: its language)', doc.draftName ?? '', doc.draft);
+  if (name === null) return;
+  if (/[\\/:*?"<>|]/.test(name)) return toast('A name cannot hold \\ / : * ? " < > |', true);
+  doc.draftName = name || null;
+  host('draftName', { draft: doc.draft, name });
+  writeDraft(doc);   // kept with its name, also while still empty
+  const language = packExtensions[name.match(/(\.[^.]+)$/)?.[1].toLowerCase()];
+  if (language) await setLanguage(doc, language);
+  refreshTabs();
+  showDocName();
+  updateStatus();
 }
 
 // Asks a name: the text, or null for Cancel / Esc.
@@ -4315,6 +4335,7 @@ const commands = {
   tabNewWindow: () => menuTab && moveTab(menuTab, 'new'),
   tabCopyPath: () => menuTab?.doc.path && copyText(menuTab.doc.path),
   tabShowInTree: () => menuTab && showInTree(menuTab.doc.path),
+  tabRenameDraft: () => menuTab && renameDraft(menuTab.doc),
   tabClose: () => menuTab && closeTab(menuTab),
   // The compare (compare.js): this tab on the left.
   async tabCompareWith() {

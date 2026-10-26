@@ -111,6 +111,8 @@ appAction('save', { title: 'Save', hint: 'The file of the active tab', group: 'f
 appAction('saveAs', { title: 'Save as...', hint: 'Under another name; an ANSI file becomes UTF-8', group: 'files', run: () => commands.saveAs() });
 appAction('revertToSaved', { title: 'Revert to saved', hint: 'The file as it is on disk; Ctrl+Z gives your changes back', group: 'files',
   enabled: () => canRevert(activeDoc()), run: () => revertDoc(activeDoc()) });
+appAction('draft.rename', { title: 'Rename draft...', hint: 'A name for this draft (a new document not saved as a file yet), shown in its tab and offered by Save as; with an extension a language knows (.sql): that language', group: 'files',
+  enabled: () => !!activeDoc()?.draft, run: () => renameDraft(activeDoc()) });
 appAction('closeTab', { title: 'Close tab', hint: 'Asks about unsaved changes', group: 'files', run: () => commands.closeTab() });
 appAction('reopenTab', { title: 'Reopen closed tab', hint: 'The last tab closed in this window', group: 'files', run: () => reopenTab() });
 appAction('closeAllTabs', { title: 'Close all tabs', hint: 'Of the active pane; pinned tabs stay', group: 'files',

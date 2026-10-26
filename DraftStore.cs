@@ -4,7 +4,8 @@ using System.Text.RegularExpressions;
 namespace LexPen;
 
 /// <summary>
-/// New documents that were never saved as a file: kept as Drafts\editN.md so they survive a restart.
+/// New documents that were never saved as a file: kept as Drafts\editN.md so they survive a restart; a name given to
+/// one (Rename draft) beside it as editN.name.
 /// Writes run on a background thread, one after another, so the page never waits for the disk.
 /// </summary>
 sealed partial class DraftStore(string dir)
@@ -42,7 +43,12 @@ sealed partial class DraftStore(string dir)
             .OrderBy(f => int.Parse(IdPattern().Match(f.Id).Groups[1].Value));
         foreach (var (file, id) in files)
         {
-            try { result.Add(new JsonObject { ["id"] = id, ["text"] = File.ReadAllText(file) }); }
+            try
+            {
+                var draft = new JsonObject { ["id"] = id, ["text"] = File.ReadAllText(file) };
+                if (File.Exists(NamePathOf(id))) draft["name"] = File.ReadAllText(NamePathOf(id)).Trim();
+                result.Add(draft);
+            }
             catch (IOException) { continue; }
             issued.Add(id);
         }
@@ -62,7 +68,23 @@ sealed partial class DraftStore(string dir)
     public void Delete(string id)
     {
         var path = PathOf(id);
-        Queue(() => File.Delete(path));
+        var name = NamePathOf(id);
+        Queue(() => { File.Delete(path); File.Delete(name); });
+    }
+
+    /// <summary>The draft's name (Rename draft); empty or null: none.</summary>
+    public void SetName(string id, string? name)
+    {
+        var path = NamePathOf(id);
+        Queue(() =>
+        {
+            if (string.IsNullOrWhiteSpace(name)) File.Delete(path);
+            else
+            {
+                Directory.CreateDirectory(dir);
+                File.WriteAllText(path, name.Trim());
+            }
+        });
     }
 
     /// <summary>Waits for the pending writes, for at most a few seconds (on exit).</summary>
@@ -92,4 +114,5 @@ sealed partial class DraftStore(string dir)
     string PathOf(string id) => IdPattern().IsMatch(id)
         ? Path.Combine(dir, id + ".md")
         : throw new ArgumentException($"Invalid draft id '{id}'.");
+    string NamePathOf(string id) => Path.ChangeExtension(PathOf(id), ".name");
 }
