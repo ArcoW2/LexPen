@@ -667,25 +667,34 @@ function rfFindBreaks(lines, cfg) {
 }
 
 // Applies the fixes found in one pass, from the end of the text to its start (so the positions before stay valid),
-// skipping one on a line another fix of this pass changed, or on a line that is not to be changed.
+// skipping one on a line another fix of this pass changed, or on a line that is not to be changed. Breaks (before /
+// after) may follow each other on one line: each splits it further towards its start, where nothing moved; so a long
+// line (a whole JSON document on one line) is split in one pass, not one break a pass.
 function rfApply(lines, fixes) {
-  const touched = new Set();
+  const touched = new Set(), split = new Set();
   let done = 0;
   for (let n = fixes.length - 1; n >= 0; n--) {
     const [[li, i], kind, tok, arg] = fixes[n];
     if (lines[li]?.[i] !== tok) continue;
     const span = kind.startsWith('join') ? [kind === 'joinprev' ? li - 1 : li, kind === 'joinprev' ? li : li + 1] : [li, li];
     if (span[0] < 0 || span[1] >= lines.length) continue;
-    if (span.some(l => touched.has(l)) || rfFixed(lines[span[0]]) || rfFixed(lines[span[1]])) continue;
+    const breaks = kind === 'before' || kind === 'after';
+    if (span.some(l => touched.has(l) || !breaks && split.has(l)) || rfFixed(lines[span[0]]) || rfFixed(lines[span[1]])) continue;
     if (kind.startsWith('join') && (!lines[span[0]].length || !lines[span[1]].length)) continue;
+    // A break where the line was cut already in this pass (after one token, before the next): no empty line.
+    if (breaks) {
+      let at = kind === 'before' ? i : i + 1;
+      if (kind === 'after') while (at < lines[li].length && lines[li][at].k === 'ws') at++;
+      if (!lines[li].slice(0, at).some(t => t.k !== 'ws') || !lines[li].slice(at).some(t => t.k !== 'ws')) continue;
+    }
     if (kind === 'before') rfBreakBefore(lines, li, i);
     else if (kind === 'after') { let j = i + 1; while (j < lines[li].length && lines[li][j].k === 'ws') j++; rfBreakBefore(lines, li, j); }
     else if (kind === 'joinnext') rfJoinNext(lines, li, arg);
     else if (kind === 'joinprev') { if (i === 0 || !rfCodeBefore(lines, li, i)) rfJoinNext(lines, li - 1, arg); }
     else if (kind === 'nowsAfter') lines[li].splice(i + 1, 1);
     else if (kind === 'nowsBefore') lines[li].splice(i - 1, 1);
-    for (const l of span) touched.add(l);
-    if (kind === 'before' || kind === 'after') touched.add(li + 1);
+    if (breaks) split.add(li), split.add(li + 1);
+    else for (const l of span) touched.add(l);
     done++;
   }
   return done;
