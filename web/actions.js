@@ -638,7 +638,7 @@ const SETTING_ROWS = [
     hint: 'On files and folders: opens them in the project for viewing (General > Viewing), a file in the preview, a folder in the Folder pane',
     hintOff: 'No View in LexPen in Explorer\'s right-click menu' },
   { name: 'explorerEdit', group: 'App', sub: 'Windows Explorer', kind: 'toggle', title: 'Edit in LexPen in Explorer\'s right-click menu',
-    hint: 'On files: opens them as opening a file does, never in the project for viewing',
+    hint: 'On files: opens them in the editor (whatever their language opens in), never in the project for viewing',
     hintOff: 'No Edit in LexPen in Explorer\'s right-click menu' },
   { name: 'explorerPlace', group: 'App', sub: 'Windows Explorer', kind: 'choice', title: 'The LexPen items in Explorer\'s menu',
     hint: 'Next to each other with a line above and below, or in one item LexPen that opens a submenu with them. On Windows 11 under Show more options (or Shift+right-click)',
