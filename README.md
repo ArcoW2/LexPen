@@ -312,7 +312,7 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   The other way: a bar at the preview's left edge beside the block that holds the editor's cursor line, in the
   cursor's colour (as on the ruler and in the gutter), and over it in the accent the rendered lines of the cursor line
   itself (a line of code: that line); a preview with a theme of its own uses its own colours. After a cursor move,
-  with the cursor in the editor's view, the preview scrolls as far as needed to show it.
+  with the cursor in the editor's view, the preview scrolls so the cursor's line is at the same height as in the editor.
 - **Where a line jumped to lands**: a find, a search result, the next compare difference, a bookmark, a highlight,
   Go to line and a click in the outline bring the line into view the same way (Editor > Jump to a line), in the
   editor and in the preview. Out of view: 5 lines from the edge it comes

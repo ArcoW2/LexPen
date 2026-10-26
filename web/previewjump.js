@@ -160,7 +160,7 @@ function markPreviewCursor(pane, reveal) {
   const place = (bar, r) => Object.assign(bar.style, { top: r.top - origin.top + 'px', height: Math.max(r.bottom - r.top, 2) + 'px' });
   place(block, spot.block);
   place(own, spot.line);
-  if (reveal && cursorInView(editor.cm)) keepInView(pane, spot.line);
+  if (reveal && cursorInView(editor.cm)) alignWithCursor(pane, editor.cm, spot.line);
   if (typeof schedulePreviewOverview === 'function') schedulePreviewOverview(pane);   // its mark on the preview's scroll bar
 }
 
@@ -170,15 +170,15 @@ function cursorInView(cm) {
   return at.bottom > info.top && at.top < info.top + info.clientHeight;
 }
 
-// The preview scrolled so the spot (window coordinates) touches its view: wholly in it when it fits, else a part.
-function keepInView(pane, spot) {
-  const el = pane.previewEl, view = el.getBoundingClientRect(), margin = 8, height = spot.bottom - spot.top;
-  let by = 0;
-  if (height <= view.height - 2 * margin) {
-    if (spot.top < view.top + margin) by = spot.top - view.top - margin;
-    else if (spot.bottom > view.bottom - margin) by = spot.bottom - view.bottom + margin;
-  } else if (spot.bottom < view.top + 3 * margin) by = spot.bottom - view.top - 3 * margin;
-  else if (spot.top > view.bottom - 3 * margin) by = spot.top - view.bottom + 3 * margin;
+// The preview scrolled so the cursor's line (spot: window coordinates) is at the same height in its view as the cursor
+// is in the editor's (as a share of each view's height, so a lower or higher pane lines up too). The preview's text
+// has another height than its source, so following the editor in proportion alone drifts away from the cursor.
+function alignWithCursor(pane, cm, spot) {
+  const el = pane.previewEl, view = el.getBoundingClientRect(), info = cm.getScrollInfo();
+  const at = cm.charCoords(cm.getCursor(), 'local');
+  const share = Math.min(1, Math.max(0, (at.top - info.top) / Math.max(1, info.clientHeight)));
+  const height = Math.min(spot.bottom - spot.top, view.height);
+  const by = spot.top - (view.top + share * (view.height - height));
   if (Math.abs(by) < 1) return;
   const before = el.scrollTop;
   pane.ignoreScroll = true;   // not an echo to the editor or the other pane (onPreviewScroll)
