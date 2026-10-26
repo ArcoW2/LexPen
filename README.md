@@ -321,7 +321,7 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
 - **Ctrl+PgDn / Ctrl+PgUp**: through the documents in recently used order (hold Ctrl and press PgDn again to go
   further back), or in tab bar order (the setting Document order).
 - **Ctrl+Tab / Ctrl+Shift+Tab**: the keyboard to the next pane (the sidebar, the first document, the second) / the
-  next part of this document (editor, preview, outline; the editor or the preview is shown first when it is not).
+  next part of this document (editor, preview, outline; a part not shown is passed).
   The part the keyboard is in has a border, dimmed while the focus is elsewhere. In the outline: Up, Down, PgUp,
   PgDn, Ctrl+Home, Ctrl+End, Enter.
 - **Outline**: Ctrl+Alt+V, O shows the headings of each pane's file at its right; click one to go there (preview

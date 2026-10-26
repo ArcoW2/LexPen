@@ -203,7 +203,7 @@ toggleAction('sidebar', { title: 'Sidebar', hint: 'Show or hide the folder pane 
   () => document.body.dataset.sidebar === 'on', () => commands.sidebar(), ['show', 'hide']);
 appAction('folders', { title: 'Folders', hint: 'The folder pane, with the keyboard in it', group: 'view', run: () => focusTree() });
 // The keyboard to another part or pane; the focused one has a border (app.js: The focused part).
-appAction('focusPart', { title: 'Part', hint: 'The keyboard to the next / previous part of this document: editor, preview (each shown first when it is not) and the outline (when shown)', group: 'view',
+appAction('focusPart', { title: 'Part', hint: 'The keyboard to the next / previous part of this document: editor, preview and outline, each when shown (one not shown is passed)', group: 'view',
   variants: [[1], [-1]], variantTitles: { 1: 'Next part (editor, preview, outline)', '-1': 'Previous part' }, run: ([dir = 1]) => nextPart(+dir) });
 appAction('focusPane', { title: 'Pane', hint: 'The keyboard to the next / previous pane: the sidebar (when shown), the first document, the second (when shown)', group: 'view',
   variants: [[1], [-1]], variantTitles: { 1: 'Next pane (sidebar, documents)', '-1': 'Previous pane' }, run: ([dir = 1]) => nextPane(+dir) });

@@ -2199,28 +2199,26 @@ addEventListener('focus', () => {
   if (p) markFocused(p);
 });
 
-// The parts of a document pane Ctrl+Shift+Tab goes through: the editor and the preview (opened when not shown), the outline when shown.
+// The parts of a document pane Ctrl+Shift+Tab goes through: the editor, the preview and the outline, each when shown (a part
+// not shown is passed, not opened).
 const outlineShown = pane => document.body.hasAttribute('data-outline') && !pane.el.hasAttribute('data-no-outline');
 
 // Ctrl+Shift+Tab: the next part (the previous: the action focusPart -1, no key) of the active document pane: editor, preview, outline (when shown).
-async function nextPart(dir) {
+function nextPart(dir) {
   const pane = panes[state.activePane], tab = pane.active;
   if (!tab) return;
-  const parts = ['editor', 'preview', ...(outlineShown(pane) ? ['outline'] : [])];
+  const parts = [...(tab.mode !== 'preview' ? ['editor'] : []), ...(tab.mode !== 'edit' ? ['preview'] : []), ...(outlineShown(pane) ? ['outline'] : [])];
   const now = focused?.pane === pane.index ? focused.part : pane.lastPart ?? (tab.mode === 'preview' ? 'preview' : 'editor');
-  await focusPart(pane, parts[(Math.max(0, parts.indexOf(now)) + dir + parts.length) % parts.length], true);
+  focusPart(pane, parts[(Math.max(0, parts.indexOf(now)) + dir + parts.length) % parts.length]);
 }
 
-// The focus into a part of a document pane; `open`: the editor or the preview is shown first when it is not.
-async function focusPart(pane, part, open) {
+// The focus into a part of a document pane; a part not shown: the editor or the preview, whichever is.
+function focusPart(pane, part) {
   const tab = pane.active;
   if (!tab) return;
   if (pane.index !== state.activePane) setActivePane(pane.index);
   if (part === 'outline' && !outlineShown(pane)) part = tab.mode === 'preview' ? 'preview' : 'editor';
-  if (part === 'editor' && tab.mode === 'preview' || part === 'preview' && tab.mode === 'edit') {
-    if (!open) part = tab.mode === 'preview' ? 'preview' : 'editor';
-    else await setMode('split');
-  }
+  if (part === 'editor' && tab.mode === 'preview' || part === 'preview' && tab.mode === 'edit') part = tab.mode === 'preview' ? 'preview' : 'editor';
   if (part === 'outline') return focusOutline(pane);
   tab.focusPart = part;
   if (part === 'editor') pane.cm?.focus(); else pane.previewEl.focus();
@@ -2241,7 +2239,7 @@ function nextPane(dir) {
     }
     return;
   }
-  focusPart(panes[next], panes[next].lastPart ?? (panes[next].active.mode === 'preview' ? 'preview' : 'editor'), false);
+  focusPart(panes[next], panes[next].lastPart ?? (panes[next].active.mode === 'preview' ? 'preview' : 'editor'));
 }
 
 // ---------- The outline with the keyboard ----------
