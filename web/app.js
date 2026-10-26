@@ -3902,13 +3902,25 @@ events.viewLayout = async ({ layout }) => {
   saveSession();
 };
 
-events.open = async ({ folder, files }) => {
+events.open = async ({ folder, files, edit }) => {
   if (folder) {
     await openFolder(folder);
     setSidebar(true);
   }
-  for (const path of files || []) await goToOrOpen(path).catch(e => toast(e.message));
+  for (const path of files || []) await (edit ? editFile(path) : goToOrOpen(path)).catch(e => toast(e.message));
 };
+
+// Edit in LexPen: the file in the editor, whatever its language opens in; a tab it has already in the preview only gets
+// the editor (in split view it has one).
+async function editFile(path, last = false) {
+  const tab = await goToOrOpen(path, { mode: 'edit', last });
+  if (tab?.mode === 'preview') {
+    tab.mode = 'edit';
+    await showActive(paneOf(tab));
+    focusPane(paneOf(tab));
+  }
+  return tab;
+}
 
 // A file from outside (Explorer, a launch, View in LexPen): its tab when this window has it already, in either pane,
 // so it is never there twice; else a new tab (openFile, with its options).
@@ -4461,7 +4473,7 @@ track((async () => {
   // View in LexPen (docs/plans/executed/PLAN-view-window.md): the files in the preview, the folder in the Folder pane.
   // A window of a project opened again for them (it was closed): the files after its tabs as they were.
   const reopened = start.restore !== undefined && start.restore !== null;
-  for (const path of start.files) await (start.view ? viewFile(path, reopened) : goToOrOpen(path, { last: reopened })).catch(e => toast(e.message));
+  for (const path of start.files) await (start.view ? viewFile(path, reopened) : start.edit ? editFile(path, reopened) : goToOrOpen(path, { last: reopened })).catch(e => toast(e.message));
   if (start.view && start.folder) { setSidebar(true); setSideView('folder'); }
   syncWatch();
   syncWatchFiles();

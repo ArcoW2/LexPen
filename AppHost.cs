@@ -737,7 +737,7 @@ sealed class AppHost : ApplicationContext
 
     /// <summary>Opens or activates windows for the paths of one launch. The first launch opens the windows of the
     /// projects first (ProjectStore.StartWindows), each on its own virtual desktop.</summary>
-    public void Launch(IReadOnlyList<string> paths, bool shift, bool compare = false, bool view = false)
+    public void Launch(IReadOnlyList<string> paths, bool shift, bool compare = false, bool view = false, bool edit = false)
     {
         if (view)
         {
@@ -763,11 +763,11 @@ sealed class AppHost : ApplicationContext
             // here (before the first window) is not WinForms' own; every await after that would leave the UI thread.
             if (windows.Count > 0)
             {
-                RouteWhenSettled(paths, shift);
+                RouteWhenSettled(paths, shift, edit);
                 return;
             }
         }
-        Route(paths, shift);
+        Route(paths, shift, edit);
     }
 
     // The project windows that were open, on their own desktops (the first launch).
@@ -819,14 +819,15 @@ sealed class AppHost : ApplicationContext
         BringToFront(w);
     }
 
-    async void RouteWhenSettled(IReadOnlyList<string> paths, bool shift)
+    async void RouteWhenSettled(IReadOnlyList<string> paths, bool shift, bool edit)
     {
         await Task.WhenAny(Task.WhenAll(windows.Select(w => w.Settled.Task)), Task.Delay(5000));
-        Route(paths, shift);
+        Route(paths, shift, edit);
     }
 
     // Opening (and Edit in LexPen) never lands in the project for viewing: its windows are not in the choice.
-    void Route(IReadOnlyList<string> paths, bool shift)
+    // edit: Edit in LexPen, the files in the editor.
+    void Route(IReadOnlyList<string> paths, bool shift, bool edit = false)
     {
         var items = paths.Select(p => (Path: p, Dir: Directory.Exists(p))).ToList();
         var here = recent.Where(w => VirtualDesktop.OnCurrentDesktop(w.Handle) && !ForViewing(w)).Select(w => windows.IndexOf(w)).ToList();
@@ -843,13 +844,13 @@ sealed class AppHost : ApplicationContext
                 var target = w;
                 foreach (var group in t.Files.GroupBy(f => HolderOf(target, f) ?? target).ToList())
                 {
-                    group.Key.Post(new JsonObject { ["event"] = "open", ["files"] = ToArray(group.ToList()) });
+                    group.Key.Post(new JsonObject { ["event"] = "open", ["files"] = ToArray(group.ToList()), ["edit"] = edit });
                     w = group.Key;   // the window that shows the last of them comes to the front
                 }
             }
             // A new window for files (not Shift, not a folder): on a desktop whose last window was closed, that
             // project comes back instead of a new one.
-            else w = Open(new MainForm.Start(t.Folder, t.Files), reopenHere: !shift && t.Folder is null);
+            else w = Open(new MainForm.Start(t.Folder, t.Files, Edit: edit), reopenHere: !shift && t.Folder is null);
             if (ReferenceEquals(t, targets[^1])) front = w;
         }
         BringToFront(front!);
@@ -1026,7 +1027,8 @@ sealed class AppHost : ApplicationContext
                 await using var writer = new StreamWriter(server, leaveOpen: true) { AutoFlush = true };
                 await writer.WriteLineAsync("ok");
                 var paths = msg["paths"]?.AsArray().Select(p => p!.GetValue<string>()).ToList() ?? [];
-                Launch(paths, msg["shift"]?.GetValue<bool>() == true, msg["compare"]?.GetValue<bool>() == true, msg["view"]?.GetValue<bool>() == true);
+                Launch(paths, msg["shift"]?.GetValue<bool>() == true, msg["compare"]?.GetValue<bool>() == true, msg["view"]?.GetValue<bool>() == true,
+                    msg["edit"]?.GetValue<bool>() == true);
             }
             catch (Exception ex) when (ex is IOException or JsonException) { }
         }
