@@ -1,0 +1,85 @@
+# Plan: The find bar's replace, designed for replacing
+
+Status: draft 2026-10-26, not started. The number in the file name is the priority; rename to reorder.
+
+## 1. What this is about
+
+The find bar (Ctrl+F, Ctrl+Shift+R) can replace, but it is built for finding with replace added on:
+
+- The replace row opens with a small chevron at the left of the find field. Nobody reads it as "Replace".
+- The fields have no labels, only placeholders that disappear once you type.
+- Skipping a match means using the find row's Previous / Next arrows; the replace row has only Replace and All.
+  Going through a file match by match, replace this one, skip that one, means moving between the two rows.
+- The replacement is taken literally. `^p` (a line break) and `^t` (a tab) work in the find field but not in the
+  replace field, so you cannot replace something with a line break. With a regular expression `\n` does not work
+  either: only `$1` and the like are read.
+
+## 2. The solution, in brief
+
+A text button **Replace** on the find row opens and closes the replace row. Both rows get a label in front of their
+field: **Find** and **Replace with**, the same width so the fields line up. The replace row gets its own way through
+the file: **Replace** (this match, then the next), **Skip** (the next, this one unchanged), **Previous**, and
+**Replace all**. The replace field reads the same `^` codes as the find field (`^p` a line break, `^t` a tab, `^^`
+a caret); with a regular expression `\n` and `\t` instead, next to `$1`.
+
+## 3. Details
+
+### 3.1 The layout
+
+```
+[Find        ] [______________________] 3 of 12  Aa  W  .*  ^  v  [Replace]  x
+[Replace with] [______________________]  [Replace] [Skip] [Previous] [Replace all]
+```
+
+- **Find** label: always shown, also with the replace row closed.
+- **Replace** button on the find row: toggles the replace row; shown pressed while the row is open. It replaces the
+  chevron. Its tooltip names the key (Ctrl+Shift+R).
+- **Replace with** label and field: only with the row open.
+- The labels are one column of the same width, so both fields start at the same place.
+- In the preview the replace row cannot work (it is the editor's text that changes): the Replace button is disabled
+  with the tooltip "Replace works in the editor", as the row is now hidden there.
+- A narrow pane: the labels keep their width and the fields shrink, as the field does now.
+
+### 3.2 Going through the matches
+
+The replace row is enough on its own; the find row's arrows are not needed while replacing.
+
+- **Replace**: replaces the current match (the one marked as current) and goes to the next. With no current match
+  yet (the bar just opened, or the cursor moved away), it first goes to the next match and stops there, so you see
+  what you replace before you replace it. That is what it does now, but it is not visible; it gets a tooltip.
+- **Skip**: goes to the next match and leaves the current one as it is.
+- **Previous**: goes back one match, to replace one you skipped.
+- **Replace all**: all matches in the file, one undo step, then a message with the number replaced (as now).
+- The count shows where you are ("3 of 12"); after a replace it counts what is left.
+- The end of the file: as the setting "At the end of the file" decides for finding (stop, go on from the top, or stop
+  where the search started).
+- Keys in the replace field: Enter = Replace, Shift+Enter = Previous (as now Enter replaces and Shift+Enter goes
+  back). Skip and Replace all get keys too, see open question 2.
+
+### 3.3 Codes in the replacement
+
+- Without a regular expression: `^p` a line break, `^t` a tab, `^^` a caret, as the find field already reads them.
+  The other find codes (`^?` `^#` `^$` `^w`) match a kind of text and mean nothing in a replacement; they stay as
+  typed.
+- With a regular expression: `\n` a line break, `\t` a tab, `$1`... the groups (as now), `$&` the whole match.
+- A line break goes into the editor as a new line. The editor keeps no line end per line: the file has one line end
+  (CRLF or LF, in the bottom bar), and every line gets it on save. So in a CRLF file `^p` is CRLF. See open
+  question 1 for an LF file.
+- The replace field's tooltip lists the codes, as the find field's does.
+- Replace in the Search panel (plan 05) reads the same codes.
+
+### 3.4 Tests
+
+In the app: the Replace button opens and closes the row and shows pressed; the labels line up; the button disabled
+in the preview. Replace, Skip and Previous through a file: replaced ones changed, skipped ones not, the count right.
+Replace with no current match goes to the first and stops. `^p` and `^t` in the replacement, with and without a
+regular expression (`\n`, `\t`, `$1`); a CRLF file saved with CRLF after `^p`. Replace all as one undo step.
+
+## 4. Open questions
+
+1. `^p` in an LF file: the file's line end (LF; recommended, the file stays consistent), or always CRLF (the file
+   then has mixed line ends, which the editor does not keep)?
+2. Keys for Skip and Replace all, for going through by keyboard only. For example Alt+S and Alt+A while the bar has
+   the focus, shown underlined in the button text. Check first that they do not clash with the menu's Alt keys.
+3. Replace in the selection only (a switch on the replace row), here or only in the Search panel (plan 05,
+   question 3)?
