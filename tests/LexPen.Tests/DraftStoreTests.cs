@@ -27,6 +27,30 @@ public class DraftStoreTests : IDisposable
         Assert.Equal("edit3", store.NewId());
     }
 
+    // Rename draft: the name beside the draft (editN.name), loaded with it, gone with it.
+    [Fact]
+    public void ANameIsKeptBesideTheDraft()
+    {
+        var store = new DraftStore(dir);
+        store.Write("edit1", "one");
+        store.Write("edit2", "two");
+        store.SetName("edit1", " query.sql ");
+        store.Flush();
+        var loaded = new DraftStore(dir).LoadAll();
+        Assert.Equal("query.sql", loaded[0]!["name"]!.GetValue<string>());
+        Assert.Null(loaded[1]!["name"]);
+
+        store.SetName("edit1", "");
+        store.Flush();
+        Assert.Null(new DraftStore(dir).LoadAll()[0]!["name"]);
+
+        store.SetName("edit2", "notes");
+        store.Delete("edit2");
+        store.Flush();
+        Assert.False(File.Exists(Path.Combine(dir, "edit2.name")));
+        Assert.Equal("edit2", new DraftStore(dir).NewId());   // its name file gone with it, edit2 is free again
+    }
+
     [Fact]
     public void WriteLoadAndDelete()
     {

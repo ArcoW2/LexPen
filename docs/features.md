@@ -326,7 +326,8 @@ every action with its key.
   at the next start, in its own window. Closing a changed draft's tab asks "Save draft editN?" (Yes: Save As, No: the
   draft is deleted, Cancel). Closing LexPen asks for the changed files and drafts in one question (Yes, No (keep
   drafts): the drafts stay, Cancel); with Ask to save changed drafts (settings, Files) off, drafts are not asked
-  about and stay drafts.
+  about and stay drafts. Rename draft... (a draft tab's right-click, F1) gives it a name, shown in its tab (still
+  italic) and offered by Save as; an extension a language knows (`query.sql`) switches it to that language.
 - **Changed on disk**: an open file with unsaved changes that changes on disk gets a blue bar (Reload / Keep mine),
   a removed or renamed file a red one (Close / Save it again / Keep as draft). A file without unsaved changes
   is reloaded; when that happened out of sight, a blue banner says so until you click anywhere or press Esc.

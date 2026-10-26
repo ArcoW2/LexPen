@@ -62,7 +62,7 @@ The short list, by group. Every feature in detail: [docs/features.md](docs/featu
 
 - **Folder sidebar** with git status, sorted by name or date, all keyboard; **Known** shows only the file types LexPen knows.
 - **Favourite files and folders**, recent files and folders.
-- **Drafts** kept until saved, also across restarts.
+- **Drafts** kept until saved, also across restarts; give one a name (`query.sql`) before saving it.
 - **Changed on disk**: reloaded, or a bar asks when you have unsaved changes.
 - **Encodings kept** (UTF-8, with or without BOM, UTF-16, ANSI), and a **backup on save**.
 - **View and Edit in LexPen** from Explorer's right-click menu, and **file types** for a double-click.

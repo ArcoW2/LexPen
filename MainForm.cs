@@ -920,6 +920,10 @@ sealed class MainForm : Form
                 app.Drafts.Write(Arg("draft"), Arg("text"));
                 return null;
 
+            case "draftName":
+                app.Drafts.SetName(Arg("draft"), msg["name"]?.GetValue<string>());
+                return null;
+
             case "draftDelete":
                 app.Drafts.Delete(Arg("draft"));
                 app.Rulers.Set(BookmarkStore.Key(null, Arg("draft")), []);   // its ruler lines (saved: they went to the file)
