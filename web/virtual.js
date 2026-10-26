@@ -341,10 +341,15 @@ function setupVirtual(pane) {
   cm.on('mousedown', onVirtualMouseDown);   // before CodeMirror handles the press; preventDefault keeps it from it
   const when = run => c => virtualOn(c) ? run(c) : CodeMirror.Pass;
   const move = run => c => { fromBlock(c); return when(run)(c); };   // a moving key ends a block at its head
+  // Up / Down on a selection: from its head, the cursor's place (CodeMirror would drop it at its end and stay there).
+  const vertical = run => c => {
+    if (c.somethingSelected() && c.listSelections().length === 1 && !blockOf(c)) c.setCursor(c.getCursor('head'));
+    return move(run)(c);
+  };
   const ending = c => { clearVirtual(c); return CodeMirror.Pass; };
   cm.addKeyMap({
-    Up: move(c => moveVertical(c, -1)), Down: move(c => moveVertical(c, 1)),
-    PageUp: move(c => moveVertical(c, -1, true)), PageDown: move(c => moveVertical(c, 1, true)),
+    Up: vertical(c => moveVertical(c, -1)), Down: vertical(c => moveVertical(c, 1)),
+    PageUp: vertical(c => moveVertical(c, -1, true)), PageDown: vertical(c => moveVertical(c, 1, true)),
     Right: move(c => stepVirtual(c, 1)),
     // Left at a line's start goes to the line above unless the setting leftWraps is off.
     Left: c => !setting('leftWraps') && !c.somethingSelected() && !virtualOf(c) && c.getCursor().ch === 0 ? undefined : move(x => stepVirtual(x, -1))(c),
