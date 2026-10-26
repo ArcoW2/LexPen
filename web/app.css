@@ -252,6 +252,15 @@ body[data-show-eol] .CodeMirror[data-eol=lf] .CodeMirror-line:not(.mm-last-line)
 
 /* Asking a name (a project). */
 .mm-name-dialog { min-width: 26em; }
+/* Messages (app.js, showMessages): time, message, document; errors in the caution colour. */
+.mm-messages-dialog { width: min(900px, 90vw); }
+.mm-messages-scroll { max-height: 60vh; overflow: auto; border: 1px solid var(--border); border-radius: 4px; }
+.mm-messages-dialog table { width: 100%; border-collapse: collapse; font-size: calc(12px * var(--ui-scale)); }
+.mm-messages-dialog td { padding: 3px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.mm-messages-dialog .mm-msg-at { white-space: nowrap; color: var(--fg-dim); }
+.mm-messages-dialog .mm-msg-error td:nth-child(2) { color: var(--caution); }
+.mm-messages-dialog a { color: var(--accent); }
+.mm-messages-none { margin-top: 8px; }
 .mm-name-dialog label { display: block; margin-bottom: 8px; }
 .mm-name-dialog input { width: 100%; box-sizing: border-box; padding: 4px 6px; font: inherit; color: var(--fg);
   background: var(--bg); border: 1px solid var(--border); border-radius: 4px; }
@@ -544,6 +553,7 @@ body[data-outline] .mm-outline-button { background: var(--active); color: var(--
 }
 /* Confirmations instead of errors. Page background as text color: white on the light theme's blue, dark on the dark theme's. */
 .mm-toast.mm-info { background: var(--accent); color: var(--bg); }
+.mm-toast { cursor: pointer; }   /* a click: the messages window (app.js, showMessages) */
 .mm-toast-action { margin-left: 8px; padding: 1px 8px; border: 1px solid currentColor; border-radius: 4px; background: none; color: inherit; }
 
 /* Busy bar: a strip sliding along the top edge while something is loading.
