@@ -37,6 +37,10 @@
   "Ctrl+Alt+V, P": "preview.toggle",
   "Ctrl+Alt+V, O": "outline.toggle",
   "Ctrl+Alt+S": "split",              // the file in the other pane too (both edit it)
+  "F5": ["focusPart", 1],             // the keyboard to the next part of this document: editor, preview, outline
+  "Shift+F5": ["focusPart", -1],
+  "Alt+F5": ["focusPane", 1],         // the keyboard to the next pane: the sidebar, the first document, the second
+  "Alt+Shift+F5": ["focusPane", -1],
   "Ctrl+Shift+B": "sidebar.toggle",
   "Ctrl+Shift+E": "folders",
   "Ctrl+Shift+F": "searchInFiles",
