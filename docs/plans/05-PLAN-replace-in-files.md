@@ -1,35 +1,59 @@
-# Plan: Replace in files
+# Plan: Replace in the search panel: the selection, this file, the open files
 
-Status: draft 2026-10-21, not started. From the list "what UltraEdit or Visual Studio has and LexPen does not".
-The number in the file name is the priority; rename to reorder.
+Status: draft 2026-10-21, reworked 2026-10-26 (scope: selection, current file, open files; no folder yet), not
+started. From the list "what UltraEdit or Visual Studio has and LexPen does not". The number in the file name is the
+priority; rename to reorder.
 
 ## 1. What this is about
 
-Search (Ctrl+Shift+F) finds in the open files or in a folder, but replacing works only in the open file. UltraEdit
-and Visual Studio replace in files: all, or per file, or per match, with a preview.
+The Search panel (Ctrl+Shift+F) finds in the current file, the open files or a folder, but cannot replace at all.
+The find bar (Ctrl+Shift+R) replaces one match or all of them in the active editor only: not in a selection, not in
+other files, and without a list of what it will change. UltraEdit and Visual Studio replace in the selection, the
+file or several files, per match or all, with the matches listed first.
 
 ## 2. The solution, in brief
 
-A Replace field in the Search panel. Its results get a Replace button per match, per file and for all; a
-replacement in a file that is open happens in its editor (one undo step per file, not saved), in a file that is
-not open it is written by the host (with a backup when the setting says so). Before "Replace all" a count and a
-confirmation.
+The Search panel gets a Replace field and a scope with three choices: Current selection (the default when text is
+selected), Current file (the default otherwise) and All open files. Its results get a Replace button per match, per
+file and for all. Every replacement happens in the file's editor: one undo step per file, the file left unsaved for
+the user to save. Before Replace all, a count and a confirmation. Files in a folder are left out for now: the panel
+does not show which folder that would be.
 
 ## 3. Details
 
-- The same matching as search (case, whole word, regular expressions with `$1` in the replacement, the `^p` codes).
-- Open files: through their editor, so undo works and the file stays unsaved (the user saves); not open: the host
-  reads, replaces and writes (encoding and line ends as read, TextFile), backup as on save.
-- Read-only files (on disk or a read-only tab): skipped, listed.
-- A file that changed on disk since the search: searched again first.
-- After replacing, the results show what was replaced (crossed out, the new text), and Ctrl+Z on an open file undoes.
+### 3.1 The scope
 
-### 3.1 Tests
+- **Current selection**: the selected text of the active editor; with several selections or a column block, each of
+  them. The default when the editor has a selection of more than a word when the panel opens (a selection within one
+  line still fills the find field, as now). The selection is taken when the search runs and marked while the results
+  show, so a click elsewhere does not change what is replaced.
+- **Current file**: the active tab's document. The default without a selection.
+- **All open files**: every document open in this window, unsaved edits included (they are searched as they are now).
+- **Files in folder** stays a search scope, but with Replace shown it is not offered (or disabled with a hint) until
+  the panel shows which folder it means (see 4).
 
-In-app and unit (host): replace in an open file (undo), a closed file (written, backup, encoding kept), all with
-the confirmation, per match, a regex with `$1`, a read-only file skipped.
+### 3.2 Replacing
+
+- The same matching as search: case, whole word, regular expressions with `$1` in the replacement, the `^p` codes.
+- Through the editor, so undo works and the file stays unsaved (the user saves); a document open but not shown
+  gets its editor document as when it is shown.
+- Per match (the row's button), per file (the file head's button) and all (the panel's button, after a confirmation
+  with the number of matches and files).
+- Read-only (on disk, a read-only tab, edited in another window): skipped, and listed as skipped.
+- A file changed since the search (typed in, or reloaded): searched again before replacing in it.
+- After replacing, the results show what was replaced (crossed out, the new text); Ctrl+Z in a file undoes its step.
+- The find bar's own Replace / All stay as they are (the active editor), sharing the replace history.
+
+### 3.3 Tests
+
+In the app: the default scope with and without a selection; replace in a selection only (text outside unchanged,
+several selections and a block); in the current file; in all open files (one undo step each, files left unsaved);
+per match, per file, all with the confirmation; a regex with `$1`; a read-only tab skipped; a file changed after the
+search searched again.
 
 ## 4. Open questions
 
-1. Files not open: write them directly (as UE), or open each in a tab first so it can be checked and saved?
-2. A preview of all changes (as VS) before Replace all?
+1. Files in folder: replace there later, once the panel shows the folder (its path above the results), writing the
+   files not open directly (as UltraEdit) or opening each in a tab first?
+2. A preview of all changes (as Visual Studio) before Replace all, or is the list with the count enough?
+3. Current selection: also offered in the find bar (a switch "in selection"), or only in the Search panel?
