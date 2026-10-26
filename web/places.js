@@ -71,11 +71,19 @@ function dropPlaces(doc) {
   doc.placesBack = doc.placesForward = null;
 }
 
-// One step back (dir -1) or forward (1) in the active tab's document.
+// A link followed (the window's back / forward, app.js), when that is the window's next step: taken.
+function linkStep(dir) {
+  if (!(dir < 0 ? navHistory.back : navHistory.forward).at(-1)?.link) return false;
+  commands[dir < 0 ? 'back' : 'forward']();
+  return true;
+}
+
+// One step back (dir -1) or forward (1) in the active tab's document; past its places (or in the preview), the file a
+// link came from (back) or went to (forward).
 function stepPlace(dir) {
   const pane = panes[state.activePane], tab = pane?.active;
   if (!tab) return;
-  if (tab.mode === 'preview' || !pane.cm) return toast('No positions in the preview.', true);
+  if (tab.mode === 'preview' || !pane.cm) return linkStep(dir) || toast('No positions in the preview.', true);
   const doc = tab.doc, cm = pane.cm, here = cm.getCursor('head');
   const from = (dir < 0 ? doc.placesBack : doc.placesForward) ?? [];
   let to;
@@ -84,7 +92,7 @@ function stepPlace(dir) {
     place.mark.clear();
     if (pos && (pos.line !== here.line || pos.ch !== here.ch)) { to = pos; break; }   // its text deleted, or here: skipped
   }
-  if (!to) return flashEdge(cm, dir);   // virtual.js
+  if (!to) return linkStep(dir) || flashEdge(cm, dir);   // virtual.js
   const other = dir < 0 ? (doc.placesForward ??= []) : (doc.placesBack ??= []);
   other.push(makePlace(doc.cmDoc, here));
   if (other.length > PLACES_MAX) other.shift().mark.clear();

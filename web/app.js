@@ -1171,17 +1171,18 @@ async function showActive(pane) {
 const showAll = () => Promise.all(panes.map(showActive));
 
 // Back / forward, like a browser, for the whole window: every switch to another tab and every link
-// followed inside a tab is a step. Entries: { tab: id, path, top }.
+// followed inside a tab is a step. Entries: { tab: id, path, top, link }; link: the step was a link followed (position
+// back / forward take it too, places.js).
 const navHistory = { back: [], forward: [] };
 let goingBack = false;   // a back/forward step itself is not recorded
 
-function remember(tab, path) {
+function remember(tab, path, link = false) {
   if (!started || goingBack || !tab) return;
   const pane = paneOf(tab);
   const top = pane?.active === tab ? pane.previewEl.scrollTop : tab.previewTop;
   const last = navHistory.back.at(-1);
-  if (last?.tab === tab.id && samePath(last.path, path)) last.top = top;
-  else navHistory.back.push({ tab: tab.id, path, top });
+  if (last?.tab === tab.id && samePath(last.path, path)) last.top = top, last.link ||= link;
+  else navHistory.back.push({ tab: tab.id, path, top, link });
   if (navHistory.back.length > 100) navHistory.back.shift();
   navHistory.forward.length = 0;
 }
@@ -1197,7 +1198,7 @@ async function go(from, to) {
     try {
       if (here) {
         const herePane = paneOf(here);
-        to.push({ tab: here.id, path: here.doc.path, top: herePane.active === here ? herePane.previewEl.scrollTop : here.previewTop });
+        to.push({ tab: here.id, path: here.doc.path, top: herePane.active === here ? herePane.previewEl.scrollTop : here.previewTop, link: entry.link });
       }
       const pane = paneOf(tab);
       if (!samePath(tab.doc.path, entry.path) && entry.path) {
@@ -1643,6 +1644,7 @@ async function navigate(tab, path, anchor, restoring) {
   }
   const already = pane.tabs.find(t => samePath(t.doc.path, path));
   if (already) {
+    if (!restoring && tab.doc.path) remember(tab, tab.doc.path, true);
     await activate(pane, already);
     if (anchor) scrollToAnchor(pane, anchor);
     return true;
@@ -1655,7 +1657,7 @@ async function navigate(tab, path, anchor, restoring) {
   }
   const doc = findDoc(path) ?? await loadDoc(path);
 
-  if (!restoring && old.path) remember(tab, old.path);
+  if (!restoring && old.path) remember(tab, old.path, true);
   // The file left the window (no other tab has it): recently closed, as closing its tab would (Reopen closed tab too).
   if (last && old.path) {
     noteOpened('closed', old.path);
