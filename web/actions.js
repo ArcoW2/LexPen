@@ -417,8 +417,8 @@ appAction('settings', { title: 'Settings...', hint: 'Every setting, searchable; 
   run: () => host('openSettings') });
 appAction('chooseLanguage', { title: 'Language...', hint: 'Of the active tab: colouring, outline, bar and actions (also a click on the language in the bottom bar)', group: 'view',
   enabled: () => !!activeDoc(), run: () => showLanguageList() });
-appAction('tabOrder.set', { title: 'Ctrl+Tab order', hint: 'Recently used, or the order of the tab bar', group: 'settings',
-  variants: [['recent'], ['tabs']], variantTitles: { recent: 'Ctrl+Tab in recently used order', tabs: 'Ctrl+Tab in tab bar order' },
+appAction('tabOrder.set', { title: 'Document order', hint: 'Recently used, or the order of the tab bar', group: 'settings',
+  variants: [['recent'], ['tabs']], variantTitles: { recent: 'Ctrl+PgDn in recently used order', tabs: 'Ctrl+PgDn in tab bar order' },
   checked: ([order]) => setting('tabOrder') === order, run: ([order]) => setSetting('tabOrder', order) });
 toggleAction('backup', { title: 'Keep a backup when saving', hint: 'The old file becomes name.ext.bak (overwritten at the next save)', group: 'settings' },
   () => setting('backup'), () => setSetting('backup', !setting('backup')));

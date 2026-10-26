@@ -508,7 +508,7 @@ function makePane(index) {
     if (pane.editorEl.contains(e.target)) pane.active.focusPart = 'editor';
     else if (pane.previewEl.contains(e.target)) pane.active.focusPart = 'preview';
   });
-  pane.outlineEl.tabIndex = -1;   // can take the focus (F5): its keys go through the entries (outlineKeys)
+  pane.outlineEl.tabIndex = -1;   // can take the focus (Ctrl+Shift+Tab): its keys go through the entries (outlineKeys)
   pane.outlineEl.addEventListener('keydown', e => outlineKeys(pane, e));
   pane.previewEl.addEventListener('scroll', () => onPreviewScroll(pane));
   pane.previewEl.addEventListener('wheel', e => {
@@ -1484,9 +1484,9 @@ function setSwitch(part) {
   setMode(e && p ? 'split' : e ? 'edit' : 'preview');
 }
 
-// ---------- Next document: Ctrl+Tab ----------
-// Recently used order (the default) or tab bar order (Options > Settings > Ctrl+Tab order). In recently
-// used order, holding Ctrl and pressing Tab again goes further back; letting go of Ctrl makes the
+// ---------- Next document: Ctrl+PgDn ----------
+// Recently used order (the default) or tab bar order (Options > Settings > Document order). In recently
+// used order, holding Ctrl and pressing PgDn again goes further back; letting go of Ctrl makes the
 // document reached the most recent one.
 const recentTabs = [];   // tab ids, most recently active first
 let tabWalk = null;      // { list, at } while Ctrl is held
@@ -2147,12 +2147,12 @@ function refocus() {
   if (el === document.body || el?.matches('.mm-save')) focusPane(panes[state.activePane]);
 }
 
-// ---------- The focused part: a border around it; F5 and Alt+F5 ----------
+// ---------- The focused part: a border around it; Ctrl+Shift+Tab and Ctrl+Tab ----------
 // Where the keyboard is: the sidebar (Folder or Search), or a document pane's editor, preview or outline (.mm-focused).
 // A border lies over that part (.mm-focus-ring, one for the window, above the parts: the editor's gutter and scroll bar
 // would cover a border of its own), placed again when the part moves or changes size. With the focus elsewhere (the
 // tabs, the find bar, a menu, a dialog, another window) it stays on the part last used, dimmed (body[data-focus-away]):
-// what F5 and Alt+F5 start from.
+// what Ctrl+Shift+Tab and Ctrl+Tab start from.
 let focused = null;   // { pane: its index, or -1 for the sidebar; part: sidebar, editor, preview or outline }
 const focusRing = Object.assign(document.createElement('div'), { className: 'mm-focus-ring', hidden: true });
 document.body.append(focusRing);
@@ -2199,10 +2199,10 @@ addEventListener('focus', () => {
   if (p) markFocused(p);
 });
 
-// The parts of a document pane F5 goes through: the editor and the preview (opened when not shown), the outline when shown.
+// The parts of a document pane Ctrl+Shift+Tab goes through: the editor and the preview (opened when not shown), the outline when shown.
 const outlineShown = pane => document.body.hasAttribute('data-outline') && !pane.el.hasAttribute('data-no-outline');
 
-// F5 / Shift+F5: the next / previous part of the active document pane: editor, preview, outline (when shown).
+// Ctrl+Shift+Tab: the next part (the previous: the action focusPart -1, no key) of the active document pane: editor, preview, outline (when shown).
 async function nextPart(dir) {
   const pane = panes[state.activePane], tab = pane.active;
   if (!tab) return;
@@ -2226,7 +2226,7 @@ async function focusPart(pane, part, open) {
   if (part === 'editor') pane.cm?.focus(); else pane.previewEl.focus();
 }
 
-// Alt+F5 / Shift+Alt+F5: the next / previous pane: the sidebar (when shown), document pane 1, document pane 2 (when
+// Ctrl+Tab: the next pane (the previous: the action focusPane -1, no key): the sidebar (when shown), document pane 1, document pane 2 (when
 // shown); in a document pane the part it had last.
 function nextPane(dir) {
   const order = [...(document.body.dataset.sidebar === 'on' ? [-1] : []), ...panes.filter(p => !p.el.hidden && p.active).map(p => p.index)];
