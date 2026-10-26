@@ -192,6 +192,8 @@ toggleAction('outline', { title: 'Outline', hint: 'The headings (or procedures, 
   enabled: () => hasOutline(activeDoc()) }, () => document.body.hasAttribute('data-outline'), () => commands.outline(), ['show', 'hide']);
 toggleAction('wrap', { title: 'Wrap long lines', hint: 'In the editor (code blocks in the preview: Options > Settings, Preview)', group: 'view' },
   () => setting('wrap'), () => setWrap(!setting('wrap')));
+appAction('messages', { title: 'Messages...', hint: 'What showed at the bottom of this window since it opened, with the time and the document (also a click on a message)', group: 'view',
+  run: () => showMessages() });
 appAction('locateCursor', { title: 'Locate the cursor', hint: 'Rings shrink onto every cursor, in both panes when two show; a cursor out of view gets a marker at that edge (also a short tap on Ctrl)', group: 'view',
   enabled: () => !!editorPane(), run: () => locateCursor(editorPane({ from: 'menu' })) });
 toggleAction('overviewMark', { title: 'Scroll bar marks', hint: 'Show or hide this kind of mark on the editor\'s scroll bar', group: 'view',

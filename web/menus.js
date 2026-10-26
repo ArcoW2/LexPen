@@ -64,7 +64,7 @@ const MENUS = [
     { header: 'This screen' },
     { label: '&Zoom', sub: [['Zoom &in', 'zoomIn'], ['Zoom &out', 'zoomOut'], ['&100%', 'zoomReset'], '-', ['Use on &every screen', 'zoomEveryScreen']] },
     '-',
-    ['Locate the &cursor (tap Ctrl)', 'locateCursor'],
+    ['Locate the &cursor (tap Ctrl)', 'locateCursor'], ['&Messages...', 'messages'],
     { label: 'Pane &visibility', sub: [['&Hide this pane', 'paneHide'], ['Hide &other pane', 'paneHideOther'], ['&Close this pane', 'paneClose'],
       ['C&lose other pane', 'paneCloseOther'], ['&Show hidden pane', 'paneShow']] },
     ['Level the pa&nes', 'levelPanes'], ['Split into the ot&her pane', 'split'],

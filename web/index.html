@@ -209,6 +209,15 @@
   <p class="mm-pal-foot"></p>
 </dialog>
 
+<!-- Messages: every toast of this window, with its time and document (app.js, showMessages). -->
+<dialog class="mm-about mm-messages-dialog">
+  <h1>Messages</h1>
+  <p>What showed at the bottom of this window since it opened, newest first; the document is the one active then.</p>
+  <div class="mm-messages-scroll"><table><tbody class="mm-messages-list"></tbody></table></div>
+  <p class="mm-messages-none">No messages yet.</p>
+  <div class="mm-name-buttons"><button type="button" class="mm-messages-clear">Clear</button><button type="button" class="mm-messages-close">Close</button></div>
+</dialog>
+
 <!-- A name (a project): askName in app.js. -->
 <dialog class="mm-about mm-name-dialog">
   <form method="dialog">

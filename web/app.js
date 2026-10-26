@@ -181,6 +181,7 @@ chrome.webview.addEventListener('message', e => {
 // Errors and warnings are red; `info` (a confirmation) is blue.
 // `action` ({ label, run }): a button in the message, as Undo.
 function toast(message, info, action) {
+  logMessage(message, info);
   ui.toast.textContent = message;
   if (action) {
     const b = document.createElement('button');
@@ -194,6 +195,51 @@ function toast(message, info, action) {
   clearTimeout(toast.timer);
   toast.timer = setTimeout(() => ui.toast.hidden = true, 5000);
 }
+// ---------- Messages: what the toast showed, kept ----------
+// Every toast of this window since it opened (the last 200), with its time and the document active then: View >
+// Messages... (also F1, and a click on the toast) lists them, newest first; a click on a document goes there.
+const messageLog = [];
+function logMessage(text, info) {
+  let doc = null, name = '';
+  try { doc = activeTab()?.doc; name = doc ? docName(doc) : ''; } catch { /* a message while the page is still loading */ }
+  messageLog.push({ at: new Date(), text: String(text), info: !!info, path: doc?.path ?? null, draft: doc?.draft ?? null, name });
+  if (messageLog.length > 200) messageLog.shift();
+  if ($('.mm-messages-dialog').open) showMessages();
+}
+
+function showMessages() {
+  const dialog = $('.mm-messages-dialog'), list = dialog.querySelector('.mm-messages-list');
+  const today = new Date().toDateString(), two = n => String(n).padStart(2, '0');
+  const when = d => (d.toDateString() === today ? '' : `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())} `) +
+    `${two(d.getHours())}:${two(d.getMinutes())}:${two(d.getSeconds())}`;
+  list.replaceChildren(...[...messageLog].reverse().map(m => {
+    const row = document.createElement('tr');
+    row.className = m.info ? 'mm-msg-info' : 'mm-msg-error';
+    const doc = document.createElement('td');
+    if (m.name) {
+      const link = Object.assign(document.createElement('a'), { href: '#', textContent: m.name, title: m.path || `Draft ${m.draft}` });
+      link.addEventListener('click', e => { e.preventDefault(); dialog.close(); goToMessageDoc(m); });
+      doc.append(link);
+    }
+    row.append(Object.assign(document.createElement('td'), { textContent: when(m.at), className: 'mm-msg-at' }),
+      Object.assign(document.createElement('td'), { textContent: m.text }), doc);
+    return row;
+  }));
+  dialog.querySelector('.mm-messages-none').hidden = messageLog.length > 0;
+  if (!dialog.open) dialog.showModal();
+}
+
+async function goToMessageDoc(m) {
+  if (m.path) return goToOrOpen(m.path).catch(e => toast(e.message));
+  const doc = findDraft(m.draft), tab = doc && tabsOf(doc)[0];
+  if (!tab) return toast('That draft is closed.', true);
+  await activate(paneOf(tab), tab);
+  focusPane(paneOf(tab));
+}
+$('.mm-messages-dialog .mm-messages-clear').addEventListener('click', () => { messageLog.length = 0; showMessages(); });
+$('.mm-messages-dialog .mm-messages-close').addEventListener('click', () => $('.mm-messages-dialog').close());
+ui.toast.addEventListener('click', e => { if (!e.target.closest('.mm-toast-action')) { ui.toast.hidden = true; showMessages(); } });
+
 // With the page's own place it came from (file:line), so a report can be traced.
 addEventListener('unhandledrejection', e => {
   const at = /\/(\w+\.js):(\d+)/.exec((e.reason?.stack ?? '').split('\n').find(s => /\.js:\d/.test(s) && !/\/lib\//.test(s)) ?? '');
