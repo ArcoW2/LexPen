@@ -34,6 +34,10 @@ const languageTitle = doc => packOf(doc)?.name ?? languageOf(doc);
 const langDef = (doc, name) => doc ? packs[languageOf(doc)]?.actions?.[name] ?? packs.plaintext?.actions?.[name] : null;
 const packActionNames = () => [...new Set(PACK_NAMES.flatMap(n => Object.keys(packs[n]?.actions ?? {})))];
 
+// A file type a language pack knows (its extension is in a pack's extensions): the folder pane shows it as normal,
+// others dimmed or hidden (Known file types only).
+const knownFile = path => !!packExtensions[path?.match(/(\.[^.\\/]+)$/)?.[1].toLowerCase()];
+
 // The language of a file: by extension, then by a pack's first-line pattern, else plain text.
 function languageFor(path, text = '') {
   const ext = path?.match(/(\.[^.\\/]+)$/)?.[1].toLowerCase();

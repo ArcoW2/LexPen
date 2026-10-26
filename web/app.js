@@ -1,8 +1,6 @@
 'use strict';
 
 const FILE_URL = 'https://file.lexpen.example/';   // served by the host, see MainForm.OnFileRequested
-// A markdown file (the folder pane's markdown-only filter): by the markdown pack's extensions.
-const MARKDOWN_FILE = { test: name => languageFor(name) === 'markdown' };
 // The language of a file (languages.js, by its pack's extensions); undefined for markdown (and a draft).
 const codeLang = (path, text) => {
   if (!path) return undefined;
@@ -2028,7 +2026,7 @@ async function fillDir(container, path, depth) {
   container.replaceChildren();
   for (const item of [...sortItems(items), ...deletedIn(path, items)]) {
     const row = document.createElement('div');
-    row.className = 'mm-row' + (item.dir ? ' mm-dir' : MARKDOWN_FILE.test(item.name) ? '' : ' mm-other') +
+    row.className = 'mm-row' + (item.dir ? ' mm-dir' : knownFile(item.name) ? '' : ' mm-other') +
       (item.gone ? ' mm-gone' : '');
     row.dataset.path = item.path;
     row.dataset.depth = depth;
@@ -2357,9 +2355,9 @@ async function showInTree(path) {
   setSideView('folder');
   const inside = root => root && path.toLowerCase().startsWith(root.replace(/\\$/, '').toLowerCase() + '\\');
   if (!inside(state.root)) await openFolder(dirOf(path));
-  if (document.body.dataset.tree === 'md' && !MARKDOWN_FILE.test(path)) {
-    setMarkdownOnly(false);   // the filter would hide it
-    toast('The folder pane shows all files again (not only markdown), so the file can be shown.', true);
+  if (document.body.dataset.tree === 'known' && !knownFile(path)) {
+    setKnownOnly(false);   // the filter would hide it
+    toast('The folder pane shows all files again (not only known file types), so the file can be shown.', true);
   }
   const rowOf = p => [...ui.tree.querySelectorAll('.mm-row:not(.mm-up)')].find(r => samePath(r.dataset.path, p));
   let dir = state.root.replace(/\\$/, '');
@@ -2720,20 +2718,21 @@ async function runSearch() {
   try { regex = new RegExp(source, searchOptions.case ? 'g' : 'gi'); }
   catch (e) { return searchUi.status.textContent = 'Not a valid regular expression: ' + e.message; }
   searchUi.status.textContent = 'Searching...';
-  const markdownOnly = document.body.dataset.tree === 'md';
+  const knownOnly = document.body.dataset.tree === 'known';
   const folder = scope === 'folder' ? searchFolder() : null;
   if (scope === 'folder' && !folder) return searchUi.status.textContent = 'No folder: open a folder or a file first.';
 
   // Open documents are searched here, so unsaved edits count.
   let docsHere = scope === 'file' ? [activeDoc()].filter(Boolean) : [...docs];
   if (folder) docsHere = docsHere.filter(d => d.path && d.path.toLowerCase().startsWith(folder.toLowerCase().replace(/\\$/, '') + '\\') &&
-    (!markdownOnly || MARKDOWN_FILE.test(d.path)));
+    (!knownOnly || knownFile(d.path)));
   const groups = docsHere.map(doc => ({ path: doc.path, draft: doc.draft, matches: searchText(docText(doc), regex) }))
     .filter(g => g.matches.length);
   let truncated = false;
   if (folder) {
     try {
-      const found = await host('search', { root: folder, pattern: source, ignoreCase: !searchOptions.case, markdownOnly,
+      const found = await host('search', { root: folder, pattern: source, ignoreCase: !searchOptions.case,
+        extensions: knownOnly ? Object.keys(packExtensions) : null,
         skip: docsHere.map(d => d.path) });
       groups.push(...found.files);
       truncated = found.truncated;
@@ -3844,6 +3843,7 @@ events.look = ({ look }) => {
 // The language packs changed (your languages folder): editors, previews, outlines and the settings window follow.
 events.languages = ({ languages }) => {
   applyLanguages(languages);
+  refreshTree(false);   // known file types (knownFile) may have changed
   for (const doc of docs) doc.outline = null;
   for (const tab of allTabs()) tab.stale = true;
   for (const pane of panes) pane.modeKey = pane.codeBarKey = pane.gutterKey = null;
@@ -3988,11 +3988,12 @@ async function copyText(text) {
   toast('Copied ' + text, true);
 }
 
-// Tree filter: all files, or markdown files only (folders always stay).
-function setMarkdownOnly(on) {
-  document.body.dataset.tree = on ? 'md' : 'all';
-  keepLayout('tree', on ? 'md' : 'all');
-  $('.mm-md-only').classList.toggle('mm-on', on);
+// Tree filter: all files, or the known file types only (knownFile: a language pack has the extension; folders always
+// stay).
+function setKnownOnly(on) {
+  document.body.dataset.tree = on ? 'known' : 'all';
+  keepLayout('tree', on ? 'known' : 'all');
+  $('.mm-known-only').classList.toggle('mm-on', on);
 }
 
 // Off (the default) follows the spec: a single line break inside a paragraph renders as a space.
@@ -4163,7 +4164,7 @@ function applySettings() {
   // at the start and when the layout comes from elsewhere: the settings window, Reset to default).
   if (changed('sidebarWidth')) layoutWidth('--sidebar-w', now.sidebarWidth);
   if (changed('outlineWidth')) layoutWidth('--outline-w', now.outlineWidth);
-  if (changed('tree')) setMarkdownOnly(now.tree === 'md');
+  if (changed('tree')) setKnownOnly(now.tree === 'known' || now.tree === 'md');   // md: the markdown filter before
   if (changed('outline')) setOutline(!!now.outline);
   if (changed('editShare')) setSplit(now.editShare || null);
   if (changed('sideView')) setSideView(now.sideView === 'search' ? 'search' : 'folder');
@@ -4196,7 +4197,7 @@ async function moveLayoutStorage() {
   if (+ls.ratio) values.ratio = +ls.ratio;
   if (+ls.editShare) values.editShare = +ls.editShare;
   if (['file', 'open', 'folder'].includes(ls.searchScope)) values.searchScope = ls.searchScope;
-  if (ls.tree) values.tree = ls.tree === 'md' ? 'md' : 'all';
+  if (ls.tree) values.tree = ls.tree === 'md' || ls.tree === 'known' ? 'known' : 'all';
   if (ls.sort) values.sort = ls.sort === 'modified' ? 'modified' : 'name';
   if (ls.sortDesc) values.sortDesc = ls.sortDesc === 'on';
   await host('layoutImport', { values });
@@ -4293,7 +4294,7 @@ const commands = {
   saveAs: () => activeDoc() && saveDoc(activeDoc(), true).then(refocus),
   sidebar: () => setSidebar(document.body.dataset.sidebar === 'off'),
   refresh: refreshTree,
-  markdownOnly: () => setMarkdownOnly(document.body.dataset.tree !== 'md'),
+  knownOnly: () => setKnownOnly(document.body.dataset.tree !== 'known'),
   lineBreaks: () => setSetting('lineBreaks', !setting('lineBreaks')),
   sortDir() {
     keepLayout('sortDesc', !setting('sortDesc'));

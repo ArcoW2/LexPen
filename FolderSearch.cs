@@ -12,14 +12,13 @@ namespace LexPen;
 static class FolderSearch
 {
     public const long MaxFileSize = 10 * 1024 * 1024;
-    static readonly string[] MarkdownExtensions = [".md", ".markdown", ".mdown", ".mkd", ".mdx", ".txt"];
-
     /// <summary>
     /// Matches as [{path, matches: [{line, col, endLine, endCol, text}]}], files by path; at most
     /// <paramref name="max"/> matches in all ("truncated" then says so). Files in <paramref name="skip"/>
     /// are left out (the page searches their unsaved text itself).
     /// </summary>
-    public static JsonObject Search(string root, string pattern, bool ignoreCase, bool markdownOnly,
+    /// <paramref name="extensions"/>: only files with one of them (the known file types of the folder pane); null: all.
+    public static JsonObject Search(string root, string pattern, bool ignoreCase, IReadOnlySet<string>? extensions,
         IReadOnlySet<string> skip, int max = 2000)
     {
         var options = RegexOptions.CultureInvariant | (ignoreCase ? RegexOptions.IgnoreCase : 0);
@@ -27,7 +26,7 @@ static class FolderSearch
         var files = new JsonArray();
         var count = 0;
         var truncated = false;
-        foreach (var path in Files(root, markdownOnly).Where(p => !skip.Contains(p)))
+        foreach (var path in Files(root, extensions).Where(p => !skip.Contains(p)))
         {
             if (truncated) break;
             var text = ReadText(path);
@@ -57,7 +56,7 @@ static class FolderSearch
     }
 
     // All files below the folder, in a stable order (by path), the way the tree shows them.
-    static IEnumerable<string> Files(string root, bool markdownOnly)
+    static IEnumerable<string> Files(string root, IReadOnlySet<string>? extensions)
     {
         var pending = new Stack<DirectoryInfo>([new DirectoryInfo(root)]);
         var result = new List<string>();
@@ -71,7 +70,7 @@ static class FolderSearch
                         pending.Push(sub);
                 foreach (var file in dir.EnumerateFiles())
                     if (!file.Attributes.HasFlag(FileAttributes.Hidden) && file.Length <= MaxFileSize &&
-                        (!markdownOnly || MarkdownExtensions.Contains(file.Extension, StringComparer.OrdinalIgnoreCase)))
+                        (extensions is null || extensions.Contains(file.Extension)))
                         result.Add(file.FullName);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }

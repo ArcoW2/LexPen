@@ -1076,7 +1076,8 @@ sealed class MainForm : Form
 
     static JsonObject Search(JsonNode msg) => FolderSearch.Search(
         msg["root"]!.GetValue<string>(), msg["pattern"]!.GetValue<string>(),
-        msg["ignoreCase"]!.GetValue<bool>(), msg["markdownOnly"]!.GetValue<bool>(),
+        msg["ignoreCase"]!.GetValue<bool>(),
+        msg["extensions"] is JsonArray known ? new HashSet<string>(Strings(known), StringComparer.OrdinalIgnoreCase) : null,
         new HashSet<string>(Strings(msg["skip"]), StringComparer.OrdinalIgnoreCase));
 
     static List<string> Strings(JsonNode? node) => node?.AsArray().Select(n => n!.GetValue<string>()).ToList() ?? [];

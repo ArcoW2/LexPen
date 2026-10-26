@@ -308,8 +308,8 @@ every action with its key.
   (Alt+Up, Backspace) goes up a folder. Ctrl+Shift+E (or a click) gives it the keyboard: arrows, Home/End,
   PgUp/PgDn, Enter (Shift+Enter: new tab, Ctrl+Enter: other pane, Ctrl+Shift+Enter: new tab there), Esc back to
   the document (hidden files, dot folders and `node_modules` are skipped), with git status markers (modified,
-  added, untracked, deleted, renamed, conflict) when the folder is in a repository. Files other than markdown are
-  dimmed; the **M** button in the sidebar header hides everything except markdown files (folders stay).
+  added, untracked, deleted, renamed, conflict) when the folder is in a repository. File types no language pack
+  knows are dimmed; the **Known** button in the sidebar header hides them (folders stay).
   Right-click a file or folder to copy its absolute path, or its path relative to the open folder.
 - **File menu**: New file, Open file, Open folder, Favourite files, Favourite folders, the recently opened files
   and folders and the recently closed files (15 each, shared by all windows). An entry that no longer exists is

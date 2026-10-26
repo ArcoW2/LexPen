@@ -341,11 +341,12 @@ body[data-sort-desc] .mm-sort-dir::before { content: "\2193"; }
 .mm-row.mm-fresh, .mm-row.mm-fresh-dir { box-shadow: inset 3px 0 var(--accent); }
 .mm-row.mm-fresh .mm-name { font-weight: 700; }
 
-/* Markdown files stand out: other files are dimmed (git colors still win), or hidden with the M↓ toggle. */
+/* Known file types (a language pack has the extension) stand out: other files are dimmed (git colors still win), or
+   hidden with the Known toggle. */
 .mm-other { color: var(--fg-dim); }
-body[data-tree=md] .mm-other { display: none; }
-.mm-md-only { font-size: calc(11px * var(--ui-scale)); font-weight: 600; }
-.mm-md-only.mm-on { background: var(--active); color: var(--accent); }
+body[data-tree=known] .mm-other { display: none; }
+.mm-known-only { font-size: calc(11px * var(--ui-scale)); font-weight: 600; }
+.mm-known-only.mm-on { background: var(--active); color: var(--accent); }
 
 /* Git status, like VS Code: colored name plus a letter (files) or a dot (folders with changes inside). */
 .mm-row[data-git]::after { content: attr(data-git); flex: none; margin-left: 6px; font-weight: 600; }

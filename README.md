@@ -60,7 +60,7 @@ The short list, by group. Every feature in detail: [docs/features.md](docs/featu
 
 ### Files and folders
 
-- **Folder sidebar** with git status, sorted by name or date, all keyboard.
+- **Folder sidebar** with git status, sorted by name or date, all keyboard; **Known** shows only the file types LexPen knows.
 - **Favourite files and folders**, recent files and folders.
 - **Drafts** kept until saved, also across restarts.
 - **Changed on disk**: reloaded, or a bar asks when you have unsaved changes.
