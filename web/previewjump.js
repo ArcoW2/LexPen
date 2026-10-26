@@ -201,16 +201,19 @@ function lineSpot(tab, line, block, whole) {
   const rect = r => r && r.height ? { top: r.top, bottom: r.bottom } : null;
   const start = +(block.dataset.line ?? block.querySelector('[data-line]')?.dataset.line ?? line);
   const lines = docText(tab.doc).split('\n');
-  // A fence: its code's line (the fence's own lines: the whole box).
+  // A fence: its code's line; its opener: the box's top edge, its closer (and a line after it): the bottom edge, so a box
+  // taller than the view is not shown from its top for a line at its end.
   if (block.tagName === 'PRE' && !block.classList.contains('mm-code')) {
     const code = block.querySelector('code') ?? block, opener = /^\s*(`{3,}|~{3,}|---\s*$)/.test(lines[start] ?? '') ? 1 : 0;
     const n = line - start - opener, text = code.textContent, rows = text.split('\n');
-    if (n < 0 || n >= rows.length || (opener && n === rows.length - 1 && rows[n] === '')) return rect(whole);
+    const edge = Math.min(whole.bottom - whole.top, parseFloat(getComputedStyle(code).lineHeight) || 16);
+    if (n < 0) return { top: whole.top, bottom: whole.top + edge };
+    if (n >= rows.length || (opener && n === rows.length - 1 && rows[n] === '')) return { top: whole.bottom - edge, bottom: whole.bottom };
     const from = rows.slice(0, n).join('\n').length + (n ? 1 : 0);
     return rect(textRange(code, from, from + Math.max(rows[n].length, 1))?.getBoundingClientRect()) ?? rect(whole);
   }
-  // One source line, or a block of one line: the block.
-  if (+block.dataset.line === line && blockLines(tab, block, start, lines.length) <= 1) return rect(whole);
+  // One source line, or a block of one line: the block; one holding blocks (a list item with a nested list): its text.
+  if (+block.dataset.line === line && blockLines(tab, block, start, lines.length) <= 1 && !block.querySelector('[data-line]')) return rect(whole);
   // A line inside a block: its text, markup left out, in the block's text (the n-th time when it is there more often).
   const plain = plainLine(lines[line] ?? '');
   if (plain.length < 2) return rect(whole);
