@@ -212,8 +212,8 @@ function lineSpot(tab, line, block, whole) {
     const from = rows.slice(0, n).join('\n').length + (n ? 1 : 0);
     return rect(textRange(code, from, from + Math.max(rows[n].length, 1))?.getBoundingClientRect()) ?? rect(whole);
   }
-  // One source line, or a block of one line: the block.
-  if (+block.dataset.line === line && blockLines(tab, block, start, lines.length) <= 1) return rect(whole);
+  // One source line, or a block of one line: the block; one holding blocks (a list item with a nested list): its text.
+  if (+block.dataset.line === line && blockLines(tab, block, start, lines.length) <= 1 && !block.querySelector('[data-line]')) return rect(whole);
   // A line inside a block: its text, markup left out, in the block's text (the n-th time when it is there more often).
   const plain = plainLine(lines[line] ?? '');
   if (plain.length < 2) return rect(whole);
