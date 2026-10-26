@@ -202,6 +202,11 @@ toggleAction('ruler', { title: 'Ruler', hint: 'Above the editor: the columns, th
 toggleAction('sidebar', { title: 'Sidebar', hint: 'Show or hide the folder pane and the search', group: 'view' },
   () => document.body.dataset.sidebar === 'on', () => commands.sidebar(), ['show', 'hide']);
 appAction('folders', { title: 'Folders', hint: 'The folder pane, with the keyboard in it', group: 'view', run: () => focusTree() });
+// The keyboard to another part or pane; the focused one has a border (app.js: The focused part).
+appAction('focusPart', { title: 'Part', hint: 'The keyboard to the next / previous part of this document: editor, preview (each shown first when it is not) and the outline (when shown)', group: 'view',
+  variants: [[1], [-1]], variantTitles: { 1: 'Next part (editor, preview, outline)', '-1': 'Previous part' }, run: ([dir = 1]) => nextPart(+dir) });
+appAction('focusPane', { title: 'Pane', hint: 'The keyboard to the next / previous pane: the sidebar (when shown), the first document, the second (when shown)', group: 'view',
+  variants: [[1], [-1]], variantTitles: { 1: 'Next pane (sidebar, documents)', '-1': 'Previous pane' }, run: ([dir = 1]) => nextPane(+dir) });
 appAction('searchView', { title: 'Search', hint: 'The search in the sidebar', group: 'view', run: () => startSearch() });
 // The window's layout as the default for new projects, or back to that default (docs/plans/executed/PLAN-settings-layers.md).
 appAction('layoutSaveDefault', { title: 'Save layout as default', group: 'view',
@@ -412,8 +417,8 @@ appAction('settings', { title: 'Settings...', hint: 'Every setting, searchable; 
   run: () => host('openSettings') });
 appAction('chooseLanguage', { title: 'Language...', hint: 'Of the active tab: colouring, outline, bar and actions (also a click on the language in the bottom bar)', group: 'view',
   enabled: () => !!activeDoc(), run: () => showLanguageList() });
-appAction('tabOrder.set', { title: 'Ctrl+Tab order', hint: 'Recently used, or the order of the tab bar', group: 'settings',
-  variants: [['recent'], ['tabs']], variantTitles: { recent: 'Ctrl+Tab in recently used order', tabs: 'Ctrl+Tab in tab bar order' },
+appAction('tabOrder.set', { title: 'Document order', hint: 'Recently used, or the order of the tab bar', group: 'settings',
+  variants: [['recent'], ['tabs']], variantTitles: { recent: 'Ctrl+PgDn in recently used order', tabs: 'Ctrl+PgDn in tab bar order' },
   checked: ([order]) => setting('tabOrder') === order, run: ([order]) => setSetting('tabOrder', order) });
 toggleAction('backup', { title: 'Keep a backup when saving', hint: 'The old file becomes name.ext.bak (overwritten at the next save)', group: 'settings' },
   () => setting('backup'), () => setSetting('backup', !setting('backup')));

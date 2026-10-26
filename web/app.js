@@ -508,6 +508,8 @@ function makePane(index) {
     if (pane.editorEl.contains(e.target)) pane.active.focusPart = 'editor';
     else if (pane.previewEl.contains(e.target)) pane.active.focusPart = 'preview';
   });
+  pane.outlineEl.tabIndex = -1;   // can take the focus (Ctrl+Shift+Tab): its keys go through the entries (outlineKeys)
+  pane.outlineEl.addEventListener('keydown', e => outlineKeys(pane, e));
   pane.previewEl.addEventListener('scroll', () => onPreviewScroll(pane));
   pane.previewEl.addEventListener('wheel', e => {
     if (!e.ctrlKey) return;
@@ -1117,6 +1119,7 @@ function paneItems(menu) {
 function relayout() {
   for (const pane of panes) pane.cm?.refresh();
   for (const tab of allTabs()) tab.lines = null;
+  if (typeof placeFocusRing === 'function') requestAnimationFrame(placeFocusRing);   // a part moved (sidebar, panes)
 }
 addEventListener('resize', () => { for (const tab of allTabs()) tab.lines = null; });
 
@@ -1481,9 +1484,9 @@ function setSwitch(part) {
   setMode(e && p ? 'split' : e ? 'edit' : 'preview');
 }
 
-// ---------- Next document: Ctrl+Tab ----------
-// Recently used order (the default) or tab bar order (Options > Settings > Ctrl+Tab order). In recently
-// used order, holding Ctrl and pressing Tab again goes further back; letting go of Ctrl makes the
+// ---------- Next document: Ctrl+PgDn ----------
+// Recently used order (the default) or tab bar order (Options > Settings > Document order). In recently
+// used order, holding Ctrl and pressing PgDn again goes further back; letting go of Ctrl makes the
 // document reached the most recent one.
 const recentTabs = [];   // tab ids, most recently active first
 let tabWalk = null;      // { list, at } while Ctrl is held
@@ -2142,6 +2145,138 @@ function focusPane(pane) {
 function refocus() {
   const el = document.activeElement;
   if (el === document.body || el?.matches('.mm-save')) focusPane(panes[state.activePane]);
+}
+
+// ---------- The focused part: a border around it; Ctrl+Shift+Tab and Ctrl+Tab ----------
+// Where the keyboard is: the sidebar (Folder or Search), or a document pane's editor, preview or outline (.mm-focused).
+// A border lies over that part (.mm-focus-ring, one for the window, above the parts: the editor's gutter and scroll bar
+// would cover a border of its own), placed again when the part moves or changes size. With the focus elsewhere (the
+// tabs, the find bar, a menu, a dialog, another window) it stays on the part last used, dimmed (body[data-focus-away]):
+// what Ctrl+Shift+Tab and Ctrl+Tab start from.
+let focused = null;   // { pane: its index, or -1 for the sidebar; part: sidebar, editor, preview or outline }
+const focusRing = Object.assign(document.createElement('div'), { className: 'mm-focus-ring', hidden: true });
+document.body.append(focusRing);
+const focusRingWatch = new ResizeObserver(() => placeFocusRing());
+
+function placeFocusRing() {
+  const el = focused && partEl(focused), r = el?.getBoundingClientRect();
+  focusRing.hidden = !r || !r.width || !r.height;
+  if (!focusRing.hidden) Object.assign(focusRing.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' });
+}
+addEventListener('resize', () => placeFocusRing());
+
+function partAt(target) {
+  if (!(target instanceof Element)) return null;
+  if (target.closest('.mm-sidebar')) return { pane: -1, part: 'sidebar' };
+  const pane = panes.find(p => p.el.contains(target));
+  if (!pane) return null;
+  if (pane.editorEl.contains(target)) return { pane: pane.index, part: 'editor' };
+  if (pane.previewEl.contains(target)) return { pane: pane.index, part: 'preview' };
+  if (pane.outlineEl.parentElement.contains(target)) return { pane: pane.index, part: 'outline' };
+  return null;
+}
+const partEl = p => p.pane < 0 ? $('.mm-sidebar') : panes[p.pane][{ editor: 'editorEl', preview: 'previewEl' }[p.part]] ?? panes[p.pane].outlineEl.parentElement;
+
+function markFocused(p) {
+  for (const el of document.querySelectorAll('.mm-focused')) el.classList.remove('mm-focused');
+  focused = p;
+  const el = partEl(p);
+  el.classList.add('mm-focused');
+  if (p.pane >= 0) panes[p.pane].lastPart = p.part;
+  focusRingWatch.disconnect();
+  focusRingWatch.observe(el);
+  placeFocusRing();
+}
+document.addEventListener('focusin', e => {
+  const p = partAt(e.target);
+  document.body.toggleAttribute('data-focus-away', !p);
+  if (p) markFocused(p);
+});
+addEventListener('blur', () => document.body.toggleAttribute('data-focus-away', true));
+addEventListener('focus', () => {
+  const p = partAt(document.activeElement);
+  document.body.toggleAttribute('data-focus-away', !p);
+  if (p) markFocused(p);
+});
+
+// The parts of a document pane Ctrl+Shift+Tab goes through: the editor and the preview (opened when not shown), the outline when shown.
+const outlineShown = pane => document.body.hasAttribute('data-outline') && !pane.el.hasAttribute('data-no-outline');
+
+// Ctrl+Shift+Tab: the next part (the previous: the action focusPart -1, no key) of the active document pane: editor, preview, outline (when shown).
+async function nextPart(dir) {
+  const pane = panes[state.activePane], tab = pane.active;
+  if (!tab) return;
+  const parts = ['editor', 'preview', ...(outlineShown(pane) ? ['outline'] : [])];
+  const now = focused?.pane === pane.index ? focused.part : pane.lastPart ?? (tab.mode === 'preview' ? 'preview' : 'editor');
+  await focusPart(pane, parts[(Math.max(0, parts.indexOf(now)) + dir + parts.length) % parts.length], true);
+}
+
+// The focus into a part of a document pane; `open`: the editor or the preview is shown first when it is not.
+async function focusPart(pane, part, open) {
+  const tab = pane.active;
+  if (!tab) return;
+  if (pane.index !== state.activePane) setActivePane(pane.index);
+  if (part === 'outline' && !outlineShown(pane)) part = tab.mode === 'preview' ? 'preview' : 'editor';
+  if (part === 'editor' && tab.mode === 'preview' || part === 'preview' && tab.mode === 'edit') {
+    if (!open) part = tab.mode === 'preview' ? 'preview' : 'editor';
+    else await setMode('split');
+  }
+  if (part === 'outline') return focusOutline(pane);
+  tab.focusPart = part;
+  if (part === 'editor') pane.cm?.focus(); else pane.previewEl.focus();
+}
+
+// Ctrl+Tab: the next pane (the previous: the action focusPane -1, no key): the sidebar (when shown), document pane 1, document pane 2 (when
+// shown); in a document pane the part it had last.
+function nextPane(dir) {
+  const order = [...(document.body.dataset.sidebar === 'on' ? [-1] : []), ...panes.filter(p => !p.el.hidden && p.active).map(p => p.index)];
+  if (!order.length) return;
+  const now = focused?.pane ?? state.activePane;
+  const next = order[(Math.max(0, order.indexOf(now)) + dir + order.length) % order.length];
+  if (next < 0) {
+    if (document.body.dataset.side === 'search') searchUi.input.focus();
+    else {
+      ui.tree.focus();
+      if (!treeCursor()) setTreeCursor(ui.tree.querySelector('.mm-row.mm-active') || treeRows()[0]);
+    }
+    return;
+  }
+  focusPart(panes[next], panes[next].lastPart ?? (panes[next].active.mode === 'preview' ? 'preview' : 'editor'), false);
+}
+
+// ---------- The outline with the keyboard ----------
+// Up / Down, PgUp / PgDn (a view's worth), Ctrl+Home / Ctrl+End go through the entries shown (a folded group's are
+// passed); Enter goes there as a click does, the focus staying in the outline.
+function outlineItems(pane) { return [...pane.outlineEl.querySelectorAll('.mm-outline-item')].filter(el => !el.hidden); }
+
+function setOutlineKey(pane, item) {
+  for (const el of pane.outlineEl.querySelectorAll('.mm-outline-key')) el.classList.remove('mm-outline-key');
+  if (!item) return;
+  item.classList.add('mm-outline-key');
+  item.scrollIntoView({ block: 'nearest' });
+}
+
+function focusOutline(pane) {
+  const items = outlineItems(pane);
+  setOutlineKey(pane, pane.outlineEl.querySelector('.mm-outline-key:not([hidden])') ?? pane.outlineEl.querySelector('.mm-outline-item.mm-on') ?? items[0]);
+  pane.outlineEl.focus();
+}
+
+function outlineKeys(pane, e) {
+  const items = outlineItems(pane);
+  if (!items.length) return;
+  const at = Math.max(0, items.indexOf(pane.outlineEl.querySelector('.mm-outline-key')));
+  const page = Math.max(1, Math.floor(pane.outlineEl.clientHeight / (items[0].offsetHeight || 20)) - 1);
+  const to = { ArrowDown: at + 1, ArrowUp: at - 1, PageDown: at + page, PageUp: at - page }[e.key]
+    ?? (e.ctrlKey && e.key === 'Home' ? 0 : e.ctrlKey && e.key === 'End' ? items.length - 1 : null);
+  if (to !== null) {
+    e.preventDefault();
+    setOutlineKey(pane, items[Math.max(0, Math.min(items.length - 1, to))]);
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    goToLine(pane, +items[at].dataset.line, false, true);   // placed as a find; the focus stays here
+    pane.outlineEl.focus();
+  }
 }
 
 function focusTree() {

@@ -99,7 +99,7 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   a default you replaced is shown struck through.
 - **Language actions**: what Format does depends on the language of the file (`defaults\languages\<name>\language.yaml`).
   Markdown has the formatting; every language with comment markers has Toggle comment (Ctrl+/), Toggle block
-  comment (Ctrl+Shift+/) and Remove block comment; Ctrl+PgDn / Ctrl+PgUp (or Alt+Down / Alt+Up) go to the next / previous section
+  comment (Ctrl+Shift+/) and Remove block comment; Alt+Down / Alt+Up go to the next / previous section
   (a heading in markdown, a paragraph in plain text).
 - **The Format menu** holds what the bar above the editor holds, for the language you are in: the comment items,
   then the bar's items in the bar's order with their icons (Format among them; Alt+R opens it). The **Convert
@@ -318,8 +318,12 @@ for changes, git, the clipboard and window/theme settings. The page and the shel
   editor and in the preview. Out of view: 5 lines from the edge it comes
   in at (the bottom going down, the top going up), or centred. Already in view: the view stays unless the place is
   within those lines of an edge, or centred. The number of lines is a setting (0 to 20).
-- **Ctrl+Tab**: through the documents in recently used order (hold Ctrl and press Tab again to go further back),
-  or in tab bar order (the setting Ctrl+Tab order).
+- **Ctrl+PgDn / Ctrl+PgUp**: through the documents in recently used order (hold Ctrl and press PgDn again to go
+  further back), or in tab bar order (the setting Document order).
+- **Ctrl+Tab / Ctrl+Shift+Tab**: the keyboard to the next pane (the sidebar, the first document, the second) / the
+  next part of this document (editor, preview, outline; the editor or the preview is shown first when it is not).
+  The part the keyboard is in has a border, dimmed while the focus is elsewhere. In the outline: Up, Down, PgUp,
+  PgDn, Ctrl+Home, Ctrl+End, Enter.
 - **Outline**: Ctrl+Alt+V, O shows the headings of each pane's file at its right; click one to go there (preview
   and editor). The entry above the cursor is highlighted (in the preview: the one at the top). Its width can be dragged.
   Languages from an UltraEdit word file show their tag groups as UltraEdit's function list does: a header per
@@ -430,12 +434,13 @@ F1 lists every key and action. The main ones of the default set:
 |---|---|
 | Ctrl+S / Ctrl+Shift+S | Save / save as |
 | Ctrl+W / Ctrl+F4, Ctrl+Shift+T | Close tab, reopen the last closed tab |
-| Ctrl+Tab / Ctrl+Shift+Tab | Next / previous document |
+| Ctrl+PgDn / Ctrl+PgUp | Next / previous document |
+| Ctrl+Tab / Ctrl+Shift+Tab | The keyboard to the next pane / the next part (editor, preview, outline) |
 | Ctrl+Space | Word completion: keywords, the document's words, snippets |
 | F7 / Shift+F7, Ctrl+F7 | Comparing: the next / previous difference; align the two cursor lines |
 | Ctrl+Alt+- / Ctrl+Alt++ | Position back / forward in the document (also the mouse buttons; with Ctrl: through the tabs) |
 | Alt+Left / Alt+Right | Previous / next tab, in the tab bar's order; the focus goes to its editor or preview, as the tab had it last |
-| Alt+Up / Alt+Down, Ctrl+PgUp / Ctrl+PgDn | Previous / next section (paragraph, heading, procedure, ... per language) |
+| Alt+Up / Alt+Down | Previous / next section (paragraph, heading, procedure, ... per language; with Shift: select) |
 | Mouse back / forward | Back / forward to the tab and file shown before, like a browser |
 | Ctrl+Alt+V, E / P / O | View: the editor, the preview (on / off; one of them stays), the outline |
 | Ctrl+Shift+B, Ctrl+Shift+E | Sidebar, folder pane |
@@ -445,7 +450,6 @@ F1 lists every key and action. The main ones of the default set:
 | Ctrl+Up / Ctrl+Down | Scroll the text a line; the cursor stays on its line, or moves along (a setting; then with Shift: select along) |
 | Ctrl+[ / Ctrl+] | To the opener (before it) / closer (after it) of the pair or word set around the cursor; again: the pair around that one; with Shift: select. The pair is highlighted as you move and type: the innermost one holding the cursor, or the set of the word the cursor is on (`if` ... `else` ... `end if`), only in the language at the cursor, strings and comments left out (Options > Settings, Editor view: a background colour, an underline or off; closing brackets and quotes while typing: Editor). Edit > Select inside brackets: what lies between |
 | Ctrl+> / Ctrl+< | Indent / outdent the lines (in keys.json: `Ctrl+Shift+.` and `Ctrl+Shift+Comma`) |
-| Ctrl+PgDn / Ctrl+PgUp | Next / previous section (with Shift: select) |
 | Ctrl+Shift+1 .. 9, Ctrl+Shift+` , Ctrl+Shift+C | Select clipboard 1 to 9, the Windows clipboard, the list |
 | Alt+C, Alt+Shift+arrows | Column mode on / off, select a block (also without column mode) |
 | Ctrl+Alt+click / double-click, Ctrl+D, A / D / R / C, Ctrl+Alt+Right / Left | Multiple cursors: add or remove a cursor, select a find match or word; add / remove / clear occurrences, the next / previous occurrence |

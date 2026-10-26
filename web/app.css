@@ -364,11 +364,14 @@ body[data-tree=md] .mm-other { display: none; }
 body[data-orient=h] .mm-panes { flex-direction: column; }
 .mm-pane { flex: 1 1 0; display: flex; flex-direction: column; min-width: 0; min-height: 0; position: relative; }
 body[data-two] .mm-pane:first-child { flex: 0 0 var(--ratio, calc(50% - 3px)); }
-/* The active pane, when there are two: blue (light) or yellow (dark). */
-body[data-two] .mm-pane.mm-active::after {
-  content: ""; position: absolute; inset: 0; z-index: 8; pointer-events: none;
-  border: 2px solid var(--pane-active);
-}
+/* The part the keyboard is in (app.js: The focused part): the sidebar, or a document's editor, preview or outline; a
+   border laid over it, blue (light) or yellow (dark), under the menus. Dimmed while the focus is elsewhere (a menu, the
+   find bar, a dialog, another window). */
+.mm-focus-ring { position: fixed; z-index: 15; box-sizing: border-box; pointer-events: none; border: 2px solid var(--pane-active); }
+.mm-focus-ring[hidden] { display: none; }
+body[data-focus-away] .mm-focus-ring { border-color: color-mix(in srgb, var(--pane-active) 40%, transparent); }
+.mm-outline-list:focus { outline: none; }
+.mm-outline-item.mm-outline-key { box-shadow: inset 0 0 0 1px var(--accent); }   /* the outline's keyboard entry */
 
 .mm-divider {
   flex: none; width: 6px; position: relative; z-index: 9; cursor: col-resize;
