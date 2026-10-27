@@ -16,7 +16,7 @@ UltraEdit and Visual Studio replace in the file or several files, per match or a
 Ctrl+Shift+R opens the Search panel with a Replace field; Ctrl+R becomes the find bar's replace (plan 06). The panel
 searches and replaces in the selection, the current file, the open files or the files in the folder. Its results get a Replace button per match,
 per file and for all. The preview of every change is a window of its own: shown before Replace all and per file when
-the setting says so, and from a Preview button in the panel at any time. Each replacement is its own undo step in its
+the setting for its scope says so, and from a Preview button in the panel at any time. Each replacement is its own undo step in its
 file. Files in the folder that are not open are changed on disk directly, without opening them and without a copy.
 
 ## 3. Details
@@ -66,8 +66,10 @@ as it will change, the line with the old text crossed out and the new text marke
 of matches and files. Per match a check box, all checked; unchecked ones are left as they are. Apply or Cancel. A file
 not open says so ("changed on disk, no undo").
 
-- **When it shows**: a setting (General > Search, "Preview before replacing", on by default) makes Replace all and
-  Replace per file show it first; off, they replace at once. Per match never shows it.
+- **When it shows**: two on/off settings (General > Search, both on by default), by scope. **Preview Replace all**:
+  Replace all and Replace per file in the selection, the current file or the open files (undo exists) show it first.
+  **Preview Replace in files**: the same buttons in the scope Files in folder (written to disk, no undo) show it
+  first. Off: they replace at once. Per match never shows it.
 - **The Preview button** in the Search panel, beside Replace all: the window with what Replace all would do, at any
   time, whatever the setting. Apply there is Replace all.
 
@@ -83,5 +85,7 @@ changed after the search searched again.
 ## 4. Answers
 
 1. No undo for files in the folder that are not open, and no copy kept: the preview is the check.
-2. The preview is a separate window, shown depending on a setting, and from a button in the panel. My reading of
-   "depending on settings": one on/off setting for Replace all and per file (3.4); say if it should be more.
+2. The preview is a separate window. Two on/off settings show it at once on Replace all: one for the scopes with
+   undo (selection, current file, open files), one for Files in folder. Off, the Preview button in the panel still
+   shows it (3.4).
+3. Plan 06 (the find bar's replace, Ctrl+R, `^p` / `^t` in the replacement) is done first; this plan builds on it.
