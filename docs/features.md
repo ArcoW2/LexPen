@@ -133,6 +133,15 @@ every action with its key.
 
 ## Finding and moving around
 
+- **Find bar** (Ctrl+F; Ctrl+R with its replace row): in the editor or the preview of a pane. Labels Find and
+  Replace with; the Replace button opens the replace row: Replace all (Alt+A while the bar has the focus; one undo
+  step), Replace (this match, then the next; with none chosen yet first to the next, to see it), Skip (F3) and
+  Previous (Shift+F3). Each Replace is its own undo step. Text selected in the editor when the bar opens is where it
+  finds and replaces (several selections, a column block per line), marked while the bar is open; the count says "in
+  the selection"; F3 keeps to it until the next Ctrl+F or Ctrl+R. In the replacement `^p` is a line break (with the
+  file's line end), `^t` a tab, `^^` a caret; with a regular expression `
+`, `	`, `$1`, `$&`. The `?` button lists
+  every code, the same list as F1.
 - **Search** (Ctrl+Shift+F): in the current file, the open files (unsaved edits included) or the files in the
   folder (the open folder, otherwise the folder of the current file), with match case, whole word and regular
   expressions. Codes: `^p` line break (CR, LF or CRLF), `^t` tab, `^?` any character, `^#` digit, `^$` letter,
@@ -141,7 +150,9 @@ every action with its key.
   Go to line and a click in the outline bring the line into view the same way (Editor > Jump to a line), in the
   editor and in the preview. Out of view: 5 lines from the edge it comes
   in at (the bottom going down, the top going up), or centred. Already in view: the view stays unless the place is
-  within those lines of an edge, or centred. The number of lines is a setting (0 to 20).
+  within those lines of an edge, or centred. The number of lines is a setting (0 to 20). Sideways (without wrapping)
+  the start of the place stays at least Scroll sideways before the edge columns from the left and right edge; the
+  whole place is in view when it fits.
 - **Position back / forward**: every document keeps the places its cursor jumped from: a move of more lines than
   the setting A jump (Editor, 10 by default) without typing (go to line, a bookmark, the outline, Ctrl+Home, a click
   far away), and always a found item (find, the search in files), however close. Ctrl+Alt+- goes back, Ctrl+Alt++

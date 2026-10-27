@@ -117,12 +117,17 @@ function placeSpacer(cm, x, top) {
   spacer.hidden = false;
 }
 
+// The room kept left and right of the cursor: scrollMargin columns, at most a third of the view (`span`, visibleSpan).
+function sideMargin(cm, span) {
+  const cols = Number.isInteger(setting('scrollMargin')) ? setting('scrollMargin') : 8;
+  return Math.min(Math.max(1, cols) * charWidth(cm), (span.right - span.left) / 3);
+}
+
 // Sideways into view, with room: the editor scrolls when the cursor comes within scrollMargin columns of the left or
 // right edge (at most a third of the view). Without wrapping only (with wrapping nothing scrolls sideways).
 function revealX(cm, left, right) {
-  if (cm.getOption('lineWrapping')) return;
-  const span = visibleSpan(cm), cols = Number.isInteger(setting('scrollMargin')) ? setting('scrollMargin') : 8;
-  const margin = Math.min(Math.max(1, cols) * charWidth(cm), (span.right - span.left) / 3), at = cm.getScrollInfo().left;
+  if (cm.getOption('lineWrapping') || cm.state.mmFoundReveal) return;   // a found place just placed the view (revealSideways)
+  const span = visibleSpan(cm), margin = sideMargin(cm, span), at = cm.getScrollInfo().left;
   if (right + margin > span.right) {
     // The room right of the cursor may lie past the longest line: the spacer gives the editor that width.
     const hidden = Math.max(0, cm.getScrollerElement().getBoundingClientRect().right - span.right);

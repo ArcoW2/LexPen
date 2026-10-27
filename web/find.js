@@ -11,22 +11,29 @@ const FIND_LIMIT = 1000000;   // matches counted / highlighted (all of them in p
 
 // ---------- The bar ----------
 const chevron = d => `<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`;
+// docs/plans/executed/PLAN-find-bar-replace.md: a label before each field (one width, so the fields line up), a Replace button
+// that opens the replace row, and the replace row's own way through the file: Replace all, Replace, Skip, Previous.
+const REPLACE_TIP = withKey('Replace: the replace row', 'replace');
 const FIND_HTML =
   '<div class="mm-find-row">' +
-  `<button class="mm-find-toggle" data-find="replaceRow" title="${withKey('Replace (editor only)', 'replace')}">` + chevron('M6 4l4 4-4 4') + '</button>' +
-  '<input class="mm-find-input" type="text" spellcheck="false" placeholder="Find" title="Enter / F3: next; Shift+Enter / Shift+F3: previous; Esc: close. Codes as in the file search: ^p line break, ^t tab, ...">' +
+  '<span class="mm-find-label">Find</span>' +
+  '<input class="mm-find-input" type="text" spellcheck="false" title="Enter / F3: next; Shift+Enter / Shift+F3: previous; Esc: close. Codes: ^p line break, ^t tab, ... (the ? button)">' +
   '<span class="mm-find-count"></span>' +
   '<button data-find="case" class="mm-find-opt" title="Match case">Aa</button>' +
   '<button data-find="word" class="mm-find-opt" title="Whole word only">W</button>' +
   '<button data-find="regex" class="mm-find-opt" title="Regular expression (then the ^ codes do not apply)">.*</button>' +
   `<button data-find="prev" title="${withKey('Previous', 'findPrevious')}">` + chevron('M4 10l4-4 4 4') + '</button>' +
   `<button data-find="next" title="${withKey('Next', 'findNext')}">` + chevron('M4 6l4 4 4-4') + '</button>' +
+  `<button class="mm-find-toggle" data-find="replaceRow" title="${REPLACE_TIP}">Replace</button>` +
+  '<button data-find="codes" class="mm-find-codes" title="The codes of the find and replace fields">?</button>' +
   '<button data-find="close" class="mm-find-close" title="Close (Esc)"></button>' +
   '</div><div class="mm-find-row mm-find-replace" hidden>' +
-  '<span class="mm-find-indent"></span>' +
-  '<input class="mm-find-with" type="text" spellcheck="false" placeholder="Replace" title="Enter: replace and find the next. With a regular expression, $1 etc. insert the groups">' +
-  '<button data-find="replaceOne" title="Replace this one and find the next (Enter)">Replace</button>' +
-  '<button data-find="replaceAll" title="Replace all in this file (one undo step)">All</button>' +
+  '<span class="mm-find-label">Replace with</span>' +
+  '<input class="mm-find-with" type="text" spellcheck="false" title="Enter: Replace; Shift+Enter: Previous. ^p a line break, ^t a tab; with a regular expression \\n, \\t, $1, $& (the ? button)">' +
+  '<button data-find="replaceAll" title="All matches in the selection or the file, one undo step (Alt+A)">Replace all</button>' +
+  '<button data-find="replaceOne" title="This match, then the next. With no match chosen yet: first to the next one, to see it (Enter)">Replace</button>' +
+  `<button data-find="skip" title="${withKey('Skip: the next match, this one unchanged', 'findNext')}">Skip</button>` +
+  `<button data-find="prev" title="${withKey('Previous: back one match, to replace one skipped', 'findPrevious')}">Previous</button>` +
   '</div>';
 
 function findBar(pane) {
@@ -36,7 +43,9 @@ function findBar(pane) {
   const bar = pane.find = {
     el, input: el.querySelector('.mm-find-input'), with: el.querySelector('.mm-find-with'),
     count: el.querySelector('.mm-find-count'), replaceRow: el.querySelector('.mm-find-replace'),
+    toggle: el.querySelector('.mm-find-toggle'),
     target: null, origin: null, at: null, lap: null, wrapped: false,
+    scope: null,   // the selection the bar finds in: { doc, marks, id } (3.3), else the whole file
   };
   // Which part of the pane the search works on: the last one that had the focus.
   pane.el.addEventListener('focusin', e => {
@@ -56,8 +65,18 @@ function findBar(pane) {
     else if (action === 'close') closeFind(pane);
     else if (action === 'next') findGo(pane, 1);
     else if (action === 'prev') findGo(pane, -1);
+    else if (action === 'skip') findGo(pane, 1);
     else if (action === 'replaceOne') replaceOne(pane);
     else if (action === 'replaceAll') replaceAll(pane);
+    else if (action === 'codes') showSearchCodes(e.target.closest('button'), bar.replaceRow.hidden ? bar.input : bar.with);
+  });
+  // Alt+A: Replace all, only while the bar has the focus (the menus' Alt letters elsewhere stay as they are).
+  el.addEventListener('keydown', e => {
+    if (e.altKey && !e.ctrlKey && !e.shiftKey && e.key.toLowerCase() === 'a' && !bar.replaceRow.hidden) {
+      e.preventDefault();
+      e.stopPropagation();
+      replaceAll(pane);
+    }
   });
   // As you type: the first match from where the search started. In a large file after a short pause in typing, so
   // the letters keep coming while a first letter is found on thousands of lines.
@@ -84,6 +103,12 @@ function findBar(pane) {
       e.preventDefault();
       if (input === bar.with && !e.shiftKey) replaceOne(pane); else findGo(pane, e.shiftKey ? -1 : 1);
     }
+    // Tab from Find to Replace with (the row open), Shift+Tab back; else Tab goes on to the buttons.
+    else if (e.key === 'Tab' && !e.ctrlKey && !e.altKey) {
+      const to = input === bar.input && !e.shiftKey && !bar.replaceRow.hidden ? bar.with
+        : input === bar.with && e.shiftKey ? bar.input : null;
+      if (to) { e.preventDefault(); to.focus(); to.select(); }
+    }
   });
   return bar;
 }
@@ -99,8 +124,48 @@ function syncBar(pane) {
 function showReplace(pane, on) {
   const bar = pane.find;
   bar.replaceRow.hidden = !on;
-  bar.el.querySelector('.mm-find-toggle').classList.toggle('mm-open', on);
+  bar.toggle.classList.toggle('mm-on', on);   // shown pressed while the row is open
   pane.cm?.refresh();
+}
+
+// In the preview the replace row cannot work (the editor's text is what changes): the Replace button is disabled.
+function syncReplaceButton(pane) {
+  const bar = pane.find, editor = findTarget(pane) === 'editor';
+  bar.toggle.disabled = !editor;
+  bar.toggle.title = editor ? REPLACE_TIP : 'Replace works in the editor';
+  if (!editor && !bar.replaceRow.hidden) showReplace(pane, false);
+}
+
+// ---------- The scope: the selection or the file (3.3) ----------
+// Taken when the bar opens (Ctrl+F, Ctrl+R): the selections of the editor (several with multiple cursors, one per line
+// in a column block), each marked, so they move with the text as replacements change its length. None: the file.
+let scopeIds = 0;
+function takeScope(pane) {
+  const bar = pane.find, cm = pane.cm;
+  if (findTarget(pane) !== 'editor' || !cm) return clearScope(pane);
+  const ranges = cm.listSelections().map(r => [r.from(), r.to()]).filter(([a, b]) => CodeMirror.cmpPos(a, b) < 0);
+  // The current match selected (after a find): not a new scope, the one there was stays.
+  const current = pane.findCurrent?.find();
+  if (ranges.length === 1 && current && !CodeMirror.cmpPos(ranges[0][0], current.from) && !CodeMirror.cmpPos(ranges[0][1], current.to)) return;
+  clearScope(pane);
+  if (!ranges.length) return;
+  bar.scope = { doc: cm.getDoc(), id: ++scopeIds, marks: ranges.map(([a, b]) => cm.markText(a, b,
+    { className: 'mm-find-scope', inclusiveLeft: true, inclusiveRight: true, clearWhenEmpty: false })) };
+  cm.setCursor(ranges[0][0]);   // the matches are found from the scope's start, its text not selected
+}
+
+function clearScope(pane) {
+  const bar = pane.find;
+  for (const m of bar?.scope?.marks ?? []) m.clear();
+  if (bar) bar.scope = null;
+}
+
+// The scope's parts as [start, end] in the text, in order; null without a scope (or in another document).
+function scopeParts(pane) {
+  const scope = pane.find?.scope, cm = pane.cm;
+  if (!scope || !cm || scope.doc !== cm.getDoc()) return null;
+  return scope.marks.map(m => m.find()).filter(Boolean)
+    .map(({ from, to }) => [cm.indexFromPos(from), cm.indexFromPos(to)]).sort((a, b) => a[0] - b[0]);
 }
 
 // The part of the pane to search: where the focus is, else where it was, else by the tab's mode.
@@ -114,7 +179,8 @@ function findTarget(pane) {
 }
 
 // ---------- Entry points (from findKey in app.js) ----------
-// open: show the bar (filled with the selection) and focus it. replace: the same, with the replace row.
+// open: show the bar and focus it; with a selection in the editor, the bar finds only within it (3.3). replace: the
+// same, with the replace row. replaceAll: Replace all with the bar shown, else as replace.
 // next / prev: the next match; with an empty search, or a hidden bar in per-pane mode: open.
 function findCommand(pane, action) {
   if (!pane?.active) return;
@@ -125,17 +191,21 @@ function findCommand(pane, action) {
     if (!shown) showBar(pane, false);
     return findGo(pane, action === 'next' ? 1 : -1);
   }
+  if (action === 'replaceAll' && shown && !bar.replaceRow.hidden) return replaceAll(pane);
   showBar(pane, true);
-  if (action === 'replace') showReplace(pane, findTarget(pane) === 'editor');
+  if (action === 'replace' || action === 'replaceAll') showReplace(pane, findTarget(pane) === 'editor');
 }
 
 function showBar(pane, focus) {
   const bar = pane.find, f = findOf(pane);
-  const selected = focus && selectedText(pane);
+  // The editor's selection is the scope, not the search; the preview's (one line) still fills the field.
+  if (focus && findTarget(pane) === 'editor') takeScope(pane);
+  const selected = focus && findTarget(pane) === 'preview' && selectedText(pane);
   if (selected) f.query = selected;
   bar.el.hidden = false;
   bar.origin = bar.lap = null;
   syncBar(pane);
+  syncReplaceButton(pane);
   pane.cm?.refresh();
   if (focus) {
     bar.input.focus();
@@ -150,6 +220,7 @@ function closeFind(pane, focusBack) {
   clearTimeout(pane.findTypeTimer);   // a search still waiting for the pause in typing
   bar.el.hidden = true;
   clearMarks(pane);
+  clearScope(pane);   // closing the bar ends the scope
   pane.cm?.refresh();
   if (focusBack) {
     if (findTarget(pane) === 'editor' && pane.cm) pane.cm.focus(); else pane.previewEl.focus({ preventScroll: true });
@@ -193,6 +264,7 @@ function refresh(pane, moving) {
   if (!regex) return bar.count.textContent = '';
   if (regex instanceof Error) return bar.count.textContent = 'Not valid';
   const where = findTarget(pane);
+  syncReplaceButton(pane);
   const matches = where === 'editor' ? editorMatches(pane, regex) : previewMatches(pane, regex);
   if (where === 'editor' && pane.cm) scheduleFindLines(pane, regex);   // the gutter and the overview ruler, after this key
   mark(pane, where, regex, matches);
@@ -202,7 +274,8 @@ function refresh(pane, moving) {
 
 function showCount(pane, matches, current) {
   const total = matches.length >= FIND_LIMIT ? FIND_LIMIT + '+' : matches.length;
-  pane.find.count.textContent = !matches.length ? 'No matches' : current === null ? `${total} found` : `${current + 1} of ${total}`;
+  const within = findTarget(pane) === 'editor' && scopeParts(pane) ? ' in the selection' : '';
+  pane.find.count.textContent = (!matches.length ? 'No matches' : current === null ? `${total} found` : `${current + 1} of ${total}`) + within;
   pane.find.count.classList.toggle('mm-none', !matches.length);
 }
 
@@ -221,14 +294,18 @@ function findGo(pane, dir, fromOrigin) {
 
 // ---------- In the editor ----------
 // The matches are found once per text and search: a keystroke asks for them for the count, the marks and the move.
+// With a scope (3.3): the matches within each of its parts, a match never across two.
 function editorMatches(pane, regex) {
   const cm = pane.cm;
   if (!cm) return [];
-  const key = regex.source + '/' + regex.flags, doc = cm.getDoc(), gen = doc.changeGeneration();
+  const parts = scopeParts(pane);
+  const key = regex.source + '/' + regex.flags + '/' + (parts ? pane.find.scope.id : 0), doc = cm.getDoc(), gen = doc.changeGeneration();
   const c = pane.matchCache;
   if (c && c.key === key && c.doc === doc && c.gen === gen) return c.matches;
-  pane.matchCache = { key, doc, gen, matches: matchesIn(cm.getValue(), regex), lines: null };
-  return pane.matchCache.matches;
+  const text = cm.getValue();
+  const matches = parts ? parts.flatMap(([s, e]) => matchesIn(text.slice(s, e), regex).map(([a, b]) => [a + s, b + s])) : matchesIn(text, regex);
+  pane.matchCache = { key, doc, gen, matches, lines: null };
+  return matches;
 }
 
 // The lines with a match (the gutter's marks, the overview ruler), in one pass over the line lengths: asking the
@@ -272,10 +349,19 @@ function goEditor(pane, regex, dir, fromOrigin) {
   showCount(pane, matches, i);
 }
 
-// All matches get a background: an overlay on the editor, single-line matches only.
+// All matches get a background: an overlay on the editor, single-line matches only. With a scope the overlay would
+// mark the matches outside it too: a text mark per match instead (up to BOX_LIMIT).
 function markEditor(pane, regex) {
   const cm = pane.cm;
   if (!cm) return;
+  if (scopeParts(pane)) {
+    const matches = editorMatches(pane, regex);
+    cm.operation(() => {
+      pane.findHits ??= [];
+      if (matches.length <= BOX_LIMIT) for (const [s, e] of matches) pane.findHits.push(cm.markText(cm.posFromIndex(s), cm.posFromIndex(e), { className: 'cm-mm-find-hit' }));
+    });
+    return boxMatches(pane, regex);
+  }
   const re = new RegExp(regex.source, regex.flags);
   pane.findOverlay = {
     token(stream) {
@@ -315,7 +401,7 @@ function boxMatches(pane, regex) {
 function scheduleFindLines(pane, regex) {
   clearTimeout(pane.findLinesTimer);
   pane.findLinesTimer = setTimeout(() => {
-    if (!pane.findOverlay) return;   // the bar closed or the search changed meanwhile
+    if (!pane.find?.marked) return;   // the bar closed meanwhile (a new search clears this timer)
     pane.findLines = editorMatchLines(pane, regex);
     paintFindGutter(pane);
     if (typeof scheduleOverview === 'function') scheduleOverview(pane);   // overview.js
@@ -362,35 +448,40 @@ function clearGutterMarks(pane) {
   pane.findGutterCurrent = null;
 }
 
+// The replacement of one match: its text in the file (a regular expression's $1 reads it), the codes read (3.4).
+function replacedText(f, regex, part) {
+  const rep = replacementText(f.replace, f.regex);
+  return f.regex ? part.replace(new RegExp(regex.source, regex.flags.replace('g', '')), rep) : rep;
+}
+
+// Replace: the current match (the one selected), then the next. With no current match (the bar just opened, the
+// cursor moved away) only to the next one, so you see what you replace. Each replace is its own undo step.
 function replaceOne(pane) {
   const cm = pane.cm, f = findOf(pane), regex = findRegex(pane);
   if (findTarget(pane) !== 'editor' || !cm || !regex || regex instanceof Error) return;
   if (cm.getOption('readOnly')) return toast('This tab is read-only.');
   recordReplace(f.replace);   // the history (history.js); findGo below keeps the search
-  const whole = new RegExp('^(?:' + regex.source + ')$', regex.flags.replace('g', ''));
-  const selected = cm.getSelection();
-  if (selected && whole.test(selected))
-    cm.replaceSelection(f.regex ? selected.replace(whole, f.replace) : f.replace, 'start');
+  const from = cm.indexFromPos(cm.getCursor('from')), to = cm.indexFromPos(cm.getCursor('to'));
+  if (to > from && editorMatches(pane, regex).some(([s, e]) => s === from && e === to))
+    cm.replaceSelection(replacedText(f, regex, cm.getSelection()), 'start');
   findGo(pane, 1);
   refreshMarks(pane);
 }
 
+// Replace all: every match in the scope (the selection, else the file), one undo step.
 function replaceAll(pane) {
   const cm = pane.cm, f = findOf(pane), regex = findRegex(pane);
   if (findTarget(pane) !== 'editor' || !cm || !regex || regex instanceof Error) return;
   if (cm.getOption('readOnly')) return toast('This tab is read-only.');
-  const text = cm.getValue(), matches = matchesIn(text, regex);
+  const text = cm.getValue(), matches = editorMatches(pane, regex), within = scopeParts(pane) ? ' in the selection' : '';
   recordFind(f.query, f);   // the history (history.js)
   recordReplace(f.replace);
-  if (!matches.length) return;
-  const single = new RegExp(regex.source, regex.flags.replace('g', ''));
+  if (!matches.length) return toast('Not found' + within + ': ' + f.query, true);
   cm.operation(() => {   // one undo step
-    for (const [s, e] of [...matches].reverse()) {
-      const part = text.slice(s, e);
-      cm.replaceRange(f.regex ? part.replace(single, f.replace) : f.replace, cm.posFromIndex(s), cm.posFromIndex(e));
-    }
+    for (const [s, e] of [...matches].reverse())
+      cm.replaceRange(replacedText(f, regex, text.slice(s, e)), cm.posFromIndex(s), cm.posFromIndex(e));
   });
-  toast(`Replaced ${matches.length}${matches.length >= FIND_LIMIT ? ' (the limit; search again for more)' : ''}.`, true);
+  toast(`Replaced ${matches.length}${within}${matches.length >= FIND_LIMIT ? ' (the limit; search again for more)' : ''}.`, true);
   refresh(pane, false);
 }
 
@@ -552,8 +643,9 @@ function clearMarks(pane) {
   if (pane.findLines) { pane.findLines = null; if (typeof scheduleOverview === 'function') scheduleOverview(pane); }
   if (pane.findOverlay) pane.cm?.removeOverlay(pane.findOverlay);
   pane.findOverlay = null;
-  for (const m of pane.findBoxes ?? []) m.clear();
+  for (const m of [...pane.findBoxes ?? [], ...pane.findHits ?? []]) m.clear();
   pane.findBoxes = [];
+  pane.findHits = [];
   CSS.highlights.delete('mm-find-' + pane.index);
   if (typeof schedulePreviewOverview === 'function') schedulePreviewOverview(pane);
   pane.previewBoxes = null;
@@ -570,8 +662,9 @@ function refreshMarks(pane) {
   const regex = findRegex(pane);
   if (pane.findOverlay) pane.cm?.removeOverlay(pane.findOverlay);
   pane.findOverlay = null;
-  for (const m of pane.findBoxes ?? []) m.clear();
+  for (const m of [...pane.findBoxes ?? [], ...pane.findHits ?? []]) m.clear();
   pane.findBoxes = [];
+  pane.findHits = [];
   if (regex && !(regex instanceof Error) && findTarget(pane) === 'editor') {
     markEditor(pane, regex);
     scheduleFindLines(pane, regex);   // the gutter and the overview ruler again

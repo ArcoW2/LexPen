@@ -736,9 +736,24 @@ body { --col-guide: color-mix(in srgb, var(--col-guide-colour, var(--border)) va
 .mm-find button svg { display: block; }
 .mm-find-opt { font-size: calc(12px * var(--ui-scale)); font-weight: 600; color: var(--fg-dim); }
 .mm-find-opt.mm-on { background: var(--active); color: var(--accent); }
-.mm-find-toggle svg { transition: transform .1s; }
-.mm-find-toggle.mm-open svg { transform: rotate(90deg); }
-.mm-find-indent { flex: none; width: 26px; }
+/* One label column of the same width, so both fields start at the same place (plan 06). */
+.mm-find-label { flex: none; width: 6.5em; padding-right: 4px; color: var(--fg-dim); font-size: calc(12px * var(--ui-scale)); white-space: nowrap; }
+.mm-find-toggle.mm-on { background: var(--active); color: var(--accent); }
+.mm-find button:disabled { opacity: .45; cursor: default; }
+.mm-find-codes { font-weight: 600; color: var(--fg-dim); }
+/* The scope: the selection the bar finds in, while the bar is open. */
+.CodeMirror .mm-find-scope { background: color-mix(in srgb, var(--select) 40%, transparent); }
+/* The ? window: the codes of the find and replace fields (showSearchCodes in app.js). */
+.mm-codes {
+  position: fixed; z-index: 40; max-width: min(520px, calc(100vw - 8px)); max-height: calc(100vh - 8px); overflow: auto;
+  padding: 6px 10px; background: var(--bg-bar); border: 1px solid var(--border); border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .2); font-size: calc(12px * var(--ui-scale)); outline: none;
+}
+.mm-codes-group { margin: 6px 0 2px; font-weight: 600; }
+.mm-codes-group:first-child { margin-top: 0; }
+.mm-codes-row { display: flex; gap: 8px; padding: 1px 0; }
+.mm-codes-row code { flex: none; width: 2.5em; color: var(--accent); }
+.mm-codes-row small { display: block; color: var(--fg-dim); }
 .mm-find-count { flex: none; min-width: 70px; padding: 0 6px; color: var(--fg-dim); font-size: calc(12px * var(--ui-scale)); white-space: nowrap; }
 .mm-find-count.mm-none { color: var(--bar-removed); }
 .mm-find-close::before { content: "\2715"; font-size: calc(11px * var(--ui-scale)); }

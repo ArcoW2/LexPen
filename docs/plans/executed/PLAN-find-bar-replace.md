@@ -1,7 +1,9 @@
 # Plan: The find bar's replace, designed for replacing
 
 Status: draft 2026-10-26, answers 2026-10-27 (Ctrl+R; a selection is always the scope, no setting; F3 keeps the
-last choice; ^p the file's line end; Replace all first, Alt+A), not started. The number in the file name is the priority; rename to reorder.
+last choice; ^p the file's line end; Replace all first, Alt+A), done 2026-10-27; tried in the app.
+Ctrl+Shift+R still opens the find bar's replace until plan 05 gives it the Search panel. In the preview a selected
+line still fills the find field (there is no scope there). The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
 

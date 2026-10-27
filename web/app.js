@@ -2796,6 +2796,39 @@ function searchPattern(text, options = searchOptions) {
   return options.word ? `\\b(?:${source})\\b` : source;
 }
 
+// The replacement as typed, with its codes read (docs/plans/executed/PLAN-find-bar-replace.md 3.4): ^p a line break, ^t a
+// tab, ^^ a caret; other ^ codes stay as typed. With a regular expression \n and \t instead ($1, $& are the
+// replace's own). A line break is \n: the editor has one line end, the file's, which every line gets on save.
+function replacementText(text, regex) {
+  if (regex) return text.replace(/\\([nt\\])/g, (_, c) => c === 'n' ? '\n' : c === 't' ? '\t' : '\\');
+  return text.replace(/\^([pt^])/gi, (_, c) => ({ p: '\n', t: '\t', '^': '^' })[c.toLowerCase()]);
+}
+
+// The ? window of the find bar (and the Search panel): every code (SEARCH_CODE_HELP, palette.js) below `anchor`.
+// Esc or a click outside closes it; the focus goes back to `back`.
+function showSearchCodes(anchor, back) {
+  document.querySelector('.mm-codes')?.remove();
+  const el = document.createElement('div');
+  el.className = 'mm-codes';
+  el.tabIndex = -1;
+  el.innerHTML = SEARCH_CODE_HELP.map(([group, codes]) => `<div class="mm-codes-group">${escapeHtml(group)}</div>` +
+    codes.map(([code, what, example]) => `<div class="mm-codes-row"><code>${escapeHtml(code)}</code><span>${escapeHtml(what)}` +
+      `<small>${escapeHtml(example)}</small></span></div>`).join('')).join('');
+  document.body.append(el);
+  const r = anchor.getBoundingClientRect();
+  el.style.left = Math.max(4, Math.min(r.right - el.offsetWidth, innerWidth - el.offsetWidth - 4)) + 'px';
+  el.style.top = Math.min(r.bottom + 2, innerHeight - el.offsetHeight - 4) + 'px';
+  const close = () => {
+    el.remove();
+    removeEventListener('mousedown', outside, true);
+    back?.focus();
+  };
+  const outside = e => { if (!el.contains(e.target)) close(); };
+  addEventListener('mousedown', outside, true);
+  el.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); } });
+  el.focus();
+}
+
 // Matches in a text, with lines and columns as CodeMirror counts them.
 function searchText(text, regex) {
   const starts = [0];
@@ -3259,7 +3292,23 @@ function revealFound(cm, from, to = from) {
   const bottom = tall ? start.bottom : cm.charCoords(to, 'local').bottom;
   const y = revealTop(info.top, view, top, bottom, cm.defaultTextHeight());
   if (y != null) cm.scrollTo(null, Math.max(0, y));
-  cm.scrollIntoView(tall ? from : { from, to }, 0);   // sideways (up or down it is in view by now)
+  revealSideways(cm, from, tall ? from : to);   // up or down it is in view by now
+}
+
+// Sideways: the start of the place at least scrollMargin columns from the left and the right edge (sideMargin,
+// virtual.js); the whole place in view when it fits within those margins, else from its start at the left margin.
+// A place over several lines counts from its start. Without wrapping only.
+function revealSideways(cm, from, to) {
+  if (cm.getOption('lineWrapping')) return;
+  const left = cm.charCoords(from, 'window').left;
+  const right = from.line === to.line ? cm.charCoords(to, 'window').left : left;
+  const span = visibleSpan(cm), margin = sideMargin(cm, span);
+  if (right - left <= span.right - span.left - 2 * margin) revealX(cm, left, right);
+  else cm.scrollTo(Math.max(0, cm.getScrollInfo().left + left - span.left - margin), null);
+  // The cursor's own reveal for this move (drawVirtual, queued when the selection was set) would measure the cursor
+  // before this scroll and pull the view back: this move's sideways scroll is this one (revealX skips while set).
+  cm.state.mmFoundReveal = true;
+  queueMicrotask(() => cm.state.mmFoundReveal = false);   // after the ones already queued
 }
 
 // The same for a place jumped to in the preview (a find, a highlight, the outline): the ranges from `first` to `last`.
