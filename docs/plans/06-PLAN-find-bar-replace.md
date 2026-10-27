@@ -50,8 +50,8 @@ The replace row is enough on its own; the find row's arrows are not needed while
 - **Replace**: replaces the current match (the one marked as current) and goes to the next. With no current match
   yet (the bar just opened, or the cursor moved away), it first goes to the next match and stops there, so you see
   what you replace before you replace it. That is what it does now, but it is not visible; it gets a tooltip.
-- **Skip**: goes to the next match and leaves the current one as it is.
-- **Previous**: goes back one match, to replace one you skipped.
+- **Skip** (F3): goes to the next match and leaves the current one as it is; the same as Find next.
+- **Previous** (Shift+F3): goes back one match, to replace one you skipped; the same as Find previous.
 - Each Replace is its own undo step: replacing several one by one, Ctrl+Z undoes them one by one, the last first.
   (Typing close together is merged into one step by the editor; a replace is closed off as a step of its own.)
 - **Replace all**: all matches in the scope (3.3), one undo step, then a message with the number replaced (as now).
@@ -59,7 +59,8 @@ The replace row is enough on its own; the find row's arrows are not needed while
 - The end of the file: as the setting "At the end of the file" decides for finding (stop, go on from the top, or stop
   where the search started).
 - Keys in the replace field: Enter = Replace, Shift+Enter = Previous (as now Enter replaces and Shift+Enter goes
-  back). Skip and Replace all get keys too, see open question 2.
+  back). F3 and Shift+F3 are Skip and Previous wherever the focus is (the bar or the editor), as they are Find next
+  and Find previous; the buttons' tooltips name them. Replace all gets a key too, see open question 2.
 - Tab in the Find field: with the replace row open, to the Replace with field; with it closed, on to the bar's
   buttons, as now. Shift+Tab in the Replace with field: back to the Find field.
 
@@ -105,5 +106,5 @@ selection is the scope too, and the find field keeps the last search.
 
 1. `^p` in an LF file: the file's line end (LF; recommended, the file stays consistent), or always CRLF (the file
    then has mixed line ends, which the editor does not keep)?
-2. Keys for Skip and Replace all, for going through by keyboard only. For example Alt+S and Alt+A while the bar has
-   the focus, shown underlined in the button text. Check first that they do not clash with the menu's Alt keys.
+2. A key for Replace all, for working by keyboard only. For example Alt+A while the bar has the focus, shown
+   underlined in the button text. Check first that it does not clash with the menu's Alt keys.
