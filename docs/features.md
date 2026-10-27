@@ -331,6 +331,12 @@ every action with its key.
   of the files that need it in the background (Stop ends it; a file with the same contents and another date is
   equal); with Ignore whitespace or case on, files are also compared as text. Show all or the differences only.
   A double click (or Enter) on a file compares it; on a file of one side opens it. Read-only: nothing on disk changes.
+- **Compare with Git**: a right-click on a tab, or on a file or folder in the folder pane. Compare with Git (shown
+  when it differs from the last commit; a tab also with unsaved edits) compares with HEAD; Compare with Git
+  version... (shown when it is in git) picks HEAD, a branch, or a commit from its own history. A file: the version
+  on the left, read-only ("report.md @ HEAD"), the file as it is on the right, compared as two files. A folder: the
+  folder pane lists what differs from the version, from git itself: ~ changed, > added or not in git, < deleted;
+  a double click on a changed file compares it, on a deleted one shows that version alone.
 - **Compare from Explorer**: Settings > App > Windows Explorer adds "Select left side to compare" to Explorer's
   right-click menu for files and folders (for you only, no administrator needed; on Windows 11 under Show more
   options or Shift+right-click). After that, another file or folder has "Compare to <name>", which opens the compare
