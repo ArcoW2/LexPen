@@ -743,9 +743,14 @@ function buildFolderCompare() {
     if (b?.dataset.fcmp === 'close') return stopFolderCompare();
     if (b?.dataset.fcmp === 'stop' && fcmp.check) return host('folderCheckStop', { check: fcmp.check });
     const row = e.target.closest('.mm-fcmp-row');
-    if (row) { fcmp.cursor = row.dataset.rel; if (row.classList.contains('mm-dir')) openFolderCompareRow(row.dataset.rel); else drawFolderCompare(); }
+    if (!row) return;
+    fcmp.cursor = row.dataset.rel;
+    if (row.classList.contains('mm-dir')) return openFolderCompareRow(row.dataset.rel);
+    // Double-click on a file: the two files compared (or the one side's file opened). The first click redraws the
+    // list, so the browser's dblclick never comes; the click count does.
+    if (e.detail === 2) return openFolderCompareRow(row.dataset.rel);
+    drawFolderCompare();
   });
-  el.addEventListener('dblclick', e => { const row = e.target.closest('.mm-fcmp-row:not(.mm-dir)'); if (row) openFolderCompareRow(row.dataset.rel); });
   el.addEventListener('change', e => { if (e.target.name === 'mm-fcmp-show') { fcmp.diffOnly = e.target.value === 'diff'; drawFolderCompare(); } });
   fcmp.list.addEventListener('keydown', e => {
     const rows = [...fcmp.list.querySelectorAll('.mm-fcmp-row')], at = rows.findIndex(r => r.dataset.rel === fcmp.cursor);
