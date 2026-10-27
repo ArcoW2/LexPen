@@ -2,6 +2,31 @@
 // F1: every action with its key, grouped as in the key tables and searchable; Enter runs the selected one,
 // like a command palette. Loaded before app.js.
 
+// The codes of the find field and the replacement (docs/plans/06-PLAN-find-bar-replace.md 3.4): code, what it does,
+// an example. The F1 list and the ? window of the find bar and the Search panel show this one list.
+const SEARCH_CODE_HELP = [
+  ['Find', [
+    ['^p', 'a line break (CR, LF or CRLF)', 'end.^pNext finds "end." at a line end with "Next" on the next line'],
+    ['^t', 'a tab', 'a^tb finds a, a tab, b'],
+    ['^?', 'any one character', 'b^?t finds bat, bet, but'],
+    ['^#', 'a digit', 'v^#.^# finds v1.2'],
+    ['^$', 'a letter', '^$^$-^# finds AB-1'],
+    ['^w', 'spaces or tabs, one or more', 'if^w( finds "if (" and "if    ("'],
+    ['^^', 'the ^ itself', 'x^^2 finds x^2'],
+  ]],
+  ['Replace with', [
+    ['^p', 'a line break, with the file\'s line end', 'a, b with ,^p puts b on a line of its own'],
+    ['^t', 'a tab', 'a^tb gives a, a tab, b'],
+    ['^^', 'the ^ itself', 'x^^2 gives x^2'],
+  ]],
+  ['Regular expression', [
+    ['\\n', 'in the replacement: a line break, with the file\'s line end', '(\\w+), with $1\\n'],
+    ['\\t', 'in the replacement: a tab', '(\\w+) (\\w+) with $1\\t$2'],
+    ['$1', 'in the replacement: the text of group 1 ($2 group 2, ...)', '(\\w+)@(\\w+) with $2 at $1'],
+    ['$&', 'in the replacement: the whole match', '\\d+ with [$&] puts brackets around a number'],
+  ]],
+];
+
 // Keys that are not actions: they work where they are (the editor, the folder pane, a search, a menu).
 const FIXED_KEYS = [
   ['Editor', [
@@ -27,10 +52,8 @@ const FIXED_KEYS = [
     ['Alt+Up, Backspace', 'Go up a folder'],
     ['Esc', 'Back to the document'],
   ]],
-  ['Search codes', [
-    ['^p ^t ^?', 'A line break (CR, LF or CRLF), a tab, any character'],
-    ['^# ^$ ^w ^^', 'A digit, a letter, spaces or tabs, the ^ itself'],
-  ]],
+  // One list with the find bar's and the Search panel's ? window (showSearchCodes in app.js).
+  ['Search codes', SEARCH_CODE_HELP.flatMap(([group, codes]) => codes.map(([code, what]) => [code, `${group}: ${what}`]))],
 ];
 
 const palette = {

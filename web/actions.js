@@ -324,10 +324,12 @@ appAction('indentMore', { title: 'Indent', hint: 'The lines of the cursor or sel
   run: (_, { pane }) => { pane.cm.execCommand('indentMore'); pane.cm.focus(); } });
 appAction('indentLess', { title: 'Outdent', hint: 'The lines of the cursor or selection one indent step left', group: 'edit', editor: true,
   run: (_, { pane }) => { pane.cm.execCommand('indentLess'); pane.cm.focus(); } });
-appAction('find', { title: 'Find', hint: 'In this pane: the editor or the preview (the selection is filled in)', group: 'edit', run: () => findKey('open') });
+appAction('find', { title: 'Find', hint: 'In this pane: the editor or the preview; with text selected in the editor, only within it', group: 'edit', run: () => findKey('open') });
 appAction('findNext', { title: 'Find next', hint: 'With an empty or hidden find bar: show it', group: 'edit', run: () => findKey('next') });
 appAction('findPrevious', { title: 'Find previous', hint: 'The match before', group: 'edit', run: () => findKey('prev') });
-appAction('replace', { title: 'Replace', hint: 'Find and replace, in the editor', group: 'edit', run: () => findKey('replace') });
+appAction('replace', { title: 'Replace', hint: 'The find bar with its replace row, in the editor; with text selected, only within it', group: 'edit', run: () => findKey('replace') });
+// The find bar's Replace all (docs/plans/06-PLAN-find-bar-replace.md): Alt+A while the bar has the focus; no key elsewhere.
+appAction('replaceAll', { title: 'Replace all', hint: 'In the find bar: all matches in the selection or the file, one undo step (Alt+A in the bar)', group: 'edit', run: () => findKey('replaceAll') });
 // ---------- Clipboards ----------
 // 0 is the Windows clipboard, 1 to 9 are LexPen's own (ClipboardStore.cs, shared by all windows). Copy, cut
 // and paste work on the active one. With the Windows clipboard, a key is left to the editor, the preview or
