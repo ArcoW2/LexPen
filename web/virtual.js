@@ -126,7 +126,7 @@ function sideMargin(cm, span) {
 // Sideways into view, with room: the editor scrolls when the cursor comes within scrollMargin columns of the left or
 // right edge (at most a third of the view). Without wrapping only (with wrapping nothing scrolls sideways).
 function revealX(cm, left, right) {
-  if (cm.getOption('lineWrapping')) return;
+  if (cm.getOption('lineWrapping') || cm.state.mmFoundReveal) return;   // a found place just placed the view (revealSideways)
   const span = visibleSpan(cm), margin = sideMargin(cm, span), at = cm.getScrollInfo().left;
   if (right + margin > span.right) {
     // The room right of the cursor may lie past the longest line: the spacer gives the editor that width.

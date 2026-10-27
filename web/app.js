@@ -3303,8 +3303,12 @@ function revealSideways(cm, from, to) {
   const left = cm.charCoords(from, 'window').left;
   const right = from.line === to.line ? cm.charCoords(to, 'window').left : left;
   const span = visibleSpan(cm), margin = sideMargin(cm, span);
-  if (right - left <= span.right - span.left - 2 * margin) return revealX(cm, left, right);
-  cm.scrollTo(Math.max(0, cm.getScrollInfo().left + left - span.left - margin), null);
+  if (right - left <= span.right - span.left - 2 * margin) revealX(cm, left, right);
+  else cm.scrollTo(Math.max(0, cm.getScrollInfo().left + left - span.left - margin), null);
+  // The cursor's own reveal for this move (drawVirtual, queued when the selection was set) would measure the cursor
+  // before this scroll and pull the view back: this move's sideways scroll is this one (revealX skips while set).
+  cm.state.mmFoundReveal = true;
+  queueMicrotask(() => cm.state.mmFoundReveal = false);   // after the ones already queued
 }
 
 // The same for a place jumped to in the preview (a find, a highlight, the outline): the ranges from `first` to `last`.
