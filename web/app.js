@@ -611,6 +611,7 @@ function makePane(index) {
       ui.tabMenu.querySelector('[data-cmd=tabPin]').textContent = tab.pinned ? 'Unpin tab' : 'Pin tab';
       ui.tabMenu.querySelector('[data-cmd=tabReadOnly]').classList.toggle('mm-on', tab.readOnly || tab.doc.diskReadOnly);
       ui.tabMenu.querySelector('[data-cmd=tabShowInTree]').hidden = !tab.doc.path;
+      ui.tabMenu.querySelector('[data-cmd=tabCopyName]').hidden = !tab.doc.path;
       ui.tabMenu.querySelector('[data-cmd=tabRenameDraft]').hidden = !tab.doc.draft;
       ui.tabMenu.querySelector('[data-cmd=tabRevert]').hidden = !canRevert(tab.doc);
       const other = panes[1 - index].active;   // the compare (compare.js)
@@ -4395,6 +4396,7 @@ const commands = {
   tabNextWindow: () => menuTab && moveTab(menuTab, 'next'),
   tabNewWindow: () => menuTab && moveTab(menuTab, 'new'),
   tabCopyPath: () => menuTab?.doc.path && copyText(menuTab.doc.path),
+  tabCopyName: () => menuTab?.doc.path && copyText(nameOf(menuTab.doc.path)),   // the name and extension, no folder
   tabShowInTree: () => menuTab && showInTree(menuTab.doc.path),
   tabRenameDraft: () => menuTab && renameDraft(menuTab.doc),
   tabClose: () => menuTab && closeTab(menuTab),
