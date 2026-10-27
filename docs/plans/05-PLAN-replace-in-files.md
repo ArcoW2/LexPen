@@ -1,7 +1,7 @@
-# Plan: Replace in the search panel: the current file, the open files, the folder
+# Plan: Replace in the search panel: the selection, the current file, the open files, the folder
 
 Status: draft 2026-10-21, reworked 2026-10-26, answers 2026-10-27 (keys, undo per replacement, a preview, files in
-the folder written without opening them), not started. From the list "what UltraEdit or Visual Studio has and LexPen
+the folder written without opening them; In selection as a scope), not started. From the list "what UltraEdit or Visual Studio has and LexPen
 does not". The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
@@ -13,7 +13,7 @@ UltraEdit and Visual Studio replace in the file or several files, per match or a
 ## 2. The solution, in brief
 
 Ctrl+Shift+R opens the Search panel with a Replace field; Ctrl+R becomes the find bar's replace (plan 06). The panel
-replaces in the current file, the open files or the files in the folder. Its results get a Replace button per match,
+searches and replaces in the selection, the current file, the open files or the files in the folder. Its results get a Replace button per match,
 per file and for all; Replace all first shows a preview of every change. Each replacement is its own undo step in
 its file. Files in the folder that are not open are changed on disk directly, without opening them.
 
@@ -29,11 +29,16 @@ its file. Files in the folder that are not open are changed on disk directly, wi
 
 ### 3.2 The scope
 
+- **In selection**: the selection of the active editor when the search runs: one selection, several (multiple
+  cursors), or a column block (on each line the part between its columns, as in plan 06, 3.3). A choice in the scope
+  list, never taken by itself: the find bar is the one that follows the selection on its own. Not offered (or
+  disabled with a hint) when the active editor has nothing selected. The selection is taken when the search runs and
+  marked while the results show, so a click elsewhere does not change what is replaced; each part moves with the
+  text as replacements change its length.
 - **Current file**: the active tab's document.
 - **All open files**: every document open in this window, unsaved edits included (they are searched as they are now).
 - **Files in folder**: as the search, the panel showing which folder that is (its path above the results; now it
   does not, which is why this comes last).
-- The selection is the find bar's (plan 06): the panel is for more than one place.
 
 ### 3.3 Replacing
 
@@ -60,7 +65,8 @@ ones are left as they are. Apply or Cancel. A file not open says so ("changed on
 
 ### 3.5 Tests
 
-In the app: Ctrl+Shift+R opens the panel with Replace, Ctrl+R the find bar's replace; replace per match, three in a
+In the app: Ctrl+Shift+R opens the panel with Replace, Ctrl+R the find bar's replace; In selection (one selection,
+several, a column block: matches and replacements only within them, text outside unchanged); replace per match, three in a
 row, then Ctrl+Z three times undoes them one by one; per file and all through the preview, an unchecked match left
 alone; all open files (one undo step each, files left unsaved); files in a folder not open, changed on disk with
 encoding and line ends kept, not opened; a regex with `$1`; `^p` in the replacement; a read-only tab skipped; a file

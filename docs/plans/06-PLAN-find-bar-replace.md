@@ -80,8 +80,8 @@ The replace row is enough on its own; the find row's arrows are not needed while
   must lie within one line's part (a match across lines, `^p`, never does). Past a line's end the block has no text,
   so a short line's part is shorter or empty. Each line's part is marked as its own piece of the scope, so it moves
   with the text when a replacement makes a line longer or shorter, and F3 and Replace all keep to those pieces.
-- Only the find bar has this. The Search panel (Ctrl+Shift+F) searches the file, the open files or the folder; it has
-  no selection scope (plan 05).
+- Only the find bar takes the selection by itself. The Search panel (Ctrl+Shift+F) has In selection as one of its
+  scopes, chosen there (plan 05).
 
 ### 3.4 Codes in the replacement
 
