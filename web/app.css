@@ -1034,7 +1034,8 @@ body[data-folder-compare] .mm-folder-view > .mm-tree-head, body[data-folder-comp
 .mm-fcmp-progress[hidden] { display: none; }
 .mm-fcmp-progress span { flex: 1; color: var(--fg-dim); }
 .mm-fcmp-legend { color: var(--fg-dim); border-bottom: 1px solid var(--border); white-space: nowrap; overflow: hidden; }
-.mm-fcmp-head button, .mm-fcmp-progress button { padding: 1px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--fg); }
+.mm-fcmp-actions { display: flex; flex-wrap: wrap; gap: 6px; padding: 3px 8px; font-size: calc(12px * var(--ui-scale)); }
+.mm-fcmp-head button, .mm-fcmp-progress button, .mm-fcmp-actions button { padding: 1px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--fg); }
 .mm-fcmp-tree { flex: 1; overflow: auto; outline: none; padding-bottom: 12px; }
 .mm-fcmp-tree:focus .mm-row.mm-cursor, .mm-fcmp-tree .mm-row.mm-cursor { box-shadow: inset 0 0 0 1px var(--accent); }
 .mm-fcmp-mark { flex: none; width: 1.4em; text-align: center; font-weight: 700; font-family: var(--editor-font); color: var(--fg-dim); }
