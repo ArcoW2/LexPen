@@ -3,7 +3,7 @@
 // cursors or selections touch (a selection ending at a line's start does not take that line; a block of column mode:
 // its lines; a folded part moves as a whole). Each is one undo step. Moving with a key (Ctrl+L, Up / Down) starts move
 // mode: Up / Down go on moving the lines, Esc (or any other key, a click) stops it; a marker in the gutter of the
-// cursor lines shows it. Loaded before app.js; the actions are in actions.js.
+// lines being moved shows it. Loaded before app.js; the actions are in actions.js.
 
 // The lines a fold hides with the line it starts on: [first, last]; [line, line] when none.
 function foldSpan(cm, line) {
@@ -145,7 +145,7 @@ let lineMove = null;   // { pane, lines: the gutter's marked line handles }
 function markMoveLines() {
   const cm = lineMove.pane.cm;
   for (const h of lineMove.lines) cm.removeLineClass(h, 'gutter', 'mm-line-move');
-  lineMove.lines = [...new Set(cm.listSelections().map(r => r.head.line))].map(l => cm.addLineClass(l, 'gutter', 'mm-line-move'));
+  lineMove.lines = lineBlocks(cm).flatMap(([f, l]) => Array.from({ length: l - f + 1 }, (_, n) => cm.addLineClass(f + n, 'gutter', 'mm-line-move')));
 }
 
 function startLineMove(pane) {
