@@ -323,6 +323,17 @@ appAction('helperRemove', { title: 'Remove helper line', hint: 'The helper line 
   run: (params, { pane }) => helperRemoveAction(pane, params) });
 appAction('helperClear', { title: 'Clear helper lines', hint: 'All helper lines of this document (the tab stops stay)', group: 'edit', editor: true,
   run: (_, { pane }) => clearLines(paneDoc(pane), 'helper') });
+// Line commands (lines.js): the lines of the cursors and selections, one undo step each. Moving with a key starts move
+// mode: Up / Down move on, Esc stops.
+appAction('duplicateLines', { title: 'Duplicate lines', hint: 'The lines of the cursors or selections again, below them; the cursor on the copy', group: 'edit', editor: true,
+  run: (_, { pane }) => duplicateLines(pane.cm) });
+for (const [name, dir, title] of [['moveLinesUp', -1, 'Move lines up'], ['moveLinesDown', 1, 'Move lines down']])
+  appAction(name, { title, hint: `The lines of the cursors or selections past the line ${dir < 0 ? 'above' : 'below'}; with a key: then Up / Down move them on, Esc stops (an arrow up and down in the gutter)`, group: 'edit', editor: true,
+    run: (_, { pane, from }) => { if (moveLinesBy(pane.cm, dir) && from === 'key') startLineMove(pane); } });
+appAction('deleteLines', { title: 'Delete lines', hint: 'The lines of the cursors or selections removed; the cursor on the line after them', group: 'edit', editor: true,
+  run: (_, { pane }) => deleteLines(pane.cm) });
+appAction('joinLines', { title: 'Join lines', hint: 'The next line onto this one (with a selection: its lines), the indentation between them becoming one space', group: 'edit', editor: true,
+  run: (_, { pane }) => joinLines(pane.cm) });
 appAction('indentMore', { title: 'Indent', hint: 'The lines of the cursor or selection one indent step right', group: 'edit', editor: true,
   run: (_, { pane }) => { pane.cm.execCommand('indentMore'); pane.cm.focus(); } });
 appAction('indentLess', { title: 'Outdent', hint: 'The lines of the cursor or selection one indent step left', group: 'edit', editor: true,
