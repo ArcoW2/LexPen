@@ -825,6 +825,10 @@ async function ensureEditor(pane) {
     if (gutter === BM_GUTTER && pane.active) toggleFreeBookmark(pane, line, 0);
     if (gutter === GIT_GUTTER && pane.active) showGitChange(pane, line);
   });
+  pane.cm.on('gutterContextMenu', (cm, line, gutter, e) => {   // View > Gutter, at the mouse
+    e.preventDefault();
+    openPopupMenu(GUTTER_ITEMS, e.clientX, e.clientY);
+  });
   // Bookmarks move with the text; a removed line can put two on one line: draw them again. The change
   // and git markers follow the text too.
   pane.cm.on('changes', () => {
@@ -3890,14 +3894,16 @@ async function renameDraft(doc) {
 
 // Asks a name: the text, or null for Cancel / Esc.
 // `placeholder`: the hint in the empty field (a project name: a number when left empty).
-function askName(title, value, placeholder = 'Empty: a number') {
+// append: the caret after the value instead of the value selected (typing adds to it).
+function askName(title, value, placeholder = 'Empty: a number', append = false) {
   const dialog = $('.mm-name-dialog'), input = dialog.querySelector('.mm-name-input');
   dialog.querySelector('.mm-name-label').textContent = title;
   input.placeholder = placeholder;
   input.value = value;
   dialog.returnValue = '';
   dialog.showModal();
-  input.select();
+  if (append) input.setSelectionRange(value.length, value.length);
+  else input.select();
   return new Promise(resolve => {
     dialog.addEventListener('close', () => {
       resolve(dialog.returnValue === 'ok' ? input.value.trim() : null);

@@ -192,8 +192,9 @@ every action with its key.
 
 - **Gutter**: line numbers, bookmarks, change markers (not saved yet), git markers (changed since the last commit;
   a click shows the old text and can revert the block) and fold markers (heading sections and code blocks in
-  markdown, braces or indentation in code). View > Gutter switches each column. Line numbers: none, every 10 (a
-  dash at 5, a dot on the others) or every line; absolute or relative to the cursor line. The cursor's line is marked in the
+  markdown, braces or indentation in code). View > Gutter, or a right-click on the gutter, switches each column. Line numbers: none, every 10 (a
+  dash at 5, a dot on the others) or every line; absolute or relative to the cursor line (then Go to line starts with
+  "+" and the caret after it: a number goes down, -n up, Backspace and a number to that line). The cursor's line is marked in the
   gutter, in the colour the ruler shows its column in (setting Show cursor location in the gutter).
 - **Ruler, column guides, tab stops and helper lines**: View > Ruler shows the columns above the editor (the
   cursor's column marked). Column guides are faint lines after so many characters: a first one, then one every step,

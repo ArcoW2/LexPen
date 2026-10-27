@@ -269,15 +269,21 @@ appAction('insertCharacter', { title: 'Insert character', hint: 'A picker like t
 // Word completion (complete.js): keywords, the document's words, snippets.
 appAction('complete', { title: 'Complete word', hint: 'A list of what completes the word before the cursor: the keywords of the language, the words of the document (an @word list for @ and the like), its snippets; Enter or Tab inserts', group: 'edit', editor: true,
   run: (_, { pane }) => showCompletion(pane) });
-appAction('goToLine', { title: 'Go to line', hint: 'A line number, or line:column; the cursor goes there', group: 'edit', editor: true,
+// +n / -n (or +-n): that many lines down / up from the cursor. With relative line numbers the field starts as "+"
+// with the caret after it: a number goes down, -n up, Backspace and a number to that line.
+appAction('goToLine', { title: 'Go to line', hint: 'A line number, or line:column; +n or -n: that many lines down or up; the cursor goes there', group: 'edit', editor: true,
   run: async (_, { pane }) => {
     const cm = pane.cm, here = cm.getCursor();
-    const answer = await askName(`Go to line (1 to ${cm.lineCount()})`, String(here.line + 1), 'A line number, or line:column');
-    if (answer === null || answer === '') return;
-    const m = answer.match(/^(\d+)\s*(?:[:,]\s*(\d+))?$/);
+    const relative = setting('lineNumberCount') === 'relative' && setting('lineNumbers') !== 'none';
+    const answer = relative
+      ? await askName(`Go to line (1 to ${cm.lineCount()}; +n down, -n up)`, '+', 'A line number, +n or -n, or with :column', true)
+      : await askName(`Go to line (1 to ${cm.lineCount()})`, String(here.line + 1), 'A line number, +n or -n, or with :column');
+    if (answer === null || answer === '' || answer === '+') return;
+    const m = answer.match(/^(\+?)\s*(-?)\s*(\d+)\s*(?:[:,]\s*(\d+))?$/);
     if (!m) return toast(`Not a line number: ${answer}`);
-    const line = Math.min(Math.max(+m[1], 1), cm.lineCount()) - 1;
-    const ch = m[2] ? Math.min(Math.max(+m[2], 1) - 1, cm.getLine(line).length) : 0;
+    const target = m[1] || m[2] ? here.line + 1 + (m[2] ? -m[3] : +m[3]) : +m[3];
+    const line = Math.min(Math.max(target, 1), cm.lineCount()) - 1;
+    const ch = m[4] ? Math.min(Math.max(+m[4], 1) - 1, cm.getLine(line).length) : 0;
     cm.setCursor(CodeMirror.Pos(line, ch));
     revealFound(cm, CodeMirror.Pos(line, ch));
     cm.focus();

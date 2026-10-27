@@ -9,6 +9,12 @@
 // item: the View menu's groups), { label, sub: [items] } or
 // { label, fill: async () => items } (a submenu, filled when it opens), or { label, run, plain: true }
 // (an entry of a recent list: a file, not an action). `font`: the key column (a sample) is shown in that font.
+// View > Gutter, also the right-click menu of the gutter (app.js).
+const GUTTER_ITEMS = [{ label: '&Line numbers', sub: [['&None', 'lineNumbers.set', 'none'], ['Every &10', 'lineNumbers.set', 'tens'],
+  ['&Every line', 'lineNumbers.set', 'all'], '-', ['&Absolute', 'lineNumberCount.set', 'absolute'],
+  ['&Relative to the cursor', 'lineNumberCount.set', 'relative']] }, ['&Bookmarks', 'gutterColumn.toggle', 'bookmarks'],
+  ['&Change markers (not saved)', 'gutterColumn.toggle', 'changes'], ['&Git markers (since the last commit)', 'gutterColumn.toggle', 'git'],
+  ['&Fold markers', 'gutterColumn.toggle', 'folds']];
 const MENUS = [
   ['&File', [
     ['&New file', 'newFile'], ['&Open file...', 'openFile'], ['Open &folder...', 'openFolder'], '-',
@@ -50,11 +56,7 @@ const MENUS = [
     ['R&uler', 'ruler.toggle'], ['For&matting bar', 'formatBar.toggle'], ['&Wrap long lines', 'wrap.toggle'],
     { label: 'Tab ba&r', sub: [['One row that &scrolls', 'tabBar.set', 'scroll'], ['One row, a &menu for the rest', 'tabBar.set', 'menu'],
       ['Several &rows', 'tabBar.set', 'rows']] },
-    { label: '&Gutter', sub: [{ label: '&Line numbers', sub: [['&None', 'lineNumbers.set', 'none'], ['Every &10', 'lineNumbers.set', 'tens'],
-      ['&Every line', 'lineNumbers.set', 'all'], '-', ['&Absolute', 'lineNumberCount.set', 'absolute'],
-      ['&Relative to the cursor', 'lineNumberCount.set', 'relative']] }, ['&Bookmarks', 'gutterColumn.toggle', 'bookmarks'],
-      ['&Change markers (not saved)', 'gutterColumn.toggle', 'changes'], ['&Git markers (since the last commit)', 'gutterColumn.toggle', 'git'],
-      ['&Fold markers', 'gutterColumn.toggle', 'folds']] },
+    { label: '&Gutter', sub: GUTTER_ITEMS },
     { label: 'Scroll &bar marks', sub: [['&Find matches', 'overviewMark.toggle', 'find'],
       ['&Unsaved changes', 'overviewMark.toggle', 'changes'], ['&Git changes', 'overviewMark.toggle', 'git'],
       ['&Bookmarks', 'overviewMark.toggle', 'bookmarks'], ['&Highlights', 'overviewMark.toggle', 'highlights'], ['&Compare differences', 'overviewMark.toggle', 'compare']] },
