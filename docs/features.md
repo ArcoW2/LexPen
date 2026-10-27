@@ -275,6 +275,8 @@ every action with its key.
 - **Line breaks**: by default a single line break inside a paragraph renders as a space (CommonMark, as GitHub
   shows `.md` files). **Single line break starts a new line** (a setting) renders it as a line break.
 - **Local images**: images referenced by relative path are served to the page from disk.
+- **Links to other files**: a click on a relative link shows that file in the same tab (Back returns); Shift+click
+  or Ctrl+click opens it in a new tab. A web link opens in the browser.
 - **From the preview to the editor**: a double click on a word in the preview puts the editor's cursor on that word
   in the source text, selected, and the editor gets the focus: markdown (bold, links, lists, tables, fences),
   code shown coloured, front matter. On something markdown made up (a list number, a picture): the start of its

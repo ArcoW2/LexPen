@@ -1062,13 +1062,13 @@ function onPreviewClick(pane, e) {
     e.preventDefault();
     scrollToAnchor(pane, href.slice(1));
   } else if (!isUrl(href)) {
-    // Relative link: open other documents in place (Ctrl+click: in a new tab). Web links fall
+    // Relative link: open other documents in place (Ctrl+click or Shift+click: in a new tab). Web links fall
     // through to the host, which opens them in the default browser.
     e.preventDefault();
     const [path, anchor] = href.split('#');
     const target = resolvePath(tab?.doc.path ? dirOf(tab.doc.path) : state.root || '', safeDecode(path));
     if (codeLang(target) === 'plaintext') return;
-    if (!tab || e.ctrlKey || tab.doc.draft) openFile(target, { pane, anchor });
+    if (!tab || e.ctrlKey || e.shiftKey || tab.doc.draft) openFile(target, { pane, anchor });
     else navigate(tab, target, anchor);
   }
 }
