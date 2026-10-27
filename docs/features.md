@@ -67,6 +67,10 @@ every action with its key.
 - **Indentation while typing**: in those languages Enter gives the new line the indentation Format would give it,
   and typing a closing word or sign at the start of a line (`end if`, `else`, `}`, `</name>`) moves that line to
   its column.
+- **Line ends**: a file keeps the line ends it was read with (CRLF, LF or CR), shown in the bottom bar; a file with
+  more than one kind shows "Mixed" and is saved with the kind most of its lines have. A click on them in the bottom
+  bar (or Convert > Line ends, or the action in F1) chooses another, written at the next save; choosing the old one
+  again leaves the file unchanged. A new file gets the setting's (Options > Settings > Files, CRLF by default).
 - **Whitespace at line ends**: saving removes the spaces and tabs at the line ends of the whole file (Options >
   Settings > Files, on; Ctrl+Z after the save gives them back). A language can keep some: markdown keeps up to two
   (a line break there); `trimTrailing` in its `language.yaml`.
@@ -215,7 +219,7 @@ every action with its key.
   colour). A colour is one of the theme (it follows the theme) or one you pick. The editor only.
 - **Invisible characters** (Options > Settings > Editor view > Invisible characters): spaces and tabs, and line
   ends (each off by default, apart): in the editor a space shows as a small dot and a tab as an arrow; line ends as
-  a pilcrow (CRLF) or the LF sign, the last line none, in the theme's `whitespace` colour. Characters that cannot be
+  a pilcrow (CRLF), the LF sign or the CR sign, the last line none, in the theme's `whitespace` colour. Characters that cannot be
   seen (on by default): a control character as `0x1B`, an invisible sign as `U+200B`, in a box in inverted
   colours, still one character (one step of the cursor, removed whole). A byte the encoding of the file cannot
   read (a file with a byte order mark, UTF-16) is kept as it is and shown as `0xAB` in red; saving writes it back,
@@ -246,7 +250,7 @@ every action with its key.
 - **Bottom bar**: at the left both panes, each a page with an arrow to where it is (left / right, or up / down
   when above each other) and an eye: struck through while the pane is hidden, grey while it has no documents. A
   click on the eye shows or hides the pane; hiding one while the other is hidden shows the other (never both
-  hidden). Then line and column (and the size of the selection or block), COL (column mode), INS / OVR (Ins), encoding, line endings,
+  hidden). Then line and column (and the size of the selection or block), COL (column mode), INS / OVR (Ins), encoding, line endings (click: choose),
   language, the active clipboard and a pending chord. "Long line: colour stops at 10,000 characters" when a
   line is that long (the editor colours a line up to there). At the far right a heartbeat (- \ | /) turns
   while LexPen responds; when it stands still, LexPen is busy. The bottom bar can have a font and size of its own.

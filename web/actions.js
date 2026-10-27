@@ -694,6 +694,9 @@ const SETTING_ROWS = [
   { name: 'trimTrailing', group: 'Files', kind: 'toggle', title: 'Remove whitespace at line ends on save',
     hint: 'On save, spaces and tabs at line ends are removed from the whole file, just before it is written (Ctrl+Z after the save gives them back). A language can keep some (markdown: 2) or never trim (trimTrailing)',
     hintOff: 'On save, spaces and tabs at line ends are kept' },
+  { name: 'newFileEol', group: 'Files', kind: 'choice', title: 'Line ends of a new file',
+    hint: 'A new file, and a file without a line break; a file read keeps its own (the bottom bar shows them, a click changes them)',
+    options: () => [['crlf', 'CRLF (Windows)'], ['lf', 'LF (Unix, macOS)'], ['cr', 'CR (old Mac)']] },
   { name: 'askSaveDrafts', group: 'Files', kind: 'toggle', title: 'Ask to save changed drafts when closing LexPen',
     hint: 'Closing LexPen with changed drafts asks whether to save them (closing a draft tab always asks)',
     hintOff: 'Closing LexPen keeps changed drafts as drafts without a question (closing a draft tab always asks)' },
@@ -812,6 +815,9 @@ appAction('bookmarkList', { title: 'Bookmarks of this file', hint: 'A list to ch
   editor: true, run: (_, { pane }) => showBookmarkList(pane) });
 
 // ---------- The gutter (gutter.js): View > Gutter ----------
+appAction('lineEnd.set', { title: 'Line ends', hint: "The file's line ends, written at the next save (also a click on CRLF / LF in the bottom bar)", group: 'edit',
+  variants: [['crlf'], ['lf'], ['cr']], variantTitles: { crlf: 'Line ends: CRLF (Windows)', lf: 'Line ends: LF (Unix, macOS)', cr: 'Line ends: CR (old Mac)' },
+  checked: ([kind]) => !!activeDoc() && activeDoc().eol === EOLS[kind] && !activeDoc().mixed, run: ([kind]) => setLineEnd(activeDoc(), EOLS[kind]) });
 appAction('lineNumbers.set', { title: 'Line numbers', hint: 'None, every 10 (a dash at 5, a dot on the others) or every line', group: 'view',
   variants: [['none'], ['tens'], ['all']], variantTitles: { none: 'Line numbers: none', tens: 'Line numbers: every 10', all: 'Line numbers: every line' },
   checked: ([kind]) => setting('lineNumbers') === kind, run: ([kind]) => setSetting('lineNumbers', kind) });

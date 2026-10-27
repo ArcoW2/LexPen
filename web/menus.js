@@ -306,7 +306,10 @@ async function formatMenuItems() {
 async function convertMenuItems() {
   await loadEditor();
   const lang = languageOf(activeDoc()) ?? 'plaintext';
-  return withInner(lang, convertItems(lang, null), inner => convertItems(inner, inner));
+  const items = withInner(lang, convertItems(lang, null), inner => convertItems(inner, inner));
+  // The file's line ends (as the bottom bar's CRLF / LF): the file, whatever the language of a line.
+  return [...items, '-', { label: 'Line &ends', sub: withLetters([['CRLF (Windows)', 'crlf'], ['LF (Unix, macOS)', 'lf'], ['CR (old Mac)', 'cr']]
+    .map(([label, kind]) => ({ label, action: 'lineEnd.set', params: [kind] }))) }];
 }
 
 // The menu's items, and on a line of another language a submenu with that language's items (when it has any).
