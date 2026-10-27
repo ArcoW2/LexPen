@@ -26,6 +26,7 @@ function paintHunks(cm, gutter, hunks, title) {
     for (const line of lines) {
       const el = document.createElement('span');
       el.className = `mm-mark-${kind}`;
+      el.dataset.gutter = gutter;   // CodeMirror does not put the mark inside its gutter column: app.css picks the colour by this
       el.title = title(kind, h);
       cm.setGutterMarker(line, gutter, el);
     }
