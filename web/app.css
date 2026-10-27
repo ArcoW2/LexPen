@@ -613,7 +613,10 @@ body[data-no-format-bar] .CodeMirror .mm-inner-bar { display: none; }
 .mm-editor-pane .CodeMirror-scrollbar-filler, .mm-editor-pane .CodeMirror-gutter-filler { background: var(--bg); }
 .mm-editor-pane .CodeMirror-linenumber { color: var(--fg-dim); opacity: .6; }
 .mm-editor-pane .mm-cursor-number .CodeMirror-linenumber { font-style: italic; opacity: 1; }   /* relative numbers: the cursor line's own */
-.mm-editor-pane .CodeMirror-gutter-background.mm-cursor-gutter { background: var(--select); }   /* gutter.cursor: as the ruler's cursor column */
+.mm-editor-pane .CodeMirror-gutter-background.mm-cursor-gutter { background: var(--select); }
+/* Move mode (lines.js): an arrow up and an arrow down at the gutter's left of the cursor lines. */
+.mm-editor-pane .CodeMirror-gutter-background.mm-line-move::before { content: '\2191\2193'; position: absolute; left: 2px; top: 0; z-index: 5;
+  color: var(--accent); font-weight: bold; letter-spacing: -1px; line-height: inherit; }   /* gutter.cursor: as the ruler's cursor column */
 /* Gutter: bookmarks (bookmarks.js), right of the line numbers. */
 .mm-editor-pane .mm-bookmarks { width: 18px; cursor: pointer; }
 .mm-bm { display: inline-block; min-width: 9px; margin-left: 2px; padding: 0 2px; border-radius: 3px; text-align: center;

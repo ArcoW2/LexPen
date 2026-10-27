@@ -79,6 +79,9 @@
   "Ctrl+D, D": "cursorRemove",       // Ctrl+Alt+Right / Left: the next / previous occurrence (of the find text, else the selection)
   "Ctrl+D, R": "cursorRemove",
   "Ctrl+D, C": "cursorClear",
+  "Ctrl+L, D": "duplicateLines",     // the lines of the cursors or selections again, below them
+  "Ctrl+L, Up": "moveLinesUp",       // the lines up / down a line, then move mode: Up / Down move on, Esc stops
+  "Ctrl+L, Down": "moveLinesDown",
   "Ctrl+Alt+Right": "cursorNext",
   "Ctrl+Alt+Left": "cursorPrevious",
   "Ctrl+Shift+.": "indentMore",      // Ctrl+> and Ctrl+<: indent and outdent the lines (as Tab / Shift+Tab on a selection)

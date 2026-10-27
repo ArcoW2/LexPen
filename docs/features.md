@@ -20,6 +20,12 @@ every action with its key.
   (editor, editor and preview, or preview). **Editor** and **Preview** in the toolbar (and the View menu) are
   switches; one of them stays on (keys Ctrl+Alt+V, E and Ctrl+Alt+V, P). The splitter between
   them sets their widths (double-click: half and half).
+- **Line commands** (Edit > Line commands): the lines of the cursors or selections (a selection ending at a line's
+  start does not take that line; a column block: its lines; a fold moves as a whole), each one undo step.
+  Duplicate (Ctrl+L, D: the cursor on the copy), Move up / down (Ctrl+L, Up / Down), Delete, Join (the indentation
+  between the lines becomes one space). Moving with the keys starts move mode, an arrow up and down in the gutter of
+  the cursor line: Up / Down move the lines on, Esc stops (as does any other key or a click). Delete and Join have no
+  key; give them one in your keys.json.
 - **Multiple cursors**: Ctrl+Alt+click adds a cursor (held and dragged, it follows the mouse until you let go); on a
   cursor or inside a selection it removes that one, never the last. Ctrl+Alt+double-click selects the find match
   there (find bar open), else the word: Ctrl+F the text, then Ctrl+Alt+double-click the matches you want. With the
