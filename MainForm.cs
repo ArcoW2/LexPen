@@ -279,6 +279,24 @@ sealed class MainForm : Form
         }
     }
 
+    /// <summary>A folder is about to be renamed (AppHost.Rename): Windows refuses while a watcher holds it or a folder in
+    /// it. Those watchers stop; the page asks for them again with the new paths, or ResumeWatching after a refusal.</summary>
+    public void StopWatching(string folder)
+    {
+        foreach (var dir in fileWatchers.Keys.Where(d => FileRename.Renamed(d, folder, folder) is not null).ToList())
+        {
+            fileWatchers[dir].Dispose();
+            fileWatchers.Remove(dir);
+        }
+        if (FileRename.Renamed(Root, folder, folder) is not null) treeWatcher.EnableRaisingEvents = false;
+    }
+
+    public void ResumeWatching()
+    {
+        WatchFiles(watchedFiles.ToList());
+        Watch(treeWatcher, Root, "*");
+    }
+
     // Window chrome follows the mode; the background shown before the page paints is the theme's.
     // Secondary windows get a dimmed caption and border (Windows 11; Windows 10 ignores it).
     public void ApplyTheme()
@@ -982,6 +1000,9 @@ sealed class MainForm : Form
             case "droppedFiles":
                 return new JsonArray((files ?? []).Select(f => (JsonNode?)new JsonObject
                     { ["path"] = f, ["dir"] = f.Length > 0 && Directory.Exists(f) }).ToArray());
+
+            case "rename":
+                return app.Rename(Arg("path"), Arg("name"));
 
             case "recent":
                 return app.Recent();

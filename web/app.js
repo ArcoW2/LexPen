@@ -662,6 +662,7 @@ function makePane(index) {
       ui.tabMenu.querySelector('[data-cmd=tabReadOnly]').classList.toggle('mm-on', tab.readOnly || tab.doc.diskReadOnly);
       ui.tabMenu.querySelector('[data-cmd=tabShowInTree]').hidden = !tab.doc.path;
       ui.tabMenu.querySelector('[data-cmd=tabCopyName]').hidden = !tab.doc.path;
+      ui.tabMenu.querySelector('[data-cmd=tabRename]').hidden = !tab.doc.path;
       ui.tabMenu.querySelector('[data-cmd=tabRenameDraft]').hidden = !tab.doc.draft;
       ui.tabMenu.querySelector('[data-cmd=tabRevert]').hidden = !canRevert(tab.doc);
       const other = panes[1 - index].active;   // the compare (compare.js)
@@ -2430,6 +2431,11 @@ ui.tree.addEventListener('keydown', async e => {
       }
       break;
     case 'Backspace': await goUp(); break;
+    case 'F2':   // rename, as in Explorer
+      if (row.classList.contains('mm-up') || row.classList.contains('mm-gone')) break;
+      await renameFile(row.dataset.path, isDir || row.classList.contains('mm-base'));
+      ui.tree.focus();
+      break;
     case 'Escape': focusPane(panes[state.activePane]); break;
     default: handled = false;
   }
@@ -3941,18 +3947,67 @@ async function renameDraft(doc) {
   updateStatus();
 }
 
+// Rename (docs/plans/executed/PLAN-rename.md): a file or folder in its folder, from the folder pane (F2, right-click)
+// or the tab menu. The name box selects the name without its extension, as Explorer does. The host renames it and
+// tells every window (events.renamed); a refusal comes back as its message.
+async function renameFile(path, folder = false) {
+  if (!path) return;
+  const old = nameOf(path), dot = folder ? -1 : old.lastIndexOf('.');
+  const name = await askName(folder ? 'New name of the folder' : 'New name of the file', old, '', [0, dot > 0 ? dot : old.length]);
+  if (name === null || name === old) return;
+  try { await host('rename', { path, name }); }
+  catch (e) { toast(e.message); }
+}
+
+// A file or folder renamed (renameFile, in this window or another): the documents in it get the new path and stay as
+// they are (unsaved edits, undo, cursor, the edit lock); a new extension gives its language unless one was chosen.
+// The folder pane follows: its root, its open folders, the selected row.
+events.renamed = async ({ from, to }) => {
+  const renamed = path => !path ? null : samePath(path, from) ? to
+    : path.toLowerCase().startsWith(from.toLowerCase() + '\\') ? to + path.slice(from.length) : null;
+  for (const doc of docs) {
+    const path = renamed(doc.path);
+    if (!path) continue;
+    doc.path = path;
+    const language = doc.languageChosen ? doc.language : codeLang(path, docText(doc));
+    if (language !== doc.language) {
+      doc.language = language;
+      doc.outline = null;
+      doc.headingsVersion = -1;
+    }
+    for (const tab of tabsOf(doc)) tab.stale = true;
+  }
+  for (const dir of [...expanded]) {
+    const path = renamed(dir);
+    if (path) { expanded.delete(dir); expanded.add(path); }
+  }
+  const cursor = renamed(treeCursor()?.dataset.path), root = renamed(state.root);
+  if (root) {
+    state.root = root;
+    ui.treeTitle.textContent = ui.treeTitle.title = nameOf(root) || root;
+    syncWatch();
+  }
+  await refreshTree();
+  if (cursor) setTreeCursor(treeRows().find(r => samePath(r.dataset.path, cursor)));
+  syncWatchFiles();
+  refreshTabs();
+  showDocName();
+  updateStatus();
+  await showAll();
+  saveSession();
+};
+
 // Asks a name: the text, or null for Cancel / Esc.
 // `placeholder`: the hint in the empty field (a project name: a number when left empty).
-// append: the caret after the value instead of the value selected (typing adds to it).
-function askName(title, value, placeholder = 'Empty: a number', append = false) {
+// select: the part of the value selected, [from, to] (from == to: only the caret there); default all of it.
+function askName(title, value, placeholder = 'Empty: a number', select = [0, value.length]) {
   const dialog = $('.mm-name-dialog'), input = dialog.querySelector('.mm-name-input');
   dialog.querySelector('.mm-name-label').textContent = title;
   input.placeholder = placeholder;
   input.value = value;
   dialog.returnValue = '';
   dialog.showModal();
-  if (append) input.setSelectionRange(value.length, value.length);
-  else input.select();
+  input.setSelectionRange(...select);
   return new Promise(resolve => {
     dialog.addEventListener('close', () => {
       resolve(dialog.returnValue === 'ok' ? input.value.trim() : null);
@@ -4154,6 +4209,7 @@ document.addEventListener('contextmenu', e => {
     contextPath = row.dataset.path;
     contextKind = row.classList.contains('mm-dir') || row.classList.contains('mm-base') ? 'folders' : 'files';
     favouriteItem(ui.treeMenu, contextPath, contextKind);   // favourites.js
+    ui.treeMenu.querySelector('[data-cmd=treeRename]').hidden = row.classList.contains('mm-up') || row.classList.contains('mm-gone');
     ui.treeMenu.querySelector('[data-cmd=treeSetRoot]').hidden = contextKind !== 'folders' || samePath(contextPath, state.root);
     // The compare (compare.js): a file with the file in the editor or a picked one; a folder with a picked folder.
     const active = activeDoc()?.path, file = contextKind === 'files';
@@ -4517,6 +4573,7 @@ const commands = {
   tabCopyPath: () => menuTab?.doc.path && copyText(menuTab.doc.path),
   tabCopyName: () => menuTab?.doc.path && copyText(nameOf(menuTab.doc.path)),   // the name and extension, no folder
   tabShowInTree: () => menuTab && showInTree(menuTab.doc.path),
+  tabRename: () => menuTab && renameFile(menuTab.doc.path),
   tabRenameDraft: () => menuTab && renameDraft(menuTab.doc),
   tabClose: () => menuTab && closeTab(menuTab),
   // The compare (compare.js): this tab on the left.
@@ -4555,6 +4612,7 @@ const commands = {
   favouriteToggle: () => toggleFavourite(activeDoc()?.path),
   tabFavourite: () => menuTab && toggleFavourite(menuTab.doc.path),
   treeFavourite: () => toggleFavourite(contextPath, contextKind),
+  treeRename: () => renameFile(contextPath, contextKind === 'folders'),
   // The folder becomes the tree's root; its subfolders that were open stay open.
   treeSetRoot: () => {
     const under = contextPath.replace(/\\$/, '').toLowerCase() + '\\';

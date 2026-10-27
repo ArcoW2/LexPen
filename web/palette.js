@@ -50,6 +50,7 @@ const FIXED_KEYS = [
     ['Shift+Enter', 'Open the file in a new tab'],
     ['Ctrl+Enter / Ctrl+Shift+Enter', 'In the other pane / in a new tab there'],
     ['Alt+Up, Backspace', 'Go up a folder'],
+    ['F2', 'Rename the file or folder'],
     ['Esc', 'Back to the document'],
   ]],
   // One list with the find bar's and the Search panel's ? window (showSearchCodes in app.js).

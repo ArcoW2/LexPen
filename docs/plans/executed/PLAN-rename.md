@@ -1,6 +1,7 @@
 # Plan: Rename a file or folder, the open tabs following
 
-Status: draft 2026-10-27, not started. The number in the file name is the priority; rename to reorder.
+Status: draft 2026-10-27, answers 2026-10-27 (F2 in the folder pane only; a file that is not open: renamed on disk,
+with what is kept by its path), done 2026-10-27; tried in the app.
 
 ## 1. What this is about
 
@@ -21,7 +22,8 @@ moves along, as Save as already does for one file.
 ### 3.1 Where
 
 - **Tab menu**: Rename... for a file (a draft keeps Rename draft...). Hidden for a tab in a compare's saved text.
-- **Folder pane**: Rename... on a file or a folder row; F2 on the selected row, as in Explorer.
+- **Folder pane**: Rename... on a file or a folder row; F2 on the selected row, as in Explorer. F2 works only in
+  the folder pane (answer 1).
 - An action (`file.rename`, the active tab's file) in F1 and keys.json; no default key outside the folder pane.
 
 ### 3.2 The name box
@@ -73,3 +75,13 @@ Unit tests (host): the rename itself and its refusals; the stores moving their e
 
 1. F2 in the folder pane only, or also F2 in the editor for the active tab's file (F2 is free in LexPen now)?
 2. A file of the folder pane that is not open: renamed on disk only (nothing else to follow), agreed?
+
+Answers (2026-10-27): 1. F2 in the folder pane only. 2. Yes: a file that is not open is only renamed on disk; what
+LexPen keeps by its path (bookmarks, highlights, ruler lines, recent, favourites) still follows. Other windows with
+a renamed file follow.
+
+### 4.1 Found while trying it
+
+A folder with open files in it could not be renamed ("Access denied"): LexPen's own watchers hold the folders of the
+open files. The host now stops the watchers in that folder first (`MainForm.StopWatching`); the pages ask for them
+again with the new paths, and after a refusal they start again (`ResumeWatching`).

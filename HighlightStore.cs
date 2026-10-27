@@ -148,6 +148,30 @@ sealed class HighlightStore
         }
     }
 
+    /// <summary>A file or folder renamed on disk (FileRename): the highlights of the files in it go along. A file's .lph
+    /// is renamed with it; in a folder they moved with the folder.</summary>
+    public void Rename(string from, string to)
+    {
+        lock (gate)
+        {
+            foreach (var (key, value) in files.ToList())
+                if (FileRename.Renamed(key, from, to) is string renamed)
+                {
+                    files.Remove(key);
+                    if (value is JsonObject entry) entry["path"] = FileRename.Renamed(entry["path"]?.GetValue<string>(), from, to) ?? renamed;
+                    files[BookmarkStore.Key(renamed, null)] = value;
+                }
+            foreach (var file in beside.ToList())
+                if (FileRename.Renamed(file, from, to) is string renamed) { beside.Remove(file); beside.Add(renamed); }
+            if (File.Exists(to) && File.Exists(BesidePath(from)))
+            {
+                try { File.Move(BesidePath(from), BesidePath(to), true); }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+            }
+            Save();
+        }
+    }
+
     /// <summary>A file deleted inside LexPen: its highlights go too.</summary>
     public void Delete(string file)
     {
