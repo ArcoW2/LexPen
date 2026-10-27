@@ -175,7 +175,7 @@ sealed class AppHost : ApplicationContext
         page.RadioButtons.Add(layoutOnly);
         page.RadioButtons.Add(setOnly);
         (desktopHas ? bothDesktop : bothApp).Checked = true;
-        if (TaskDialog.ShowDialog(owner, page) != TaskDialogButton.OK) return null;
+        if (Program.ShowTask(owner, page) != TaskDialogButton.OK) return null;
         var result = new JsonObject { ["layout"] = !setOnly.Checked };
         if (layoutOnly.Checked) return result;
         var onDesktop = bothDesktop.Checked;
@@ -1873,7 +1873,7 @@ sealed class AppHost : ApplicationContext
             DefaultButton = merge,
             AllowCancel = true,
         };
-        if (TaskDialog.ShowDialog(owner, page) != merge) return false;
+        if (Program.ShowTask(owner, page) != merge) return false;
         projects.Merge(to, from);
         ProjectsChanged();
         return true;
@@ -1999,7 +1999,7 @@ sealed class AppHost : ApplicationContext
         page.DefaultButton = page.Buttons[0];
         if (details.Length > 0)
             page.Expander = new TaskDialogExpander(details) { CollapsedButtonText = "Show details", ExpandedButtonText = "Hide details" };
-        return TaskDialog.ShowDialog(owner, page) is var result && answers.TryGetValue(result, out var a) ? a : null;
+        return Program.ShowTask(owner, page) is var result && answers.TryGetValue(result, out var a) ? a : null;
     }
 
     // The close question, only for unsaved documents (drafts stay with their windows): "save", "discard" or null.
@@ -2021,7 +2021,7 @@ sealed class AppHost : ApplicationContext
         };
         if (details.Length > 0)
             page.Expander = new TaskDialogExpander(details) { CollapsedButtonText = "Show details", ExpandedButtonText = "Hide details" };
-        var result = TaskDialog.ShowDialog(owner, page);
+        var result = Program.ShowTask(owner, page);
         return result == save ? "save" : result == discard ? "discard" : null;
     }
 

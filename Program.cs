@@ -49,9 +49,43 @@ static class Program
         app.WatchLanguages();
         app.Launch(paths, shift, compare, view, edit);
         if (owner) app.Listen(name);
+        Application.EnterThreadModal += ShowPointer;
+        Application.LeaveThreadModal += RestorePointer;
         Application.Run(app);
         if (owner) mutex.ReleaseMutex();
     }
+
+    // The mouse pointer over a dialog (Open, Save as, a question). Typing in the editor hides it (Windows' "Hide pointer
+    // while typing"), and the browser view shows it again on a mouse move over itself only: a dialog opened from the
+    // keyboard (Alt+F O) had no pointer until it closed. Shown while the dialog is open, then hidden again as it was;
+    // the browser view shows it on the next move, as before. Per dialog, a dialog over a dialog included: how often it
+    // was raised, lowered as often when that dialog closes.
+    static readonly Stack<int> pointerRaised = new();
+
+    static void ShowPointer(object? sender, EventArgs e)
+    {
+        var raised = 1;
+        for (var count = ShowCursor(true); count < 0; count = ShowCursor(true)) raised++;
+        pointerRaised.Push(raised);
+    }
+
+    static void RestorePointer(object? sender, EventArgs e)
+    {
+        if (!pointerRaised.TryPop(out var raised)) return;
+        for (; raised > 0; raised--) ShowCursor(false);
+    }
+
+    // A task dialog does not raise EnterThreadModal / LeaveThreadModal (the other dialogs and forms do): every one goes
+    // through here.
+    internal static TaskDialogButton ShowTask(IWin32Window owner, TaskDialogPage page)
+    {
+        ShowPointer(null, EventArgs.Empty);
+        try { return TaskDialog.ShowDialog(owner, page); }
+        finally { RestorePointer(null, EventArgs.Empty); }
+    }
+
+    [DllImport("user32.dll")]
+    static extern int ShowCursor(bool show);
 
     // "-n" or "--new-window": a new window, as with Shift held. "-c" or "--compare": the two paths compared (two files
     // or two folders), in a new window. "--view": the files and folders in the project for viewing (Explorer's View in
