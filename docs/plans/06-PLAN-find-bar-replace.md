@@ -60,8 +60,8 @@ The replace row is enough on its own; the find row's arrows are not needed while
   where the search started).
 - Keys in the replace field: Enter = Replace, Shift+Enter = Previous (as now Enter replaces and Shift+Enter goes
   back). Skip and Replace all get keys too, see open question 2.
-- Tab in the Find field goes to the Replace with field, Shift+Tab there back to the Find field (now Tab goes on to
-  the bar's buttons). With the replace row closed, Tab stays as it is.
+- Tab in the Find field: with the replace row open, to the Replace with field; with it closed, on to the bar's
+  buttons, as now. Shift+Tab in the Replace with field: back to the Find field.
 
 ### 3.3 The scope: the selection or the file
 
