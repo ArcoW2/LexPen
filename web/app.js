@@ -2787,6 +2787,8 @@ const searchUi = {
 };
 const searchOptions = { case: false, word: false, regex: false };
 let searchRun = 0, searchHits = [];
+let searchGroups = [];   // the results: per file { path, draft, matches, skip }; a match replaced has done: { old, new }
+let lastSearch = null;   // the search the results are of: { text, options, scope, source, regex }
 
 // `options`: case / word / regex; the file search's by default, the find bar (find.js) passes its own.
 function searchPattern(text, options = searchOptions) {
@@ -2835,8 +2837,9 @@ function showSearchCodes(anchor, back) {
   el.focus();
 }
 
-// Matches in a text, with lines and columns as CodeMirror counts them.
-function searchText(text, regex) {
+// Matches in a text, with lines and columns as CodeMirror counts them; s / e: where in the text. parts: only within
+// these [start, end] of the text (In selection, searchreplace.js).
+function searchText(text, regex, parts = [[0, text.length]]) {
   const starts = [0];
   for (let i = 0; i < text.length; i++)
     if (text[i] === '\n' || (text[i] === '\r' && text[i + 1] !== '\n')) starts.push(i + 1);
@@ -2846,13 +2849,13 @@ function searchText(text, regex) {
     return { line: lo, col: index - starts[lo] };
   };
   const matches = [];
-  for (const m of text.matchAll(regex)) {
+  for (const [start, stop] of parts) for (const m of text.slice(start, stop).matchAll(regex)) {
     if (!m[0].length) continue;
-    const from = at(m.index), to = at(m.index + m[0].length);
+    const s = start + m.index, e = s + m[0].length, from = at(s), to = at(e);
     const end = from.line + 1 < starts.length ? starts[from.line + 1] : text.length;
-    matches.push({ line: from.line, col: from.col, endLine: to.line, endCol: to.col,
+    matches.push({ s, e, line: from.line, col: from.col, endLine: to.line, endCol: to.col,
       text: text.slice(starts[from.line], end).replace(/[\r\n]+$/, '') });
-    if (matches.length >= 2000) break;
+    if (matches.length >= 2000) return matches;
   }
   return matches;
 }
@@ -2875,11 +2878,17 @@ async function runSearch() {
   const folder = scope === 'folder' ? searchFolder() : null;
   if (scope === 'folder' && !folder) return searchUi.status.textContent = 'No folder: open a folder or a file first.';
 
+  // In selection (searchreplace.js): the active editor's selection, marked; the one there was while it is the same.
+  const within = scope === 'selection' ? await takeSearchScope() : clearSearchScope();
+  if (scope === 'selection' && !within) return searchUi.status.textContent = 'Nothing selected: select the text to search in first.';
+  lastSearch = { text, options: { ...searchOptions }, scope, source, regex };
+
   // Open documents are searched here, so unsaved edits count.
-  let docsHere = scope === 'file' ? [activeDoc()].filter(Boolean) : [...docs];
+  let docsHere = scope === 'selection' ? [within.doc] : scope === 'file' ? [activeDoc()].filter(Boolean) : [...docs];
   if (folder) docsHere = docsHere.filter(d => d.path && d.path.toLowerCase().startsWith(folder.toLowerCase().replace(/\\$/, '') + '\\') &&
     (!knownOnly || knownFile(d.path)));
-  const groups = docsHere.map(doc => ({ path: doc.path, draft: doc.draft, matches: searchText(docText(doc), regex) }))
+  const groups = docsHere.map(doc => ({ path: doc.path, draft: doc.draft,
+    matches: within ? searchText(docText(doc), regex, scopeRanges(within)) : searchText(docText(doc), regex) }))
     .filter(g => g.matches.length);
   let truncated = false;
   if (folder) {
@@ -2900,31 +2909,42 @@ async function runSearch() {
 }
 
 function showSearchResults(groups, truncated, folder) {
-  searchHits = [];
+  searchGroups = groups;
   const total = groups.reduce((n, g) => n + g.matches.length, 0);
   searchUi.status.textContent = !total ? 'No matches.' :
     `${total} match${total === 1 ? '' : 'es'} in ${groups.length} file${groups.length === 1 ? '' : 's'}` +
-    (truncated ? ' (stopped at 2000)' : '') + (folder ? ` - ${folder}` : '');
-  const parts = [];
-  for (const group of groups) {
+    (truncated ? ' (stopped at 2000)' : '') + (folder ? ` - ${folder}` : '') +
+    (lastSearch?.scope === 'selection' ? ' (in the selection)' : '');
+  drawSearchResults();
+}
+
+// The results as searchGroups has them now. A replaced match (searchreplace.js) shows its old text crossed out and the
+// new text; a file skipped (read-only) says why. With the replace row shown: a Replace button per file and per match.
+function drawSearchResults() {
+  searchHits = [];
+  const parts = [], rep = '<button class="mm-result-rep" title="Replace">Replace</button>';
+  for (const [g, group] of searchGroups.entries()) {
     const head = document.createElement('div');
     head.className = 'mm-result-file';
-    head.title = group.path || `Draft ${group.draft}`;
+    head.dataset.group = g;
+    head.title = (group.path || `Draft ${group.draft}`) + (group.skip ? ` - skipped: ${group.skip}` : '');
+    const live = group.matches.filter(m => !m.done).length;
     head.innerHTML = `<span class="mm-result-name">${escapeHtml(group.path ? nameOf(group.path) : findDraft(group.draft)?.draftName || group.draft)}</span>` +
       `<span class="mm-result-dir">${escapeHtml(group.path && !samePath(dirOf(group.path), state.root) ? relativePath(dirOf(group.path)) : '')}</span>` +
-      `<span class="mm-result-count">${group.matches.length}</span>`;
+      `<span class="mm-result-count">${live}</span>` + (live && !group.skip ? rep : '');
     const list = document.createElement('div');
     list.className = 'mm-result-list';
     for (const m of group.matches) {
       const row = document.createElement('div');
-      row.className = 'mm-result';
-      row.dataset.hit = searchHits.push({ ...m, path: group.path, draft: group.draft }) - 1;
+      row.className = 'mm-result' + (m.done ? ' mm-done' : '') + (group.skip ? ' mm-skip' : '');
+      row.dataset.hit = searchHits.push({ ...m, path: group.path, draft: group.draft, group: g }) - 1;
       const end = m.endLine === m.line ? m.endCol : m.text.length;
       // Long lines: start a little before the match.
       const from = Math.max(0, m.col - 30);
+      const found = m.done ? `<del>${escapeHtml(m.done.old)}</del><ins>${escapeHtml(m.done.new)}</ins>` : `<mark>${escapeHtml(m.text.slice(m.col, end))}</mark>`;
       row.innerHTML = `<span class="mm-result-line">${m.line + 1}</span><span class="mm-result-text">` +
-        (from ? '...' : '') + escapeHtml(m.text.slice(from, m.col)) + `<mark>${escapeHtml(m.text.slice(m.col, end))}</mark>` +
-        escapeHtml(m.text.slice(end, end + 200)) + '</span>';
+        (from ? '...' : '') + escapeHtml(m.text.slice(from, m.col)) + found + escapeHtml(m.text.slice(end, end + 200)) + '</span>' +
+        (m.done || group.skip ? '' : rep);
       list.append(row);
     }
     parts.push(head, list);
@@ -2934,9 +2954,11 @@ function showSearchResults(groups, truncated, folder) {
 
 searchUi.results.addEventListener('click', async e => {
   const head = e.target.closest('.mm-result-file');
+  if (head && e.target.closest('.mm-result-rep')) return replaceFile(+head.dataset.group);   // searchreplace.js
   if (head) return head.classList.toggle('mm-closed');
   const row = e.target.closest('.mm-result');
   if (!row) return;
+  if (e.target.closest('.mm-result-rep')) return replaceMatch(searchHits[+row.dataset.hit]);
   for (const on of searchUi.results.querySelectorAll('.mm-result.mm-on')) on.classList.remove('mm-on');
   row.classList.add('mm-on');
   const hit = searchHits[+row.dataset.hit];
@@ -2977,6 +2999,7 @@ $('.mm-search-view').addEventListener('keydown', e => {
   e.preventDefault();
   const back = searchReturn ?? { sidebar: true, view: 'folder' };
   searchReturn = null;
+  clearSearchScope();   // searchreplace.js: the selection's marks go
   setSideView(back.view && back.view !== 'search' ? back.view : 'folder');
   if (!back.sidebar) setSidebar(false);
   focusPane(panes[state.activePane]);

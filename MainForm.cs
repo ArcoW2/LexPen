@@ -818,6 +818,14 @@ sealed class MainForm : Form
                 return MessageBox.Show(this, Arg("text"), "LexPen",
                     MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes;
 
+            // The preview of a Replace in the Search panel (ReplacePreviewForm): the ids of the changes to make, or null.
+            case "confirmReplace":
+            {
+                using var preview = new ReplacePreviewForm(app, this, msg["changes"]!);
+                preview.ShowDialog(this);
+                return preview.Kept;
+            }
+
             // Save before closing: "yes" | "no" | null (Cancel).
             case "askSave":
                 return MessageBox.Show(this, Arg("text"), "LexPen",

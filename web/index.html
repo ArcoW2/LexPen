@@ -55,11 +55,22 @@
         <button data-opt="case" title="Match case">Aa</button>
         <button data-opt="word" title="Whole word only">W</button>
         <button data-opt="regex" title="Regular expression (then the ^ codes do not apply)">.*</button>
+        <button class="mm-search-toggle" title="Replace (Ctrl+Shift+R)">Replace</button>
         <select class="mm-search-scope" title="Where to search">
+          <option value="selection">In selection</option>
           <option value="file">Current file</option>
           <option value="open">Open files</option>
           <option value="folder">Files in folder</option>
         </select>
+      </div>
+      <div class="mm-search-replace" hidden>
+        <input class="mm-search-with" type="text" spellcheck="false" placeholder="Replace with"
+          title="Codes: ^p line break, ^t tab, ^^ the ^ itself; with .*: $1 a group, $&amp; the match, \n \t">
+        <div class="mm-search-replace-bar">
+          <button class="mm-search-all" title="Every match in the results (Alt+A)">Replace all</button>
+          <button class="mm-search-preview" title="What Replace all would change, in a window: check or uncheck each change, then Apply">Preview...</button>
+          <button class="mm-search-codes" title="The codes of Find and Replace with">?</button>
+        </div>
       </div>
       <div class="mm-search-status"></div>
       <div class="mm-search-results"></div>
@@ -274,6 +285,7 @@
 <script src="charpicker.js"></script>
 <script src="places.js"></script>
 <script src="app.js"></script>
+<script src="searchreplace.js"></script>
 <script src="compare.js"></script>
 <script src="previewjump.js"></script>
 <script src="sourcemap.js"></script>

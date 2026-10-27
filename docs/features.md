@@ -146,6 +146,18 @@ every action with its key.
   folder (the open folder, otherwise the folder of the current file), with match case, whole word and regular
   expressions. Codes: `^p` line break (CR, LF or CRLF), `^t` tab, `^?` any character, `^#` digit, `^$` letter,
   `^w` spaces or tabs, `^^` the `^` itself. Click a result to go there.
+- **Replace in files** (Ctrl+Shift+R, or the Replace button in the Search panel): a Replace with field, and a scope
+  In selection (the editor's selection when the search runs: one, several or a column block, marked while the
+  results show). Replace on a result (one undo step), on a file's head (that file) or Replace all (Alt+A in the
+  panel). Before Replace all and Replace per file a window shows every change (the old text crossed out, the new
+  marked), each with a check box; Apply makes the checked ones. Two settings (Find) say when it shows: Preview
+  Replace all (the selection, the file, the open files) and Preview Replace in files (Files in folder), both on;
+  Preview... shows it at any time. An open file is changed in its editor (Ctrl+Z per file, left unsaved); a file in
+  the folder that is not open is written at once, with its encoding and line ends, without undo and without a copy.
+  Read-only files are skipped and said so; a file changed since the search is searched again first. The codes
+  `^p`, `^t`, `^^` (with `.*`: `$1`, `  `^w` spaces or tabs, `^^` the `^` itself. Click a result to go there.
+`, `
+`, `	`) as in the find bar; the `?` button lists them.
 - **Where a line jumped to lands**: a find, a search result, the next compare difference, a bookmark, a highlight,
   Go to line and a click in the outline bring the line into view the same way (Editor > Jump to a line), in the
   editor and in the preview. Out of view: 5 lines from the edge it comes
