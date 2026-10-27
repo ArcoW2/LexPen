@@ -108,6 +108,7 @@
   "showBackupFiles": false,       // the folder pane lists the .bak files too
   "trimTrailing": true,           // saving removes the spaces and tabs at the line ends of the whole file (a language
                                   // can keep some, or never trim: trimTrailing in its language.yaml)
+  "newFileEol": "crlf",           // line ends of a new file (and of one without a line break): "crlf", "lf" or "cr"
   "askSaveDrafts": true,          // closing LexPen asks to save changed drafts too (false: they stay drafts, unasked)
 
   // ---------- Tabs ----------

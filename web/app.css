@@ -245,6 +245,7 @@ body[data-show-eol] .CodeMirror .CodeMirror-line:not(.mm-last-line)::after { col
 @keyframes mm-edge-flash { 0% { opacity: 1; } 16.7% { opacity: 0; } 33.3% { opacity: 1; } 50% { opacity: 0; } 66.7% { opacity: 1; } 83.3%, 100% { opacity: 0; } }
 body[data-show-eol] .CodeMirror[data-eol=crlf] .CodeMirror-line:not(.mm-last-line)::after { content: '\00B6'; }
 body[data-show-eol] .CodeMirror[data-eol=lf] .CodeMirror-line:not(.mm-last-line)::after { content: '\240A'; }
+body[data-show-eol] .CodeMirror[data-eol=cr] .CodeMirror-line:not(.mm-last-line)::after { content: '\240D'; }
 
 /* The window's project (bottom bar, left): a click opens the Projects menu. */
 .mm-status .mm-st-project { font-weight: 600; color: var(--fg); max-width: 22em; overflow: hidden; text-overflow: ellipsis; }

@@ -395,15 +395,64 @@ let lastTabId = 0;
 const findDoc = path => [...docs].find(d => samePath(d.path, path));
 const findDraft = id => [...docs].find(d => d.draft === id);
 const docText = doc => doc.cmDoc ? doc.cmDoc.getValue() : doc.text;
-const diskText = doc => doc.cmDoc ? doc.cmDoc.getValue(doc.eol) : doc.text;   // with the file's own line endings
-const eolOf = text => text.includes('\r\n') ? '\r\n' : '\n';
+// With the file's line end (in an editor or not: a tab shown only in the preview has its text as read).
+const diskText = doc => doc.cmDoc ? doc.cmDoc.getValue(doc.eol) : doc.text.split(/\r\n|\r|\n/).join(doc.eol);
+
+// ---------- Line ends (docs/plans/executed/PLAN-line-endings-convert.md) ----------
+// The editor holds lines; the file's line end is the document's eol, used on save (diskText). savedEol: the file's on
+// disk; mixed: the file on disk has more than one kind and none was chosen yet (saved, it gets eol, the most used).
+const EOLS = { crlf: '\r\n', lf: '\n', cr: '\r' };
+const EOL_NAMES = { '\r\n': 'CRLF', '\n': 'LF', '\r': 'CR' };
+const newFileEol = () => EOLS[setting('newFileEol')] ?? '\r\n';
+
+// The line end of a read text: the kind most lines end with; without a line break, a new file's (the setting).
+function readEol(doc, text) {
+  let crlf = 0, lf = 0, cr = 0;
+  for (let i = 0; i < text.length; i++) {
+    const c = text.charCodeAt(i);
+    if (c === 13) { if (text.charCodeAt(i + 1) === 10) { crlf++; i++; } else cr++; }
+    else if (c === 10) lf++;
+  }
+  const kinds = [['\r\n', crlf], ['\n', lf], ['\r', cr]].filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
+  doc.eol = doc.savedEol = kinds.length ? kinds[0][0] : newFileEol();
+  doc.mixed = doc.savedMixed = kinds.length > 1;
+}
+
+// The line end differs from the file on disk: a change to save.
+const eolChanged = doc => doc.eol !== doc.savedEol || (doc.savedMixed && !doc.mixed);
+
+// Line ends (the bottom bar, the Convert menu, the action lineEnd.set): the file's line end becomes `eol`, written at
+// the next save. Not an edit of the text, so not an undo step: choosing the old one again makes the file unchanged.
+function setLineEnd(doc, eol) {
+  if (!doc || !eol || (doc.eol === eol && !doc.mixed)) return;
+  const tab = activeTab()?.doc === doc ? activeTab() : tabsOf(doc).find(editable);   // the tab it is chosen in
+  if (tab && !editable(tab)) return toast('This tab is read-only.');
+  doc.eol = eol;
+  doc.mixed = false;
+  const textClean = doc.cmDoc ? doc.cmDoc.isClean(doc.savedGeneration) : doc.text === doc.savedText;
+  if (doc.draft) { doc.draftChanged = !textClean || eolChanged(doc); writeDraft(doc); }
+  else doc.dirty = !textClean || eolChanged(doc);
+  refreshTabs();
+  updateChrome();
+  updateStatus();
+  toast(`Line ends: ${EOL_NAMES[eol]}, written at the next save.`, true);
+}
+
+function showLineEndList() {
+  const doc = activeDoc();
+  if (!doc) return;
+  const r = statusUi.eol.getBoundingClientRect();
+  openPopupMenu([['crlf', 'CRLF (Windows)'], ['lf', 'LF (Unix, macOS)'], ['cr', 'CR (old Mac)']].map(([kind, label]) => ({
+    label, plain: true, key: doc.eol === EOLS[kind] && !doc.mixed ? 'current' : '', run: () => setLineEnd(doc, EOLS[kind]),
+  })), r.left, r.top);
+}
 // label: a compare's saved text; draftName: a draft's name (Rename draft), else its id (edit3).
 const docName = doc => doc.label ?? (doc.path ? nameOf(doc.path) : doc.draftName || doc.draft);
 const changed = doc => doc.dirty || doc.draftChanged;
 
 function makeDoc({ path = null, draft = null, text = '', encoding = 'UTF-8' }) {
   const doc = {
-    path, draft, text, eol: eolOf(text), language: codeLang(path, text),
+    path, draft, text, language: codeLang(path, text),
     encoding,              // as read from disk (see TextFile.cs); saving writes it back the same way
     savedText: text,       // as last read or saved: the change markers compare with it (gutter.js)
     cmDoc: null, history: null, savedGeneration: 0,
@@ -417,6 +466,7 @@ function makeDoc({ path = null, draft = null, text = '', encoding = 'UTF-8' }) {
     draftTimer: 0, pushTimer: 0,
     version: 0,            // counts text changes, for the outline cache
   };
+  readEol(doc, text);
   docs.add(doc);
   return doc;
 }
@@ -817,10 +867,10 @@ function onDocChange(doc) {
   const clean = doc.cmDoc.isClean(doc.savedGeneration);
   const before = changed(doc);
   if (doc.draft) {
-    doc.draftChanged = !clean;
+    doc.draftChanged = !clean || eolChanged(doc);
     clearTimeout(doc.draftTimer);
     doc.draftTimer = setTimeout(() => writeDraft(doc), 1000);   // after a second without typing
-  } else doc.dirty = !clean;
+  } else doc.dirty = !clean || eolChanged(doc);
   for (const tab of tabsOf(doc)) {
     tab.stale = true;
     tab.lines = null;
@@ -843,7 +893,7 @@ function setDocText(doc, text, encoding) {
   doc.version++;
   doc.text = doc.savedText = text;
   if (encoding) doc.encoding = encoding;
-  doc.eol = eolOf(text);
+  readEol(doc, text);
   if (doc.cmDoc) {
     const kept = doc.marks && bookmarkList(doc);
     const keptHighlights = typeof keepHighlights === 'function' && keepHighlights(doc);   // highlights.js
@@ -878,7 +928,7 @@ async function revertDoc(doc) {
   if (keptHighlights) placeHighlightsAgain(doc, keptHighlights);
   doc.savedText = text;
   if (encoding) doc.encoding = encoding;
-  doc.eol = eolOf(text);
+  readEol(doc, text);
   doc.savedGeneration = cd.changeGeneration(true);
   doc.dirty = false;
   doc.disk = 'ok';
@@ -1621,9 +1671,10 @@ function updateStatus() {
   statusUi.col.hidden = !column.on;
   statusUi.ins.classList.toggle('mm-on', !!cm?.state.overwrite);
   statusUi.enc.textContent = doc ? doc.encoding : '';
-  statusUi.eol.textContent = doc ? (doc.eol === '\r\n' ? 'CRLF' : 'LF') : '';
+  statusUi.eol.textContent = doc ? (doc.mixed ? 'Mixed' : EOL_NAMES[doc.eol]) : '';
+  statusUi.eol.title = doc?.mixed ? `Line ends: mixed; saved as ${EOL_NAMES[doc.eol]} (click: choose)` : 'Line ends (click: choose)';
   // The line end each editor shows (showLineEnds): its own document's.
-  for (const p of panes) if (p.cm && p.active) p.cm.getWrapperElement().dataset.eol = p.active.doc.eol === '\r\n' ? 'crlf' : 'lf';
+  for (const p of panes) if (p.cm && p.active) p.cm.getWrapperElement().dataset.eol = { '\r\n': 'crlf', '\n': 'lf', '\r': 'cr' }[p.active.doc.eol];
   // In a block of another language (a fence, lines you gave a language): that one too, "Markdown -> KQL (Kusto)". A
   // click still changes the file's language.
   const inner = cm && doc && typeof lineLanguage === 'function' ? lineLanguage(cm, cm.getCursor().line) : null;
@@ -1649,6 +1700,8 @@ statusUi.char.addEventListener('click', () => {
   openCharPicker(pickerCode(cm && charAtCursor(cm)));
 });
 statusUi.lang.addEventListener('click', () => showLanguageList());
+statusUi.eol.addEventListener('mousedown', e => e.preventDefault());   // the focus stays in the editor
+statusUi.eol.addEventListener('click', () => showLineEndList());
 
 events.findHistory = onFindHistory;   // history.js
 events.clipboards = ({ state }) => {
@@ -1799,7 +1852,7 @@ async function newFile() {
 function writeDraft(doc) {
   clearTimeout(doc.draftTimer);
   doc.draftTimer = 0;
-  if (doc.draft) return host('draftWrite', { draft: doc.draft, text: docText(doc) });
+  if (doc.draft) return host('draftWrite', { draft: doc.draft, text: diskText(doc) });   // its line ends kept along
 }
 const flushDrafts = () => Promise.all([...docs].filter(d => d.draftTimer).map(writeDraft));
 
@@ -1849,6 +1902,8 @@ async function saveDoc(doc, saveAs) {
   doc.dirty = false;
   doc.disk = 'ok';
   doc.savedText = docText(doc);
+  doc.savedEol = doc.eol;
+  doc.mixed = doc.savedMixed = false;
   syncWatchFiles();
   updateStatus();
   if (doc.marks) saveBookmarks(doc);
@@ -2638,7 +2693,7 @@ async function moveTab(tab, target, { pane, screenX, screenY, closing } = {}) {
   if (doc.draftTimer) await writeDraft(doc);
   const source = paneOf(tab);
   const payload = {
-    path: doc.path, draft: doc.draft, text: docText(doc), eol: doc.eol, encoding: doc.encoding,
+    path: doc.path, draft: doc.draft, text: docText(doc), eol: doc.eol, savedEol: doc.savedEol, mixed: doc.mixed, savedMixed: doc.savedMixed, encoding: doc.encoding,
     dirty: whole && doc.dirty, draftChanged: doc.draftChanged, draftName: doc.draftName ?? null,
     history: whole && doc.cmDoc ? doc.cmDoc.getHistory() : null,
     mode: tab.mode, top: source.active === tab ? source.previewEl.scrollTop : tab.previewTop,
@@ -2679,6 +2734,9 @@ events.adoptTab = async ({ tab: p, pane: index }) => {
   if (doc.lock || p.draft) {
     doc.text = p.text;
     doc.eol = p.eol;
+    doc.savedEol = p.savedEol ?? p.eol;
+    doc.mixed = !!p.mixed;
+    doc.savedMixed = !!p.savedMixed;
     doc.encoding = p.encoding;
     doc.savedText = p.dirty ? undefined : p.text;   // with unsaved edits the saved text is not known here
     if (p.bookmarks) {
