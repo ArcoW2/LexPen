@@ -1074,7 +1074,7 @@ sealed class MainForm : Form
         };
         foreach (var (_, button) in buttons) page.Buttons.Add(button);
         page.Buttons.Add(TaskDialogButton.Cancel);
-        var result = TaskDialog.ShowDialog(this, page);
+        var result = Program.ShowTask(this, page);
         return buttons.FirstOrDefault(b => b.Button == result).Mode;
     }
 
@@ -1109,7 +1109,7 @@ sealed class MainForm : Form
             DefaultButton = save,
             AllowCancel = true,
         };
-        var result = TaskDialog.ShowDialog(this, page);
+        var result = Program.ShowTask(this, page);
         return result == save ? "save" : result == discard ? "discard" : "cancel";
     }
 
