@@ -75,7 +75,11 @@ The replace row is enough on its own; the find row's arrows are not needed while
 - F3 / Shift+F3 use the last choice: after a find in a selection they go on in that part, until the next Ctrl+F or
   Ctrl+R takes the scope anew. Closing the bar ends it too.
 - A selection made while the bar is open does not change the scope; Ctrl+F (or Ctrl+R) again takes it.
-- Several selections (multiple cursors, a column block): each of them.
+- Several selections (multiple cursors): each of them.
+- A column block (column mode, Alt+drag): on each of its lines, the part between its left and right column. A match
+  must lie within one line's part (a match across lines, `^p`, never does). Past a line's end the block has no text,
+  so a short line's part is shorter or empty. Each line's part is marked as its own piece of the scope, so it moves
+  with the text when a replacement makes a line longer or shorter, and F3 and Replace all keep to those pieces.
 - Only the find bar has this. The Search panel (Ctrl+Shift+F) searches the file, the open files or the folder; it has
   no selection scope (plan 05).
 
@@ -100,7 +104,8 @@ regular expression (`\n`, `\t`, `$1`); a CRLF file saved with CRLF after `^p`. R
 three single replaces undone one by one. Ctrl+R opens the bar with the replace row; Tab from Find to Replace with and
 Shift+Tab back. With a selection: find and Replace
 all stay within it, F3 goes on within it, a new Ctrl+F without a selection takes the whole file; a one-word
-selection is the scope too, and the find field keeps the last search.
+selection is the scope too, and the find field keeps the last search; a column block: matches only within its
+columns on each line, Replace all there only.
 
 ## 4. Open questions
 
