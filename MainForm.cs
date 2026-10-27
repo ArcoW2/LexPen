@@ -478,6 +478,12 @@ sealed class MainForm : Form
                 "gitStatus" => await Task.Run(() => GitStatus(msg["path"]!.GetValue<string>())),
                 "gitHead" => await Task.Run(() => GitHead(msg["path"]!.GetValue<string>())),
                 "gitHeadId" => await Task.Run(() => GitHeadId(msg["path"]!.GetValue<string>())),
+                // Compare with a git version (GitCompare): a file's text at a version, the versions, a folder's
+                // changes, whether a file or folder is in git and changed.
+                "gitShow" => await Task.Run(() => GitShow(msg["path"]!.GetValue<string>(), msg["rev"]!.GetValue<string>())),
+                "gitVersions" => await Task.Run(() => GitVersions(msg["path"]!.GetValue<string>())),
+                "gitFolderDiff" => await Task.Run(() => GitFolderDiff(msg["folder"]!.GetValue<string>(), msg["rev"]!.GetValue<string>())),
+                "gitState" => await Task.Run(() => GitState(msg["path"]!.GetValue<string>())),
                 "folderList" => await Task.Run(() => FolderList(msg)),
                 "format" => await Task.Run(() => Format(msg)),
                 "read" => await ReadFile(msg["path"]!.GetValue<string>()),
@@ -1235,6 +1241,47 @@ sealed class MainForm : Form
     // file is not in a repository, not committed yet, or git is not installed.
     static string? GitHead(string path) =>
         Path.GetDirectoryName(path) is string dir ? Git(dir, "show", "HEAD:./" + Path.GetFileName(path)) : null;
+
+    // The file as it is in a version (a commit, a branch, HEAD); null when it is not in it.
+    static string? GitShow(string path, string rev) =>
+        Path.GetDirectoryName(path) is string dir ? Git(dir, "show", $"{rev}:./{Path.GetFileName(path)}") : null;
+
+    // A file's or folder's own history (the last 50 commits that changed it) and the branches; null outside git.
+    static JsonNode? GitVersions(string path)
+    {
+        var folder = Directory.Exists(path);
+        var dir = folder ? path : Path.GetDirectoryName(path);
+        if (dir is null || Git(dir, "log", "-n", "50", "--date=short", "--format=%H%x1f%h%x1f%ad%x1f%an%x1f%s", "--",
+            folder ? "." : "./" + Path.GetFileName(path)) is not string log) return null;
+        return new JsonObject
+        {
+            ["commits"] = GitCompare.Commits(log),
+            ["branches"] = GitCompare.Branches(Git(dir, "for-each-ref", "--format=%(refname:short)", "refs/heads", "refs/remotes") ?? ""),
+            ["current"] = Git(dir, "rev-parse", "--abbrev-ref", "HEAD")?.Trim(),
+        };
+    }
+
+    // A folder against a version: the folder compare's rows (GitCompare.FolderRows). Throws outside git.
+    static JsonNode GitFolderDiff(string folder, string rev)
+    {
+        var diff = Git(folder, "diff", "--name-status", "-z", "--no-renames", "--relative", rev, "--", ".")
+            ?? throw new InvalidOperationException($"{folder} is not in a git repository, or it has no version {rev}.");
+        return GitCompare.FolderRows(diff, Git(folder, "ls-files", "--others", "--exclude-standard", "-z", "--", ".") ?? "");
+    }
+
+    // { changed } for a file git tracks (changed: differs from the last commit on disk) or a folder in a repository
+    // (changed: something in it differs or is new); null otherwise.
+    static JsonNode? GitState(string path)
+    {
+        var folder = Directory.Exists(path);
+        var dir = folder ? path : Path.GetDirectoryName(path);
+        if (dir is null) return null;
+        var target = folder ? "." : "./" + Path.GetFileName(path);
+        if (folder ? Git(dir, "rev-parse", "--is-inside-work-tree")?.Trim() != "true" : Git(dir, "ls-files", "--error-unmatch", "--", target) is null)
+            return null;
+        var status = Git(dir, "status", "--porcelain", "--untracked-files=all", "--", target);
+        return new JsonObject { ["changed"] = !string.IsNullOrWhiteSpace(status) };
+    }
 
     // Which version of the file the last commit holds (its blob id), so the page asks for the text (GitHead) only
     // when that changed: a large file is not sent again on every change in the repository.

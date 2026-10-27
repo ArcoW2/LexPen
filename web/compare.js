@@ -17,7 +17,8 @@ const cmp = {
 const COMPARE_DELAY = 300;     // ms after an edit before comparing again
 
 // ---------- Starting and leaving ----------
-// `left`, `right`: { path } a file, { tab } an open tab, { saved: doc } the text of a document as last saved.
+// `left`, `right`: { path } a file, { tab } an open tab, { saved: doc } the text of a document as last saved,
+// { git: { path, rev, label } } a file as a git version has it (startGitCompare).
 async function startCompare(left, right) {
   if (cmp.on) await stopCompare();
   await loadEditor();   // the editor and its helpers (diff.js, gutter.js)
@@ -56,8 +57,23 @@ async function startCompare(left, right) {
   saveSession();
 }
 
-// A side in its pane: an open tab moves there, a file opens there, a saved text gets a read-only tab of its own.
+// A side in its pane: an open tab moves there, a file opens there, a saved text or a git version gets a read-only tab
+// of its own.
 async function placeSide(pane, what) {
+  if (what.git) {
+    const { path, rev, label } = what.git;
+    const text = await host('gitShow', { path, rev }).catch(() => null);
+    if (text == null) { toast(`${nameOf(path)} is not in git at ${label}.`); return null; }
+    const doc = makeDoc({ text });
+    doc.temp = true;
+    doc.gitOf = what.git;   // the session keeps which version (compareSession)
+    doc.label = `${nameOf(path)} @ ${label}`;
+    doc.language = codeLang(path, text);
+    const tab = makeTab(doc, 'edit');
+    tab.readOnly = true;
+    insertTab(pane, tab);
+    return { pane, tab, opened: true };
+  }
   if (what.saved) {
     const doc = makeDoc({ text: what.saved.savedText ?? docText(what.saved) });
     doc.temp = true;   // not kept in the session (saveSession), closed when the compare ends
@@ -551,6 +567,7 @@ function compareSession() {
   if (cmp.on && cmp.sides) {
     const side = s => {
       const doc = s.tab.doc, of = doc.savedOf;
+      if (doc.gitOf) return { git: doc.gitOf };
       if (doc.temp) return of && { saved: of.path ? { path: of.path } : { draft: of.draft } };
       return doc.path ? { path: doc.path } : { draft: doc.draft };
     };
@@ -563,7 +580,7 @@ function compareSession() {
       out.modes = new Map(cmp.sides.filter(s => !s.opened && s.mode).map(s => [s.tab, s.mode]));
     }
   }
-  if (fcmp.on) out.folders = { left: fcmp.left, right: fcmp.right, open: [...fcmp.open], diffOnly: fcmp.diffOnly };
+  if (fcmp.on) out.folders = { left: fcmp.left, right: fcmp.right, open: [...fcmp.open], diffOnly: fcmp.diffOnly, git: fcmp.git };
   return out;
 }
 
@@ -571,6 +588,7 @@ function compareSession() {
 async function restoreCompare(c, f) {
   const docOf = d => d?.path ? findDoc(d.path) : d?.draft ? findDraft(d.draft) : null;
   const what = d => {
+    if (d?.git) return { git: d.git };
     if (d?.path && !d.saved) return { path: d.path };
     if (d?.draft) { const tab = allTabs().find(t => t.doc.draft === d.draft); return tab && { tab }; }
     const doc = docOf(d?.saved);
@@ -583,7 +601,7 @@ async function restoreCompare(c, f) {
     if (!cmp.on) cmp.restoreAt = null;
   }
   if (f && typeof f === 'object' && f.left && f.right) {
-    await startFolderCompare(f.left, f.right);
+    await startFolderCompare(f.left, f.right, f.git ?? null);
     if (!fcmp.on || !fcmp.el) return;
     if (Array.isArray(f.open)) fcmp.open = new Set(f.open);
     fcmp.diffOnly = !!f.diffOnly;
@@ -598,23 +616,27 @@ async function restoreCompare(c, f) {
 // yet, < only on the left, > only on the right), a folder by what is inside it. First by size and date (the host's
 // list, FolderCompare.cs), then the contents of the files that need it, in the background (folderCheck events).
 // Read-only. Enter or a double click on a file of both sides compares it; on a file of one side opens it.
+// With git (docs/plans/executed/PLAN-git-compare.md): one folder against a git version, the rows from git itself (only
+// what differs: ~ changed, > added or not tracked, < deleted); left and right are both the folder, git: { rev, label }.
 const fcmp = { on: false, left: '', right: '', rows: [], byRel: new Map(), open: new Set(), cursor: null, check: 0,
-  progress: null, diffOnly: false, el: null, list: null, frame: 0 };
+  progress: null, diffOnly: false, el: null, list: null, frame: 0, git: null };
 const FCMP_TIPS = { '=': 'Equal', '=~': 'Equal apart from what the compare ignores', '~': 'Different', '?': 'Same size, another date: not checked yet',
   '<': 'Only on the left', '>': 'Only on the right', '!': 'Could not be read' };
+const GIT_TIPS = { '~': 'Changed since the version', '>': 'Added since the version, or not in git', '<': 'Deleted since the version' };
 
-async function startFolderCompare(left, right) {
+async function startFolderCompare(left, right, git = null) {
   if (fcmp.on) stopFolderCompare();
-  Object.assign(fcmp, { on: true, left, right, rows: [], byRel: new Map(), open: new Set(), cursor: null, progress: null });
+  Object.assign(fcmp, { on: true, left, right, rows: [], byRel: new Map(), open: new Set(), cursor: null, progress: null, git });
   buildFolderCompare();
   setSidebar(true);
   setSideView('folder');
-  fcmp.el.querySelector('.mm-fcmp-paths').textContent = `${left}  <->  ${right}`;
-  fcmp.el.querySelector('.mm-fcmp-paths').title = `Left: ${left}\nRight: ${right}`;
+  const paths = fcmp.el.querySelector('.mm-fcmp-paths');
+  paths.textContent = git ? `${left} @ ${git.label}  <->  as it is now` : `${left}  <->  ${right}`;
+  paths.title = git ? `Left: ${left} in git at ${git.label}\nRight: ${left} on disk` : `Left: ${left}\nRight: ${right}`;
   document.body.toggleAttribute('data-folder-compare', true);
-  fcmp.list.textContent = 'Listing both folders...';
+  fcmp.list.textContent = git ? 'Asking git...' : 'Listing both folders...';
   try {
-    const rows = await host('folderList', { left, right });
+    const rows = git ? await host('gitFolderDiff', { folder: left, rev: git.rev }) : await host('folderList', { left, right });
     if (!fcmp.on) return;
     fcmp.rows = rows.map(r => ({ ...r, tip: null }));
     fcmp.byRel = new Map(fcmp.rows.map(r => [r.rel.toLowerCase(), r]));
@@ -624,7 +646,7 @@ async function startFolderCompare(left, right) {
     return;
   }
   drawFolderCompare();
-  checkFolderContents(false);
+  if (!git) checkFolderContents(false);
   saveSession();
 }
 
@@ -696,12 +718,12 @@ function drawFolderCompare() {
     if (hidden) continue;
     const state = shownState(r);
     if (fcmp.diffOnly && state === '=') continue;
-    const tip = r.tip ?? FCMP_TIPS[r.dir ? state : r.state] ?? '';
+    const tip = r.tip ?? (fcmp.git ? GIT_TIPS : FCMP_TIPS)[r.dir ? state : r.state] ?? '';
     parts.push(`<div class="mm-row mm-fcmp-row${r.dir ? ' mm-dir' : ''}${r.dir && fcmp.open.has(r.rel.toLowerCase()) ? ' mm-open' : ''}` +
       `${fcmp.cursor === r.rel ? ' mm-cursor' : ''}" data-rel="${escapeHtml(r.rel)}" data-state="${escapeHtml(state)}" style="padding-left:${8 + (segs.length - 1) * 14}px"` +
       ` title="${escapeHtml(r.rel + '\n' + tip)}"><span class="mm-name">${escapeHtml(segs[segs.length - 1])}</span><span class="mm-fcmp-mark">${escapeHtml(state)}</span></div>`);
   }
-  fcmp.list.innerHTML = parts.join('') || `<div class="mm-fcmp-none">${fcmp.diffOnly ? 'No differences.' : 'Both folders are empty.'}</div>`;
+  fcmp.list.innerHTML = parts.join('') || `<div class="mm-fcmp-none">${fcmp.git ? `Nothing changed since ${escapeHtml(fcmp.git.label)}.` : fcmp.diffOnly ? 'No differences.' : 'Both folders are empty.'}</div>`;
   drawFolderProgress();
 }
 
@@ -722,6 +744,11 @@ function openFolderCompareRow(rel) {
     return drawFolderCompare();
   }
   const a = fcmp.left + '\\' + rel, b = fcmp.right + '\\' + rel;
+  if (fcmp.git) {
+    if (r.state === '>') return openFile(b).catch(e => toast(e.message));
+    if (r.state === '<') return openGitVersion(b, fcmp.git);
+    return startGitCompare(b, fcmp.git.rev, fcmp.git.label);
+  }
   if (r.state === '<') return openFile(a).catch(e => toast(e.message));
   if (r.state === '>') return openFile(b).catch(e => toast(e.message));
   startCompare({ path: a }, { path: b });
@@ -739,12 +766,19 @@ function buildFolderCompare() {
     <div class="mm-fcmp-tree" tabindex="0"></div>`;
   view.prepend(el);
   fcmp.list = el.querySelector('.mm-fcmp-tree');
+  if (fcmp.git) {   // git lists only what differs: no contents to check, no All / Differences only
+    el.querySelector('[data-fcmp=checkAll]').hidden = true;
+    el.querySelector('.mm-fcmp-show').hidden = true;
+    const legend = el.querySelector('.mm-fcmp-legend');
+    legend.textContent = '~ changed   > added or not in git   < deleted';
+    legend.title = `Against ${fcmp.git.label}: ~ changed, > added since (or not in git), < deleted since`;
+  }
   el.addEventListener('click', e => {
     const b = e.target.closest('[data-fcmp]');
     if (b?.dataset.fcmp === 'close') return stopFolderCompare();
     if (b?.dataset.fcmp === 'stop' && fcmp.check) return host('folderCheckStop', { check: fcmp.check });
     if (b?.dataset.fcmp === 'checkAll') return checkFolderContents(true);
-    if (b?.dataset.fcmp === 'refresh') return startFolderCompare(fcmp.left, fcmp.right);
+    if (b?.dataset.fcmp === 'refresh') return startFolderCompare(fcmp.left, fcmp.right, fcmp.git);
     const row = e.target.closest('.mm-fcmp-row');
     if (!row) return;
     fcmp.cursor = row.dataset.rel;
@@ -792,7 +826,47 @@ document.addEventListener('DOMContentLoaded', () => {
     const what = e.target.closest('[data-fcmp-do]')?.dataset.fcmpDo;
     menu.hidden = true;
     if (what === 'compare' && fcmp.cursor) openFolderCompareRow(fcmp.cursor);
-    else if (what === 'refresh') startFolderCompare(fcmp.left, fcmp.right);
+    else if (what === 'refresh') startFolderCompare(fcmp.left, fcmp.right, fcmp.git);
   });
   document.addEventListener('pointerdown', e => { if (!menu.hidden && !menu.contains(e.target)) menu.hidden = true; }, true);
 });
+
+// ---------- Compare with git (docs/plans/executed/PLAN-git-compare.md) ----------
+// The file as a git version has it on the left (read-only, "name @ version"), the file as it is on the right (its tab
+// when open, unsaved edits included). rev: HEAD, a branch or a commit; label: how it is named.
+function startGitCompare(path, rev = 'HEAD', label = 'HEAD') {
+  const tab = allTabs().find(t => samePath(t.doc.path, path));
+  return startCompare({ git: { path, rev, label } }, tab ? { tab } : { path });
+}
+
+// A file deleted since the version (a < row): that version alone, read-only, in the active pane.
+async function openGitVersion(path, git) {
+  const pane = panes[state.activePane], side = await placeSide(pane, { git: { path, rev: git.rev, label: git.label } });
+  if (side) await activate(pane, side.tab);
+}
+
+// The versions to compare with, as a menu at x, y: the last commit, the branches, the file's (or folder's) own history.
+async function gitVersionMenu(path, folder, x, y) {
+  const v = await host('gitVersions', { path }).catch(() => null);
+  if (!v) return toast(`${nameOf(path) || path} is not in a git repository.`);
+  const run = (rev, label) => () => folder ? startFolderCompare(path, path, { rev, label }) : startGitCompare(path, rev, label);
+  const items = [{ label: 'HEAD (the last commit)', plain: true, key: v.current ?? '', run: run('HEAD', 'HEAD') }];
+  if (v.branches.length) items.push({ label: 'Branch', plain: true, sub: v.branches.map(b => ({ label: b, plain: true, key: b === v.current ? 'current' : '', run: run(b, b) })) });
+  items.push({ label: folder ? 'History of this folder' : 'History of this file', plain: true,
+    sub: v.commits.length ? v.commits.map(c => ({ label: `${c.short}  ${c.date}  ${c.subject}`, plain: true, key: c.author, run: run(c.id, c.short) }))
+      : [{ label: 'No commits yet', plain: true, run: () => {} }] });
+  openPopupMenu(items, x, y);
+}
+
+// The menu items of a file or folder (the tab menu, the folder pane): Compare with Git (HEAD) when it differs from the
+// last commit (a file: also with unsaved edits), Compare with Git version... when it is in git. Hidden until git says.
+function gitCompareItems(menu, prefix, path, dirty) {
+  const now = menu.querySelector(`[data-cmd=${prefix}CompareGit]`), version = menu.querySelector(`[data-cmd=${prefix}CompareGitVersion]`);
+  now.hidden = version.hidden = true;
+  if (!path) return;
+  host('gitState', { path }).then(s => {
+    if (!s) return;
+    version.hidden = false;
+    now.hidden = !s.changed && !dirty;
+  }, () => {});
+}

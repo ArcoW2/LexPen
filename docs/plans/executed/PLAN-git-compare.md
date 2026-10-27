@@ -1,6 +1,7 @@
 # Plan: Compare with a git version
 
-Status: draft 2026-10-22, not started. Split off from plan 06 (compare files and folders), which it builds on.
+Status: draft 2026-10-22; done 2026-10-27, tried in the app. Split off from plan 06 (compare files and folders),
+which it builds on.
 The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
@@ -34,6 +35,17 @@ In-app: compare with HEAD after an edit; with an older commit from the list; wit
 git (the item disabled). A folder against HEAD: a changed, an added, a deleted and an untracked file marked; a double
 click opens the file compare; a folder not in git (the item disabled).
 
-## 4. Open questions
+## 4. Answers (2026-10-27) and as built
 
-None.
+- A right-click on a file (a tab, or the folder pane) offers Compare with Git when the file is changed: differs from
+  the last commit on disk, or (a tab) has unsaved edits. It compares with HEAD. Compare with Git version... is there
+  whenever the file is in git. Both are hidden, not disabled, outside git. The same two for a folder (changed:
+  something in it differs or is new).
+- The picker is a menu: HEAD, Branch (the local and remote branches), History of this file / folder (the last 50
+  commits that changed it: id, date, message; the author on the right).
+- A folder against git lists only what differs (git does not list the equal files): no Check all contents, no All /
+  Differences only. A deleted file (<) opens as that version alone, read-only.
+- Host: `GitShow`, `GitVersions`, `GitFolderDiff`, `GitState` in MainForm.cs; the parsing in GitCompare.cs (tests:
+  GitCompareTests). Page: compare.js (a { git } side, the folder compare's git mode, the menus).
+- A read-only side that is not a file (a git version, a saved text) is named as such in the title and the tab's
+  tooltip; it said "draft, not saved as a file yet" before.

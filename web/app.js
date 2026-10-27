@@ -669,6 +669,7 @@ function makePane(index) {
       ui.tabMenu.querySelector('[data-cmd=tabCompareOther]').hidden = !twoPanes() || !other || other.doc === tab.doc;
       ui.tabMenu.querySelector('[data-cmd=tabCompareSaved]').hidden = !tab.doc.path || !changed(tab.doc);
       leftSideItems(ui.tabMenu, 'tab', tab.doc.path, false);
+      gitCompareItems(ui.tabMenu, 'tab', tab.doc.path, tab.doc.dirty);   // compare.js
     });
     ui.stripMenu.querySelector('button').disabled = !closedTabs.length;
     ui.stripMenu.querySelector('[data-cmd=stripCloseAll]').disabled = !pane.tabs.length;
@@ -1424,7 +1425,7 @@ function tabElement(pane, tab) {
   if (dot) el.dataset.dot = dot;
   el.dataset.tab = tab.id;
   el.draggable = true;
-  el.title = (doc.path || `Draft ${doc.draftName ? `${doc.draftName} (${doc.draft})` : doc.draft}, not saved as a file yet`) + (tab.pinned ? '\nPinned: asks before closing' : '') +
+  el.title = (doc.path || labelText(doc) || `Draft ${doc.draftName ? `${doc.draftName} (${doc.draft})` : doc.draft}, not saved as a file yet`) + (tab.pinned ? '\nPinned: asks before closing' : '') +
     (editable(tab) ? '' : tab.readOnly ? '\nRead-only (set by you)' : doc.diskReadOnly ? '\nRead-only file on disk'
       : doc.lock ? '\nRead-only: edited in the other pane' : '\nRead-only: edited in another window');
   if (tab.pinned) el.classList.add('mm-pinned');
@@ -1547,8 +1548,11 @@ async function cycleTab(step) {
 let hoverTab = null;
 function showDocName() {
   const doc = (hoverTab && paneOf(hoverTab) ? hoverTab : activeTab())?.doc;
-  ui.docName.textContent = ui.docName.title = doc ? doc.path || `${docName(doc)} (draft, not saved as a file yet)` : '';
+  ui.docName.textContent = ui.docName.title = doc ? doc.path || labelText(doc) || `${docName(doc)} (draft, not saved as a file yet)` : '';
 }
+
+// A compare's read-only side that is not a file: a git version (compare.js) or a document's saved text.
+const labelText = doc => doc.gitOf ? `${doc.gitOf.path} @ ${doc.gitOf.label} (from git, read-only)` : doc.label ? `${doc.label} (read-only)` : '';
 
 function updateChrome() {
   const tab = activeTab(), doc = tab?.doc;
@@ -4240,6 +4244,7 @@ document.addEventListener('contextmenu', e => {
     ui.treeMenu.querySelector('[data-cmd=treeCompareWith]').hidden = !file;
     ui.treeMenu.querySelector('[data-cmd=treeCompareFolder]').hidden = file;
     leftSideItems(ui.treeMenu, 'tree', contextPath, !file);   // compare.js: the left side to compare
+    gitCompareItems(ui.treeMenu, 'tree', row.classList.contains('mm-up') ? null : contextPath, file && !!findDoc(contextPath)?.dirty);
   });
   else if (!e.target.closest('.mm-tabs, .mm-divider')) hideMenus();   // those open their own menu
 });
@@ -4607,6 +4612,9 @@ const commands = {
   tabCompareOther: () => menuTab && startCompare({ tab: menuTab }, { tab: panes[1 - menuPaneIndex].active }),
   tabCompareSaved: () => menuTab && startCompare({ saved: menuTab.doc }, { tab: menuTab }),
   tabCompareLeft: () => menuTab?.doc.path && selectLeftSide(menuTab.doc.path),
+  // Compare with git (compare.js): the last commit, or a version picked from a menu where the tab menu was.
+  tabCompareGit: () => menuTab?.doc.path && startGitCompare(menuTab.doc.path),
+  tabCompareGitVersion: () => menuTab?.doc.path && gitVersionMenu(menuTab.doc.path, false, parseInt(ui.tabMenu.style.left), parseInt(ui.tabMenu.style.top)),
   tabCompareTo: () => menuTab && compareToLeftSide({ tab: menuTab }, false),
   tabCloseOthers: () => menuTab && closeTabs(paneOf(menuTab).tabs.filter(t => t !== menuTab)),
   tabCloseRight: () => menuTab && closeTabs(paneOf(menuTab).tabs.slice(paneOf(menuTab).tabs.indexOf(menuTab) + 1)),
@@ -4647,6 +4655,8 @@ const commands = {
     if (right) startCompare({ path: left }, { path: right });
   },
   treeCompareLeft: () => selectLeftSide(contextPath),
+  treeCompareGit: () => contextKind === 'folders' ? startFolderCompare(contextPath, contextPath, { rev: 'HEAD', label: 'HEAD' }) : startGitCompare(contextPath),
+  treeCompareGitVersion: () => gitVersionMenu(contextPath, contextKind === 'folders', parseInt(ui.treeMenu.style.left), parseInt(ui.treeMenu.style.top)),
   treeCompareTo: () => compareToLeftSide({ path: contextPath }, contextKind === 'folders'),
   async treeCompareFolder() {
     const left = contextPath, right = await host('pickFolder', { at: left });
