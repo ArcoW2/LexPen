@@ -733,6 +733,7 @@ function buildFolderCompare() {
   el.innerHTML = `<div class="mm-fcmp-head"><b>Compare</b><span class="mm-fcmp-paths"></span><button data-fcmp="close" title="Back to the folder pane">&#10005;</button></div>
     <div class="mm-fcmp-show"><label><input type="radio" name="mm-fcmp-show" value="all" checked> All</label>
       <label><input type="radio" name="mm-fcmp-show" value="diff"> Differences only</label></div>
+    <div class="mm-fcmp-actions"><button data-fcmp="checkAll" title="Compare the contents of every file on both sides, also those that size and date say are equal">Check all contents</button><button data-fcmp="refresh" title="Read both folders again">Refresh</button></div>
     <div class="mm-fcmp-progress" hidden><span></span><button data-fcmp="stop">Stop</button></div>
     <div class="mm-fcmp-legend" title="= equal, ~ different, ? not checked yet (same size, another date), &lt; only on the left, &gt; only on the right">= equal &nbsp;~ different &nbsp;? to check &nbsp;&lt; left only &nbsp;&gt; right only</div>
     <div class="mm-fcmp-tree" tabindex="0"></div>`;
@@ -742,10 +743,17 @@ function buildFolderCompare() {
     const b = e.target.closest('[data-fcmp]');
     if (b?.dataset.fcmp === 'close') return stopFolderCompare();
     if (b?.dataset.fcmp === 'stop' && fcmp.check) return host('folderCheckStop', { check: fcmp.check });
+    if (b?.dataset.fcmp === 'checkAll') return checkFolderContents(true);
+    if (b?.dataset.fcmp === 'refresh') return startFolderCompare(fcmp.left, fcmp.right);
     const row = e.target.closest('.mm-fcmp-row');
-    if (row) { fcmp.cursor = row.dataset.rel; if (row.classList.contains('mm-dir')) openFolderCompareRow(row.dataset.rel); else drawFolderCompare(); }
+    if (!row) return;
+    fcmp.cursor = row.dataset.rel;
+    if (row.classList.contains('mm-dir')) return openFolderCompareRow(row.dataset.rel);
+    // Double-click on a file: the two files compared (or the one side's file opened). The first click redraws the
+    // list, so the browser's dblclick never comes; the click count does.
+    if (e.detail === 2) return openFolderCompareRow(row.dataset.rel);
+    drawFolderCompare();
   });
-  el.addEventListener('dblclick', e => { const row = e.target.closest('.mm-fcmp-row:not(.mm-dir)'); if (row) openFolderCompareRow(row.dataset.rel); });
   el.addEventListener('change', e => { if (e.target.name === 'mm-fcmp-show') { fcmp.diffOnly = e.target.value === 'diff'; drawFolderCompare(); } });
   fcmp.list.addEventListener('keydown', e => {
     const rows = [...fcmp.list.querySelectorAll('.mm-fcmp-row')], at = rows.findIndex(r => r.dataset.rel === fcmp.cursor);
@@ -759,7 +767,8 @@ function buildFolderCompare() {
     else return;
     e.preventDefault();
   });
-  // The right-click menu: check all contents, compare (a file), refresh.
+  // The right-click menu: compare (a file), refresh. Check all contents is a button above the list (it is about every
+  // file, not the one clicked).
   el.addEventListener('contextmenu', e => {
     e.preventDefault();
     const row = e.target.closest('.mm-fcmp-row');
@@ -777,13 +786,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const menu = document.createElement('div');
   menu.className = 'mm-menu mm-context mm-fcmp-menu';
   menu.hidden = true;
-  menu.innerHTML = '<button data-fcmp-do="checkAll">Check contents of all</button><button data-fcmp-do="compare">Compare</button><button data-fcmp-do="refresh">Refresh</button>';
+  menu.innerHTML = '<button data-fcmp-do="compare">Compare</button><button data-fcmp-do="refresh">Refresh</button>';
   document.body.append(menu);
   menu.addEventListener('click', e => {
     const what = e.target.closest('[data-fcmp-do]')?.dataset.fcmpDo;
     menu.hidden = true;
-    if (what === 'checkAll') checkFolderContents(true);
-    else if (what === 'compare' && fcmp.cursor) openFolderCompareRow(fcmp.cursor);
+    if (what === 'compare' && fcmp.cursor) openFolderCompareRow(fcmp.cursor);
     else if (what === 'refresh') startFolderCompare(fcmp.left, fcmp.right);
   });
   document.addEventListener('pointerdown', e => { if (!menu.hidden && !menu.contains(e.target)) menu.hidden = true; }, true);
