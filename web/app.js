@@ -443,7 +443,7 @@ function showLineEndList() {
   if (!doc) return;
   const r = statusUi.eol.getBoundingClientRect();
   openPopupMenu([['crlf', 'CRLF (Windows)'], ['lf', 'LF (Unix, macOS)'], ['cr', 'CR (old Mac)']].map(([kind, label]) => ({
-    label, plain: true, key: doc.eol === EOLS[kind] && !doc.mixed ? 'current' : '', run: () => setLineEnd(doc, EOLS[kind]),
+    label, plain: true, checked: () => doc.eol === EOLS[kind] && !doc.mixed, run: () => setLineEnd(doc, EOLS[kind]),
   })), r.left, r.top);
 }
 // label: a compare's saved text; draftName: a draft's name (Rename draft), else its id (edit3).
