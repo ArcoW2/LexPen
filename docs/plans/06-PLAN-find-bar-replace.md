@@ -60,6 +60,8 @@ The replace row is enough on its own; the find row's arrows are not needed while
   where the search started).
 - Keys in the replace field: Enter = Replace, Shift+Enter = Previous (as now Enter replaces and Shift+Enter goes
   back). Skip and Replace all get keys too, see open question 2.
+- Tab in the Find field goes to the Replace with field, Shift+Tab there back to the Find field (now Tab goes on to
+  the bar's buttons). With the replace row closed, Tab stays as it is.
 
 ### 3.3 The scope: the selection or the file
 
@@ -94,7 +96,8 @@ In the app: the Replace button opens and closes the row and shows pressed; the l
 in the preview. Replace, Skip and Previous through a file: replaced ones changed, skipped ones not, the count right.
 Replace with no current match goes to the first and stops. `^p` and `^t` in the replacement, with and without a
 regular expression (`\n`, `\t`, `$1`); a CRLF file saved with CRLF after `^p`. Replace all as one undo step;
-three single replaces undone one by one. Ctrl+R opens the bar with the replace row. With a selection: find and Replace
+three single replaces undone one by one. Ctrl+R opens the bar with the replace row; Tab from Find to Replace with and
+Shift+Tab back. With a selection: find and Replace
 all stay within it, F3 goes on within it, a new Ctrl+F without a selection takes the whole file; a one-word
 selection is the scope too, and the find field keeps the last search.
 
