@@ -1,7 +1,8 @@
 # Plan: Replace in the search panel: the selection, the current file, the open files, the folder
 
 Status: draft 2026-10-21, reworked 2026-10-26, answers 2026-10-27 (keys, undo per replacement, a preview, files in
-the folder written without opening them; In selection as a scope), not started. From the list "what UltraEdit or Visual Studio has and LexPen
+the folder written without opening them; In selection as a scope; no copy before writing a file in the folder; the
+preview a window of its own), not started. From the list "what UltraEdit or Visual Studio has and LexPen
 does not". The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
@@ -14,8 +15,9 @@ UltraEdit and Visual Studio replace in the file or several files, per match or a
 
 Ctrl+Shift+R opens the Search panel with a Replace field; Ctrl+R becomes the find bar's replace (plan 06). The panel
 searches and replaces in the selection, the current file, the open files or the files in the folder. Its results get a Replace button per match,
-per file and for all; Replace all first shows a preview of every change. Each replacement is its own undo step in
-its file. Files in the folder that are not open are changed on disk directly, without opening them.
+per file and for all. The preview of every change is a window of its own: shown before Replace all and per file when
+the setting says so, and from a Preview button in the panel at any time. Each replacement is its own undo step in its
+file. Files in the folder that are not open are changed on disk directly, without opening them and without a copy.
 
 ## 3. Details
 
@@ -46,12 +48,12 @@ its file. Files in the folder that are not open are changed on disk directly, wi
   in plan 06 (`^p` a line break, `^t` a tab).
 - **Per match** (the row's button): that match, one undo step. Replacing several one by one, Ctrl+Z in the file undoes
   them one by one, the last first.
-- **Per file** (the file head's button) and **all** (the panel's button): first the preview (3.4); applied, one undo
-  step per file.
+- **Per file** (the file head's button) and **all** (the panel's button): first the preview (3.4) when the setting
+  says so, else at once; applied, one undo step per file.
 - **An open file**: through its editor, so undo works and the file stays unsaved (the user saves); a document open
   but not shown gets its editor document as when it is shown.
 - **A file in the folder that is not open**: read, replaced and written on disk directly, with its encoding and line
-  ends kept. It is not opened, so there is no undo for it: the preview is the check before. See question 1.
+  ends kept. It is not opened, so there is no undo for it, and no copy is kept: the preview is the check before.
 - Read-only (on disk, a read-only tab, edited in another window): skipped, and listed as skipped.
 - A file changed since the search (typed in, reloaded, changed on disk): searched again before replacing in it.
 - After replacing, the results show what was replaced (crossed out, the new text).
@@ -59,22 +61,27 @@ its file. Files in the folder that are not open are changed on disk directly, wi
 
 ### 3.4 The preview
 
-Before Replace all (and per file): every match as it will change, the line with the old text crossed out and the new
-text marked, grouped per file, with the number of matches and files. Per match a check box, all checked; unchecked
-ones are left as they are. Apply or Cancel. A file not open says so ("changed on disk, no undo").
+A window of its own (as the character picker and the highlights window are), not the panel's result list: every match
+as it will change, the line with the old text crossed out and the new text marked, grouped per file, with the number
+of matches and files. Per match a check box, all checked; unchecked ones are left as they are. Apply or Cancel. A file
+not open says so ("changed on disk, no undo").
+
+- **When it shows**: a setting (General > Search, "Preview before replacing", on by default) makes Replace all and
+  Replace per file show it first; off, they replace at once. Per match never shows it.
+- **The Preview button** in the Search panel, beside Replace all: the window with what Replace all would do, at any
+  time, whatever the setting. Apply there is Replace all.
 
 ### 3.5 Tests
 
 In the app: Ctrl+Shift+R opens the panel with Replace, Ctrl+R the find bar's replace; In selection (one selection,
 several, a column block: matches and replacements only within them, text outside unchanged); replace per match, three in a
-row, then Ctrl+Z three times undoes them one by one; per file and all through the preview, an unchecked match left
-alone; all open files (one undo step each, files left unsaved); files in a folder not open, changed on disk with
+row, then Ctrl+Z three times undoes them one by one; per file and all through the preview window, an unchecked
+match left alone; the setting off: Replace all at once, no window; the Preview button with the setting off: the window; all open files (one undo step each, files left unsaved); files in a folder not open, changed on disk with
 encoding and line ends kept, not opened; a regex with `$1`; `^p` in the replacement; a read-only tab skipped; a file
 changed after the search searched again.
 
-## 4. Open questions
+## 4. Answers
 
-1. Files in the folder have no undo. Keep a copy of each before writing it (as `name.ext.bak` next to it, or in
-   LexPen's data folder for the session), or is the preview enough?
-2. The preview: in the panel's result list itself (compact), or a separate window with the files side by side as the
-   compare shows them (clearer for many lines)?
+1. No undo for files in the folder that are not open, and no copy kept: the preview is the check.
+2. The preview is a separate window, shown depending on a setting, and from a button in the panel. My reading of
+   "depending on settings": one on/off setting for Replace all and per file (3.4); say if it should be more.

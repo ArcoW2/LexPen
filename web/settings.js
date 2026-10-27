@@ -66,14 +66,15 @@ function control(def) {
     box.append(input);
     return { box, show: v => input.checked = !!v, focus: input };
   }
-  // A project (viewProject): its id; 0 the project named "View". The list comes from the host when shown or focused.
+  // A project (viewProject, compareProject): its id; 0 the project named "View" (def.none: what 0 is); def.more: other
+  // choices before the projects. The list comes from the host when shown or focused.
   if (def.kind === 'project') {
     const select = document.createElement('select');
     let value = 0;
     const fill = async () => {
       const list = await host('projects').catch(() => []);
       select.replaceChildren();
-      for (const [id, name] of [[0, 'The project named "View" (made on the first view)'], ...list.map(p => [p.id, p.name])]) {
+      for (const [id, name] of [[0, def.none ?? 'The project named "View" (made on the first view)'], ...def.more ?? [], ...list.map(p => [p.id, p.name])]) {
         const o = document.createElement('option');
         o.value = JSON.stringify(id);
         o.textContent = name;

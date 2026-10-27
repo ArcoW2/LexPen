@@ -303,7 +303,10 @@ every action with its key.
 - **Compare from Explorer**: Settings > App > Windows Explorer adds "Select left side to compare" to Explorer's
   right-click menu for files and folders (for you only, no administrator needed; on Windows 11 under Show more
   options or Shift+right-click). After that, another file or folder has "Compare to <name>", which opens the compare
-  in a new window. The left side stays until you select another ("Select as new left side to compare"). The folder
+  in the project for comparing (Settings > General > Viewing: the project "Compare", made on the first compare, the
+  same project as Viewing, or any project): in its window on this desktop, else its last closed window, else a new
+  one. Opening a file never lands there and its windows are not restored at start. A compare started inside LexPen
+  stays in its window. The left side stays until you select another ("Select as new left side to compare"). The folder
   pane's and a tab's right-click have the same two items, with the same left side. The entries run the LexPen that
   turned the setting on; turning it off removes them.
 

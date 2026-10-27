@@ -237,12 +237,12 @@ sealed class ProjectStore
     }
 
     /// <summary>The project whose window was closed last on this virtual desktop (its windows all closed): what a
-    /// launch on a desktop without a LexPen window opens again. Never <paramref name="skip"/>, the project for viewing
-    /// (docs/plans/executed/PLAN-view-window.md): the one closed before it instead. Null when there is none, or the
-    /// desktop is unknown.</summary>
-    public Project? LastClosedOn(string? desktop, Project? skip = null) =>
+    /// launch on a desktop without a LexPen window opens again. Never one of <paramref name="skip"/>, the projects for
+    /// viewing and comparing (docs/plans/executed/PLAN-view-window.md): the one closed before it instead. Null when there
+    /// is none, or the desktop is unknown.</summary>
+    public Project? LastClosedOn(string? desktop, params Project?[] skip) =>
         desktop is null ? null : Projects
-            .Where(p => p != skip && !p.Windows.Any(w => w.Open))
+            .Where(p => !skip.Contains(p) && !p.Windows.Any(w => w.Open))
             .SelectMany(p => p.Windows.Where(w => w.Desktop == desktop).Select(w => (Project: p, Window: w)))
             .OrderByDescending(o => o.Window.Used).Select(o => o.Project).FirstOrDefault();
 
@@ -267,13 +267,13 @@ sealed class ProjectStore
     /// <summary>
     /// At start: the windows that were open, to open again. A window without files only comes back as the one LexPen
     /// window of its desktop (the most recently used of those); the others are forgotten, and unnamed projects left
-    /// without anything are dropped. The windows of <paramref name="skip"/>, the project for viewing, do not come back
-    /// by themselves: they stay closed in their project (View in LexPen opens them), and a desktop with only those gets
-    /// the project closed before it (LastClosedOn).
+    /// without anything are dropped. The windows of <paramref name="skip"/>, the projects for viewing and comparing, do
+    /// not come back by themselves: they stay closed in their project (View in LexPen, a compare from Explorer opens
+    /// them), and a desktop with only those gets the project closed before it (LastClosedOn).
     /// </summary>
-    public List<(Project Project, Window Window)> StartWindows(bool keepUnnamed, Project? skip = null)
+    public List<(Project Project, Window Window)> StartWindows(bool keepUnnamed, params Project?[] skip)
     {
-        foreach (var w in skip?.Windows ?? []) w.Open = false;
+        foreach (var w in skip.SelectMany(p => p?.Windows ?? [])) w.Open = false;
         var open = Projects.SelectMany(p => p.Windows.Where(w => w.Open).Select(w => (Project: p, Window: w))).ToList();
         var keep = new List<(Project, Window)>();
         foreach (var desktop in open.GroupBy(o => o.Window.Desktop ?? ""))

@@ -4016,6 +4016,12 @@ async function viewFile(path, last = false) {
   return tab;
 }
 
+// A compare from Explorer in this window (the project for comparing, docs/plans/executed/PLAN-compare-project.md): as
+// starting one here, a compare already running ends first; the files of the old one stay as tabs.
+events.compare = async ({ left, right, folders }) => {
+  if (folders) startFolderCompare(left, right); else await startCompare({ path: left }, { path: right });
+};
+
 // Settings > Reset to view layout: the layout the host gives, one pane (the second's tabs into the first), every tab in
 // the preview, no compare; the tabs and the folder stay.
 events.viewLayout = async ({ layout }) => {

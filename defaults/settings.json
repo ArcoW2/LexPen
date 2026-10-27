@@ -9,6 +9,9 @@
                                   // or "new" (always a new project); never the project for viewing
   "viewProject": 0,               // the project View in LexPen opens files and folders in: its id (Manage projects);
                                   // 0 is the project named "View" (made on the first view)
+  "compareProject": 0,            // the project a compare from Explorer (Compare to, --compare) opens in: its id
+                                  // (Manage projects); 0 is the project named "Compare" (made on the first compare),
+                                  // -1 the project for viewing
   "viewReadOnly": true,           // View in LexPen opens a file read-only (the tab menu's Read-only takes that off);
                                   // false: it can be edited at once
   "keepUnnamedProjects": true,    // a project you did not name, with files, when its last window closes: kept as
