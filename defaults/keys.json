@@ -64,6 +64,7 @@
 
   // ---------- Edit and find ----------
   "Ctrl+F": "find",
+  "Ctrl+R": "replace",                // the find bar with its replace row (Ctrl+Shift+R too, until plan 05 gives it the Search panel)
   "F3": "findNext",
   "Shift+F3": "findPrevious",
   "Ctrl+G": "goToLine",
