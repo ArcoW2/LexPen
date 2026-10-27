@@ -56,7 +56,7 @@ The short list, by group. Every feature in detail: [docs/features.md](docs/featu
 
 - **Compare two files**: side by side, editable, the changed characters marked, copy across.
 - **Compare two folders**: one tree of both, contents compared in the background.
-- **Compare from Explorer**: Select left side, then Compare to.
+- **Compare from Explorer**: Select left side, then Compare to; opens in a project for comparing of its own.
 
 ### Files and folders
 

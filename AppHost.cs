@@ -751,7 +751,11 @@ sealed class AppHost : ApplicationContext
         }
         if (compare)
         {
-            if (!restored) RestoreWindows();
+            if (!restored)
+            {
+                RestoreWindows();
+                if (windows.Count > 0) { CompareWhenSettled(paths); return; }
+            }
             CompareWindow(paths);
             return;
         }
@@ -774,14 +778,17 @@ sealed class AppHost : ApplicationContext
     void RestoreWindows()
     {
         restored = true;
-        foreach (var (_, entry) in projects.StartWindows(KeepUnnamed, FindViewProject()))
+        foreach (var (_, entry) in projects.StartWindows(KeepUnnamed, FindViewProject(), FindCompareProject()))
             Open(new MainForm.Start(null, [], entry.Key, ToDesktop: true));
         SaveProjects();
     }
 
     /// <summary>
-    /// --compare: a new window comparing the two paths, two files or two folders (the page starts the compare).
-    /// Anything else: a message saying what is expected.
+    /// --compare (Explorer's Compare to): the two paths compared, two files or two folders, in the project for comparing
+    /// (docs/plans/04-PLAN-compare-project.md; made as "Compare", or as "View" when it is the project for viewing, when
+    /// there is none): in its window on this desktop when one is shown (a compare there ends first), else in its last
+    /// closed window, else a new window of it. The page starts the compare. Anything else: a message saying what is
+    /// expected.
     /// </summary>
     void CompareWindow(IReadOnlyList<string> paths)
     {
@@ -815,8 +822,26 @@ sealed class AppHost : ApplicationContext
             if (windows.Count == 0) ExitThread();
             return;
         }
-        var w = Open(new MainForm.Start(null, [], Compare: [paths[0], paths[1]]));
+        var p = FindCompareProject()
+            ?? projects.NewProject(CompareProjectId == CompareProject.SameAsViewing ? ViewProject.Name : CompareProject.Name);
+        var shown = recent.FirstOrDefault(w => projects.ProjectOf(w.Key) == p && w.WindowState != FormWindowState.Minimized
+            && VirtualDesktop.OnCurrentDesktop(w.Handle));
+        if (shown is not null)
+        {
+            shown.Post(new JsonObject { ["event"] = "compare", ["left"] = paths[0], ["right"] = paths[1], ["folders"] = folders });
+            BringToFront(shown);
+            return;
+        }
+        var closed = p.Windows.Where(o => !o.Open).MaxBy(o => o.Used);
+        var w = Open(new MainForm.Start(null, [], closed?.Key ?? 0, Compare: [paths[0], paths[1]]), project: p);
+        SaveProjects();
         BringToFront(w);
+    }
+
+    async void CompareWhenSettled(IReadOnlyList<string> paths)
+    {
+        await Task.WhenAny(Task.WhenAll(windows.Select(w => w.Settled.Task)), Task.Delay(5000));
+        CompareWindow(paths);
     }
 
     async void RouteWhenSettled(IReadOnlyList<string> paths, bool shift, bool edit)
@@ -825,13 +850,13 @@ sealed class AppHost : ApplicationContext
         Route(paths, shift, edit);
     }
 
-    // Opening (and Edit in LexPen) never lands in the project for viewing: its windows are not in the choice.
+    // Opening (and Edit in LexPen) never lands in the projects for viewing and comparing: their windows are not in the choice.
     // edit: Edit in LexPen, the files in the editor.
     void Route(IReadOnlyList<string> paths, bool shift, bool edit = false)
     {
         var items = paths.Select(p => (Path: p, Dir: Directory.Exists(p))).ToList();
-        var here = recent.Where(w => VirtualDesktop.OnCurrentDesktop(w.Handle) && !ForViewing(w)).Select(w => windows.IndexOf(w)).ToList();
-        var targets = Router.Route(items, windows.Select(w => ForViewing(w) ? null : w.Root).ToList(), here, shift);
+        var here = recent.Where(w => VirtualDesktop.OnCurrentDesktop(w.Handle) && !SetApart(w)).Select(w => windows.IndexOf(w)).ToList();
+        var targets = Router.Route(items, windows.Select(w => SetApart(w) ? null : w.Root).ToList(), here, shift);
 
         MainForm? front = null;
         foreach (var t in targets)
@@ -929,7 +954,7 @@ sealed class AppHost : ApplicationContext
                 if (desktop is not null && (moved || i >= 3)) break;
                 await Task.Delay(100);
             }
-        if (w.ReopenHere && desktop is not null && projects.LastClosedOn(desktop, FindViewProject()) is { } closed
+        if (w.ReopenHere && desktop is not null && projects.LastClosedOn(desktop, FindViewProject(), FindCompareProject()) is { } closed
             && closed.Windows.Where(o => o.Desktop == desktop).MaxBy(o => o.Used) is { } reuse)
         {
             projects.Forget(w.Key, KeepUnnamed);
@@ -954,7 +979,7 @@ sealed class AppHost : ApplicationContext
     ProjectStore.Project ProjectForNewWindow()
     {
         if (SettingText("newWindowProject") != "new"
-            && recent.FirstOrDefault(w => VirtualDesktop.OnCurrentDesktop(w.Handle) && !ForViewing(w)) is { } last
+            && recent.FirstOrDefault(w => VirtualDesktop.OnCurrentDesktop(w.Handle) && !SetApart(w)) is { } last
             && projects.ProjectOf(last.Key) is { } p)
             return p;
         return projects.NewProject("");
@@ -1239,6 +1264,13 @@ sealed class AppHost : ApplicationContext
     int ViewProjectId => settings["values"]?["viewProject"]?.GetValueKind() == JsonValueKind.Number ? settings["values"]!["viewProject"]!.GetValue<int>() : 0;
     ProjectStore.Project? FindViewProject() => ViewProject.Find(projects, ViewProjectId);
     bool ForViewing(MainForm w) => FindViewProject() is { } p && projects.ProjectOf(w.Key) == p;
+    // A window of the project for viewing or for comparing: opening a file, a new window never lands there.
+    bool SetApart(MainForm w) => ForViewing(w) || FindCompareProject() is { } p && projects.ProjectOf(w.Key) == p;
+
+    // ---------- The project for comparing (docs/plans/04-PLAN-compare-project.md) ----------
+
+    int CompareProjectId => settings["values"]?["compareProject"]?.GetValueKind() == JsonValueKind.Number ? settings["values"]!["compareProject"]!.GetValue<int>() : 0;
+    ProjectStore.Project? FindCompareProject() => CompareProject.Find(projects, CompareProjectId, FindViewProject());
     JsonObject ViewLayout() => ViewProject.Layout(settings["defaults"]?["defaultLayout"] as JsonObject, settings["values"]?["defaultLayout"] as JsonObject);
 
     async void ViewWhenSettled(IReadOnlyList<string> paths)
