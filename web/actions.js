@@ -328,7 +328,7 @@ appAction('find', { title: 'Find', hint: 'In this pane: the editor or the previe
 appAction('findNext', { title: 'Find next', hint: 'With an empty or hidden find bar: show it', group: 'edit', run: () => findKey('next') });
 appAction('findPrevious', { title: 'Find previous', hint: 'The match before', group: 'edit', run: () => findKey('prev') });
 appAction('replace', { title: 'Replace', hint: 'The find bar with its replace row, in the editor; with text selected, only within it', group: 'edit', run: () => findKey('replace') });
-// The find bar's Replace all (docs/plans/06-PLAN-find-bar-replace.md): Alt+A while the bar has the focus; no key elsewhere.
+// The find bar's Replace all (docs/plans/executed/PLAN-find-bar-replace.md): Alt+A while the bar has the focus; no key elsewhere.
 appAction('replaceAll', { title: 'Replace all', hint: 'In the find bar: all matches in the selection or the file, one undo step (Alt+A in the bar)', group: 'edit', run: () => findKey('replaceAll') });
 // ---------- Clipboards ----------
 // 0 is the Windows clipboard, 1 to 9 are LexPen's own (ClipboardStore.cs, shared by all windows). Copy, cut

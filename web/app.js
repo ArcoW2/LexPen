@@ -2796,7 +2796,7 @@ function searchPattern(text, options = searchOptions) {
   return options.word ? `\\b(?:${source})\\b` : source;
 }
 
-// The replacement as typed, with its codes read (docs/plans/06-PLAN-find-bar-replace.md 3.4): ^p a line break, ^t a
+// The replacement as typed, with its codes read (docs/plans/executed/PLAN-find-bar-replace.md 3.4): ^p a line break, ^t a
 // tab, ^^ a caret; other ^ codes stay as typed. With a regular expression \n and \t instead ($1, $& are the
 // replace's own). A line break is \n: the editor has one line end, the file's, which every line gets on save.
 function replacementText(text, regex) {

@@ -2,7 +2,7 @@
 // F1: every action with its key, grouped as in the key tables and searchable; Enter runs the selected one,
 // like a command palette. Loaded before app.js.
 
-// The codes of the find field and the replacement (docs/plans/06-PLAN-find-bar-replace.md 3.4): code, what it does,
+// The codes of the find field and the replacement (docs/plans/executed/PLAN-find-bar-replace.md 3.4): code, what it does,
 // an example. The F1 list and the ? window of the find bar and the Search panel show this one list.
 const SEARCH_CODE_HELP = [
   ['Find', [

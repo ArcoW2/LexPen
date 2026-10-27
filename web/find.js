@@ -11,7 +11,7 @@ const FIND_LIMIT = 1000000;   // matches counted / highlighted (all of them in p
 
 // ---------- The bar ----------
 const chevron = d => `<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`;
-// docs/plans/06-PLAN-find-bar-replace.md: a label before each field (one width, so the fields line up), a Replace button
+// docs/plans/executed/PLAN-find-bar-replace.md: a label before each field (one width, so the fields line up), a Replace button
 // that opens the replace row, and the replace row's own way through the file: Replace all, Replace, Skip, Previous.
 const REPLACE_TIP = withKey('Replace: the replace row', 'replace');
 const FIND_HTML =
