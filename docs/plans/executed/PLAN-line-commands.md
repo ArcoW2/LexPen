@@ -14,7 +14,7 @@ UltraEdit and Visual Studio have them all with a key; in LexPen they take a sele
 Four actions on the lines the cursors or selections touch (a block of column mode: its lines): Duplicate, Move up,
 Move down, Delete, and Join. Each is one undo step, keeps the selection on the moved or copied text, and is an
 action (F1, the Edit menu's submenu "Line commands", usable by macros later). Ctrl+L, D duplicates; Ctrl+L, Up / Down
-move and start move mode, in which Up / Down go on moving until Esc. Delete and Join have no key.
+move and start move mode, in which Up / Down (PgUp / PgDn: a page) go on moving until Esc. Delete and Join have no key.
 
 ## 3. Details
 
@@ -46,7 +46,8 @@ cursors, on a block; undo is one step; the first and the last line (nothing to m
 
 - Keys: Ctrl+L, D duplicateLines; Ctrl+L, Up moveLinesUp; Ctrl+L, Down moveLinesDown (`defaults/keys.json`). This
   replaces "no default keys" in section 3 for these three.
-- Move mode: moving with the keys starts it. Up / Down then move the lines on; Esc stops it. It shows as a marker
+- Move mode: moving with the keys starts it. Up / Down then move the lines on, PgUp / PgDn a page (the lines the
+  editor shows, less one; up to the edge, one undo step); Esc stops it. It shows as a marker
   in the gutter of every line being moved: an arrow up and an arrow down next to each other. Any other key or a click also
   stops it (the key then does what it does). From the menu or F1 a move does not start it.
 - Built as small functions (`web/lines.js`), not CodeMirror's sublime keymap. CodeMirror's own Ctrl+D (delete line)

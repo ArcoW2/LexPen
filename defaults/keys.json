@@ -80,7 +80,7 @@
   "Ctrl+D, R": "cursorRemove",
   "Ctrl+D, C": "cursorClear",
   "Ctrl+L, D": "duplicateLines",     // the lines of the cursors or selections again, below them
-  "Ctrl+L, Up": "moveLinesUp",       // the lines up / down a line, then move mode: Up / Down move on, Esc stops
+  "Ctrl+L, Up": "moveLinesUp",       // the lines up / down a line, then move mode: Up / Down move on, PgUp / PgDn a page, Esc stops
   "Ctrl+L, Down": "moveLinesDown",
   "Ctrl+Alt+Right": "cursorNext",
   "Ctrl+Alt+Left": "cursorPrevious",

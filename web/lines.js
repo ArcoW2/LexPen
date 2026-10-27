@@ -2,7 +2,7 @@
 // Line commands (docs/plans/executed/PLAN-line-commands.md): duplicate, move up / down, delete and join the lines the
 // cursors or selections touch (a selection ending at a line's start does not take that line; a block of column mode:
 // its lines; a folded part moves as a whole). Each is one undo step. Moving with a key (Ctrl+L, Up / Down) starts move
-// mode: Up / Down go on moving the lines, Esc (or any other key, a click) stops it; a marker in the gutter of the
+// mode: Up / Down go on moving the lines (PgUp / PgDn: a page), Esc (or any other key, a click) stops it; a marker in the gutter of the
 // lines being moved shows it. Loaded before app.js; the actions are in actions.js.
 
 // The lines a fold hides with the line it starts on: [first, last]; [line, line] when none.
@@ -154,7 +154,7 @@ function startLineMove(pane) {
   lineMove = { pane, lines: [] };
   markMoveLines();
   pane.cm.on('blur', stopLineMove);
-  toast('Moving lines: Up / Down move them on, Esc stops.', true);
+  toast('Moving lines: Up / Down move them on, PgUp / PgDn a page, Esc stops.', true);
 }
 
 function stopLineMove() {
@@ -165,15 +165,26 @@ function stopLineMove() {
   lineMove = null;
 }
 
-// Before every other key handler (the window's capture phase): Up / Down move, Esc stops, another key stops and does
-// what it does.
+// A page of lines up (dir -1) or down: as many as the editor shows, less one; up to the edge. One undo step.
+function moveLinesPage(cm, dir) {
+  const page = Math.max(1, Math.floor(cm.getScrollInfo().clientHeight / cm.defaultTextHeight()) - 1);
+  let moved = false;
+  cm.operation(() => { for (let n = 0; n < page && moveLinesBy(cm, dir); n++) moved = true; });
+  return moved;
+}
+
+const MOVE_KEYS = { ArrowUp: [moveLinesBy, -1], ArrowDown: [moveLinesBy, 1], PageUp: [moveLinesPage, -1], PageDown: [moveLinesPage, 1] };
+
+// Before every other key handler (the window's capture phase): Up / Down move a line, PgUp / PgDn a page, Esc stops,
+// another key stops and does what it does.
 addEventListener('keydown', e => {
   if (!lineMove || ['Control', 'Shift', 'Alt', 'Meta', 'AltGraph'].includes(e.key)) return;
   const plain = !e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey;
-  if (plain && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+  if (plain && MOVE_KEYS[e.key]) {
     e.preventDefault();
     e.stopPropagation();
-    if (moveLinesBy(lineMove.pane.cm, e.key === 'ArrowUp' ? -1 : 1)) markMoveLines();
+    const [move, dir] = MOVE_KEYS[e.key];
+    if (move(lineMove.pane.cm, dir)) markMoveLines();
     return;
   }
   if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); }
