@@ -130,7 +130,7 @@ function markHighlights(doc) {
     const key = (h.state ?? '') + '|' + (h.note ?? ''), alive = h.mark?.find() ?? h.rootMark?.find();
     if (alive && h.markKey === key && h.state !== 'detached') continue;
     const at = alive ? { from: [alive.from.line, alive.from.ch], to: [alive.to.line, alive.to.ch] } : h.from && h.to ? { from: h.from, to: h.to } : null;
-    clearMarks(h);
+    clearHlMarks(h);
     h.markKey = key;
     if (h.state === 'detached' || !at) continue;
     Object.assign(h, at);
@@ -145,7 +145,8 @@ function markHighlights(doc) {
   }
 }
 
-function clearMarks(h) {
+// Not clearMarks: find.js has a global function of that name, and the one loaded last replaced the other.
+function clearHlMarks(h) {
   h.mark?.clear(); h.rootMark?.clear();
   for (const s of h.signs ?? []) s.clear();
   h.mark = h.rootMark = h.signs = null;
@@ -180,7 +181,7 @@ function keepHighlights(doc) {
     const now = describe(text, hlOffset(text, r.from), hlOffset(text, r.to), {});
     return { ...plainHighlight(h), from: now.from, to: now.to, text: now.text, before: now.before, after: now.after };
   });
-  for (const h of hls.list) clearMarks(h);
+  for (const h of hls.list) clearHlMarks(h);
   return list;
 }
 
@@ -226,7 +227,7 @@ function describe(text, a, b, h) {
 }
 
 function dropHighlight(doc, h) {
-  clearMarks(h);
+  clearHlMarks(h);
   const list = hlsOf(doc).list, i = list.indexOf(h);
   if (i >= 0) list.splice(i, 1);
 }
@@ -280,7 +281,7 @@ function saveHighlights(doc, now) {
 events.highlights = ({ path, draft }) => {
   for (const doc of docs) {
     if (!(path ? samePath(doc.path, path) : doc.draft === draft)) continue;
-    for (const h of hlsOf(doc).list) clearMarks(h);
+    for (const h of hlsOf(doc).list) clearHlMarks(h);
     doc.hls = null;
     loadHighlights(doc);
   }

@@ -332,7 +332,7 @@ function compareUntieAll() {
 // is in no difference (Alt+Left / Alt+Right then go through the tabs as usual).
 function compareCopy(dir) {
   if (!cmp.on) return false;
-  const h = selectedLines() ?? realHunks()[currentHunk()];
+  const h = compareSelectedLines() ?? realHunks()[currentHunk()];
   if (!h) return false;
   const [from, to] = dir > 0 ? [0, 1] : [1, 0];
   const src = cmp.sides[from].pane.cm, dst = cmp.sides[to].pane.cm;
@@ -347,7 +347,8 @@ function compareCopy(dir) {
 // A selection in the active side as whole lines (a last line it only reaches the start of is not in it), with the
 // lines they match on the other side, as a difference is ({ aFrom, aTo, bFrom, bTo }); null without a selection.
 // A boundary inside a difference with fewer lines on the other side goes to the end of that side's part.
-function selectedLines() {
+// Not selectedLines: tabs.js has a global function of that name (Tab on a selection), and the one loaded last replaced the other.
+function compareSelectedLines() {
   const i = Math.max(0, sideIndex()), cm = cmp.sides[i].pane.cm;
   if (!cm.somethingSelected()) return null;
   const r = cm.listSelections()[cm.getDoc().sel.primIndex] ?? cm.listSelections()[0];
