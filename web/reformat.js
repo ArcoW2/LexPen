@@ -258,10 +258,13 @@ function rfSimulate(lines, cfg, override = new Map()) {
       if (k !== null && stack.slice(k + 1).every(f => ['cond', 'single', 'stmt', 'clause'].includes(f.kind)) && (!m.lineStart || lineStart))
         return [['bmid', p[0], k], p[1]];
     }
-    const f = top();
-    if (f && f.kind === 'cond') {
-      p = rfPhrase(cfg, line, i, f.until);
-      if (p) return [['until', p[0]], p[1]];
+    // The word that ends a condition (then, do), also after a statement in it that has no end of its own (a cursor's
+    // select in for ... do): it ends that statement too.
+    let ck = stack.length - 1;
+    while (ck >= 0 && (stack[ck].kind === 'stmt' || stack[ck].kind === 'clause')) ck--;
+    if (ck >= 0 && stack[ck].kind === 'cond') {
+      p = rfPhrase(cfg, line, i, stack[ck].until);
+      if (p) return [['until', p[0], ck], p[1]];
     }
     if (lineStart) {
       for (const o of openers) {
@@ -345,7 +348,7 @@ function rfSimulate(lines, cfg, override = new Map()) {
       if (k !== null) col = stack[k].closecol;
     } else if (r === 'bclose') col = stack[role[2]].closecol;
     else if (r === 'bmid') col = stack[role[2]].midcol;
-    else if (r === 'until') col = f.block.midcol;
+    else if (r === 'until') col = stack[role[2]].block.midcol;
     else if (r === 'clause') col = stack[role[2]].col;
     else if (r === 'stmt') {
       const k = activeStmt();
@@ -458,6 +461,7 @@ function rfSimulate(lines, cfg, override = new Map()) {
       } else if (rr === 'bclose') {
         const k = role[2]; stack[k].closer = t; stack[k].closerLast = line[i + used - 1]; skipped(k); popTo(k);
       } else if (rr === 'until') {
+        popTo(role[2] + 1);
         const c = stack.pop(); c.closer = t; c.block.untils.push(t);
         if (c.odef.body === 'single') {                   // Pascal: if ... then <one statement>
           if (!nxtCode) c.block.content = (col ?? 0) + step; else c.block.bodyLine = li;

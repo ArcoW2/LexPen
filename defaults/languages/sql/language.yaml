@@ -84,7 +84,7 @@ format:
       - {w: case}
       - {w: loop, breakAfter: true, before: '^\s*(\w+:\s*)?$'}
       - {w: while, until: [loop], before: '^\s*(\w+:\s*)?$'}
-      - {w: for, until: [do], before: '^\s*(\w+:\s*)?$'}
+      - {w: for, until: [do], before: '^\s*(\w+:\s*)?$', when: '^(?!\s*(read\s+only|update|xml|json)\b)'}   # not a cursor's FOR READ ONLY / FOR UPDATE, a select's FOR XML / FOR JSON
       - {w: when, inside: [case, exception], until: [then], closes: false, endsBefore: [when, else, end case, end]}
       - {w: exception, inside: [begin], before: '^\s*$', closes: false, endsBefore: [end]}
       - {w: else, inside: [case], closes: false, endsBefore: [when, end case, end]}
@@ -94,7 +94,7 @@ format:
     close: {end if: if, endif: if, end case: case, end loop: [loop, while], end for: for, end: [begin, case]}
   ends: [';']
   statements:
-    select: [into, from, where, group by, having, order by, union, union all]
+    select: [into, from, where, group by, having, order by, union, union all, for read only, for update, for xml, for json]
     update: [set, from, where]
     insert: [values, select]
     delete: [from, where]
