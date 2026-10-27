@@ -47,7 +47,7 @@ cursors, on a block; undo is one step; the first and the last line (nothing to m
 - Keys: Ctrl+L, D duplicateLines; Ctrl+L, Up moveLinesUp; Ctrl+L, Down moveLinesDown (`defaults/keys.json`). This
   replaces "no default keys" in section 3 for these three.
 - Move mode: moving with the keys starts it. Up / Down then move the lines on; Esc stops it. It shows as a marker
-  in the gutter of the cursor line: an arrow up and an arrow down next to each other. Any other key or a click also
+  in the gutter of every line being moved: an arrow up and an arrow down next to each other. Any other key or a click also
   stops it (the key then does what it does). From the menu or F1 a move does not start it.
 - Built as small functions (`web/lines.js`), not CodeMirror's sublime keymap. CodeMirror's own Ctrl+D (delete line)
   never runs: Ctrl+D is LexPen's chord key for the cursors.

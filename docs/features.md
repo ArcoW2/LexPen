@@ -24,7 +24,7 @@ every action with its key.
   start does not take that line; a column block: its lines; a fold moves as a whole), each one undo step.
   Duplicate (Ctrl+L, D: the cursor on the copy), Move up / down (Ctrl+L, Up / Down), Delete, Join (the indentation
   between the lines becomes one space). Moving with the keys starts move mode, an arrow up and down in the gutter of
-  the cursor line: Up / Down move the lines on, Esc stops (as does any other key or a click). Delete and Join have no
+  every line being moved: Up / Down move the lines on, Esc stops (as does any other key or a click). Delete and Join have no
   key; give them one in your keys.json.
 - **Multiple cursors**: Ctrl+Alt+click adds a cursor (held and dragged, it follows the mouse until you let go); on a
   cursor or inside a selection it removes that one, never the last. Ctrl+Alt+double-click selects the find match
