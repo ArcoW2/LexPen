@@ -324,7 +324,7 @@ every action with its key.
 ## Files and folders
 
 - **Folder sidebar** (Ctrl+Shift+B): browse all files in a folder, sorted by name or modified time. The `..` row
-  (Alt+Up, Backspace) goes up a folder. Ctrl+Shift+E (or a click) gives it the keyboard: arrows, Home/End,
+  (Alt+Up, Backspace) goes up a folder; F2 renames the file or folder. Ctrl+Shift+E (or a click) gives it the keyboard: arrows, Home/End,
   PgUp/PgDn, Enter (Shift+Enter: new tab, Ctrl+Enter: other pane, Ctrl+Shift+Enter: new tab there), Esc back to
   the document (hidden files, dot folders and `node_modules` are skipped), with git status markers (modified,
   added, untracked, deleted, renamed, conflict) when the folder is in a repository. File types no language pack
@@ -339,6 +339,14 @@ every action with its key.
   A right-click in the folder pane adds or removes the file or folder under the mouse, the base folder included (the
   row with its full path under `..`); on a tab, its file. A favourite folder opens in the folder pane: selected when
   it is inside the folder open there, else as the pane's base folder.
+- **Rename** a file or folder: F2 in the folder pane, Rename... in its right-click menu or in a tab's right-click
+  menu (also in F1, without a key). The name box selects the name without its extension. Refused with a message: an
+  empty name, `\ / : * ? " < > |`, a name ending in a dot or space, a name already in that folder (only a change
+  of case is allowed); a file or folder Windows will not rename (in use, no rights) gives its reason. The open files
+  in it, in every window, get the new path and stay as they are (unsaved edits, undo, cursor, which window edits);
+  a new extension gives its language, unless you chose one. Bookmarks, highlights (a `.lph` too), ruler lines,
+  chosen languages, the recent and favourite lists and the saved windows follow; so do the folder pane's root and
+  its open folders. A `.bak` stays under the old name.
 - **Revert to saved** (File menu, and a tab's right-click menu, shown only when the text differs from the file on
   disk): the file as it is on disk; Ctrl+Z gives your changes back.
 - **Drafts**: a new file is kept as a draft (`%LOCALAPPDATA%\LexPen\State\Drafts\editN.md`) until saved, and comes back

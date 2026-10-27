@@ -43,6 +43,20 @@ sealed class RulerStore
         Save();
     }
 
+    /// <summary>A file or folder renamed (FileRename): the lines of the files in it go along.</summary>
+    public void Rename(string from, string to)
+    {
+        var moved = false;
+        foreach (var (key, value) in files.ToList())
+            if (FileRename.Renamed(key, from, to) is string renamed)
+            {
+                files.Remove(key);
+                files[BookmarkStore.Key(renamed, null)] = value;
+                moved = true;
+            }
+        if (moved) Save();
+    }
+
     public IEnumerable<string> Keys => files.Select(p => p.Key);
 
     static long Stamp(JsonNode? entry) => (long?)entry?["opened"] ?? 0;

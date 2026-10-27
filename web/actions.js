@@ -111,6 +111,8 @@ appAction('save', { title: 'Save', hint: 'The file of the active tab', group: 'f
 appAction('saveAs', { title: 'Save as...', hint: 'Under another name; an ANSI file becomes UTF-8', group: 'files', run: () => commands.saveAs() });
 appAction('revertToSaved', { title: 'Revert to saved', hint: 'The file as it is on disk; Ctrl+Z gives your changes back', group: 'files',
   enabled: () => canRevert(activeDoc()), run: () => revertDoc(activeDoc()) });
+appAction('file.rename', { title: 'Rename...', hint: "Rename this tab's file on disk; its tabs follow, also in other windows (in the folder pane: F2 on a file or folder)", group: 'files',
+  enabled: () => !!activeDoc()?.path, run: () => renameFile(activeDoc().path) });
 appAction('draft.rename', { title: 'Rename draft...', hint: 'A name for this draft (a new document not saved as a file yet), shown in its tab and offered by Save as; with an extension a language knows (.sql): that language', group: 'files',
   enabled: () => !!activeDoc()?.draft, run: () => renameDraft(activeDoc()) });
 appAction('closeTab', { title: 'Close tab', hint: 'Asks about unsaved changes', group: 'files', run: () => commands.closeTab() });
@@ -276,7 +278,7 @@ appAction('goToLine', { title: 'Go to line', hint: 'A line number, or line:colum
     const cm = pane.cm, here = cm.getCursor();
     const relative = setting('lineNumberCount') === 'relative' && setting('lineNumbers') !== 'none';
     const answer = relative
-      ? await askName(`Go to line (1 to ${cm.lineCount()}; +n down, -n up)`, '+', 'A line number, +n or -n, or with :column', true)
+      ? await askName(`Go to line (1 to ${cm.lineCount()}; +n down, -n up)`, '+', 'A line number, +n or -n, or with :column', [1, 1])
       : await askName(`Go to line (1 to ${cm.lineCount()})`, String(here.line + 1), 'A line number, +n or -n, or with :column');
     if (answer === null || answer === '' || answer === '+') return;
     const m = answer.match(/^(\+?)\s*(-?)\s*(\d+)\s*(?:[:,]\s*(\d+))?$/);

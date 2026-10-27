@@ -1578,6 +1578,50 @@ sealed class AppHost : ApplicationContext
         File.WriteAllText(kind == "folders" ? FavouriteFoldersPath : FavouritesPath, JsonSerializer.Serialize(list));
     }
 
+    // ---------- Rename (docs/plans/executed/PLAN-rename.md) ----------
+
+    /// <summary>Renames a file or folder in its folder. What LexPen keeps by path goes along (bookmarks, ruler lines,
+    /// highlights, recent files and folders, favourites, the edit locks, the saved sessions), and every window is told
+    /// (event "renamed"): its open files in it get the new path. Also the languages and line languages chosen per file. Returns the new path; a refusal, or Windows' reason, is
+    /// thrown and nothing has changed.</summary>
+    public string Rename(string from, string name)
+    {
+        if (FileRename.Refusal(from, name) is string why) throw new InvalidOperationException(why);
+        var to = FileRename.Target(from, name);
+        var folder = Directory.Exists(from);
+        if (folder) foreach (var w in windows) w.StopWatching(from);
+        try { FileRename.Move(from, to); }
+        catch
+        {
+            if (folder) foreach (var w in windows) w.ResumeWatching();
+            throw;
+        }
+        Bookmarks.Rename(from, to);
+        Rulers.Rename(from, to);
+        Highlights.Rename(from, to);
+        foreach (var (key, language) in fileLanguages.ToList())
+            if (FileRename.Renamed(key, from, to) is string renamed) { SetFileLanguage(key, null); SetFileLanguage(renamed, language); }
+        foreach (var (key, ranges) in FileRangesAll().ToList())
+            if (FileRename.Renamed(key, from, to) is string renamed) { var kept = ranges?.DeepClone() as JsonArray; SetFileRanges(key, null); SetFileRanges(renamed, kept); }
+        State.RecentFiles = FileRename.Renamed(State.RecentFiles, from, to);
+        State.RecentFolders = FileRename.Renamed(State.RecentFolders, from, to);
+        State.ClosedFiles = FileRename.Renamed(State.ClosedFiles, from, to);
+        SaveState();
+        SetFavourites("files", FileRename.Renamed(favourites, from, to));
+        SetFavourites("folders", FileRename.Renamed(favouriteFolders, from, to));
+        foreach (var key in locks.Keys.ToList())
+            if (FileRename.Renamed(key, from, to) is string renamed)
+            {
+                var list = locks[key];
+                locks.Remove(key);
+                locks[renamed] = list;
+            }
+        foreach (var w in projects.Projects.SelectMany(p => p.Windows)) FileRename.RenameIn(w.Session, from, to);
+        SaveProjects();
+        foreach (var w in windows) w.Post(new JsonObject { ["event"] = "renamed", ["from"] = from, ["to"] = to });
+        return to;
+    }
+
     // ---------- Tab colours, shared by all windows ----------
     // The file is read at every window's start; a change to it (saved anywhere) goes to all windows.
     FileSystemWatcher? tabColoursWatcher;

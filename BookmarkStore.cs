@@ -34,6 +34,22 @@ sealed class BookmarkStore
         File.WriteAllText(this.path, files.ToJsonString());
     }
 
+    /// <summary>A file or folder renamed (FileRename): the bookmarks of the files in it go along.</summary>
+    public void Rename(string from, string to)
+    {
+        var moved = false;
+        foreach (var (key, value) in files.ToList())
+            if (FileRename.Renamed(key, from, to) is string renamed)
+            {
+                files.Remove(key);
+                files[Key(renamed, null)] = value;
+                moved = true;
+            }
+        if (!moved) return;
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, files.ToJsonString());
+    }
+
     /// <summary>The bookmarks placed in `text`: a bookmark stays on its line when that line still has its
     /// text; else it goes to the nearest line with that text; else it stays on its line number (the last
     /// line at most). A column past the end of its line becomes the line end.</summary>
