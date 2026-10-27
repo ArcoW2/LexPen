@@ -785,7 +785,7 @@ sealed class AppHost : ApplicationContext
 
     /// <summary>
     /// --compare (Explorer's Compare to): the two paths compared, two files or two folders, in the project for comparing
-    /// (docs/plans/04-PLAN-compare-project.md; made as "Compare", or as "View" when it is the project for viewing, when
+    /// (docs/plans/executed/PLAN-compare-project.md; made as "Compare", or as "View" when it is the project for viewing, when
     /// there is none): in its window on this desktop when one is shown (a compare there ends first), else in its last
     /// closed window, else a new window of it. The page starts the compare. Anything else: a message saying what is
     /// expected.
@@ -1267,7 +1267,7 @@ sealed class AppHost : ApplicationContext
     // A window of the project for viewing or for comparing: opening a file, a new window never lands there.
     bool SetApart(MainForm w) => ForViewing(w) || FindCompareProject() is { } p && projects.ProjectOf(w.Key) == p;
 
-    // ---------- The project for comparing (docs/plans/04-PLAN-compare-project.md) ----------
+    // ---------- The project for comparing (docs/plans/executed/PLAN-compare-project.md) ----------
 
     int CompareProjectId => settings["values"]?["compareProject"]?.GetValueKind() == JsonValueKind.Number ? settings["values"]!["compareProject"]!.GetValue<int>() : 0;
     ProjectStore.Project? FindCompareProject() => CompareProject.Find(projects, CompareProjectId, FindViewProject());

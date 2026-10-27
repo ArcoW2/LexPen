@@ -474,7 +474,7 @@ const SETTING_ROWS = [
   // The project for viewing (docs/plans/executed/PLAN-view-window.md): Explorer's View in LexPen opens files there.
   { name: 'viewProject', group: 'General', sub: 'Viewing', kind: 'project', title: 'Project for viewing',
     hint: 'View in LexPen (Explorer) opens files and folders in this project. A normal project: what you change there (panes, colours) stays for the next view' },
-  // The project for comparing (docs/plans/04-PLAN-compare-project.md): Explorer's Compare to opens there.
+  // The project for comparing (docs/plans/executed/PLAN-compare-project.md): Explorer's Compare to opens there.
   { name: 'compareProject', group: 'General', sub: 'Viewing', kind: 'project', title: 'Project for comparing',
     none: 'The project "Compare" (made on the first compare)', more: [[-1, 'Same project as Viewing']],
     hint: 'Compare to (Explorer) opens its compare in this project. Opening a file never lands there; a compare started inside LexPen stays in its window' },

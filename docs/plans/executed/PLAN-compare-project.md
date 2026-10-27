@@ -1,7 +1,7 @@
 # Plan: Where a compare from Explorer opens: the project for viewing, or a project for comparing
 
-Status: draft 2026-10-27, answers and implemented 2026-10-27 (one setting Project for comparing, as Project for
-viewing); not yet tried in the app. The number in the file name is the priority; rename to reorder.
+Status: done 2026-10-27 (one setting Project for comparing, as Project for
+viewing); tried in the app.
 
 ## 1. What this is about
 

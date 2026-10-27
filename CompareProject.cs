@@ -1,7 +1,7 @@
 namespace LexPen;
 
 /// <summary>
-/// The project for comparing (docs/plans/04-PLAN-compare-project.md): a compare from Explorer (and --compare) opens
+/// The project for comparing (docs/plans/executed/PLAN-compare-project.md): a compare from Explorer (and --compare) opens
 /// there. It is the project the setting compareProject names: its id, -1 the project for viewing, else the one named
 /// "Compare" (AppHost makes it on the first compare). As the project for viewing, opening a file never lands in it and
 /// its windows are not restored at start. Pure, so it can be tested without windows.

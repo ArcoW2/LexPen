@@ -2,7 +2,7 @@ using System.Text.Json.Nodes;
 
 namespace LexPen.Tests;
 
-// The project for comparing (CompareProject, docs/plans/04-PLAN-compare-project.md).
+// The project for comparing (CompareProject, docs/plans/executed/PLAN-compare-project.md).
 public class CompareProjectTests : IDisposable
 {
     readonly string dir = Path.Combine(Path.GetTempPath(), "lexpen-compare-" + Guid.NewGuid().ToString("N"));
