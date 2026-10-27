@@ -20,8 +20,9 @@ The find bar (Ctrl+F, Ctrl+Shift+R) can replace, but it is built for finding wit
 A text button **Replace** on the find row opens and closes the replace row. Both rows get a label in front of their
 field: **Find** and **Replace with**, the same width so the fields line up. The replace row gets its own way through
 the file: **Replace** (this match, then the next), **Skip** (the next, this one unchanged), **Previous**, and
-**Replace all**. The replace field reads the same `^` codes as the find field (`^p` a line break, `^t` a tab, `^^`
-a caret); with a regular expression `\n` and `\t` instead, next to `$1`. Ctrl+R opens the bar with the replace row
+**Replace all**. The replace field reads `^` codes as the find field does: `^p` the file's line end, `^l` LF, `^c`
+CRLF, `^t` a tab, `^^` a caret; with a regular expression `\n` and `\t` instead, next to `$1`. A help window (a `?`
+button on the bar) lists every code of both fields. Ctrl+R opens the bar with the replace row
 (Ctrl+Shift+R becomes the Search panel's replace, plan 05). With a selection, the bar always finds and replaces only
 within it, else in the whole file; F3 keeps that choice until the next Ctrl+F or Ctrl+R.
 
@@ -85,22 +86,37 @@ The replace row is enough on its own; the find row's arrows are not needed while
 
 ### 3.4 Codes in the replacement
 
-- Without a regular expression: `^p` a line break, `^t` a tab, `^^` a caret, as the find field already reads them.
-  The other find codes (`^?` `^#` `^$` `^w`) match a kind of text and mean nothing in a replacement; they stay as
-  typed.
-- With a regular expression: `\n` a line break, `\t` a tab, `$1`... the groups (as now), `$&` the whole match.
-- A line break goes into the editor as a new line. The editor keeps no line end per line: the file has one line end
-  (CRLF or LF, in the bottom bar), and every line gets it on save. So in a CRLF file `^p` is CRLF. See open
-  question 1 for an LF file.
-- The replace field's tooltip lists the codes, as the find field's does.
+- In the find field, as now: `^p` finds any line break (LF, CRLF or CR).
+- In the replacement, without a regular expression:
+  - `^p`: a line break with the file's line end (CRLF or LF, as the bottom bar shows).
+  - `^l`: LF.
+  - `^c`: CRLF.
+  - `^t` a tab, `^^` a caret.
+  - The find codes that match a kind of text (`^?` `^#` `^$` `^w`) mean nothing in a replacement; they stay as typed.
+- With a regular expression: `\n` a line break (the file's line end), `\t` a tab, `$1`... the groups (as now), `$&`
+  the whole match.
+- `^l` and `^c` in an open file: the editor keeps one line end for the whole file, and every line gets it on save
+  (`diskText`, `getValue(doc.eol)`). So `^l` in a CRLF file is saved as CRLF, the same as `^p`. See open question 1.
+  In a file in the folder that is not open (plan 05, written on disk directly) they are written as given.
+- The replace field's tooltip names the codes in short and points to the help window (3.5).
 - Replace in the Search panel (plan 05) reads the same codes.
 
-### 3.5 Tests
+### 3.5 The help window
+
+- A `?` button at the end of the find row (and on the Search panel, plan 05) opens a small window listing every code:
+  for the find field (`^p` `^t` `^?` `^#` `^$` `^w` `^^`), for the replacement (`^p` `^l` `^c` `^t` `^^`), and with a
+  regular expression (`\n` `\t` `$1` `$&`), each with one line of what it does and an example.
+- One list for the find bar, the Search panel and the F1 list: F1 now has a short "Search codes" part
+  (`web/palette.js`); it becomes the same list, so the three never differ.
+- Esc or a click outside closes it; the focus goes back to the field it came from.
+
+### 3.6 Tests
 
 In the app: the Replace button opens and closes the row and shows pressed; the labels line up; the button disabled
 in the preview. Replace, Skip and Previous through a file: replaced ones changed, skipped ones not, the count right.
 Replace with no current match goes to the first and stops. `^p` and `^t` in the replacement, with and without a
-regular expression (`\n`, `\t`, `$1`); a CRLF file saved with CRLF after `^p`. Replace all as one undo step;
+regular expression (`\n`, `\t`, `$1`); a CRLF file saved with CRLF after `^p`, an LF file with LF; `^l` and `^c` as
+open question 1 decides; the `?` window lists the codes, the same as F1. Replace all as one undo step;
 three single replaces undone one by one. Ctrl+R opens the bar with the replace row; Tab from Find to Replace with and
 Shift+Tab back. With a selection: find and Replace
 all stay within it, F3 goes on within it, a new Ctrl+F without a selection takes the whole file; a one-word
@@ -109,7 +125,9 @@ columns on each line, Replace all there only.
 
 ## 4. Open questions
 
-1. `^p` in an LF file: the file's line end (LF; recommended, the file stays consistent), or always CRLF (the file
-   then has mixed line ends, which the editor does not keep)?
+1. `^l` and `^c` in an open file cannot stay as given: the editor saves every line with the file's one line end.
+   Either they act as `^p` there (with a message saying so, the file's line end is changed with the bottom bar's
+   CRLF / LF), or the editor learns to keep a line end per line, a larger change (the editor, save, the bottom bar,
+   plan 12 on converting line ends). Which one?
 2. A key for Replace all, for working by keyboard only. For example Alt+A while the bar has the focus, shown
    underlined in the button text. Check first that it does not clash with the menu's Alt keys.
