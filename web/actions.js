@@ -781,6 +781,7 @@ function settingDefs() {
       options: r.options?.() ?? (r.kind === 'size' ? [[0, `Default (${r.base()})`], ...FONT_SIZES.map(pt => [pt, pt + ' pt'])] : null),
       monoFirst: r.name === 'editorFont',
       range: r.range ?? null, unit: r.unit ?? '', buttons: r.buttons ?? null,
+      none: r.none ?? null, more: r.more ?? null,   // a project row: what 0 is, choices before the projects
       keywords: r.keywords ?? '',   // more words the settings window's search finds the row by
       layer: LAYOUT.has(r.name) ? 'window' : THEME_SET_NAMES.has(r.name) ? 'set' : 'global',   // executed/PLAN-settings-layers.md
     };
