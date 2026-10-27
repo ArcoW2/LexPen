@@ -122,6 +122,9 @@
 
   // ---------- Find ----------
   "findShared": false,            // one find for both panes (off: each pane its own)
+  "replacePreview": true,         // Search panel: Replace all / per file in the selection, the file, the open files
+                                  // show the preview window first (off: at once; Preview... still shows it)
+  "replacePreviewFiles": true,    // the same for Files in folder (files not open are written without undo)
   "findWrap": "end",              // past the last match: "end" (stop, with a message), "around" (go on from the top)
                                   // or "origin" (go on from the top, stop where the search started)
   "findHistory": 20,              // searches (and replacements) kept, for all windows: Up / Down in a find field

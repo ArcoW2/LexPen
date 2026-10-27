@@ -64,7 +64,7 @@
 
   // ---------- Edit and find ----------
   "Ctrl+F": "find",
-  "Ctrl+R": "replace",                // the find bar with its replace row (Ctrl+Shift+R too, until plan 05 gives it the Search panel)
+  "Ctrl+R": "replace",                // the find bar with its replace row
   "F3": "findNext",
   "Shift+F3": "findPrevious",
   "Ctrl+G": "goToLine",
@@ -72,7 +72,7 @@
   "Ctrl+Down": "scrollLine.down",    // the text a line (the cursor stays, or moves along: setting scrollMovesCursor)
   "Ctrl+Up": "scrollLine.up",
   "Ctrl+Shift+G": "findPrevious",
-  "Ctrl+Shift+R": "replace",
+  "Ctrl+Shift+R": "searchReplace",   // the Search panel with its replace row
   "Ctrl+[": "goToOpenBracket",       // the opener / closer of the pair or word set the highlight shows (Shift: select)
   "Ctrl+]": "goToCloseBracket",
   "Ctrl+D, A": "cursorAdd",          // multiple cursors: Ctrl+D, then A add the current occurrence, D or R remove it, C clear the added ones;

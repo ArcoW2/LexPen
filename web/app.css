@@ -305,6 +305,23 @@ body[data-side=search] .mm-folder-view, body:not([data-side=search]) .mm-search-
 .mm-search-bar [data-opt] { padding: 2px 7px; font-size: calc(12px * var(--ui-scale)); font-family: Consolas, monospace; }
 .mm-search-bar [data-opt].mm-on { background: var(--active); color: var(--accent); border-color: var(--accent); }
 .mm-search-scope { margin-left: auto; font: inherit; font-size: calc(12px * var(--ui-scale)); color: var(--fg); background: var(--bg-side); border: 1px solid var(--border); border-radius: 4px; }
+.mm-search-toggle { padding: 2px 7px; font-size: calc(12px * var(--ui-scale)); }
+.mm-search-toggle.mm-on { background: var(--active); color: var(--accent); border-color: var(--accent); }
+.mm-search-with { margin: 0 8px 4px; padding: 4px 6px; font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 4px; outline: none; }
+.mm-search-with:focus { border-color: var(--accent); }
+.mm-search-replace { display: flex; flex-direction: column; }
+.mm-search-replace[hidden] { display: none; }
+.mm-search-replace-bar { display: flex; gap: 4px; padding: 0 8px 4px; }
+.mm-search-replace-bar button { padding: 2px 8px; font-size: calc(12px * var(--ui-scale)); }
+.mm-search-replace-bar .mm-search-codes { margin-left: auto; font-family: Consolas, monospace; }
+/* The Replace buttons of a file and a match, while the replace row shows (hidden till hovered or selected). */
+.mm-result-rep { display: none; flex: none; margin-left: auto; padding: 0 6px; font-size: calc(11px * var(--ui-scale)); }
+body[data-search-replace] .mm-result-file:hover .mm-result-rep, body[data-search-replace] .mm-result:hover .mm-result-rep,
+body[data-search-replace] .mm-result.mm-on .mm-result-rep { display: block; }
+.mm-result.mm-done { cursor: default; }
+.mm-result.mm-done .mm-result-text del { background: rgba(255, 80, 80, .3); color: inherit; }
+.mm-result.mm-done .mm-result-text ins { background: rgba(80, 200, 80, .3); color: inherit; text-decoration: none; }
+.mm-result.mm-skip .mm-result-line::after { content: ' !'; color: var(--caution); }
 .mm-search-status { padding: 2px 12px 6px; font-size: calc(12px * var(--ui-scale)); color: var(--fg-dim); }
 .mm-search-results { flex: 1; overflow: auto; padding-bottom: 12px; user-select: none; }
 .mm-result-file { display: flex; gap: 6px; padding: 4px 8px; cursor: pointer; white-space: nowrap; overflow: hidden; }

@@ -2,7 +2,7 @@
 
 Status: draft 2026-10-21, reworked 2026-10-26, answers 2026-10-27 (keys, undo per replacement, a preview, files in
 the folder written without opening them; In selection as a scope; no copy before writing a file in the folder; the
-preview a window of its own), not started. From the list "what UltraEdit or Visual Studio has and LexPen
+preview a window of its own), done 2026-10-27; tried in the app. From the list "what UltraEdit or Visual Studio has and LexPen
 does not". The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
@@ -89,3 +89,13 @@ changed after the search searched again.
    undo (selection, current file, open files), one for Files in folder. Off, the Preview button in the panel still
    shows it (3.4).
 3. Plan 06 (the find bar's replace, Ctrl+R, `^p` / `^t` in the replacement) is done first; this plan builds on it.
+
+## 5. As built (2026-10-27)
+
+- The two settings are in the settings window's Find group (where the find settings are), not under General > Search.
+- In selection with nothing selected: the panel says "Nothing selected: select the text to search in first." The
+  option stays in the list.
+- The panel's code is `web/searchreplace.js`; the preview window is `ReplacePreviewForm` with `web/replace.html`,
+  `replace.js`, `replace.css`, asked for by the page with `confirmReplace` (modal to its window).
+- A file is searched again just before replacing; the preview and Apply use those matches. Per match: the match at
+  the same line and column, else a message and the results updated.

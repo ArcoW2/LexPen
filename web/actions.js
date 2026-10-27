@@ -236,6 +236,7 @@ appAction('tabBar.set', { title: 'Tab bar', hint: 'Tabs that do not fit: one row
   checked: ([kind]) => setting('tabBar') === kind, run: ([kind]) => setSetting('tabBar', kind) });
 toggleAction('formatBar', { title: 'Formatting bar', hint: 'The bar with bold, headings, lists, tables, ... above the editor', group: 'view' },
   () => setting('formatBar'), () => commands.formatBar(), ['show', 'hide']);
+appAction('searchReplace', { title: 'Replace in files', hint: 'The search in the sidebar with its Replace row: in the selection, the file, the open files or the folder; per match, per file or all, with a preview', group: 'view', run: () => startReplace() });
 appAction('searchInFiles', { title: 'Search in files', hint: 'In the file, the open files or the folder; codes ^p ^t ^? ^# ^$ ^w ^^', group: 'view', run: () => startSearch() });
 // In the editor (it has the focus) the zoom is the editor font size; elsewhere the preview zoom.
 const editorFocused = () => panes.some(p => p.cm?.hasFocus());
@@ -726,6 +727,12 @@ const SETTING_ROWS = [
   { name: 'findShared', group: 'Find', kind: 'toggle',
     hint: 'Both panes share one find (Ctrl+F)',
     hintOff: 'Each pane has its own find (Ctrl+F), with its own text and options' },
+  { name: 'replacePreview', group: 'Find', kind: 'toggle', title: 'Preview Replace all',
+    hint: 'In the Search panel, Replace all and Replace per file in the selection, the file or the open files show every change in a window first (each with a check box)',
+    hintOff: 'Replace all and Replace per file change the open files at once (Ctrl+Z undoes it per file); Preview... still shows the window' },
+  { name: 'replacePreviewFiles', group: 'Find', kind: 'toggle', title: 'Preview Replace in files',
+    hint: 'In the Search panel, Replace all and Replace per file in Files in folder show every change in a window first: files not open are written at once, without undo',
+    hintOff: 'Replace all and Replace per file in Files in folder write the files at once, without undo; Preview... still shows the window' },
   { name: 'findWrap', group: 'Find', kind: 'choice', title: 'Search: at the end of the file', hint: 'What find / search next (F3) does past the last match (Shift+F3: before the first)',
     options: () => [['end', 'Stop, with a message'], ['around', 'Go on from the top'], ['origin', 'Go on from the top, stop where the search started']] },
   { name: 'findHistory', group: 'Find', kind: 'choice', title: 'Searches kept in the history',

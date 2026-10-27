@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:">
+<title>Replace - LexPen</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="replace.css">
+</head>
+<body class="rp-body">
+<div class="rp-top"><span class="rp-title"></span><span class="rp-count"></span></div>
+<div class="rp-list" tabindex="0"></div>
+<div class="rp-buttons">
+  <button data-cmd="all" title="Check every change">Check all</button>
+  <button data-cmd="none" title="Uncheck every change">Uncheck all</button>
+  <span class="rp-gap"></span>
+  <button data-cmd="apply" class="rp-apply" title="Make the checked changes (Ctrl+Enter)">Apply</button>
+  <button data-cmd="cancel" title="Change nothing (Esc)">Cancel</button>
+</div>
+<script src="replace.js"></script>
+</body>
+</html>
