@@ -851,6 +851,10 @@ appAction('bookmarkToggleFree', { title: 'Toggle unnumbered bookmark', hint: 'On
   preview: true, run: withBookmarks((_, { pane, preview }) => toggleFreeBookmark(pane, undefined, undefined, preview)) });
 appAction('bookmarkNext', { title: 'Bookmark', hint: 'Numbered or not; with Shift: select to it (not in the preview)', group: 'bookmarks', preview: true, move: true,
   variants: [[1], [-1]], variantTitles: { 1: 'Next bookmark', '-1': 'Previous bookmark' }, run: withBookmarks(([dir], { pane, extend, preview }) => nextBookmark(pane, dir, extend, preview)) });
+// Next / previous block (blocks.js, docs/plans/executed/PLAN-block-jump.md): in the editor, and in the preview at its cursor.
+appAction('block.next', { title: 'Block', hint: 'The next / previous block at the level of the cursor: its indentation, in markdown its heading; with Shift: select to it (not in the preview)',
+  group: 'edit', preview: true, move: true, variants: [[1], [-1]], variantTitles: { 1: 'Next block', '-1': 'Previous block' },
+  run: ([dir], { pane, extend, preview }) => goBlock(pane, +dir, extend, preview) });
 // Highlights (highlights.js, docs/plans/executed/PLAN-highlights.md): in the editor and in the preview, the pane in use.
 const hlPane = () => panes[state.activePane];
 appAction('highlight.toggle', { title: 'Highlight', hint: 'The selection gets a highlight; nothing selected, the cursor in a highlight: that one removed', group: 'highlights',

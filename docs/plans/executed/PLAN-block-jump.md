@@ -1,6 +1,6 @@
 # Plan: Next and previous block (Alt+PgDn, Alt+PgUp)
 
-Status: draft 2026-10-28, not started.
+Status: executed 2026-10-28 (web/blocks.js; in-app test t32).
 The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
@@ -97,6 +97,8 @@ plan 31.
 
 ## 4. Open questions
 
+None open. Taken as the plan proposed, when it was started without an answer (change them if you want otherwise):
+
 1. Markdown lists and indents inside a section: the plan uses the indentation there. Should a list item's own
    paragraphs (indented under it) count, or only the list items?
 2. Alt+PgUp with the cursor inside a block, not on its first line (cursor on line 9, block 7-14): the plan goes to the
@@ -105,4 +107,13 @@ plan 31.
 
 ## 5. Resolved during execution
 
-None yet.
+| Topic | As built |
+|---|---|
+| Where the blocks come from | From the text, not from CodeMirror's fold ranges: those need an editor (its tokens), and the preview of a file has none. A pack with `fold: markdown` (markdown, and plain text, which uses that pack): headings as levels, the text under a heading one deeper, a fence's lines deeper than the fence and its end line closing it. Every other language: the indentation with the language's tab stops, and closing lines. Code that is not indented (minified JSON) has no blocks. |
+| Closing lines | Only closing brackets (with `;` `,` after them), a line starting with `end`, `fi`, `done`, `esac`, or a closing tag. `} else {` is not one: it is the next block's line. |
+| The cursor's block | The block a line opens, the block a closing line closes, else the block around the line. A block that is the whole file (JSON's outer braces, a markdown file under one `#` heading) counts as none: Alt+PgDn goes to the next block below, Alt+PgUp to the one above. |
+| Markdown list items | Open question 1 as proposed: by indentation. An item is a block only when lines are indented under it; from a plain item Alt+PgDn goes out to the next section (the plan's test "a list item to the next item" holds for items with nested lines only). |
+| Alt+PgUp inside a block | Open question 2 as proposed: the prior block (from line 9 of the example: line 3), not the start of the current one first. |
+| No block before | Alt+PgUp from the first block under a parent that is the whole file stays, with a toast (from `## Second` under the only `#` heading: no move to it). |
+| Keys and menu | `Alt+PgDn` / `Alt+PgUp` in keys.json; Edit > Next block, Previous block after the section entries. The action takes the preview (`preview: true`, plan 31): with the focus there it moves the preview's cursor, past markdown's marks on the target line (a heading's `## `), Shift ignored. |
+| Tests | t32 in the debug build over the debugging port: every line of 3.2 and 3.3 of the example file both ways, the whole-file case, the cursor at the text start, Shift, position back, Python (nested methods, out of a class, the last function staying), indented plain text, markdown (a paragraph, a list item, a fence, a heading up), the preview (to a heading past its marks, in view, back up, Shift ignored). All pass; plan 31's t31 passes again with it. |

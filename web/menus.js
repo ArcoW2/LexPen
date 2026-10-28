@@ -38,7 +38,7 @@ const MENUS = [
       ['&Previous occurrence', 'cursorPrevious'], ['&Remove occurrence', 'cursorRemove'], ['&Clear added cursors', 'cursorClear']] },
     { label: 'Line comman&ds', sub: [['&Duplicate lines', 'duplicateLines'], ['Move lines &up', 'moveLinesUp'], ['Move lines do&wn', 'moveLinesDown'],
       ['De&lete lines', 'deleteLines'], ['&Join lines', 'joinLines']] }, '-',
-    ['Next secti&on', 'section', 1], ['Pre&vious section', 'section', -1], '-',
+    ['Next secti&on', 'section', 1], ['Pre&vious section', 'section', -1], ['Ne&xt block', 'block.next', 1], ['Previous block', 'block.next', -1], '-',
     { label: '&Go to bookmark', fill: () => loadEditor().then(() => bookmarkItems('go')) },   // bookmarks.js comes with the editor
     { label: 'Store &bookmark', fill: () => loadEditor().then(() => bookmarkItems('store')) },
     ['&Next bookmark', 'bookmarkNext', 1], ['Previous boo&kmark', 'bookmarkNext', -1], '-',

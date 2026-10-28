@@ -74,7 +74,7 @@ function pcDomOf(tab) {
   if (!pos) return null;
   const text = docText(tab.doc), o = pcOffsetOf(text, pos);
   // The character at it, else the one before it (a line's end).
-  const on = previewRangesOf(tab, o, o + 1)[0], before = !on && o > 0 ? previewRangesOf(tab, o - 1, o)[0] : null;
+  const on = previewRangesOf(tab, o, o + 1)[0], before = !on && pos.ch > 0 ? previewRangesOf(tab, o - 1, o)[0] : null;
   let at = on ? { node: on.startContainer, offset: on.startOffset } : before ? { node: before.endContainer, offset: before.endOffset } : null;
   if (!at) { const block = previewBlockAt(tab, pos.line); at = block && pcText(block, 0); }   // made up by markdown: its block
   at = at && pcText(at.node, at.offset);

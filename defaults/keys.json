@@ -127,6 +127,8 @@
   "Ctrl+K, N": ["bookmarkNext", 1],
   "Ctrl+K, P": ["bookmarkNext", -1],
   "Ctrl+K, L": "bookmarkList",
+  "Alt+PgDn": ["block.next", 1],     // the next block at the cursor's level (its indentation; in markdown its heading)
+  "Alt+PgUp": ["block.next", -1],
 
   // ---------- Format (what they do depends on the language of the file) ----------
   "Ctrl+/": "toggleComment",

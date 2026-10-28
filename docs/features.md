@@ -182,6 +182,10 @@ every action with its key.
   WordStar and Delphi; Ctrl+K, K / N / P / L for unnumbered ones, next, previous and the list. They follow
   inserted and removed lines, and are found again by their line text when the file changed outside LexPen.
   They work in the preview too, at the preview's cursor, and the preview shows them at the far left of its text.
+- **Next / previous block**: Alt+PgDn goes to the next block at the cursor's level, Alt+PgUp to the start of the
+  previous one; with none left at that level, a level out. A block is a line with the lines indented under it (and
+  its closing `}`); in markdown a heading with its section. With Shift it selects; in the preview it moves the
+  preview's cursor.
 - **The preview's cursor**: every preview has a cursor of its own, beside the editor's. A single click places it
   (a double click still moves the editor's cursor), and the arrows, Ctrl+Left / Ctrl+Right, Home / End,
   Ctrl+Home / Ctrl+End and PgUp / PgDn move it, the view following. It starts at the top of the view when the
