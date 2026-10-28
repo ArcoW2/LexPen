@@ -1086,6 +1086,12 @@ body[data-folder-compare] .mm-folder-view > .mm-tree-head, body[data-folder-comp
 .mm-pcursor-layer { position: relative; height: 0; pointer-events: none; }
 .mm-pcursor, .mm-pcursor-line { position: absolute; left: 0; width: 4px; background: var(--select); }
 .mm-pcursor-line { background: var(--accent); }   /* the cursor line itself in that block: more pronounced */
+/* The preview's own cursor and its bookmarks (previewcursor.js): the caret dimmed while the preview has no focus; the
+   bookmarks at the far left of the text, right of the editor's cursor bar. */
+.mm-pcaret-layer { position: relative; height: 0; pointer-events: none; }
+.mm-pcaret { position: absolute; width: 0; border-left: 2px solid var(--accent); }
+.mm-preview-pane:not(:focus-within) .mm-pcaret { opacity: .35; }
+.mm-pbm { position: absolute; left: 4px; margin-left: 2px; }
 
 /* Highlights (highlights.js): in the editor the look of Editor view > Highlight (as the compare's mirrored selection);
    an adjusted one (its text changed outside LexPen) dotted until kept; a note's sign at its end. The preview's look is

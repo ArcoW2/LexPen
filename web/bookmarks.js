@@ -2,7 +2,8 @@
 // Bookmarks: numbered 1 to 9 and unnumbered ones, per file, at a line and column. They are CodeMirror
 // bookmarks on the document's own Doc, shared with the tabs' linked Docs, so they follow inserted and
 // removed text (a line inserted above moves them down, one removed above moves them up). While a file is
-// closed the host keeps them (BookmarkStore.cs). Editor only. Loaded with the editor.
+// closed the host keeps them (BookmarkStore.cs). In the editor, and in the preview at the preview's cursor
+// (previewcursor.js, docs/plans/executed/PLAN-preview-bookmarks.md): each action's `preview` says which. Loaded with the editor.
 
 const BM_GUTTER = 'mm-bookmarks';
 const Pos5 = CodeMirror.Pos;
@@ -88,27 +89,35 @@ function paintBookmarks(pane) {
 
 function repaintBookmarks(doc) {
   for (const pane of panes) if (pane.active?.doc === doc && pane.cm && pane.el.dataset.mode !== 'preview') paintBookmarks(pane);
+  markPreviewCursors();   // the previews draw them beside their lines (previewcursor.js)
+  schedulePreviewOverviews();
 }
 
 // ---------- What the actions do ----------
-const cursorOf = pane => pane.cm.getCursor('head');
+// The editor's cursor, or the preview's (`preview`), as a place in the text.
+function cursorOf(pane, preview) {
+  if (!preview) return pane.cm.getCursor('head');
+  const doc = pane.active.doc, at = ensurePreviewCursor(pane) ?? { line: 0, ch: 0 };
+  const line = Math.min(at.line, doc.cmDoc.lastLine());
+  return Pos5(line, Math.min(at.ch, doc.cmDoc.getLine(line).length));
+}
 
-async function storeBookmark(pane, n) {
+async function storeBookmark(pane, n, preview) {
   const doc = pane.active.doc;
   await loadBookmarks(doc);
   doc.marks[n]?.clear();
-  doc.marks[n] = doc.cmDoc.setBookmark(cursorOf(pane), { insertLeft: true, shared: true });
+  doc.marks[n] = doc.cmDoc.setBookmark(cursorOf(pane, preview), { insertLeft: true, shared: true });
   repaintBookmarks(doc);
   saveBookmarks(doc);
 }
 
 // Looks at the line only: bookmark n on the cursor line goes, wherever its column; else it is stored here.
-async function toggleBookmark(pane, n) {
+async function toggleBookmark(pane, n, preview) {
   const doc = pane.active.doc;
   await loadBookmarks(doc);
   const pos = markerPos(doc.marks[n]);
-  if (pos && pos.line === cursorOf(pane).line) return clearBookmark(pane, n);
-  return storeBookmark(pane, n);
+  if (pos && pos.line === cursorOf(pane, preview).line) return clearBookmark(pane, n);
+  return storeBookmark(pane, n, preview);
 }
 
 async function clearBookmark(pane, n) {
@@ -121,9 +130,11 @@ async function clearBookmark(pane, n) {
   saveBookmarks(doc);
 }
 
-async function toggleFreeBookmark(pane, line = cursorOf(pane).line, ch = cursorOf(pane).ch) {
+async function toggleFreeBookmark(pane, line, ch, preview) {
   const doc = pane.active.doc;
   await loadBookmarks(doc);
+  line ??= cursorOf(pane, preview).line;
+  ch ??= cursorOf(pane, preview).ch;
   const here = doc.marks.free.find(m => markerPos(m)?.line === line);
   if (here) {
     here.clear();
@@ -133,38 +144,39 @@ async function toggleFreeBookmark(pane, line = cursorOf(pane).line, ch = cursorO
   saveBookmarks(doc);
 }
 
-// Puts the cursor at pos; `extend`: selects from where it was.
-function moveTo(pane, pos, extend) {
+// Puts the cursor at pos; `extend`: selects from where it was. The preview's cursor: there, in view (no selection).
+function moveTo(pane, pos, extend, preview) {
+  if (preview) return previewCursorTo(pane, pos);
   const cm = pane.cm;
   if (extend) cm.setSelection(cm.getCursor('anchor'), pos); else cm.setCursor(pos);
   revealFound(cm, pos);
   cm.focus();
 }
 
-async function goToBookmark(pane, n, extend) {
+async function goToBookmark(pane, n, extend, preview) {
   await loadBookmarks(pane.active.doc);
   const pos = markerPos(pane.active.doc.marks[n]);
   if (!pos) return toast(`Bookmark ${n} is not set in this file.`);
-  moveTo(pane, pos, extend);
+  moveTo(pane, pos, extend, preview);
 }
 
 // The next (dir 1) or previous (-1) bookmark of any kind, around to the first / last at the end.
-async function nextBookmark(pane, dir, extend) {
+async function nextBookmark(pane, dir, extend, preview) {
   const doc = pane.active.doc;
   await loadBookmarks(doc);
   const list = bookmarkList(doc);
   if (!list.length) return toast('This file has no bookmarks.');
-  const here = cursorOf(pane), after = b => b.line > here.line || (b.line === here.line && b.ch > here.ch);
+  const here = cursorOf(pane, preview), after = b => b.line > here.line || (b.line === here.line && b.ch > here.ch);
   const before = b => b.line < here.line || (b.line === here.line && b.ch < here.ch);
   const target = dir > 0 ? list.find(after) ?? list[0] : list.findLast(before) ?? list.at(-1);
-  moveTo(pane, Pos5(target.line, target.ch), extend);
+  moveTo(pane, Pos5(target.line, target.ch), extend, preview);
 }
 
 // ---------- Lists: Edit > Go to / Store bookmark, and Ctrl+K, L ----------
 const bookmarkText = b => `${b.line + 1}:${b.ch + 1}  ${b.text.slice(b.ch).trim().slice(0, 50)}`;
 
 async function bookmarkItems(kind) {
-  const pane = editorPane();
+  const pane = previewOrEditor()?.pane;   // actions.js
   if (!pane) return [];
   await loadBookmarks(pane.active.doc);
   const list = bookmarkList(pane.active.doc);
@@ -175,12 +187,12 @@ async function bookmarkItems(kind) {
   });
 }
 
-async function showBookmarkList(pane) {
+async function showBookmarkList(pane, preview) {
   await loadBookmarks(pane.active.doc);
   const list = bookmarkList(pane.active.doc);
   if (!list.length) return toast('This file has no bookmarks.');
-  const at = pane.cm.cursorCoords(null, 'window');
+  const at = preview ? previewCursorCoords(pane) : pane.cm.cursorCoords(null, 'window');
   openPopupMenu(list.map(b => ({
-    label: b.n ? `Bookmark &${b.n}` : 'Bookmark', key: bookmarkText(b), run: () => moveTo(pane, Pos5(b.line, b.ch), false),
+    label: b.n ? `Bookmark &${b.n}` : 'Bookmark', key: bookmarkText(b), run: () => moveTo(pane, Pos5(b.line, b.ch), false, preview),
   })), at.left, at.top);
 }

@@ -181,6 +181,11 @@ every action with its key.
   Ctrl+1, 1 (or Ctrl+1, Ctrl+1) goes there, Ctrl+1, T toggles, Ctrl+1, C clears; Ctrl+K, 1 and Ctrl+Q, 1 as in
   WordStar and Delphi; Ctrl+K, K / N / P / L for unnumbered ones, next, previous and the list. They follow
   inserted and removed lines, and are found again by their line text when the file changed outside LexPen.
+  They work in the preview too, at the preview's cursor, and the preview shows them at the far left of its text.
+- **The preview's cursor**: every preview has a cursor of its own, beside the editor's. A single click places it
+  (a double click still moves the editor's cursor), and the arrows, Ctrl+Left / Ctrl+Right, Home / End,
+  Ctrl+Home / Ctrl+End and PgUp / PgDn move it, the view following. It starts at the top of the view when the
+  preview opens. With the focus in the preview, the bookmark keys work at it, also with the editor beside it.
 - **Highlights**: select text in the editor or the preview and Highlight it (Ctrl+F8, Edit > Highlights, or the
   right-click), as with a highlighter pen; any kind of file. A highlight belongs to the document: every editor and
   preview of it shows it, and it moves with your edits. Ctrl+F8 on a highlight with nothing selected removes it;

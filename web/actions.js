@@ -48,7 +48,7 @@ function actionTitle(name, params = []) {
 // need comment markers); editor actions need an editor.
 function actionAvailable(name, params = []) {
   const app = appActions.get(name);
-  if (app) return app.enabled ? !!app.enabled(params) : !app.editor || !!editorPane();
+  if (app) return app.enabled ? !!app.enabled(params) : app.preview ? !!previewOrEditor() : !app.editor || !!editorPane();
   const doc = activeDoc(), def = langDef(doc, name);
   if (!def || !editorPane()) return false;
   if (COMMENT_COMMANDS.includes(def.command)) return !!commentMarkers(doc)[def.command === 'toggleComment' ? 'any' : 'block'];
@@ -65,6 +65,26 @@ function editorPane(ctx = {}) {
   return pane;
 }
 
+// Where an action that works in the preview too (the bookmarks, plan 31) works: { pane, preview }. From a key: the
+// editor that has the focus, else the preview that has it (at the preview's cursor). From a menu, the format bar or
+// F1: the active pane, the part of its tab that had the focus last (preview only: the preview).
+function previewOrEditor(ctx = {}) {
+  if (ctx.from === 'key') {
+    const editor = editorPane(ctx);
+    if (editor) return { pane: editor, preview: false };
+    const pane = panes.find(p => p.active && p.active.mode !== 'edit' && !p.el.hidden && p.previewEl.contains(document.activeElement));
+    return pane ? { pane, preview: true } : null;
+  }
+  const pane = panes[state.activePane], tab = pane.active;
+  if (!tab) return null;
+  if (tab.mode === 'preview' || (tab.mode === 'split' && tab.focusPart === 'preview')) {
+    if (ctx.from) pane.previewEl.focus({ preventScroll: true });
+    return { pane, preview: true };
+  }
+  const editor = editorPane(ctx);
+  return editor ? { pane: editor, preview: false } : null;
+}
+
 // A key typed in a text field outside the editor (find, replace, the search, ...): an editor action leaves it to
 // the field, so Ctrl+V pastes there, Ctrl+C copies from it, Ctrl+Z undoes in it.
 const inTextField = ctx => ctx.from === 'key' && !!document.activeElement?.matches('input, textarea, [contenteditable]:not([contenteditable=false])')
@@ -76,6 +96,11 @@ function runAction(name, params = [], ctx = {}) {
   lastAction = name;
   const app = appActions.get(name);
   if (app) {
+    if (app.preview) {
+      const at = previewOrEditor(ctx);
+      if (at) return app.run(params, { ...ctx, ...at });
+      return inTextField(ctx) ? PASS : undefined;
+    }
     if (app.editor) {
       const pane = editorPane(ctx);
       if (pane) return app.run(params, { ...ctx, pane });
@@ -812,18 +837,20 @@ function settingDefs() {
 
 // ---------- Bookmarks (bookmarks.js) ----------
 const bookmarkNumbers = Array.from({ length: 9 }, (_, i) => [i + 1]);
+// preview: in the preview too, at its cursor (plan 31). bookmarks.js comes with the editor library: loaded for it.
+const withBookmarks = run => (params, ctx) => loadEditor().then(() => run(params, ctx));
 appAction('bookmarkStore', { title: 'Store bookmark', hint: 'At the cursor; moves it there when it is elsewhere', group: 'bookmarks',
-  editor: true, variants: bookmarkNumbers, run: ([n], { pane }) => storeBookmark(pane, n) });
+  preview: true, variants: bookmarkNumbers, run: withBookmarks(([n], { pane, preview }) => storeBookmark(pane, n, preview)) });
 appAction('bookmarkToggle', { title: 'Toggle bookmark', hint: 'On the cursor line: removed; else stored at the cursor', group: 'bookmarks',
-  editor: true, variants: bookmarkNumbers, run: ([n], { pane }) => toggleBookmark(pane, n) });
+  preview: true, variants: bookmarkNumbers, run: withBookmarks(([n], { pane, preview }) => toggleBookmark(pane, n, preview)) });
 appAction('bookmarkClear', { title: 'Clear bookmark', hint: 'Wherever it is in this file', group: 'bookmarks',
-  editor: true, variants: bookmarkNumbers, run: ([n], { pane }) => clearBookmark(pane, n) });
-appAction('bookmarkGo', { title: 'Go to bookmark', hint: 'Line and column; with Shift: select to it', group: 'bookmarks',
-  editor: true, move: true, variants: bookmarkNumbers, run: ([n], { pane, extend }) => goToBookmark(pane, n, extend) });
+  preview: true, variants: bookmarkNumbers, run: withBookmarks(([n], { pane }) => clearBookmark(pane, n)) });
+appAction('bookmarkGo', { title: 'Go to bookmark', hint: 'Line and column; with Shift: select to it (not in the preview)', group: 'bookmarks',
+  preview: true, move: true, variants: bookmarkNumbers, run: withBookmarks(([n], { pane, extend, preview }) => goToBookmark(pane, n, extend, preview)) });
 appAction('bookmarkToggleFree', { title: 'Toggle unnumbered bookmark', hint: 'On the cursor line (also a click in the bookmark gutter)', group: 'bookmarks',
-  editor: true, run: (_, { pane }) => toggleFreeBookmark(pane) });
-appAction('bookmarkNext', { title: 'Bookmark', hint: 'Numbered or not; with Shift: select to it', group: 'bookmarks', editor: true, move: true,
-  variants: [[1], [-1]], variantTitles: { 1: 'Next bookmark', '-1': 'Previous bookmark' }, run: ([dir], { pane, extend }) => nextBookmark(pane, dir, extend) });
+  preview: true, run: withBookmarks((_, { pane, preview }) => toggleFreeBookmark(pane, undefined, undefined, preview)) });
+appAction('bookmarkNext', { title: 'Bookmark', hint: 'Numbered or not; with Shift: select to it (not in the preview)', group: 'bookmarks', preview: true, move: true,
+  variants: [[1], [-1]], variantTitles: { 1: 'Next bookmark', '-1': 'Previous bookmark' }, run: withBookmarks(([dir], { pane, extend, preview }) => nextBookmark(pane, dir, extend, preview)) });
 // Highlights (highlights.js, docs/plans/executed/PLAN-highlights.md): in the editor and in the preview, the pane in use.
 const hlPane = () => panes[state.activePane];
 appAction('highlight.toggle', { title: 'Highlight', hint: 'The selection gets a highlight; nothing selected, the cursor in a highlight: that one removed', group: 'highlights',
@@ -845,7 +872,7 @@ appAction('highlight.list', { title: 'Highlights window', hint: 'A window with t
 appAction('highlight.moveAll', { title: 'Move all highlights to where the setting says', hint: 'Files > Highlights: into LexPen\'s store, or next to their files (.lph)', group: 'highlights',
   run: async () => { const n = await host('highlightsMoveAll', { beside: setting('highlightsStore') === 'beside' }); toast(`The highlights of ${n} file${n === 1 ? '' : 's'} moved.`, true); } });
 appAction('bookmarkList', { title: 'Bookmarks of this file', hint: 'A list to choose from', group: 'bookmarks',
-  editor: true, run: (_, { pane }) => showBookmarkList(pane) });
+  preview: true, run: withBookmarks((_, { pane, preview }) => showBookmarkList(pane, preview)) });
 
 // ---------- The gutter (gutter.js): View > Gutter ----------
 appAction('lineEnd.set', { title: 'Line ends', hint: "The file's line ends, written at the next save (also a click on CRLF / LF in the bottom bar)", group: 'edit',

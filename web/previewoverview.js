@@ -59,8 +59,8 @@ function pvMarks(pane) {
   const editor = tab.mode === 'split' ? pane : panes.find(p => p !== pane && p.active?.doc === doc && p.active.mode !== 'preview' && !p.el.hidden);
   if (pvKind('changes')) for (const h of editor?.changeHunks ?? []) add('changes', ofLine(h.bFrom), h.bFrom);
   if (pvKind('git')) for (const h of editor?.gitHunks ?? []) add('git', ofLine(h.bFrom), h.bFrom);
-  if (pvKind('bookmarks') && typeof bookmarkList === 'function' && doc.marks)
-    for (const { line } of bookmarkList(doc)) add('bookmarks', ofLine(line), line);
+  if (pvKind('bookmarks') && typeof previewBookmarkList === 'function')   // previewcursor.js: also before an editor has them
+    for (const { line } of previewBookmarkList(doc)) add('bookmarks', ofLine(line), line);
   if (pvKind('highlights') && doc.hls) {
     const text = docText(doc);
     for (const h of doc.hls.list) {

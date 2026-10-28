@@ -1570,6 +1570,8 @@ async function setMode(mode) {
   const pane = panes[state.activePane], tab = pane.active;
   if (!tab) return;
   if (tab.mode === 'preview') tab.previewTop = pane.previewEl.scrollTop;
+  // The preview opens: its cursor starts at the top of the view again (previewcursor.js).
+  if (tab.mode === 'edit' && mode !== 'edit' && typeof resetPreviewCursor === 'function') resetPreviewCursor(tab);
   tab.mode = mode;
   await showActive(pane);
   if (mode !== 'preview') pane.cm.focus();

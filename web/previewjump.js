@@ -284,6 +284,9 @@ function markPreviewCursors(reveal = false) {
     const keep = markPreviewCursors.reveal;
     markPreviewCursors.frame = 0;
     markPreviewCursors.reveal = false;
-    for (const pane of panes) markPreviewCursor(pane, keep);
+    for (const pane of panes) {
+      markPreviewCursor(pane, keep);
+      if (typeof drawPreviewCaret === 'function') drawPreviewCaret(pane);   // the preview's own cursor and its bookmarks (previewcursor.js)
+    }
   });
 }
