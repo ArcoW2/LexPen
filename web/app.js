@@ -840,6 +840,8 @@ async function ensureEditor(pane) {
     scheduleGutter(pane);
   });
   if (typeof setupOccurrences === 'function') setupOccurrences(pane);   // occurrences.js: edits, double click, selection
+  if (typeof setupMacroRecording === 'function') setupMacroRecording(pane);   // macros.js: typing, keys, clicks
+  if (typeof setupMacroEditor === 'function') setupMacroEditor(pane);   // macros.js: a macro's tab checked as you type
   pane.cm.on('cursorActivity', () => {
     updateInnerBar(pane);   // the inner language's bar (format.js)
     markOutline(pane);   // the outline's entry at the cursor
@@ -1606,6 +1608,7 @@ let tabWalk = null;      // { list, at } while Ctrl is held
 
 function noteActive(tab) {
   if (tabWalk) return;
+  if (typeof recordActive === 'function') recordActive(tab);   // a macro being recorded: show "name" (macros.js)
   const at = recentTabs.indexOf(tab.id);
   if (at >= 0) recentTabs.splice(at, 1);
   recentTabs.unshift(tab.id);

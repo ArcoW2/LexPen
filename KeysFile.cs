@@ -146,4 +146,55 @@ static class KeysFile
         merged["order"] = new JsonArray(merged["keys"]!.AsObject().Select(k => (JsonNode?)k.Key).ToArray());
         return merged;
     }
+
+    // Where a line's code ends: before a // comment that is not inside a string.
+    static int CodeEnd(string text, int from)
+    {
+        var inString = false;
+        for (var i = from; i < text.Length; i++)
+        {
+            if (text[i] == '"' && (i == 0 || text[i - 1] != '\\')) inString = !inString;
+            else if (!inString && text[i] == '/' && i + 1 < text.Length && text[i + 1] == '/') return i;
+        }
+        return text.Length;
+    }
+
+    /// <summary>A key for a macro (plan 17, Manage > Key...): "key": ["macroRun", "name"] added at the end of your
+    /// keys.json, its text and comments kept (made when there is none). Gives the key as LexPen spells it, or the
+    /// reason it was not added.</summary>
+    public static JsonObject AddMacroKey(string dataDir, string key, string macro)
+    {
+        if (Normalize(key) is not string spelled) return new JsonObject { ["error"] = $"\"{key}\" is not a key (as Ctrl+Alt+1, or Ctrl+K, M)" };
+        var path = Path.Combine(dataDir, Name);
+        static string Quoted(string s) => "\"" + s.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";   // a + as it is
+        var entry = $"  {Quoted(spelled)}: [\"macroRun\", {Quoted(macro)}],";
+        string text;
+        if (!File.Exists(path)) text = "{\n" + entry + "\n}\n";
+        else
+        {
+            text = File.ReadAllText(path);
+            // A key that is in the file already: changed there, not added a second time (that file would not read).
+            try
+            {
+                if (JsonNode.Parse(text, documentOptions: Options) is JsonObject entries && entries.Any(e => Normalize(e.Key) == spelled))
+                    return new JsonObject { ["error"] = $"{spelled} is in your keys.json already: change it there" };
+            }
+            catch (Exception ex) when (ex is JsonException or ArgumentException)
+            {
+                return new JsonObject { ["error"] = $"your keys.json does not read: {ex.Message}" };
+            }
+            var end = text.LastIndexOf('}');
+            if (end < 0) return new JsonObject { ["error"] = "your keys.json has no closing }" };
+            // The comma the entry before it needs goes after that entry, before a // comment at its line's end.
+            var before = text[..end].TrimEnd();
+            var lineStart = before.LastIndexOf('\n') + 1;
+            var code = CodeEnd(before, lineStart);
+            var last = before[..code].TrimEnd();
+            if (!last.EndsWith('{') && !last.EndsWith(',')) before = last + "," + before[last.Length..];
+            text = before + "\n" + entry + "\n" + text[end..];
+        }
+        Directory.CreateDirectory(dataDir);
+        File.WriteAllText(path, text);
+        return new JsonObject { ["key"] = spelled };
+    }
 }

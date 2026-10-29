@@ -541,6 +541,30 @@ every action with its key.
   sets... makes, duplicates, renames and deletes sets, and chooses one for this project, this desktop or the app.
 - **Day / night theme** (View menu), remembered together with the window position.
 
+## Macros
+
+- **Record and play** (View > Macros): Record (Ctrl+Shift+M; a Stop recording button shows in the menu bar)
+  writes what you do as a macro: typing, the editor's keys, clicks, finds and replaces, actions from keys and menus,
+  a switch to another document. Play (Ctrl+M) plays it once; also X times or to the end of the file. One undo step
+  per document undoes a whole play; Esc stops one.
+- **A macro is a small script** in a LexPen tab (`.lpm`): one step per line, each an action (any key or menu item)
+  or a statement: `if` / `elseif` / `else`, `switch`, labels with `goto` and `gosub`, variables (numbers keep their
+  formatting: `012` + 2 is `014`; types `:int`, `:float`, `:text` with their separators), procedures and functions
+  of your own, shared between macros with `use`. System variables (`$$found`, `$$eof`, `$$lineText`, `$$wrap`, ...)
+  tell what happened and where the cursor is; every switch has its on and off (`wrap.on`, `wrap.off`). `show`,
+  `new` and `show recent` move between documents, to collect text in one from another.
+- **Stored by name** in `macros\` of the data folder; Manage... plays, opens, renames and deletes them, gives one a
+  key (in your keys.json), and adds the next recording to the end of one or at the cursor in its tab. F1 and View >
+  Macros list them.
+- **The macro editor**: a bar with Action..., Statement... (a whole block, the cursor at its first gap) and
+  Variable..., Check, Run and Step; completion of actions, statements and `$$` names; mistakes underlined while
+  you type (a missing `endif`, an unknown system variable), their line numbers marked; the hint of a word under the
+  mouse; F1 on a word opens its entry in the language reference (?). A macro played from its own tab works on the
+  document in the other pane.
+- **Step by step** (F10): the macro's line marked, a panel under it with its variables and the system ones; Step
+  into (F11) goes into a gosub or a call, Continue (F5) runs to a breakpoint (a click on a line number, F9), Stop
+  (Shift+F5). A macro that runs on without the text or the cursor changing asks whether to stop it.
+
 ## Settings, keys and menus
 
 - **The first click on a window that is not in front** only brings it to the front: it does not move the cursor,

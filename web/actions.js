@@ -10,7 +10,7 @@ const PASS = Symbol('pass');   // returned by an action that does not apply here
 // F1 shows the actions in these groups, in this order.
 const ACTION_GROUPS = [
   ['files', 'Files'], ['tabs', 'Tabs and documents'], ['view', 'View'], ['edit', 'Edit and find'],
-  ['clipboard', 'Clipboards'], ['bookmarks', 'Bookmarks'], ['highlights', 'Highlights'], ['format', 'Format'], ['settings', 'Settings'],
+  ['clipboard', 'Clipboards'], ['bookmarks', 'Bookmarks'], ['highlights', 'Highlights'], ['macros', 'Macros'], ['format', 'Format'], ['settings', 'Settings'],
 ];
 
 // ---------- App actions ----------
@@ -94,6 +94,7 @@ let lastAction = null;   // the last action run, for the stall log (app.js)
 
 function runAction(name, params = [], ctx = {}) {
   lastAction = name;
+  if (typeof recordAction === 'function') recordAction(name, params, ctx);   // a macro being recorded (macros.js)
   const app = appActions.get(name);
   if (app) {
     if (app.preview) {
@@ -317,6 +318,8 @@ appAction('goToLine', { title: 'Go to line', hint: 'A line number, or line:colum
     cm.focus();
   } });
 // Select inside brackets (brackets.js): what lies between the pair or word set at the cursor. No key.
+appAction('selectLine', { title: 'Select line', hint: 'The text of the cursor line, without its line break (a macro copies the line alone with it)', group: 'edit', editor: true,
+  run: (_, { pane }) => { const cm = pane.cm, l = cm.getCursor().line; cm.setSelection({ line: l, ch: 0 }, { line: l, ch: cm.getLine(l).length }); } });
 appAction('selectInsideBrackets', { title: 'Select inside brackets', hint: 'Between the pair the highlight shows: ( ), begin ... end, a string', group: 'edit', editor: true,
   run: (_, { pane }) => { selectInsideBrackets(pane.cm); pane.cm.focus(); } });
 // The opener / closer of that pair: the cursor before the opener or after the closer, so the next press goes on to

@@ -1,0 +1,14 @@
+# The macro bar (macros.js, plan 17 3.9): insert an action, a statement or a variable; check, run, step; the reference.
+- { action: macro.pickAction, label: 'Action...', letter: a }
+- { action: macro.pickStatement, label: 'Statement...', letter: s }
+- { action: macro.pickVariable, label: 'Variable...', letter: v }
+- '-'
+- { action: macro.check, label: Check, letter: c }
+- { action: macro.runThis, label: Run, letter: r }
+- { action: macro.stepThis, label: Step, letter: t }
+- '-'
+- { action: macro.reference, label: '?', letter: h }
+- '-'
+- { action: toggleComment, icon: comment }
+- { action: indent, icon: indent }
+- { action: outdent, icon: outdent }

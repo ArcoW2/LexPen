@@ -57,6 +57,7 @@ const MENUS = [
     { header: 'This window' },
     ['&Editor', 'editor.toggle'], ['&Preview', 'preview.toggle'], ['&Outline', 'outline.toggle'],
     ['S&idebar', 'sidebar.toggle'], ['&Folders', 'folders'], ['&Search', 'searchView'],
+    { label: '&Macros', fill: () => macroMenuItems() },   // macros.js
     ['R&uler', 'ruler.toggle'], ['For&matting bar', 'formatBar.toggle'], ['&Wrap long lines', 'wrap.toggle'],
     { label: 'Tab ba&r', sub: [['One row that &scrolls', 'tabBar.set', 'scroll'], ['One row, a &menu for the rest', 'tabBar.set', 'menu'],
       ['Several &rows', 'tabBar.set', 'rows']] },

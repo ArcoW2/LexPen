@@ -1,7 +1,7 @@
 # Plan: Macros: record, edit, debug and play
 
-Status: draft 2026-10-21, reworked 2026-10-29 with your answers; not started. From the list "what UltraEdit or Visual
-Studio has and LexPen does not".
+Status: executed 2026-10-29 (web/macrolang.js, web/macros.js, MacroStore.cs; in-app tests t17a to t17h). From the
+list "what UltraEdit or Visual Studio has and LexPen does not".
 The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
@@ -366,4 +366,20 @@ None.
 
 ## 5. Resolved during execution
 
-None yet.
+| Topic | As built |
+|---|---|
+| Where the code is | `web/macrolang.js`: the language (reading, checking, running against an environment; nothing of LexPen in it). `web/macros.js`: the environment (`macroEnv`), playing, recording, stored macros, View > Macros and Manage, the macro editor's help, step by step. `MacroStore.cs`: the files; `KeysFile.AddMacroKey`: a key for one. `defaults/languages/macro`: the language pack and the macro bar; `defaults/macros/reference.md`: the reference. |
+| Files | `macros\<name>.lpm` in the data folder; the last recording is `~last.lpm` there. A name that cannot be a file name is refused with the reason. |
+| Actions and keys | `macro.play` (Ctrl+M), `macro.record` (Ctrl+Shift+M), `macro.playTimes`, `macro.playToEnd`, `macro.manage`, `macroRun` with a macro's name (F1 lists one per macro). In a macro's tab: `macro.pickAction`, `macro.pickStatement`, `macro.pickVariable`, `macro.check`, `macro.runThis`, `macro.reference`; step by step `macro.stepThis` (F10), `macro.stepInto` (F11), `macro.continue` (F5), `macro.stopDebug` (Shift+F5), `macro.breakpoint` (F9). |
+| Which document | A macro played from its own tab (Play, Run, Step) works on the document in the other pane; without one there, Run and Step say so. |
+| Recording | Typed text as one `type` per run (the bracket helper's closing character kept as typed); the editor's own keys as `editorKey "Down"` (played through CodeMirror's key handling); a click as `moveto line, column` (on the same line `moveto column n`); the find bar's finds and replaces; actions from keys and menus with their values; a switch to another document as `show`. |
+| Find and replace | From the cursor, never round the end of the file (a macro tests `$$found`). |
+| Switches (3.2a) | Every switch action without values has its two (`wrap.on` / `wrap.off`, `ruler.show` / `ruler.hide`, `theme.night` / `theme.day`) and its `$$` state; checked over the action list and each one driven by a macro (t17e). The switches with a value (`gutterColumn.toggle`, `overviewMark.toggle`) have show / hide with their value, but no `$$` state: a variable takes no value. `highlight.toggle` is an action, not a switch: no `$$highlight`. |
+| One undo step | Per document, by merging the document's history after the play. |
+| Screen off | The editors stay in one CodeMirror operation; a short break now and then lets Esc in. |
+| The guard (3.5) | After 10 seconds in which neither the text nor the cursor of the document it works on changed, it asks (OK stops, Cancel goes on and asks again after another 10 seconds); the time paused step by step does not count. A loop that keeps moving the cursor is not caught by it; Esc stops that one. |
+| Step by step | It stops on the macro's own lines: not on a label, not on the jump at an `else` or `endif`, not inside a macro it `use`s. Step runs a gosub or a call as one step, Step into goes into it. The panel sits under the macro's editor: Variables (a procedure's own marked local, a `ref` marked) and System variables, a changed value marked. Run on a macro with breakpoints runs as step by step with Continue. Breakpoints belong to the tab and move with their lines. |
+| A key for a macro | Added at the end of your keys.json, its text and comments kept (made when there is none); a key that is in it already is refused ("change it there"), as two of one key would make the file unreadable. |
+| The macro editor | Completion knows the actions, the statements, the `$$` names and the labels (as words of the document); it follows the case typed, as in other languages without case. F1 on a word of the language opens its entry in the reference (a preview tab); elsewhere F1 as always. Checking runs after a pause in typing; a structural error (a missing `endif`) is reported alone, the checks of names come once the blocks close. |
+| Tests | The language's own tests (the parser, expressions, types, the runner, validation) run in the page (t17a), as the project has no JavaScript test runner. Unit: `MacroStoreTests` (the store, a key for a macro), the language pack in `LanguagePacksTests`. In-app: t17b (running), t17c (recording, stored macros, keys, Manage), t17d (the macro editor), t17e (switches), t17f (step by step), t17g (the guard), t17h (collect across two panes, Run refused, Check's list, label completion, append and insert with the next recording). |
+| Not built | Indenting after a label or a block `if` (3.7): the language packs have no indent rules, so a new line keeps the indentation of the one before. `if` .. `endif` and `switch` .. `endswitch` as brackets (3.7): the packs have no word pairs; the check reports a block without its end instead. View > &Macros shares its letter with Messages. |

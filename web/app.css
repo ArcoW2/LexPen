@@ -94,6 +94,11 @@ body[data-dirty] .mm-save { visibility: visible; }
 
 /* The menu bar (menus.js) and its menus, placed at the menu title or the item they open from. */
 .mm-menubar { display: flex; margin-left: 4px; }
+/* Recording a macro (macros.js): a clear Stop recording button right of the menus, a red dot before it. */
+.mm-record-stop { display: none; align-items: center; gap: 6px; margin-left: 6px; padding: 2px 10px; font-weight: 600;
+  color: var(--caution); border: 1px solid var(--caution); border-radius: 4px; }
+.mm-record-stop::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--caution); }
+body[data-recording] .mm-record-stop { display: inline-flex; }
 .mm-menutitle { padding: 3px 8px; }
 .mm-menutitle.mm-on { background: var(--active); color: var(--accent); }
 .mm-menu.mm-dropdown { position: fixed; right: auto; top: 0; min-width: 240px; max-height: 80vh; overflow-y: auto; }
@@ -270,6 +275,39 @@ body[data-show-eol] .CodeMirror[data-eol=cr] .CodeMirror-line:not(.mm-last-line)
 .mm-name-dialog input { width: 100%; box-sizing: border-box; padding: 4px 6px; font: inherit; color: var(--fg);
   background: var(--bg); border: 1px solid var(--border); border-radius: 4px; }
 .mm-name-dialog .mm-name-buttons { display: flex; justify-content: flex-end; gap: 6px; margin-top: 12px; }
+/* Macros > Manage (macros.js) */
+.mm-macros-dialog { width: min(560px, 90vw); }
+.mm-macros-dialog .mm-macros-list { width: 100%; font: inherit; color: var(--fg); background: var(--bg-side); border: 1px solid var(--border); }
+.mm-macros-dialog .mm-macros-buttons { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.mm-macros-dialog .mm-name-buttons { display: flex; justify-content: flex-end; margin-top: 12px; }
+.mm-macros-dialog .mm-macros-note { min-height: 1.2em; margin-top: 6px; }
+/* A macro's mistakes as you type (macros.js): underlined, their line numbers marked; the message as a tooltip. */
+.CodeMirror .mm-macro-error { text-decoration: wavy underline var(--caution); text-underline-offset: 3px; }
+.CodeMirror .mm-macro-warning { text-decoration: wavy underline var(--warning); text-underline-offset: 3px; }
+.CodeMirror .mm-macro-error-line .CodeMirror-linenumber { color: var(--caution); font-weight: bold; opacity: 1; }
+.CodeMirror .mm-macro-warning-line .CodeMirror-linenumber { color: var(--warning); opacity: 1; }
+/* The lists of the macro bar (Action..., Statement..., Variable...). */
+.mm-macro-picker { width: min(640px, 92vw); }
+.mm-macro-picker input, .mm-macro-picker select { width: 100%; box-sizing: border-box; font: inherit; color: var(--fg); background: var(--bg-side); border: 1px solid var(--border); }
+.mm-macro-picker input { margin: 6px 0; padding: 4px 6px; }
+.mm-macro-picker .mm-macro-picker-hint { min-height: 2.4em; margin-top: 6px; }
+.mm-macro-picker .mm-name-buttons { display: flex; justify-content: flex-end; gap: 6px; }
+/* Step by step (macros.js): the line it stops at, the breakpoints (a dot by the line number), the panel under the macro. */
+.CodeMirror .mm-macro-current { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+.CodeMirror .mm-macro-break .CodeMirror-linenumber { background: radial-gradient(circle at 7px 50%, var(--caution) 4px, transparent 5px); color: var(--caution); font-weight: bold; opacity: 1; }
+.mm-macro-debug { flex: 0 0 auto; max-height: 40%; overflow: hidden auto; border-top: 1px solid var(--border); background: var(--bg-side); font-size: 12px; }
+.mm-macro-debug-bar { position: sticky; top: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 4px 8px; background: var(--bg-side); white-space: nowrap; }
+.mm-macro-debug-where { font-weight: 600; margin-right: auto; }
+.mm-macro-debug[data-running] .mm-macro-debug-bar button { opacity: .5; pointer-events: none; }
+.mm-macro-debug[data-running] .mm-macro-debug-where::after { content: " (running)"; font-weight: normal; }
+.mm-macro-debug-vars { display: flex; flex-wrap: wrap; gap: 4px 24px; padding: 0 8px 6px; }
+.mm-macro-debug-vars table { border-collapse: collapse; max-width: 100%; }
+.mm-macro-debug-vars td { padding: 1px 8px 1px 0; vertical-align: top; max-width: 30ch; overflow: hidden; text-overflow: ellipsis; white-space: pre; }
+.mm-macro-debug-vars .mm-macro-debug-head { font-weight: 600; padding-top: 4px; }
+.mm-macro-debug-vars .mm-macro-debug-none { opacity: .6; }
+.mm-macro-debug-vars .mm-macro-changed td { color: var(--accent); font-weight: 600; }
+/* A macro running (macros.js): the bottom bar says so. */
+body[data-macro-running] .mm-status { box-shadow: inset 0 2px var(--accent); }
 
 /* The panes: a page with an arrow to where it is, and an eye (struck through: hidden). Grey without documents. */
 .mm-st-panes { display: flex !important; gap: 6px; }

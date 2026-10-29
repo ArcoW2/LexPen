@@ -811,6 +811,45 @@ sealed class MainForm : Form
             case "list":
                 return List(Arg("path"));
 
+            // Macros (MacroStore, plan 17): the named ones, one's text, written, renamed, deleted, its file (to edit it in a
+            // tab), and a key for one added to your keys.json.
+            case "macroList":
+                return new JsonArray(MacroStore.List(AppHost.DataDir).Select(n => (JsonNode?)n).ToArray());
+
+            case "macroRead":
+                return MacroStore.Read(AppHost.DataDir, Arg("name"));
+
+            case "macroWrite":
+                MacroStore.Write(AppHost.DataDir, Arg("name"), Arg("text"));
+                return null;
+
+            case "macroRename":
+                return MacroStore.Rename(AppHost.DataDir, Arg("from"), Arg("to"));
+
+            case "macroDelete":
+                MacroStore.Delete(AppHost.DataDir, Arg("name"));
+                return null;
+
+            case "macroPath":   // `create`: an empty file when there is none yet (New macro, Open)
+            {
+                var path = MacroStore.PathOf(AppHost.DataDir, Arg("name"));
+                if (path is not null && msg["create"]?.GetValue<bool>() == true && !File.Exists(path))
+                {
+                    Directory.CreateDirectory(MacroStore.Dir(AppHost.DataDir));
+                    File.WriteAllText(path, "");
+                }
+                return path;
+            }
+
+            case "macroReference":
+                return AppHost.ShippedFile("macros", "reference.md");
+
+            case "macroNameRefusal":
+                return MacroStore.Refusal(Arg("name"));
+
+            case "macroKey":
+                return KeysFile.AddMacroKey(AppHost.DataDir, Arg("key"), Arg("name"));
+
             // The backups LexPen made (Backups, plan 33): a folder has some (below it too); which to delete; deleted to
             // the Recycle Bin, a file's own or a folder's (with its subfolders or not).
             case "hasBackups":

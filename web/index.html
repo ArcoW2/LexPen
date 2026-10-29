@@ -17,6 +17,7 @@
 <header class="mm-toolbar">
   <button data-action="sidebar.toggle">&#9776;</button>
   <nav class="mm-menubar"></nav>
+  <button data-action="macro.record" class="mm-record-stop" title="Stop recording the macro">Stop recording</button>
   <span class="mm-doc-name"></span>
   <button data-action="save" class="mm-save">Save</button>
   <button data-cmd="orient" class="mm-orient" title="Panes side by side / above each other (also in the divider's right-click menu)"></button>
@@ -239,6 +240,24 @@
   <div class="mm-name-buttons"><button type="button" class="mm-messages-clear">Clear</button><button type="button" class="mm-messages-close">Close</button></div>
 </dialog>
 
+<!-- Macros > Manage (macros.js, plan 17): the stored macros and what to do with one. -->
+<dialog class="mm-about mm-macros-dialog">
+  <h1>Macros</h1>
+  <p>Stored in macros\ of the data folder, one file each. Double-click one to play it.</p>
+  <select class="mm-macros-list" size="10"></select>
+  <p class="mm-macros-note"></p>
+  <div class="mm-macros-buttons">
+    <button type="button" data-macro="play">Play</button><button type="button" data-macro="open">Open</button>
+    <button type="button" data-macro="rename">Rename...</button><button type="button" data-macro="delete">Delete</button>
+    <button type="button" data-macro="key">Key...</button>
+  </div>
+  <div class="mm-macros-buttons">
+    <button type="button" data-macro="new">New macro...</button><button type="button" data-macro="record">New recording</button>
+    <button type="button" data-macro="append">Append with next recording</button><button type="button" data-macro="insert">Insert with next recording</button>
+  </div>
+  <div class="mm-name-buttons"><button type="button" data-macro="close">Close</button></div>
+</dialog>
+
 <!-- A name (a project): askName in app.js. -->
 <dialog class="mm-about mm-name-dialog">
   <form method="dialog">
@@ -302,5 +321,7 @@
 <script src="previewcursor.js"></script>
 <script src="blocks.js"></script>
 <script src="occurrences.js"></script>
+<script src="macrolang.js"></script>
+<script src="macros.js"></script>
 </body>
 </html>

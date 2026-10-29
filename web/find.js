@@ -287,6 +287,7 @@ function findGo(pane, dir, fromOrigin) {
   if (!regex || regex instanceof Error) return;
   const where = findTarget(pane);
   if (!fromOrigin) recordFind(findOf(pane).query, findOf(pane));   // a search done, not one typed (history.js)
+  if (!fromOrigin && typeof recordMacroFind === 'function') recordMacroFind(findOf(pane).query, findOf(pane), dir < 0);   // macros.js
   if (bar.marked !== where + pane.active?.id) refresh(pane, false);   // another tab or mode since the marks
   if (where === 'editor') return goEditor(pane, regex, dir, fromOrigin);
   goPreview(pane, regex, dir, fromOrigin);
@@ -461,6 +462,7 @@ function replaceOne(pane) {
   if (findTarget(pane) !== 'editor' || !cm || !regex || regex instanceof Error) return;
   if (cm.getOption('readOnly')) return toast('This tab is read-only.');
   recordReplace(f.replace);   // the history (history.js); findGo below keeps the search
+  if (typeof recordMacroReplace === 'function') recordMacroReplace(f.query, f.replace, f, false);   // macros.js
   const from = cm.indexFromPos(cm.getCursor('from')), to = cm.indexFromPos(cm.getCursor('to'));
   if (to > from && editorMatches(pane, regex).some(([s, e]) => s === from && e === to))
     cm.replaceSelection(replacedText(f, regex, cm.getSelection()), 'start');
@@ -476,6 +478,7 @@ function replaceAll(pane) {
   const text = cm.getValue(), matches = editorMatches(pane, regex), within = scopeParts(pane) ? ' in the selection' : '';
   recordFind(f.query, f);   // the history (history.js)
   recordReplace(f.replace);
+  if (typeof recordMacroReplace === 'function') recordMacroReplace(f.query, f.replace, f, true);   // macros.js
   if (!matches.length) return toast('Not found' + within + ': ' + f.query, true);
   cm.operation(() => {   // one undo step
     for (const [s, e] of [...matches].reverse())

@@ -398,6 +398,8 @@ sealed class AppHost : ApplicationContext
     // The shipped language packs and themes: defaults next to the exe. A debug build reads (and watches) the project's
     // own defaults instead, so an edit there applies at once, without a build.
     static string ShippedDir(string folder) => Path.Combine(ProjectDefaults ?? Path.Combine(AppContext.BaseDirectory, DefaultsFolder), folder);
+    /// <summary>A shipped file (as the macro language's reference, defaults\macros\reference.md).</summary>
+    public static string ShippedFile(string folder, string name) => Path.Combine(ShippedDir(folder), name);
     public const string DefaultsFolder = "defaults";
 #if DEBUG
     static readonly string? ProjectDefaults = FindProjectFolder(AppContext.BaseDirectory, DefaultsFolder);
