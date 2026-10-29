@@ -823,6 +823,12 @@ sealed class MainForm : Form
                 MacroStore.Write(AppHost.DataDir, Arg("name"), Arg("text"));
                 return null;
 
+            case "macroRecorded":   // a recording saved as Macro N (plan 36); its name
+                return MacroStore.WriteRecording(AppHost.DataDir, Arg("text"));
+
+            case "macroNewest":
+                return MacroStore.Newest(AppHost.DataDir);
+
             case "macroRename":
                 return MacroStore.Rename(AppHost.DataDir, Arg("from"), Arg("to"));
 

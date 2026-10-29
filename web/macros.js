@@ -260,12 +260,12 @@ addEventListener('keydown', e => {
   e.stopPropagation();
 }, true);
 
-// ---------- Stored macros (3.7, 3.8) ----------
-// The macros in macros\ of the data folder (MacroStore.cs), by name; ~last is the last recording. Play plays the
-// macro played last (else the last recording). A macro open in a tab plays as the tab shows it, unsaved changes too.
-const MACRO_LAST = '~last';
-const macroStore = { names: [], current: null, nextRecording: null };   // nextRecording: { name, how: 'append' | 'insert' }
-const macroTitle = name => name === MACRO_LAST ? 'The last recording' : `Macro ${name}`;
+// ---------- Stored macros (3.7, 3.8; docs/plans/executed/PLAN-macro-window.md) ----------
+// The macros in macros\ of the data folder (MacroStore.cs), by name; a recording is one of them, "Macro N". Play plays
+// the macro played or recorded last (after a start: the one written last). A macro open in a tab plays as the tab
+// shows it, unsaved changes too.
+const macroStore = { names: [], current: null, nextRecording: null };   // nextRecording: { name }: the next recording goes to its end
+const macroTitle = name => /^macro /i.test(name) ? name : `Macro ${name}`;
 
 async function loadMacroNames() {
   macroStore.names = await host('macroList').catch(() => []);
@@ -273,6 +273,12 @@ async function loadMacroNames() {
   def.variants = macroStore.names.map(n => [n]);   // F1 lists each one
   def.variantTitles = Object.fromEntries(macroStore.names.map(n => [n, 'Play macro ' + n]));
   return macroStore.names;
+}
+
+// The macro Play plays: the one played or recorded last; after a start, the one written last.
+async function currentMacro() {
+  if (macroStore.current && macroStore.names.includes(macroStore.current)) return macroStore.current;
+  return macroStore.current = await host('macroNewest').catch(() => null);
 }
 
 async function macroFile(name, create = false) { return host('macroPath', { name, create }).catch(() => null); }
@@ -291,9 +297,10 @@ function macroTarget() {
 }
 
 async function playStoredMacro(name, opts = {}) {
-  name ??= macroStore.current ?? MACRO_LAST;
+  name ??= await currentMacro();
+  if (!name) return toast('There are no macros yet (View > Macros > Record).', true);
   const text = await macroText(name);
-  if (text == null) return toast(name === MACRO_LAST ? 'There is no recording yet (View > Macros > Record).' : `There is no macro "${name}".`);
+  if (text == null) return toast(`There is no macro "${name}".`);
   macroStore.current = name;
   macroTarget();
   return playMacro(text, { name: macroTitle(name), ...opts });
@@ -312,6 +319,21 @@ async function openMacro(name) {
   await openFile(path);
 }
 
+// Step by step from the macro window: the macro in a tab in the other pane, the document stays where it is.
+async function stepStoredMacro(name) {
+  const path = await macroFile(name);
+  if (!path) return toast(`There is no macro "${name}".`);
+  const doc = panes[state.activePane], shown = macroPaneOf();
+  if (!(shown && samePath(shown.active.doc.path, path))) {
+    if (shown || !doc?.active) return toast('Step by step works on a document: show one in this pane first.', true);
+    const other = panes.find(p => p !== doc);
+    await openFile(path, { pane: other });
+    state.activePane = other.index;
+  }
+  macroStore.current = name;
+  return stepThisMacro('over');
+}
+
 async function newMacro() {
   const name = await askName('Name of the new macro', '', '');
   if (!name) return;
@@ -323,21 +345,22 @@ async function newMacro() {
   await openMacro(name);
 }
 
+// Gives the new name, or null.
 async function renameMacro(name) {
-  const to = await askName(`New name of ${name === MACRO_LAST ? 'the last recording' : 'macro ' + name}`, name === MACRO_LAST ? '' : name, '');
-  if (!to || to === name) return false;
+  const to = await askName(`New name of macro ${name}`, name, '');
+  if (!to || to === name) return null;
   const why = await host('macroNameRefusal', { name: to });
-  if (why) { toast(`${why[0].toUpperCase()}${why.slice(1)}.`, true); return false; }
+  if (why) { toast(`${why[0].toUpperCase()}${why.slice(1)}.`, true); return null; }
   // As a file rename (app.js): a tab showing it follows.
   try { await host('rename', { path: await macroFile(name), name: to + '.lpm' }); }
-  catch (e) { toast(e.message); return false; }
+  catch (e) { toast(e.message); return null; }
   if (macroStore.current === name) macroStore.current = to;
   await loadMacroNames();
-  return true;
+  return to;
 }
 
 async function deleteMacro(name) {
-  if (!await host('confirm', { text: `Delete ${name === MACRO_LAST ? 'the last recording' : 'the macro ' + name}? Its file goes.` })) return false;
+  if (!await host('confirm', { text: `Delete the macro ${name}? Its file goes.` })) return false;
   await host('macroDelete', { name });
   if (macroStore.current === name) macroStore.current = null;
   await loadMacroNames();
@@ -353,73 +376,107 @@ async function macroKey(name) {
   toast(`${r.key} plays macro ${name} (in your keys.json).`, true);
 }
 
-// View > Macros (filled when it opens).
+// View > Macros (filled when it opens): a click on a macro opens its window.
 async function macroMenuItems() {
-  const names = await loadMacroNames(), last = await host('macroRead', { name: MACRO_LAST }).catch(() => null);
-  const items = names.map(n => ({ label: n.replace(/&/g, '&&'), action: 'macroRun', params: [n], key: keyText('macroRun', n) }));
-  if (last != null) items.push({ label: 'Last recording', action: 'macroRun', params: [MACRO_LAST] });
+  const names = await loadMacroNames(), current = await currentMacro();
+  const items = names.map(n => ({ label: n.replace(/&/g, '&&'), action: 'macro.window', params: [n], key: keyText('macroRun', n) }));
   if (!items.length) items.push({ label: '(no macros yet)', enabled: false });
   const recording = typeof macroRecording !== 'undefined' && macroRecording.on;
   return [...items, '-',
     { label: recording ? '&Stop recording' : '&Record', action: 'macro.record', params: [], key: keyText('macro.record') },
-    { label: '&Play', action: 'macro.play', params: [], key: keyText('macro.play') },
-    { label: 'Play &X times...', action: 'macro.playTimes', params: [], key: keyText('macro.playTimes') },
-    { label: 'Play to the &end of the file', action: 'macro.playToEnd', params: [], key: keyText('macro.playToEnd') },
+    { label: current ? `&Play "${current.replace(/&/g, '&&')}"` : '&Play', action: 'macro.play', params: [], key: keyText('macro.play'), enabled: !!current },
+    { label: 'Play &X times...', action: 'macro.playTimes', params: [], key: keyText('macro.playTimes'), enabled: !!current },
+    { label: 'Play to the &end of the file', action: 'macro.playToEnd', params: [], key: keyText('macro.playToEnd'), enabled: !!current },
     { label: 'Step &by step', action: 'macro.stepThis', params: [], key: keyText('macro.stepThis'), enabled: !!macroPaneOf() || !!macroDebug.resume },
     '-',{ label: '&Manage...', action: 'macro.manage', params: [], key: keyText('macro.manage') }];
 }
 
 appAction('macroRun', { title: 'Play macro', hint: 'A stored macro by its name (keys.json: ["macroRun", "name"])', group: 'macros', variants: [],
   run: ([name]) => playStoredMacro(name) });
-appAction('macro.play', { title: 'Play', hint: 'The macro played last, else the last recording', group: 'macros', run: () => playStoredMacro() });
-appAction('macro.playTimes', { title: 'Play X times...', hint: 'The macro played last (else the last recording), so many times', group: 'macros', run: () => playMacroTimes() });
+appAction('macro.play', { title: 'Play', hint: 'The macro played or recorded last', group: 'macros', run: () => playStoredMacro() });
+appAction('macro.playTimes', { title: 'Play X times...', hint: 'The macro played or recorded last, so many times', group: 'macros', run: () => playMacroTimes() });
 appAction('macro.playToEnd', { title: 'Play to the end of the file', hint: 'Again and again while the cursor moves on, up to the end of the file', group: 'macros',
   run: () => playStoredMacro(undefined, { times: 0 }) });
-appAction('macro.manage', { title: 'Manage macros...', hint: 'The stored macros: play, open, rename, delete, a key; a new macro or recording', group: 'macros', run: () => manageMacros() });
+appAction('macro.manage', { title: 'Manage macros...', hint: 'The stored macros, each with what can be done with it; a new macro or recording', group: 'macros',
+  run: () => openMacroWindow(null) });
+appAction('macro.window', { title: 'Macro...', hint: 'A macro\'s window: play it, step by step, record more onto it, edit, a name, a key, delete', group: 'macros',
+  run: ([name]) => openMacroWindow(name ?? null) });
 
-// ---------- Manage ----------
-async function manageMacros() {
-  const dialog = $('.mm-macros-dialog'), list = dialog.querySelector('.mm-macros-list'), note = dialog.querySelector('.mm-macros-note');
-  const fill = async keep => {
-    const names = await loadMacroNames(), last = await host('macroRead', { name: MACRO_LAST }).catch(() => null);
-    list.replaceChildren(...[...(last != null ? [[MACRO_LAST, 'Last recording']] : []), ...names.map(n => [n, n])].map(([value, text]) => {
-      const keys = value === MACRO_LAST ? [] : keysOf('macroRun', value);
-      return Object.assign(document.createElement('option'), { value, textContent: text + (keys.length ? `   (${keys.join(', ')})` : '') });
+// ---------- The macro window (plan 36 3.3, 3.4) ----------
+// One macro's window (from View > Macros), or Manage: the same window with the list. Not modal: the editor and the
+// menus go on working while it is open; a play from it runs on the document active at that moment.
+const macroWindow = { name: null, manage: false };
+
+async function openMacroWindow(name) {
+  const dialog = $('.mm-macros-dialog');
+  if (!dialog.wired) wireMacroWindow(dialog);
+  Object.assign(macroWindow, { name, manage: !name });
+  await fillMacroWindow(name);
+  if (!dialog.open) dialog.show();
+  (macroWindow.manage ? dialog.querySelector('.mm-macros-list') : dialog.querySelector('[data-macro="play"]')).focus();
+}
+
+// The macro the buttons act on: the window's own, or the one chosen in Manage's list.
+const macroWindowName = () => macroWindow.manage ? $('.mm-macros-dialog .mm-macros-list').value || null : macroWindow.name;
+
+async function fillMacroWindow(keep) {
+  const dialog = $('.mm-macros-dialog'), list = dialog.querySelector('.mm-macros-list');
+  const names = await loadMacroNames();
+  dialog.toggleAttribute('data-manage', macroWindow.manage);
+  if (macroWindow.manage) {
+    list.replaceChildren(...names.map(n => {
+      const keys = keysOf('macroRun', n);
+      return Object.assign(document.createElement('option'), { value: n, textContent: n + (keys.length ? `   (${keys.join(', ')})` : '') });
     }));
-    list.value = keep ?? list.options[0]?.value ?? '';
-    if (!list.value && list.options.length) list.selectedIndex = 0;
-    const next = macroStore.nextRecording;
-    note.textContent = next ? `The next recording is ${next.how === 'append' ? 'added to the end of' : 'inserted at the cursor in'} ${next.name}.` : '';
-  };
-  if (!dialog.wired) {
-    dialog.wired = true;
-    const chosen = () => list.value || null;
-    dialog.addEventListener('click', async e => {
-      const what = e.target.closest('[data-macro]')?.dataset.macro, name = chosen();
-      if (!what) return;
-      if (what === 'close') return dialog.close();
-      if (what === 'new') { dialog.close(); return newMacro(); }
-      if (what === 'record') { dialog.close(); macroStore.nextRecording = null; return runAction('macro.record', [], { from: 'menu' }); }
-      if (!name) return toast('Choose a macro first.', true);
-      if (what === 'play') { dialog.close(); return playStoredMacro(name); }
-      if (what === 'open') { dialog.close(); return openMacro(name); }
-      if (what === 'rename') { if (await renameMacro(name)) await fill(); return; }
-      if (what === 'delete') { if (await deleteMacro(name)) await fill(); return; }
-      if (what === 'key') { if (name === MACRO_LAST) return toast('Save the last recording under a name first (Rename).', true); await macroKey(name); return fill(name); }
-      if (what === 'append' || what === 'insert') {
-        if (what === 'insert') {
-          const path = await macroFile(name);
-          if (!allTabs().some(t => samePath(t.doc.path, path))) return toast('Insert goes at the cursor in the macro\'s open tab: Open it first.', true);
-        }
-        macroStore.nextRecording = { name, how: what };
-        return fill(name);
-      }
-    });
-    list.addEventListener('dblclick', () => { if (list.value) { dialog.close(); playStoredMacro(list.value); } });
+    list.value = keep && names.includes(keep) ? keep : names[0] ?? '';
   }
-  await fill(macroStore.current);
-  dialog.showModal();
-  list.focus();
+  const name = macroWindowName();
+  dialog.querySelector('h1').textContent = macroWindow.manage ? 'Macros' : name;
+  const keys = name ? keysOf('macroRun', name) : [];
+  dialog.querySelector('.mm-macros-key').textContent = !name ? 'No macros yet: New recording or New macro.' : keys.length ? `Key: ${keys.join(', ')}` : 'No key.';
+  for (const b of dialog.querySelectorAll('.mm-macros-one button')) b.disabled = !name;
+}
+
+function wireMacroWindow(dialog) {
+  dialog.wired = true;
+  const list = dialog.querySelector('.mm-macros-list');
+  dialog.addEventListener('click', async e => {
+    const what = e.target.closest('[data-macro]')?.dataset.macro, name = macroWindowName();
+    if (!what) return;
+    if (what === 'close') return dialog.close();
+    if (what === 'new') return newMacro().then(() => fillMacroWindow());
+    if (what === 'record') { dialog.close(); macroStore.nextRecording = null; return runAction('macro.record', [], { from: 'menu' }); }
+    if (!name) return;
+    if (what === 'play') return playStoredMacro(name);
+    if (what === 'times') return playMacroTimes(name);
+    if (what === 'toEnd') return playStoredMacro(name, { times: 0 });
+    if (what === 'step') return stepStoredMacro(name);
+    if (what === 'continue') { dialog.close(); macroStore.nextRecording = { name }; return runAction('macro.record', [], { from: 'menu' }); }
+    if (what === 'edit') return openMacro(name);
+    if (what === 'rename') {
+      const to = await renameMacro(name);
+      if (to && !macroWindow.manage) macroWindow.name = to;
+      return to && fillMacroWindow(to);
+    }
+    if (what === 'key') { await macroKey(name); return fillMacroWindow(name); }
+    if (what === 'delete') {
+      if (!await deleteMacro(name)) return;
+      if (macroWindow.manage) return fillMacroWindow();
+      return dialog.close();
+    }
+  });
+  list.addEventListener('change', () => fillMacroWindow(list.value));
+  list.addEventListener('dblclick', () => { if (list.value) playStoredMacro(list.value); });
+  dialog.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); dialog.close(); } });
+  // Moved by its title.
+  dialog.querySelector('h1').addEventListener('mousedown', e => {
+    if (e.button !== 0) return;
+    const r = dialog.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top;
+    const move = m => Object.assign(dialog.style, { left: Math.max(0, Math.min(innerWidth - 60, m.clientX - dx)) + 'px', top: Math.max(0, Math.min(innerHeight - 30, m.clientY - dy)) + 'px', right: 'auto' });
+    addEventListener('mousemove', move);
+    addEventListener('mouseup', () => removeEventListener('mousemove', move), { once: true });
+    e.preventDefault();
+  });
 }
 
 loadMacroNames();
@@ -429,8 +486,8 @@ loadMacroNames();
 // run of it one `type`; the editor's own keys (arrows, Home, Backspace, Enter, ...) as `editorKey "Down"`; a click
 // that moves the cursor as `moveto line, column` (on the cursor's line only the column); a find or replace of the
 // find bar with its switches; a switch to another document or pane as `show "name"`. While it records, a Stop
-// recording button shows right of the menus. The result is the last recording (~last), unless Manage chose to add
-// it to a macro (at its end, or at the cursor in its open tab).
+// recording button shows right of the menus. The result is a macro of its own, Macro N (plan 36), unless the macro
+// window's Continue recording chose a macro to add it to (at its end).
 const macroRecording = { on: false, steps: [], typed: '', lastTab: null, mouse: null, find: null };   // find: one typed in the find bar
 const macroQuote = s => '"' + String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\t/g, '\\t') + '"';
 const recordingNow = () => macroRecording.on && !macroPlay.running;
@@ -550,7 +607,7 @@ function startRecording() {
   Object.assign(macroRecording, { on: true, steps: [], typed: '', lastTab: activeTab(), mouse: null, find: null, pasted: null });
   document.body.toggleAttribute('data-recording', true);
   const next = macroStore.nextRecording;
-  toast(next ? `Recording, to be ${next.how === 'append' ? 'added to' : 'inserted in'} ${next.name}; ${keyText('macro.record') || 'Stop recording'} stops it.`
+  toast(next ? `Recording, to be added to the end of ${next.name}; ${keyText('macro.record') || 'Stop recording'} stops it.`
     : `Recording a macro; ${keyText('macro.record') || 'Stop recording'} stops it.`, true);
 }
 
@@ -563,22 +620,19 @@ async function stopRecording() {
   const next = macroStore.nextRecording;
   macroStore.nextRecording = null;
   if (!macroRecording.steps.length) return toast('Nothing was recorded.', true);
-  if (next?.how === 'insert') {
-    const path = await macroFile(next.name), tab = allTabs().find(t => samePath(t.doc.path, path));
-    const cmDoc = tab && tabDoc(tab);
-    if (cmDoc) { cmDoc.replaceSelection(text); return toast(`The recording is inserted in ${next.name}.`, true); }
-  }
-  if (next?.how === 'append' || next?.how === 'insert') {
+  if (next) {
     const had = await macroText(next.name) ?? '';
     await host('macroWrite', { name: next.name, text: had + (had && !had.endsWith('\n') ? '\n' : '') + text });
+    macroStore.current = next.name;
     return toast(`The recording is added to the end of ${next.name}.`, true);
   }
-  await host('macroWrite', { name: MACRO_LAST, text });
-  macroStore.current = MACRO_LAST;
-  toast(`Recorded ${macroRecording.steps.length} step${macroRecording.steps.length === 1 ? '' : 's'}: Play (${keyText('macro.play') || 'View > Macros'}) plays it; Manage saves it under a name.`, true);
+  const name = await host('macroRecorded', { text });
+  macroStore.current = name;
+  await loadMacroNames();
+  toast(`Recorded as ${name} (${macroRecording.steps.length} step${macroRecording.steps.length === 1 ? '' : 's'}); ${keyText('macro.play') ? keyText('macro.play') + ' plays it' : 'View > Macros plays it'}.`, true);
 }
 
-appAction('macro.record', { title: 'Record / stop recording', hint: 'What you do becomes a macro (the last recording): actions, typing, the editor\'s keys, clicks, finds, documents',
+appAction('macro.record', { title: 'Record / stop recording', hint: 'What you do becomes a macro of its own (Macro 1, Macro 2, ...): actions, typing, the editor\'s keys, clicks, finds, documents',
   group: 'macros', checked: () => macroRecording.on, run: () => macroRecording.on ? stopRecording() : startRecording() });
 
 // ---------- Help in the macro editor (3.9) and checking (3.10) ----------

@@ -16,10 +16,8 @@ public class MacroStoreTests : IDisposable
     {
         MacroStore.Write(dir, "tidy", "type \"x\"");
         MacroStore.Write(dir, "Collect", "stop");
-        MacroStore.Write(dir, MacroStore.Last, "moveto end");
         Assert.Equal("type \"x\"", MacroStore.Read(dir, "tidy"));
-        Assert.Equal(["Collect", "tidy"], MacroStore.List(dir));   // the last recording is not one of them
-        Assert.Equal("moveto end", MacroStore.Read(dir, MacroStore.Last));
+        Assert.Equal(["Collect", "tidy"], MacroStore.List(dir));
         Assert.True(File.Exists(Path.Combine(dir, "macros", "tidy.lpm")));
         Assert.Null(MacroStore.Read(dir, "nothing"));
     }
@@ -56,9 +54,9 @@ public class MacroStoreTests : IDisposable
     [Fact]
     public void RenamedAndDeleted()
     {
-        MacroStore.Write(dir, MacroStore.Last, "stop");
-        Assert.Null(MacroStore.Rename(dir, MacroStore.Last, "saved"));   // the last recording saved under a name
-        Assert.Null(MacroStore.Read(dir, MacroStore.Last));
+        Assert.Equal("Macro 1", MacroStore.WriteRecording(dir, "stop"));
+        Assert.Null(MacroStore.Rename(dir, "Macro 1", "saved"));   // a recording given a name
+        Assert.Null(MacroStore.Read(dir, "Macro 1"));
         Assert.Equal("stop", MacroStore.Read(dir, "saved"));
         MacroStore.Write(dir, "other", "x");
         Assert.Equal("a macro \"other\" exists already", MacroStore.Rename(dir, "saved", "other"));
@@ -66,5 +64,45 @@ public class MacroStoreTests : IDisposable
         Assert.Equal("there is no macro \"none\"", MacroStore.Rename(dir, "none", "x"));
         MacroStore.Delete(dir, "other");
         Assert.Equal(["Saved"], MacroStore.List(dir));
+    }
+
+    // A recording is a macro of its own: Macro N, the lowest number free (plan 36).
+    [Fact]
+    public void RecordingsNumberedLowestFree()
+    {
+        Assert.Equal("Macro 1", MacroStore.NextName(dir));
+        Assert.Equal("Macro 1", MacroStore.WriteRecording(dir, "type \"a\""));
+        Assert.Equal("Macro 2", MacroStore.WriteRecording(dir, "type \"b\""));
+        Assert.Equal("Macro 3", MacroStore.WriteRecording(dir, "type \"c\""));
+        MacroStore.Delete(dir, "Macro 2");
+        Assert.Equal("Macro 2", MacroStore.WriteRecording(dir, "type \"d\""));   // the gap filled
+        MacroStore.Write(dir, "macro 4", "x");   // your own name, another case: that number is taken
+        MacroStore.Write(dir, "Macro 7", "x");
+        Assert.Equal("Macro 5", MacroStore.NextName(dir));
+        Assert.Equal("type \"d\"", MacroStore.Read(dir, "Macro 2"));
+    }
+
+    [Fact]
+    public void NewestIsTheOneWrittenLast()
+    {
+        Assert.Null(MacroStore.Newest(dir));
+        MacroStore.Write(dir, "old", "x");
+        File.SetLastWriteTimeUtc(Path.Combine(dir, "macros", "old.lpm"), DateTime.UtcNow.AddMinutes(-5));
+        MacroStore.WriteRecording(dir, "y");
+        Assert.Equal("Macro 1", MacroStore.Newest(dir));
+    }
+
+    // The last recording of before (~last.lpm): a Macro N, once.
+    [Fact]
+    public void TheOldLastRecordingBecomesAMacro()
+    {
+        Directory.CreateDirectory(Path.Combine(dir, "macros"));
+        File.WriteAllText(Path.Combine(dir, "macros", "~last.lpm"), "moveto end");
+        MacroStore.Write(dir, "Macro 1", "x");
+        Assert.Equal("Macro 2", MacroStore.MigrateLast(dir));
+        Assert.Equal("moveto end", MacroStore.Read(dir, "Macro 2"));
+        Assert.False(File.Exists(Path.Combine(dir, "macros", "~last.lpm")));
+        Assert.Null(MacroStore.MigrateLast(dir));   // once
+        Assert.Equal(["Macro 1", "Macro 2"], MacroStore.List(dir));
     }
 }

@@ -240,20 +240,22 @@
   <div class="mm-name-buttons"><button type="button" class="mm-messages-clear">Clear</button><button type="button" class="mm-messages-close">Close</button></div>
 </dialog>
 
-<!-- Macros > Manage (macros.js, plan 17): the stored macros and what to do with one. -->
+<!-- A macro's window, and Macros > Manage (the same window with the list): macros.js, plan 36. Not modal. -->
 <dialog class="mm-about mm-macros-dialog">
-  <h1>Macros</h1>
-  <p>Stored in macros\ of the data folder, one file each. Double-click one to play it.</p>
+  <h1 title="Drag to move">Macros</h1>
   <select class="mm-macros-list" size="10"></select>
-  <p class="mm-macros-note"></p>
-  <div class="mm-macros-buttons">
-    <button type="button" data-macro="play">Play</button><button type="button" data-macro="open">Open</button>
-    <button type="button" data-macro="rename">Rename...</button><button type="button" data-macro="delete">Delete</button>
-    <button type="button" data-macro="key">Key...</button>
+  <p class="mm-macros-key"></p>
+  <div class="mm-macros-buttons mm-macros-one">
+    <button type="button" data-macro="play">Play</button><button type="button" data-macro="times">Play X times...</button>
+    <button type="button" data-macro="toEnd">Play to the end of the file</button><button type="button" data-macro="step">Step by step</button>
   </div>
-  <div class="mm-macros-buttons">
+  <div class="mm-macros-buttons mm-macros-one">
+    <button type="button" data-macro="continue">Continue recording</button><button type="button" data-macro="edit">Edit</button>
+    <button type="button" data-macro="rename">Give name...</button><button type="button" data-macro="key">Key...</button>
+    <button type="button" data-macro="delete">Delete</button>
+  </div>
+  <div class="mm-macros-buttons mm-macros-manage">
     <button type="button" data-macro="new">New macro...</button><button type="button" data-macro="record">New recording</button>
-    <button type="button" data-macro="append">Append with next recording</button><button type="button" data-macro="insert">Insert with next recording</button>
   </div>
   <div class="mm-name-buttons"><button type="button" data-macro="close">Close</button></div>
 </dialog>

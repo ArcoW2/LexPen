@@ -47,6 +47,7 @@ static class Program
 
         // The first LexPen process moves an older data folder layout over, before any window or browser starts.
         if (owner) DataFolder.Migrate(AppHost.DataDir);
+        if (owner) MacroStore.MigrateLast(AppHost.DataDir);   // the last recording of before: a Macro N (plan 36)
         var app = new AppHost();
         // The UI thread's stalls (every window shares it), in stalls.log; a control of its own to ask the thread for a beat.
         var beat = new Control();

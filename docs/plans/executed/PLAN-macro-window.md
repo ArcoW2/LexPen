@@ -1,7 +1,7 @@
 # Plan: Recordings as numbered macros, and a window per macro
 
-Status: draft 2026-10-29; not started, on hold: the macros get extensive validation first. Follows the macros
-(docs/plans/executed/PLAN-macros.md).
+Status: executed 2026-10-29 (web/macros.js, MacroStore.cs; in-app test t36). Follows the macros
+(docs/plans/executed/PLAN-macros.md); the macros still get extensive validation.
 The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
@@ -80,3 +80,16 @@ it. It stays until closed; a play from it runs on the document active at that mo
 ## 4. Open questions
 
 None.
+
+## 5. Resolved during execution
+
+| Topic | As built |
+|---|---|
+| Where the code is | `MacroStore.cs`: `NextName` (the lowest free Macro N, any case), `WriteRecording`, `Newest`, `MigrateLast`; host operations `macroRecorded` and `macroNewest` (MainForm). `web/macros.js`: the stored macros, View > Macros, the macro window (`openMacroWindow`, the dialog `.mm-macros-dialog` in index.html). |
+| The old last recording | `~last.lpm` becomes a Macro N by the first LexPen process at its start (Program.cs, after the data folder's own move), once. The name `~last` is gone from the page. |
+| Play after a start | "The macro played or recorded last" is kept while LexPen runs; after a start, Play plays the macro written last (the newest file: a recording, or a macro saved in its tab). |
+| Not modal | A `<dialog>` shown with `show()`, not `showModal()`: fixed over the window at its right, moved by dragging its title, Esc (with the focus in it) or Close closes it. A play from it runs on the active document at that moment; a macro tab that is active plays on the other pane's document, as everywhere. |
+| Step by step from the window | Opens the macro in a tab in the other pane (the document stays where it is) and starts stepping; when the macro's own tab is active already, steps from there. |
+| Continue recording | Closes the window and records at once; Stop recording adds the steps to the end of the macro's file (an open tab of it follows the file, as before). Insert with next recording is gone. |
+| The menu | The macros by name with their keys, a click opens their window (`macro.window` with the name); Play shows the name of the macro it plays (Play "Macro 2"); Play, Play X times and Play to the end are off while there are no macros. |
+| Tests | Unit: `MacroStoreTests` (the lowest free number, a gap filled, a name of your own in another case, the newest, the old last recording once). In-app: t36 (two recordings; the menu; the window not modal, not a play; every button; its key and F1 still play directly; Delete and the number taken again; Manage with the list). The earlier macro tests (t17b to t17j) updated to the numbered recordings and pass. |

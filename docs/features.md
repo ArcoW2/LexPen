@@ -544,18 +544,22 @@ every action with its key.
 ## Macros
 
 - **Record and play** (View > Macros): Record (Ctrl+Shift+M; a Stop recording button shows in the menu bar)
-  writes what you do as a macro: typing, the editor's keys, clicks, finds and replaces, actions from keys and menus,
-  a switch to another document. Play (Ctrl+M) plays it once; also X times or to the end of the file. One undo step
-  per document undoes a whole play; Esc stops one.
+  writes what you do as a macro of its own, Macro 1, Macro 2, ... (the lowest free number): typing, the editor's
+  keys (with Shift: selecting), clicks, finds (also typed in the find bar; pasted text as the clipboard, `$$clipboard`)
+  and replaces, actions from keys and menus, a switch to another document. Play (Ctrl+M) plays the macro played or
+  recorded last, its name in the menu; also X times or to the end of the file. One undo step per document undoes a
+  whole play; Esc stops one.
 - **A macro is a small script** in a LexPen tab (`.lpm`): one step per line, each an action (any key or menu item)
   or a statement: `if` / `elseif` / `else`, `switch`, labels with `goto` and `gosub`, variables (numbers keep their
   formatting: `012` + 2 is `014`; types `:int`, `:float`, `:text` with their separators), procedures and functions
   of your own, shared between macros with `use`. System variables (`$$found`, `$$eof`, `$$lineText`, `$$wrap`, ...)
   tell what happened and where the cursor is; every switch has its on and off (`wrap.on`, `wrap.off`). `show`,
   `new` and `show recent` move between documents, to collect text in one from another.
-- **Stored by name** in `macros\` of the data folder; Manage... plays, opens, renames and deletes them, gives one a
-  key (in your keys.json), and adds the next recording to the end of one or at the cursor in its tab. F1 and View >
-  Macros list them.
+- **Stored by name** in `macros\` of the data folder, each until you delete it. A click on one in View > Macros
+  opens its window (not modal: the editor goes on working): Play, Play X times, Play to the end of the file, Step by
+  step, Continue recording (recorded steps added to its end), Edit, Give name, Key (in your keys.json), Delete.
+  Manage... is the same window with the list of macros, and New macro, New recording. F1 lists them, and a macro's
+  key plays it directly.
 - **The macro editor**: a bar with Action..., Statement... (a whole block, the cursor at its first gap) and
   Variable..., Check, Run and Step; completion of actions, statements and `$$` names; mistakes underlined while
   you type (a missing `endif`, an unknown system variable), their line numbers marked; the hint of a word under the

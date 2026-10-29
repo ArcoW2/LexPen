@@ -276,11 +276,15 @@ body[data-show-eol] .CodeMirror[data-eol=cr] .CodeMirror-line:not(.mm-last-line)
   background: var(--bg); border: 1px solid var(--border); border-radius: 4px; }
 .mm-name-dialog .mm-name-buttons { display: flex; justify-content: flex-end; gap: 6px; margin-top: 12px; }
 /* Macros > Manage (macros.js) */
-.mm-macros-dialog { width: min(560px, 90vw); }
+/* A macro's window and Manage (macros.js, plan 36): not modal, over the window at its right, moved by its title. */
+.mm-macros-dialog { position: fixed; top: 70px; right: 24px; left: auto; margin: 0; z-index: 50; width: min(460px, 90vw);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, .35); }
+.mm-macros-dialog h1 { cursor: move; user-select: none; }
 .mm-macros-dialog .mm-macros-list { width: 100%; font: inherit; color: var(--fg); background: var(--bg-side); border: 1px solid var(--border); }
+.mm-macros-dialog:not([data-manage]) .mm-macros-list, .mm-macros-dialog:not([data-manage]) .mm-macros-manage { display: none; }
 .mm-macros-dialog .mm-macros-buttons { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .mm-macros-dialog .mm-name-buttons { display: flex; justify-content: flex-end; margin-top: 12px; }
-.mm-macros-dialog .mm-macros-note { min-height: 1.2em; margin-top: 6px; }
+.mm-macros-dialog .mm-macros-key { min-height: 1.2em; margin-top: 6px; opacity: .8; }
 /* A macro's mistakes as you type (macros.js): underlined, their line numbers marked; the message as a tooltip. */
 .CodeMirror .mm-macro-error { text-decoration: wavy underline var(--caution); text-underline-offset: 3px; }
 .CodeMirror .mm-macro-warning { text-decoration: wavy underline var(--warning); text-underline-offset: 3px; }
