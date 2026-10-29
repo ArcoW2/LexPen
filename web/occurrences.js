@@ -195,6 +195,29 @@ function clearOccEditor(pane) {
   pane.occEditor = null;
   occMarkSelection(pane);
   if (pane.occLines) { pane.occLines = null; if (typeof scheduleOverview === 'function') scheduleOverview(pane); }
+  paintOccGutter(pane);
+}
+
+// The gutter (setting gutter.occurrences): the line numbers of lines with an occurrence in its colour, the line of the
+// first one marked as the first occurrence is (app.css, body[data-occ-first]). Only the lines in view, and again as
+// others come into view (as Find's line numbers, find.js paintFindGutter).
+function paintOccGutter(pane) {
+  const cm = pane.cm;
+  if (!cm) return;
+  for (const h of pane.occGutter ?? []) { cm.removeLineClass(h, 'gutter', 'mm-occ-line'); cm.removeLineClass(h, 'gutter', 'mm-occ-line-first'); }
+  pane.occGutter = [];
+  const lines = pane.occLines;
+  if (!lines?.length || setting('gutter.occurrences') === false) return;
+  const { from, to } = cm.getViewport();
+  let i = 0, hi = lines.length;
+  while (i < hi) { const m = (i + hi) >> 1; if (lines[m] < from) i = m + 1; else hi = m; }
+  cm.operation(() => {
+    for (; i < lines.length && lines[i] < to; i++) {
+      const h = cm.addLineClass(lines[i], 'gutter', 'mm-occ-line');
+      if (lines[i] === lines[0]) cm.addLineClass(h, 'gutter', 'mm-occ-line-first');
+      pane.occGutter.push(h);
+    }
+  });
 }
 
 function clearOccPreview(pane) {
@@ -249,6 +272,7 @@ function markOccEditor(pane) {
   }
   pane.occLines = lines;
   occMarkSelection(pane);
+  paintOccGutter(pane);
   if (typeof scheduleOverview === 'function') scheduleOverview(pane);
 }
 
@@ -361,6 +385,7 @@ function setupOccurrences(pane) {
   };
   cm.on('changes', again);
   cm.on('swapDoc', again);
+  cm.on('viewportChange', () => { if (pane.occLines) paintOccGutter(pane); });
   // A double click: the second press, as CodeMirror counts it (its word is selected right after this handler). Not the
   // browser's dblclick: that does not come when the line was drawn anew between the two clicks, as when the first
   // click put the cursor on a keyword of a pair (begin, end, if) and brackets.js marked the pair.

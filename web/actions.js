@@ -670,11 +670,11 @@ const SETTING_ROWS = [
   { name: 'gutter.cursor', group: 'Editor view', sub: 'Gutter', kind: 'toggle', title: 'Show cursor location in the gutter',
     hint: 'The gutter of the cursor\'s line in the colour the ruler shows the cursor\'s column in (every cursor\'s line with more cursors)',
     hintOff: 'The cursor\'s line is not marked in the gutter' },
-  ...[['bookmarks', 'Bookmarks'], ['changes', 'Change markers'], ['git', 'Git markers'], ['folds', 'Fold markers']]
+  ...[['bookmarks', 'Bookmarks'], ['changes', 'Change markers'], ['git', 'Git markers'], ['folds', 'Fold markers'], ['occurrences', 'Occurrences']]
     .map(([n, title]) => ({ name: 'gutter.' + n, group: 'Editor view', sub: 'Gutter', kind: 'toggle', title,
-      hint: { bookmarks: 'The gutter shows bookmarks 1 to 9 and unnumbered ones', changes: 'The gutter marks the lines changed since the last save',
+      hint: { occurrences: 'The line numbers of lines with an occurrence (the Occurrences bar) in its colour; the first one marked as the first occurrence is', bookmarks: 'The gutter shows bookmarks 1 to 9 and unnumbered ones', changes: 'The gutter marks the lines changed since the last save',
         git: 'The gutter marks the lines changed since the last commit (a click shows the old text)', folds: 'The gutter has a marker to fold headings, code blocks and braces' }[n],
-      hintOff: { bookmarks: 'No bookmark column in the gutter; bookmarks are kept and their keys still work', changes: 'No change markers in the gutter',
+      hintOff: { occurrences: 'The line numbers are not marked for occurrences', bookmarks: 'No bookmark column in the gutter; bookmarks are kept and their keys still work', changes: 'No change markers in the gutter',
         git: 'No git markers in the gutter', folds: 'No fold markers in the gutter' }[n] })),
   { name: 'overviewWidth', group: 'Editor view', sub: 'Scroll bars', kind: 'range', range: [10, 40, 2], unit: ' px', title: 'Scroll bars: width',
     hint: 'How wide the editor\'s scroll bars are (the horizontal one as high); the marks on the vertical one take their share of it' },
@@ -878,6 +878,8 @@ appAction('block.next', { title: 'Block', hint: 'The next / previous block at th
 // Occurrences (occurrences.js, docs/plans/executed/PLAN-show-occurrences.md): marked everywhere, the cursor stays.
 appAction('occurrences.show', { title: 'Show all occurrences', hint: 'Of the selection (the first one, or a block\'s first line), else of the word at the cursor: marked everywhere in the editor and the preview, the cursor stays',
   group: 'edit', run: (_, ctx) => showOccurrencesOfSelection(ctx) });
+appAction('occurrences.field', { title: 'Occurrences field', hint: 'The Occurrences bar opened (whatever its setting) and its field focused, its text selected to type over',
+  group: 'edit', run: () => { const pane = panes[state.activePane]; if (!pane.active) return; pane.occClosed = false; openOccBar(pane); pane.occ.input.focus(); pane.occ.input.select(); } });
 appAction('occurrences.clear', { title: 'Clear occurrences', hint: 'The occurrences no longer marked (the bar\'s field emptied)', group: 'edit',
   run: () => clearOccurrences(panes[state.activePane]) });
 appAction('occurrences.bar', { title: 'Show / close the Occurrences bar', hint: 'For now; the setting (Find > Show the Occurrences bar) stays as it is', group: 'edit',
@@ -916,8 +918,8 @@ appAction('lineNumberCount.set', { title: 'Line number count', hint: 'Absolute, 
   variants: [['absolute'], ['relative']], variantTitles: { absolute: 'Line numbers: absolute', relative: 'Line numbers: relative to the cursor' },
   checked: ([kind]) => setting('lineNumberCount') === kind, run: ([kind]) => setSetting('lineNumberCount', kind) });
 toggleAction('gutterColumn', { title: 'Gutter', hint: 'Show or hide this column left of the text', group: 'view',
-  variants: [['bookmarks'], ['changes'], ['git'], ['folds']],
-  variantTitles: { bookmarks: 'Bookmark gutter', changes: 'Change markers (not saved)',
+  variants: [['bookmarks'], ['changes'], ['git'], ['folds'], ['occurrences']],
+  variantTitles: { bookmarks: 'Bookmark gutter', occurrences: 'Occurrences (their line numbers)', changes: 'Change markers (not saved)',
     git: 'Git markers (since the last commit)', folds: 'Fold markers' } },
   ([name]) => setting('gutter.' + name) !== false,
   ([name]) => setSetting('gutter.' + name, setting('gutter.' + name) === false), ['show', 'hide']);   // applySettings sets up the editors   // applySettings sets up the editors

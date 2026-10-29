@@ -127,6 +127,7 @@
   "Ctrl+K, N": ["bookmarkNext", 1],
   "Ctrl+K, P": ["bookmarkNext", -1],
   "Ctrl+K, L": "bookmarkList",
+  "Ctrl+O": "occurrences.field",     // the Occurrences bar opened, its field focused
   "Alt+PgDn": ["block.next", 1],     // the next block at the cursor's level (its indentation; in markdown its heading)
   "Alt+PgUp": ["block.next", -1],
 

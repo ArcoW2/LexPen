@@ -616,6 +616,7 @@ body[data-no-format-bar] .CodeMirror .mm-inner-bar { display: none; }
 .mm-editor-pane .CodeMirror-linenumber { color: var(--fg-dim); opacity: .6; }
 .mm-editor-pane .mm-cursor-number .CodeMirror-linenumber { font-style: italic; opacity: 1; }   /* relative numbers: the cursor line's own */
 .mm-editor-pane .CodeMirror-gutter-background.mm-cursor-gutter { background: var(--select); }
+.mm-editor-pane .mm-cursor-bold .CodeMirror-linenumber { font-weight: bold; opacity: 1; }   /* the cursor's line, always (gutter.js) */
 /* Move mode (lines.js): an arrow up and an arrow down at the gutter's right of the cursor lines, next to the text. */
 .mm-editor-pane .CodeMirror-gutter-background.mm-line-move::before { content: '\2191\2193'; position: absolute; right: 2px; top: 0; z-index: 5;
   color: var(--accent); font-weight: bold; letter-spacing: -1px; line-height: inherit; }   /* gutter.cursor: as the ruler's cursor column */
@@ -810,6 +811,16 @@ body[data-occ-mark=outline] ::highlight(mm-occ-0), body[data-occ-mark=outline] :
 /* Selected text over an occurrence: the selection shows (it is drawn behind the text; occurrences.js marks the
    selection mm-occ-sel while occurrences are marked). The preview's selection is drawn over highlights by itself. */
 .CodeMirror .cm-mm-occ-hit.mm-occ-sel, .CodeMirror .mm-occ-first-bg.mm-occ-sel { background: none; color: inherit; }
+/* The gutter (gutter.occurrences): the line numbers of lines with an occurrence in its colour; the line of the first
+   one marked as the first occurrence is (occurrences.first). Before Find's line number rules: those win on one line. */
+.CodeMirror .mm-occ-line .CodeMirror-linenumber { background: var(--occurrence-hit); }
+body[data-occ-first=underline] .CodeMirror .mm-occ-line-first .CodeMirror-linenumber { text-decoration: underline 2px var(--find-box); text-underline-offset: 3px; }
+body[data-occ-first=background] .CodeMirror .mm-occ-line-first .CodeMirror-linenumber,
+body[data-occ-first=both] .CodeMirror .mm-occ-line-first .CodeMirror-linenumber { background: var(--find-current); color: var(--find-current-fg); }
+body[data-occ-first=outline] .CodeMirror .mm-occ-line-first .CodeMirror-linenumber,
+body[data-occ-first=both] .CodeMirror .mm-occ-line-first .CodeMirror-linenumber {
+  box-shadow: inset 1.5px 0 var(--find-box), inset -1.5px 0 var(--find-box), inset 0 2px var(--find-box), inset 0 -2px var(--find-box);
+}
 /* A space shown as a dot (showWhitespace) is drawn as a background image, which takes the background colour away:
    an occurrence over several words keeps its colour under the dots, so it stays one bar. */
 body[data-show-ws]:not([data-occ-mark=outline]) .CodeMirror .cm-ws-space.cm-mm-occ-hit:not(.mm-occ-sel) { background-color: var(--occurrence-hit); }

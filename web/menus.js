@@ -14,7 +14,7 @@ const GUTTER_ITEMS = [{ label: '&Line numbers', sub: [['&None', 'lineNumbers.set
   ['&Every line', 'lineNumbers.set', 'all'], '-', ['&Absolute', 'lineNumberCount.set', 'absolute'],
   ['&Relative to the cursor', 'lineNumberCount.set', 'relative']] }, ['&Bookmarks', 'gutterColumn.toggle', 'bookmarks'],
   ['&Change markers (not saved)', 'gutterColumn.toggle', 'changes'], ['&Git markers (since the last commit)', 'gutterColumn.toggle', 'git'],
-  ['&Fold markers', 'gutterColumn.toggle', 'folds']];
+  ['&Fold markers', 'gutterColumn.toggle', 'folds'], ['&Occurrences (their line numbers)', 'gutterColumn.toggle', 'occurrences']];
 const MENUS = [
   ['&File', [
     ['&New file', 'newFile'], ['&Open file...', 'openFile'], ['Open &folder...', 'openFolder'], '-',

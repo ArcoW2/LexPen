@@ -4420,6 +4420,8 @@ function applySettings() {
     document.body.dataset.findMark = now.findMark || 'background';
     if (typeof refreshMarks === 'function') for (const pane of panes) if (pane.find?.marked) refreshMarks(pane);
   }
+  if (changed('gutter.occurrences') && 'gutter.occurrences' in was && typeof paintOccGutter === 'function')
+    for (const pane of panes) paintOccGutter(pane);   // occurrences.js: the line numbers
   if (changed('occurrences.bar') && 'occurrences.bar' in was && typeof applyOccBarSetting === 'function')
     for (const pane of panes) applyOccBarSetting(pane);   // occurrences.js: shown or closed now
   if (changed('occurrences.mark') || changed('occurrences.first')) {   // app.css: how occurrences look; occurrences.js

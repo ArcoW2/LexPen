@@ -186,18 +186,20 @@ function updateRelativeNumbers(pane) {
 }
 
 // The cursors' lines in the gutter (setting gutter.cursor), in the colour the ruler shows the cursors' columns in:
-// again when a cursor moved (from cursorActivity in app.js).
+// again when a cursor moved (from cursorActivity in app.js). Their line numbers are bold in any case (mm-cursor-bold):
+// the gutter's backgrounds mark other things too (changes, find, occurrences).
 function markCursorLines(pane) {
   const cm = pane.cm;
   if (!cm) return;
-  const lines = gutterOn('cursor') ? [...new Set(cm.listSelections().map(r => r.head.line))].map(l => cm.getLineHandle(l)) : [];
+  const lines = [...new Set(cm.listSelections().map(r => r.head.line))].map(l => cm.getLineHandle(l)), on = gutterOn('cursor');
   const had = pane.cursorLines ?? [];
-  if (had.length === lines.length && had.every((h, i) => h === lines[i])) return;
+  if (had.length === lines.length && had.every((h, i) => h === lines[i]) && pane.cursorGutterOn === on) return;
   cm.operation(() => {
-    for (const h of had) cm.removeLineClass(h, 'gutter', 'mm-cursor-gutter');
-    for (const h of lines) cm.addLineClass(h, 'gutter', 'mm-cursor-gutter');
+    for (const h of had) { cm.removeLineClass(h, 'gutter', 'mm-cursor-gutter'); cm.removeLineClass(h, 'gutter', 'mm-cursor-bold'); }
+    for (const h of lines) { cm.addLineClass(h, 'gutter', 'mm-cursor-bold'); if (on) cm.addLineClass(h, 'gutter', 'mm-cursor-gutter'); }
   });
   pane.cursorLines = lines;
+  pane.cursorGutterOn = on;
 }
 
 // Applies View > Gutter to the pane's editor for its file.
