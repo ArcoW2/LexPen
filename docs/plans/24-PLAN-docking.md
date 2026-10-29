@@ -171,20 +171,29 @@ tells the host a drag starts; the host shows the drop places over the window.
 
 ### 3.9 The panes that work on the active document: Characters, Highlights, the Outline
 
-- **Docked in a LexPen window**: it serves that window: its active document (the editor pane with the focus there,
-  or the one that had it last). Each window can have its own docked one.
-- **Floating**: it serves every LexPen window that has no docked one of its own: the active document of the window
-  last worked in among those. One floating one of each.
-- **An outline docked at an editor pane** (3.10): it serves that editor pane's document only, also when another pane
-  has the focus. The outlines at the editor panes are as now (one per editor pane), beside a docked or floating
-  Outline pane, which follows the active document.
+Where such a pane is docked decides what it serves, and the nearest one wins: one docked at an editor pane, then
+one docked in the window's dock areas, then the floating one. Each serves only what no nearer one serves.
+
+1. **Docked at an editor pane** (the outline only, 3.10): it serves that editor pane's document, and only that one,
+   also when another editor pane has the focus.
+2. **Docked in a LexPen window's dock area**: it serves the documents of that window whose editor pane has no
+   outline of its own docked there: of those, the active one (the one with the focus, or the one that had it last).
+   A document whose editor pane has its own outline is not served by the window's Outline pane; with the focus on
+   that document, the window's Outline pane keeps showing the last document it served. Characters and Highlights
+   have no editor-pane place, so in a window they serve its active document.
+3. **Floating**: it serves the LexPen windows that have no docked one of their own (for the Outline: and the
+   documents of those windows without an outline at their editor pane): of those, the document worked in last. A
+   window with its Outline pane in a dock area is not served by the floating outline. One floating one of each.
+
+- With the focus on a document that no one of them serves (it has a nearer one), each keeps showing what it showed
+  last; with nothing to serve at all, it says so and waits.
+- Moving a pane changes what it serves at once (dropped at an editor pane, it takes that pane's document; dropped
+  in a dock area, its window's; floated, the windows without one).
 - A floating one shows the document it works on: its title says the document's name ("Outline: plan24.md",
   "Characters: notes.md"), and it takes the theme of that document's window (its theme set and day / night), so it
   looks as the document does; both change when another document becomes active.
 - Characters inserts into the document it serves; the focus goes back to that document after an insert, as now.
 - Highlights lists the highlights of the document it serves, and follows when that changes.
-- With no document to serve (all windows have their own docked one, or none has a document): the floating one says
-  so and waits.
 
 ### 3.10 The outline at its editor pane
 
@@ -315,6 +324,10 @@ Part 2, the docking:
   ones serve window B (no docked one) and not A; the floating one's title names the document and its theme follows
   the document's window (two windows with different theme sets); an outline at an editor pane follows only that
   pane.
+- Part 2, in-app, the order of 3.9: window A with two editor panes, pane 1 with its own outline, pane 2 without, and
+  an Outline pane in A's dock area: the focus on pane 1 leaves the Outline pane at pane 2's document; the focus on
+  pane 2 shows it there; a floating outline never shows a document of A; its own outline taken away from pane 1,
+  the Outline pane serves pane 1 too; A's Outline pane floated, the floating one serves A.
 - Part 2, in-app: with the focus in a pane the document's frame is dimmed, the pane's active; the document's cursor
   (and several cursors) stays shown, steady, its selection in the colour without focus; an insert from Characters
   lands exactly there; docked and floating.
