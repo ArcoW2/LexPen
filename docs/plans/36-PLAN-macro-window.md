@@ -1,6 +1,7 @@
 # Plan: Recordings as numbered macros, and a window per macro
 
-Status: draft 2026-10-29; not started. Follows the macros (docs/plans/executed/PLAN-macros.md).
+Status: draft 2026-10-29; not started, on hold: the macros get extensive validation first. Follows the macros
+(docs/plans/executed/PLAN-macros.md).
 The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
@@ -42,7 +43,9 @@ macros to choose one. Play (Ctrl+M) plays the macro played or recorded last, and
 
 ### 3.3 The macro window
 
-A small window (the page's own dialog, as Manage is now), titled with the macro's name:
+A small window, titled with the macro's name. Not modal (Manage is modal now, which it should not be): the editor
+and the menus keep working while it is open, so you can switch documents, look at the macro's tab, and come back to
+it. It stays until closed; a play from it runs on the document active at that moment.
 
 - Play (once), Play X times... (asks the count), Play to the end of the file, Step by step (opens the macro in a tab
   beside the document and starts stepping).
