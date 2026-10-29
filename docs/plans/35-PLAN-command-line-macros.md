@@ -23,7 +23,8 @@ ones.
 in the window that got them, on its active document; when LexPen already runs, the running instance does it.
 `--new-project` (short `-p`) opens the files in a new window of a new, unnamed project, whatever is open already.
 A new statement `exit save` / `exit discard` closes LexPen as the close question's Yes or No would, without asking:
-changed files saved or their changes dropped, drafts kept. The README gets a complete list of the command line
+changed files saved or their changes dropped, drafts kept; with `window` added it closes only the macro's own
+window. What it closes comes back at the next start, as after a shutdown. The README gets a complete list of the command line
 options, and docs/features.md points to it.
 
 ## 3. Details
@@ -51,13 +52,21 @@ options, and docs/features.md points to it.
 - Also when LexPen already runs, and also when another window has these files open (a file open in two windows can
   only be edited in the first one, as now).
 - Combined with `--macro`: the macro runs in that new window.
+- LexPen not running yet: only the new project opens; the projects of the last session are not restored this time
+  (handy for a batch run). They are not lost: they come back at the next start without `--new-project`, so this
+  start must not overwrite what the last session left to restore.
 - An unnamed project is dropped later when none of its windows has files left (as now).
 
 ### 3.3 exit from a macro
 
 - `exit save`: every changed document with a file is saved; drafts stay drafts (changed or not); then LexPen
-  closes.
+  closes: every window of every project, also windows that were open before the macro started.
 - `exit discard`: the changes of documents with a file are dropped; drafts stay drafts; then LexPen closes.
+- `exit save window` / `exit discard window`: the same for the macro's own window only (the window of the document
+  it works on); LexPen itself ends only when that was its last window.
+- What it closes comes back at the next start, as after a shutdown or log-off: the windows and their projects are
+  not closed for good (unlike closing a project's last window by hand). With `window`, also when other windows of
+  its project stay open.
 - No question, also not "Save draft editN?" and not the question about a file that changed on disk. A file that
   cannot be saved (read-only, gone, no access) stops the exit: the macro ends with that error, LexPen stays open.
 - `exit` without a word is an error when the macro is read (as `notfound` without one): the choice is always
@@ -86,10 +95,4 @@ options, and docs/features.md points to it.
 
 ## 4. Open questions
 
-1. Which windows does `exit` close: all of LexPen (every window of every project, also windows that were open before
-   the command line started it), or only the window the macro runs in (and LexPen itself only when that was the last
-   one)?
-2. After `exit`, do the projects of the closed windows come back at the next start (as after a shutdown), or are
-   they closed (as when you close their last window by hand)?
-3. With `--new-project` on a LexPen that is not running yet: should the projects of the last session also open
-   (as on any first start), or only the new project (handy for a batch run)?
+None.
