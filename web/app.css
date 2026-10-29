@@ -810,6 +810,10 @@ body[data-occ-mark=outline] ::highlight(mm-occ-0), body[data-occ-mark=outline] :
 /* Selected text over an occurrence: the selection shows (it is drawn behind the text; occurrences.js marks the
    selection mm-occ-sel while occurrences are marked). The preview's selection is drawn over highlights by itself. */
 .CodeMirror .cm-mm-occ-hit.mm-occ-sel, .CodeMirror .mm-occ-first-bg.mm-occ-sel { background: none; color: inherit; }
+/* A space shown as a dot (showWhitespace) is drawn as a background image, which takes the background colour away:
+   an occurrence over several words keeps its colour under the dots, so it stays one bar. */
+body[data-show-ws]:not([data-occ-mark=outline]) .CodeMirror .cm-ws-space.cm-mm-occ-hit:not(.mm-occ-sel) { background-color: var(--occurrence-hit); }
+body[data-show-ws] .CodeMirror .cm-ws-space.mm-occ-first-bg:not(.mm-occ-sel) { background-color: var(--find-current); }
 body[data-occ-first=underline] ::highlight(mm-occ-first-0), body[data-occ-first=underline] ::highlight(mm-occ-first-1) {
   text-decoration: underline 2px var(--find-box); text-underline-offset: 3px;
 }
