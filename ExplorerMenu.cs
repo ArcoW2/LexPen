@@ -6,8 +6,9 @@ namespace LexPen;
 /// LexPen in Windows Explorer's right-click menu (docs/plans/executed/PLAN-explorer-compare.md,
 /// docs/plans/executed/PLAN-view-window.md). Compare: "Select left side to compare" on files and folders, and once a left side
 /// is chosen "Compare to &lt;its name&gt;", which runs --compare. View: "View in LexPen" on files and folders (--view).
-/// Edit: "Edit in LexPen" on files (--edit). Which of them, and where (Choice): next to each other between two lines,
-/// or in a submenu "LexPen". Registry entries for the current user only (HKCU\Software\Classes, or
+/// Edit: "Edit in LexPen" on files (--edit). Backups: "Delete .bak file" on files, "Delete all .bak files" on folders
+/// (--delete-backups, plan 33; a fixed entry, so it shows on every file and does nothing on one without a backup).
+/// Which of them, and where (Choice): next to each other between two lines, or in a submenu "LexPen". Registry entries for the current user only (HKCU\Software\Classes, or
 /// LEXPEN_REGISTRY_ROOT below HKCU for the tests), written when the settings change (Apply). The left side is a file in
 /// the state folder, shared by every LexPen process (also the one that only selects it and exits).
 /// </summary>
@@ -17,15 +18,16 @@ static class ExplorerMenu
     const string ToVerb = "LexPen.CompareTo";
     const string EditVerb = "LexPen.Edit";
     const string ViewVerb = "LexPen.View";
+    const string BackupsVerb = "LexPen.DeleteBackups";
     const string MenuVerb = "LexPen.Menu";
     static readonly string[] Kinds = ["*", "Directory"];   // files, folders
-    // Explorer puts the entries of a kind in the order of their key names: compare, edit, view.
-    static readonly string[] Verbs = [LeftVerb, ToVerb, EditVerb, ViewVerb];
+    // Explorer puts the entries of a kind in the order of their key names: compare, delete backups, edit, view.
+    static readonly string[] Verbs = [LeftVerb, ToVerb, BackupsVerb, EditVerb, ViewVerb];
 
-    /// <summary>The settings explorerCompare, explorerView, explorerEdit and explorerPlace ("submenu").</summary>
-    public sealed record Choice(bool Compare, bool View, bool Edit, bool Submenu)
+    /// <summary>The settings explorerCompare, explorerView, explorerEdit, explorerPlace ("submenu") and explorerBackups.</summary>
+    public sealed record Choice(bool Compare, bool View, bool Edit, bool Submenu, bool Backups = false)
     {
-        public bool Any => Compare || View || Edit;
+        public bool Any => Compare || View || Edit || Backups;
     }
 
     static string Root => Environment.GetEnvironmentVariable("LEXPEN_REGISTRY_ROOT") is { Length: > 0 } root ? root : @"Software\Classes";
@@ -60,7 +62,8 @@ static class ExplorerMenu
         {
             var submenu = Kinds.Any(kind => Has($@"{Root}\{kind}\shell\{MenuVerb}"));
             var c = new Choice(Has($@"{ShellOf("*", submenu)}\{LeftVerb}"),
-                Kinds.Any(kind => Has($@"{ShellOf(kind, submenu)}\{ViewVerb}")), Has($@"{ShellOf("*", submenu)}\{EditVerb}"), submenu);
+                Kinds.Any(kind => Has($@"{ShellOf(kind, submenu)}\{ViewVerb}")), Has($@"{ShellOf("*", submenu)}\{EditVerb}"), submenu,
+                Kinds.Any(kind => Has($@"{ShellOf(kind, submenu)}\{BackupsVerb}")));
             return c.Any ? c : null;
         }
     }
@@ -151,6 +154,11 @@ static class ExplorerMenu
                     Verb(shell, ToVerb, $"Compare to {NameOf(left)}", $"\"{Icon(exe, "compare-to.ico")}\"", $"\"{exe}\" --compare \"{left}\" \"%1\"");
                     written.Add(ToVerb);
                 }
+            }
+            if (c.Backups)
+            {
+                Verb(shell, BackupsVerb, kind == "*" ? "Delete .bak file" : "Delete all .bak files", lexpen, $"\"{exe}\" --delete-backups \"%1\"");
+                written.Add(BackupsVerb);
             }
             if (c.Edit && kind == "*")
             {

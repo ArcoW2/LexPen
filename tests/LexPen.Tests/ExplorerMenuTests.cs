@@ -119,6 +119,23 @@ public class ExplorerMenuTests : IDisposable
         Assert.Equal(Exe, ExplorerMenu.InstalledExe);
     }
 
+    // Delete .bak files (plan 33): on files and on folders, alone or with the others, and gone again.
+    [Fact]
+    public void TheBackupEntries()
+    {
+        ExplorerMenu.Apply(Exe, new ExplorerMenu.Choice(false, false, false, false, Backups: true));
+        Assert.Equal("Delete .bak file", Label("*", "LexPen.DeleteBackups"));
+        Assert.Equal("Delete all .bak files", Label("Directory", "LexPen.DeleteBackups"));
+        Assert.Equal($"\"{Exe}\" --delete-backups \"%1\"", Command("Directory", "LexPen.DeleteBackups"));
+        Assert.Equal(new ExplorerMenu.Choice(false, false, false, false, true), ExplorerMenu.Installed);
+        ExplorerMenu.Apply(Exe, new ExplorerMenu.Choice(false, true, true, true, Backups: true));
+        Assert.Equal("Delete .bak file", Label("LexPen.Menu.Files", "LexPen.DeleteBackups"));
+        Assert.Equal(new ExplorerMenu.Choice(false, true, true, true, true), ExplorerMenu.Installed);
+        ExplorerMenu.Apply(Exe, new ExplorerMenu.Choice(false, true, false, false));
+        Assert.Null(Label("*", "LexPen.DeleteBackups"));
+        Assert.Null(Label("LexPen.Menu.Files", "LexPen.DeleteBackups"));
+    }
+
     [Fact]
     public void TheItemsInASubmenuAndBackLeaveNothingBehind()
     {

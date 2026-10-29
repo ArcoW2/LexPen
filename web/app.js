@@ -2136,9 +2136,10 @@ function sortItems(items) {
 
 async function fillDir(container, path, depth) {
   // Backup files (name.ext.bak) only with the setting showBackupFiles; highlights next to a file (name.ext.lph,
-  // highlights.js) never: the file gets a mark instead.
+  // highlights.js) never: the file gets a mark instead. A file with a backup next to it: a dot before its name (plan 33).
   const listed = await host('list', { path });
   const withHighlights = new Set(listed.filter(i => !i.dir && /\.lph$/i.test(i.name)).map(i => i.name.slice(0, -4).toLowerCase()));
+  const withBackups = new Set(listed.filter(i => !i.dir && /\.bak$/i.test(i.name)).map(i => i.name.slice(0, -4).toLowerCase()));
   const items = listed.filter(i => i.dir || (!/\.lph$/i.test(i.name) && (setting('showBackupFiles') || !/\.bak$/i.test(i.name))));
   container.replaceChildren();
   for (const item of [...sortItems(items), ...deletedIn(path, items)]) {
@@ -2153,6 +2154,10 @@ async function fillDir(container, path, depth) {
     const name = document.createElement('span');
     name.className = 'mm-name';
     name.textContent = item.name;
+    if (!item.dir && !item.gone && withBackups.has(item.name.toLowerCase())) {
+      row.classList.add('mm-has-backup');
+      row.append(Object.assign(document.createElement('span'), { className: 'mm-backup-dot', title: 'A backup file exists next to this file' }));
+    }
     row.append(name);
     if (!item.dir && withHighlights.has(item.name.toLowerCase())) {
       row.classList.add('mm-has-highlights');
@@ -4247,9 +4252,34 @@ document.addEventListener('contextmenu', e => {
     ui.treeMenu.querySelector('[data-cmd=treeCompareFolder]').hidden = file;
     leftSideItems(ui.treeMenu, 'tree', contextPath, !file);   // compare.js: the left side to compare
     gitCompareItems(ui.treeMenu, 'tree', row.classList.contains('mm-up') ? null : contextPath, file && !!findDoc(contextPath)?.dirty);
+    // The backups LexPen made (plan 33): a file's own (it has the dot); a folder's, asked of the host (below it too).
+    const one = ui.treeMenu.querySelector('[data-cmd=treeDeleteBackup]'), all = ui.treeMenu.querySelector('[data-cmd=treeDeleteBackups]');
+    one.hidden = !file || !row.classList.contains('mm-has-backup');
+    one.textContent = `Delete ${nameOf(contextPath)}.bak`;
+    all.hidden = true;
+    const asked = contextPath;
+    if (!file && !row.classList.contains('mm-up') && !row.classList.contains('mm-gone'))
+      host('hasBackups', { path: asked }).then(has => { if (contextPath === asked) all.hidden = !has; }).catch(() => {});
+    ui.treeMenu.querySelector('[data-cmd=treeCopyName]').textContent = file ? 'Copy file name' : 'Copy folder name';
   });
   else if (!e.target.closest('.mm-tabs, .mm-divider')) hideMenus();   // those open their own menu
 });
+
+// The backups LexPen made (plan 33, Backups.cs): a file's own (no question), or a folder's after the question (here,
+// or with its subfolders). To the Recycle Bin; the folder pane shows them gone.
+async function deleteBackups(path, folder = false) {
+  let subfolders = false;
+  if (folder) {
+    const how = await host('askBackups', { path });
+    if (!how) return;
+    subfolders = how === 'all';
+  }
+  const { deleted, left } = await host('deleteBackups', { path, subfolders });
+  const said = [deleted ? `${deleted} .bak file${deleted === 1 ? '' : 's'} deleted (Recycle Bin)` : 'No .bak files deleted',
+    left.length && `not deleted: ${left.map(nameOf).join(', ')}`].filter(Boolean);
+  toast(said.join('; ') + '.', !left.length);
+  await refreshTree(false);
+}
 
 function relativePath(path) {
   if (!state.root) return path;
@@ -4642,6 +4672,9 @@ const commands = {
   orientH: () => state.orient === 'h' || commands.orient(),
   copyPath: () => copyText(contextPath),
   copyRelativePath: () => copyText(relativePath(contextPath)),
+  treeCopyName: () => copyText(nameOf(contextPath.replace(/\\$/, '')) || contextPath),   // a drive (D:\): as it is
+  treeDeleteBackup: () => deleteBackups(contextPath),
+  treeDeleteBackups: () => deleteBackups(contextPath, true),
   favouriteToggle: () => toggleFavourite(activeDoc()?.path),
   tabFavourite: () => menuTab && toggleFavourite(menuTab.doc.path),
   treeFavourite: () => toggleFavourite(contextPath, contextKind),

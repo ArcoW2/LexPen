@@ -399,7 +399,12 @@ every action with its key.
   valid UTF-8 and has no BOM is ANSI (the Windows code page); a character ANSI cannot hold is refused when saving,
   Save as under another name saves it as UTF-8.
 - **Backup on save**: the old file becomes `name.ext.bak` (overwritten at the next save; a setting,
-  on by default). Saving goes through a temporary file that replaces the old one in one step.
+  on by default). Saving goes through a temporary file that replaces the old one in one step. In the folder pane a
+  file with a backup has a red dot before its name; its right-click deletes it (Delete name.ext.bak), a folder's
+  deletes them all (Delete *.bak files: in the folder itself or with its subfolders). Only backups with their file
+  next to them; to the Recycle Bin. Explorer's right-click menu can have the same (Options > Settings, Windows
+  Explorer: Delete .bak file, Delete all .bak files), without a question.
+- **Copy file name**: the folder pane's right-click on a file or folder copies its name, as a tab's does.
 - **Code files**: JSON, YAML, PowerShell and C# (`.json`, `.yaml`, `.yml`, `.ps1`, `.psm1`, `.psd1`, `.cs`) are
   shown and edited with syntax highlighting. Other text files open as plain text; binary files and files over
   10 MB are refused.

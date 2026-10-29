@@ -804,6 +804,23 @@ sealed class MainForm : Form
             case "list":
                 return List(Arg("path"));
 
+            // The backups LexPen made (Backups, plan 33): a folder has some (below it too); which to delete; deleted to
+            // the Recycle Bin, a file's own or a folder's (with its subfolders or not).
+            case "hasBackups":
+                return Backups.Any(Arg("path"));
+
+            case "askBackups":
+                return AskBackups(Arg("path"));
+
+            case "deleteBackups":
+            {
+                var path = Arg("path");
+                List<string> list = File.Exists(path) ? (Backups.Of(path) is string own ? [own] : [])
+                    : Backups.In(path, msg["subfolders"]?.GetValue<bool>() == true).ToList();
+                var (deleted, left) = Backups.Delete(list);
+                return new JsonObject { ["deleted"] = deleted, ["left"] = new JsonArray(left.Select(p => (JsonNode?)p).ToArray()) };
+            }
+
             case "watch":
                 Root = Arg("root") is { Length: > 0 } root ? root : null;
                 Watch(treeWatcher, Root, "*");
@@ -1091,6 +1108,25 @@ sealed class MainForm : Form
     }
 
     // Shift held while dropping or pasting: how to link the images. Null: cancelled.
+    // Delete a folder's backups: "here" (the folder itself), "all" (with its subfolders), or null (Cancel).
+    string? AskBackups(string folder)
+    {
+        var here = new TaskDialogCommandLinkButton("Delete here", "The .bak files in this folder itself");
+        var all = new TaskDialogCommandLinkButton("Delete with subfolders", "The .bak files in this folder and every folder below it");
+        var page = new TaskDialogPage
+        {
+            Caption = "LexPen",
+            Heading = $"Delete the .bak files in {ExplorerMenu.NameOf(folder)}?",
+            Text = "Only backups LexPen made (name.ext.bak next to name.ext). They go to the Recycle Bin.",
+            AllowCancel = true,
+        };
+        page.Buttons.Add(here);
+        page.Buttons.Add(all);
+        page.Buttons.Add(TaskDialogButton.Cancel);
+        var result = Program.ShowTask(this, page);
+        return result == here ? "here" : result == all ? "all" : null;
+    }
+
     string? AskImageMode(string doc, List<string> images)
     {
         var buttons = new (string Mode, TaskDialogCommandLinkButton Button)[]

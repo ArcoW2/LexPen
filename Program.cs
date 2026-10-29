@@ -13,6 +13,14 @@ static class Program
     static void Main(string[] args)
     {
         ApplicationConfiguration.Initialize();
+        // --delete-backups (Explorer's Delete .bak file / Delete all .bak files, plan 33): a file's backup, or every backup
+        // in a folder and below it, to the Recycle Bin; no question, no window.
+        if (Array.IndexOf(args, "--delete-backups") is var del and >= 0)
+        {
+            if (del + 1 < args.Length && Path.GetFullPath(args[del + 1]) is var path)
+                Backups.Delete(File.Exists(path) ? (Backups.Of(path) is string own ? [own] : []) : Backups.In(path, true).ToList());
+            return;
+        }
         // --compare-left (Explorer's Select left side to compare): the left side kept, the entries rewritten, no window.
         if (Array.IndexOf(args, "--compare-left") is var at and >= 0)
         {
