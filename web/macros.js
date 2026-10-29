@@ -9,7 +9,7 @@ const macroPlay = { running: false, stop: false, docs: new Map(), cms: new Set()
 
 // What the check knows of LexPen: its actions (with how many values each takes) and its system variables.
 const MACRO_SYSTEM = ['found', 'error', 'errortext', 'bof', 'eof', 'line', 'column', 'linetext', 'word', 'selection',
-  'document', 'path', 'lines', 'language', 'part', 'pane'];
+  'document', 'path', 'lines', 'language', 'part', 'pane', 'clipboard'];
 // The switches readable as $$name: every toggle action without variants (wrap, outline, preview, ...).
 const macroToggles = () => [...appActions.keys()].filter(n => n.endsWith('.toggle') && appActions.get(n).checked && !appActions.get(n).variants).map(n => n.slice(0, -7));
 function macroContext(macros) {
@@ -167,6 +167,8 @@ const macroEnv = {
       case 'language': return doc ? languageOf(doc) : '';
       case 'part': return editor && typeof lineLanguage === 'function' ? lineLanguage(cm, cur.line) ?? languageOf(doc) : doc ? languageOf(doc) : '';
       case 'pane': return (pane?.index ?? 0) + 1;
+      // The active clipboard (Windows' or one of LexPen's), as Paste would put it.
+      case 'clipboard': return (clips.active === 0 ? host('clipboardText') : host('clipGet', { n: clips.active })).then(t => String(t ?? ''), () => '');
     }
     return '';
   },
@@ -429,7 +431,7 @@ loadMacroNames();
 // find bar with its switches; a switch to another document or pane as `show "name"`. While it records, a Stop
 // recording button shows right of the menus. The result is the last recording (~last), unless Manage chose to add
 // it to a macro (at its end, or at the cursor in its open tab).
-const macroRecording = { on: false, steps: [], typed: '', lastTab: null, mouse: null };
+const macroRecording = { on: false, steps: [], typed: '', lastTab: null, mouse: null, find: null };   // find: one typed in the find bar
 const macroQuote = s => '"' + String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\t/g, '\\t') + '"';
 const recordingNow = () => macroRecording.on && !macroPlay.running;
 
@@ -438,8 +440,16 @@ function flushTyped() {
   macroRecording.steps.push('type ' + macroQuote(macroRecording.typed));
   macroRecording.typed = '';
 }
+// The search typed in the find bar (it searches as you type): one step, written when the next thing happens.
+function flushFind() {
+  if (!macroRecording.find) return;
+  flushTyped();
+  macroRecording.steps.push(macroRecording.find);
+  macroRecording.find = null;
+}
 function recordStep(step) {
   if (!recordingNow()) return;
+  flushFind();
   flushTyped();
   macroRecording.steps.push(step);
 }
@@ -448,19 +458,43 @@ function recordStep(step) {
 const MACRO_NOT_RECORDED = new Set(['find', 'replace', 'findNext', 'findPrevious', 'replaceAll', 'macroRun', 'editorKey', 'occurrences.field']);
 function recordAction(name, params, ctx) {
   if (!recordingNow() || ctx.from === 'macro' || name.startsWith('macro') || MACRO_NOT_RECORDED.has(name)) return;
+  // A key in a text field (the find field, ...) works on the field: what it leads to is recorded (a find), not the key.
+  if (ctx.from === 'key' && document.activeElement?.matches?.('input, textarea') && !document.activeElement.closest('.CodeMirror')) return;
   const values = params.map(p => typeof p === 'number' || /^-?\d+$/.test(String(p)) ? String(p) : macroQuote(p));
   recordStep([name, ...values, ...(ctx.extend ? ['extend'] : [])].join(' '));
 }
 
-// The find bar (find.js): a search done, a replace.
-function recordMacroFind(query, f, back) {
-  if (!query) return;
-  recordStep(['find', macroQuote(query), ...['case', 'word', 'regex'].filter(k => f[k]), ...(back ? ['back'] : [])].join(' '));
+// The find bar (find.js): a search done (Enter, F3), or typed (`typing`: from where it started, the last one counts),
+// a replace.
+function recordMacroFind(query, f, back, typing) {
+  if (!query || !recordingNow()) return;
+  const step = ['find', macroFindText(query), ...['case', 'word', 'regex'].filter(k => f[k]), ...(back ? ['back'] : [])].join(' ');
+  if (typing) macroRecording.find = step;
+  else recordStep(step);
 }
 function recordMacroReplace(query, replacement, f, all) {
   if (!query) return;
-  recordStep(['replace', macroQuote(query), macroQuote(replacement), ...['case', 'word', 'regex'].filter(k => f[k]), ...(all ? ['all'] : [])].join(' '));
+  recordStep(['replace', macroFindText(query), macroQuote(replacement), ...['case', 'word', 'regex'].filter(k => f[k]), ...(all ? ['all'] : [])].join(' '));
 }
+
+// What was pasted into the find field, while recording: a search that still holds it finds what is on the clipboard
+// when the macro plays (`find $$clipboard`, `find "x" & $$clipboard`), not the text of the recording.
+function macroFindText(query) {
+  const pasted = macroRecording.pasted, at = pasted ? query.indexOf(pasted) : -1;
+  if (at < 0) return macroQuote(query);
+  const before = query.slice(0, at), after = query.slice(at + pasted.length);
+  return [before && macroQuote(before), '$$clipboard', after && macroQuote(after)].filter(Boolean).join(' & ');
+}
+// A paste into a field (the field's own, or Paste of one of LexPen's clipboards, actions.js): the text it put in,
+// from the field's value before and after.
+function noteFieldPaste(el) {
+  if (!recordingNow() || !el?.matches?.('.mm-find-input')) return;
+  const end = el.value.length - el.selectionEnd, start = el.selectionStart;
+  // Before the find bar's own input handler searches (capture, on the window).
+  const took = e => { if (e.target !== el) return; removeEventListener('input', took, true); macroRecording.pasted = el.value.slice(start, el.value.length - end) || null; };
+  addEventListener('input', took, true);
+}
+addEventListener('paste', e => noteFieldPaste(e.target), true);
 
 // Another document shown (app.js noteActive): `show "name"`.
 function recordActive(tab) {
@@ -474,13 +508,15 @@ function setupMacroRecording(pane) {
   const cm = pane.cm;
   cm.on('inputRead', (_, change) => {
     if (!recordingNow()) return;
+    flushFind();
     macroRecording.typed += change.text.join('\n');
   });
-  cm.on('keyHandled', (_, name) => {
+  cm.on('keyHandled', (_, name, e) => {
     if (!recordingNow()) return;
     const ch = /^'(.)'$/.exec(name);   // a character an editor helper typed (a closing bracket): typed text
-    if (ch) { macroRecording.typed += ch[1]; return; }
-    recordStep('editorKey ' + macroQuote(name));
+    if (ch) { flushFind(); macroRecording.typed += ch[1]; return; }
+    // With Shift the editor finds the key without it (and selects): the name it gives has no Shift.
+    recordStep('editorKey ' + macroQuote(e?.shiftKey && !/(^|-)Shift-/.test(name) ? 'Shift-' + name : name));
   });
   cm.on('mousedown', (_, e) => { if (recordingNow() && e.button === 0) macroRecording.mouse = { cm, line: cm.getCursor().line }; });
 }
@@ -511,7 +547,7 @@ appAction('editorKey', { title: 'Editor key', hint: 'A key of the editor itself 
   editor: true, variants: [], run: ([name], { pane }) => pressEditorKey(pane.cm, name) });
 
 function startRecording() {
-  Object.assign(macroRecording, { on: true, steps: [], typed: '', lastTab: activeTab(), mouse: null });
+  Object.assign(macroRecording, { on: true, steps: [], typed: '', lastTab: activeTab(), mouse: null, find: null, pasted: null });
   document.body.toggleAttribute('data-recording', true);
   const next = macroStore.nextRecording;
   toast(next ? `Recording, to be ${next.how === 'append' ? 'added to' : 'inserted in'} ${next.name}; ${keyText('macro.record') || 'Stop recording'} stops it.`
@@ -519,6 +555,7 @@ function startRecording() {
 }
 
 async function stopRecording() {
+  flushFind();
   flushTyped();
   macroRecording.on = false;
   document.body.toggleAttribute('data-recording', false);
@@ -555,7 +592,7 @@ const MACRO_SYSTEM_HINTS = {
   line: 'the cursor\'s line (from 1)', column: 'the cursor\'s column (from 1)', linetext: 'the text of the cursor\'s line',
   word: 'the word at the cursor', selection: 'the selected text', document: 'the tab\'s name', path: 'the tab\'s file',
   lines: 'the document\'s line count', language: 'the document\'s language', part: 'the language of the part the cursor is in',
-  pane: 'the pane: 1 or 2',
+  pane: 'the pane: 1 or 2', clipboard: 'the text on the active clipboard (as Paste would put it)',
 };
 const MACRO_SYSTEM_NAMES = { errortext: 'errorText', linetext: 'lineText' };
 const MACRO_STATEMENT_HINTS = {

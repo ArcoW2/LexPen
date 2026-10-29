@@ -71,6 +71,7 @@ Prefixed with `$$`; a macro cannot set them, and they are set again after every 
 | `$$lines` | The document's line count |
 | `$$language`, `$$part` | The document's language, the language of the part the cursor is in (an embedded part) |
 | `$$pane` | 1 or 2 |
+| `$$clipboard` | The text on the active clipboard, as Paste would put it (a recorded find of pasted text uses it: `find $$clipboard`) |
 | `$$wrap`, `$$outline`, ... | A switch: true when it is on (every switch with on / off actions) |
 
 ## Steps

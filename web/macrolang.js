@@ -297,8 +297,14 @@ function macroStatement(text, line) {
     case 'paste': case 'type': { const value = expr(); end(); return { k: word, value, line }; }
     case 'moveto': return macroMoveto(tokens, p, line);
     case 'find': case 'replace': {
-      const args = [macroPrimary(tokens, p, line)];
-      if (word === 'replace') args.push(macroPrimary(tokens, p, line));
+      // A text, or texts joined with & (find "TODO " & $$clipboard); then the switches.
+      const joined = () => {
+        let a = macroPrimary(tokens, p, line);
+        while (tokens[p.at]?.t === 'op' && tokens[p.at].v === '&') { p.at++; a = { k: 'cat', a, b: macroPrimary(tokens, p, line) }; }
+        return a;
+      };
+      const args = [joined()];
+      if (word === 'replace') args.push(joined());
       const flags = new Set();
       while (p.at < tokens.length) {
         const tok = tokens[p.at++], f = tok.v?.toLowerCase();

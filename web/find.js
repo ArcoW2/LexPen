@@ -287,7 +287,7 @@ function findGo(pane, dir, fromOrigin) {
   if (!regex || regex instanceof Error) return;
   const where = findTarget(pane);
   if (!fromOrigin) recordFind(findOf(pane).query, findOf(pane));   // a search done, not one typed (history.js)
-  if (!fromOrigin && typeof recordMacroFind === 'function') recordMacroFind(findOf(pane).query, findOf(pane), dir < 0);   // macros.js
+  if (typeof recordMacroFind === 'function') recordMacroFind(findOf(pane).query, findOf(pane), dir < 0, fromOrigin);   // macros.js
   if (bar.marked !== where + pane.active?.id) refresh(pane, false);   // another tab or mode since the marks
   if (where === 'editor') return goEditor(pane, regex, dir, fromOrigin);
   goPreview(pane, regex, dir, fromOrigin);

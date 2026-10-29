@@ -436,6 +436,7 @@ appAction('paste', { title: 'Paste', hint: 'From the active clipboard', group: '
     if (clips.active === 0) return PASS;
     host('clipGet', { n: clips.active }).then(text => {
       if (!text || document.activeElement !== el) return;
+      if (typeof noteFieldPaste === 'function') noteFieldPaste(el);   // recording a macro (macros.js)
       document.execCommand('insertText', false, String(text).replace(/\r?\n/g, ' '));
     });
   } });
