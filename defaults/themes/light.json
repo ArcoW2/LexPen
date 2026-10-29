@@ -19,6 +19,7 @@
     "highlight": "#f2cf3a",
     "occurrenceHit": "#f7e07f",
     "occurrenceBox": "#8a7109",
+    "bookmarkFg": "#ffffff",
     "inlineCode": "#e0e0e1",
     "inlineCodeFg": "#144681",
     "note": "#0969da",

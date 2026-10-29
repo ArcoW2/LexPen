@@ -247,6 +247,27 @@ every action with its key.
   dash at 5, a dot on the others) or every line; absolute or relative to the cursor line (then Go to line starts with
   "+" and the caret after it: a number goes down, -n up, Backspace and a number to that line). The cursor's line is marked in the
   gutter, in the colour the ruler shows its column in (setting Show cursor location in the gutter).
+
+  ![The gutter with every marker](img/gutter.png)
+
+  What the gutter shows, left to right (the line numbers refer to the image, the Dark theme):
+
+  | Where | Marker | Meaning | Switched by |
+  |---|---|---|---|
+  | Line number | Bold, on the selection colour (line 9) | The cursor's line. Bold always; the background with Show cursor location in the gutter | Settings, Editor view |
+  | Line number | The occurrence colour (lines 5, 11, 12) | A line with an occurrence of the Occurrences bar | View > Gutter > Occurrences |
+  | Line number | Underlined (line 5), or as Found first occurrence says | The line of the first occurrence (most times where it is declared) | Settings, Find > Occurrences |
+  | Line number | The find colours (lines 15, 17; the current match darker) | A line with a match of the find bar | Settings, Find > Mark the line numbers of lines with found text |
+  | Bookmarks | A number (line 5) | Bookmark 1 to 9 (Ctrl+1, S stores 1; its number in the theme's dark on its accent) | View > Gutter > Bookmarks |
+  | Bookmarks | A flag (line 15) | An unnumbered bookmark (Ctrl+K, K, or a click here) | View > Gutter > Bookmarks |
+  | Change markers | A bar in the warning colour (line 17) | Changed since the last save | View > Gutter > Change markers |
+  | Git markers | A green bar (line 7) | Added since the last commit | View > Gutter > Git markers |
+  | Git markers | A light brown bar (lines 11, 12, 17) | Changed since the last commit (a click shows the old text) | View > Gutter > Git markers |
+  | Git markers | A red triangle (line 13) | Lines removed there since the last commit | View > Gutter > Git markers |
+  | Fold markers | A triangle (lines 4, 10, 16) | A block that can be folded (a click folds it) | View > Gutter > Fold markers |
+  | Right edge | A strip in the highlight colour (line 6) | A line with a highlight | View > Gutter > Highlights |
+
+  The yellow line beside the text is not in the gutter: it is the indent guide of the block the cursor is in.
 - **Ruler, column guides, tab stops and helper lines**: View > Ruler shows the columns above the editor (the
   cursor's column marked). Column guides are faint lines after so many characters: a first one, then one every step,
   and one more (as 80), in the settings (Editor view > Ruler and column guides). The guides have a colour of their own (a theme
@@ -510,7 +531,7 @@ every action with its key.
   `hover`, `active`, `select`, `inlineCode` (the box behind code within a line of text), `inlineCodeFg` (its text), `highlight` (a highlighted part of the text: a dark yellow on light, on dark a yellow as
   bright as the text's contrast allows, a bright yellow on a medium background or where the selection is yellowish), `paneActive`; code: `keyword`, `string`, `comment`, `number`, `title`, `attr`;
   alerts: `note`, `tip`, `important`, `warning`, `caution`; markers: `gitModified`, `gitAdded`, `gitUntracked`,
-  `gitDeleted`, `barChanged`, `barRemoved`; find: `findHit`, `findCurrent`, `findCurrentFg`, `findBox`; occurrences: `occurrenceHit`, `occurrenceBox` (in every shipped theme: `occurrenceHit` its `highlight` 35% toward its background `bg`, so the text on it stays clear); the pair at the cursor: `bracketMatch`, `bracketNoMatch`; indent guides (rainbow, per level): `guide1` to `guide6`; shown spaces, tabs and line ends: `whitespace`; the gutter beside lines of another language: `gutterBgEmbedded`; the settings window's line per row, by what a setting belongs to: `layerGlobal`, `layerWindow`, `layerSet`, `layerScreen`. Values:
+  `gitDeleted`, `barChanged`, `barRemoved`; find: `findHit`, `findCurrent`, `findCurrentFg`, `findBox`; occurrences: `occurrenceHit`, `occurrenceBox` (in every shipped theme: `occurrenceHit` its `highlight` 35% toward its background `bg`, so the text on it stays clear); a bookmark's number: `bookmarkFg` (on light themes white, on dark ones the theme's own `bg`, readable on the accent); the pair at the cursor: `bracketMatch`, `bracketNoMatch`; indent guides (rainbow, per level): `guide1` to `guide6`; shown spaces, tabs and line ends: `whitespace`; the gutter beside lines of another language: `gutterBgEmbedded`; the settings window's line per row, by what a setting belongs to: `layerGlobal`, `layerWindow`, `layerSet`, `layerScreen`. Values:
   `#rrggbb`, `#rgb` or `rgba(r, g, b, a)`. Mistakes show in the settings window.
 - **Theme sets**: a named combination of the themes (app, editor, preview, sneak preview; per mode) and the
   colours and intensities of highlights, guides and inline code, so projects look apart at a glance. Every window

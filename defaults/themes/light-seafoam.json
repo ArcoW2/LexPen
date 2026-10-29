@@ -21,6 +21,7 @@
     "highlight": "#f2cf3a",
     "occurrenceHit": "#f2dd7b",
     "occurrenceBox": "#8a7109",
+    "bookmarkFg": "#ffffff",
     "inlineCode": "#d2dbd5",
     "inlineCodeFg": "#1a5230",
     "paneActive": "#1e7a43",

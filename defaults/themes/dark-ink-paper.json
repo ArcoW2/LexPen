@@ -25,6 +25,7 @@
     "highlight": "#8d8300",
     "occurrenceHit": "#635f0e",
     "occurrenceBox": "#fff027",
+    "bookmarkFg": "#161c27",
     "paneActive": "#e0b84a",
     "bracketMatch": "rgba(224, 184, 74, .35)"
   }

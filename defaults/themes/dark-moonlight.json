@@ -20,6 +20,7 @@
     "highlight": "#686100",
     "occurrenceHit": "#4d4a0d",
     "occurrenceBox": "#ffee02",
+    "bookmarkFg": "#1c1f24",
     "inlineCode": "#363a41",
     "inlineCodeFg": "#b0c6e2",
     "paneActive": "#8fb0d8"

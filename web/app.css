@@ -10,6 +10,7 @@
   --accent: #0969da; --hover: rgba(0, 0, 0, .06); --active: rgba(9, 105, 218, .13); --select: #b6d7ff;
   --highlight: #f2cf3a;   /* a highlighted part of the text (the compare's mirrored selection): a dark yellow on light */
   --occurrence-hit: #f7e07f; --occurrence-box: #8a7109;   /* the Occurrences bar's marks: the highlight 35% toward the background */
+  --bookmark-fg: #fff;   /* a bookmark's number on its accent background: white on light, the theme's own dark on dark */
   --inline-code: #e0e0e1;   /* the box behind code within a line of text: 14% of the text colour in the background */
   --inline-code-fg: #144681;   /* its text: the theme's main colour (accent) half and half with the text colour */
   --hl-keyword: #cf222e; --hl-string: #0a3069; --hl-comment: #6e7781;
@@ -34,6 +35,7 @@
   --accent: #58a6ff; --hover: rgba(255, 255, 255, .07); --active: rgba(88, 166, 255, .2); --select: #264f78;
   --highlight: #686100;   /* a dark yellow on dark: as bright as the text's contrast allows (4.5) */
   --occurrence-hit: #4e4a0c; --occurrence-box: #ffee02;
+  --bookmark-fg: var(--bg);   /* the accent is light on dark (yellow, light blue): the number in the theme's own dark */
   --inline-code: #38393d;
   --inline-code-fg: #98c0f0;
   --hl-keyword: #ff7b72; --hl-string: #a5d6ff; --hl-comment: #8b949e;
@@ -625,7 +627,7 @@ body[data-no-format-bar] .CodeMirror .mm-inner-bar { display: none; }
 /* Gutter: bookmarks (bookmarks.js), right of the line numbers. */
 .mm-editor-pane .mm-bookmarks { width: 18px; cursor: pointer; }
 .mm-bm { display: inline-block; min-width: 9px; margin-left: 2px; padding: 0 2px; border-radius: 3px; text-align: center;
-  font: 600 10px/14px "Segoe UI", sans-serif; color: #fff; background: var(--accent); }
+  font: 600 10px/14px "Segoe UI", sans-serif; color: var(--bookmark-fg); background: var(--accent); }
 /* Change markers (not saved) and git markers (since the last commit), as in VS Code. */
 .mm-editor-pane .mm-changes, .mm-editor-pane .mm-git { width: 5px; }
 .mm-editor-pane .mm-git { cursor: pointer; }

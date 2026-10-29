@@ -196,6 +196,7 @@ public class ThemeFileTests : IDisposable
         {
             var text = File.ReadAllText(file);
             Assert.True(text.Contains("\"occurrenceHit\"") && text.Contains("\"occurrenceBox\""), Path.GetFileName(file));
+            Assert.True(text.Contains("\"bookmarkFg\""), Path.GetFileName(file));   // a bookmark's number, readable on the accent
         }
     }
 
