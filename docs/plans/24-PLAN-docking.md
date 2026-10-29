@@ -3,10 +3,10 @@
 Status: draft 2026-10-22, extended 2026-10-25 (Folder and Search apart); brought in line with plan 33
 2026-10-25 (no view window of its own: viewing is a normal project, so all windows are the same kind); worked out
 2026-10-29 with your answers: every tool pane is the same kind (it floats as a window or docks in the main window);
-only an outline is different (it docks to its own document pane); executed in two parts: first Folder, Search and
-the Outline become windows of their own, then the docking. A closed dock leaves its header with a tab per pane.
-Characters and Highlights work on the active document. Not started; questions open. From your answer on the
-character picker window (plan 15 follow-up): "docking should be a new plan".
+built in two parts (first Folder, Search and the Outline as pages of their own, then the docking); the panes that
+work on the active document (Characters, Highlights, the Outline) serve their window when docked and every other
+window when floating; native docking; speed first. Not started; no questions open. From your answer on the character
+picker window (plan 15 follow-up): "docking should be a new plan".
 The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
@@ -15,23 +15,27 @@ LexPen's panes are fixed: the side pane (Folder and Search, two tabs) is always 
 an outline of its own at its right; Settings, the character picker, the highlights list and the Manage windows are
 windows of their own (or, for Manage macros, a dialog in the page). You cannot put the folder pane on the right, the
 search at the bottom, Settings or the characters next to the text, the folder in a window of its own on another
-monitor, or an outline at the other side of its text or under it.
+monitor, or an outline at the other side of its text, under it, or in a window of its own.
 
 ## 2. The solution, in brief
 
-All tool panes are one kind: Folder, Search, Settings, Characters, Highlights and the Manage windows (projects, theme
-sets, macros). Each one floats as a window of its own, or docks in a LexPen window: at the left, the right or the
-bottom, alone, as a tab beside others, or above, under or next to another pane, resized with splitters. An outline is
-the one exception: it belongs to its editor pane and docks only at that pane's left, right or bottom, or floats.
+All tool panes are one kind: Folder, Search, Settings, Characters, Highlights, the Outline and the Manage windows
+(projects, theme sets, macros). Each one floats as a window of its own, or docks in a LexPen window: at the left, the
+right or the bottom, alone, as a tab beside others, or above, under or next to another pane, resized with splitters.
+An outline can also dock at the left, right or bottom of its own editor pane. The docking is native (the panes'
+browser views placed by the LexPen window itself), and it must not make LexPen slower.
 
-A dock closes and opens with a button whose icon shows the direction; closed, only its header stays, along the edge
-(turned a quarter at the left and right), with a tab per docked pane: a click on a tab opens the dock with that pane.
-The toolbar's hamburger goes. A pane shown again comes back as it was, also closed in its dock. Characters inserts into
-the active document and Highlights lists the active document's highlights, wherever they are docked; the active
-document keeps a dimmed frame while such a pane has the focus.
+The panes that work on the active document (Characters, Highlights, the Outline) serve the window they are docked
+in; a floating one serves every window without a docked one of its own, takes the theme of the document it works on
+and says which document that is. The active document keeps a dimmed frame and its cursor while such a pane has the
+focus, so it stays clear where an insert or a paste goes.
 
-It is built in two parts. Part 1: Folder, Search and the Outline become pages of their own, windows like Settings
-is now. Part 2: the docking, for every pane.
+A dock closes and opens with a button whose icon shows the direction; closed, only its header stays along the edge
+(turned a quarter at the left and right), with a tab per docked pane. The toolbar's hamburger goes. A pane shown again
+comes back as it was. View > Layout can take the layout of another window or project.
+
+It is built in two parts. Part 1: Folder, Search and the Outline become pages of their own, shown where they are now.
+Part 2: the docking, for every pane.
 
 ## 3. Details
 
@@ -49,10 +53,25 @@ is now. Part 2: the docking, for every pane.
 - Not tool panes, and not part of this plan: the replace preview (modal, asks before a replace in files), the small
   questions (a name, a number, Yes / No), the menus, the find bar and the Occurrences bar (part of each editor pane).
 
-### 3.2 Part 1: Folder, Search and the Outline as pages of their own
+### 3.2 Speed
 
-Each becomes a page of its own (folder.html, search.html, outline.html), in a window of its own as Settings is now;
-what it reads from the window now, it gets through the host, as Highlights does. Part 2 docks these same pages.
+Speed comes first: docking must not make LexPen start, open a window, switch a tab or type slower than now.
+
+- Measured before part 1 and after each stage: the start until the first window shows its text, a new window, a
+  tab switch, a keystroke in a large file, with the default layout and with several panes docked. Figures:
+  [not yet calculated]; a stage that makes one of them clearly slower is not merged until it is not.
+- A pane's page is made only when the pane is first shown (not at the start for panes that are hidden or in a closed
+  dock), and kept while its window is open, so showing it again is instant.
+- All pages share one browser environment (as now), so a pane adds a page, not a browser.
+- What the window's page sends a pane (headings, the folder's marks, the active document) goes only when it changed
+  and only to panes that are shown; a pane in a closed dock or hidden gets it when it is shown again.
+- The prototype (stage 4) measures what a page per pane costs in start time and memory before the docking is built
+  on it.
+
+### 3.3 Part 1: Folder, Search and the Outline as pages of their own
+
+Each becomes a page of its own (folder.html, search.html, outline.html); what it reads from the window now, it gets
+through the host, as Highlights does. Part 2 docks these same pages.
 
 - **Folder**: the window's folder and its files' marks (open, changed, a .bak, git, the red dot); a click opens a file
   in its window; rename, delete, new file, the Explorer entries and the context menu act as now; it follows the
@@ -61,59 +80,56 @@ what it reads from the window now, it gets through the host, as Highlights does.
   (unsaved changes too), sent by the window's page; a result clicked goes to the match in the window; replace in
   files changes the open documents in the window (one undo step each, as now) and the files on disk; the replace
   preview stays as it is.
-- **Outline**: one per editor pane, showing that pane's document and following it when its tab changes; a click goes
-  to the heading in the pane; folding, groups, bullets and marking the entry at the cursor as now. The page of the
-  window sends the headings (it works them out now) and the cursor's place.
+- **Outline**: shows a document's headings (sent by the window's page, which works them out now) and the cursor's
+  place; a click goes to the heading; folding, groups, bullets and marking the entry at the cursor as now.
 - Their keys work in them as now (F1, the find keys in Search, ...); a key that acts on the editor goes to the
   window's editor.
-- Where they are shown during part 1, before the docking exists: question 6.
-- The cost of a page per pane (a renderer per WebView2 page, its start time and memory) is measured during part 1:
-  [not yet calculated].
+- During part 1 they are shown where they are now: Folder and Search in the left side (their pages hosted there, the
+  two tabs as now), each outline at the right of its editor pane; their menu also has Float, which shows the pane
+  in a window of its own and back. So each stage of part 1 can be merged and used at once, and nothing changes in
+  daily use.
 
-### 3.3 One kind of tool pane (part 2)
+### 3.4 One kind of tool pane (part 2)
 
 - Every tool pane is a page of its own, the same page floating or docked, so it shows and does the same in both.
 - Floating: a window of its own (as Settings now), movable, resizable, on any monitor, its place kept.
-- Docked: shown in a LexPen window, in a dock area (3.5).
-- Which window or document a pane works on:
+- Docked: shown in a LexPen window, in a dock area (3.6), or (an outline) at an editor pane (3.10).
+- What a pane works on:
   - Folder, Search and Settings: their LexPen window (its folder, its documents, its "this window" settings); one
-    of each per window (question 2).
-  - An outline: its editor pane.
-  - Characters and Highlights: the active document (the one last worked in, in whatever LexPen window), docked or
-    floating; they can be docked in any LexPen window (question 2).
+    of each per window, docked in that window or floating for it.
+  - The panes that work on the active document: Characters, Highlights and the Outline (3.9).
   - Manage projects, Theme sets, Manage macros: as now.
 
-### 3.4 How a page docks (question 1)
+### 3.5 How a page docks: native
 
-Two ways to show a pane's page inside a LexPen window:
+The LexPen window (MainForm) holds the dock areas itself: WinForms panels with splitters around the main page, each
+docked pane's WebView2 control in one. The main page keeps only the menus, the tabs, the editor area and the bottom
+bar. Floating moves the same WebView2 control into a window of its own and back, so a pane keeps its state (scroll,
+selection, what is typed) and is not loaded again when it moves. The drag (3.8) is done by the host: the pane's title
+tells the host a drag starts; the host shows the drop places over the window.
 
-- **Native docking (proposed).** The LexPen window (MainForm) holds the dock areas itself: WinForms panels with
-  splitters around the main page, each docked pane's WebView2 control in one. The main page keeps only the menus,
-  the tabs, the editor area and the bottom bar. Floating moves the same WebView2 control into a window of its own
-  and back, so a pane keeps its state (scroll, selection, what is typed) when it moves. The drag (3.7) is done by the
-  host: the pane's title tells the host a drag starts; the host shows the drop places over the window.
-- **In the page.** The dock areas are in the main page, each docked pane an iframe with its page; floating shows the
-  page in a window of its own instead. All docking is page code, but moving between docked and floating loads the
-  page again (its state kept through the host), and each iframe's messages to the host need WebView2's frame
-  messaging.
+- An outline docked at its editor pane sits inside the editor area: its WebView2 control is placed over the room its
+  editor pane keeps free for it, and follows that room when the panes are resized or split.
+- First a prototype (stage 4): one pane's WebView2 control in a panel of the LexPen window, moved to a window of its
+  own and back; focus, keys, DPI, a window moved to another monitor; its cost (3.2).
+- The alternative, iframes in the main page, is not taken: moving a pane between docked and floating would load its
+  page again, and every docked pane would add to the main page's work.
 
-Proposal: native docking, after a prototype at the start of part 2 shows that a WebView2 control moves between a
-panel and a window without trouble (focus, keys, DPI, a window moved to another monitor). An outline docks at its
-editor pane, inside the editor area: with native docking its WebView2 control sits over the place its editor pane
-keeps free for it.
+### 3.6 Where a pane can be (the dock areas)
 
-### 3.5 Where a pane can be (the dock areas)
-
-- Left, right and bottom of the LexPen window (question 3: also the top?). Left and right run from under the
-  toolbar to above the bottom bar; bottom runs under the editor area, between the left and right areas (question 4:
-  or across the whole width).
+- Left, right and bottom of the LexPen window; not the top (the toolbar, the tabs and the bars stay there). Left
+  and right run from under the toolbar to above the bottom bar.
+- The bottom area has two widths, chosen by where a pane is dropped (3.8): dropped on the bottom bar's edge, the
+  bottom area runs the full width of the window (under the left and right areas); dropped just above that, between
+  the left and right areas (under the editor area only). The width is the area's, kept in the layout, and changes
+  when a pane is dropped at the other place.
 - An area holds groups; a group shows one pane, or several as tabs (one shown at a time). Groups in one area sit
   above, under or next to each other, with a splitter between them.
 - Each area has a splitter against the editor area; its size is kept.
 - Minimum sizes so the editor area never vanishes: [not yet calculated]: the figures with the prototype.
 - The editor panes (the split into two panes) stay in the editor area as now; docking does not change them.
 
-### 3.6 Closing and opening a dock
+### 3.7 Closing and opening a dock
 
 - Each dock area has a button in its header, at the side that faces the editor; its icon says which way the area
   goes: toward the window's edge to close it (left area: pointing left; right area: pointing right; bottom area:
@@ -130,9 +146,9 @@ keeps free for it.
 - The toolbar's hamburger goes; the left area's button does what it did. `sidebar.toggle` closes and opens the left
   area (existing keys keep working); new actions `dock.toggleLeft`, `dock.toggleRight`, `dock.toggleBottom` (F1,
   keys.json).
-- Closed or open is kept per area in the window's layout (3.11).
+- Closed or open is kept per area in the window's layout (3.13).
 
-### 3.6a Hiding a pane, and showing it again
+### 3.7a Hiding a pane, and showing it again
 
 - A pane is hidden with its Close (its menu, its close button) or its own toggle (`outline.toggle`, `viewFolder`,
   ...); it then has no tab either, and its dock area takes no room when it was the only one there.
@@ -141,36 +157,49 @@ keeps free for it.
   with `outline.toggle`: `outline.toggle` again shows only its strip, not the open outline.
 - A click on its tab (or the dock's open button) opens it.
 
-### 3.7 Moving a pane
+### 3.8 Moving a pane
 
 - Drag its title bar (or its tab): while dragging, each place it can go lights up: an edge of a LexPen window (a new
-  group there), a group (as a tab in it), or a side of a group (above, under, or next to it). Dropped anywhere else:
-  it floats there. A floating pane dragged over a LexPen window shows that window's places.
-- Folder, Search and Settings dock only in their own window (question 2); Characters and Highlights in any.
-- The pane's menu (Dock left, Dock right, Dock bottom, Float, Close) does the same without the mouse, and F1 lists
-  the actions: `dock.left`, `dock.right`, `dock.bottom`, `dock.float`, `dock.close`, with the pane as their value, so
-  a key can be given (keys.json, as any action).
+  group there; at the bottom, the two widths of 3.6 as two places), a group (as a tab in it), a side of a group
+  (above, under, or next to it), and for an outline the left, right and bottom of each editor pane. Dropped anywhere
+  else: it floats there. A floating pane dragged over a LexPen window shows that window's places.
+- Folder, Search and Settings dock only in their own window; the panes that work on the active document in any.
+- The pane's menu (Dock left, Dock right, Dock bottom, Dock at the editor pane (an outline), Float, Close) does the
+  same without the mouse, and F1 lists the actions: `dock.left`, `dock.right`, `dock.bottom`, `dock.float`,
+  `dock.close`, with the pane as their value, so a key can be given (keys.json, as any action).
 - Esc while dragging: the drag ends, nothing moves.
 
-### 3.8 The outline
+### 3.9 The panes that work on the active document: Characters, Highlights, the Outline
 
-An outline belongs to its editor pane and shows that pane's document; it is never docked beside another document and
-never in the window's dock areas (3.5).
+- **Docked in a LexPen window**: it serves that window: its active document (the editor pane with the focus there,
+  or the one that had it last). Each window can have its own docked one.
+- **Floating**: it serves every LexPen window that has no docked one of its own: the active document of the window
+  last worked in among those. One floating one of each.
+- **An outline docked at an editor pane** (3.10): it serves that editor pane's document only, also when another pane
+  has the focus. The outlines at the editor panes are as now (one per editor pane), beside a docked or floating
+  Outline pane, which follows the active document.
+- A floating one shows the document it works on: its title says the document's name ("Outline: plan24.md",
+  "Characters: notes.md"), and it takes the theme of that document's window (its theme set and day / night), so it
+  looks as the document does; both change when another document becomes active.
+- Characters inserts into the document it serves; the focus goes back to that document after an insert, as now.
+- Highlights lists the highlights of the document it serves, and follows when that changes.
+- With no document to serve (all windows have their own docked one, or none has a document): the floating one says
+  so and waits.
 
-- Docked: at the right of its editor pane (as now, the default), at its left, or at its bottom (under the text, the
+### 3.10 The outline at its editor pane
+
+- Docked at its editor pane: at its right (as now, the default), at its left, or at its bottom (under the text, the
   full width of the pane), with a splitter against the text. Each editor pane chooses for itself: with two panes side
   by side you can, for example, put the left pane's outline at its left and the right pane's at its right; with two
   panes above each other, each outline at its pane's bottom.
 - At the bottom, the entries run in columns (as many as fit the width); the splitter sets its height.
-- Floating: its pane's outline in a window of its own, still showing that pane's document and following it when its
-  tab changes.
-- Moving: its title's menu (Left of the text, Right of the text, Below the text, Float, Close) and dragging its title:
-  only its own pane's left, right and bottom light up; dropped elsewhere it floats.
-- Closing to a strip (3.6), hiding and showing again (3.6a) as every pane.
+- Moving it away from its editor pane (a dock area, or floating) makes it the window's Outline pane, or the floating
+  one (3.9); dropped back at an editor pane, it is that pane's again.
+- Closing to a strip (3.7), hiding and showing again (3.7a) as every pane.
 - The outline's column in the gutter (gutter.js) stays as it is.
-- `outline.toggle` hides and shows the outline of every editor pane, each as it was.
+- `outline.toggle` hides and shows the window's outlines (at its editor panes and its Outline pane), each as it was.
 
-### 3.9 The active document and the active pane
+### 3.11 The active document while a pane has the focus
 
 - The editor pane with the active document has its frame, as now.
 - When a tool pane gets the focus (Characters, Highlights, Search, ...), it gets the active frame; the active
@@ -180,36 +209,35 @@ never in the window's dock areas (3.5).
   docked or floating: steady, not blinking, so it is clear that the focus is elsewhere but also exactly where an
   inserted character or a paste goes. Its selection stays visible too, in the colour of a selection without the
   focus. (Now the editor hides its cursor as soon as it loses the focus.)
-- In the preview the place stays marked the same way (the preview's cursor, executed/PLAN-preview-bookmarks.md, when it is shown).
-- Characters inserts into the active document, docked or floating, in whatever LexPen window; the focus goes back to
-  that document after an insert as now.
-- Highlights lists the active document's highlights, and follows when another document becomes active.
+- In the preview the place stays marked the same way (the preview's cursor, executed/PLAN-preview-bookmarks.md,
+  when it is shown).
 - A floating pane's window shows the same active frame when it has the focus.
 
-### 3.10 All windows are equal
+### 3.12 All windows are equal
 
 The answer to "are all windows equal?": yes. Plan 33 (`executed/PLAN-view-window.md`) has no view window of its own:
 viewing uses a normal project, "View" by default, whose windows dock every pane like any other.
 
-- The view project keeps its layout as any project does (3.11): what you dock there stays there for the next view.
+- The view project keeps its layout as any project does (3.13): what you dock there stays there for the next view.
 - Plan 33's "Reset to view layout" includes the docking: no panes docked or floating for that project's window,
   so only the editor pane in Preview is left.
 
-### 3.11 Kept
+### 3.13 Kept
 
 - Per window, in the window's layout of plan 31 (`executed/PLAN-settings-layers.md`: the session's `layout`): every
   pane's place (docked: area, group, tab order, size; floating: its window's place and size), which are shown, which
-  areas are closed; the outline's side, size and state per editor pane. A window opens as it was left; a new window
-  takes the layout of the last window of its project (the last window used when the project has none).
-- Characters and Highlights, which serve every window: their place (the window they are docked in, or floating) is
-  kept once for LexPen, as their window places are now (AppState).
+  areas are closed and the bottom area's width; each editor pane's outline side, size and state. A window opens as
+  it was left; a new window takes the layout of the last window of its project (the last window used when the project
+  has none).
+- The floating ones of the panes that work on the active document (one each for LexPen): their place and whether
+  shown, kept once for LexPen, as the windows' places are now (AppState).
 - View > Layout > Save as default (plan 31) includes the docking, so new projects start with it.
-- The default (nothing saved yet, question 5): as now: Folder and Search tabbed at the left, the outline at the
-  right of each editor pane, the other panes floating. Nothing moves until you move it.
+- The default (nothing saved yet): as now: Folder and Search tabbed at the left, the outline at the right of each
+  editor pane, the other panes floating. Nothing moves until you move it.
 - The old layout values (`sidebar` shown, its width, `outline`) are read into the new layout once, and the floating
   windows' kept places (AppState) become their floating places.
 
-### 3.11a Using another window's layout
+### 3.13a Using another window's layout
 
 View > Layout gets a third item beside Save as default and Reset to default: **Use layout of...**, which gives this
 window the layout of another window or project.
@@ -218,96 +246,85 @@ window the layout of another window or project.
   window open (their last window's layout, as a new window of that project would get it). The choice is a submenu
   when the list is short, else the list with a search, as F1 (`layoutUseFrom`, in F1 too).
 - What it takes: the whole window layout of plan 31 (the outline, the panes and their sizes, the ruler, the bars,
-  ...) and, once the docking exists, every pane's place, size and tab order, which dock areas are closed, and each
-  editor pane's outline side and state. Floating panes: their windows' places too (question 7).
+  ...) and, once the docking exists, every pane's place, size and tab order, which dock areas are closed, the bottom
+  area's width, and each editor pane's outline side and state. Floating panes of the window go to the same places
+  on the screen; a place off every screen (another monitor setup, a screen gone) is moved onto the nearest screen,
+  wholly visible.
 - What it does not take: this window's folder, tabs, documents and cursors; the window's own place and size on the
-  screen; Characters and Highlights, which serve all of LexPen (3.11).
+  screen; the floating panes of LexPen as a whole (3.13).
 - Applied at once, as Reset to default is; the message offers Undo (the layout as it was), as Save as default does.
 - Kept as this window's own layout from then on; the other window keeps its own (no link between them).
 - It works on today's layout already, so it can be built before the docking (stage 0) and grows with it.
 
-### 3.12 Menus and keys
+### 3.14 Menus and keys
 
-- View > Panes: each pane with a check (shown), the dock areas with a check (open or closed, 3.6), and Reset
-  docking (the default of 3.11 for this window).
-- View > Layout: Save as default, Reset to default (plan 31), Use layout of... (3.11a).
-- The pane menus and the drag (3.7); the actions in F1 (3.7).
+- View > Panes: each pane with a check (shown), the dock areas with a check (open or closed, 3.7), and Reset
+  docking (the default of 3.13 for this window).
+- View > Layout: Save as default, Reset to default (plan 31), Use layout of... (3.13a).
+- The pane menus and the drag (3.8); the actions in F1 (3.8).
 - The existing actions keep working: `viewFolder`, `viewSearch`, Settings, Characters, Highlights, Manage projects,
-  `macro.manage` show their pane as it was (3.6a); `sidebar.toggle` closes and opens the left area (3.6);
-  `outline.toggle` as in 3.8.
+  `macro.manage` show their pane as it was (3.7a); `sidebar.toggle` closes and opens the left area (3.7);
+  `outline.toggle` as in 3.10.
 
-### 3.13 Stages
+### 3.15 Stages
 
 Before the parts, on its own:
 
-0. View > Layout > Use layout of... (3.11a) on today's window layout; it takes the docking layout too once part 2
-   has it.
+0. View > Layout > Use layout of... (3.13a) on today's window layout; it takes the docking layout too once part 2
+   has it. The speed measurements of 3.2 taken once, as the baseline.
 
-Part 1, the pages:
+Part 1, the pages (each shown where it is now, with Float; each merged on its own):
 
 1. The Outline as a page of its own per editor pane (outline.html): the headings and the cursor's place from the
-   window's page, a click going back; shown as question 6 decides; the outline tests pass as before. Its cost
-   measured (one page per editor pane).
-2. Folder as a page of its own (folder.html), as above; the folder tests pass as before.
+   window's page, a click going back; the outline tests pass as before; speed measured.
+2. Folder as a page of its own (folder.html); the folder tests pass as before; speed measured.
 3. Search as a page of its own (search.html), the open documents' text from the window, replace in files through
-   the window; the search and replace tests pass as before. The side pane and the hamburger go once both are out.
+   the window; the search and replace tests pass as before; speed measured.
 
 Part 2, the docking:
 
 4. Prototype: one pane's WebView2 control in a panel of the LexPen window, moved to a window of its own and back;
-   focus, keys, DPI, monitors. The choice of question 1 made.
-5. The dock areas: groups, tabs, stacking, splitters, sizes; closing to the header strip with its tabs (3.6);
-   hiding and showing a pane as it was (3.6a); kept in the layout. Every pane docks and floats.
+   focus, keys, DPI, monitors; its cost measured.
+5. The dock areas: groups, tabs, stacking, splitters, sizes, the bottom area's two widths; closing to the header
+   strip with its tabs (3.7); hiding and showing a pane as it was (3.7a); kept in the layout. Every pane docks and
+   floats. The side pane and the hamburger go.
 6. Moving: the pane menus, the drag with the drop places, Esc; the actions.
-7. The outline at the left, right or bottom of its pane; floating; its strip.
-8. Characters and Highlights on the active document, docked in any window; the dimmed frame (3.9).
+7. The panes that work on the active document (3.9): docked per window, the floating one for the others, its title
+   and theme; the outline at its editor pane, in a dock area and floating.
+8. The active document's dimmed frame and its cursor shown while a pane has the focus (3.11).
 9. View > Panes, Reset docking, Save as default, the view project's reset; the docs (features.md).
 
-### 3.14 Tests
+### 3.16 Tests
 
+- Speed: the measurements of 3.2 after each stage against the baseline of stage 0.
 - Part 1, in-app: the existing tests of the outline (entries, a click, folding, groups, marking the entry at the
   cursor, two panes), of the folder tree (open, rename, delete, marks, the red dot) and of search and replace in
   files pass with the panes as pages of their own; a search of the open files finds unsaved text; a result clicked
-  goes to the match in its window; the outline follows its pane's tab changes.
-- Part 2, in-app: each pane docked left, right and bottom (menu and drag), floated by dropping it outside, docked
-  again; two panes as tabs, above and under each other, next to each other; a splitter dragged and the size kept;
-  the editor area never below its minimum, also in a small window; Esc during a drag; a pane keeps its state
-  (scroll, what is typed) when it moves; a window closed and opened again as it was; a new window of the project
-  with the same docking; Save as default and a new project with it; Reset docking; the view project's reset.
+  goes to the match in its window; Float and back.
+- Part 2, in-app: each pane docked left, right and bottom (menu and drag), the bottom area full width and between
+  the left and right areas by where it is dropped; floated by dropping it outside, docked again; two panes as tabs,
+  above and under each other, next to each other; a splitter dragged and the size kept; the editor area never below
+  its minimum, also in a small window; Esc during a drag; a pane keeps its state (scroll, what is typed) when it
+  moves; a window closed and opened again as it was; a new window of the project with the same docking; Save as
+  default and a new project with it; Reset docking; the view project's reset.
 - Part 2, in-app: each area closed and opened with its button (the icon pointing the right way each time); closed,
   its strip upright with turned text at the left and right, horizontal at the bottom, one tab per pane; a click on a
   tab opens the area with that pane; a pane hidden while its area was closed comes back as a tab only; the outline's
   strip at each of its three sides.
-- Part 2, in-app: Characters docked in a window inserts into the active document, also one in another window;
-  Highlights lists the active document and follows; with the focus in such a pane the document's frame is dimmed,
-  the pane's active; the document's cursor (and several cursors) stays shown, steady, its selection in the colour
-  without focus; an insert from Characters lands exactly there; docked and floating.
-- Part 2, in-app: an outline at the left, the right and the bottom of its pane, each editor pane its own choice; at
-  the bottom its entries in columns; dragging it lights up only its own pane's sides; floating, it follows its
-  pane's tab changes.
+- Part 2, in-app: Characters, Highlights and the Outline docked in window A serve A's active document; the floating
+  ones serve window B (no docked one) and not A; the floating one's title names the document and its theme follows
+  the document's window (two windows with different theme sets); an outline at an editor pane follows only that
+  pane.
+- Part 2, in-app: with the focus in a pane the document's frame is dimmed, the pane's active; the document's cursor
+  (and several cursors) stays shown, steady, its selection in the colour without focus; an insert from Characters
+  lands exactly there; docked and floating.
 - In-app: Use layout of... from another open window and from a project with no window open: this window then shows
-  that layout (the outline, the panes, the ruler, the bars; with part 2 the docking too), its folder, tabs and own
-  place unchanged; Undo puts it back; the other window unchanged; the layout kept after a restart.
-- Unit: the old layout values and the floating windows' places read into the docking layout.
+  that layout (with part 2 the docking too), its folder, tabs and own place unchanged; floating panes at the same
+  places, one from a screen that is gone moved onto a screen; Undo puts it back; the other window unchanged; kept
+  after a restart.
+- Unit: the old layout values and the floating windows' places read into the docking layout; a place off every
+  screen moved onto the nearest one.
 
 ## 4. Open questions
 
-1. How a page docks (3.4): native docking (the panes' WebView2 controls in panels of the LexPen window), or in the
-   page (iframes)? Proposal: native, after the prototype of stage 4.
-2. One of a pane per window, or one for all of LexPen? Proposal: Folder, Search and Settings one per LexPen window
-   (they work on that window), docked only in it; an outline one per editor pane; Characters and Highlights one each
-   for all of LexPen (they work on the active document), docked in any window or floating.
-3. The edges: left, right and bottom, or also the top? Proposal: left, right, bottom.
-4. The bottom area: between the left and right areas (under the editor area only), or across the whole width?
-   Proposal: under the editor area only, so the left and right areas keep their full height.
-5. The default layout (3.11): as now (Folder and Search tabbed at the left, the outline at the right of each editor
-   pane, the other panes floating)? Proposal: as now.
-6. Part 1 before part 2 exists: where are Folder, Search and the Outline shown? (a) In their own windows only,
-   floating, until part 2 docks them: the side pane and the outline beside the text are gone meanwhile, so part 1 is
-   merged into main only together with part 2; or (b) their pages shown at their old places (Folder and Search at
-   the left, the outline at the right of its pane: the pages hosted there, fixed), plus Float in their menu, so each
-   part can be merged and used at once and nothing changes in daily use. Proposal: (b).
-7. Use layout of... (3.11a) with floating panes in the other window: their windows go to the same places on the
-   screen (so they may cover the other window's), or this window's floating panes stay where they are and only the
-   docked layout is taken? Proposal: the same places, as the layout says; a pane moved off the screen's edge is put
-   back on it.
+None.
