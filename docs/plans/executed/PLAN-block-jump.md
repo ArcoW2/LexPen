@@ -12,7 +12,7 @@ going to the end of one means scrolling and looking.
 
 ## 2. The solution, in brief
 
-Alt+PgDn goes to the start of the next block at the cursor's level; Alt+PgUp to the start of the previous one. When
+Alt+PgDn goes to the start of the next block at the cursor's level; Alt+PgUp to the header of the cursor's block, and from a header to the previous one. When
 there is none at that level, the move goes out a level and on from there. A block is what the file's language pack
 folds (its `fold`: braces, indentation, markdown's headings); a language without folding uses the indentation as the
 editor shows it. With Shift the move selects. It works in the editor, and in the preview on the preview's cursor of
@@ -52,10 +52,10 @@ plan 31.
 
 ### 3.3 Alt+PgUp
 
-- The start of the prior section: the first line of the block before the cursor's block in the same parent; none
-  there: the same from the parent, and so on out.
-- The example file: 15 -> 7; 7, 8, 9 -> 3; 11 -> 3 (no block before 10-13 in 7-14, so out to 7-14's prior one).
-- See open question 2 for the cursor inside a block, not on its first line.
+- Inside a block (its closing line included): the block's header, the line that opens it. On a header: the previous
+  header at its depth in the same parent; none there: the parent's header. (Changed after execution, 2026-10-28.)
+- The example file: 8, 9, 14 -> 7; 6 -> 3; 11 -> 10; on headers: 15 -> 7, 7 -> 3, 10 -> 7 (the first in 7-14: its
+  parent's header), 3 -> 1.
 
 ### 3.4 Keys and actions
 
@@ -101,9 +101,8 @@ None open. Taken as the plan proposed, when it was started without an answer (ch
 
 1. Markdown lists and indents inside a section: the plan uses the indentation there. Should a list item's own
    paragraphs (indented under it) count, or only the list items?
-2. Alt+PgUp with the cursor inside a block, not on its first line (cursor on line 9, block 7-14): the plan goes to the
-   prior block (3). The editor's habit for such keys (Ctrl+Up to the paragraph) is the start of the current block
-   first (7), then the prior one. Which?
+2. Alt+PgUp with the cursor inside a block, not on its first line (cursor on line 9, block 7-14): answered after
+   execution: the header of the current block first (7), then the previous header at its depth.
 
 ## 5. Resolved during execution
 
@@ -113,7 +112,7 @@ None open. Taken as the plan proposed, when it was started without an answer (ch
 | Closing lines | Only closing brackets (with `;` `,` after them), a line starting with `end`, `fi`, `done`, `esac`, or a closing tag. `} else {` is not one: it is the next block's line. |
 | The cursor's block | The block a line opens, the block a closing line closes, else the block around the line. A block that is the whole file (JSON's outer braces, a markdown file under one `#` heading) counts as none: Alt+PgDn goes to the next block below, Alt+PgUp to the one above. |
 | Markdown list items | Open question 1 as proposed: by indentation. An item is a block only when lines are indented under it; from a plain item Alt+PgDn goes out to the next section (the plan's test "a list item to the next item" holds for items with nested lines only). |
-| Alt+PgUp inside a block | Open question 2 as proposed: the prior block (from line 9 of the example: line 3), not the start of the current one first. |
-| No block before | Alt+PgUp from the first block under a parent that is the whole file stays, with a toast (from `## Second` under the only `#` heading: no move to it). |
+| Alt+PgUp inside a block | Built first as proposed (the prior block); changed on your answer the same day: the header of the current block first, from a header the previous header at its depth, else the parent's header (3.3). |
+| No block before | Alt+PgUp from the first header in a parent goes to the parent's header (from `## Second` under the only `#` heading: that heading); only from the outermost header it stays, with a toast. |
 | Keys and menu | `Alt+PgDn` / `Alt+PgUp` in keys.json; Edit > Next block, Previous block after the section entries. The action takes the preview (`preview: true`, plan 31): with the focus there it moves the preview's cursor, past markdown's marks on the target line (a heading's `## `), Shift ignored. |
 | Tests | t32 in the debug build over the debugging port: every line of 3.2 and 3.3 of the example file both ways, the whole-file case, the cursor at the text start, Shift, position back, Python (nested methods, out of a class, the last function staying), indented plain text, markdown (a paragraph, a list item, a fence, a heading up), the preview (to a heading past its marks, in view, back up, Shift ignored). All pass; plan 31's t31 passes again with it. |

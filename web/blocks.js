@@ -6,9 +6,10 @@
 // - a line followed by deeper lines opens a block: the line, the deeper lines, and a closing line at its own depth
 //   right after them (only closing brackets, an end keyword, a closing tag; a fence's end) belong to it;
 // - a closing line is never a target: it belongs to the block it closes.
-// Alt+PgDn: the first line after the cursor's block that is not a closing line. Alt+PgUp: the start of the block
-// before it in the same parent, else of the one before the parent, and so on out. The cursor's block: the block a
-// line opens, the block a closing line closes, else the block around the line.
+// Alt+PgDn: the first line after the cursor's block that is not a closing line. Alt+PgUp: the header of the cursor's
+// block (the line that opens it); on that header, the previous header at its depth in the same parent, else the
+// parent's header. The cursor's block: the block a line opens, the block a closing line closes, else the block around
+// the line.
 
 const BLOCK_CLOSER = /^\s*(?:[\]})]+[\s;,)\]}]*|end\b.*|(?:fi|done|esac)\b.*|<\/[\w:.-]+>\s*)$/i;
 const BLOCK_LEVEL = 100000;   // markdown: a heading level's depth step, above any indentation
@@ -92,13 +93,13 @@ function blockTarget(doc, line, dir) {
     return -1;
   }
   if (o < 0) { for (let k = blockNextText(m, line, -1); k >= 0; k = blockNextText(m, k, -1)) if (blockOpens(m, k)) return k; return -1; }
-  // Up from the block's start: a block at its depth is the one before; a line less deep is the parent, the search
-  // goes on before that.
-  let d = m.depth[o];
+  // Inside the block (or on its closing line): its header.
+  if (line > o) return o;
+  // On the header: a header at its depth before it, else the line less deep above it, the parent's header.
+  const d = m.depth[o];
   for (let k = blockNextText(m, o, -1); k >= 0; k = blockNextText(m, k, -1)) {
     if (m.closer[k]) continue;
-    if (m.depth[k] < d) d = m.depth[k];
-    else if (m.depth[k] === d && blockOpens(m, k)) return k;
+    if (m.depth[k] < d || (m.depth[k] === d && blockOpens(m, k))) return k;
   }
   return -1;
 }
