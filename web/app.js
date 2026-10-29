@@ -4809,6 +4809,9 @@ function showKeys() {
 
 // ---------- Startup ----------
 track((async () => {
+  // After every script of the page has run: the ones after this file add actions the keys name (macros.js), and
+  // served from the exe they come in one by one, while this runs on.
+  if (document.readyState === 'loading') await new Promise(r => document.addEventListener('DOMContentLoaded', r, { once: true }));
   Object.assign(settings, await host('settings'));
   if (!settings.pageSettingsMoved) await movePageSettings();
   if (!settings.layoutMoved) await moveLayoutStorage();
