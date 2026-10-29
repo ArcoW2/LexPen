@@ -67,8 +67,14 @@ static class SettingsFile
         : name.Contains('.') && defaults.TryGetPropertyValue(name[..name.LastIndexOf('.')] + ".*", out var family) ? family : null;
 
     // Settings that were renamed: an old name in your file gives its value to the new one (unless that is set
-    // already: a newer choice wins), and goes. Done once when your file is read.
-    static readonly (string Old, string New)[] Renamed = [("openMarkdownIn", "openIn.markdown")];
+    // already: a newer choice wins), and goes. Done once when your file is read. `Value`: the old value as the new
+    // setting takes it, when its kind changed (null: as it is).
+    static readonly (string Old, string New, Func<JsonNode?, JsonNode?>? Value)[] Renamed =
+    [
+        ("openMarkdownIn", "openIn.markdown", null),
+        // The first occurrence underlined (on / off) became a choice of how it is marked (plan 34).
+        ("occurrences.markFirst", "occurrences.first", v => v?.GetValueKind() == JsonValueKind.False ? "same" : "underline"),
+    ];
 
     /// <summary>The layout a new project starts with (docs/plans/executed/PLAN-settings-layers.md): one object of the names a
     /// window keeps with its session (what is open and shown in it). A name missing in yours is the shipped one.</summary>
@@ -87,11 +93,11 @@ static class SettingsFile
     {
         if (user is null || Parse(user, Name, new JsonArray()) is not JsonObject own) return null;
         var changed = false;
-        foreach (var (old, renamed) in Renamed)
+        foreach (var (old, renamed, convert) in Renamed)
         {
             if (!own.TryGetPropertyValue(old, out var value)) continue;
             own.Remove(old);
-            if (!own.ContainsKey(renamed)) own[renamed] = value?.DeepClone();
+            if (!own.ContainsKey(renamed)) own[renamed] = convert is null ? value?.DeepClone() : convert(value);
             changed = true;
         }
         foreach (var name in MovedToLayout)

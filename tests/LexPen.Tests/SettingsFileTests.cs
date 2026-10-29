@@ -96,6 +96,17 @@ public class SettingsFileTests
         Assert.Null(SettingsFile.Upgrade("""{ "theme": "dark" }"""));
     }
 
+    // occurrences.markFirst (on / off) became occurrences.first (a choice): on is underline, off as the others.
+    [Theory]
+    [InlineData("true", "underline")]
+    [InlineData("false", "same")]
+    public void TheFirstOccurrenceSettingMovesOver(string old, string now)
+    {
+        var own = JsonNode.Parse(SettingsFile.Upgrade("{ \"occurrences.markFirst\": " + old + " }")!)!.AsObject();
+        Assert.Equal(["occurrences.first"], own.Select(p => p.Key));
+        Assert.Equal(now, own["occurrences.first"]!.GetValue<string>());
+    }
+
     [Fact]
     public void TheShippedDefaultsAreReadable()
     {
