@@ -19,7 +19,8 @@ at the other side of its text or under it.
 
 All tool panes are one kind: Folder, Search, Settings, Characters, Highlights and the Manage windows (projects, theme
 sets, macros). Each one floats as a window of its own, or docks in a LexPen window: at the left, the right or the
-bottom, alone, as a tab beside others, or above, under or next to another pane, resized with splitters. Folder and
+bottom, alone, as a tab beside others, or above, under or next to another pane, resized with splitters; each dock
+area folds away and back with a button whose icon shows the direction (the hamburger's job now). Folder and
 Search become two panes, no longer two tabs of one side pane. A pane is moved by dragging its title (the places it
 can go light up; dropped elsewhere, it floats) or from its menu, and keeps its place per window. An outline is the
 one exception: it belongs to its editor pane and docks only at that pane's left, right or bottom, or floats; never
@@ -93,6 +94,27 @@ window without trouble (focus, keys, DPI, a window moved to another monitor).
 - Minimum sizes so the editor area never vanishes: [not yet calculated]: the figures with the prototype.
 - The editor panes (the split into two panes) stay in the editor area as now; docking does not change them.
 
+### 3.4a Hiding a dock area
+
+Each dock area can be hidden and shown again with one click, as the hamburger now does for the side pane (Folder and
+Search); the panes in it stay docked there, only the area folds away and the editor area takes the room.
+
+- The button sits in the area's header (its tab row, or the title of its pane when it holds one pane), at the side
+  that faces the editor. Its icon says which way the area goes: an arrow or chevron toward the window's edge to hide
+  it (left area: pointing left; right area: pointing right; bottom area: pointing down), the other way to show it.
+  Not a hamburger: the icon shows the direction.
+- Hidden, the area leaves a narrow strip at its edge with the same button (pointing inward) and, per docked pane, its
+  name or icon (question 7); a click on the button shows the whole area again, a click on a pane's name shows the
+  area with that pane in front.
+- With several groups in one area, the button hides the whole area, not one group.
+- The same for an outline at its pane's side: a button in its header folds it to its pane's edge; the strip there
+  brings it back. `outline.toggle` still shows and hides every editor pane's outline.
+- The hamburger in the toolbar goes: the left area's own button does what it did. `sidebar.toggle` becomes the
+  left area's hide / show; new actions `dock.toggleLeft`, `dock.toggleRight`, `dock.toggleBottom` (F1, keys.json),
+  and `sidebar.toggle` stays as the name of the left one so existing keys keep working.
+- Opening a pane that is docked in a hidden area (its action, View > Panes) shows the area.
+- Hidden or shown is kept per area in the window's layout (3.9).
+
 ### 3.5 Moving a pane
 
 - Drag its title bar (or its tab): while dragging, each place it can go lights up: an edge of the window (a new
@@ -155,19 +177,21 @@ viewing uses a normal project, "View" by default, whose windows dock every pane 
 
 ### 3.10 Menus and keys
 
-- View > Panes: each pane with a check (shown), and Reset docking (the default of 3.9 for this window).
+- View > Panes: each pane with a check (shown), the dock areas with a check (shown or hidden, 3.4a), and Reset
+  docking (the default of 3.9 for this window).
 - The pane menus and the drag (3.5); the actions in F1 (3.5).
 - The existing actions keep working: `viewFolder`, `viewSearch`, Settings, Characters, Highlights, Manage projects,
-  `macro.manage` open their pane where it was; `sidebar.toggle` shows or hides the left area; `outline.toggle` as
-  in 3.6.
+  `macro.manage` open their pane where it was (showing its area when hidden); `sidebar.toggle` hides or shows the
+  left area (3.4a); `outline.toggle` as in 3.6.
 
 ### 3.11 Stages
 
 1. Prototype: Settings as a native docked pane (its WebView2 control in a panel of the LexPen window, moved to a
    window of its own and back); focus, keys, DPI, monitors; the cost of a page per pane measured. The choice of
    question 1 made.
-2. The dock areas: groups, tabs, stacking, splitters, sizes, kept in the layout; Settings, Characters, Highlights,
-   Manage projects and Theme sets dock and float. Folder and Search still in the page as now.
+2. The dock areas: groups, tabs, stacking, splitters, sizes, hiding an area with its button and strip (3.4a), kept
+   in the layout; Settings, Characters, Highlights, Manage projects and Theme sets dock and float. Folder and Search
+   still in the page as now.
 3. Moving: the pane menus, the drag with the drop places, Esc; the actions.
 4. Folder and Search as pages of their own (3.2), two panes; the side pane goes; their tests pass as before.
 5. Manage macros as a pane (with plan 36 when that is done).
@@ -179,7 +203,9 @@ viewing uses a normal project, "View" by default, whose windows dock every pane 
 - In-app: each pane docked left, right and bottom (menu and drag), floated by dropping it outside, docked again;
   two panes as tabs, above and under each other, next to each other; a splitter dragged and the size kept; the editor
   area never below its minimum, also in a small window; Esc during a drag; a pane keeps its state (scroll, what is
-  typed) when it moves; a window closed and opened again as it was; a new window of the project with the same
+  typed) when it moves; each area hidden and shown with its button (the icon pointing the right way each time), from
+  its strip, by its action and by opening a pane in it; an outline folded and back; a window closed and opened again
+  as it was (areas hidden as they were); a new window of the project with the same
   docking; Save as default and a new project with it; Reset docking; the view project's reset.
 - In-app: Folder and Search as panes: the existing tests of the folder tree, search and replace in files pass,
   docked and floating; a search of the open files finds unsaved text; a result clicked goes to the match in its
@@ -206,3 +232,6 @@ viewing uses a normal project, "View" by default, whose windows dock every pane 
    Proposal: under the editor area only, so the left and right areas keep their full height.
 6. The default layout (3.9): as now (Folder and Search tabbed at the left, the outline at the right of each editor
    pane, the other panes floating)? Proposal: as now.
+7. A hidden dock area (3.4a): does it leave a narrow strip at its edge (the show button and its panes' names, so it
+   stays visible that something is docked there and one click brings a pane back), or does it vanish fully, the show
+   button then elsewhere (the tab row, as the hamburger now sits in the toolbar)? Proposal: the strip.
