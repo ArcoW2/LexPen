@@ -3,12 +3,11 @@
 Status: draft 2026-10-22, extended 2026-10-25 (Folder and Search apart); brought in line with plan 33
 2026-10-25 (no view window of its own: viewing is a normal project, so all windows are the same kind); worked out
 2026-10-29 with your answers: every tool pane is the same kind (it floats as a window or docks in the main window);
-built in three parts (first Folder, Search and the Outline as pages of their own, then the docking, then the
-smaller panes); the panes that work on the active document (Characters, Highlights, the Outline) serve their window when docked and every other
-window when floating; native docking; speed first; what a pane serves (one document, a window, LexPen) decides
-where it docks (the table of 3.4a); the preview stays with its editor; part 3 adds the smaller panes. Not started;
-no questions open. From your answer on the character picker window (plan 15 follow-up): "docking should be a new
-plan".
+what a pane serves (one document, a window, LexPen) decides where it docks (the table of 3.4a); a pane of one
+document serves its editor pane, then its window, then floating, the nearest first; native docking; speed first;
+the preview stays with its editor; built in three parts (first Folder, Search and the Outline as pages of their
+own, then the docking, then the smaller panes). Not started; no questions open. From your answer on the character
+picker window (plan 15 follow-up): "docking should be a new plan".
 The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
