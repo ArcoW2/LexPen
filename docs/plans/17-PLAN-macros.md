@@ -33,8 +33,8 @@ lists to insert an action, a statement block or a variable, completion as you ty
 - Record (Ctrl+Shift+M proposed) / Stop. What is recorded: actions with their parameters (the keys system gives
   them), typed text (joined into one `type` step per run of typing), finds and replaces with their switches,
   document and pane switches.
-- A mouse click that moves the cursor is recorded as an absolute `goto line, column`; when the click stays on the
-  cursor's line, only `goto column` (so the macro still works when the lines above it change in length, not in
+- A mouse click that moves the cursor is recorded as an absolute `moveto line, column`; when the click stays on the
+  cursor's line, only `moveto column` (so the macro still works when the lines above it change in length, not in
   number).
 - While recording, the menu bar shows a clear Stop recording button right of Options (red dot and text), also
   reachable by the Record key.
@@ -58,9 +58,11 @@ delete any file without the macro's text showing it, and plain JavaScript does n
   `find "abc" case word regex`, `replace "a" "b" all`.
 - Typing: `type "text"` types at the cursor (all cursors); `type $name` types a variable; `type` takes any
   expression (`type $a & ", " & $b`, `type padded($n, 4)`).
-- Moving the cursor: `goto 120, 5` (line, column), `goto column 5`, and relative to the cursor `goto +3, 0`,
-  `goto 0, -2`, `goto column +4` (a sign makes it relative); `goto start` and `goto end` (of the file),
-  `goto column end` (of the line).
+- Moving the cursor: `moveto 120, 5` (line, column), `moveto column 5`, and relative to the cursor `moveto +3, 0`,
+  `moveto 0, -2`, `moveto column +4` (a sign makes it relative); `moveto start` and `moveto end` (of the file),
+  `moveto column end` (of the line). A word of its own, so it cannot be mistaken for a jump: `goto` is only for
+  labels (`goto :end` jumps to the label `:end`, `moveto end` moves the cursor to the end of the file). A `goto`
+  without the colon is an error that suggests `moveto` (3.10).
 - Labels and jumps: `:label` on its own line; `goto :label`, `gosub :label`, `return`, `stop`. The colon tells a
   jump from a cursor move.
 - Conditions, two forms:
@@ -135,7 +137,7 @@ functions: named, with parameters, and with variables of their own.
   procedure addLine($text, $count:int)
     set $line = $text & " (" & $count & ")"      # $line exists only in here
     show "Collection"
-    goto end
+    moveto end
     type $line & "\n"
     show recent
   endprocedure
@@ -215,7 +217,7 @@ Prefixed with `$$`, so a macro's own variable can never change one, and `$$lines
     selectLine
     copy $t
     show "Collection"
-    goto end
+    moveto end
     paste $t
     type "\n"                  # each line on a line of its own
     show recent                # back, the find goes on from where it was
@@ -312,7 +314,8 @@ macro with an error does not run.
   - Brackets in a condition that do not pair.
   - An unknown action, a wrong number or kind of its parameters.
   - An unknown system variable (`$$foudn`), a `set` of a system variable.
-  - A `goto` or `gosub` to a label that does not exist; a label defined twice.
+  - A `goto` or `gosub` to a label that does not exist; a label defined twice; a `goto` without the colon
+    (`goto end`: "a label needs its colon; to move the cursor: moveto end").
   - A type that does not exist (`$n:number`), separators that are not one character, the same character as
     thousands and decimal separator (`:float(",", ",")`), a second type for a variable.
   - `show` / `new` / `open` without a name.
@@ -350,7 +353,7 @@ with only warnings run.
 In-app: the macro bar's Action..., Statement... (each block inserted, the cursor at its first gap) and Variable...;
 completion of actions, `$$` variables and labels; an error underlined and in the gutter while typing, Check listing
 it, a click going to it; Run refused with an error; View > Macros with its items.
-In-app: record typing, a move and a click (absolute, on the same line only the column), play; play X times; to the
+In-app: record typing, a move and a click (`moveto` absolute, on the same line only the column), play; play X times; to the
 end of the file; a failed find stops, or goes on with `$$found`; one undo step; copy / paste a variable; `new` on a
 name already open fails; the collect example of 3.4 in one pane and across two (`show "Collection"` and `show recent`, each line on a line of its own); `$$bof` / `$$eof`; `$$part` inside
 an embedded part; step by step with the variables panel; a saved macro with a key; View > Macros and Manage (open,
