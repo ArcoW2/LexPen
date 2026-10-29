@@ -4258,7 +4258,7 @@ const hideMenus = () => ui.treeMenu.hidden = ui.tabMenu.hidden = ui.stripMenu.hi
 // A double (or triple) click to bring the window back: every press, release, click and dblclick until Windows'
 // double-click time has passed after the last of them is stopped as well, wherever it lands, so it does not act as a
 // single click or as a double click (the outline and the preview act on dblclick); a click after that acts at once.
-// Each one stopped is in View > Messages.
+// With the setting logActivationClicks (off; for checking it), each one stopped is in View > Messages.
 const activation = { away: false, back: 0, until: 0, double: 500 };
 host('doubleClickTime').then(ms => { if (ms > 0) activation.double = ms; }).catch(() => {});
 addEventListener('blur', () => { activation.away = true; });
@@ -4270,7 +4270,7 @@ addEventListener('pointerdown', e => {
   const first = activation.away && (!document.hasFocus() || now - activation.back < 500);
   activation.away = false;
   if ((!first && !activationEating()) || setting('ignoreActivationClick') === false) return;
-  if (first) logMessage('A click that brought the window to the front was ignored (Options > Settings, App)', true);
+  if (first && setting('logActivationClicks')) logMessage('A click that brought the window to the front was ignored (Options > Settings, App)', true);
   activation.until = now + activation.double;
   e.preventDefault();   // no mousedown, mouseup after it
   e.stopImmediatePropagation();

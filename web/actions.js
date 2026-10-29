@@ -692,6 +692,8 @@ const SETTING_ROWS = [
   { name: 'ignoreActivationClick', group: 'App', kind: 'toggle', title: 'Ignore the first click on a window that is not in front',
     hint: 'A click on a LexPen window that is not in front only brings it to the front: it does not move the cursor, select or press a button there (the title bar works at once)',
     hintOff: 'A click on a window that is not in front brings it to the front and also acts (moves the cursor, presses the button)' },
+  { name: 'logActivationClicks', group: 'App', kind: 'toggle', title: 'Note each ignored first click in View > Messages',
+    hint: 'To check the setting above: every click it ignored is noted in View > Messages', hintOff: 'Ignored first clicks are not noted' },
   { name: 'explorerCompare', group: 'App', sub: 'Windows Explorer', kind: 'toggle', title: 'Compare entries in Explorer\'s right-click menu',
     hint: 'Explorer\'s right-click menu on files and folders gets Select left side to compare, and then Compare to <name>; on Windows 11 under Show more options (or Shift+right-click). They run the LexPen that turned this on',
     hintOff: 'No compare entries in Explorer\'s right-click menu' },
