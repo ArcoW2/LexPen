@@ -117,7 +117,7 @@ through the host, as Highlights does. Part 2 docks these same pages.
 | Characters | a window of its own (CharPickerForm) | one document | yes | yes | yes (default) | inserts at the served document's cursor |
 | Highlights | a window of its own (HighlightsForm) | one document | yes | yes | yes (default) | the served document's highlights |
 | Bookmarks | a popup list (`bookmarkList`) | one document | yes | yes | yes | a pane of its own in stage 10 |
-| Preview | part of the editor pane (Preview, Side by side) | one document | yes, in the page: right (default), left, bottom (3.4c) | no | no | stays part of its editor pane (3.4b) |
+| Preview | part of the editor pane (Preview, Side by side) | one document | yes, in the page: right (default), left, above, below (3.4c) | no | no | stays part of its editor pane (3.4b) |
 | Step by step (macros) | a panel under the macro's tab | one document (the macro) | yes (default: bottom) | yes | yes | its variables and buttons; a pane of its own in stage 13 |
 | Folder | in the page, the side pane | a window (its folder) | no | yes (default: left) | yes | part 1: a page of its own |
 | Search, replace in files | in the page, the side pane | a window (its folder, its open documents) | no | yes (default: left, a tab beside Folder) | yes | part 1: a page of its own |
@@ -160,17 +160,20 @@ this plan; its place within its own editor pane can be chosen (3.4c).
 Within its own editor pane the preview can be placed where you like, as the panes that serve one document can: it
 stays part of the page (3.4b), so this is only where it is drawn and costs no speed.
 
-- Side by side shows the preview at the right of the text (as now, the default), at its left, or below it (the full
-  width of the pane), with the splitter between them as now; below, the splitter sets its height.
+- Side by side shows the preview at the right of the text (as now, the default), at its left, above it or below it
+  (above and below: the full width of the pane), with the splitter between them as now; above and below, the
+  splitter sets its height.
 - Each editor pane has its own place for its preview, kept in the window's layout with the pane's outline side
   (3.13), so two panes can differ (for example the left pane's preview at its left, the right pane's at its right).
-- Chosen in View > Preview at the right / at the left / below (actions `preview.right`, `preview.left`,
-  `preview.bottom`, in F1 and keys.json), and by a right-click on the splitter between text and preview.
+- Chosen in View > Preview at the right / at the left / above / below (actions `preview.right`, `preview.left`,
+  `preview.top`, `preview.bottom`, in F1 and keys.json), and by a right-click on the splitter between text and
+  preview.
 - Scrolling level, the bar beside the cursor's block, the double click to the source and the preview's cursor work
-  the same in each place (below: the preview's top follows the text's top, as the sides do now).
+  the same in each place (above and below: the preview's top follows the text's top, as the sides do now).
 - With tool panes docked at the same side of the editor pane (3.10), the preview stays next to the text and the
   tool panes sit beyond it, at the pane's edge.
 - Editor only and Preview only are as now; the place applies when both show.
+
 ### 3.5 How a page docks: native
 
 The LexPen window (MainForm) holds the dock areas itself: WinForms panels with splitters around the main page, each
@@ -378,7 +381,7 @@ Part 2, the docking:
 6. Moving: the pane menus, the drag with the drop places, Esc; the actions.
 7. The panes that work on a document (3.9, 3.10): at an editor pane, docked per window, the floating one for the
    others, the order between them, its title and theme; several at one side of an editor pane.
-7a. The preview's place in its editor pane (3.4c): right, left, below; the menu and the splitter's right-click.
+7a. The preview's place in its editor pane (3.4c): right, left, above, below; the menu and the splitter's right-click.
 8. The active document's dimmed frame and its cursor shown while a pane has the focus (3.11).
 9. View > Panes, Reset docking, Save as default, the view project's reset; the docs (features.md).
 
@@ -423,9 +426,9 @@ Part 3, the panes that are lists or panels now (each on its own, after part 2):
 - Part 2, in-app: with the focus in a pane the document's frame is dimmed, the pane's active; the document's cursor
   (and several cursors) stays shown, steady, its selection in the colour without focus; an insert from Characters
   lands exactly there; docked and floating.
-- In-app: the preview at the right, the left and below its text (menu and the splitter's right-click), each editor
-  pane its own place; scrolling level, the cursor's bar, the double click to the source and the preview's cursor in
-  each place; kept after a restart; with the Outline docked at the same side, the preview next to the text.
+- In-app: the preview at the right, the left, above and below its text (menu and the splitter's right-click), each
+  editor pane its own place; scrolling level, the cursor's bar, the double click to the source and the preview's
+  cursor in each place; kept after a restart; with the Outline docked at the same side, the preview next to the text.
 - Part 3, in-app: Bookmarks lists the served document's bookmarks and follows them (added, moved with the text,
   removed), a click goes there; Messages shows a new message while shown; Clipboards shows each clipboard's text,
   a click makes one active (copy and paste then use it); Step by step works docked at the macro's pane, in a dock
