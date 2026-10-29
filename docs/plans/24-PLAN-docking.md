@@ -191,22 +191,22 @@ tells the host a drag starts; the host shows the drop places over the window.
 
 - Drag its title bar (or its tab): while dragging, each place it can go lights up: an edge of a LexPen window (a new
   group there; at the bottom, the two widths of 3.6 as two places), a group (as a tab in it), a side of a group
-  (above, under, or next to it), and for a pane that works on a document the left, right and bottom of each editor pane. Dropped anywhere
-  else: it floats there. A floating pane dragged over a LexPen window shows that window's places.
+  (above, under, or next to it), and for a pane of one document the left, right and bottom of each editor pane.
+  Dropped anywhere else: it floats there. A floating pane dragged over a LexPen window shows that window's places.
 - What can go where follows the scope (3.4): a pane of a window docks only in its own window; a pane of one document
   or of LexPen in any window; only a pane of one document at an editor pane.
-- The pane's menu (Dock left, Dock right, Dock bottom, Dock at the editor pane (a pane that works on a document), Float, Close) does the
-  same without the mouse, and F1 lists the actions: `dock.left`, `dock.right`, `dock.bottom`, `dock.float`,
-  `dock.close`, with the pane as their value, so a key can be given (keys.json, as any action).
+- The pane's menu (Dock left, Dock right, Dock bottom, Dock at the editor pane (a pane of one document), Float,
+  Close) does the same without the mouse, and F1 lists the actions: `dock.left`, `dock.right`, `dock.bottom`,
+  `dock.float`, `dock.close`, with the pane as their value, so a key can be given (keys.json, as any action).
 - Esc while dragging: the drag ends, nothing moves.
 
 ### 3.9 The panes that serve one document
 
 The panes with the scope one document (3.4a: the Outline, Characters, Highlights, Step by step, later Bookmarks) can
-dock at an editor pane as well as in a window's dock areas or float (3.10). Where such a pane is docked decides what it serves, and the nearest one wins: one docked at an
-editor pane, then one docked in the window's dock areas, then the floating one. Each serves only what no nearer one
-of the same kind serves; the kinds are apart (an outline at an editor pane does not keep Characters from serving that
-document).
+dock at an editor pane as well as in a window's dock areas or float (3.10). Where such a pane is docked decides what
+it serves, and the nearest one wins: one docked at an editor pane, then one docked in the window's dock areas, then
+the floating one. Each serves only what no nearer one of the same kind serves; the kinds are apart (an outline at an
+editor pane does not keep Characters from serving that document).
 
 1. **Docked at an editor pane** (3.10): it serves that editor pane's document, and only that one, also when another
    editor pane has the focus.
