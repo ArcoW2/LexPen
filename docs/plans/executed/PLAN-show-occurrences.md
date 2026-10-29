@@ -129,8 +129,7 @@ The colours come from the theme (3.3), not from a setting.
 
 ## 4. Open questions
 
-None. Decided 2026-10-29: the name Occurrences; no Previous / Next, no current occurrence (only First, to the first one); a new selection replaces
-the field when a setting (or the menu item) says it shows occurrences; the editor and the preview both, one bar.
+None.
 
 ## 5. Resolved during execution
 

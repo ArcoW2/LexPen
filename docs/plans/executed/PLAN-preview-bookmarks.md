@@ -129,18 +129,7 @@ they no longer scroll it directly.
 
 ## 4. Open questions
 
-None. Answered 2026-10-28:
-
-| Question | Answer |
-|---|---|
-| Bookmarks with the focus in the preview, the editor shown too | The preview's cursor, always |
-| Movement keys | Move the preview's cursor; the view follows when it is out of sight, as in the editor |
-| Split view: a single click in the preview moves the editor's cursor? | No: a single click moves the preview's cursor, a double click the editor's |
-| The other pane showing the document in its editor | No effect: each tab is its own pair of editor and preview |
-| A click on a bookmark mark | Nothing; the scroll bar strip goes to it already |
-| A switch of their own for the marks | No; the preview has no gutter, the marks sit at the far left of the text pane |
-| Shift with the movement keys and go to bookmark | Ignored for now |
-| Where the preview's cursor starts | The top of the view when the preview opens |
+None.
 
 ## 5. Resolved during execution
 

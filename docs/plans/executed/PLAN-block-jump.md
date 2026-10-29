@@ -27,7 +27,7 @@ plan 31.
   indented further below it), `markdown` (a heading and its section, a fence).
 - `none`, or plain text: the indentation as the editor shows it (tabs at the file's tab size), as `indent` does.
 - Markdown: headings give the levels; inside a section, list items and indented lines are blocks by their
-  indentation (the `indent` ranges inside the section). See open question 1.
+  indentation (the `indent` ranges inside the section): an item is a block when lines are indented under it.
 - The cursor's block: the innermost block that holds the cursor line, its first line and its closing line included.
   So in `docs/examples/json-records.json` line 6 (`},`) belongs to the block 3-6, and line 7 (`{`) to the block 7-14.
 - Empty lines are never a target.
@@ -97,12 +97,7 @@ plan 31.
 
 ## 4. Open questions
 
-None open. Taken as the plan proposed, when it was started without an answer (change them if you want otherwise):
-
-1. Markdown lists and indents inside a section: the plan uses the indentation there. Should a list item's own
-   paragraphs (indented under it) count, or only the list items?
-2. Alt+PgUp with the cursor inside a block, not on its first line (cursor on line 9, block 7-14): answered after
-   execution: the header of the current block first (7), then the previous header at its depth.
+None.
 
 ## 5. Resolved during execution
 
