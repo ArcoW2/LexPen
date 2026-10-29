@@ -5,8 +5,9 @@ Status: draft 2026-10-22, extended 2026-10-25 (Folder and Search apart); brought
 2026-10-29 with your answers: every tool pane is the same kind (it floats as a window or docks in the main window);
 built in two parts (first Folder, Search and the Outline as pages of their own, then the docking); the panes that
 work on the active document (Characters, Highlights, the Outline) serve their window when docked and every other
-window when floating; native docking; speed first. Not started; no questions open. From your answer on the character
-picker window (plan 15 follow-up): "docking should be a new plan".
+window when floating; native docking; speed first; what a pane serves (one document, a window, LexPen) decides
+where it docks (the table of 3.4a). Not started; questions open. From your answer on the character picker window
+(plan 15 follow-up): "docking should be a new plan".
 The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
@@ -22,7 +23,9 @@ monitor, or an outline at the other side of its text, under it, or in a window o
 All tool panes are one kind: Folder, Search, Settings, Characters, Highlights, the Outline and the Manage windows
 (projects, theme sets, macros). Each one floats as a window of its own, or docks in a LexPen window: at the left, the
 right or the bottom, alone, as a tab beside others, or above, under or next to another pane, resized with splitters.
-A pane that works on a document (Characters, Highlights, the Outline) can also dock at the left, right or bottom of an editor pane. The docking is native (the panes'
+What a tool serves is its scope: one document (the Outline, Characters, Highlights), a window (Folder, Search,
+Settings) or LexPen as a whole (projects, theme sets, macros); a table lists every tool with its scope and where it
+can dock. A tool of one document can also dock at the left, right or bottom of an editor pane. The docking is native (the panes'
 browser views placed by the LexPen window itself), and it must not make LexPen slower.
 
 The panes that work on the active document (Characters, Highlights, the Outline) serve the window they are docked
@@ -93,13 +96,40 @@ through the host, as Highlights does. Part 2 docks these same pages.
 
 - Every tool pane is a page of its own, the same page floating or docked, so it shows and does the same in both.
 - Floating: a window of its own (as Settings now), movable, resizable, on any monitor, its place kept.
-- Docked: shown in a LexPen window, in a dock area (3.6), or (a pane that works on a document) at an editor pane (3.10).
-- What a pane works on:
-  - Folder, Search and Settings: their LexPen window (its folder, its documents, its "this window" settings); one
-    of each per window, docked in that window or floating for it.
-  - The panes that work on the active document: Characters, Highlights and the Outline (3.9).
-  - Manage projects, Theme sets, Manage macros: as now.
+- Docked: shown in a LexPen window, in a dock area (3.6), or, for a pane that serves one document, at an editor pane
+  (3.10).
+- What a pane serves is a property of the pane, its **scope** (the table of 3.4a), and the scope decides where it
+  can dock and what it works on there:
+  - **One document**: it works on a single document. It docks at an editor pane (that pane's document), in a
+    window's dock area (that window's active document), or floats (the active document of the windows without one);
+    the nearest wins (3.9). Several can exist: one per editor pane, one per window, one floating.
+  - **A window**: it works on one LexPen window as a whole (its folder, all its documents, its "this window"
+    settings). One per window, docked in that window or floating for it; not at an editor pane.
+  - **LexPen**: it works on nothing in particular (projects, theme sets, the macros, the clipboards). One for all of
+    LexPen, docked in any one window or floating; not at an editor pane. Its place is kept once for LexPen.
 
+### 3.4a The tool panes, their scope and where they dock
+
+| Tool | Now | Scope | At an editor pane | In a dock area | Floating | Notes |
+|---|---|---|---|---|---|---|
+| Outline | in the page, at the right of each editor pane | one document | yes (default: right) | yes | yes | part 1: a page of its own |
+| Characters | a window of its own (CharPickerForm) | one document | yes | yes | yes (default) | inserts at the served document's cursor |
+| Highlights | a window of its own (HighlightsForm) | one document | yes | yes | yes (default) | the served document's highlights |
+| Bookmarks | a popup list (`bookmarkList`) | one document | yes | yes | yes | later: a pane of its own (question 2) |
+| Preview | part of the editor pane (Preview, Side by side) | one document | (as now) | question 1 | question 1 | question 1 |
+| Step by step (macros) | a panel under the macro's tab | one document (the macro) | yes (default: bottom) | yes | yes | its variables and buttons; later (question 2) |
+| Folder | in the page, the side pane | a window (its folder) | no | yes (default: left) | yes | part 1: a page of its own |
+| Search, replace in files | in the page, the side pane | a window (its folder, its open documents) | no | yes (default: left, a tab beside Folder) | yes | part 1: a page of its own |
+| Messages | a dialog (View > Messages) | a window (its messages) | no | yes | yes (default) | later: a pane of its own (question 2) |
+| Settings | a window of its own (SettingsForm), one per window | a window (its "this window" rows, and the global ones) | no | yes | yes (default) | |
+| Manage projects | a window of its own (ProjectsForm) | LexPen | no | yes | yes (default) | |
+| Theme sets | a window of its own (ThemeSetsForm) | LexPen | no | yes | yes (default) | |
+| Macros (Manage, a macro's window) | a dialog in the page, not modal | LexPen | no | yes | yes (default) | a play runs on the active document, as a menu item does |
+| Clipboards | a popup list (`clipboardList`) | LexPen | no | yes | yes | later: a pane of its own (question 2) |
+
+Not tool panes (they stay as they are): the find bar and the Occurrences bar (part of each editor pane), the F1 list
+(a modal list to choose from), the replace preview (modal, before a replace in files), the small questions (a name,
+a note, Yes / No, About), the menus, and the macro reference (a document in a tab).
 ### 3.5 How a page docks: native
 
 The LexPen window (MainForm) holds the dock areas itself: WinForms panels with splitters around the main page, each
@@ -163,16 +193,17 @@ tells the host a drag starts; the host shows the drop places over the window.
   group there; at the bottom, the two widths of 3.6 as two places), a group (as a tab in it), a side of a group
   (above, under, or next to it), and for a pane that works on a document the left, right and bottom of each editor pane. Dropped anywhere
   else: it floats there. A floating pane dragged over a LexPen window shows that window's places.
-- Folder, Search and Settings dock only in their own window; the panes that work on the active document in any.
+- What can go where follows the scope (3.4): a pane of a window docks only in its own window; a pane of one document
+  or of LexPen in any window; only a pane of one document at an editor pane.
 - The pane's menu (Dock left, Dock right, Dock bottom, Dock at the editor pane (a pane that works on a document), Float, Close) does the
   same without the mouse, and F1 lists the actions: `dock.left`, `dock.right`, `dock.bottom`, `dock.float`,
   `dock.close`, with the pane as their value, so a key can be given (keys.json, as any action).
 - Esc while dragging: the drag ends, nothing moves.
 
-### 3.9 The panes that work on a document: Characters, Highlights, the Outline
+### 3.9 The panes that serve one document
 
-These panes (and every later pane that works on a document) can dock at an editor pane as well as in a window's dock
-areas or float (3.10). Where such a pane is docked decides what it serves, and the nearest one wins: one docked at an
+The panes with the scope one document (3.4a: the Outline, Characters, Highlights, Step by step, later Bookmarks) can
+dock at an editor pane as well as in a window's dock areas or float (3.10). Where such a pane is docked decides what it serves, and the nearest one wins: one docked at an
 editor pane, then one docked in the window's dock areas, then the floating one. Each serves only what no nearer one
 of the same kind serves; the kinds are apart (an outline at an editor pane does not keep Characters from serving that
 document).
@@ -350,4 +381,10 @@ Part 2, the docking:
 
 ## 4. Open questions
 
-None.
+1. The preview (3.4a): it serves one document, but it is part of the editor pane now (Editor, Preview, Side by side,
+   with the scroll kept level, the preview's cursor and bookmarks, the compare). Make it a tool pane in this plan
+   (docked at its editor pane as Side by side is now, in a dock area, or floating, for example on a second monitor
+   following the active document), or leave it as it is and give it a plan of its own after part 2? Proposal: a plan
+   of its own after part 2, as it is tied to the editor in more ways than any other pane.
+2. Bookmarks, Messages, Clipboards and Step by step (3.4a, "later"): panes in this plan (stage 9), or each in a small
+   plan once the docking works? Proposal: after part 2, one at a time; the table already says where each can go.
