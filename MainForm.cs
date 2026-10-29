@@ -1425,23 +1425,8 @@ sealed class MainForm : Form
     protected override void WndProc(ref Message m)
     {
         if (m.Msg == WM_CLIPBOARDUPDATE) PostClipboardColumn();
-        // The click that brings a window that is not in front to the front (setting ignoreActivationClick): it only
-        // activates the window and goes no further, so it does not move the cursor or press a button. Only inside the
-        // window (HTCLIENT): the title bar and its buttons work at once as always.
-        if (m.Msg == WM_MOUSEACTIVATE && (m.LParam.ToInt64() & 0xFFFF) == HTCLIENT && GetForegroundWindow() != Handle
-            && app.SettingFlag("ignoreActivationClick"))
-        {
-            m.Result = MA_ACTIVATEANDEAT;
-            return;
-        }
         base.WndProc(ref m);
     }
-
-    const int WM_MOUSEACTIVATE = 0x0021, HTCLIENT = 1;
-    static readonly IntPtr MA_ACTIVATEANDEAT = 2;
-
-    [DllImport("user32.dll")]
-    static extern IntPtr GetForegroundWindow();
 
     // Asked without opening the clipboard (IsClipboardFormatAvailable): opening it waits, and retries, while another
     // program holds it, and every window would wait on this shared thread.

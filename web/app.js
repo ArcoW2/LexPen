@@ -4248,6 +4248,32 @@ const hideMenus = () => ui.treeMenu.hidden = ui.tabMenu.hidden = ui.stripMenu.hi
   ui.paneMenu.hidden = ui.dividerMenu.hidden = true;
 
 // Right-click on a tree row: copy its path, absolute or relative to the open folder.
+// The click that brings a window that was not in front back (setting ignoreActivationClick): it only brings the
+// window to the front. After the window lost the focus, the next press that comes with the focus back (before it, or
+// just after it) goes no further: its press, release and click are stopped before anything sees them (on the window,
+// in the capture phase). The title bar is Windows' own and works at once.
+const activation = { away: false, back: 0, eating: false };
+addEventListener('blur', () => { activation.away = true; });
+addEventListener('focus', () => { activation.back = performance.now(); });
+addEventListener('keydown', () => { activation.away = false; }, true);   // back by the keys (Alt+Tab): not a click
+addEventListener('pointerdown', e => {
+  const first = activation.away && (!document.hasFocus() || performance.now() - activation.back < 500);
+  activation.away = false;
+  if (!first || setting('ignoreActivationClick') === false) return;
+  e.preventDefault();   // no mousedown, mouseup after it
+  e.stopImmediatePropagation();
+  activation.eating = true;
+}, true);
+for (const type of ['mousedown', 'mouseup', 'pointerup', 'click', 'dblclick', 'auxclick', 'contextmenu'])
+  addEventListener(type, e => {
+    if (!activation.eating) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    if (type === 'click' || type === 'auxclick' || type === 'contextmenu') activation.eating = false;   // the press is done
+    // A press with no click after it (a drag): the next press is not held up.
+    if (type === 'pointerup') setTimeout(() => { activation.eating = false; }, 100);
+  }, true);
+
 document.addEventListener('contextmenu', e => {
   const row = e.target.closest('.mm-tree .mm-row');
   if (row) showMenu(ui.treeMenu, e, () => {
