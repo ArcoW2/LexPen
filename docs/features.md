@@ -487,7 +487,7 @@ every action with its key.
     The language in the bottom bar is a selector (also View > Language...); the choice is kept per file.
   - Your own packs go in `%LOCALAPPDATA%\LexPen\languages\` (start from `defaults\languages\_template`; the guide: `defaults\languages\README.md`; a folder with a shipped name replaces it) and apply at once; mistakes show in the settings window. 
   - How a file opens: per language, the pack's choice unless you set it (settings window, General > Open in).
-- **Themes**: Light, Dark, Black (OLED); Dark ocean, forest, wine, parchment, sand, moonlight and pistachio; Light sky, seafoam, blossom, parchment, sand, lichen and pistachio ship in `defaults\themes`.
+- **Themes**: Light, Dark, Black (OLED); Dark ocean, forest, wine, parchment, sand, moonlight and pistachio, Dark Ink and aged paper (blue/yellow: the blue of Dark ocean, the yellow lines and highlights of Dark parchment); Light sky, seafoam, blossom, parchment, sand, lichen and pistachio ship in `defaults\themes`.
   your own go in `%LOCALAPPDATA%\LexPen\themes\` (a file with the same name replaces a shipped one) and apply at once.
   LexPen follows Windows' light / dark mode (a setting, on), with a theme chosen for each mode; Day / night
   switches until Windows changes mode. 

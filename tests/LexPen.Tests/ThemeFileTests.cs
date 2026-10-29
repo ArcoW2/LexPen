@@ -183,7 +183,7 @@ public class ThemeFileTests : IDisposable
         var problems = new List<string>();
         var themes = ThemeFile.Load(Path.Combine(Defaults, "themes"), Path.Combine(dir, "none"), Names, problems);
         Assert.Empty(problems);
-        Assert.Equal(["light", "dark", "black", "dark-forest", "dark-moonlight", "dark-ocean", "dark-parchment", "dark-pistachio",
+        Assert.Equal(["light", "dark", "black", "dark-forest", "dark-ink-paper", "dark-moonlight", "dark-ocean", "dark-parchment", "dark-pistachio",
             "dark-sand", "dark-wine", "light-blossom", "light-lichen", "light-parchment", "light-pistachio", "light-sand", "light-seafoam",
             "light-sky"], themes.Select(t => t.Id));
         // Every shipped theme builds on Light or Dark, as its file name says (Black on Dark), and has a description.
