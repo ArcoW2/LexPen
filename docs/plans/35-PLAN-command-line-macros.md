@@ -91,7 +91,9 @@ options, and docs/features.md points to it.
 - In-app: start with two files and `--macro`: the macro ran on the last one; with LexPen already running: ran in
   that instance; a missing macro said, the files open; `--new-project` while a window is open: a new project with
   the files; `exit save` / `exit discard` with a changed file and a changed draft: the file saved / unchanged on
-  disk, the draft kept, LexPen gone; an unsavable file: LexPen stays, the error shown.
+  disk, the draft kept, LexPen gone; `exit save window` with two windows open: only its window closed; after an
+  exit the closed windows back at the next start; `--new-project` on a first start: only the new project, the last
+  session back at the start after it; an unsavable file: LexPen stays, the error shown.
 
 ## 4. Open questions
 
