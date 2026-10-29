@@ -40,6 +40,8 @@
   "compareCase": false,           // comparing: upper and lower case count as the same
   "compareStep": "block",         // comparing: F7 goes to the next "block" of changed lines, or the next changed "line"
   "compareStrip": true,           // comparing: the line strip below the panes
+  "ignoreActivationClick": true, // a click on a window that is not in front only brings it to the front (it does
+                                  // not move the cursor or press a button there)
   "explorerCompare": false,       // Explorer's right-click menu: Select left side to compare, then Compare to <name>
   "explorerView": false,          // ...View in LexPen, on files and folders (the project for viewing, viewProject)
   "explorerEdit": false,          // ...Edit in LexPen, on files (as opening one, never in the project for viewing)

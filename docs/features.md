@@ -543,6 +543,9 @@ every action with its key.
 
 ## Settings, keys and menus
 
+- **The first click on a window that is not in front** only brings it to the front: it does not move the cursor,
+  select or press a button there (the title bar works at once). Options > Settings, App: Ignore the first click on a
+  window that is not in front (on by default).
 - **Settings window** (Options > Settings): a tab per group (General, Files, Editor, Preview, Tabs, Find, App, Keys,
   Languages; Ctrl+Tab / Ctrl+PgDn between them; a tab's rows are made when it is first shown); a search shows the
   matches of the tab shown; the tabs with a match stand out (while typing, a tab without one moves to the first

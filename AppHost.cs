@@ -389,7 +389,7 @@ sealed class AppHost : ApplicationContext
     }
 
     string? SettingText(string name) => settings["values"]?[name]?.GetValueKind() == JsonValueKind.String ? settings["values"]![name]!.GetValue<string>() : null;
-    bool SettingFlag(string name) => settings["values"]?[name]?.GetValueKind() == JsonValueKind.True;
+    internal bool SettingFlag(string name) => settings["values"]?[name]?.GetValueKind() == JsonValueKind.True;
 
     // ---------- Language packs (LanguagePacks) ----------
     static string UserLanguagesDir => Path.Combine(DataDir, LanguagePacks.FolderName);
