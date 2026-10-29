@@ -139,9 +139,11 @@ use, for these reasons:
 
 - It is tied to its editor in many ways that now work inside one page: the scroll kept level both ways, the bar at
   the preview's edge beside the cursor's block, a double click going to the source word, the preview's cursor and
-  bookmarks, find and the Occurrences in the preview, the compare. As a page of its own each of these goes through
-  the host, a message per scroll step and the whole text again after each change; scrolling level is where that
-  shows first.
+  bookmarks, find and the Occurrences in the preview, the compare. Some of these would be cheap as a page of its
+  own: a double click works out the source place in the preview (from its source map) and sends one message, and
+  the editor pane it serves goes there, as a preview tab does now for the editor in the other pane. The costly ones
+  are the continuous ones: keeping the scroll level is a message per scroll step each way, and every change sends
+  the text again to be rendered; that is where it would feel slower and break first.
 - One preview for two editors is ambiguous: when it follows the active editor it jumps at every click in the other
   pane, and its scroll cannot be level with two texts at once.
 - Two previews of one editor: which one a double click or the preview's cursor answers to, and which one scrolls
