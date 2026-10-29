@@ -3,11 +3,12 @@
 Status: draft 2026-10-22, extended 2026-10-25 (Folder and Search apart); brought in line with plan 33
 2026-10-25 (no view window of its own: viewing is a normal project, so all windows are the same kind); worked out
 2026-10-29 with your answers: every tool pane is the same kind (it floats as a window or docks in the main window);
-built in two parts (first Folder, Search and the Outline as pages of their own, then the docking); the panes that
-work on the active document (Characters, Highlights, the Outline) serve their window when docked and every other
+built in three parts (first Folder, Search and the Outline as pages of their own, then the docking, then the
+smaller panes); the panes that work on the active document (Characters, Highlights, the Outline) serve their window when docked and every other
 window when floating; native docking; speed first; what a pane serves (one document, a window, LexPen) decides
-where it docks (the table of 3.4a). Not started; questions open. From your answer on the character picker window
-(plan 15 follow-up): "docking should be a new plan".
+where it docks (the table of 3.4a); the preview stays with its editor; part 3 adds the smaller panes. Not started;
+no questions open. From your answer on the character picker window (plan 15 follow-up): "docking should be a new
+plan".
 The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
@@ -37,8 +38,9 @@ A dock closes and opens with a button whose icon shows the direction; closed, on
 (turned a quarter at the left and right), with a tab per docked pane. The toolbar's hamburger goes. A pane shown again
 comes back as it was. View > Layout can take the layout of another window or project.
 
-It is built in two parts. Part 1: Folder, Search and the Outline become pages of their own, shown where they are now.
-Part 2: the docking, for every pane.
+It is built in three parts. Part 1: Folder, Search and the Outline become pages of their own, shown where they are
+now. Part 2: the docking, for every pane. Part 3: Bookmarks, Messages, Clipboards and Step by step become panes too.
+The preview stays part of its editor pane.
 
 ## 3. Details
 
@@ -115,21 +117,42 @@ through the host, as Highlights does. Part 2 docks these same pages.
 | Outline | in the page, at the right of each editor pane | one document | yes (default: right) | yes | yes | part 1: a page of its own |
 | Characters | a window of its own (CharPickerForm) | one document | yes | yes | yes (default) | inserts at the served document's cursor |
 | Highlights | a window of its own (HighlightsForm) | one document | yes | yes | yes (default) | the served document's highlights |
-| Bookmarks | a popup list (`bookmarkList`) | one document | yes | yes | yes | later: a pane of its own (question 2) |
-| Preview | part of the editor pane (Preview, Side by side) | one document | (as now) | question 1 | question 1 | question 1 |
-| Step by step (macros) | a panel under the macro's tab | one document (the macro) | yes (default: bottom) | yes | yes | its variables and buttons; later (question 2) |
+| Bookmarks | a popup list (`bookmarkList`) | one document | yes | yes | yes | a pane of its own in stage 10 |
+| Preview | part of the editor pane (Preview, Side by side) | one document | (as now) | no | no | stays part of its editor pane (3.4b) |
+| Step by step (macros) | a panel under the macro's tab | one document (the macro) | yes (default: bottom) | yes | yes | its variables and buttons; a pane of its own in stage 13 |
 | Folder | in the page, the side pane | a window (its folder) | no | yes (default: left) | yes | part 1: a page of its own |
 | Search, replace in files | in the page, the side pane | a window (its folder, its open documents) | no | yes (default: left, a tab beside Folder) | yes | part 1: a page of its own |
-| Messages | a dialog (View > Messages) | a window (its messages) | no | yes | yes (default) | later: a pane of its own (question 2) |
+| Messages | a dialog (View > Messages) | a window (its messages) | no | yes | yes (default) | a pane of its own in stage 11 |
 | Settings | a window of its own (SettingsForm), one per window | a window (its "this window" rows, and the global ones) | no | yes | yes (default) | |
 | Manage projects | a window of its own (ProjectsForm) | LexPen | no | yes | yes (default) | |
 | Theme sets | a window of its own (ThemeSetsForm) | LexPen | no | yes | yes (default) | |
 | Macros (Manage, a macro's window) | a dialog in the page, not modal | LexPen | no | yes | yes (default) | a play runs on the active document, as a menu item does |
-| Clipboards | a popup list (`clipboardList`) | LexPen | no | yes | yes | later: a pane of its own (question 2) |
+| Clipboards | a popup list (`clipboardList`) | LexPen | no | yes | yes | a pane of its own in stage 12 |
 
 Not tool panes (they stay as they are): the find bar and the Occurrences bar (part of each editor pane), the F1 list
 (a modal list to choose from), the replace preview (modal, before a replace in files), the small questions (a name,
 a note, Yes / No, About), the menus, and the macro reference (a document in a tab).
+### 3.4b The preview stays with its editor pane
+
+The preview serves one document, but it stays part of its editor pane (Editor, Preview, Side by side), not a tool
+pane: LexPen is an editor, the editing comes first, and a preview of its own would be fragile, slower and unclear to
+use, for these reasons:
+
+- It is tied to its editor in many ways that now work inside one page: the scroll kept level both ways, the bar at
+  the preview's edge beside the cursor's block, a double click going to the source word, the preview's cursor and
+  bookmarks, find and the Occurrences in the preview, the compare. As a page of its own each of these goes through
+  the host, a message per scroll step and the whole text again after each change; scrolling level is where that
+  shows first.
+- One preview for two editors is ambiguous: when it follows the active editor it jumps at every click in the other
+  pane, and its scroll cannot be level with two texts at once.
+- Two previews of one editor: which one a double click or the preview's cursor answers to, and which one scrolls
+  level, has no clear answer.
+
+What is possible already, and stays: the same document open twice, in either editor pane, each in Editor, Preview
+or Side by side; both in the editor too, one of them read-only, unless they are a split (View > Split into the
+other pane), where both edit. So one text can be edited with its preview beside it and a second preview of it in
+the other pane. A preview on another monitor (a pane of its own, floating) is not part of
+this plan.
 ### 3.5 How a page docks: native
 
 The LexPen window (MainForm) holds the dock areas itself: WinForms panels with splitters around the main page, each
@@ -340,6 +363,15 @@ Part 2, the docking:
 8. The active document's dimmed frame and its cursor shown while a pane has the focus (3.11).
 9. View > Panes, Reset docking, Save as default, the view project's reset; the docs (features.md).
 
+Part 3, the panes that are lists or panels now (each on its own, after part 2):
+
+10. Bookmarks as a pane (one document): the bookmarks of the document it serves, with their lines; a click goes
+    there; the popup list (`bookmarkList`) stays as a quick way.
+11. Messages as a pane (a window): View > Messages' list, kept up to date while shown.
+12. Clipboards as a pane (LexPen): the clipboards with the start of their text, the active one marked; a click makes
+    one active; the popup list (`clipboardList`) stays.
+13. Step by step as a pane (one document, the macro): its buttons and variables; by default at the bottom of the
+    macro's editor pane, as now.
 ### 3.16 Tests
 
 - Speed: the measurements of 3.2 after each stage against the baseline of stage 0.
@@ -372,6 +404,10 @@ Part 2, the docking:
 - Part 2, in-app: with the focus in a pane the document's frame is dimmed, the pane's active; the document's cursor
   (and several cursors) stays shown, steady, its selection in the colour without focus; an insert from Characters
   lands exactly there; docked and floating.
+- Part 3, in-app: Bookmarks lists the served document's bookmarks and follows them (added, moved with the text,
+  removed), a click goes there; Messages shows a new message while shown; Clipboards shows each clipboard's text,
+  a click makes one active (copy and paste then use it); Step by step works docked at the macro's pane, in a dock
+  area and floating, its variables updated per step; each one docked, floated and closed to its strip.
 - In-app: Use layout of... from another open window and from a project with no window open: this window then shows
   that layout (with part 2 the docking too), its folder, tabs and own place unchanged; floating panes at the same
   places, one from a screen that is gone moved onto a screen; Undo puts it back; the other window unchanged; kept
@@ -381,10 +417,4 @@ Part 2, the docking:
 
 ## 4. Open questions
 
-1. The preview (3.4a): it serves one document, but it is part of the editor pane now (Editor, Preview, Side by side,
-   with the scroll kept level, the preview's cursor and bookmarks, the compare). Make it a tool pane in this plan
-   (docked at its editor pane as Side by side is now, in a dock area, or floating, for example on a second monitor
-   following the active document), or leave it as it is and give it a plan of its own after part 2? Proposal: a plan
-   of its own after part 2, as it is tied to the editor in more ways than any other pane.
-2. Bookmarks, Messages, Clipboards and Step by step (3.4a, "later"): panes in this plan (stage 9), or each in a small
-   plan once the docking works? Proposal: after part 2, one at a time; the table already says where each can go.
+None.
