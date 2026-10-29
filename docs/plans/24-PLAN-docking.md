@@ -163,8 +163,13 @@ stays part of the page (3.4b), so this is only where it is drawn and costs no sp
 - Side by side shows the preview at the right of the text (as now, the default), at its left, above it or below it
   (above and below: the full width of the pane), with the splitter between them as now; above and below, the
   splitter sets its height.
-- Each editor pane has its own place for its preview, kept in the window's layout with the pane's outline side
-  (3.13), so two panes can differ (for example the left pane's preview at its left, the right pane's at its right).
+- The place belongs to the editor pane (the first and the second pane of the window), not to the document or the
+  tab: every document shown side by side in that pane gets it. So the two panes can differ: for example the first
+  pane's preview above its text and the second pane's at its left.
+- Kept in the window's layout with the pane's other places (3.13), also while the pane is closed: the second pane,
+  closed and opened again, has its preview where it was before; one never opened yet has the default (at the
+  right). The same holds for the tool panes docked at an editor pane (3.10): the second pane gets them back as they
+  were when it opens again.
 - Chosen in View > Preview at the right / at the left / above / below (actions `preview.right`, `preview.left`,
   `preview.top`, `preview.bottom`, in F1 and keys.json), and by a right-click on the splitter between text and
   preview.
@@ -316,9 +321,9 @@ viewing uses a normal project, "View" by default, whose windows dock every pane 
 
 - Per window, in the window's layout of plan 31 (`executed/PLAN-settings-layers.md`: the session's `layout`): every
   pane's place (docked: area, group, tab order, size; floating: its window's place and size), which are shown, which
-  areas are closed and the bottom area's width; each editor pane's outline side, size and state. A window opens as
-  it was left; a new window takes the layout of the last window of its project (the last window used when the project
-  has none).
+  areas are closed and the bottom area's width; each editor pane's preview place and its docked panes (also for a
+  closed second pane, so it opens again as it was). A window opens as it was left; a new window takes the layout of
+  the last window of its project (the last window used when the project has none).
 - The floating ones of the panes that work on the active document (one each for LexPen): their place and whether
   shown, kept once for LexPen, as the windows' places are now (AppState).
 - View > Layout > Save as default (plan 31) includes the docking, so new projects start with it.
@@ -428,7 +433,9 @@ Part 3, the panes that are lists or panels now (each on its own, after part 2):
   lands exactly there; docked and floating.
 - In-app: the preview at the right, the left, above and below its text (menu and the splitter's right-click), each
   editor pane its own place; scrolling level, the cursor's bar, the double click to the source and the preview's
-  cursor in each place; kept after a restart; with the Outline docked at the same side, the preview next to the text.
+  cursor in each place; kept after a restart; with the Outline docked at the same side, the preview next to the text;
+  the second pane closed and opened again: its preview where it was (never opened before: at the right), the first
+  pane's unchanged.
 - Part 3, in-app: Bookmarks lists the served document's bookmarks and follows them (added, moved with the text,
   removed), a click goes there; Messages shows a new message while shown; Clipboards shows each clipboard's text,
   a click makes one active (copy and paste then use it); Step by step works docked at the macro's pane, in a dock
