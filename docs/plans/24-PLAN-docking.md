@@ -176,6 +176,11 @@ never in the window's dock areas (3.5).
 - When a tool pane gets the focus (Characters, Highlights, Search, ...), it gets the active frame; the active
   document's frame stays, dimmed, so it stays visible which document Characters inserts into and whose highlights
   Highlights lists.
+- The active document keeps showing its cursor (all of its cursors, with several) while a tool pane has the focus,
+  docked or floating: steady, not blinking, so it is clear that the focus is elsewhere but also exactly where an
+  inserted character or a paste goes. Its selection stays visible too, in the colour of a selection without the
+  focus. (Now the editor hides its cursor as soon as it loses the focus.)
+- In the preview the place stays marked the same way (the preview's cursor, executed/PLAN-preview-bookmarks.md, when it is shown).
 - Characters inserts into the active document, docked or floating, in whatever LexPen window; the focus goes back to
   that document after an insert as now.
 - Highlights lists the active document's highlights, and follows when another document becomes active.
@@ -275,7 +280,8 @@ Part 2, the docking:
   strip at each of its three sides.
 - Part 2, in-app: Characters docked in a window inserts into the active document, also one in another window;
   Highlights lists the active document and follows; with the focus in such a pane the document's frame is dimmed,
-  the pane's active.
+  the pane's active; the document's cursor (and several cursors) stays shown, steady, its selection in the colour
+  without focus; an insert from Characters lands exactly there; docked and floating.
 - Part 2, in-app: an outline at the left, the right and the bottom of its pane, each editor pane its own choice; at
   the bottom its entries in columns; dragging it lights up only its own pane's sides; floating, it follows its
   pane's tab changes.
