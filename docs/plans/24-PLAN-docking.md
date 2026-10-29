@@ -22,7 +22,7 @@ monitor, or an outline at the other side of its text, under it, or in a window o
 All tool panes are one kind: Folder, Search, Settings, Characters, Highlights, the Outline and the Manage windows
 (projects, theme sets, macros). Each one floats as a window of its own, or docks in a LexPen window: at the left, the
 right or the bottom, alone, as a tab beside others, or above, under or next to another pane, resized with splitters.
-An outline can also dock at the left, right or bottom of its own editor pane. The docking is native (the panes'
+A pane that works on a document (Characters, Highlights, the Outline) can also dock at the left, right or bottom of an editor pane. The docking is native (the panes'
 browser views placed by the LexPen window itself), and it must not make LexPen slower.
 
 The panes that work on the active document (Characters, Highlights, the Outline) serve the window they are docked
@@ -93,7 +93,7 @@ through the host, as Highlights does. Part 2 docks these same pages.
 
 - Every tool pane is a page of its own, the same page floating or docked, so it shows and does the same in both.
 - Floating: a window of its own (as Settings now), movable, resizable, on any monitor, its place kept.
-- Docked: shown in a LexPen window, in a dock area (3.6), or (an outline) at an editor pane (3.10).
+- Docked: shown in a LexPen window, in a dock area (3.6), or (a pane that works on a document) at an editor pane (3.10).
 - What a pane works on:
   - Folder, Search and Settings: their LexPen window (its folder, its documents, its "this window" settings); one
     of each per window, docked in that window or floating for it.
@@ -108,7 +108,7 @@ bar. Floating moves the same WebView2 control into a window of its own and back,
 selection, what is typed) and is not loaded again when it moves. The drag (3.8) is done by the host: the pane's title
 tells the host a drag starts; the host shows the drop places over the window.
 
-- An outline docked at its editor pane sits inside the editor area: its WebView2 control is placed over the room its
+- A pane docked at an editor pane sits inside the editor area: its WebView2 control is placed over the room its
   editor pane keeps free for it, and follows that room when the panes are resized or split.
 - First a prototype (stage 4): one pane's WebView2 control in a panel of the LexPen window, moved to a window of its
   own and back; focus, keys, DPI, a window moved to another monitor; its cost (3.2).
@@ -141,8 +141,8 @@ tells the host a drag starts; the host shows the drop places over the window.
 - With several groups in one area, the strip shows the tabs of all of them; the button closes and opens the whole
   area.
 - The editor area takes the room of a closed area, less its strip.
-- The same for an outline at its editor pane's side: its button closes it to a strip along that side of its pane
-  (turned at the left and right, horizontal at the bottom), with the outline's name.
+- The same for the panes at an editor pane's side: the button closes them to a strip along that side of the pane
+  (turned at the left and right, horizontal at the bottom), with their names as tabs.
 - The toolbar's hamburger goes; the left area's button does what it did. `sidebar.toggle` closes and opens the left
   area (existing keys keep working); new actions `dock.toggleLeft`, `dock.toggleRight`, `dock.toggleBottom` (F1,
   keys.json).
@@ -161,32 +161,33 @@ tells the host a drag starts; the host shows the drop places over the window.
 
 - Drag its title bar (or its tab): while dragging, each place it can go lights up: an edge of a LexPen window (a new
   group there; at the bottom, the two widths of 3.6 as two places), a group (as a tab in it), a side of a group
-  (above, under, or next to it), and for an outline the left, right and bottom of each editor pane. Dropped anywhere
+  (above, under, or next to it), and for a pane that works on a document the left, right and bottom of each editor pane. Dropped anywhere
   else: it floats there. A floating pane dragged over a LexPen window shows that window's places.
 - Folder, Search and Settings dock only in their own window; the panes that work on the active document in any.
-- The pane's menu (Dock left, Dock right, Dock bottom, Dock at the editor pane (an outline), Float, Close) does the
+- The pane's menu (Dock left, Dock right, Dock bottom, Dock at the editor pane (a pane that works on a document), Float, Close) does the
   same without the mouse, and F1 lists the actions: `dock.left`, `dock.right`, `dock.bottom`, `dock.float`,
   `dock.close`, with the pane as their value, so a key can be given (keys.json, as any action).
 - Esc while dragging: the drag ends, nothing moves.
 
-### 3.9 The panes that work on the active document: Characters, Highlights, the Outline
+### 3.9 The panes that work on a document: Characters, Highlights, the Outline
 
-Where such a pane is docked decides what it serves, and the nearest one wins: one docked at an editor pane, then
-one docked in the window's dock areas, then the floating one. Each serves only what no nearer one serves.
+These panes (and every later pane that works on a document) can dock at an editor pane as well as in a window's dock
+areas or float (3.10). Where such a pane is docked decides what it serves, and the nearest one wins: one docked at an
+editor pane, then one docked in the window's dock areas, then the floating one. Each serves only what no nearer one
+of the same kind serves; the kinds are apart (an outline at an editor pane does not keep Characters from serving that
+document).
 
-1. **Docked at an editor pane** (the outline only, 3.10): it serves that editor pane's document, and only that one,
-   also when another editor pane has the focus.
-2. **Docked in a LexPen window's dock area**: it serves the documents of that window whose editor pane has no
-   outline of its own docked there: of those, the active one (the one with the focus, or the one that had it last).
-   A document whose editor pane has its own outline is not served by the window's Outline pane; with the focus on
-   that document, the window's Outline pane keeps showing the last document it served. Characters and Highlights
-   have no editor-pane place, so in a window they serve its active document.
-3. **Floating**: it serves the LexPen windows that have no docked one of their own (for the Outline: and the
-   documents of those windows without an outline at their editor pane): of those, the document worked in last. A
-   window with its Outline pane in a dock area is not served by the floating outline. One floating one of each.
+1. **Docked at an editor pane** (3.10): it serves that editor pane's document, and only that one, also when another
+   editor pane has the focus.
+2. **Docked in a LexPen window's dock area**: it serves the documents of that window whose editor pane has no pane of
+   the same kind docked at it: of those, the active one (the one with the focus, or the one that had it last). With
+   the focus on a document that has its own, the window's pane keeps showing the last document it served.
+3. **Floating**: it serves the LexPen windows that have no pane of the same kind in their dock areas, and of those
+   the documents whose editor pane has none of its own: of those, the document worked in last. A window with, for
+   example, its Outline pane in a dock area is not served by the floating outline. One floating one of each kind.
 
-- With the focus on a document that no one of them serves (it has a nearer one), each keeps showing what it showed
-  last; with nothing to serve at all, it says so and waits.
+- With the focus on a document that a pane does not serve (it has a nearer one), the pane keeps showing what it
+  showed last; with nothing to serve at all, it says so and waits.
 - Moving a pane changes what it serves at once (dropped at an editor pane, it takes that pane's document; dropped
   in a dock area, its window's; floated, the windows without one).
 - A floating one shows the document it works on: its title says the document's name ("Outline: plan24.md",
@@ -195,16 +196,21 @@ one docked in the window's dock areas, then the floating one. Each serves only w
 - Characters inserts into the document it serves; the focus goes back to that document after an insert, as now.
 - Highlights lists the highlights of the document it serves, and follows when that changes.
 
-### 3.10 The outline at its editor pane
+### 3.10 Panes at an editor pane
 
-- Docked at its editor pane: at its right (as now, the default), at its left, or at its bottom (under the text, the
-  full width of the pane), with a splitter against the text. Each editor pane chooses for itself: with two panes side
-  by side you can, for example, put the left pane's outline at its left and the right pane's at its right; with two
-  panes above each other, each outline at its pane's bottom.
-- At the bottom, the entries run in columns (as many as fit the width); the splitter sets its height.
-- Moving it away from its editor pane (a dock area, or floating) makes it the window's Outline pane, or the floating
-  one (3.9); dropped back at an editor pane, it is that pane's again.
-- Closing to a strip (3.7), hiding and showing again (3.7a) as every pane.
+- Every pane that works on a document can dock at an editor pane: at its right, its left, or its bottom (under the
+  text, the full width of the pane), with a splitter against the text. Each editor pane chooses for itself: with two
+  panes side by side you can, for example, put the left pane's outline at its left and the right pane's at its right;
+  with two panes above each other, each outline at its pane's bottom.
+- Each side of an editor pane is a small dock area of its own: several panes there are tabs, or above, under or next
+  to each other, as in the window's dock areas (3.6); for example the Outline and Characters as two tabs at the
+  right of the text.
+- The default (as now): an outline at the right of each editor pane; nothing else docked there.
+- The outline at the bottom: its entries run in columns (as many as fit the width); the splitter sets its height.
+- Moving such a pane away from its editor pane (a dock area, or floating) makes it the window's pane of that kind,
+  or the floating one (3.9); dropped back at an editor pane, it is that pane's again.
+- Closing to a strip (3.7), hiding and showing again (3.7a) as every pane; the strip runs along that side of its
+  editor pane.
 - The outline's column in the gutter (gutter.js) stays as it is.
 - `outline.toggle` hides and shows the window's outlines (at its editor panes and its Outline pane), each as it was.
 
@@ -298,8 +304,8 @@ Part 2, the docking:
    strip with its tabs (3.7); hiding and showing a pane as it was (3.7a); kept in the layout. Every pane docks and
    floats. The side pane and the hamburger go.
 6. Moving: the pane menus, the drag with the drop places, Esc; the actions.
-7. The panes that work on the active document (3.9): docked per window, the floating one for the others, its title
-   and theme; the outline at its editor pane, in a dock area and floating.
+7. The panes that work on a document (3.9, 3.10): at an editor pane, docked per window, the floating one for the
+   others, the order between them, its title and theme; several at one side of an editor pane.
 8. The active document's dimmed frame and its cursor shown while a pane has the focus (3.11).
 9. View > Panes, Reset docking, Save as default, the view project's reset; the docs (features.md).
 
@@ -328,6 +334,10 @@ Part 2, the docking:
   an Outline pane in A's dock area: the focus on pane 1 leaves the Outline pane at pane 2's document; the focus on
   pane 2 shows it there; a floating outline never shows a document of A; its own outline taken away from pane 1,
   the Outline pane serves pane 1 too; A's Outline pane floated, the floating one serves A.
+- Part 2, in-app: Characters docked at editor pane 1 inserts into pane 1's document also with the focus in pane 2;
+  Characters in A's dock area then serves pane 2 only; the Outline and Characters as two tabs at the right of one
+  editor pane; pane 1's own outline does not keep A's Characters from serving pane 1 (the kinds apart); Highlights
+  at an editor pane lists that pane's document only.
 - Part 2, in-app: with the focus in a pane the document's frame is dimmed, the pane's active; the document's cursor
   (and several cursors) stays shown, steady, its selection in the colour without focus; an insert from Characters
   lands exactly there; docked and floating.
