@@ -881,7 +881,7 @@ appAction('occurrences.show', { title: 'Show all occurrences', hint: 'Of the sel
 appAction('occurrences.clear', { title: 'Clear occurrences', hint: 'The occurrences no longer marked (the bar\'s field emptied)', group: 'edit',
   run: () => clearOccurrences(panes[state.activePane]) });
 appAction('occurrences.bar', { title: 'Show / close the Occurrences bar', hint: 'For now; the setting (Find > Show the Occurrences bar) stays as it is', group: 'edit',
-  run: () => { const pane = panes[state.activePane]; if (occBarOpen(pane)) closeOccBar(pane); else { openOccBar(pane); pane.occ.input.focus(); } } });
+  run: () => { const pane = panes[state.activePane]; if (occBarOpen(pane)) closeOccBar(pane); else { pane.occClosed = false; openOccBar(pane); pane.occ.input.focus(); } } });
 // Highlights (highlights.js, docs/plans/executed/PLAN-highlights.md): in the editor and in the preview, the pane in use.
 const hlPane = () => panes[state.activePane];
 appAction('highlight.toggle', { title: 'Highlight', hint: 'The selection gets a highlight; nothing selected, the cursor in a highlight: that one removed', group: 'highlights',

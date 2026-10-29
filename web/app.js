@@ -4420,6 +4420,8 @@ function applySettings() {
     document.body.dataset.findMark = now.findMark || 'background';
     if (typeof refreshMarks === 'function') for (const pane of panes) if (pane.find?.marked) refreshMarks(pane);
   }
+  if (changed('occurrences.bar') && 'occurrences.bar' in was && typeof syncOccBarSetting === 'function')
+    for (const pane of panes) { pane.occClosed = false; syncOccBarSetting(pane); }   // occurrences.js: shown or closed now
   if (changed('occurrences.mark') || changed('occurrences.first')) {   // app.css: how occurrences look; occurrences.js
     document.body.dataset.occMark = now['occurrences.mark'] || 'background';
     document.body.dataset.occFirst = now['occurrences.first'] || 'underline';

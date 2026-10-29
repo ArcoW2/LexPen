@@ -85,10 +85,19 @@ function openOccBar(pane) {
   pane.cm?.refresh();
 }
 
+// Closed (the X, Close bar, Esc with the setting off): it stays closed until a new occurrence is shown.
 function closeOccBar(pane) {
+  pane.occClosed = true;
   if (!pane.occ || pane.occ.el.hidden) return;
   pane.occ.el.hidden = true;
   pane.cm?.refresh();
+}
+
+// The setting Show the Occurrences bar on: the bar shows in every pane with a document, from the start, unless it
+// was closed for now; off: closed.
+function syncOccBarSetting(pane) {
+  if (setting('occurrences.bar') === false) { if (occBarOpen(pane)) { closeOccBar(pane); pane.occClosed = false; } }
+  else if (pane.active && !pane.occClosed) openOccBar(pane);
 }
 
 const occBarOpen = pane => !!pane.occ && !pane.occ.el.hidden;
@@ -104,6 +113,7 @@ function showOccurrences(pane, text, word) {
   if (!pane?.active || !text) return;
   const q = occOf(pane);
   Object.assign(q, { query: text.replace(/\^/g, '^^').replace(/\r?\n/g, '^p').replace(/\t/g, '^t'), case: true, word: !!word, regex: false });
+  pane.occClosed = false;
   if (setting('occurrences.bar') !== false) openOccBar(pane);
   occChanged(pane);
 }
@@ -357,6 +367,7 @@ document.addEventListener('selectionchange', () => {
 
 // Another tab shown, the preview drawn again, a setting changed: marked again (app.js calls these).
 function refreshOccurrences(pane) {
+  syncOccBarSetting(pane);
   if (occOf(pane).query || pane.occEditor || pane.occPreview) markOccurrences(pane);
 }
 function refreshOccurrencesPreview(tab) {

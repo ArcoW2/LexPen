@@ -42,7 +42,8 @@ itself (on).
 - The bar is not needed for the occurrences to work: closing it leaves them marked; they are cleared only by View >
   Occurrences > Clear occurrences (Esc in the editor does not clear them: it has other work there).
 - Showing and closing, by the setting Show the Occurrences bar (on by default):
-  - On: the bar opens when occurrences are shown (3.2), and again for every new one, also after it was closed.
+  - On: the bar shows in every pane with a document, from the start (changed 2026-10-29: first it only opened with
+    occurrences), and opens again for every new one, also after it was closed.
     Esc in its field does not close it (the focus goes back to the editor or the preview).
   - Off: showing occurrences does not open the bar. It can be opened by hand (View > Occurrences > Show bar);
     then Esc in its field closes it.
