@@ -96,7 +96,7 @@ Each of these puts its text in the field, replacing what was there, and marks it
 
 | Setting | Default | What |
 |---|---|---|
-| Show the Occurrences bar | on | On: the bar opens with every new occurrence, Esc keeps it. Off: marking only; the bar by hand (View > Occurrences > Show bar), Esc closes it |
+| Show the Occurrences bar | Always | Never: marking only; the bar by hand (View > Occurrences > Show bar), Esc closes it. When an occurrence is active: closed until the field is filled, then open until Clear or its X. Always: in every pane with a document, from the start. (Was on / off; a file with true / false becomes Always / Never.) |
 | Double click shows all occurrences | off | A double-clicked word fills the field |
 | A selection shows all occurrences | off | Every selection of the minimum length fills the field |
 | Minimum length for a selection | 3 | Characters a selection needs before it is shown |
@@ -145,6 +145,7 @@ the field when a setting (or the menu item) says it shows occurrences; the edito
 | A double click | Taken from CodeMirror's second press (mousedown, detail 2), not the browser's dblclick: that one does not come when the line is drawn anew between the two clicks, as when the first click puts the cursor on a keyword pair (begin, end, if) that brackets.js marks. Found in use (2026-10-29): the double click on those words only worked sometimes. |
 | A selection over occurrences | The selection stays visible: while occurrences are marked, each selection gets a mark `mm-occ-sel` and the occurrence background goes there (CodeMirror's styleSelectedText would do it, but its add-on is not in the editor bundle). The preview's own selection is drawn over the highlights already. |
 | Shown spaces | With showWhitespace a space is a dot drawn as a background image, which took the occurrence colour off the spaces between words (found in use, 2026-10-29): the colour is set again under the dots, so several words stay one bar. A shown tab (drawn with a mask) still shows no colour. |
+| The bar setting | Made a choice (2026-10-29), from on / off: Never (was off), When an occurrence is active (new), Always (was on, the default). SettingsFile turns an on / off value in your file into Always / Never once (`Retyped`). |
 | A selection you made | LexPen's own selections are told apart by `asFound` (a find, a jump, the word a preview double click selects); the editor needs the focus. In the preview the native word selection of a double click does not count either. |
 | The history | The find bar's searches (Up / Down in the field); an occurrence is added to it with Enter in the field, not on every selection. |
 | Find in a preview | Fixed on the way: Find's preview text left out the layers drawn over the content (plan 31's bookmark numbers, the cursor bar, find's boxes), so a search for a digit no longer matched a bookmark's number. Not tested separately. |

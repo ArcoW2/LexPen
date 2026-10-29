@@ -143,7 +143,7 @@ every action with its key.
   occurrences): it is marked everywhere in the document, in the editor and the preview, in a colour of its own
   and on the scroll bars, and the cursor stays. The Occurrences bar shows the text (edit it, Aa / W / .*) and the
   count; First goes to the first occurrence (most times its declaration; Ctrl+Alt+- back), Clear clears them. Find works beside it.
-  Options > Settings, Find > Occurrences: whether the bar shows (from the start, in every pane with a document), a double click on a word in the editor,
+  Options > Settings, Find > Occurrences: when the bar shows (never, while an occurrence is active, or always), a double click on a word in the editor,
   every selection you make of a minimum length, Found occurrence: marked with (a background, a box, both: its own,
   not Find's), and Found first occurrence (underlined by default; as the others, a background, a box, or both).
   View > Occurrences clears them and

@@ -76,6 +76,13 @@ static class SettingsFile
         ("occurrences.markFirst", "occurrences.first", v => v?.GetValueKind() == JsonValueKind.False ? "same" : "underline"),
     ];
 
+    // Settings that kept their name but became a choice: an on / off value in your file becomes the choice it meant.
+    // Done once when your file is read.
+    static readonly (string Name, Func<bool, string> Value)[] Retyped =
+    [
+        ("occurrences.bar", on => on ? "always" : "never"),   // plan 34: Never, When an occurrence is active, Always
+    ];
+
     /// <summary>The layout a new project starts with (docs/plans/executed/PLAN-settings-layers.md): one object of the names a
     /// window keeps with its session (what is open and shown in it). A name missing in yours is the shipped one.</summary>
     public const string LayoutName = "defaultLayout";
@@ -98,6 +105,12 @@ static class SettingsFile
             if (!own.TryGetPropertyValue(old, out var value)) continue;
             own.Remove(old);
             if (!own.ContainsKey(renamed)) own[renamed] = convert is null ? value?.DeepClone() : convert(value);
+            changed = true;
+        }
+        foreach (var (name, retype) in Retyped)
+        {
+            if (own[name]?.GetValueKind() is not (JsonValueKind.True or JsonValueKind.False) || own[name] is not JsonNode value) continue;
+            own[name] = retype(value.GetValue<bool>());
             changed = true;
         }
         foreach (var name in MovedToLayout)

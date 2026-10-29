@@ -132,7 +132,8 @@
                                   // step through them, Alt+Down opens the list
   "findMark": "background",       // how found text is marked: "background", "outline" or "both"
   "findGutter": true,             // the line numbers of lines with found text marked the same way (the current one too)
-  "occurrences.bar": true,        // the Occurrences bar opens with every new occurrence (off: marked without the bar)
+  "occurrences.bar": "always",    // the Occurrences bar: "never" (marked without it), "active" (from the field filled
+                                  // until Clear or its X) or "always" (in every pane with a document)
   "occurrences.doubleClick": false, // a word double-clicked in the editor: its occurrences marked
   "occurrences.select": false,    // every selection you make (of occurrences.minLength or more): its occurrences marked
   "occurrences.minLength": 3,     // ...in characters

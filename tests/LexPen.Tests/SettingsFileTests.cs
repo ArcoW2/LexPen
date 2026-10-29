@@ -96,6 +96,17 @@ public class SettingsFileTests
         Assert.Null(SettingsFile.Upgrade("""{ "theme": "dark" }"""));
     }
 
+    // occurrences.bar (on / off) became a choice: on is always, off never; a choice already there stays.
+    [Theory]
+    [InlineData("true", "always")]
+    [InlineData("false", "never")]
+    public void TheOccurrencesBarSettingBecomesAChoice(string old, string now)
+    {
+        var own = JsonNode.Parse(SettingsFile.Upgrade("{ \"occurrences.bar\": " + old + " }")!)!.AsObject();
+        Assert.Equal(now, own["occurrences.bar"]!.GetValue<string>());
+        Assert.Null(SettingsFile.Upgrade("{ \"occurrences.bar\": \"active\" }"));
+    }
+
     // occurrences.markFirst (on / off) became occurrences.first (a choice): on is underline, off as the others.
     [Theory]
     [InlineData("true", "underline")]

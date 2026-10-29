@@ -4,7 +4,8 @@
 // without a current one and without moving the cursor (only First does). Beside Find: its own marks, so neither
 // clears the other, Find drawn on top. The field is filled by Show all occurrences of this selection (the right-click
 // menu, Edit), and with the settings by a double click on a word in the editor or by any selection you make of a
-// minimum length. The bar is not needed for the marks: occurrences.bar decides whether it opens with them.
+// minimum length. The bar is not needed for the marks: occurrences.bar decides when it shows (never, while an
+// occurrence is active, always).
 // The matching and the preview's text come from find.js (loaded when needed). Loaded after previewcursor.js.
 
 const newOccurrence = () => ({ query: '', case: true, word: false, regex: false });
@@ -59,8 +60,8 @@ function occBar(pane) {
     if (e.key !== 'Escape') return;
     e.preventDefault();
     e.stopPropagation();
-    // The bar set to show: it stays, the focus goes back; else Esc closes it.
-    if (setting('occurrences.bar') === false) closeOccBar(pane);
+    // The bar set to show: it stays, the focus goes back; set to Never (opened by hand): Esc closes it.
+    if (occBarMode() === 'never') closeOccBar(pane);
     occFocusBack(pane);
   });
   return bar;
@@ -87,7 +88,8 @@ function openOccBar(pane) {
   pane.cm?.refresh();
 }
 
-// Closed (the X, Close bar, Esc with the setting off): it stays closed until a new occurrence is shown.
+// Closed (the X, Close bar, Esc with the setting Never, Clear with When an occurrence is active): it stays closed
+// until a new occurrence is shown.
 function closeOccBar(pane) {
   pane.occClosed = true;
   if (!pane.occ || pane.occ.el.hidden) return;
@@ -95,11 +97,22 @@ function closeOccBar(pane) {
   pane.cm?.refresh();
 }
 
-// The setting Show the Occurrences bar on: the bar shows in every pane with a document, from the start, unless it
-// was closed for now; off: closed.
+// The setting Show the Occurrences bar: "never" (marked without it; Show bar opens it by hand), "active" (it opens
+// when the field is filled and stays until Clear or the X), "always" (in every pane with a document, from the start).
+// Closed for now (pane.occClosed) it stays closed until a new occurrence is shown. A file from before has true / false.
+const occBarMode = () => { const v = setting('occurrences.bar'); return v === false ? 'never' : v === true ? 'always' : v || 'always'; };
 function syncOccBarSetting(pane) {
-  if (setting('occurrences.bar') === false) { if (occBarOpen(pane)) { closeOccBar(pane); pane.occClosed = false; } }
-  else if (pane.active && !pane.occClosed) openOccBar(pane);
+  const mode = occBarMode();
+  if (mode === 'never' || pane.occClosed || !pane.active) return;
+  if (mode === 'always' || occOf(pane).query) openOccBar(pane);
+}
+
+// The setting changed: each pane's bar as the new value says, a bar closed for now included.
+function applyOccBarSetting(pane) {
+  pane.occClosed = false;
+  const mode = occBarMode();
+  if (mode === 'never' || (mode === 'active' && !occOf(pane).query)) { if (occBarOpen(pane)) { closeOccBar(pane); pane.occClosed = false; } }
+  else syncOccBarSetting(pane);
 }
 
 const occBarOpen = pane => !!pane.occ && !pane.occ.el.hidden;
@@ -116,7 +129,7 @@ function showOccurrences(pane, text, word) {
   const q = occOf(pane);
   Object.assign(q, { query: text.replace(/\^/g, '^^').replace(/\r?\n/g, '^p').replace(/\t/g, '^t'), case: true, word: !!word, regex: false });
   pane.occClosed = false;
-  if (setting('occurrences.bar') !== false) openOccBar(pane);
+  if (occBarMode() !== 'never') openOccBar(pane);
   occChanged(pane);
 }
 
@@ -147,10 +160,12 @@ function showOccurrencesOfSelection(ctx = {}) {
   toast('Select text to show its occurrences.', true);
 }
 
+// Clear (the bar's button, View > Occurrences): nothing marked; with When an occurrence is active the bar closes too.
 function clearOccurrences(pane) {
   const q = occOf(pane);
   q.query = '';
   occChanged(pane);
+  if (occBarMode() === 'active') for (const p of setting('findShared') ? panes : [pane]) closeOccBar(p);
 }
 
 // ---------- Marking ----------
