@@ -25,8 +25,8 @@ All tool panes are one kind: Folder, Search, Settings, Characters, Highlights, t
 right or the bottom, alone, as a tab beside others, or above, under or next to another pane, resized with splitters.
 What a tool serves is its scope: one document (the Outline, Characters, Highlights), a window (Folder, Search,
 Settings) or LexPen as a whole (projects, theme sets, macros); a table lists every tool with its scope and where it
-can dock. A tool of one document can also dock at the left, right or bottom of an editor pane. The docking is native (the panes'
-browser views placed by the LexPen window itself), and it must not make LexPen slower.
+can dock. A tool of one document can also dock at the left, right or bottom of an editor pane. The docking is
+native (the panes' browser views placed by the LexPen window itself), and it must not make LexPen slower.
 
 The panes that work on the active document (Characters, Highlights, the Outline) serve the window they are docked
 in; a floating one serves every window without a docked one of its own, takes the theme of the document it works on
