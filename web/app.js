@@ -2156,6 +2156,7 @@ async function fillDir(container, path, depth) {
     name.textContent = item.name;
     if (!item.dir && !item.gone && withBackups.has(item.name.toLowerCase())) {
       row.classList.add('mm-has-backup');
+      row.title += ' (has a .bak file)';
       row.append(Object.assign(document.createElement('span'), { className: 'mm-backup-dot', title: 'A backup file exists next to this file' }));
     }
     row.append(name);

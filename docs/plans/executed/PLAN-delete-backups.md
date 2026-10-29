@@ -81,7 +81,7 @@ None.
 |---|---|
 | Your answers | Taken from sections 2, 3.4 and 4 as you wrote them; the older lines in 3.1 and 3.2 (open questions, "the folder only") are superseded by them. |
 | The folder item | Shown when the folder or a folder below it has a backup (`hasBackups`, which stops at the first one found); the question is a task dialog: Delete here, Delete with subfolders, Cancel. No count in it: the scan for the count would run before every question. |
-| The dot | A span before the name (`.mm-backup-dot`, `--caution`), its own hint "A backup file exists next to this file"; the row's tooltip stays. Not on a row of a deleted file. |
+| The dot | A span before the name (`.mm-backup-dot`, `--caution`), its own hint "A backup file exists next to this file"; the row's tooltip gets " (has a .bak file)" after the name (added 2026-10-29). Not on a row of a deleted file. |
 | Deleting | `SHFileOperation` with undo (the Recycle Bin), no confirmation, no error dialog, per file, so a locked one is reported and the others go. Hidden and system folders (`.git`) are not searched. |
 | Explorer | A setting `explorerBackups` (Options > Settings, Windows Explorer). The entries are fixed registry entries: "Delete .bak file" shows on every file and does nothing on one without a backup (Explorer cannot ask whether a file has one); "Delete all .bak files" includes the subfolders ("all"). `--delete-backups <path>` runs without a window. |
 | Copy file name | The folder pane's menu: Copy file name, on a folder Copy folder name; a drive as it is. |
