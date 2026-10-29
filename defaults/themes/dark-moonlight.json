@@ -18,7 +18,7 @@
     "active": "rgba(143, 176, 216, .18)",
     "select": "#33465e",
     "highlight": "#686100",
-    "occurrenceHit": "#918700",
+    "occurrenceHit": "#4d4a0d",
     "occurrenceBox": "#ffee02",
     "inlineCode": "#363a41",
     "inlineCodeFg": "#b0c6e2",

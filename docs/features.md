@@ -144,7 +144,9 @@ every action with its key.
   and on the scroll bars, and the cursor stays. The Occurrences bar shows the text (edit it, Aa / W / .*) and the
   count; First goes to the first occurrence (most times its declaration; Ctrl+Alt+- back). Find works beside it.
   Options > Settings, Find > Occurrences: whether the bar opens with them, a double click on a word in the editor,
-  every selection you make of a minimum length, the first occurrence underlined. View > Occurrences clears them and
+  every selection you make of a minimum length, Found occurrence: marked with (a background, a box, both: its own,
+  not Find's), and Found first occurrence (underlined by default; as the others, a background, a box, or both).
+  View > Occurrences clears them and
   shows or closes the bar.
 - **Find bar** (Ctrl+F; Ctrl+R with its replace row): in the editor or the preview of a pane. Labels Find and
   Replace with; the Replace button opens the replace row: Replace all (Alt+A while the bar has the focus; one undo
@@ -505,7 +507,7 @@ every action with its key.
   `hover`, `active`, `select`, `inlineCode` (the box behind code within a line of text), `inlineCodeFg` (its text), `highlight` (a highlighted part of the text: a dark yellow on light, on dark a yellow as
   bright as the text's contrast allows, a bright yellow on a medium background or where the selection is yellowish), `paneActive`; code: `keyword`, `string`, `comment`, `number`, `title`, `attr`;
   alerts: `note`, `tip`, `important`, `warning`, `caution`; markers: `gitModified`, `gitAdded`, `gitUntracked`,
-  `gitDeleted`, `barChanged`, `barRemoved`; find: `findHit`, `findCurrent`, `findCurrentFg`, `findBox`; occurrences: `occurrenceHit`, `occurrenceBox` (in every shipped theme: its `highlight` a little stronger); the pair at the cursor: `bracketMatch`, `bracketNoMatch`; indent guides (rainbow, per level): `guide1` to `guide6`; shown spaces, tabs and line ends: `whitespace`; the gutter beside lines of another language: `gutterBgEmbedded`; the settings window's line per row, by what a setting belongs to: `layerGlobal`, `layerWindow`, `layerSet`, `layerScreen`. Values:
+  `gitDeleted`, `barChanged`, `barRemoved`; find: `findHit`, `findCurrent`, `findCurrentFg`, `findBox`; occurrences: `occurrenceHit`, `occurrenceBox` (in every shipped theme: `occurrenceHit` its `highlight` 35% toward its background `bg`, so the text on it stays clear); the pair at the cursor: `bracketMatch`, `bracketNoMatch`; indent guides (rainbow, per level): `guide1` to `guide6`; shown spaces, tabs and line ends: `whitespace`; the gutter beside lines of another language: `gutterBgEmbedded`; the settings window's line per row, by what a setting belongs to: `layerGlobal`, `layerWindow`, `layerSet`, `layerScreen`. Values:
   `#rrggbb`, `#rgb` or `rgba(r, g, b, a)`. Mistakes show in the settings window.
 - **Theme sets**: a named combination of the themes (app, editor, preview, sneak preview; per mode) and the
   colours and intensities of highlights, guides and inline code, so projects look apart at a glance. Every window

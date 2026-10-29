@@ -4420,8 +4420,11 @@ function applySettings() {
     document.body.dataset.findMark = now.findMark || 'background';
     if (typeof refreshMarks === 'function') for (const pane of panes) if (pane.find?.marked) refreshMarks(pane);
   }
-  if ((changed('findMark') || changed('occurrences.markFirst')) && typeof refreshOccurrences === 'function')
-    for (const pane of panes) refreshOccurrences(pane);   // occurrences.js: the boxes, the first one underlined
+  if (changed('occurrences.mark') || changed('occurrences.first')) {   // app.css: how occurrences look; occurrences.js
+    document.body.dataset.occMark = now['occurrences.mark'] || 'background';
+    document.body.dataset.occFirst = now['occurrences.first'] || 'underline';
+    if (typeof refreshOccurrences === 'function') for (const pane of panes) refreshOccurrences(pane);
+  }
   if (changed('bracketHighlight')) {   // app.css: how the pair at the cursor looks (brackets.js marks it)
     document.body.dataset.bracketHighlight = now.bracketHighlight || 'colour';
     if (typeof paintBrackets === 'function') for (const pane of panes) if (pane.cm) paintBrackets(pane.cm);

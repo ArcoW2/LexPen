@@ -9,7 +9,7 @@
   --fg: #1f2328; --fg-dim: #656d76; --border: #d8dce2;
   --accent: #0969da; --hover: rgba(0, 0, 0, .06); --active: rgba(9, 105, 218, .13); --select: #b6d7ff;
   --highlight: #f2cf3a;   /* a highlighted part of the text (the compare's mirrored selection): a dark yellow on light */
-  --occurrence-hit: #eac00f; --occurrence-box: #8a7109;   /* the Occurrences bar's marks: the highlight a little stronger */
+  --occurrence-hit: #f7e07f; --occurrence-box: #8a7109;   /* the Occurrences bar's marks: the highlight 35% toward the background */
   --inline-code: #e0e0e1;   /* the box behind code within a line of text: 14% of the text colour in the background */
   --inline-code-fg: #144681;   /* its text: the theme's main colour (accent) half and half with the text colour */
   --hl-keyword: #cf222e; --hl-string: #0a3069; --hl-comment: #6e7781;
@@ -33,7 +33,7 @@
   --fg: #d7dae0; --fg-dim: #8b929c; --border: #3a3d44;
   --accent: #58a6ff; --hover: rgba(255, 255, 255, .07); --active: rgba(88, 166, 255, .2); --select: #264f78;
   --highlight: #686100;   /* a dark yellow on dark: as bright as the text's contrast allows (4.5) */
-  --occurrence-hit: #918700; --occurrence-box: #ffee02;
+  --occurrence-hit: #4e4a0c; --occurrence-box: #ffee02;
   --inline-code: #38393d;
   --inline-code-fg: #98c0f0;
   --hl-keyword: #ff7b72; --hl-string: #a5d6ff; --hl-comment: #8b949e;
@@ -780,24 +780,40 @@ body { --col-guide: color-mix(in srgb, var(--col-guide-colour, var(--border)) va
 .mm-find-count.mm-none { color: var(--bar-removed); }
 .mm-find-close::before { content: "\2715"; font-size: calc(11px * var(--ui-scale)); }
 /* Occurrences (occurrences.js): before Find's rules, so a find match on the same text is drawn over them (in the
-   preview by a lower highlight priority). With findMark outline / both a box as Find's (the editor only); the first
-   one underlined (occurrences.markFirst) in the find box colour. */
+   preview by a lower highlight priority). occurrences.mark (body[data-occ-mark]): a background, a box (--occurrence-box)
+   or both, as Find's findMark; the preview's boxes in a layer (.mm-pocc-box). occurrences.first (body[data-occ-first]):
+   the first one underlined or boxed in the find box colour, or with the background of Find's current match. */
 .cm-mm-occ-hit { background: var(--occurrence-hit); border-radius: 2px; }
 ::highlight(mm-occ-0), ::highlight(mm-occ-1) { background-color: var(--occurrence-hit); }
-body[data-find-mark=outline] .CodeMirror .cm-mm-occ-hit { background: none; }
-.CodeMirror .mm-occ-box { --side: 1px; --edge: 2px; box-shadow: inset 0 var(--edge) var(--occurrence-box), inset 0 calc(-1 * var(--edge)) var(--occurrence-box); }
-.CodeMirror .mm-occ-box.mm-occ-box-start {
-  box-shadow: inset var(--side) 0 var(--occurrence-box), inset 0 var(--edge) var(--occurrence-box), inset 0 calc(-1 * var(--edge)) var(--occurrence-box);
+body[data-occ-mark=outline] .CodeMirror .cm-mm-occ-hit { background: none; }
+body[data-occ-mark=outline] ::highlight(mm-occ-0), body[data-occ-mark=outline] ::highlight(mm-occ-1) { background-color: transparent; }
+.CodeMirror .mm-occ-box, .CodeMirror .mm-occ-first-box, .mm-pocc-box {
+  --occ-c: var(--occurrence-box); --side: 1px; --edge: 2px;
+  box-shadow: inset 0 var(--edge) var(--occ-c), inset 0 calc(-1 * var(--edge)) var(--occ-c);
 }
-.CodeMirror .mm-occ-box.mm-occ-box-end {
-  box-shadow: inset calc(-1 * var(--side)) 0 var(--occurrence-box), inset 0 var(--edge) var(--occurrence-box), inset 0 calc(-1 * var(--edge)) var(--occurrence-box);
+.CodeMirror .mm-occ-first-box, .mm-pocc-box.mm-pocc-first { --occ-c: var(--find-box); --side: 1.5px; }
+.CodeMirror .mm-occ-box.mm-occ-box-start, .CodeMirror .mm-occ-first-box.mm-occ-first-start, .mm-pocc-box.mm-occ-box-start {
+  box-shadow: inset var(--side) 0 var(--occ-c), inset 0 var(--edge) var(--occ-c), inset 0 calc(-1 * var(--edge)) var(--occ-c);
 }
-.CodeMirror .mm-occ-box.mm-occ-box-start.mm-occ-box-end {
-  box-shadow: inset var(--side) 0 var(--occurrence-box), inset calc(-1 * var(--side)) 0 var(--occurrence-box),
-    inset 0 var(--edge) var(--occurrence-box), inset 0 calc(-1 * var(--edge)) var(--occurrence-box);
+.CodeMirror .mm-occ-box.mm-occ-box-end, .CodeMirror .mm-occ-first-box.mm-occ-first-end, .mm-pocc-box.mm-occ-box-end {
+  box-shadow: inset calc(-1 * var(--side)) 0 var(--occ-c), inset 0 var(--edge) var(--occ-c), inset 0 calc(-1 * var(--edge)) var(--occ-c);
 }
+.CodeMirror .mm-occ-box.mm-occ-box-start.mm-occ-box-end, .CodeMirror .mm-occ-first-box.mm-occ-first-start.mm-occ-first-end,
+.mm-pocc-box.mm-occ-box-start.mm-occ-box-end {
+  box-shadow: inset var(--side) 0 var(--occ-c), inset calc(-1 * var(--side)) 0 var(--occ-c),
+    inset 0 var(--edge) var(--occ-c), inset 0 calc(-1 * var(--edge)) var(--occ-c);
+}
+.mm-occ-boxes { position: relative; height: 0; pointer-events: none; }
+.mm-pocc-box { position: absolute; box-sizing: border-box; }
 .CodeMirror .mm-occ-first { text-decoration: underline 2px var(--find-box); text-underline-offset: 3px; }
-::highlight(mm-occ-first-0), ::highlight(mm-occ-first-1) { text-decoration: underline 2px var(--find-box); text-underline-offset: 3px; }
+.CodeMirror .mm-occ-first-bg { background: var(--find-current); color: var(--find-current-fg); }
+body[data-occ-first=underline] ::highlight(mm-occ-first-0), body[data-occ-first=underline] ::highlight(mm-occ-first-1) {
+  text-decoration: underline 2px var(--find-box); text-underline-offset: 3px;
+}
+body[data-occ-first=background] ::highlight(mm-occ-first-0), body[data-occ-first=background] ::highlight(mm-occ-first-1),
+body[data-occ-first=both] ::highlight(mm-occ-first-0), body[data-occ-first=both] ::highlight(mm-occ-first-1) {
+  background-color: var(--find-current); color: var(--find-current-fg);
+}
 .mm-occ .mm-occ-first-button { padding: 0 8px; }
 /* Matches: all of them, and the current one in the preview (the editor selects it). */
 .cm-mm-find-hit { background: var(--find-hit); border-radius: 2px; }

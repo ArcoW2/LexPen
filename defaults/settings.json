@@ -136,7 +136,9 @@
   "occurrences.doubleClick": false, // a word double-clicked in the editor: its occurrences marked
   "occurrences.select": false,    // every selection you make (of occurrences.minLength or more): its occurrences marked
   "occurrences.minLength": 3,     // ...in characters
-  "occurrences.markFirst": false, // the first occurrence also underlined, in the find box colour
+  "occurrences.mark": "background", // how an occurrence is marked: "background", "outline" or "both" (as findMark)
+  "occurrences.first": "underline", // the first occurrence: "underline", "same" (as the others), "background",
+                                    // "outline" or "both" (in the colours of Find's current match and its box)
 
   // ---------- App ----------
   "appFont": "",                  // menus, tabs, panes, bars and dialogs; "" is Segoe UI

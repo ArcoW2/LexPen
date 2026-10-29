@@ -173,11 +173,19 @@ function clearOccPreview(pane) {
   CSS.highlights.delete('mm-occ-' + pane.index);
   CSS.highlights.delete('mm-occ-first-' + pane.index);
   pane.occPreview = null;
+  pane.occBoxLayer?.remove();
+  pane.occBoxLayer = null;
   if (typeof schedulePreviewOverview === 'function') schedulePreviewOverview(pane);
 }
 
+// The settings: how an occurrence is marked (occurrences.mark: background, outline, both, as Find's findMark), and
+// the first one (occurrences.first: underline, same as the others, background, outline, both).
+const occMark = () => setting('occurrences.mark') || 'background';
+const occFirstMark = () => setting('occurrences.first') || 'underline';
+const OCC_FIRST_CLASS = { underline: 'mm-occ-first', background: 'mm-occ-first-bg', outline: 'mm-occ-first-box', both: 'mm-occ-first-bg mm-occ-first-box' };
+
 // The editor: an overlay colours every single-line occurrence (fast on a long file); marks for what an overlay cannot
-// do: an occurrence over several lines, the boxes (Find > Found text: marked with), the first one underlined.
+// do: an occurrence over several lines, the boxes, the first one's own mark.
 function markOccEditor(pane) {
   const cm = pane.cm, regex = occRegex(pane);
   clearOccEditor(pane);
@@ -185,7 +193,7 @@ function markOccEditor(pane) {
   const text = cm.getValue(), matches = matchesIn(text, regex);   // find.js
   pane.occEditor = matches;
   const multiLine = matches.some(([s, e]) => text.slice(s, e).includes('\n'));
-  const boxes = (setting('findMark') || 'background') !== 'background';
+  const boxes = occMark() !== 'background', first = OCC_FIRST_CLASS[occFirstMark()];
   cm.operation(() => {
     if (!multiLine) {
       const re = new RegExp(regex.source, regex.flags);
@@ -200,8 +208,9 @@ function markOccEditor(pane) {
     if (matches.length <= OCC_BOX_LIMIT && (multiLine || boxes))
       for (const [s, e] of matches) pane.occMarks.push(cm.markText(cm.posFromIndex(s), cm.posFromIndex(e),
         { className: (multiLine ? 'cm-mm-occ-hit' : '') + (boxes ? ' mm-occ-box' : ''), startStyle: 'mm-occ-box-start', endStyle: 'mm-occ-box-end' }));
-    if (matches.length && setting('occurrences.markFirst'))
-      pane.occMarks.push(cm.markText(cm.posFromIndex(matches[0][0]), cm.posFromIndex(matches[0][1]), { className: 'mm-occ-first' }));
+    if (matches.length && first)
+      pane.occMarks.push(cm.markText(cm.posFromIndex(matches[0][0]), cm.posFromIndex(matches[0][1]),
+        { className: first, startStyle: 'mm-occ-first-start', endStyle: 'mm-occ-first-end' }));
   });
   // The lines with one, for the scroll bar strip (overview.js), in one pass over the line lengths.
   const lines = [], last = cm.lastLine();
@@ -226,8 +235,43 @@ function markOccPreview(pane) {
   const all = new Highlight(...ranges);
   all.priority = -1;
   CSS.highlights.set('mm-occ-' + pane.index, all);
-  if (ranges.length && setting('occurrences.markFirst')) CSS.highlights.set('mm-occ-first-' + pane.index, new Highlight(ranges[0]));
+  // The first one: underline and background as a highlight of its own (app.css by body[data-occ-first]); a box drawn.
+  if (ranges.length && OCC_FIRST_CLASS[occFirstMark()]) CSS.highlights.set('mm-occ-first-' + pane.index, new Highlight(ranges[0]));
+  drawOccBoxes(pane);
   if (typeof schedulePreviewOverview === 'function') schedulePreviewOverview(pane);
+}
+
+// The preview's boxes: the highlight API draws no box, so a box per line piece of each occurrence (with the setting
+// outline / both, up to OCC_BOX_LIMIT) and of the first one (its own outline / both) in a layer after the content,
+// as Find's (find.js drawPreviewBoxes); drawn again when the preview changes width.
+function drawOccBoxes(pane) {
+  pane.occBoxLayer?.remove();
+  pane.occBoxLayer = null;
+  const ranges = pane.occPreview ?? [], all = occMark() !== 'background', first = ['outline', 'both'].includes(occFirstMark());
+  if (!ranges.length || (!all && !first)) return;
+  const layer = pane.occBoxLayer = document.createElement('div');
+  layer.className = 'mm-occ-boxes';
+  pane.previewEl.append(layer);
+  if (!pane.occBoxObserver) {
+    let width = pane.previewEl.clientWidth;
+    (pane.occBoxObserver = new ResizeObserver(() => {
+      if (pane.previewEl.clientWidth === width) return;
+      width = pane.previewEl.clientWidth;
+      if (pane.occBoxLayer) drawOccBoxes(pane);
+    })).observe(pane.previewEl);
+  }
+  const origin = layer.getBoundingClientRect();
+  const draw = (range, cls) => {
+    const rects = [...range.getClientRects()].filter(r => r.width > 0);
+    rects.forEach((r, i) => {
+      const box = document.createElement('div');
+      box.className = cls + (i === 0 ? ' mm-occ-box-start' : '') + (i === rects.length - 1 ? ' mm-occ-box-end' : '');
+      Object.assign(box.style, { left: r.left - origin.left + 'px', top: r.top - origin.top + 'px', width: r.width + 'px', height: r.height + 'px' });
+      layer.append(box);
+    });
+  };
+  if (all && ranges.length <= OCC_BOX_LIMIT) for (const range of ranges) draw(range, 'mm-pocc-box');
+  if (first) draw(ranges[0], 'mm-pocc-box mm-pocc-first');
 }
 
 function showOccCount(pane) {

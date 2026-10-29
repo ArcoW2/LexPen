@@ -17,7 +17,7 @@
     "hover": "rgba(255, 255, 255, .08)",
     "select": "#24476e",
     "highlight": "#726a00",
-    "occurrenceHit": "#9b9000",
+    "occurrenceHit": "#4a4500",
     "occurrenceBox": "#ffee0c",
     "inlineCode": "#333333",
     "inlineCodeFg": "#a0c7f4"
