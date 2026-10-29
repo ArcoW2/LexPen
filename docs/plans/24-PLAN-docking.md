@@ -10,18 +10,18 @@ The number in the file name is the priority; rename to reorder.
 
 LexPen's panes are fixed: the side pane (Folder and Search, two tabs) is always on the left; each editor pane has
 an outline of its own at its right; Settings, the character picker and the highlights list are windows of their
-own. You cannot put the folder pane on the right, the search at the bottom, Settings next to the text, or one
-outline for whichever document is active.
+own. You cannot put the folder pane on the right, the search at the bottom, Settings next to the text, or an
+outline at the other side of its text.
 
 ## 2. The solution, in brief
 
 The tool panes become dockable: each docks at the left, the right or the bottom of a LexPen window, alone or as a
 tab beside others docked there, or stacked above them, resized against the editor area with a splitter. Folder and
 Search become two panes, no longer two tabs of one side pane. A pane is moved by dragging its title (the places it
-can go light up) or from its menu, and keeps its place per window. The Outline, as a pane, follows the active
-document; the per-pane outline stays as the default. Settings, Characters and Highlights keep floating as windows of
-their own, and can also be docked into a LexPen window. Folder, Search and Outline dock but do not float outside the
-window in this plan (section 3.2 says why); that can follow in a later plan.
+can go light up) or from its menu, and keeps its place per window. An outline stays with its own editor pane: docked
+at the left or the right of that pane, or floating; never beside another document. Settings, Characters and
+Highlights keep floating as windows of their own, and can also be docked into a LexPen window. Folder and Search dock
+but do not float outside the window in this plan (section 3.2 says why); that can follow in a later plan.
 
 ## 3. Details
 
@@ -43,29 +43,31 @@ inside the window lives in the window's page (or in a second WebView2 the window
 
 ### 3.2 The approaches
 
-- **A. Dock in the page (proposed).** Folder, Search and Outline dock at the edges of the page, tabbed or stacked;
-  they stay page parts, so their code changes little: what moves is where they are drawn. Settings, Characters and
+- **A. Dock in the page (proposed).** Folder and Search dock at the edges of the page, tabbed or stacked, and an
+  outline at either side of its editor pane; they stay page parts, so their code changes little: what moves is where
+  they are drawn. Settings, Characters and
   Highlights float as now, and can also be docked: their page is shown inside the main page at the dock place
-  (3.7). One way of docking for all panes, inside the window. What it does not give: Folder, Search or Outline in a
-  window of their own on another monitor.
+  (3.7). One way of docking for all panes, inside the window. What it does not give: Folder, Search or an outline in
+  a window of their own on another monitor.
 - **B. Everything floats and docks.** Every pane can also float as a window of its own. Folder, Search and Outline
   then must become pages of their own that get the window's state through the host (the tree, the search results,
-  the headings of the active document, the clicks back), much as Highlights does now. That is a rewrite of the three
+  the headings of its pane's document, the clicks back), much as Highlights does now. That is a rewrite of the three
   of them and of how they talk to the window, on top of the docking itself.
-- **C. A first, B later.** A now; floating Folder, Search and Outline as a plan of its own once the docking works
-  and it is clear it is wanted.
+- **C. A first, B later.** A now; Folder, Search and the outline in windows of their own as a plan of its own once
+  the docking works and it is clear it is wanted.
 
 The proposal is C: everything this plan was asked for (the folder at the right, the search at the bottom, Settings
-next to the text, one outline for the active document) comes with A.
+next to the text, an outline at either side of its pane) comes with A. The outline's floating is the exception (3.6).
 
 ### 3.3 The panes
 
-- Folder, Search, Outline (one for the active document, 3.6), and Settings, Characters, Highlights (3.7). Projects
-  and Theme sets stay windows only (question 4). Later panes (a bookmark list, the clipboards, ...) the same way.
+- Folder and Search (docked in the window's areas, 3.4), the outline of each editor pane (its own places, 3.6), and
+  Settings, Characters, Highlights (3.7). Projects and Theme sets stay windows only (question 4). Later panes (a
+  bookmark list, the clipboards, ...) as Folder and Search.
 - Each pane has a title bar with its name, a menu button (Dock left, Dock right, Dock bottom, Float (the windows
   only), Close) and a close button. Tabbed panes show their names as tabs instead; the active tab's menu acts on
   that pane.
-- A pane is opened by its action, as now: Folder (`viewFolder`), Search (`viewSearch`), Outline, Settings, ...;
+- A pane is opened by its action, as now: Folder (`viewFolder`), Search (`viewSearch`), Settings, ...;
   opened again where it was last, or in its default place (3.9). Closing a pane hides it; its place is kept.
 
 ### 3.4 Where a pane can be
@@ -86,7 +88,7 @@ next to the text, one outline for the active document) comes with A.
 
 - Drag its title bar (or its tab): while dragging, each place it can go lights up: an edge of the window (a new
   group there), a group (as a tab in it), or the top or bottom half of a group (stacked above or below it). Dropped
-  anywhere else: back where it was (with A, Folder, Search and Outline do not float); a window pane (Settings, ...)
+  anywhere else: back where it was (with A, Folder and Search do not float); a window pane (Settings, ...)
   dropped outside the window floats.
 - The pane's menu does the same without the mouse, and F1 lists the actions: `dock.left`, `dock.right`,
   `dock.bottom`, `dock.float`, with the pane as their value, so a key can be given (keys.json, as any action).
@@ -94,11 +96,19 @@ next to the text, one outline for the active document) comes with A.
 
 ### 3.6 The outline
 
-- A setting, Outline: per editor pane (as now, the default) or one pane. One pane: the outline of the active
-  document (the pane with the focus), switching when another tab or pane becomes active; it docks as any pane
-  (question 2).
-- The outline's column in the gutter (gutter.js) stays per editor pane in both cases.
-- With one Outline pane, `outline.toggle` shows and hides that pane.
+An outline belongs to its editor pane and shows that pane's document; it is never docked beside another document.
+
+- Docked: at the right of its editor pane (as now, the default) or at its left, with a splitter against the text.
+  Each editor pane chooses for itself: with two panes side by side you can, for example, put the left pane's outline
+  at its left and the right pane's at its right, so the two texts sit next to each other.
+- Floating (question 2): its pane's outline in a panel or window of its own, still showing that pane's document and
+  following it when its tab changes; closing it docks nothing, it is hidden (`outline.toggle` shows it again where
+  it was).
+- Not in the window's dock areas (3.4) and not tabbed with Folder or Search.
+- Moving: its title's menu (Left of the text, Right of the text, Float, Close) and dragging its title to the other
+  side of its own pane (only those two places light up) or away from it (floats).
+- The outline's column in the gutter (gutter.js) stays as it is.
+- `outline.toggle` shows and hides the outline of every editor pane, each where it was.
 
 ### 3.7 The windows docked: Settings, Characters, Highlights
 
@@ -149,7 +159,7 @@ viewing uses a normal project, "View" by default, whose windows can dock every p
 1. The layout engine in the page: the dock areas, groups, tabs, stacking, splitters, sizes, kept in the layout;
    Folder and Search as two panes in it, placed as now. Nothing visible changes yet (the tests of what exists pass).
 2. Moving: the pane menus, the drag with the drop places, Esc; the actions.
-3. The Outline as one pane (the setting), docked anywhere.
+3. The outline at either side of its own pane (menu and drag), and floating (as question 2 decides).
 4. A prototype of 3.7 for Settings (iframe and frame messaging, or the moved control); the choice made.
 5. Settings, Characters, Highlights docked and floated, dragged out and back.
 6. View > Panes, Reset docking, Save as default, the view project's reset; the docs (features.md).
@@ -160,8 +170,9 @@ viewing uses a normal project, "View" by default, whose windows can dock every p
   dragged and the size kept; the editor area never below its minimum, also in a small window; Esc during a drag; a
   window closed and opened again as it was; a new window of the project with the same docking; Save as default and a
   new project with it; Reset docking; the view project's reset.
-- In-app: one Outline pane follows the active document across tabs and both editor panes; the setting back to per
-  pane.
+- In-app: an outline at the left and at the right of its pane (menu and drag), each editor pane its own choice;
+  only its own pane's two sides light up while dragging; floating, it follows its pane's tab changes; closed and
+  shown again where it was.
 - In-app: Settings, Characters, Highlights docked (they work there: a setting changed, a character inserted in this
   window, a highlight list of this window's document), floated again by dragging out, docked again.
 - In-app: the existing side pane tests (folder tree, search, replace in files) pass with the panes docked
@@ -171,10 +182,12 @@ viewing uses a normal project, "View" by default, whose windows can dock every p
 ## 4. Open questions
 
 1. The approach (3.2): A (dock in the page; Settings, Characters, Highlights float or dock), B (everything floats and
-   docks; Folder, Search and Outline rewritten as pages of their own), or C (A now, floating Folder, Search, Outline
-   later)? Proposal: C.
-2. The outline (3.6): a setting with per editor pane as the default; always one pane; or not dockable at all?
-   Proposal: the setting, default as now.
+   docks; Folder, Search and the outline rewritten as pages of their own), or C (A now, Folder, Search and the
+   outline in windows of their own later)? Proposal: C.
+2. A floating outline (3.6): a panel floating over the window (it stays inside the window; no rewrite of the
+   outline), or a window of its own (on another monitor too; the outline then becomes a page of its own that gets its
+   pane's headings through the host, as approach B for the outline alone)? Proposal: the panel inside the window
+   now, its own window with the later plan for floating (3.2 C).
 3. Several LexPen windows: each window its own docking (a new window copying the last one of its project), or one
    docking for all windows? Proposal: each window its own.
 4. Which windows dock (3.7): Settings, Characters, Highlights; also Projects and Theme sets? Proposal: Settings,
