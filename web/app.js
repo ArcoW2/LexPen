@@ -3331,12 +3331,18 @@ function markOutline(pane) {
 // center), revealOutOfView (keep: revealLines from the edge it comes in at, the top going up, the bottom going down;
 // center) and revealLines. Never so many lines that the place itself would fall out of view.
 function revealFound(cm, from, to = from) {
-  const info = cm.getScrollInfo(), view = info.clientHeight;
-  const start = cm.charCoords(from, 'local'), top = start.top;
-  const tall = cm.charCoords(to, 'local').bottom - top > view;   // taller than the view: its start
-  const bottom = tall ? start.bottom : cm.charCoords(to, 'local').bottom;
-  const y = revealTop(info.top, view, top, bottom, cm.defaultTextHeight());
-  if (y != null) cm.scrollTo(null, Math.max(0, y));
+  // Measured again after each scroll: a line not drawn yet has an estimated height (with wrapping, from its length),
+  // and once the lines there are drawn the place can be lines away from where the estimate put it.
+  let tall = false;
+  for (let i = 0; i < 4; i++) {
+    const info = cm.getScrollInfo(), view = info.clientHeight;
+    const start = cm.charCoords(from, 'local'), top = start.top;
+    tall = cm.charCoords(to, 'local').bottom - top > view;   // taller than the view: its start
+    const bottom = tall ? start.bottom : cm.charCoords(to, 'local').bottom;
+    const y = revealTop(info.top, view, top, bottom, cm.defaultTextHeight());
+    if (y == null || Math.abs(Math.max(0, y) - info.top) < 1) break;
+    cm.scrollTo(null, Math.max(0, y));
+  }
   revealSideways(cm, from, tall ? from : to);   // up or down it is in view by now
 }
 
