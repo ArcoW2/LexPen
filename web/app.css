@@ -807,6 +807,9 @@ body[data-occ-mark=outline] ::highlight(mm-occ-0), body[data-occ-mark=outline] :
 .mm-pocc-box { position: absolute; box-sizing: border-box; }
 .CodeMirror .mm-occ-first { text-decoration: underline 2px var(--find-box); text-underline-offset: 3px; }
 .CodeMirror .mm-occ-first-bg { background: var(--find-current); color: var(--find-current-fg); }
+/* Selected text over an occurrence: the selection shows (it is drawn behind the text; occurrences.js marks the
+   selection mm-occ-sel while occurrences are marked). The preview's selection is drawn over highlights by itself. */
+.CodeMirror .cm-mm-occ-hit.mm-occ-sel, .CodeMirror .mm-occ-first-bg.mm-occ-sel { background: none; color: inherit; }
 body[data-occ-first=underline] ::highlight(mm-occ-first-0), body[data-occ-first=underline] ::highlight(mm-occ-first-1) {
   text-decoration: underline 2px var(--find-box); text-underline-offset: 3px;
 }

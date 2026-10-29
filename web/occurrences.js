@@ -176,6 +176,7 @@ function clearOccEditor(pane) {
   for (const m of pane.occMarks ?? []) m.clear();
   pane.occMarks = [];
   pane.occEditor = null;
+  occMarkSelection(pane);
   if (pane.occLines) { pane.occLines = null; if (typeof scheduleOverview === 'function') scheduleOverview(pane); }
 }
 
@@ -230,6 +231,7 @@ function markOccEditor(pane) {
     if (lines[lines.length - 1] !== line) lines.push(line);
   }
   pane.occLines = lines;
+  occMarkSelection(pane);
   if (typeof scheduleOverview === 'function') scheduleOverview(pane);
 }
 
@@ -318,6 +320,19 @@ function occFirst(pane) {
   cm.focus();
 }
 
+// The selection over an occurrence stays visible: while occurrences are marked, each selection gets a mark of its own
+// (mm-occ-sel), and app.css takes the occurrence's background off there, so the selection drawn behind the text shows.
+// (CodeMirror's styleSelectedText would do this, but its add-on is not in the editor bundle.)
+function occMarkSelection(pane) {
+  const cm = pane.cm;
+  for (const m of pane.occSelMarks ?? []) m.clear();
+  pane.occSelMarks = [];
+  if (!cm || !pane.occEditor?.length) return;
+  cm.operation(() => {
+    for (const r of cm.listSelections()) if (!r.empty()) pane.occSelMarks.push(cm.markText(r.from(), r.to(), { className: 'mm-occ-sel' }));
+  });
+}
+
 // ---------- Following the text, and the triggers ----------
 // The editor (made on first use, app.js ensureEditor): marked again after an edit and on another document; a double
 // click and, with the setting, a selection of the minimum length you made (not one LexPen made: a find, a jump).
@@ -329,12 +344,19 @@ function setupOccurrences(pane) {
   };
   cm.on('changes', again);
   cm.on('swapDoc', again);
-  cm.on('dblclick', () => setTimeout(() => {
-    if (!setting('occurrences.doubleClick')) return;
-    const text = editorSelectionText(cm);
-    if (/^[\p{L}\p{N}_]+$/u.test(text)) { pane.occSkip = text; showOccurrences(pane, text, true); }
-  }));
+  // A double click: the second press, as CodeMirror counts it (its word is selected right after this handler). Not the
+  // browser's dblclick: that does not come when the line was drawn anew between the two clicks, as when the first
+  // click put the cursor on a keyword of a pair (begin, end, if) and brackets.js marked the pair.
+  cm.on('mousedown', (_, e) => {
+    if (e.detail !== 2 || e.button !== 0) return;
+    setTimeout(() => {
+      if (!setting('occurrences.doubleClick')) return;
+      const text = editorSelectionText(cm);
+      if (/^[\p{L}\p{N}_]+$/u.test(text)) { pane.occSkip = text; showOccurrences(pane, text, true); }
+    });
+  });
   cm.on('cursorActivity', () => {
+    occMarkSelection(pane);
     if (!setting('occurrences.select')) return;
     if (pane.placeHow) { pane.occSkip = editorSelectionText(cm); return; }   // a selection LexPen made (asFound)
     clearTimeout(pane.occSelectTimer);
