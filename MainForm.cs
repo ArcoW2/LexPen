@@ -932,6 +932,11 @@ sealed class MainForm : Form
             case "screen":
                 return app.ScreenOf(this);
 
+            // Windows' double-click time (ms): the page ignores the presses of a double click that brings the window
+            // back (setting ignoreActivationClick), and the user can set it slower than the default.
+            case "doubleClickTime":
+                return (int)GetDoubleClickTime();
+
             case "screenZoom":
                 app.SetScreenZoom(this, msg["editorStep"]?.GetValue<double>(), msg["previewFactor"]?.GetValue<double>());
                 return null;
@@ -1402,6 +1407,9 @@ sealed class MainForm : Form
     // Whether the Windows clipboard holds a block (column) must be known in the page at once: a paste does not wait for
     // the host. Windows says when the clipboard changes; the page is told (and once at the start).
     const int WM_CLIPBOARDUPDATE = 0x031D;
+
+    [DllImport("user32.dll")]
+    static extern uint GetDoubleClickTime();
 
     [DllImport("user32.dll", SetLastError = true)]
     static extern bool AddClipboardFormatListener(IntPtr hwnd);

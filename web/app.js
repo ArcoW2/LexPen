@@ -4252,34 +4252,32 @@ const hideMenus = () => ui.treeMenu.hidden = ui.tabMenu.hidden = ui.stripMenu.hi
 // window to the front. After the window lost the focus, the next press that comes with the focus back (before it, or
 // just after it) goes no further: its press, release and click are stopped before anything sees them (on the window,
 // in the capture phase). The title bar is Windows' own and works at once.
-// A double (or triple) click to bring the window back: its next presses, as Windows makes a double click of them
-// (within its double-click time of the one before, at about the same place), are stopped as well, so they do not act
-// as a single click; a click of its own after that acts at once. (A pointer press does not carry the click count.)
-const DOUBLE_CLICK_MS = 500, DOUBLE_CLICK_PX = 4;   // Windows' defaults
-const activation = { away: false, back: 0, eating: false, last: null };
+// A double (or triple) click to bring the window back: every press, release, click and dblclick until Windows'
+// double-click time has passed after the last of them is stopped as well, wherever it lands, so it does not act as a
+// single click or as a double click (the outline and the preview act on dblclick); a click after that acts at once.
+// Each one stopped is in View > Messages.
+const activation = { away: false, back: 0, until: 0, double: 500 };
+host('doubleClickTime').then(ms => { if (ms > 0) activation.double = ms; }).catch(() => {});
 addEventListener('blur', () => { activation.away = true; });
 addEventListener('focus', () => { activation.back = performance.now(); });
-addEventListener('keydown', () => { activation.away = false; activation.last = null; }, true);   // back by the keys (Alt+Tab): not a click
+addEventListener('keydown', () => { activation.away = false; activation.until = 0; }, true);   // back by the keys (Alt+Tab): not a click
+const activationEating = () => performance.now() < activation.until;
 addEventListener('pointerdown', e => {
-  const now = performance.now(), last = activation.last;
+  const now = performance.now();
   const first = activation.away && (!document.hasFocus() || now - activation.back < 500);
-  const more = !!last && now - last.at < DOUBLE_CLICK_MS && Math.abs(e.clientX - last.x) <= DOUBLE_CLICK_PX && Math.abs(e.clientY - last.y) <= DOUBLE_CLICK_PX;
   activation.away = false;
-  activation.last = null;
-  if ((!first && !more) || setting('ignoreActivationClick') === false) return;
-  activation.last = { at: now, x: e.clientX, y: e.clientY };
+  if ((!first && !activationEating()) || setting('ignoreActivationClick') === false) return;
+  if (first) logMessage('A click that brought the window to the front was ignored (Options > Settings, App)', true);
+  activation.until = now + activation.double;
   e.preventDefault();   // no mousedown, mouseup after it
   e.stopImmediatePropagation();
-  activation.eating = true;
 }, true);
 for (const type of ['mousedown', 'mouseup', 'pointerup', 'click', 'dblclick', 'auxclick', 'contextmenu'])
   addEventListener(type, e => {
-    if (!activation.eating) return;
+    if (!activationEating()) return;
     e.preventDefault();
     e.stopImmediatePropagation();
-    // Done a moment after the release: its click, and after a second press its dblclick (the outline and the preview
-    // act on that), come right after it; a drag with no click after it does not hold up the next press either.
-    if (type === 'pointerup') setTimeout(() => { activation.eating = false; }, 100);
+    if (type === 'pointerup') activation.until = performance.now() + activation.double;   // a next press may follow
   }, true);
 
 document.addEventListener('contextmenu', e => {
