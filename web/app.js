@@ -4277,8 +4277,8 @@ for (const type of ['mousedown', 'mouseup', 'pointerup', 'click', 'dblclick', 'a
     if (!activation.eating) return;
     e.preventDefault();
     e.stopImmediatePropagation();
-    if (type === 'click' || type === 'auxclick' || type === 'contextmenu') activation.eating = false;   // the press is done
-    // A press with no click after it (a drag): the next press is not held up.
+    // Done a moment after the release: its click, and after a second press its dblclick (the outline and the preview
+    // act on that), come right after it; a drag with no click after it does not hold up the next press either.
     if (type === 'pointerup') setTimeout(() => { activation.eating = false; }, 100);
   }, true);
 
