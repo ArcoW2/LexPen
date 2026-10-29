@@ -85,6 +85,24 @@ function paintGit(pane) {
 function paintGutter(pane) {
   paintChanges(pane);
   paintGit(pane);   // also draws the overview ruler again
+  paintHighlightLines(pane);
+}
+
+// The lines a highlight is on (highlights.js), with the setting gutter.highlights: the gutter's last few pixels in the
+// highlight colour, the full line height (app.css .mm-hl-gutter, on the gutter's background).
+function paintHighlightLines(pane) {
+  const cm = pane.cm, doc = pane.active?.doc;
+  if (!cm) return;
+  const lines = new Set();
+  if (doc?.hls && gutterOn('highlights') && typeof hlRange === 'function')
+    for (const h of doc.hls.list) {
+      const r = h.state !== 'detached' && hlRange(doc, h);
+      if (r) for (let l = r.from[0]; l <= Math.min(r.to[0], cm.lastLine()); l++) lines.add(l);
+    }
+  cm.operation(() => {
+    for (const h of pane.hlGutter ?? []) cm.removeLineClass(h, 'gutter', 'mm-hl-gutter');
+    pane.hlGutter = [...lines].map(l => cm.addLineClass(l, 'gutter', 'mm-hl-gutter'));
+  });
 }
 
 function scheduleGutter(pane) {

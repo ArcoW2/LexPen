@@ -240,7 +240,8 @@ every action with its key.
 
 ## How the text looks
 
-- **Gutter**: the cursor's line number is bold (the gutter's backgrounds mark other things); line numbers, bookmarks, change markers (not saved yet), git markers (changed since the last commit;
+- **Gutter**: the cursor's line number is bold (the gutter's backgrounds mark other things); a line with a highlight
+  has the gutter's right edge in the highlight colour (View > Gutter > Highlights); line numbers, bookmarks, change markers (not saved yet), git markers (changed since the last commit;
   a click shows the old text and can revert the block) and fold markers (heading sections and code blocks in
   markdown, braces or indentation in code). View > Gutter, or a right-click on the gutter, switches each column. Line numbers: none, every 10 (a
   dash at 5, a dot on the others) or every line; absolute or relative to the cursor line (then Go to line starts with

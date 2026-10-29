@@ -4451,7 +4451,7 @@ function applySettings() {
   if (['compareWhitespace', 'compareCase', 'compareStrip', 'compareStep'].some(changed) && typeof onCompareSettings === 'function') onCompareSettings();
   if (['overviewWidth', 'overview.find', 'overview.changes', 'overview.git', 'overview.bookmarks', 'overview.highlights', 'overview.occurrences'].some(changed) && typeof schedulePreviewOverviews === 'function')
     schedulePreviewOverviews();   // the preview's scroll bar
-  if (['overview', 'overviewWidth', 'overview.find', 'overview.changes', 'overview.git', 'overview.bookmarks', 'overview.occurrences', 'gutter.changes', 'gutter.git'].some(changed)
+  if (['overview', 'overviewWidth', 'overview.find', 'overview.changes', 'overview.git', 'overview.bookmarks', 'overview.occurrences', 'gutter.changes', 'gutter.git', 'gutter.highlights'].some(changed)
     && typeof applyOverview === 'function') {   // overview.js; the hunks are made for the strip or the gutter
     for (const pane of panes) if (pane.cm && pane.active) paintGutter(pane);
     applyOverview();

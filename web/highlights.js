@@ -344,6 +344,7 @@ function drawHighlightsOf(doc) {
   for (const pane of panes) if (pane.active?.doc === doc) {
     drawPreviewHighlights(pane);
     if (typeof scheduleOverview === 'function' && pane.cm) scheduleOverview(pane);   // the scroll bar's marks
+    if (typeof paintHighlightLines === 'function' && pane.cm) paintHighlightLines(pane);   // gutter.js: the gutter's strip
   }
 }
 

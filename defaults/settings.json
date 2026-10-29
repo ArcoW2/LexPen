@@ -178,6 +178,7 @@
     "gutter.changes": true,       // lines changed since the last save
     "gutter.git": true,           // lines changed since the last commit
     "gutter.folds": true,
+    "gutter.highlights": true,    // the lines with a highlight: the gutter's right edge in the highlight colour
     "gutter.occurrences": true,   // the line numbers of lines with an occurrence (the Occurrences bar) marked
     "overview.find": true,        // the marks on the editor's scroll bar: the lines with a find match
     "overview.changes": true,     // ...the lines changed since the last save
