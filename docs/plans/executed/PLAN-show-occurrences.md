@@ -24,8 +24,9 @@ itself (on).
 ### 3.1 The bar
 
 - Its own row in the pane, below the find bar when both are open: the label Occurrences, the field, the count
-  ("<n> occurrences"), Aa (match case), W (whole word), .* (regular expression), First, and an X that closes the
-  bar.
+  ("<n> occurrences"), Aa (match case), W (whole word), .* (regular expression), First, Clear (added 2026-10-29:
+  the field emptied and nothing marked, the bar stays; as View > Occurrences > Clear occurrences), and an X that
+  closes the bar.
 - First: the cursor to the first occurrence in the document (most times the declaration, or the parameter of a
   procedure), the occurrence selected and placed in view as a found place (`revealFound`), and a place for position
   back / forward (`asFound`), so Ctrl+Alt+- returns to where the cursor was. In the preview (the focus there, or a

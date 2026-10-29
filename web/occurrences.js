@@ -22,6 +22,7 @@ const OCC_HTML =
   '<button data-occ="word" class="mm-find-opt" title="Whole word only">W</button>' +
   '<button data-occ="regex" class="mm-find-opt" title="Regular expression (then the ^ codes do not apply)">.*</button>' +
   '<button data-occ="first" class="mm-occ-first-button" title="The cursor to the first occurrence (most times where it is declared); Ctrl+Alt+- back">First</button>' +
+  '<button data-occ="clear" class="mm-occ-first-button" title="Clear: the field emptied, nothing marked any more (the bar stays)">Clear</button>' +
   '<button data-occ="close" class="mm-find-close" title="Close the bar (the occurrences stay marked; View > Occurrences > Clear occurrences clears them)"></button>' +
   '</div>';
 
@@ -37,6 +38,7 @@ function occBar(pane) {
     if (!what) return;
     if (what === 'close') return closeOccBar(pane);
     if (what === 'first') return occFirst(pane);
+    if (what === 'clear') return clearOccurrences(pane);
     q[what] = !q[what];
     occChanged(pane);
   });
