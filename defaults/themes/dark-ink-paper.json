@@ -1,12 +1,12 @@
-// Dark Ink and aged paper: the backgrounds and the text in the blue of Dark ocean, the lines, the accent, the
-// selection and the highlights in the yellow of Dark parchment.
+// Dark Ink and aged paper: the backgrounds, the text and the selection in the blue of Dark ocean, the lines, the
+// accent and the highlights in the yellow of Dark parchment.
 // A theme lists only what differs from its base; the base may be any theme. The names are in the README (Themes).
 {
   "name": "Dark Ink and aged paper (blue/yellow)",
   "description": "blue ink, yellow lines and highlights",
   "base": "dark",
   "colors": {
-    // Blue (Dark ocean): backgrounds and text.
+    // Blue (Dark ocean): backgrounds, text and the selection.
     "bg": "#161c27",
     "bgSide": "#1b2230",
     "bgBar": "#202839",
@@ -16,12 +16,12 @@
     "fgDim": "#909cb0",
     "inlineCode": "#313743",
     "inlineCodeFg": "#a1c4f6",
+    "select": "#2a4a7a",
 
-    // Yellow (Dark parchment): borders, accent, selection, highlights, the active pane, matching brackets.
+    // Yellow (Dark parchment): borders, accent, highlights, the active pane, matching brackets.
     "border": "#463d2a",
     "accent": "#e0b84a",
     "active": "rgba(224, 184, 74, .18)",
-    "select": "#5c4a1f",
     "highlight": "#8d8300",
     "occurrenceHit": "#635f0e",
     "occurrenceBox": "#fff027",
