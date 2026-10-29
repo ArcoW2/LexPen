@@ -491,7 +491,8 @@ const FIND_BLOCKS = 'p,li,h1,h2,h3,h4,h5,h6,td,th,pre,blockquote,dt,dd,tr,div,se
 
 function previewText(pane) {
   const walker = document.createTreeWalker(pane.previewEl, NodeFilter.SHOW_TEXT, {
-    acceptNode: n => n.parentElement.closest('script, style, .katex-mathml') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT,
+    // Not the layers drawn over the content (the cursors, the bookmarks' numbers, find's boxes).
+    acceptNode: n => n.parentElement.closest('script, style, .katex-mathml, .mm-pcaret-layer, .mm-pcursor-layer, .mm-pfind-boxes') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT,
   });
   const nodes = [];
   let text = '', lastBlock = null;

@@ -25,6 +25,8 @@ public class ThemeFileTests : IDisposable
         Assert.Equal("--hl-keyword", Names["keyword"]);
         Assert.Equal("--find-current-fg", Names["findCurrentFg"]);
         Assert.Equal("--find-box", Names["findBox"]);
+        Assert.Equal("--occurrence-hit", Names["occurrenceHit"]);
+        Assert.Equal("--occurrence-box", Names["occurrenceBox"]);
         Assert.Equal("--bracket-match", Names["bracketMatch"]);
         Assert.Equal("--bracket-no-match", Names["bracketNoMatch"]);
         Assert.Equal("--guide6", Names["guide6"]);
@@ -189,6 +191,12 @@ public class ThemeFileTests : IDisposable
         // Every shipped theme builds on Light or Dark, as its file name says (Black on Dark), and has a description.
         Assert.All(themes.Skip(2), t => Assert.Equal(t.Id.StartsWith("light-") ? "light" : "dark", t.BaseId));
         Assert.All(themes, t => Assert.False(string.IsNullOrEmpty(t.Description), t.Id));
+        // The Occurrences bar's colours (plan 34) in every shipped theme file itself, not only from its base.
+        foreach (var file in Directory.GetFiles(Path.Combine(Defaults, "themes"), "*.json"))
+        {
+            var text = File.ReadAllText(file);
+            Assert.True(text.Contains("\"occurrenceHit\"") && text.Contains("\"occurrenceBox\""), Path.GetFileName(file));
+        }
     }
 
     [Fact]

@@ -12,10 +12,10 @@ const pvKind = kind => setting('overview.' + kind) !== false;
 function pvLanes(width) {
   const inner = width - 1, side = Math.max(2, Math.round(inner / 5)), find = Math.max(3, Math.round(inner / 3));
   return { changes: [1, side], git: [1 + side, side], bookmarks: [1 + 2 * side, width - 1 - 2 * side],
-    highlights: [1 + 2 * side, width - 1 - 2 * side], find: [width - find, find], cursor: [1, width - 1] };
+    highlights: [1 + 2 * side, width - 1 - 2 * side], find: [width - find, find], occurrences: [width - find, find], cursor: [1, width - 1] };
 }
 const PV_THUMB = 24;
-const PV_NAMES = { find: 'Find match', changes: 'Unsaved change', git: 'Git change', bookmarks: 'Bookmark', highlights: 'Highlight', cursor: 'The editor\'s cursor' };
+const PV_NAMES = { find: 'Find match', occurrences: 'Occurrence', changes: 'Unsaved change', git: 'Git change', bookmarks: 'Bookmark', highlights: 'Highlight', cursor: 'The editor\'s cursor' };
 
 function setupPreviewOverview(pane) {
   if (pane.pvCanvas) return;
@@ -70,6 +70,10 @@ function pvMarks(pane) {
       if (ranges.length) add('highlights', span(ranges[0].getBoundingClientRect()), r.from[0]);
     }
   }
+  if (pvKind('occurrences')) {   // occurrences.js, below the find marks
+    let n = 0;
+    for (const r of pane.occPreview ?? []) { if (++n > 3000) break; add('occurrences', span(r.getBoundingClientRect())); }
+  }
   if (pvKind('find')) {   // the preview's find marks (find.js), at most a few thousand looked at
     let n = 0;
     for (const r of CSS.highlights.get('mm-find-' + pane.index) ?? []) { if (++n > 3000) break; add('find', span(r.getBoundingClientRect())); }
@@ -95,7 +99,7 @@ function drawPreviewOverview(pane) {
   canvas.height = Math.round(g.height * ratio);
   const ctx = canvas.getContext('2d'), css = getComputedStyle(el), colour = name => css.getPropertyValue(name).trim();
   const colours = { changes: colour('--warning'), git: colour('--git-modified'), bookmarks: colour('--accent'),
-    highlights: colour('--highlight-mark') || colour('--highlight'), find: colour('--find-current'), cursor: colour('--accent') };
+    highlights: colour('--highlight-mark') || colour('--highlight'), find: colour('--find-current'), occurrences: colour('--occurrence-box'), cursor: colour('--accent') };
   ctx.scale(ratio, ratio);
   ctx.clearRect(0, 0, width, g.height);
   pane.pvDrawn = [];

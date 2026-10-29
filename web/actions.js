@@ -224,8 +224,8 @@ appAction('messages', { title: 'Messages...', hint: 'What showed at the bottom o
 appAction('locateCursor', { title: 'Locate the cursor', hint: 'Rings shrink onto every cursor, in both panes when two show; a cursor out of view gets a marker at that edge (also a short tap on Ctrl)', group: 'view',
   enabled: () => !!editorPane(), run: () => locateCursor(editorPane({ from: 'menu' })) });
 toggleAction('overviewMark', { title: 'Scroll bar marks', hint: 'Show or hide this kind of mark on the editor\'s scroll bar', group: 'view',
-  variants: [['find'], ['changes'], ['git'], ['bookmarks'], ['highlights'], ['compare']],
-  variantTitles: { find: 'Scroll bar marks: find matches', changes: 'Scroll bar marks: unsaved changes', git: 'Scroll bar marks: git changes', bookmarks: 'Scroll bar marks: bookmarks', highlights: 'Scroll bar marks: highlights', compare: 'Scroll bar marks: compare differences' } },
+  variants: [['find'], ['occurrences'], ['changes'], ['git'], ['bookmarks'], ['highlights'], ['compare']],
+  variantTitles: { find: 'Scroll bar marks: find matches', occurrences: 'Scroll bar marks: occurrences', changes: 'Scroll bar marks: unsaved changes', git: 'Scroll bar marks: git changes', bookmarks: 'Scroll bar marks: bookmarks', highlights: 'Scroll bar marks: highlights', compare: 'Scroll bar marks: compare differences' } },
   ([name]) => setting('overview.' + name) !== false,
   ([name]) => setSetting('overview.' + name, setting('overview.' + name) === false), ['show', 'hide']);
 toggleAction('ruler', { title: 'Ruler', hint: 'Above the editor: the columns, the column of the cursor, column guides, tab stops and helper lines (click it for one)', group: 'view' },
@@ -678,12 +678,12 @@ const SETTING_ROWS = [
         git: 'No git markers in the gutter', folds: 'No fold markers in the gutter' }[n] })),
   { name: 'overviewWidth', group: 'Editor view', sub: 'Scroll bars', kind: 'range', range: [10, 40, 2], unit: ' px', title: 'Scroll bars: width',
     hint: 'How wide the editor\'s scroll bars are (the horizontal one as high); the marks on the vertical one take their share of it' },
-  ...[['find', 'Find matches'], ['changes', 'Unsaved changes'], ['git', 'Git changes'], ['bookmarks', 'Bookmarks'], ['highlights', 'Highlights'], ['compare', 'Compare differences']]
+  ...[['find', 'Find matches'], ['occurrences', 'Occurrences'], ['changes', 'Unsaved changes'], ['git', 'Git changes'], ['bookmarks', 'Bookmarks'], ['highlights', 'Highlights'], ['compare', 'Compare differences']]
     .map(([n, title]) => ({ name: 'overview.' + n, group: 'Editor view', sub: 'Scroll bars', kind: 'toggle', title: 'Marks: ' + title.toLowerCase(),
-      hint: { find: 'The scroll bar marks the lines with a match of the find bar', changes: 'The scroll bar marks the lines changed since the last save',
+      hint: { find: 'The scroll bar marks the lines with a match of the find bar', occurrences: 'The scroll bar marks the lines with an occurrence (the Occurrences bar)', changes: 'The scroll bar marks the lines changed since the last save',
         git: 'The scroll bar marks the lines changed since the last commit', bookmarks: 'The scroll bar marks the bookmarks',
         highlights: 'The scroll bar marks the highlights', compare: 'Comparing, the scroll bar marks the differences' }[n],
-      hintOff: { find: 'No find matches on the scroll bar', changes: 'No unsaved changes on the scroll bar',
+      hintOff: { find: 'No find matches on the scroll bar', occurrences: 'No occurrences on the scroll bar', changes: 'No unsaved changes on the scroll bar',
         git: 'No git changes on the scroll bar', bookmarks: 'No bookmarks on the scroll bar', highlights: 'No highlights on the scroll bar',
         compare: 'No compare differences on the scroll bar' }[n] })),
   { name: 'explorerCompare', group: 'App', sub: 'Windows Explorer', kind: 'toggle', title: 'Compare entries in Explorer\'s right-click menu',
@@ -782,6 +782,18 @@ const SETTING_ROWS = [
   { name: 'findGutter', group: 'Find', kind: 'toggle', title: 'Mark the line numbers of lines with found text',
     hint: 'Besides the found text, the line numbers of lines with found text are marked too',
     hintOff: 'The line numbers are not marked; only the found text is' },
+  { name: 'occurrences.bar', group: 'Find', sub: 'Occurrences', kind: 'toggle', title: 'Show the Occurrences bar',
+    hint: 'The bar opens with every new occurrence (also after it was closed); Esc in its field keeps it',
+    hintOff: 'The occurrences are marked without the bar; View > Occurrences > Show bar opens it, Esc in its field closes it' },
+  { name: 'occurrences.doubleClick', group: 'Find', sub: 'Occurrences', kind: 'toggle', title: 'A double click shows all occurrences',
+    hint: 'A word double-clicked in the editor is marked everywhere (whole word, match case)', hintOff: 'A double click only selects the word' },
+  { name: 'occurrences.select', group: 'Find', sub: 'Occurrences', kind: 'toggle', title: 'A selection shows all occurrences',
+    hint: 'Every selection you make (of the minimum length below), in the editor or the preview, is marked everywhere',
+    hintOff: 'Only Show all occurrences of this selection (right-click, Edit) marks a selection' },
+  { name: 'occurrences.minLength', group: 'Find', sub: 'Occurrences', kind: 'range', range: [1, 20, 1], unit: ' characters', title: 'A selection: at least',
+    hint: 'How long a selection must be before A selection shows all occurrences marks it' },
+  { name: 'occurrences.markFirst', group: 'Find', sub: 'Occurrences', kind: 'toggle', title: 'Underline the first occurrence',
+    hint: 'The first occurrence in the document is also underlined, in the colour of the find box', hintOff: 'The first occurrence looks as the others' },
   { name: 'appFont', group: 'App', kind: 'font' },
   { name: 'appSize', group: 'App', kind: 'size', base: () => ptOf(APP_PX) + ' pt' },
   { name: 'statusFont', group: 'App', kind: 'font' },
@@ -858,6 +870,13 @@ appAction('bookmarkNext', { title: 'Bookmark', hint: 'Numbered or not; with Shif
 appAction('block.next', { title: 'Block', hint: 'The next / previous block at the level of the cursor: its indentation, in markdown its heading; with Shift: select to it (not in the preview)',
   group: 'edit', preview: true, move: true, variants: [[1], [-1]], variantTitles: { 1: 'Next block', '-1': 'Previous block' },
   run: ([dir], { pane, extend, preview }) => goBlock(pane, +dir, extend, preview) });
+// Occurrences (occurrences.js, docs/plans/executed/PLAN-show-occurrences.md): marked everywhere, the cursor stays.
+appAction('occurrences.show', { title: 'Show all occurrences', hint: 'Of the selection (the first one, or a block\'s first line), else of the word at the cursor: marked everywhere in the editor and the preview, the cursor stays',
+  group: 'edit', run: (_, ctx) => showOccurrencesOfSelection(ctx) });
+appAction('occurrences.clear', { title: 'Clear occurrences', hint: 'The occurrences no longer marked (the bar\'s field emptied)', group: 'edit',
+  run: () => clearOccurrences(panes[state.activePane]) });
+appAction('occurrences.bar', { title: 'Show / close the Occurrences bar', hint: 'For now; the setting (Find > Show the Occurrences bar) stays as it is', group: 'edit',
+  run: () => { const pane = panes[state.activePane]; if (occBarOpen(pane)) closeOccBar(pane); else { openOccBar(pane); pane.occ.input.focus(); } } });
 // Highlights (highlights.js, docs/plans/executed/PLAN-highlights.md): in the editor and in the preview, the pane in use.
 const hlPane = () => panes[state.activePane];
 appAction('highlight.toggle', { title: 'Highlight', hint: 'The selection gets a highlight; nothing selected, the cursor in a highlight: that one removed', group: 'highlights',

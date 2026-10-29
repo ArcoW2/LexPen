@@ -132,6 +132,11 @@
                                   // step through them, Alt+Down opens the list
   "findMark": "background",       // how found text is marked: "background", "outline" or "both"
   "findGutter": true,             // the line numbers of lines with found text marked the same way (the current one too)
+  "occurrences.bar": true,        // the Occurrences bar opens with every new occurrence (off: marked without the bar)
+  "occurrences.doubleClick": false, // a word double-clicked in the editor: its occurrences marked
+  "occurrences.select": false,    // every selection you make (of occurrences.minLength or more): its occurrences marked
+  "occurrences.minLength": 3,     // ...in characters
+  "occurrences.markFirst": false, // the first occurrence also underlined, in the find box colour
 
   // ---------- App ----------
   "appFont": "",                  // menus, tabs, panes, bars and dialogs; "" is Segoe UI
@@ -175,6 +180,7 @@
     "overview.git": true,         // ...the lines changed since the last commit
     "overview.bookmarks": true,   // ...the bookmarks
     "overview.highlights": true,  // ...the highlights
-    "overview.compare": true      // ...comparing, the differences
+    "overview.compare": true,     // ...comparing, the differences
+    "overview.occurrences": true  // ...the lines with an occurrence (the Occurrences bar)
   }
 }

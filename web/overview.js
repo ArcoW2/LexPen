@@ -10,7 +10,7 @@
 // The strip's width in px: the setting overviewWidth (app.css takes it as --mm-overview-w, set by applyOverview).
 const overviewWidth = () => Math.min(40, Math.max(10, +setting('overviewWidth') || 20));
 const OVERVIEW_KINDS = [
-  ['find', 'Find matches'], ['changes', 'Unsaved changes'], ['git', 'Git changes'], ['bookmarks', 'Bookmarks'], ['highlights', 'Highlights'],
+  ['find', 'Find matches'], ['occurrences', 'Occurrences'], ['changes', 'Unsaved changes'], ['git', 'Git changes'], ['bookmarks', 'Bookmarks'], ['highlights', 'Highlights'],
 ];
 const overviewOn = () => true;   // the editor's scroll bar: always there
 
@@ -74,6 +74,14 @@ function overviewMarks(pane) {
     for (const { line } of bookmarkList(doc)) out.push({ kind: 'bookmarks', from: line, to: line, colour: colour('--accent') });
   if (overviewKind('highlights') && typeof hlRange === 'function' && doc.hls)   // highlights.js: in the bookmarks' lane
     for (const h of doc.hls.list) { const r = h.state !== 'detached' && hlRange(doc, h); if (r) out.push({ kind: 'highlights', from: r.from[0], to: r.to[0], colour: colour('--highlight-mark') || colour('--highlight') }); }
+  if (overviewKind('occurrences')) {   // occurrences.js: in the find matches' lane, below them
+    const c = colour('--occurrence-box');
+    for (const line of pane.occLines ?? []) {
+      const last = out[out.length - 1];
+      if (last?.kind === 'occurrences' && last.to === line - 1) last.to = line;
+      else out.push({ kind: 'occurrences', from: line, to: line, colour: c });
+    }
+  }
   if (overviewKind('find')) {   // lines in a row as one mark: a common word can be on a hundred thousand lines
     const c = colour('--find-current');
     for (const line of pane.findLines ?? []) {
@@ -90,7 +98,7 @@ function overviewMarks(pane) {
 function overviewLanes(width) {
   const inner = width - 1, side = Math.max(2, Math.round(inner / 5)), find = Math.max(3, Math.round(inner / 3));
   return { changes: [1, side], git: [1 + side, side], compare: [1, 2 * side], bookmarks: [1 + 2 * side, width - 1 - 2 * side],
-    highlights: [1 + 2 * side, width - 1 - 2 * side], find: [width - find, find] };
+    highlights: [1 + 2 * side, width - 1 - 2 * side], find: [width - find, find], occurrences: [width - find, find] };
 }
 
 // Where a place in the text goes on the strip. The block (the part in view) is as high as the view is of the whole
@@ -163,7 +171,7 @@ function overviewHit(pane, e) {
   return { mark: best, y };
 }
 
-const OVERVIEW_NAMES = { find: 'Find match', changes: 'Unsaved change', git: 'Git change', bookmarks: 'Bookmark', highlights: 'Highlight', compare: 'Difference' };
+const OVERVIEW_NAMES = { find: 'Find match', occurrences: 'Occurrence', changes: 'Unsaved change', git: 'Git change', bookmarks: 'Bookmark', highlights: 'Highlight', compare: 'Difference' };
 function overviewTip(pane, e) {
   const { mark } = overviewHit(pane, e);
   return mark ? `${OVERVIEW_NAMES[mark.kind]}, line ${mark.from + 1}` : null;

@@ -541,6 +541,7 @@ function makePane(index) {
     '<button class="mm-pane-button" title="This pane: hide or close it; show a hidden pane">' +
     '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><path d="M8 2.5v11"/></svg></button></div>' +
     '<div class="mm-find" hidden></div>' +
+    '<div class="mm-find mm-occ" hidden></div>' +   // the Occurrences bar (occurrences.js)
     '<div class="mm-body"><div class="mm-editor-pane"></div>' +
     '<div class="mm-split" title="Drag: the widths of editor and preview; double-click: half and half"></div><div class="mm-preview-pane"></div>' +
     '<nav class="mm-outline"><div class="mm-outline-edge" title="Drag to resize"></div><div class="mm-outline-list"></div></nav>' +
@@ -838,6 +839,7 @@ async function ensureEditor(pane) {
     pane.bookmarkTimer = setTimeout(() => paintBookmarks(pane), 150);
     scheduleGutter(pane);
   });
+  if (typeof setupOccurrences === 'function') setupOccurrences(pane);   // occurrences.js: edits, double click, selection
   pane.cm.on('cursorActivity', () => {
     updateInnerBar(pane);   // the inner language's bar (format.js)
     markOutline(pane);   // the outline's entry at the cursor
@@ -1033,6 +1035,7 @@ async function renderNow(tab) {
   tab.lineBlocks = null;   // the blocks by source line (previewjump.js), and the cursor's bar in the preview
   if (typeof markPreviewCursors === 'function') markPreviewCursors();
   if (typeof drawPreviewHighlights === 'function') for (const pane of panes) if (pane.active === tab) drawPreviewHighlights(pane);   // highlights.js
+  if (typeof refreshOccurrencesPreview === 'function') refreshOccurrencesPreview(tab);   // occurrences.js
   if (typeof schedulePreviewOverviews === 'function') schedulePreviewOverviews();   // the preview's scroll bar (previewoverview.js)
 }
 
@@ -1267,6 +1270,7 @@ async function showActive(pane) {
     }
     updateBar(pane);
   }
+  if (typeof refreshOccurrences === 'function') refreshOccurrences(pane);   // occurrences.js: this tab's text
   showOutline(pane);
   refreshTabs(pane);
   updateChrome();
@@ -4416,6 +4420,8 @@ function applySettings() {
     document.body.dataset.findMark = now.findMark || 'background';
     if (typeof refreshMarks === 'function') for (const pane of panes) if (pane.find?.marked) refreshMarks(pane);
   }
+  if ((changed('findMark') || changed('occurrences.markFirst')) && typeof refreshOccurrences === 'function')
+    for (const pane of panes) refreshOccurrences(pane);   // occurrences.js: the boxes, the first one underlined
   if (changed('bracketHighlight')) {   // app.css: how the pair at the cursor looks (brackets.js marks it)
     document.body.dataset.bracketHighlight = now.bracketHighlight || 'colour';
     if (typeof paintBrackets === 'function') for (const pane of panes) if (pane.cm) paintBrackets(pane.cm);
@@ -4436,9 +4442,9 @@ function applySettings() {
   if (['previewHighlightStyle', 'previewHighlightColour', 'previewHighlightIntensity'].some(changed) && typeof applyPreviewHighlight === 'function') applyPreviewHighlight();
   // compare.js, loaded after this file: at the start the settings can be here before it is.
   if (['compareWhitespace', 'compareCase', 'compareStrip', 'compareStep'].some(changed) && typeof onCompareSettings === 'function') onCompareSettings();
-  if (['overviewWidth', 'overview.find', 'overview.changes', 'overview.git', 'overview.bookmarks', 'overview.highlights'].some(changed) && typeof schedulePreviewOverviews === 'function')
+  if (['overviewWidth', 'overview.find', 'overview.changes', 'overview.git', 'overview.bookmarks', 'overview.highlights', 'overview.occurrences'].some(changed) && typeof schedulePreviewOverviews === 'function')
     schedulePreviewOverviews();   // the preview's scroll bar
-  if (['overview', 'overviewWidth', 'overview.find', 'overview.changes', 'overview.git', 'overview.bookmarks', 'gutter.changes', 'gutter.git'].some(changed)
+  if (['overview', 'overviewWidth', 'overview.find', 'overview.changes', 'overview.git', 'overview.bookmarks', 'overview.occurrences', 'gutter.changes', 'gutter.git'].some(changed)
     && typeof applyOverview === 'function') {   // overview.js; the hunks are made for the strip or the gutter
     for (const pane of panes) if (pane.cm && pane.active) paintGutter(pane);
     applyOverview();

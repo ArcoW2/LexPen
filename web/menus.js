@@ -38,6 +38,7 @@ const MENUS = [
       ['&Previous occurrence', 'cursorPrevious'], ['&Remove occurrence', 'cursorRemove'], ['&Clear added cursors', 'cursorClear']] },
     { label: 'Line comman&ds', sub: [['&Duplicate lines', 'duplicateLines'], ['Move lines &up', 'moveLinesUp'], ['Move lines do&wn', 'moveLinesDown'],
       ['De&lete lines', 'deleteLines'], ['&Join lines', 'joinLines']] }, '-',
+    ['Show all occu&rrences', 'occurrences.show'],
     ['Next secti&on', 'section', 1], ['Pre&vious section', 'section', -1], ['Ne&xt block', 'block.next', 1], ['Previous block', 'block.next', -1], '-',
     { label: '&Go to bookmark', fill: () => loadEditor().then(() => bookmarkItems('go')) },   // bookmarks.js comes with the editor
     { label: 'Store &bookmark', fill: () => loadEditor().then(() => bookmarkItems('store')) },
@@ -60,7 +61,8 @@ const MENUS = [
     { label: 'Tab ba&r', sub: [['One row that &scrolls', 'tabBar.set', 'scroll'], ['One row, a &menu for the rest', 'tabBar.set', 'menu'],
       ['Several &rows', 'tabBar.set', 'rows']] },
     { label: '&Gutter', sub: GUTTER_ITEMS },
-    { label: 'Scroll &bar marks', sub: [['&Find matches', 'overviewMark.toggle', 'find'],
+    { label: 'Occu&rrences', fill: () => occurrenceItems() },   // occurrences.js
+    { label: 'Scroll &bar marks', sub: [['&Find matches', 'overviewMark.toggle', 'find'], ['&Occurrences', 'overviewMark.toggle', 'occurrences'],
       ['&Unsaved changes', 'overviewMark.toggle', 'changes'], ['&Git changes', 'overviewMark.toggle', 'git'],
       ['&Bookmarks', 'overviewMark.toggle', 'bookmarks'], ['&Highlights', 'overviewMark.toggle', 'highlights'], ['&Compare differences', 'overviewMark.toggle', 'compare']] },
     { label: 'Pane orient&ation', sub: [['Side &by side', 'paneOrientation.set', 'v'], ['&Above each other', 'paneOrientation.set', 'h']] },

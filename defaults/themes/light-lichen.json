@@ -19,6 +19,8 @@
     "active": "rgba(77, 107, 94, .13)",
     "select": "#cfdccb",
     "highlight": "#f2cf3a",
+    "occurrenceHit": "#eac00f",
+    "occurrenceBox": "#8a7109",
     "inlineCode": "#d9dbd3",
     "inlineCodeFg": "#2f4a3f",
     "paneActive": "#4d6b5e",

@@ -407,6 +407,13 @@ sealed class MainForm : Form
                 item.CustomItemSelected += (_, _) => Post(new JsonObject { ["event"] = "contextAction", ["action"] = action });
                 m.MenuItems.Add(item);
             }
+            // Occurrences (docs/plans/executed/PLAN-show-occurrences.md): on a selection, in the editor and the preview.
+            if (m.ContextMenuTarget.HasSelection)
+            {
+                var occurrences = env.CreateContextMenuItem("Show all occurrences of this selection", null, CoreWebView2ContextMenuItemKind.Command);
+                occurrences.CustomItemSelected += (_, _) => Post(new JsonObject { ["event"] = "contextAction", ["action"] = "occurrences.show" });
+                m.MenuItems.Add(occurrences);
+            }
         };
         core.DocumentTitleChanged += (_, _) => UpdateTitle();
         core.DOMContentLoaded += (_, _) => loading.Hide();
