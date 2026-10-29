@@ -204,16 +204,39 @@ viewing uses a normal project, "View" by default, whose windows dock every pane 
 - The old layout values (`sidebar` shown, its width, `outline`) are read into the new layout once, and the floating
   windows' kept places (AppState) become their floating places.
 
+### 3.11a Using another window's layout
+
+View > Layout gets a third item beside Save as default and Reset to default: **Use layout of...**, which gives this
+window the layout of another window or project.
+
+- It lists the other open LexPen windows (by their project's name and the window's title) and the projects with no
+  window open (their last window's layout, as a new window of that project would get it). The choice is a submenu
+  when the list is short, else the list with a search, as F1 (`layoutUseFrom`, in F1 too).
+- What it takes: the whole window layout of plan 31 (the outline, the panes and their sizes, the ruler, the bars,
+  ...) and, once the docking exists, every pane's place, size and tab order, which dock areas are closed, and each
+  editor pane's outline side and state. Floating panes: their windows' places too (question 7).
+- What it does not take: this window's folder, tabs, documents and cursors; the window's own place and size on the
+  screen; Characters and Highlights, which serve all of LexPen (3.11).
+- Applied at once, as Reset to default is; the message offers Undo (the layout as it was), as Save as default does.
+- Kept as this window's own layout from then on; the other window keeps its own (no link between them).
+- It works on today's layout already, so it can be built before the docking (stage 0) and grows with it.
+
 ### 3.12 Menus and keys
 
 - View > Panes: each pane with a check (shown), the dock areas with a check (open or closed, 3.6), and Reset
   docking (the default of 3.11 for this window).
+- View > Layout: Save as default, Reset to default (plan 31), Use layout of... (3.11a).
 - The pane menus and the drag (3.7); the actions in F1 (3.7).
 - The existing actions keep working: `viewFolder`, `viewSearch`, Settings, Characters, Highlights, Manage projects,
   `macro.manage` show their pane as it was (3.6a); `sidebar.toggle` closes and opens the left area (3.6);
   `outline.toggle` as in 3.8.
 
 ### 3.13 Stages
+
+Before the parts, on its own:
+
+0. View > Layout > Use layout of... (3.11a) on today's window layout; it takes the docking layout too once part 2
+   has it.
 
 Part 1, the pages:
 
@@ -256,6 +279,9 @@ Part 2, the docking:
 - Part 2, in-app: an outline at the left, the right and the bottom of its pane, each editor pane its own choice; at
   the bottom its entries in columns; dragging it lights up only its own pane's sides; floating, it follows its
   pane's tab changes.
+- In-app: Use layout of... from another open window and from a project with no window open: this window then shows
+  that layout (the outline, the panes, the ruler, the bars; with part 2 the docking too), its folder, tabs and own
+  place unchanged; Undo puts it back; the other window unchanged; the layout kept after a restart.
 - Unit: the old layout values and the floating windows' places read into the docking layout.
 
 ## 4. Open questions
@@ -275,3 +301,7 @@ Part 2, the docking:
    merged into main only together with part 2; or (b) their pages shown at their old places (Folder and Search at
    the left, the outline at the right of its pane: the pages hosted there, fixed), plus Float in their menu, so each
    part can be merged and used at once and nothing changes in daily use. Proposal: (b).
+7. Use layout of... (3.11a) with floating panes in the other window: their windows go to the same places on the
+   screen (so they may cover the other window's), or this window's floating panes stay where they are and only the
+   docked layout is taken? Proposal: the same places, as the layout says; a pane moved off the screen's edge is put
+   back on it.
