@@ -4,7 +4,7 @@
 
 The folder pane's right-click menu has three loose items: Copy file name, Copy path, Copy relative path. They
 are to make way for one item, **Copy name to Windows clipboard**, with a submenu of six ways to copy a file's name. The same submenu
-also goes on the File menu, where it acts on the active document, and the tab menu of a file.
+also goes on the File menu, where it acts on the active document, and the tab menu of a document.
 
 ## 2. The solution, in brief
 
@@ -49,12 +49,12 @@ The menu of a folder changes the 'file' into 'folder'; 'Filename' becomes 'Folde
 
 ### 3.3 The File menu
 
-- After Save as... / Revert to saved, a Copy name submenu (`{ label: 'Cop&y name', sub: [...] }` in menus.js
+- After Save as... / Revert to saved, a Copy name submenu (`{ label: 'Cop&y name to Windows clipboard', sub: [...] }` in menus.js
   MENUS) with the six items of 3.1 on `file.copy`.
 
 ### 3.4 The folder pane's menu
 
-- index.html `.mm-tree-menu`: treeCopyName, copyPath and copyRelativePath make way for one item, Copy file.
+- index.html `.mm-tree-menu`: treeCopyName, copyPath and copyRelativePath make way for one item, Copy name to Windows clipboard.
 - The tree menu is plain HTML, not a menus.js menu. Its Copy file item opens the six items with menus.js
   openPopupMenu next to the item (hover or click, Right from the keyboard), each running `file.copy` with the row's
   path (contextPath).
@@ -67,9 +67,9 @@ The menu of a folder changes the 'file' into 'folder'; 'Filename' becomes 'Folde
   file directly in the root, a file outside the root, a name with two dots, a name without an extension, a drive
   root as the folder pane's root (`D:\`), and these variations for a folder.
 - In-app: the File menu's submenu on the active document, and it's greyed out on a draft. The folder pane's
-  'Copy name to wWindows clipboard' submenu opens beside the item and copies the row's path.
+  'Copy name to Windows clipboard' submenu opens beside the item and copies the row's path.
 - File tab: the menu's submenu, and it's greyed out on a draft. The document's 'Copy name to Windows clipboard' submenu opens beside the item and copies the document's path.
-- features.md: the entry on the folder pane's menu, and the File menu's new submenu.
+- features.md: the entry on the folder pane's menu, the File menu's new submenu, and document tab menu.
 
 ## 4. Open questions
 
