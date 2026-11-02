@@ -28,7 +28,7 @@ lifecycle (File), changing the text (Edit), finding things in it (Find), moving 
 (Format), how it is shown (View), where things are in the window (Window), the bigger tools (Tools) and help (Help).
 Each menu shows at most about fifteen first-level entries, in small groups ordered by how often they are used, with
 the larger families (bookmarks, macros, compare, panels, the clipboards) as submenus. The action names, keys and F1
-stay as they are: only the menus move. The coming action bar is a separate, flat, icon-first view of the same actions,
+stay as they are (one key moves: Ctrl+F4 closes the window): only the menus move. The coming action bar is a separate, flat, icon-first view of the same actions,
 ordered by frequency and work flow rather than by menu.
 
 ## 3. Details
@@ -62,17 +62,19 @@ looking for it.
 | Subject | Features (actions) |
 |---|---|
 | A. The file | new, open, open folder, save, save as, revert, rename, close tab, close all, reopen closed, recent files / folders / closed, favourites, file types |
-| B. The text: changing it | undo / redo; cut / copy / paste, paste image; the clipboards (select, manage); insert character, complete word; insert / overwrite; column mode, select a block; multiple cursors; line commands (duplicate, move, delete, join, indent, outdent); tab stops and helper lines |
+| B1. The text: changing it | undo / redo; cut / copy / paste, paste image; the clipboards (select, manage); insert character, complete word; insert / overwrite; line commands (duplicate, move, delete, join, indent, outdent) |
+| B2. The text: selecting it (a part of Edit) | select line, select inside brackets; column (block) mode, select a block; multiple cursors |
+| B3. Helpers for editing (they change no text, they make editing easier) | tab stops (add, remove, clear), helper lines (add, remove, clear) |
 | C. The text: finding in it | find, find next / previous, replace, replace all; search in files, replace in files; the occurrences (show all, field, clear, bar) |
 | D. The text: moving through it | go to line; brackets (go to opening / closing, select inside); next / previous section and block; bookmarks (store, toggle, unnumbered, go to, next / previous, clear, list, manage); position back / forward; locate the cursor |
 | E. The text: marking it for review | highlights (highlight, from selection, note, remove, remove all, keep adjusted, next / previous, window, move all) |
 | F. The text: its form | the language's formatting (format bar items, reformat); convert (case, whitespace, tabs / spaces, line ends); the file's language |
-| G. The document: how it shows | editor / preview / side by side, preview place; wrap; ruler; formatting bar; gutter columns and line numbers; scroll bar marks; zoom; day / night |
+| G. The document: how it shows | editor / preview / side by side, preview place; wrap; ruler; formatting bar; gutter columns and line numbers; scroll bar marks |
 | H. The window: what is where | the panels (Folder, Search, Outline, Characters, Highlights, Bookmarks, Step by step, Messages, Clipboards, Macros, Settings, Manage projects, Theme sets) and the dock areas; the two editor panes (orientation, hide, close, show, split into the other, level, scroll together); the tabs (next / previous document and tab, back / forward in the window, pin, read-only, tab bar); the layout (save as default, reset, use layout of); messages |
 | I. Projects and windows | manage projects, new, rename, move this window, the list of projects with their windows, close window |
 | J. Comparing | compare files, compare folders; next / previous difference, align the cursor lines, swap, leave; ignore whitespace / case, line strip |
 | K. Automation | macros: record / stop, play, play X times, play to the end, a macro's window, manage, step by step (step, step into, continue, stop, breakpoint), the macro language |
-| L. LexPen itself | settings, theme sets, keyboard shortcuts and commands (F1), about |
+| L. LexPen itself | settings, theme sets, day / night, zoom (they act on the app on this screen, not on one document), keyboard shortcuts and commands (F1), about |
 
 Three other views on the same features, used to order things inside a menu:
 
@@ -109,10 +111,13 @@ Three other views on the same features, used to order things inside a menu:
 **File** (the file and its lifecycle)
 
 - New file, Open file..., Open folder...
-- | Recent > (Recent files, Recent folders, Recently closed, | Favourite files, Favourite folders)
+- | Recents & Favourites > (Recent files, Recent folders, Recently closed, | Favourite files, Favourite folders)
 - | Save, Save as..., Revert to saved, Rename...
-- | Close tab, Close all tabs, Reopen closed tab
-- | Close window
+- | Close tab (Ctrl+W), Close all tabs, Reopen closed tab
+- | Close window (Ctrl+F4)
+
+The submenu holds both, so its name says both (in menus.js the `&` is written `&&`, a single one marks the access
+key). Ctrl+F4 is Close tab's second key today; it moves to Close window, Close tab keeps Ctrl+W.
 
 **Edit** (changing the text)
 
@@ -120,8 +125,9 @@ Three other views on the same features, used to order things inside a menu:
 - | Cut, Copy, Paste, Paste image...
 - | Clipboards > (Windows clipboard, Clipboard 1 ... 9 [active], | Manage clipboards...)
 - | Insert character... (opens Characters as it was last), Complete word, Insert / overwrite [ ]
-- | Select > (Select line, Select inside brackets, Column mode [ ], Multiple cursors >)
 - | Lines > (Duplicate, Move up, Move down, Delete, Join, | Indent, Outdent)
+- | Select > (Select line, Select inside brackets, | Column mode [ ], Select a block, | Multiple cursors >)
+- | Helpers > (Add tab stop, Remove tab stop, Clear tab stops, | Add helper line, Remove helper line, Clear helper lines)
 - | Highlights > (Highlight, Selection to highlight, Highlight note..., Remove highlight, Remove all in this file, Keep the adjusted highlight, | Manage highlights...)
 
 Highlights stay in Edit because making one changes what is stored with the text (its note, its place); moving
@@ -161,7 +167,6 @@ Convert stops being a menu of its own (one fewer on the bar); its key menu at th
 - | Preview place > (At the right, At the left, Above, Below)
 - | Wrap long lines [ ], Ruler [ ], Formatting bar [ ]
 - | Gutter > (as now), Scroll bar marks > (as now), Tab bar > (as now)
-- | Zoom > (as now), Day / night [ ]
 
 **Window** (what is where in the window)
 
@@ -179,7 +184,11 @@ This replaces today's Projects menu: a project is a set of windows, so it belong
 
 - Macros > (Record / stop recording, Play, Play X times..., Play to the end of the file, | Step by step, | the stored macros, | Manage macros...)
 - | Compare > (Compare files..., Compare folders..., | Next difference, Previous difference, Align the cursor lines, Swap the files, Leave the compare, | Ignore whitespace [ ], Ignore case [ ], Line strip [ ])
+- | Day / night [ ], Zoom > (as now)
 - | Settings..., Theme set >, File types...
+
+Day / night and the zoom act on LexPen on this screen, not on the document, so they sit with the settings, not in
+View.
 
 **Help** (help and LexPen itself)
 
@@ -206,6 +215,10 @@ What moves, against today:
 | Keyboard shortcuts, About | Options | Help |
 | Insert character | (removed in plan 24) | Edit (opens Characters as it was last) |
 | Locate the cursor | View | Go |
+| Zoom >, Day / night | View | Tools |
+| Tab stops, helper lines | no menu (the ruler, F1) | Edit > Helpers |
+| Recent > | File | File > Recents & Favourites |
+| Ctrl+F4 | Close tab | Close window |
 
 The bar then has the nine menus File, Edit, Find, Go, Format, View, Window, Tools and Help, against the seven of 3.1;
 each is smaller and has one subject. Fewer menus are possible by merging Find and Go into one "Search" menu (question 4.1).
