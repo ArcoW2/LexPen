@@ -25,7 +25,7 @@ features can follow without thought.
 
 Group the features by what they act on and when you use them, and give each group one home menu: the file and its
 lifecycle (File), changing the text (Edit), choosing the text to act on (Select), finding things in it (Find), moving through it (Go), its formatting
-(Format), how it is shown (View), where things are in the window (Window), the bigger tools (Tools) and help (Help).
+(Format), how it is shown (View), where things are in the window (Window), the bigger tools (Tools), and LexPen itself with its help (Options).
 Each menu shows at most about fifteen first-level entries, in small groups ordered by how often they are used, with
 the larger families (bookmarks, macros, compare, panels, the clipboards) as submenus. The action names, keys and F1
 stay as they are (the bookmarks get UltraEdit's F2 keys besides): only the menus move. The coming action bar is a separate, flat, icon-first view of the same actions,
@@ -84,7 +84,7 @@ Three other views on the same features, used to order things inside a menu:
   feature that only works in a state should be in its state's place first (the compare bar, the Step by step pane,
   the format bar) and in the menu second, never only in the menu.
 - **By work flow.** Open -> read / navigate -> find -> change -> format -> review (compare, highlights) -> save. The
-  menu bar follows this order from left to right (File, Edit, Select, Find, Go, Format, View, Window, Tools, Help); within a
+  menu bar follows this order from left to right (File, Edit, Select, Find, Go, Format, View, Window, Tools, Options); within a
   menu the most used group comes first.
 - **By frequency.** Several times a minute: undo, clipboard, find next, save, go to bookmark, switch document. Several
   times an hour: find / replace, search in files, go to line, preview, bookmarks, a panel. Now and then: compare,
@@ -203,17 +203,15 @@ This replaces today's Projects menu: a project is a set of windows, so it belong
 
 - Macros > (Record / stop recording, Play, Play X times..., Play to the end of the file, | Step by step, | the stored macros, | Manage macros...)
 - | Compare > (Compare files..., Compare folders..., | Next difference, Previous difference, Align the cursor lines, Swap the files, Leave the compare, | Ignore whitespace [ ], Ignore case [ ], Line strip [ ])
+**Options** (LexPen itself, and its help)
+
+- Settings..., Theme set >, File types...
 - | Day / night [ ], Zoom > (as now)
-- | Settings..., Theme set >, File types...
+- | Keyboard shortcuts and commands (F1), The macro language
+- | About LexPen
 
 Day / night and the zoom act on LexPen on this screen, not on the document, so they sit with the settings, not in
-View.
-
-**Help** (help and LexPen itself)
-
-- Keyboard shortcuts and commands (F1)
-- The macro language
-- | About LexPen
+View. Help needs no menu of its own: its few items join Options, as today's Keyboard shortcuts and About do.
 
 What moves, against today:
 
@@ -230,19 +228,19 @@ What moves, against today:
 | Pane orientation, Pane visibility, Level, Split, Scroll together | View | Window > Panes |
 | Layout >, Messages..., Panels > | View | Window |
 | Projects menu | own menu | Window |
-| Settings, Theme set | Options | Tools |
-| Keyboard shortcuts, About | Options | Help |
+| Settings, Theme set | Options | Options (stay) |
+| Keyboard shortcuts, About | Options | Options (stay); The macro language joins them |
 | Insert character | (removed in plan 24) | Edit > Insert > Character... (opens Characters as it was last) |
 | Links, images | Format (per language) | Edit > Insert (the format bar keeps its buttons) |
 | Emoticon | none | Edit > Insert > Emoticon... |
 | Locate the cursor | View | Go |
-| Zoom >, Day / night | View | Tools |
+| Zoom >, Day / night | View | Options |
 | Tab stops, helper lines | no menu (the ruler, F1) | Edit > Helpers |
 | Recent > | File | File > Recents & Favourites |
 | Column mode, Select inside brackets, Multiple cursors > | Edit | Select (a menu of its own) |
 | Toggle unnumbered bookmark, Next / Previous bookmark | Ctrl+K, K / N / P | also Ctrl+F2, F2, Shift+F2 |
 
-The bar then has the ten menus File, Edit, Select, Find, Go, Format, View, Window, Tools and Help, against the seven of
+The bar then has the ten menus File, Edit, Select, Find, Go, Format, View, Window, Tools and Options, against the seven of
 3.1; each is smaller and has one subject. Fewer menus are possible by merging Find and Go into one "Search" menu
 (question 4.1).
 
@@ -269,15 +267,11 @@ The others:
 - The splitter between text and preview: the preview's place (plan 24).
 - The gutter: Gutter > as in View.
 - A dock tab: dock, float, close (plan 24).
-- A tab: as now.
-- The splitter between text and preview: the preview's place (plan 24).
-- The gutter: Gutter > as in View.
-- A dock tab: dock, float, close (plan 24).
 
 ### 3.6 The F1 groups
 
 F1 shows each action with its group. The groups follow the menus of 3.4, so F1 and the menus tell the same story:
-file, edit, select, find, go, format, view, window, tools, help (and settings for the setting toggles). This changes only the
+file, edit, select, find, go, format, view, window, tools, options (and settings for the setting toggles). This changes only the
 `group` of the actions (actions.js and the other registrations); names, keys and keys.json stay.
 
 ### 3.7 A bar with all actions (proposal)
@@ -311,7 +305,7 @@ Proposed default content, left to right, in groups:
 - **The format bar stays** as the language's own bar above the text: the action bar is the window's, the format bar
   the document's.
 - **What it replaces**: the top bar's buttons that are actions now (Editor / Preview, Day / night, the zoom) move into
-  it, so there is one bar of buttons, not two (question 4.6).
+  it, so there is one bar of buttons, not two (question 4.5).
 
 ### 3.8 How it would be built
 
@@ -332,13 +326,11 @@ Proposed default content, left to right, in groups:
 2. Highlights: making them in Edit and moving between them in Go (as proposed), or all of them in one place (a Review
    menu, or Go)?
 3. Projects: inside Window (as proposed), or keep their own menu?
-4. Settings and Theme set under Tools (as proposed), or keep an Options menu (then Help takes Keyboard shortcuts and
-   About)?
-5. Convert inside Format (as proposed), or keep its own menu?
-6. The action bar: replace the top bar's buttons (Editor / Preview, Day / night, zoom) as proposed, or a second row
+4. Convert inside Format (as proposed), or keep its own menu?
+5. The action bar: replace the top bar's buttons (Editor / Preview, Day / night, zoom) as proposed, or a second row
    under them?
-7. The action bar's default buttons in 3.7: anything to add or drop before it gets its own plan?
-8. Emoticon...: open Windows' own emoji panel (as Win+. does; it types into the editor), or the Characters panel on
+6. The action bar's default buttons in 3.7: anything to add or drop before it gets its own plan?
+7. Emoticon...: open Windows' own emoji panel (as Win+. does; it types into the editor), or the Characters panel on
    an emoticon group of its own (LexPen's look, searchable, with recent ones)?
 
 ## 5. Resolved during execution
