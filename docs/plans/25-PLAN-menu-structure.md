@@ -219,11 +219,12 @@ Convert stops being a menu of its own (one fewer on the bar); its key menu at th
 - | Document panes > (Left and right, Top and bottom, | Hide this document pane, Hide the other document pane, Close this document pane, Close the other document pane, Show the hidden document pane, | This document in the other pane too, Level the document panes, Scroll both document panes together [ ])
 - | Layout > (Save as default, Reset to default, Use layout of >)
 - | Messages...
-- | Manage projects..., New project..., Rename this project..., Move this window to >
-- | (each project with its windows, this one marked, as today's Projects menu)
+- | Projects > (Manage projects..., New project..., Rename this project..., Move this window to >, | each project with its windows, this one marked)
 - | Close window
 
-This replaces today's Projects menu: a project is a set of windows, so it belongs with the windows (see question 4.3).
+Window > Projects > replaces today's Projects menu and holds all of it, in this order: Manage, New, Rename, Move this
+window to, then the projects themselves. A project is a set of windows, so it belongs with the windows; the list of
+projects is a submenu, not on Window's first level.
 
 **Tools** (the larger tools)
 
@@ -254,7 +255,7 @@ What moves, against today:
 | Pane orientation, Pane visibility, Level, Split, Scroll together | View | Window > Document panes |
 | Layout >, Messages..., Panels > | View | Window |
 | Document panels > (Editor, Preview) | View | View, first level: Editor, Preview, Editor and preview |
-| Projects menu | own menu | Window |
+| Projects menu | own menu | Window > Projects > (Manage, New, Rename, Move to, the projects) |
 | Settings, Theme set | Options | Options (stay) |
 | Keyboard shortcuts, About | Options | Options (stay); The macro language joins them |
 | Insert character | (removed in plan 24) | Edit > Insert > Character... (opens Characters as it was last) |
@@ -332,7 +333,7 @@ Proposed default content, left to right, in groups:
 - **The format bar stays** as the language's own bar above the text: the action bar is the window's, the format bar
   the document's.
 - **What it replaces**: the top bar's buttons that are actions now (Editor / Preview, Day / night, the zoom) move into
-  it, so there is one bar of buttons, not two (question 4.5).
+  it, so there is one bar of buttons, not two (question 4.4).
 
 ### 3.8 How it would be built
 
@@ -352,14 +353,13 @@ Proposed default content, left to right, in groups:
 1. Find and Go as two menus (as proposed: ten menus, each small), or one Search menu (nine menus, that one larger)?
 2. Highlights: making them in Edit and moving between them in Go (as proposed), or all of them in one place (a Review
    menu, or Go)?
-3. Projects: inside Window (as proposed), or keep their own menu?
-4. Convert inside Format (as proposed), or keep its own menu?
-5. The action bar: replace the top bar's buttons (Editor / Preview, Day / night, zoom) as proposed, or a second row
+3. Convert inside Format (as proposed), or keep its own menu?
+4. The action bar: replace the top bar's buttons (Editor / Preview, Day / night, zoom) as proposed, or a second row
    under them?
-6. The action bar's default buttons in 3.7: anything to add or drop before it gets its own plan?
-7. Emoticon...: open Windows' own emoji panel (as Win+. does; it types into the editor), or the Characters panel on
+5. The action bar's default buttons in 3.7: anything to add or drop before it gets its own plan?
+6. Emoticon...: open Windows' own emoji panel (as Win+. does; it types into the editor), or the Characters panel on
    an emoticon group of its own (LexPen's look, searchable, with recent ones)?
-8. Which panels are document panels (they follow the document they are with): only the Outline, or also Highlights and
+7. Which panels are document panels (they follow the document they are with): only the Outline, or also Highlights and
    Bookmarks (showing this file's), Characters, Step by step?
 
 ## 5. Resolved during execution
