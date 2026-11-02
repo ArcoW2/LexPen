@@ -159,7 +159,7 @@ link and image items (markdown, HTML, ...); for a language without them they are
 the format bar keeps its buttons for them.
 
 Highlights stay in Edit because making one changes what is stored with the text (its note, its place); moving
-between them is in Go. This is the one split by work flow (see question 4.2).
+between them is in Go. This is the one split by work flow (see question 4.1).
 
 **Select** (choosing the text to act on; a selection changes nothing, so it is not Edit)
 
@@ -230,6 +230,7 @@ projects is a submenu, not on Window's first level.
 
 - Macros > (Record / stop recording, Play, Play X times..., Play to the end of the file, | Step by step, | the stored macros, | Manage macros...)
 - | Compare > (Compare files..., Compare folders..., | Next difference, Previous difference, Align the cursor lines, Swap the files, Leave the compare, | Ignore whitespace [ ], Ignore case [ ], Line strip [ ])
+
 **Options** (LexPen itself, and its help)
 
 - Settings..., Theme set >, File types...
@@ -269,8 +270,7 @@ What moves, against today:
 | Toggle unnumbered bookmark, Next / Previous bookmark | Ctrl+K, K / N / P | also Ctrl+F2, F2, Shift+F2 |
 
 The bar then has the ten menus File, Edit, Select, Find, Go, Format, View, Window, Tools and Options, against the seven of
-3.1; each is smaller and has one subject. Fewer menus are possible by merging Find and Go into one "Search" menu
-(question 4.1).
+3.1; each is smaller and has one subject. Find and Go stay two menus (not one Search menu).
 
 ### 3.5 The right-click menus
 
@@ -333,7 +333,7 @@ Proposed default content, left to right, in groups:
 - **The format bar stays** as the language's own bar above the text: the action bar is the window's, the format bar
   the document's.
 - **What it replaces**: the top bar's buttons that are actions now (Editor / Preview, Day / night, the zoom) move into
-  it, so there is one bar of buttons, not two (question 4.4).
+  it, so there is one bar of buttons, not two (question 4.3).
 
 ### 3.8 How it would be built
 
@@ -350,16 +350,15 @@ Proposed default content, left to right, in groups:
 
 ## 4. Open questions
 
-1. Find and Go as two menus (as proposed: ten menus, each small), or one Search menu (nine menus, that one larger)?
-2. Highlights: making them in Edit and moving between them in Go (as proposed), or all of them in one place (a Review
+1. Highlights: making them in Edit and moving between them in Go (as proposed), or all of them in one place (a Review
    menu, or Go)?
-3. Convert inside Format (as proposed), or keep its own menu?
-4. The action bar: replace the top bar's buttons (Editor / Preview, Day / night, zoom) as proposed, or a second row
+2. Convert inside Format (as proposed), or keep its own menu?
+3. The action bar: replace the top bar's buttons (Editor / Preview, Day / night, zoom) as proposed, or a second row
    under them?
-5. The action bar's default buttons in 3.7: anything to add or drop before it gets its own plan?
-6. Emoticon...: open Windows' own emoji panel (as Win+. does; it types into the editor), or the Characters panel on
+4. The action bar's default buttons in 3.7: anything to add or drop before it gets its own plan?
+5. Emoticon...: open Windows' own emoji panel (as Win+. does; it types into the editor), or the Characters panel on
    an emoticon group of its own (LexPen's look, searchable, with recent ones)?
-7. Which panels are document panels (they follow the document they are with): only the Outline, or also Highlights and
+6. Which panels are document panels (they follow the document they are with): only the Outline, or also Highlights and
    Bookmarks (showing this file's), Characters, Step by step?
 
 ## 5. Resolved during execution
