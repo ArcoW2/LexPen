@@ -1,6 +1,6 @@
 # Plan: A menu structure that follows the features
 
-Status: proposal, not built; open questions in section 4. Asked for on 2026-10-31, after plan 24 (docking) was complete:
+Status: proposal, not built; the questions answered 2026-11-02. Asked for on 2026-10-31, after plan 24 (docking) was complete:
 "due to adding features, a bit disorienting. Make a good menu structure ... first the structure of the features, pure
 logically (by feature and/or by visibility and/or by UX flow), then the proposed menu. Later on we will have a bar with
 all actions (with icons) too ... In that document you can make a proposal for such a bar. Every action that is needed
@@ -103,7 +103,7 @@ menus, F1 and the hints use these words, and only these:
 | Document pane | One of the (at most) two places in a window where documents show: left and right, or top and bottom. Each has its own tabs and shows the document of its active tab. Today's "editor pane" and "pane". |
 | Editor, Preview | The two ways a document shows in its document pane: the editor (the text), the preview, or both (Editor and preview; the preview's place: right, left, above, below). Not panels. |
 | Panel | A tool window: Folder, Search, Outline, Characters, Highlights, Bookmarks, Step by step, Messages, Clipboards, Macros, Settings, Manage projects, Theme sets. Docked in a dock area, docked at a document pane, or floating. |
-| Document panel | A panel about the document it is with: docked at a document pane, it shows that pane's document (the Outline does so now). Elsewhere it follows the active document. |
+| Document panel | A panel about the document it is with: docked at a document pane, it shows that pane's document (the Outline does so now). Elsewhere it follows the active document. Which panel is whose (LexPen's or a window's): plan 22. |
 | Dock area | The left, right and bottom edge of the window, where panels dock. |
 
 What changes in the names:
@@ -149,7 +149,7 @@ The submenu holds both, so its name says both (in menus.js the `&` is written `&
 - Undo, Redo
 - | Cut, Copy, Paste, Paste image...
 - | Clipboards > (Windows clipboard, Clipboard 1 ... 9 [active], | Manage clipboards...)
-- | Insert > (Character... (opens Characters as it was last), Emoticon..., | Link..., Image...), Complete word, Insert / overwrite [ ]
+- | Insert > (Character... (opens Characters as it was last), Emoticon... (opens Characters on its emoticons), | Link..., Image...), Complete word, Insert / overwrite [ ]
 - | Lines > (Duplicate, Move up, Move down, Delete, Join, | Indent, Outdent)
 - | Helpers > (Add tab stop, Remove tab stop, Clear tab stops, | Add helper line, Remove helper line, Clear helper lines)
 - | Highlights > (Highlight, Selection to highlight, Highlight note..., Remove highlight, Remove all in this file, Keep the adjusted highlight, | Manage highlights...)
@@ -159,7 +159,7 @@ link and image items (markdown, HTML, ...); for a language without them they are
 the format bar keeps its buttons for them.
 
 Highlights stay in Edit because making one changes what is stored with the text (its note, its place); moving
-between them is in Go. This is the one split by work flow (see question 4.1).
+between them is in Go. This is the one split by work flow.
 
 **Select** (choosing the text to act on; a selection changes nothing, so it is not Edit)
 
@@ -261,7 +261,7 @@ What moves, against today:
 | Keyboard shortcuts, About | Options | Options (stay); The macro language joins them |
 | Insert character | (removed in plan 24) | Edit > Insert > Character... (opens Characters as it was last) |
 | Links, images | Format (per language) | Edit > Insert (the format bar keeps its buttons) |
-| Emoticon | none | Edit > Insert > Emoticon... |
+| Emoticon | none | Edit > Insert > Emoticon... (the Characters panel, its emoticons) |
 | Locate the cursor | View | Go |
 | Zoom >, Day / night | View | Options |
 | Tab stops, helper lines | no menu (the ruler, F1) | Edit > Helpers |
@@ -304,11 +304,12 @@ file, edit, select, find, go, format, view, window, tools, options (and settings
 
 ### 3.7 A bar with all actions (proposal)
 
-A row of icon buttons under the menu bar, for the actions used most, ordered by frequency and work flow rather than
-by menu. It is a second view on the same actions (each button runs an action, its tooltip shows the title and the
+The action bar gets a plan of its own; this section is its starting point. It is an optional row of icon buttons
+under the menu bar, for the actions each user wants at hand: every user has other favourites, so the user edits it.
+It may even replace the menu bar, for a user who wants that (a setting). The top bar stays as it is. It is a second view on the same actions (each button runs an action, its tooltip shows the title and the
 key, as the menus do); it can be shown or hidden (View, and its own right-click).
 
-Proposed default content, left to right, in groups:
+A first proposal for its shipped content, left to right, in groups (to be settled in its plan):
 
 | Group | Buttons |
 |---|---|
@@ -332,13 +333,17 @@ Proposed default content, left to right, in groups:
   now is greyed out (the action's `enabled`).
 - **The format bar stays** as the language's own bar above the text: the action bar is the window's, the format bar
   the document's.
-- **What it replaces**: the top bar's buttons that are actions now (Editor / Preview, Day / night, the zoom) move into
-  it, so there is one bar of buttons, not two (question 4.3).
+- **The top bar stays**, with its buttons (Editor / Preview, Day / night, the zoom); the action bar is an extra row
+  under the menu bar, off by default.
 
 ### 3.8 How it would be built
 
 - The menus: only `MENUS` in menus.js changes (and the Projects menu's items move into Window); every item still runs
-  the same action. Edit > Insert > holds Insert character again, Emoticon (new) and the language's link and image.
+  the same action. Edit > Insert > holds Insert character again, Emoticon (new: the Characters panel on its
+  emoticons) and the language's link and image.
+- The emoticons in Characters: a group of its own is new work. Windows gives no names above U+FFFF, where the
+  emoticons are (CharInfoTests: U+1F600 has none), and whether Characters shows those characters at all is [not yet
+  checked]. Its names and search need a source of their own; settled when it is built.
 - The right-click: MainForm.cs `AddDocumentItems` puts the highlight items in a submenu and, with the setting Voice
   typing off, removes WebView2's Voice typing item and the empty More tools.
 - The F1 groups: the `group` of each registration.
@@ -350,16 +355,7 @@ Proposed default content, left to right, in groups:
 
 ## 4. Open questions
 
-1. Highlights: making them in Edit and moving between them in Go (as proposed), or all of them in one place (a Review
-   menu, or Go)?
-2. Convert inside Format (as proposed), or keep its own menu?
-3. The action bar: replace the top bar's buttons (Editor / Preview, Day / night, zoom) as proposed, or a second row
-   under them?
-4. The action bar's default buttons in 3.7: anything to add or drop before it gets its own plan?
-5. Emoticon...: open Windows' own emoji panel (as Win+. does; it types into the editor), or the Characters panel on
-   an emoticon group of its own (LexPen's look, searchable, with recent ones)?
-6. Which panels are document panels (they follow the document they are with): only the Outline, or also Highlights and
-   Bookmarks (showing this file's), Characters, Step by step?
+None.
 
 ## 5. Resolved during execution
 
