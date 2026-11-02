@@ -28,7 +28,7 @@ lifecycle (File), changing the text (Edit), finding things in it (Find), moving 
 (Format), how it is shown (View), where things are in the window (Window), the bigger tools (Tools) and help (Help).
 Each menu shows at most about fifteen first-level entries, in small groups ordered by how often they are used, with
 the larger families (bookmarks, macros, compare, panels, the clipboards) as submenus. The action names, keys and F1
-stay as they are (one key moves: Ctrl+F4 closes the window): only the menus move. The coming action bar is a separate, flat, icon-first view of the same actions,
+stay as they are: only the menus move. The coming action bar is a separate, flat, icon-first view of the same actions,
 ordered by frequency and work flow rather than by menu.
 
 ## 3. Details
@@ -114,21 +114,24 @@ Three other views on the same features, used to order things inside a menu:
 - | Recents & Favourites > (Recent files, Recent folders, Recently closed, | Favourite files, Favourite folders)
 - | Save, Save as..., Revert to saved, Rename...
 - | Close tab (Ctrl+W), Close all tabs, Reopen closed tab
-- | Close window (Ctrl+F4)
+- | Close window (Alt+F4)
 
-The submenu holds both, so its name says both (in menus.js the `&` is written `&&`, a single one marks the access
-key). Ctrl+F4 is Close tab's second key today; it moves to Close window, Close tab keeps Ctrl+W.
+The submenu holds both, so its name says both (in menus.js the `&` is written `&&`, a single one marks the access key). Ctrl+F4 is Close tab's second key; Alt+F4 is Close window (The Windows default), Close tab keeps Ctrl+W.
 
 **Edit** (changing the text)
 
 - Undo, Redo
 - | Cut, Copy, Paste, Paste image...
 - | Clipboards > (Windows clipboard, Clipboard 1 ... 9 [active], | Manage clipboards...)
-- | Insert character... (opens Characters as it was last), Complete word, Insert / overwrite [ ]
+- | Insert > (Character... (opens Characters as it was last), Emoticon..., | Link..., Image...), Complete word, Insert / overwrite [ ]
 - | Lines > (Duplicate, Move up, Move down, Delete, Join, | Indent, Outdent)
 - | Select > (Select line, Select inside brackets, | Column mode [ ], Select a block, | Multiple cursors >)
 - | Helpers > (Add tab stop, Remove tab stop, Clear tab stops, | Add helper line, Remove helper line, Clear helper lines)
 - | Highlights > (Highlight, Selection to highlight, Highlight note..., Remove highlight, Remove all in this file, Keep the adjusted highlight, | Manage highlights...)
+
+Insert > gathers what puts something into the text at the cursor. Link and Image run the file's language's own
+link and image items (markdown, HTML, ...); for a language without them they are greyed out. Their home is Insert;
+the format bar keeps its buttons for them.
 
 Highlights stay in Edit because making one changes what is stored with the text (its note, its place); moving
 between them is in Go. This is the one split by work flow (see question 4.2).
@@ -213,21 +216,40 @@ What moves, against today:
 | Projects menu | own menu | Window |
 | Settings, Theme set | Options | Tools |
 | Keyboard shortcuts, About | Options | Help |
-| Insert character | (removed in plan 24) | Edit (opens Characters as it was last) |
+| Insert character | (removed in plan 24) | Edit > Insert > Character... (opens Characters as it was last) |
+| Links, images | Format (per language) | Edit > Insert (the format bar keeps its buttons) |
+| Emoticon | none | Edit > Insert > Emoticon... |
 | Locate the cursor | View | Go |
 | Zoom >, Day / night | View | Tools |
 | Tab stops, helper lines | no menu (the ruler, F1) | Edit > Helpers |
 | Recent > | File | File > Recents & Favourites |
-| Ctrl+F4 | Close tab | Close window |
 
 The bar then has the nine menus File, Edit, Find, Go, Format, View, Window, Tools and Help, against the seven of 3.1;
 each is smaller and has one subject. Fewer menus are possible by merging Find and Go into one "Search" menu (question 4.1).
 
 ### 3.5 The right-click menus
 
-They stay where you are and hold only what applies there; this plan changes them only to match the names above:
+They stay where you are and hold only what applies there. They follow the rules of 3.3 too: a family of more than
+three items is a submenu, and an item that is not used is not shown.
 
-- The text: Cut, Copy, Paste | Convert at the cursor > | Highlight, Toggle bookmark.
+The right-click in a document's editor and preview is WebView2's own menu (Cut, Copy, Paste, Select all, ... and its
+More tools > Voice typing), with LexPen's items added by the host (MainForm.cs, `AddDocumentItems`): four highlight
+items on the first level, and Show all occurrences of this selection on a selection. It grows with every feature that
+adds an item there. Proposed:
+
+- The four highlight items become one submenu: Highlight > (Highlight, Selection to highlight, Highlight note...,
+  Remove highlight). WebView2 has submenu items for this.
+- Voice typing: a setting (General, Voice typing, off by default). Off: the host removes WebView2's Voice typing item,
+  and with it More tools, which holds nothing else. On: it stays as WebView2 gives it. The item's name in WebView2's
+  menu is [not yet checked]; the host removes it by that name, as it removes Print now.
+- Show all occurrences of this selection stays on the first level (one item, only with a selection).
+
+The others:
+
+- A tab: as now.
+- The splitter between text and preview: the preview's place (plan 24).
+- The gutter: Gutter > as in View.
+- A dock tab: dock, float, close (plan 24).
 - A tab: as now.
 - The splitter between text and preview: the preview's place (plan 24).
 - The gutter: Gutter > as in View.
@@ -275,7 +297,9 @@ Proposed default content, left to right, in groups:
 ### 3.8 How it would be built
 
 - The menus: only `MENUS` in menus.js changes (and the Projects menu's items move into Window); every item still runs
-  the same action. Insert character comes back as an Edit item.
+  the same action. Edit > Insert > holds Insert character again, Emoticon (new) and the language's link and image.
+- The right-click: MainForm.cs `AddDocumentItems` puts the highlight items in a submenu and, with the setting Voice
+  typing off, removes WebView2's Voice typing item and the empty More tools.
 - The F1 groups: the `group` of each registration.
 - The action bar: a plan of its own (bar.json, the icons, Customize); this document only proposes its content.
 - Tests: the in-app tests that look up a menu by its title (the Edit menu's bookmark items, View > Panels) follow the
@@ -295,6 +319,8 @@ Proposed default content, left to right, in groups:
 6. The action bar: replace the top bar's buttons (Editor / Preview, Day / night, zoom) as proposed, or a second row
    under them?
 7. The action bar's default buttons in 3.7: anything to add or drop before it gets its own plan?
+8. Emoticon...: open Windows' own emoji panel (as Win+. does; it types into the editor), or the Characters panel on
+   an emoticon group of its own (LexPen's look, searchable, with recent ones)?
 
 ## 5. Resolved during execution
 
