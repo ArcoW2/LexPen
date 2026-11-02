@@ -24,11 +24,11 @@ features can follow without thought.
 ## 2. The solution, in brief
 
 Group the features by what they act on and when you use them, and give each group one home menu: the file and its
-lifecycle (File), changing the text (Edit), finding things in it (Find), moving through it (Go), its formatting
+lifecycle (File), changing the text (Edit), choosing the text to act on (Select), finding things in it (Find), moving through it (Go), its formatting
 (Format), how it is shown (View), where things are in the window (Window), the bigger tools (Tools) and help (Help).
 Each menu shows at most about fifteen first-level entries, in small groups ordered by how often they are used, with
 the larger families (bookmarks, macros, compare, panels, the clipboards) as submenus. The action names, keys and F1
-stay as they are: only the menus move. The coming action bar is a separate, flat, icon-first view of the same actions,
+stay as they are (the bookmarks get UltraEdit's F2 keys besides): only the menus move. The coming action bar is a separate, flat, icon-first view of the same actions,
 ordered by frequency and work flow rather than by menu.
 
 ## 3. Details
@@ -63,7 +63,7 @@ looking for it.
 |---|---|
 | A. The file | new, open, open folder, save, save as, revert, rename, close tab, close all, reopen closed, recent files / folders / closed, favourites, file types |
 | B1. The text: changing it | undo / redo; cut / copy / paste, paste image; the clipboards (select, manage); insert character, complete word; insert / overwrite; line commands (duplicate, move, delete, join, indent, outdent) |
-| B2. The text: selecting it (a part of Edit) | select line, select inside brackets; column (block) mode, select a block; multiple cursors |
+| B2. The text: selecting it (not editing: a selection changes nothing) | select all, select line, select inside brackets; column (block) mode, select a block; multiple cursors |
 | B3. Helpers for editing (they change no text, they make editing easier) | tab stops (add, remove, clear), helper lines (add, remove, clear) |
 | C. The text: finding in it | find, find next / previous, replace, replace all; search in files, replace in files; the occurrences (show all, field, clear, bar) |
 | D. The text: moving through it | go to line; brackets (go to opening / closing, select inside); next / previous section and block; bookmarks (store, toggle, unnumbered, go to, next / previous, clear, list, manage); position back / forward; locate the cursor |
@@ -84,7 +84,7 @@ Three other views on the same features, used to order things inside a menu:
   feature that only works in a state should be in its state's place first (the compare bar, the Step by step pane,
   the format bar) and in the menu second, never only in the menu.
 - **By work flow.** Open -> read / navigate -> find -> change -> format -> review (compare, highlights) -> save. The
-  menu bar follows this order from left to right (File, Edit, Find, Go, Format, View, Window, Tools, Help); within a
+  menu bar follows this order from left to right (File, Edit, Select, Find, Go, Format, View, Window, Tools, Help); within a
   menu the most used group comes first.
 - **By frequency.** Several times a minute: undo, clipboard, find next, save, go to bookmark, switch document. Several
   times an hour: find / replace, search in files, go to line, preview, bookmarks, a panel. Now and then: compare,
@@ -93,7 +93,7 @@ Three other views on the same features, used to order things inside a menu:
 
 ### 3.3 Rules for the menus
 
-- At most nine menus on the bar; each with at most about fifteen first-level entries, in groups of two to five
+- At most ten menus on the bar; each with at most about fifteen first-level entries, in groups of two to five
   divided by separators; the most used group at the top.
 - A family of more than three related actions is a submenu (Bookmarks, Highlights, Clipboards, Macros, Compare,
   Panels, Line commands); a submenu is never more than one level below the menu, except for lists (projects, recent
@@ -125,7 +125,6 @@ The submenu holds both, so its name says both (in menus.js the `&` is written `&
 - | Clipboards > (Windows clipboard, Clipboard 1 ... 9 [active], | Manage clipboards...)
 - | Insert > (Character... (opens Characters as it was last), Emoticon..., | Link..., Image...), Complete word, Insert / overwrite [ ]
 - | Lines > (Duplicate, Move up, Move down, Delete, Join, | Indent, Outdent)
-- | Select > (Select line, Select inside brackets, | Column mode [ ], Select a block, | Multiple cursors >)
 - | Helpers > (Add tab stop, Remove tab stop, Clear tab stops, | Add helper line, Remove helper line, Clear helper lines)
 - | Highlights > (Highlight, Selection to highlight, Highlight note..., Remove highlight, Remove all in this file, Keep the adjusted highlight, | Manage highlights...)
 
@@ -136,17 +135,27 @@ the format bar keeps its buttons for them.
 Highlights stay in Edit because making one changes what is stored with the text (its note, its place); moving
 between them is in Go. This is the one split by work flow (see question 4.2).
 
+**Select** (choosing the text to act on; a selection changes nothing, so it is not Edit)
+
+- Select all, Select line, Select inside brackets
+- | Column mode [ ], Select a block
+- | Multiple cursors > (Add occurrence, Next occurrence, Previous occurrence, Remove occurrence, Clear added cursors)
+
+Select all is the editor's own Ctrl+A today; whether it has an action of its own for the menu and F1 is [not yet checked].
+
 **Find** (finding in the text)
 
 - Find, Find next, Find previous
+- | Occurrences > (Show all occurrences, Occurrences field, Clear occurrences, The Occurrences bar [ ])
 - | Replace, Replace all
 - | Search in files, Replace in files
-- | Occurrences > (Show all occurrences, Occurrences field, Clear occurrences, The Occurrences bar [ ])
+
+The occurrences come right after Find: they are the closest to it and used as often.
 
 **Go** (moving through the text and the documents)
 
 - Go to line..., Locate the cursor
-- | Bookmarks > (Go to bookmark > 1 ... 9, Store bookmark > 1 ... 9, Toggle bookmark, Toggle unnumbered bookmark, Next bookmark, Previous bookmark, Clear bookmark, Bookmarks of this file..., | Manage bookmarks...)
+- | Bookmarks > (Go to bookmark > 1 ... 9, Store bookmark > 1 ... 9, Toggle bookmark, Toggle unnumbered bookmark (Ctrl+F2), Next bookmark (F2), Previous bookmark (Shift+F2), Clear bookmark, Bookmarks of this file..., | Manage bookmarks...)
 - | Next highlight, Previous highlight
 - | Next section, Previous section, Next block, Previous block
 - | Opening bracket, Closing bracket
@@ -155,6 +164,13 @@ between them is in Go. This is the one split by work flow (see question 4.2).
 
 Go is the longest menu; its pairs (next / previous) sit side by side, so it reads as a few short groups. If it still
 feels long, Section / block and Brackets become one submenu "In the text >".
+
+New keys for the bookmarks, as UltraEdit has them: Ctrl+F2 toggles an unnumbered bookmark, F2 goes to the next
+bookmark, Shift+F2 to the previous one. Next and previous stop at every bookmark, numbered or not (as
+`bookmarkNext` does now). The Ctrl+K keys stay. F2 is free in the editor and the preview: today it is Rename only in
+the Folder pane, the Manage projects window and the Theme sets window, which keep it while they have the focus.
+Shift+F2 being Previous bookmark, the rule "Shift added to a move selects" (keys.json) does not give "select to the
+next bookmark" on Shift+F2; selecting to a bookmark stays on the Ctrl+K keys with Shift.
 
 **Format** (the text's form; per language, as now, plus)
 
@@ -223,9 +239,12 @@ What moves, against today:
 | Zoom >, Day / night | View | Tools |
 | Tab stops, helper lines | no menu (the ruler, F1) | Edit > Helpers |
 | Recent > | File | File > Recents & Favourites |
+| Column mode, Select inside brackets, Multiple cursors > | Edit | Select (a menu of its own) |
+| Toggle unnumbered bookmark, Next / Previous bookmark | Ctrl+K, K / N / P | also Ctrl+F2, F2, Shift+F2 |
 
-The bar then has the nine menus File, Edit, Find, Go, Format, View, Window, Tools and Help, against the seven of 3.1;
-each is smaller and has one subject. Fewer menus are possible by merging Find and Go into one "Search" menu (question 4.1).
+The bar then has the ten menus File, Edit, Select, Find, Go, Format, View, Window, Tools and Help, against the seven of
+3.1; each is smaller and has one subject. Fewer menus are possible by merging Find and Go into one "Search" menu
+(question 4.1).
 
 ### 3.5 The right-click menus
 
@@ -258,7 +277,7 @@ The others:
 ### 3.6 The F1 groups
 
 F1 shows each action with its group. The groups follow the menus of 3.4, so F1 and the menus tell the same story:
-file, edit, find, go, format, view, window, tools, help (and settings for the setting toggles). This changes only the
+file, edit, select, find, go, format, view, window, tools, help (and settings for the setting toggles). This changes only the
 `group` of the actions (actions.js and the other registrations); names, keys and keys.json stay.
 
 ### 3.7 A bar with all actions (proposal)
@@ -309,7 +328,7 @@ Proposed default content, left to right, in groups:
 
 ## 4. Open questions
 
-1. Find and Go as two menus (as proposed: nine menus, each small), or one Search menu (eight menus, that one larger)?
+1. Find and Go as two menus (as proposed: ten menus, each small), or one Search menu (nine menus, that one larger)?
 2. Highlights: making them in Edit and moving between them in Go (as proposed), or all of them in one place (a Review
    menu, or Go)?
 3. Projects: inside Window (as proposed), or keep their own menu?
