@@ -216,8 +216,14 @@ toggleAction('editor', { title: 'Editor', hint: 'Show or hide the editor (at lea
   enabled: () => !!activeTab() }, () => !!activeTab() && activeTab().mode !== 'preview', () => setSwitch('editor'), ['show', 'hide']);
 toggleAction('preview', { title: 'Preview', hint: 'Show or hide the preview (at least one of editor and preview stays)', group: 'view',
   enabled: () => !!activeTab() }, () => !!activeTab() && activeTab().mode !== 'edit', () => setSwitch('preview'), ['show', 'hide']);
-toggleAction('outline', { title: 'Outline', hint: 'The headings (or procedures, classes, ...) at the right of each pane; click one to go there', group: 'view',
-  enabled: () => hasOutline(activeDoc()) }, () => document.body.hasAttribute('data-outline'), () => commands.outline(), ['show', 'hide']);
+// The preview's place in its editor pane (docs/plans/24-PLAN-docking.md 3.4c): per editor pane, kept in the window's
+// layout (previewPlace, previewPlace2); the active pane's (the splitter's right-click menu: its own pane's, app.js).
+const PREVIEW_PLACES = [['right', 'Preview at the right'], ['left', 'Preview at the left'], ['top', 'Preview above'], ['bottom', 'Preview below']];
+for (const [place, title] of PREVIEW_PLACES)
+  appAction(`preview.${place}`, { title, hint: 'Where the preview is in this editor pane when editor and preview both show (also the right-click on the line between them)', group: 'view',
+    checked: () => previewPlace(panes[state.activePane]) === place, run: () => setPreviewPlace(panes[state.activePane], place) });
+toggleAction('outline', { title: 'Outline', hint: 'The headings (or procedures, classes, ...) at the right of the active pane; click one to go there (each pane has its own, also its button in the tab strip)', group: 'view',
+  enabled: () => hasOutline(activeDoc()) }, () => outlineOn(panes[state.activePane]), () => commands.outline(), ['show', 'hide']);
 toggleAction('wrap', { title: 'Wrap long lines', hint: 'In the editor (code blocks in the preview: Options > Settings, Preview)', group: 'view' },
   () => setting('wrap'), () => setWrap(!setting('wrap')));
 appAction('messages', { title: 'Messages...', hint: 'What showed at the bottom of this window since it opened, with the time and the document (also a click on a message)', group: 'view',
@@ -231,8 +237,12 @@ toggleAction('overviewMark', { title: 'Scroll bar marks', hint: 'Show or hide th
   ([name]) => setSetting('overview.' + name, setting('overview.' + name) === false), ['show', 'hide']);
 toggleAction('ruler', { title: 'Ruler', hint: 'Above the editor: the columns, the column of the cursor, column guides, tab stops and helper lines (click it for one)', group: 'view' },
   () => rulerShown(), () => setSetting('ruler', !rulerShown()), ['show', 'hide']);
-toggleAction('sidebar', { title: 'Sidebar', hint: 'Show or hide the folder pane and the search', group: 'view' },
+toggleAction('sidebar', { title: 'Dock area at the left', hint: 'Open or close the dock area at the left (the Folder and Search panes, unless you moved them)', group: 'view' },
   () => document.body.dataset.sidebar === 'on', () => commands.sidebar(), ['show', 'hide']);
+// The dock areas (docks.js): open or close one; closed, its strip with the panes' tabs stays.
+for (const [side, name] of [['Left', 'left'], ['Right', 'right'], ['Bottom', 'bottom']])
+  appAction('dock.toggle' + side, { title: `Dock area: ${name}, open / close`, hint: `Open or close the dock area at the ${name} (closed, its strip with the tabs of its panes stays)`, group: 'view',
+    run: () => toggleDock(name) });
 appAction('folders', { title: 'Folders', hint: 'The folder pane, with the keyboard in it', group: 'view', run: () => focusTree() });
 // The keyboard to another part or pane; the focused one has a border (app.js: The focused part).
 appAction('focusPart', { title: 'Part', hint: 'The keyboard to the next / previous part of this document: editor, preview and outline, each when shown (one not shown is passed)', group: 'view',
@@ -246,6 +256,12 @@ appAction('layoutSaveDefault', { title: 'Save layout as default', group: 'view',
   run: () => saveLayoutAsDefault() });
 appAction('layoutResetDefault', { title: 'Reset layout to default', group: 'view',
   hint: 'This window\'s layout back to the default one; its tabs and folder stay', run: () => resetLayoutToDefault() });
+appAction('layoutUseFrom', { title: 'Use layout of...', group: 'view',
+  hint: 'The layout of another window, or of a project with no window open, for this window; its tabs and folder stay',
+  run: async ([kind, id, name]) => {
+    if (kind) return useLayoutFrom(kind, id, name);
+    openPopupMenu(await layoutSourceItems(), innerWidth / 2 - 150, innerHeight / 3);   // from F1: the same list
+  } });
 appAction('paneOrientation.set', { title: 'Panes', hint: 'Side by side or above each other', group: 'view',
   variants: [['v'], ['h']], variantTitles: { v: 'Panes side by side', h: 'Panes above each other' },
   checked: ([o]) => state.orient === o, run: ([o]) => state.orient === o || commands.orient() });
@@ -446,6 +462,8 @@ appAction('clipboardSelect', { title: 'Clipboard', hint: 'Copy, cut and paste wo
   checked: ([n]) => clips.active === n, run: ([n]) => host('clipSelect', { n }) });
 appAction('clipboardList', { title: 'Clipboards', hint: 'The list of clipboards with the start of their text; choose one', group: 'clipboard',
   run: () => showClipboardList() });
+appAction('clipboards.pane', { title: 'Manage clipboards...', hint: 'The clipboards with the start of their text, the active one marked; a click makes one active', group: 'clipboard',
+  run: () => openClipboardsPane() });   // app.js
 appAction('pasteImage', { title: 'Paste image', hint: 'A picture or image files on the Windows clipboard; asks how to link them', group: 'edit',
   editor: true, enabled: () => !!editorPane() && !activeDoc()?.language, run: async (_, { pane }) => {
     const found = await host('clipboardImage');
@@ -469,7 +487,7 @@ toggleAction('overwrite', { title: 'Insert / overwrite', hint: 'Typing replaces 
 
 // ---------- Settings (Options > Settings: the settings window) ----------
 appAction('settings', { title: 'Settings...', hint: 'Every setting, searchable; a change applies at once in every window', group: 'settings',
-  run: () => host('openSettings') });
+  run: () => openToolPane('settings', 'openSettings') });   // its window, or docked (app.js)
 appAction('chooseLanguage', { title: 'Language...', hint: 'Of the active tab: colouring, outline, bar and actions (also a click on the language in the bottom bar)', group: 'view',
   enabled: () => !!activeDoc(), run: () => showLanguageList() });
 appAction('tabOrder.set', { title: 'Document order', hint: 'Recently used, or the order of the tab bar', group: 'settings',
@@ -537,6 +555,9 @@ const SETTING_ROWS = [
     options: () => themeOptions() },
   { name: 'themeDark', group: 'General', sub: 'Theme', kind: 'choice', title: 'Theme of the app in dark mode',
     hint: 'A theme with a light base works too', options: () => themeOptions() },
+  { name: 'titleBarColours', group: 'General', sub: 'Theme', kind: 'choice', title: 'Title bar and window border',
+    hint: 'The title bar of LexPen\'s windows, its text and the line around the window (Windows 11), active and not active',
+    options: () => [['windows', 'Windows\' own colours'], ['theme', 'The theme\'s colours']] },
   { name: 'theme', group: 'General', sub: 'Theme', kind: 'choice', title: 'Day / night when not following Windows',
     hint: 'Also the Day / night button', options: () => [['light', 'Day (light mode)'], ['dark', 'Night (dark mode)']] },
   { name: 'tabSize', group: 'Editor', sub: 'Tabs', kind: 'choice', title: 'Tab size',
@@ -760,6 +781,12 @@ const SETTING_ROWS = [
   { name: 'newFileEol', group: 'Files', kind: 'choice', title: 'Line ends of a new file',
     hint: 'A new file, and a file without a line break; a file read keeps its own (the bottom bar shows them, a click changes them)',
     options: () => [['crlf', 'CRLF (Windows)'], ['lf', 'LF (Unix, macOS)'], ['cr', 'CR (old Mac)']] },
+  { name: 'newFileLanguageFrom', group: 'Files', kind: 'choice', title: 'Language of a new file',
+    hint: 'New file: the language of the document you are in, or always the language below (also when no document is open)',
+    options: () => [['active', 'The active document\'s'], ['given', 'The language below']] },
+  { name: 'newFileLanguage', group: 'Files', kind: 'choice', title: 'Language of a new file: the given one',
+    hint: 'Used when the setting above says so, or when no document is open',
+    options: () => PACK_NAMES.map(name => [name, packs[name].name]) },
   { name: 'askSaveDrafts', group: 'Files', kind: 'toggle', title: 'Ask to save changed drafts when closing LexPen',
     hint: 'Closing LexPen with changed drafts asks whether to save them (closing a draft tab always asks)',
     hintOff: 'Closing LexPen keeps changed drafts as drafts without a question (closing a draft tab always asks)' },
@@ -772,6 +799,10 @@ const SETTING_ROWS = [
   { name: 'movePinned', group: 'Tabs', kind: 'toggle',
     hint: 'Closing a pane moves its pinned tabs to the main pane; closing a window moves them to another open window of the same project',
     hintOff: 'Pinned tabs keep their pane open, and close with their window' },
+  { name: 'dockTabBar', group: 'Tabs', sub: 'Dock areas', kind: 'choice', title: 'Tab bar of a dock area', hint: 'When the tabs of a dock area (Folder, Search, Outline, ...) do not fit in one row',
+    options: () => [['rows', 'Several rows'], ['scroll', 'One row that scrolls']] },
+  { name: 'dockTabIntensity', group: 'Tabs', sub: 'Dock areas', kind: 'range', range: [25, 200, 5], unit: '%',
+    title: 'Tab bar of a dock area: intensity', hint: 'All its colours: 100% the theme\'s; higher takes the text further from its background and the backgrounds and lines further from the text (in a dark theme the text brighter, the rest darker); lower fades the text towards its background' },
   { name: 'findShared', group: 'Find', sub: 'Find', kind: 'toggle',
     hint: 'Both panes share one find (Ctrl+F)',
     hintOff: 'Each pane has its own find (Ctrl+F), with its own text and options' },
@@ -910,7 +941,7 @@ appAction('highlight.keep', { title: 'Keep the adjusted highlight', hint: 'A hig
 appAction('highlight.next', { title: 'Highlight', hint: 'The next / previous highlight, selected (in a preview: scrolled to)', group: 'highlights',
   variants: [[1], [-1]], variantTitles: { 1: 'Next highlight', '-1': 'Previous highlight' }, run: ([dir = 1]) => goHighlight(hlPane(), +dir) });
 appAction('highlight.list', { title: 'Highlights window', hint: 'A window with the highlights and their notes, to search and go to', group: 'highlights',
-  run: () => host('openHighlights') });
+  run: () => openToolPane('hls', 'openHighlights') });   // its window, or docked (app.js)
 appAction('highlight.moveAll', { title: 'Move all highlights to where the setting says', hint: 'Files > Highlights: into LexPen\'s store, or next to their files (.lph)', group: 'highlights',
   run: async () => { const n = await host('highlightsMoveAll', { beside: setting('highlightsStore') === 'beside' }); toast(`The highlights of ${n} file${n === 1 ? '' : 's'} moved.`, true); } });
 appAction('bookmarkList', { title: 'Bookmarks of this file', hint: 'A list to choose from', group: 'bookmarks',

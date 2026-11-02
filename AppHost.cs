@@ -51,6 +51,7 @@ sealed class AppHost : ApplicationContext
         public int[]? HighlightsWindow { get; set; }   // the highlights window's place: x, y, width, height
         public int[]? ProjectsWindow { get; set; }   // the Manage projects window's place: x, y, width, height
         public int[]? ThemeSetsWindow { get; set; }  // the Manage theme sets window's place: x, y, width, height
+        public Dictionary<string, int[]>? PaneWindows { get; set; }   // a floating pane's place, per kind ("outline"): x, y, width, height
         public Dictionary<string, ScreenZoom> Screens { get; set; } = [];   // the zoom per monitor, by its key (Monitors)
     }
 
@@ -111,9 +112,9 @@ sealed class AppHost : ApplicationContext
     }
 
     // What a window, a settings window or a tool window was sent last, per kind: sent again only when it changed.
-    readonly System.Runtime.CompilerServices.ConditionalWeakTable<Form, Dictionary<string, string>> sent = [];
+    readonly System.Runtime.CompilerServices.ConditionalWeakTable<object, Dictionary<string, string>> sent = [];
 
-    bool Changed(Form f, string kind, JsonNode value)
+    bool Changed(object f, string kind, JsonNode value)
     {
         var last = sent.GetOrCreateValue(f);
         var text = value.ToJsonString();
@@ -127,12 +128,14 @@ sealed class AppHost : ApplicationContext
     {
         foreach (var w in windows)
             if (SettingsFor(w) is var s && Changed(w, "settings", s)) w.Post(new JsonObject { ["event"] = "settings", ["settings"] = s });
-        foreach (var (owner, s) in settingsWindows)
+        foreach (var (owner, s) in SettingsPages())
             if (SettingsFor(owner) is var o && Changed(s, "settings", o)) s.Post(new JsonObject { ["event"] = "settings", ["settings"] = o });
-        // The tool windows follow the window last worked in.
+        // The tool windows follow the window last worked in; a tool docked in a window follows that window.
         var values = Values(LastActive);
         foreach (var tool in new IWebPost?[] { charPicker, highlightsWindow, projectsWindow, themeSetsWindow })
             if (tool is Form f && Changed(f, "settings", values)) tool.Post(new JsonObject { ["event"] = "settings", ["settings"] = values.DeepClone() });
+        foreach (var frame in toolFrames.Where(f => f.Kind != "settings"))   // a docked Settings: above, as its window
+            if (Values(frame.Window) is var own && Changed(frame, "settings", own)) frame.Post(new JsonObject { ["event"] = "settings", ["settings"] = own.DeepClone() });
     }
 
     /// <summary>A window's project got another set, its desktop another default, or a set changed: every window that
@@ -141,8 +144,9 @@ sealed class AppHost : ApplicationContext
     {
         SendSettings();
         SendLook();
-        foreach (var (owner, s) in settingsWindows) s.Post(new JsonObject { ["event"] = "themeSet", ["themeSet"] = SetInfo(owner) });
+        foreach (var (owner, s) in SettingsPages()) s.Post(new JsonObject { ["event"] = "themeSet", ["themeSet"] = SetInfo(owner) });
         themeSetsWindow?.Post(new JsonObject { ["event"] = "list", ["list"] = ThemeSetList() });
+        foreach (var frame in toolFrames.Where(f => f.Kind == "themesets")) frame.Post(new JsonObject { ["event"] = "list", ["list"] = ThemeSetList() });
     }
 
     /// <summary>Save as default (plan 31's, with the theme set: docs/plans/executed/PLAN-theme-sets.md, 3.11). When the window
@@ -195,8 +199,18 @@ sealed class AppHost : ApplicationContext
 
     // ---------- Manage theme sets (ThemeSetsForm; docs/plans/executed/PLAN-theme-sets.md, 3.10) ----------
 
-    /// <summary>The Manage theme sets window: one for the app; opened again, brought to the front.</summary>
+    /// <summary>Manage theme sets as it was last (docs/plans/24-PLAN-docking.md 3.7a): the window's page decides (its
+    /// window of its own, or docked); the window comes to the front.</summary>
     public void OpenThemeSets(MainForm from)
+    {
+        from.Post(new JsonObject { ["event"] = "openToolPane", ["kind"] = "themesets", ["open"] = "openThemeSetsWindow" });
+        BringToFront(from);
+    }
+
+    public void CloseThemeSetsWindow() => themeSetsWindow?.Close();
+
+    /// <summary>The Manage theme sets window: one for the app; opened again, brought to the front.</summary>
+    public void OpenThemeSetsWindow(MainForm from)
     {
         if (themeSetsWindow is { IsDisposed: false }) { BringToFront(themeSetsWindow); return; }
         themeSetsWindow = new ThemeSetsForm(this, from);
@@ -526,7 +540,7 @@ sealed class AppHost : ApplicationContext
             languagesTimer.Stop();
             LoadLanguages();
             foreach (var w in windows) w.Post(new JsonObject { ["event"] = "languages", ["languages"] = languages.DeepClone() });
-            foreach (var s in settingsWindows.Values) s.Post(new JsonObject { ["event"] = "languages", ["languages"] = languages.DeepClone() });
+            foreach (var (_, s) in SettingsPages()) s.Post(new JsonObject { ["event"] = "languages", ["languages"] = languages.DeepClone() });
         };
     }
 
@@ -609,8 +623,39 @@ sealed class AppHost : ApplicationContext
             // Old ids of renamed themes -> new: a language pack's byTheme may still use an old one (languages.js).
             ["renamed"] = new JsonObject(ThemeFile.Renamed.Select(r => KeyValuePair.Create(r.Key, (JsonNode?)r.Value))),
             ["problems"] = problems,
+            ["caption"] = values["titleBarColours"]?.DeepClone(),   // the windows' captions (ApplyCaption): a change is a look's
         };
     }
+
+    /// <summary>
+    /// A LexPen window's caption, its text and its border (Windows 11; Windows 10 ignores them): Windows' own (the
+    /// setting titleBarColours "windows", the default), or the app theme's of window `w` ("theme"): active the bars'
+    /// background, the text and the accent; not active the side's background, the dimmed text and the lines' colour.
+    /// </summary>
+    public void ApplyCaption(Form f, MainForm? w, bool? active = null)
+    {
+        if (!f.IsHandleCreated) return;
+        var on = active ?? Form.ActiveForm == f;
+        var colours = Values(w)["titleBarColours"]?.GetValue<string>() == "theme" ? AppColours(w) : null;
+        int Colour(string name) => ThemeFile.Rgb(colours?.GetValueOrDefault(name) ?? "") is var (r, g, b)
+            ? r | g << 8 | b << 16 : unchecked((int)0xFFFFFFFF);   // a COLORREF; else DWMWA_COLOR_DEFAULT
+        foreach (var (attribute, colour) in new[] { (35 /* DWMWA_CAPTION_COLOR */, on ? "--bg-bar" : "--bg-side"),
+            (36 /* DWMWA_TEXT_COLOR */, on ? "--fg" : "--fg-dim"), (34 /* DWMWA_BORDER_COLOR */, on ? "--accent" : "--border") })
+        {
+            var value = Colour(colour);
+            DwmSetWindowAttribute(f.Handle, attribute, ref value, sizeof(int));
+        }
+    }
+
+    /// <summary>Its caption active and not active as ApplyCaption says, with the look of `window`.</summary>
+    public void FollowCaption(Form f, Func<MainForm?> window)
+    {
+        f.Activated += (_, _) => ApplyCaption(f, window(), true);
+        f.Deactivate += (_, _) => ApplyCaption(f, window(), false);
+    }
+
+    [System.Runtime.InteropServices.DllImport("dwmapi.dll")]
+    static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
 
     void LoadThemes()
     {
@@ -631,7 +676,7 @@ sealed class AppHost : ApplicationContext
                 w.ApplyTheme();
                 w.Post(new JsonObject { ["event"] = "look", ["look"] = look });
             }
-        foreach (var (owner, s) in settingsWindows)
+        foreach (var (owner, s) in SettingsPages())
             if (Look(owner) is var look && Changed(s, "look", look))
             {
                 s.ApplyTheme();
@@ -650,6 +695,9 @@ sealed class AppHost : ApplicationContext
                 tool.ApplyTheme();
                 tool.Post(new JsonObject { ["event"] = "look", ["look"] = look.DeepClone() });
             }
+        foreach (var pane in paneWindows) pane.ApplyTheme();   // their pages get the theme from their window's page
+        foreach (var frame in toolFrames.Where(f => f.Kind != "settings"))   // a docked Settings: with the settings windows
+            if (Look(frame.Window) is var own && Changed(frame, "look", own)) frame.Post(new JsonObject { ["event"] = "look", ["look"] = own.DeepClone() });
     }
 
     /// <summary>Day / night while following Windows: the other mode, until Windows changes mode.</summary>
@@ -727,7 +775,7 @@ sealed class AppHost : ApplicationContext
         // Both hosts are answered locally, but without this rule the browser first waits about
         // a second for a real DNS lookup of the made-up names to fail, on every start.
         var options = new CoreWebView2EnvironmentOptions(
-            "--host-resolver-rules=\"MAP lexpen.example 127.0.0.1, MAP file.lexpen.example 127.0.0.1\"");
+            "--host-resolver-rules=\"MAP lexpen.example 127.0.0.1, MAP file.lexpen.example 127.0.0.1, MAP lexpen-panes.example 127.0.0.1\"");
         // The browser's data folder (EBWebView) goes in State\, unless it is still at the top (not moved yet).
         var parent = Path.GetDirectoryName(DataFolder.StatePath(DataDir, "EBWebView"))!;
         return environment ??= CoreWebView2Environment.CreateAsync(null, parent, options);
@@ -925,7 +973,10 @@ sealed class AppHost : ApplicationContext
             projects.Touch(w.Key);
             WindowPlaceChanged(w);
             SendToolLook();   // the tool windows look as this one now
+            if (outlineWanted.GetValueOrDefault(w)) ServeOutline(w);   // the floating outline serves it now
         };
+        // Closing while the floating outline serves it: on to the next window it may serve, else it closes with it.
+        w.FormClosing += (_, _) => { if (FloatingOutline?.Owner == w && OutlineHeir(w) is { } next) ServeOutline(next); };
         w.FormClosed += (_, e) => Closed(w, e.CloseReason);
         if (primary is null) SetPrimary(w);
         else w.UpdateRole();
@@ -999,6 +1050,10 @@ sealed class AppHost : ApplicationContext
     {
         windows.Remove(w);
         recent.Remove(w);
+        outlineWanted.Remove(w);
+        foreach (var key in highlightsIn.Keys.Where(k => k.Item1 == w).ToList()) highlightsIn.Remove(key);
+        settingsPending.Remove(w);
+        highlightsActive.Remove(w);
         foreach (var path in locks.Where(l => l.Value.Contains(w)).Select(l => l.Key).ToList())
             Unlock(path, w);
         // Closed by hand, the last window too: the project's rules (ProjectStore.CloseByHand); the project comes back
@@ -1179,7 +1234,7 @@ sealed class AppHost : ApplicationContext
     /// <summary>A main window described the settings' rows again (another list of themes): the settings window follows.</summary>
     public void DefsChanged()
     {
-        foreach (var s in settingsWindows.Values) s.Post(new JsonObject { ["event"] = "defs", ["defs"] = SettingDefs?.DeepClone() });
+        foreach (var (_, s) in SettingsPages()) s.Post(new JsonObject { ["event"] = "defs", ["defs"] = SettingDefs?.DeepClone() });
     }
 
     /// <summary>The settings a page kept in its own storage before settings.json existed, moved over once.</summary>
@@ -1225,7 +1280,7 @@ sealed class AppHost : ApplicationContext
         var screen = ScreenOf(w);
         screen["event"] = "screen";
         w.Post(screen);
-        settingsWindows.GetValueOrDefault(w)?.Post((JsonObject)screen.DeepClone());
+        foreach (var s in SettingsPagesOf(w)) s.Post((JsonObject)screen.DeepClone());
     }
 
     // The window may be on another monitor now (moved, resized, maximised, the DPI changed).
@@ -1330,16 +1385,41 @@ sealed class AppHost : ApplicationContext
             p.Windows.RemoveAll(o => o != last);
         }
         SaveProjects();
-        if (projectsWindow is not null) ProjectsChanged();
+        if (projectsWindow is not null || toolFrames.Any(f => f.Kind == "projects")) ProjectsChanged();
     }
 
     /// <summary>The projects for the settings window's list (Project for viewing): id and name, newest used first.</summary>
     public JsonArray ProjectNames() => new(projects.Projects.OrderByDescending(p => p.Used)
         .Select(p => (JsonNode?)new JsonObject { ["id"] = p.Id, ["name"] = ProjectStore.Display(p) }).ToArray());
 
+    /// <summary>View > Layout > Use layout of... (docs/plans/24-PLAN-docking.md 3.13a): the other open windows (most recently
+    /// used first), then the projects with no window open whose last window has a layout (newest used first).</summary>
+    public JsonArray LayoutSources(MainForm asking)
+    {
+        var list = new JsonArray();
+        foreach (var w in recent.Where(w => w != asking))
+            list.Add(new JsonObject { ["kind"] = "window", ["id"] = w.Key, ["label"] = w.Text });
+        foreach (var p in projects.Projects.Where(p => !p.Windows.Any(o => o.Open) && LastLayout(p) is not null).OrderByDescending(p => p.Used))
+            list.Add(new JsonObject { ["kind"] = "project", ["id"] = p.Id, ["label"] = ProjectStore.Display(p) });
+        return list;
+    }
+
+    /// <summary>The layout of an open window (as it shows it now) or of a project (its last window's); null when gone.</summary>
+    public JsonNode? LayoutFrom(string kind, int id)
+    {
+        // An open window that reported nothing yet shows the default layout: no values of its own.
+        if (kind == "window") return windows.FirstOrDefault(w => w.Key == id) is { } w ? w.PageLayout?.DeepClone() ?? projects.LayoutOf(id) ?? new JsonObject() : null;
+        return projects.Get(id) is { } p ? LastLayout(p)?.DeepClone() : null;
+    }
+
+    static JsonNode? LastLayout(ProjectStore.Project p) =>
+        p.Windows.Where(w => w.Session?["layout"] is JsonObject).MaxBy(w => w.Used)?.Session!["layout"];
+
     /// <summary>A window's layout changed (the page says it): its settings window follows.</summary>
-    public void LayoutShown(MainForm w) =>
-        settingsWindows.GetValueOrDefault(w)?.Post(new JsonObject { ["event"] = "layout", ["layout"] = w.PageLayout?.DeepClone() });
+    public void LayoutShown(MainForm w)
+    {
+        foreach (var s in SettingsPagesOf(w)) s.Post(new JsonObject { ["event"] = "layout", ["layout"] = w.PageLayout?.DeepClone() });
+    }
 
     // Your settings.json changed on disk (a hand edit, another LexPen copy): read again, every window follows.
     FileSystemWatcher? settingsWatcher;
@@ -1381,9 +1461,32 @@ sealed class AppHost : ApplicationContext
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return null; }
     }
 
-    /// <summary>Options > Settings: the settings window of the window it was asked from, owned by it (so on its
-    /// desktop); that window's own when it has one open, brought to the front. Two windows can each have one.</summary>
+    /// <summary>A window's Settings, as it was last (docs/plans/24-PLAN-docking.md 3.7a): its page decides (the action
+    /// settings: its window of its own, or docked in the window); the window comes to the front.</summary>
     public void OpenSettings(MainForm from)
+    {
+        from.Post(new JsonObject { ["event"] = "runAction", ["name"] = "settings" });
+        BringToFront(from);
+    }
+
+    /// <summary>The settings pages of every window: its window of its own and the one docked in it (ToolFrame "settings").</summary>
+    IEnumerable<(MainForm Owner, IWebPost Page)> SettingsPages() =>
+        settingsWindows.Select(p => (p.Key, (IWebPost)p.Value)).Concat(toolFrames.Where(f => f.Kind == "settings").Select(f => (f.Window, (IWebPost)f)));
+    IEnumerable<IWebPost> SettingsPagesOf(MainForm w) => SettingsPages().Where(p => p.Owner == w).Select(p => p.Page).ToList();
+
+    // Messages for a window's settings page while it has none yet (it is being opened): given to the first that starts.
+    readonly Dictionary<MainForm, List<JsonObject>> settingsPending = [];
+    public void SettingsPageStarted(MainForm w, IWebPost page)
+    {
+        if (settingsPending.Remove(w, out var list)) foreach (var m in list) page.Post(m);
+    }
+
+    public void CloseSettings(MainForm from) => settingsWindows.GetValueOrDefault(from)?.Close();
+
+    /// <summary>Options > Settings in a window of its own: the settings window of the window it was asked from, owned
+    /// by it (so on its desktop); that window's own when it has one open, brought to the front. Two windows can each
+    /// have one.</summary>
+    public void OpenSettingsWindow(MainForm from)
     {
         if (settingsWindows.TryGetValue(from, out var open) && !open.IsDisposed)
         {
@@ -1396,8 +1499,14 @@ sealed class AppHost : ApplicationContext
         settingsWindow.Show(from);
     }
 
-    /// <summary>A message to a main window's settings window (queued until its page is ready).</summary>
-    public void SettingsWindowPost(MainForm w, JsonObject message) => settingsWindows.GetValueOrDefault(w)?.Post(message);
+    /// <summary>A message to a main window's settings page (its window or the docked one; queued until its page is
+    /// ready, or until one starts).</summary>
+    public void SettingsWindowPost(MainForm w, JsonObject message)
+    {
+        var pages = SettingsPagesOf(w).ToList();
+        if (pages.Count == 0) (settingsPending.TryGetValue(w, out var list) ? list : settingsPending[w] = []).Add(message);
+        foreach (var page in pages) page.Post(message);
+    }
 
     /// <summary>A main window's caption changed (its project renamed, the [n] shifted): its settings window follows.</summary>
     public void SettingsTitle(MainForm w) => settingsWindows.GetValueOrDefault(w)?.UpdateTitle();
@@ -1422,11 +1531,85 @@ sealed class AppHost : ApplicationContext
         charPicker.Show(from);
     }
 
-    public void CharPickerCursor(int? code) => charPicker?.Post(new JsonObject { ["event"] = "cursor", ["code"] = code });
+    /// <summary>The character after the cursor of editor pane `pane` (the active one) of window `from`: the floating
+    /// picker, the window's picker docked there, and that editor pane's own.</summary>
+    public void CharPickerCursor(MainForm from, int? code, int? pane)
+    {
+        charPicker?.Post(new JsonObject { ["event"] = "cursor", ["code"] = code });
+        foreach (var frame in toolFrames.Where(f => f.Kind == "chars" && f.Window == from && (f.Pane is null || f.Pane == pane)))
+            frame.Post(new JsonObject { ["event"] = "cursor", ["code"] = code });
+    }
+
+    /// <summary>The picker docked in window `from` (`pane`: that editor pane's own; null: the window's) at a character
+    /// (as the floating one is when opened again).</summary>
+    public void CharPickerGoTo(MainForm from, int? code, int? pane)
+    {
+        foreach (var frame in toolFrames.Where(f => f.Kind == "chars" && f.Window == from && f.Pane == pane))
+            frame.Post(new JsonObject { ["event"] = "goTo", ["code"] = code });
+    }
+
+    public void CloseCharPicker() => charPicker?.Close();
+
+    /// <summary>A request of a character picker's page: its own window's (`window` null: it works for the window last
+    /// worked in), or of one docked in `window` (`pane`: an editor pane's own, inserting there). `code`: the character
+    /// to show first (init).</summary>
+    public JsonNode? CharPickerRequest(MainForm? window, JsonNode msg, int? code, int? pane = null)
+    {
+        var op = msg["op"]?.GetValue<string>() ?? "";
+        if (CharInfo.Request(op, msg) is { Handled: true } done) return done.Result;
+        var to = window ?? LastActive;
+        switch (op)
+        {
+            case "init":
+                return new JsonObject { ["settings"] = SettingsFor(to)["values"]?.DeepClone(), ["look"] = Look(to), ["code"] = code };
+
+            // Into that window, at its cursors; it comes to the front.
+            case "insert":
+            {
+                if (to is not MainForm w) return false;
+                w.Post(new JsonObject { ["event"] = "insertText", ["text"] = msg["text"]!.GetValue<string>(), ["pane"] = pane });
+                if (window is null) BringToFront(w);
+                return true;
+            }
+
+            default:
+                throw new InvalidOperationException($"Unknown request '{op}'.");
+        }
+    }
+
+    // ---------- Tools docked in a window (ToolFrame; docs/plans/24-PLAN-docking.md 7b) ----------
+    readonly List<ToolFrame> toolFrames = [];
+    public void AddToolFrame(ToolFrame frame) => toolFrames.Add(frame);
+    public void ToolFrameGone(ToolFrame frame) => toolFrames.Remove(frame);
+
+    /// <summary>A request of a tool's page docked in a window, answered as its own window answers it, for that window.
+    /// Its Esc (close): the keys back to the window's document.</summary>
+    public async Task<JsonNode?> ToolRequest(ToolFrame frame, JsonNode msg)
+    {
+        if (msg["op"]?.GetValue<string>() == "close" && frame.Kind != "projects")   // Manage projects: close is of projects
+        {
+            frame.Window.Post(new JsonObject { ["event"] = "toolEscape", ["kind"] = frame.Kind, ["pane"] = frame.Pane });
+            return null;
+        }
+        return frame.Kind switch
+        {
+            "chars" => CharPickerRequest(frame.Window, msg, null, frame.Pane),
+            "hls" => await HighlightsRequest(frame.Window, msg, frame.Pane),
+            "settings" => SettingsForm.Request(this, frame, frame.Window, frame.Window, msg),
+            "projects" => await ProjectsForm.Request(this, frame.Window, frame.Window, msg),
+            "themesets" => ThemeSetsForm.Request(this, frame.Window, frame.Window, msg),
+            _ => throw new InvalidOperationException($"Unknown tool '{frame.Kind}'."),
+        };
+    }
 
     // ---------- Highlights (HighlightStore, HighlightsForm; docs/plans/executed/PLAN-highlights.md) ----------
     /// <summary>The highlights of the document last worked in, as its window last told (the highlights window shows them).</summary>
     public JsonObject? HighlightsShownNow { get; private set; }
+
+    // What each window's editor panes show (window, pane -> its document's highlights; none: no document), and which
+    // pane is its active one: for the highlights docked there (docs/plans/24-PLAN-docking.md 7b).
+    readonly Dictionary<(MainForm, int), JsonObject> highlightsIn = [];
+    readonly Dictionary<MainForm, int> highlightsActive = [];
 
     /// <summary>The highlights window: one for the app; opened again, brought to the front.</summary>
     public void OpenHighlights(MainForm from)
@@ -1437,25 +1620,207 @@ sealed class AppHost : ApplicationContext
         highlightsWindow.Show(from);
     }
 
-    /// <summary>A window tells which document's highlights it shows (when it is the one last worked in).</summary>
+    public void CloseHighlights() => highlightsWindow?.Close();
+
+    /// <summary>A window tells which document's highlights an editor pane of it shows (`pane`, `active`: the active
+    /// one; `none`: no document): the highlights docked beside that pane hear it, those docked in the window when it
+    /// is the active pane, the highlights window when it is the active pane of the window last worked in.</summary>
     public void HighlightsShown(MainForm from, JsonObject shown)
     {
-        if (from != LastActive) return;
+        var pane = shown["pane"]?.GetValue<int>() ?? 0;
+        var active = shown["active"]?.GetValue<bool>() != false;
+        highlightsIn[(from, pane)] = shown;
+        if (active) highlightsActive[from] = pane;
+        foreach (var frame in toolFrames.Where(f => f.Kind == "hls" && f.Window == from && (f.Pane == pane || active && f.Pane is null)))
+            frame.Post(new JsonObject { ["event"] = "shown", ["shown"] = shown.DeepClone() });
+        if (!active || from != LastActive || shown["none"] is not null) return;
         HighlightsShownNow = shown;
         highlightsWindow?.Post(new JsonObject { ["event"] = "shown", ["shown"] = shown.DeepClone() });
     }
 
+    // What the highlights docked in `window` show: its editor pane `pane`'s document, or (null) its active pane's.
+    JsonObject? HighlightsShownIn(MainForm window, int? pane) =>
+        highlightsIn.GetValueOrDefault((window, pane ?? highlightsActive.GetValueOrDefault(window)));
+
     /// <summary>A file's highlights were written: the other windows showing it read them again; the highlights window
-    /// refreshes its list of all files.</summary>
+    /// and the docked ones refresh their list of all files.</summary>
     public void HighlightsChanged(MainForm from, string? path, string? draft)
     {
         foreach (var w in windows) if (w != from) w.Post(new JsonObject { ["event"] = "highlights", ["path"] = path, ["draft"] = draft });
         highlightsWindow?.Post(new JsonObject { ["event"] = "changed", ["path"] = path, ["draft"] = draft });
+        foreach (var frame in toolFrames.Where(f => f.Kind == "hls")) frame.Post(new JsonObject { ["event"] = "changed", ["path"] = path, ["draft"] = draft });
+    }
+
+    /// <summary>A request of a highlights page: its own window's (`window` null: it works on the LexPen window last
+    /// worked in and its document), or of one docked in `window` (`pane`: an editor pane's own, its document; null:
+    /// the window's active document). Esc with an empty search: back to that window (docked: to its document).</summary>
+    public async Task<JsonNode?> HighlightsRequest(MainForm? window, JsonNode msg, int? pane)
+    {
+        var op = msg["op"]?.GetValue<string>() ?? "";
+        switch (op)
+        {
+            case "init":
+            {
+                var to = window ?? LastActive;
+                return new JsonObject { ["settings"] = SettingsFor(to)["values"]?.DeepClone(), ["look"] = Look(to),
+                    ["shown"] = (window is null ? HighlightsShownNow : HighlightsShownIn(window, pane))?.DeepClone() };
+            }
+
+            // Every file with highlights, each with its list (All files and its search); the store read off the UI thread.
+            case "all":
+                return await Task.Run(AllHighlights);
+
+            // To a highlight, in its LexPen window (its own window: the one last worked in, which comes to the front).
+            case "go":
+            case "action":
+            {
+                if ((window ?? LastActive) is not MainForm w) return false;
+                var ev = new JsonObject { ["event"] = op == "go" ? "highlightGo" : "highlightAction" };
+                foreach (var (key, value) in msg.AsObject()) if (key is not ("op" or "id")) ev[key] = value?.DeepClone();
+                if (msg["hid"] is JsonNode hid) ev["id"] = hid.DeepClone();
+                ev["pane"] = pane;
+                w.Post(ev);
+                if (op == "go" && window is null) BringToFront(w);
+                return true;
+            }
+
+            // A file's highlights dropped (All files: a file that is gone).
+            case "forget":
+                Highlights.Set(msg["path"]?.GetValue<string>(), msg["draft"]?.GetValue<string>(), [], false);
+                return true;
+
+            case "back":
+                if (window is not null) window.Post(new JsonObject { ["event"] = "toolEscape", ["kind"] = "hls", ["pane"] = pane });
+                else if (LastActive is MainForm last) BringToFront(last);
+                return true;
+
+            default:
+                throw new InvalidOperationException($"Unknown request '{op}'.");
+        }
+    }
+
+    JsonArray AllHighlights()
+    {
+        var all = new JsonArray();
+        foreach (var file in Highlights.All())
+        {
+            var path = file?["path"]?.GetValue<string>();
+            var draft = file?["draft"]?.GetValue<string>();
+            var got = Highlights.Get(path, draft);
+            all.Add(new JsonObject
+            {
+                ["path"] = path, ["draft"] = draft, ["beside"] = file?["beside"]?.DeepClone(),
+                ["missing"] = path is not null && !File.Exists(path), ["list"] = got["list"]?.DeepClone(),
+            });
+        }
+        return all;
     }
 
     public void SaveHighlightsWindow(int[] bounds)
     {
         State.HighlightsWindow = bounds;
+        SaveState();
+    }
+
+    // ---------- Floating panes (docs/plans/24-PLAN-docking.md 3.3, 3.5) ----------
+
+    readonly List<PaneForm> paneWindows = [];
+
+    PaneForm? PaneWindow(MainForm owner, string id) => paneWindows.FirstOrDefault(p => p.Owner == owner && p.Id == id && !p.IsDisposed);
+
+    /// <summary>
+    /// A pane of a window into a window of its own (its page, as in the window's frame); closed, it is back. The
+    /// floating outline is one for LexPen (7.3): asked by another window it becomes that window's. "created": a new
+    /// window (its page says when it is ready); "open": it was there already (the asking window sends what it shows).
+    /// </summary>
+    public string FloatPane(MainForm owner, string id, string page, bool atCursor = false)
+    {
+        if (id == FloatingOutlineId && FloatingOutline is { } outline)
+        {
+            if (outline.Owner != owner) ServeOutline(owner, tell: false);
+            BringToFront(outline);
+            return "open";
+        }
+        if (PaneWindow(owner, id) is { } open) { BringToFront(open); return "open"; }
+        var pane = new PaneForm(this, owner, id, page, atCursor ? new Point(Cursor.Position.X - 60, Cursor.Position.Y - 12) : null);
+        paneWindows.Add(pane);
+        pane.FormClosed += (_, _) =>
+        {
+            paneWindows.Remove(pane);
+            // The floating outline gone: every window that used it hears it; another pane: its window.
+            var told = id == FloatingOutlineId ? windows.ToList() : [owner];
+            foreach (var w in told.Where(w => !w.IsDisposed)) w.Post(new JsonObject { ["event"] = "paneClosed", ["pane"] = id });
+        };
+        pane.Show(owner);
+        return "created";
+    }
+
+    /// <summary>A message of a window's page for its floating pane (the floating outline: only from the window it serves).</summary>
+    public void SendToPane(MainForm owner, string id, JsonNode msg) => PaneWindow(owner, id)?.Send(msg);
+
+    /// <summary>
+    /// A floating pane back in its window (the page asked): its window closes ("closed"). The floating outline asked by
+    /// the window it serves moves on to the window worked in last that it may serve ("moved"), else it closes; asked by
+    /// another window nothing happens ("none").
+    /// </summary>
+    public string DockPane(MainForm owner, string id)
+    {
+        if (PaneWindow(owner, id) is not { } pane) return "none";
+        if (id == FloatingOutlineId && OutlineHeir(owner) is { } next) { ServeOutline(next); return "moved"; }
+        pane.Close();
+        return "closed";
+    }
+
+    // ---------- View > Panels (docs/plans/24-PLAN-docking.md 3.14, stage 9) ----------
+
+    // A window's floating panes with their window open: the tools of their own (one for LexPen, its Settings one of
+    // its own) and its pane windows (the floating outline: when it serves this window).
+    IEnumerable<(string Kind, Form Form)> ToolWindows(MainForm w)
+    {
+        foreach (var (kind, f) in new (string, Form?)[] { ("chars", charPicker), ("hls", highlightsWindow), ("projects", projectsWindow),
+            ("themesets", themeSetsWindow), ("settings", settingsWindows.GetValueOrDefault(w)) })
+            if (f is { IsDisposed: false, Visible: true }) yield return (kind, f);
+        foreach (var p in paneWindows.Where(p => p.Owner == w && !p.IsDisposed)) yield return (p.Id, p);
+    }
+
+    public JsonArray ToolWindowsOpen(MainForm w) => new(ToolWindows(w).Select(t => (JsonNode?)t.Kind).ToArray());
+
+    /// <summary>A floating pane's window closed, as by hand (the pane stays floating, or its page decides).</summary>
+    public void CloseToolWindow(MainForm w, string kind) { foreach (var (_, f) in ToolWindows(w).Where(t => t.Kind == kind).ToList()) f.Close(); }
+
+    // ---------- The one floating outline for LexPen (docs/plans/24-PLAN-docking.md 3.9, stage 7.3) ----------
+    // It serves the windows with no outline in their dock areas, of those the document worked in last: each window's
+    // page says whether it may serve it now (outlineWanted: its own outline not docked, its active editor pane without
+    // an outline of its own). A window activated that it may serve takes it (outlineServe; the one before:
+    // outlineRelease); its title and look then come from that window.
+
+    const string FloatingOutlineId = "outline";
+    readonly Dictionary<MainForm, bool> outlineWanted = [];
+
+    PaneForm? FloatingOutline => paneWindows.FirstOrDefault(p => p.Id == FloatingOutlineId && !p.IsDisposed);
+
+    MainForm? OutlineHeir(MainForm leaving) =>
+        recent.FirstOrDefault(w => w != leaving && !w.IsDisposed && outlineWanted.GetValueOrDefault(w));
+
+    public void OutlineWanted(MainForm w, bool wants)
+    {
+        outlineWanted[w] = wants;
+        if (wants && recent.FirstOrDefault() == w) ServeOutline(w);
+    }
+
+    /// <summary>The floating outline to window `w` (`tell`: its page hears it; not when the page itself asked).</summary>
+    void ServeOutline(MainForm w, bool tell = true)
+    {
+        if (FloatingOutline is not { } outline || outline.Owner == w || w.IsDisposed) return;
+        var was = outline.Owner as MainForm;
+        outline.SetOwner(w);
+        if (was is { IsDisposed: false }) was.Post(new JsonObject { ["event"] = "outlineRelease" });
+        if (tell) w.Post(new JsonObject { ["event"] = "outlineServe" });
+    }
+
+    public void SavePaneWindow(string kind, int[] bounds)
+    {
+        (State.PaneWindows ??= [])[kind] = bounds;
         SaveState();
     }
 
@@ -1479,6 +1844,9 @@ sealed class AppHost : ApplicationContext
     public void ClipboardsChanged()
     {
         var state = Clipboards.State();
+        // The Windows clipboard's start too (as clipState), for the Clipboards panes (docs/plans/24-PLAN-docking.md 12).
+        try { state["previews"]![0] = Clipboard.ContainsText() ? ClipboardStore.Preview(Clipboard.GetText()) : ""; }
+        catch (System.Runtime.InteropServices.ExternalException) { }   // the clipboard is busy: as it was
         foreach (var w in windows) w.Post(new JsonObject { ["event"] = "clipboards", ["state"] = state.DeepClone() });
     }
 
@@ -1715,7 +2083,8 @@ sealed class AppHost : ApplicationContext
         projectsTimer.Stop();
         try { projects.Save(); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }   // the next change tries again
-        projectsWindow?.Post(new JsonObject { ["event"] = "projects" });   // its list follows
+        projectsWindow?.Post(new JsonObject { ["event"] = "projects" });   // its list follows, and the docked ones'
+        foreach (var frame in toolFrames.Where(f => f.Kind == "projects")) frame.Post(new JsonObject { ["event"] = "projects" });
     }
 
     /// <summary>A window's session from the page (a second after a change, and when it closes): written at once, the
@@ -1872,12 +2241,16 @@ sealed class AppHost : ApplicationContext
                     last = windows.FirstOrDefault(w => w.Key == entry.Key) ?? Open(new MainForm.Start(null, [], entry.Key));
                 if (last is null) last = Open(new MainForm.Start(null, []), project: p);   // a named project without windows
                 BringToFront(last);
+                if (projects.ProjectOf(from?.Key ?? -1) != p) CloseIfEmpty(from, msg);
                 break;
             case "window":
                 var key = msg!["key"]!.GetValue<int>();
                 if ((windows.FirstOrDefault(w => w.Key == key)
                     ?? (projects.WindowOf(key) is not null ? Open(new MainForm.Start(null, [], key)) : from)) is { } shown)
+                {
                     BringToFront(shown);
+                    if (projects.ProjectOf(shown.Key) != projects.ProjectOf(from?.Key ?? -1)) CloseIfEmpty(from, msg);
+                }
                 break;
             case "newWindow":
                 if (projects.Get(Id()) is { } target) BringToFront(Open(new MainForm.Start(null, []), project: target));
@@ -1899,6 +2272,14 @@ sealed class AppHost : ApplicationContext
         ProjectsChanged();
     }
 
+    // Another project's window opened from a window without documents (its page says "empty"): that window goes, as
+    // closed by hand. Closed after the request's answer, not inside its WebView2's own event.
+    static void CloseIfEmpty(MainForm? from, JsonNode? msg)
+    {
+        if (from is { IsDisposed: false } && msg?["empty"]?.GetValueKind() == JsonValueKind.True)
+            from.BeginInvoke(from.Close);
+    }
+
     // ---------- Manage projects (ProjectsForm; docs/plans/executed/PLAN-manage-projects.md) ----------
 
     /// <summary>The Manage projects window: one for the app; opened again, brought to the front.</summary>
@@ -1909,6 +2290,8 @@ sealed class AppHost : ApplicationContext
         projectsWindow.FormClosed += (_, _) => projectsWindow = null;
         projectsWindow.Show(from);
     }
+
+    public void CloseProjectsWindow() => projectsWindow?.Close();
 
     public void SaveProjectsWindow(int[] bounds)
     {

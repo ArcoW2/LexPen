@@ -1,0 +1,43 @@
+<!doctype html>
+<!-- The Macros window as a page of its own (macros-pane.js; docs/plans/24-PLAN-docking.md 7b): Manage (the list) or
+     one macro's window; it docks and floats as the other panes. -->
+<html><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:">
+<title>Macros</title>
+<link rel="stylesheet" href="app.css">
+<style>
+  body { background: var(--bg-side); color: var(--fg); display: flex; flex-direction: column; height: 100vh; margin: 0; overflow: hidden;
+    font-family: var(--app-font); font-size: calc(13px * var(--ui-scale, 1)); }
+  .mp-body { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; overflow: auto; }
+  .mp-title { margin: 0; font-size: 1.15em; font-weight: 600; }
+  .mp-list { flex: 1 1 auto; min-height: 6em; width: 100%; font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--border); }
+  body:not([data-manage]) .mp-list, body:not([data-manage]) .mp-manage { display: none; }
+  .mp-key { margin: 0; min-height: 1.2em; color: var(--fg-dim); }
+  .mp-buttons { display: flex; flex-wrap: wrap; gap: 6px; }
+  .mp-buttons button { padding: 4px 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-bar); color: var(--fg); font: inherit; }
+  .mp-buttons button:hover:not(:disabled) { border-color: var(--accent); }
+  .mp-buttons button:disabled { opacity: .45; }
+</style>
+</head>
+<body>
+<div class="mp-body">
+  <h1 class="mp-title">Macros</h1>
+  <select class="mp-list" size="10" aria-label="The stored macros"></select>
+  <p class="mp-key"></p>
+  <div class="mp-buttons mp-one">
+    <button type="button" data-macro="play">Play</button><button type="button" data-macro="times">Play X times...</button>
+    <button type="button" data-macro="toEnd">Play to the end of the file</button><button type="button" data-macro="step">Step by step</button>
+  </div>
+  <div class="mp-buttons mp-one">
+    <button type="button" data-macro="continue">Continue recording</button><button type="button" data-macro="edit">Edit</button>
+    <button type="button" data-macro="rename">Give name...</button><button type="button" data-macro="key">Key...</button>
+    <button type="button" data-macro="delete">Delete</button>
+  </div>
+  <div class="mp-buttons mp-manage">
+    <button type="button" data-macro="new">New macro...</button><button type="button" data-macro="record">New recording</button>
+  </div>
+  <div class="mp-buttons"><button type="button" data-macro="close">Close</button></div>
+</div>
+<script src="pane.js"></script>
+<script src="macros-pane.js"></script>
+</body></html>

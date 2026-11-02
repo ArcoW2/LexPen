@@ -181,14 +181,14 @@ document.addEventListener('mousedown', e => { if (!view.menu.contains(e.target))
 // ---------- From the host ----------
 events.look = ({ look }) => applyLook(look);
 events.settings = ({ settings }) => { view.values = settings ?? {}; applyLook(null); };
-events.shown = ({ shown }) => { view.shown = shown; draw(); };
+events.shown = ({ shown }) => { view.shown = shown?.none ? null : shown; draw(); };   // none: no document there
 events.changed = async () => { if (view.scope === 'all') { view.all = await host('all'); draw(); } };
 
 (async () => {
   const init = await host('init');
   view.values = init.settings ?? {};
   applyLook(init.look);
-  view.shown = init.shown;
+  view.shown = init.shown?.none ? null : init.shown;
   draw();
-  view.search.focus();
+  if (parent === window) view.search.focus();   // docked (a frame), the keys stay where they are
 })();

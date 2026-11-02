@@ -36,6 +36,31 @@ const picker = {
   names: new Map(), searchTimer: 0, font: '', snapshot: null, cursor: null, values: {},
 };
 const PICKER_RECENT = 32;
+// Docked (a frame in a LexPen window): a small picker, no field (charpicker.css: cp-docked); a click selects, a double
+// click or Enter inserts.
+const docked = () => document.body.classList.contains('cp-docked');
+
+// Docked in a LexPen window (a frame, plan 24 7b): the blocks are a menu from the button at the top, over the grid
+// (under the button, at most down to the pane's bottom); a block chosen, a click elsewhere or Esc closes it. In its
+// own window always shown at the side.
+const blocksOpen = () => document.body.classList.contains('cp-blocks-open');
+let showBlocks = () => {};
+if (parent !== window) {
+  const toggle = $('.mm-cp-blocks-toggle'), menu = $('.mm-cp-blocks');
+  showBlocks = on => {
+    document.body.classList.toggle('cp-blocks-open', on);
+    toggle.textContent = on ? '\u00AB' : '\u00BB';
+    if (!on) return;
+    const r = toggle.getBoundingClientRect(), top = Math.round(r.bottom + 2);
+    Object.assign(menu.style, { left: Math.round(r.left) + 'px', top: top + 'px', maxHeight: innerHeight - top - 4 + 'px' });
+  };
+  document.body.classList.add('cp-docked');
+  showBlocks(false);
+  toggle.addEventListener('click', () => showBlocks(!blocksOpen()));
+  addEventListener('pointerdown', e => { if (blocksOpen() && !e.target.closest('.mm-cp-blocks, .mm-cp-blocks-toggle')) showBlocks(false); }, true);
+  addEventListener('keydown', e => { if (e.key === 'Escape' && blocksOpen()) { e.preventDefault(); e.stopImmediatePropagation(); showBlocks(false); } }, true);
+  addEventListener('resize', () => showBlocks(false));
+}
 const hex4 = n => n.toString(16).toUpperCase().padStart(4, '0');
 const codeLabel = n => 'U+' + hex4(n);
 const utf8 = s => [...new TextEncoder().encode(s)].map(b => b.toString(16).toUpperCase().padStart(2, '0')).join(' ');
@@ -57,6 +82,7 @@ function applyLook(look) {
   const v = picker.values, root = document.documentElement.style;
   root.setProperty('--app-font', v.appFont ? `"${v.appFont.replace(/["\\]/g, '')}", "Segoe UI", system-ui, sans-serif` : '"Segoe UI", system-ui, sans-serif');
   root.setProperty('--ui-scale', v.appSize ? v.appSize * 96 / 72 / 13 : 1);
+  root.setProperty('--mm-overview-w', Math.min(40, Math.max(10, +v.overviewWidth || 20)) + 'px');   // its scroll bars as the editor's (app.css)
 }
 
 async function charName(code) {
@@ -101,7 +127,45 @@ function layoutGrid() {
   picker.space.style.height = lines.length * cell + 'px';
   picker.blockList.innerHTML = lines.filter(l => l.heading).map(l => `<button data-first="${l.first}">${escapeHtml(l.heading)}</button>`).join('');
   drawRows();
+  drawStrip();
 }
+
+// ---------- The grid's scroll bar: a line where each block starts (the name as the tip; a click: that block at the
+// top), the part in view as the thumb (dragged: scrolls), elsewhere a click scrolls there; in the look of the editor's
+// (charpicker.css) ----------
+const strip = $('.mm-cp-strip');
+function drawStrip() {
+  const total = picker.lines.length;
+  strip.innerHTML = picker.lines.map((l, n) => !l.heading || !n ? '' :
+    `<div class="mm-cp-mark" data-line="${n}" title="${escapeHtml(l.heading)}" style="top:${n / total * 100}%"></div>`).join('') +
+    '<div class="mm-cp-thumb"></div>';
+  placeThumb();
+}
+function placeThumb() {
+  const thumb = strip.querySelector('.mm-cp-thumb'), g = picker.grid, h = g.scrollHeight || 1;
+  if (!thumb) return;
+  thumb.style.top = g.scrollTop / h * 100 + '%';
+  thumb.style.height = Math.min(100, g.clientHeight / h * 100) + '%';
+}
+strip.addEventListener('pointerdown', e => {
+  if (e.button !== 0) return;
+  e.preventDefault();
+  const g = picker.grid, thumb = strip.querySelector('.mm-cp-thumb'), t = thumb.getBoundingClientRect();
+  if (e.clientY >= t.top && e.clientY <= t.bottom) {   // the thumb: dragged
+    const y0 = e.clientY, top0 = g.scrollTop, scale = g.scrollHeight / strip.clientHeight;
+    strip.setPointerCapture(e.pointerId);
+    thumb.classList.add('mm-dragging');
+    const move = ev => { g.scrollTop = top0 + (ev.clientY - y0) * scale; };
+    const up = () => { strip.removeEventListener('pointermove', move); strip.removeEventListener('pointerup', up); thumb.classList.remove('mm-dragging'); };
+    strip.addEventListener('pointermove', move);
+    strip.addEventListener('pointerup', up);
+    return;
+  }
+  const mark = e.target.closest('.mm-cp-mark');
+  if (mark) g.scrollTop = +mark.dataset.line * picker.cell;
+  else g.scrollTop = (e.clientY - strip.getBoundingClientRect().top) / strip.clientHeight * g.scrollHeight - g.clientHeight / 2;
+});
+strip.addEventListener('wheel', e => { e.preventDefault(); picker.grid.scrollTop += e.deltaY; }, { passive: false });
 
 function drawRows() {
   const cell = picker.cell, top = picker.grid.scrollTop, height = picker.grid.clientHeight;
@@ -165,10 +229,14 @@ function onGridKey(e) {
   else if (e.key === 'PageUp') to = picker.current - page;
   else if (e.key === 'Home') to = 0;
   else if (e.key === 'End') to = picker.shown.length - 1;
-  else if (e.key === 'Enter') { e.preventDefault(); addToField(picker.shown[picker.current]); return; }
+  else if (e.key === 'Enter') {   // docked: no field, inserted at once
+    e.preventDefault();
+    if (docked()) insertText(String.fromCodePoint(picker.shown[picker.current])); else addToField(picker.shown[picker.current]);
+    return;
+  }
   if (to === null) return;
   e.preventDefault();
-  if (e.key === 'ArrowUp' && to < 0) return picker.search.focus();
+  if (e.key === 'ArrowUp' && to < 0) return docked() || picker.search.focus();
   select(to);
   scrollToCurrent();
 }
@@ -260,7 +328,7 @@ picker.search.addEventListener('keydown', e => {
     if (picker.shown.length) addToField(picker.shown[picker.current]);
   } else if (e.key === 'ArrowDown') { e.preventDefault(); picker.grid.focus(); }
 });
-picker.grid.addEventListener('scroll', drawRows);
+picker.grid.addEventListener('scroll', () => { drawRows(); placeThumb(); });
 picker.grid.addEventListener('keydown', onGridKey);
 picker.grid.addEventListener('mousedown', e => {
   const i = cellIndex(e);
@@ -268,7 +336,7 @@ picker.grid.addEventListener('mousedown', e => {
   if (e.detail === 1) picker.snapshot = { value: picker.field.value, at: picker.field.selectionStart };
   select(i);
 });
-picker.grid.addEventListener('click', e => { const i = cellIndex(e); if (i !== null) addToField(picker.shown[i]); });
+picker.grid.addEventListener('click', e => { const i = cellIndex(e); if (i !== null && !docked()) addToField(picker.shown[i]); });
 // A double click: the two clicks did not happen (the field as before), that one character goes to the cursor(s).
 picker.grid.addEventListener('dblclick', e => {
   const i = cellIndex(e);
@@ -281,6 +349,7 @@ picker.blockList.addEventListener('click', e => {
   if (!b) return;
   const i = picker.shown.indexOf(+b.dataset.first);
   if (i >= 0) { select(i); scrollToCurrent(true); }
+  showBlocks(false);   // docked: the menu closes
 });
 picker.recent.addEventListener('click', e => { const b = e.target.closest('[data-code]'); if (b) addToField(+b.dataset.code); });
 $('.mm-cp-insert').addEventListener('click', () => insertText(picker.field.value));

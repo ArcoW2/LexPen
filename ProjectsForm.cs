@@ -25,6 +25,7 @@ sealed class ProjectsForm : Form, IWebPost
         this.app = app;
         Text = "Manage projects - LexPen";
         Icon = owner.Icon;
+        app.FollowCaption(this, () => app.LastActive);   // the caption: Windows' own or the theme's
         ShowInTaskbar = false;
         MinimumSize = new Size(480, 320);
         StartPosition = FormStartPosition.Manual;
@@ -38,6 +39,7 @@ sealed class ProjectsForm : Form, IWebPost
         Controls.Add(web);
         ResizeEnd += (_, _) => KeepBounds();
         FormClosing += (_, _) => KeepBounds();
+        DockMoves.Report(this, () => Owner as MainForm, "projects");   // moved over its window: the place to dock it
     }
 
     void KeepBounds()
@@ -75,6 +77,7 @@ sealed class ProjectsForm : Form, IWebPost
         BackColor = web.DefaultBackgroundColor = app.AppBackground(app.LastActive);
         var on = app.Mode == "dark" ? 1 : 0;
         DwmSetWindowAttribute(Handle, 20 /* DWMWA_USE_IMMERSIVE_DARK_MODE */, ref on, sizeof(int));
+        app.ApplyCaption(this, app.LastActive);
     }
 
     [DllImport("dwmapi.dll")]
@@ -93,7 +96,11 @@ sealed class ProjectsForm : Form, IWebPost
         var msg = JsonNode.Parse(json)!;
         var reply = new JsonObject { ["id"] = msg["id"]!.GetValue<int>() };
         var op = msg["op"]?.GetValue<string>() ?? "";
-        try { reply["result"] = await Dispatch(op, msg); }
+        try
+        {
+            if (op == "close-window") BeginInvoke(Close);
+            else reply["result"] = await Request(app, this, null, msg);
+        }
         catch (Exception ex) { reply["error"] = ex.Message; }
         if (IsDisposed) return;
         web.CoreWebView2.PostWebMessageAsJson(reply.ToJsonString());
@@ -107,12 +114,17 @@ sealed class ProjectsForm : Form, IWebPost
 
     static List<int> Ids(JsonNode msg) => msg["projects"]?.AsArray().Select(n => n!.GetValue<int>()).ToList() ?? [];
 
-    async Task<JsonNode?> Dispatch(string op, JsonNode msg)
+    /// <summary>A request of a Manage projects page: its window's (`window` null), or the one docked in `window`
+    /// (docs/plans/24-PLAN-docking.md 7b; `owner`: whom its questions belong to). Esc with an empty search: back to the
+    /// LexPen window last worked in (docked: to its window's document).</summary>
+    public static async Task<JsonNode?> Request(AppHost app, IWin32Window owner, MainForm? window, JsonNode msg)
     {
+        var op = msg["op"]?.GetValue<string>() ?? "";
+        var to = window ?? app.LastActive;
         switch (op)
         {
             case "init":
-                return new JsonObject { ["settings"] = app.SettingsFor(app.LastActive)["values"]?.DeepClone(), ["look"] = app.Look(app.LastActive), ["list"] = app.ProjectList(null, true) };
+                return new JsonObject { ["settings"] = app.SettingsFor(to)["values"]?.DeepClone(), ["look"] = app.Look(to), ["list"] = app.ProjectList(null, true) };
 
             case "list":
                 return app.ProjectList(null, true);
@@ -134,28 +146,25 @@ sealed class ProjectsForm : Form, IWebPost
                 return true;
 
             case "merge":
-                return app.MergeProjects(this, Ids(msg));
+                return app.MergeProjects(owner, Ids(msg));
 
             case "close":
-                await app.CloseProjects(this, Ids(msg));
+                await app.CloseProjects(owner, Ids(msg));
                 return true;
 
             case "delete":
-                await app.DeleteProjects(this, Ids(msg));
+                await app.DeleteProjects(owner, Ids(msg));
                 return true;
 
             case "setting":
                 app.SetSetting(msg["name"]!.GetValue<string>(), msg["value"]?.DeepClone());
                 return true;
 
-            // Esc with an empty search: back to the LexPen window last worked in.
             case "back":
-                if (app.LastActive is MainForm last) AppHost.BringToFront(last);
-                return true;
-
             case "close-window":
-                BeginInvoke(Close);
-                return null;
+                if (window is not null) window.Post(new JsonObject { ["event"] = "toolEscape", ["kind"] = "projects" });
+                else if (app.LastActive is MainForm last) AppHost.BringToFront(last);
+                return true;
 
             default:
                 throw new InvalidOperationException($"Unknown request '{op}'.");

@@ -25,6 +25,7 @@ sealed class ThemeSetsForm : Form, IWebPost
         this.app = app;
         Text = "Manage theme sets - LexPen";
         Icon = owner.Icon;
+        app.FollowCaption(this, () => app.LastActive);   // the caption: Windows' own or the theme's
         ShowInTaskbar = false;
         MinimumSize = new Size(480, 320);
         StartPosition = FormStartPosition.Manual;
@@ -38,6 +39,7 @@ sealed class ThemeSetsForm : Form, IWebPost
         Controls.Add(web);
         ResizeEnd += (_, _) => KeepBounds();
         FormClosing += (_, _) => KeepBounds();
+        DockMoves.Report(this, () => Owner as MainForm, "themesets");   // moved over its window: the place to dock it
     }
 
     void KeepBounds()
@@ -75,6 +77,7 @@ sealed class ThemeSetsForm : Form, IWebPost
         BackColor = web.DefaultBackgroundColor = app.AppBackground(app.LastActive);
         var on = app.Mode == "dark" ? 1 : 0;
         DwmSetWindowAttribute(Handle, 20 /* DWMWA_USE_IMMERSIVE_DARK_MODE */, ref on, sizeof(int));
+        app.ApplyCaption(this, app.LastActive);
     }
 
     [DllImport("dwmapi.dll")]
@@ -93,7 +96,11 @@ sealed class ThemeSetsForm : Form, IWebPost
         var msg = JsonNode.Parse(json)!;
         var reply = new JsonObject { ["id"] = msg["id"]!.GetValue<int>() };
         var op = msg["op"]?.GetValue<string>() ?? "";
-        try { reply["result"] = Dispatch(op, msg); }
+        try
+        {
+            if (op == "close-window") BeginInvoke(Close);
+            else reply["result"] = Request(app, this, null, msg);
+        }
         catch (Exception ex) { reply["error"] = ex.Message; }
         if (IsDisposed) return;
         web.CoreWebView2.PostWebMessageAsJson(reply.ToJsonString());
@@ -105,28 +112,30 @@ sealed class ThemeSetsForm : Form, IWebPost
         }
     }
 
-    JsonNode? Dispatch(string op, JsonNode msg)
+    /// <summary>A request of a Manage theme sets page: its window's (`window` null), or the one docked in `window`
+    /// (docs/plans/24-PLAN-docking.md 7b; `owner`: whom its questions belong to). Esc: back to the LexPen window last
+    /// worked in (docked: to its window's document).</summary>
+    public static JsonNode? Request(AppHost app, IWin32Window owner, MainForm? window, JsonNode msg)
     {
+        var op = msg["op"]?.GetValue<string>() ?? "";
+        var to = window ?? app.LastActive;
         switch (op)
         {
             case "init":
-                return new JsonObject { ["settings"] = app.SettingsFor(app.LastActive)["values"]?.DeepClone(), ["look"] = app.Look(app.LastActive), ["list"] = app.ThemeSetList() };
+                return new JsonObject { ["settings"] = app.SettingsFor(to)["values"]?.DeepClone(), ["look"] = app.Look(to), ["list"] = app.ThemeSetList() };
 
             case "list":
                 return app.ThemeSetList();
 
             // New, duplicate, rename, delete, use for the project / the desktop / the app, edit (AppHost.ThemeSetCommand).
             case "command":
-                return app.ThemeSetCommand(this, msg);
+                return app.ThemeSetCommand(owner, msg);
 
-            // Esc: back to the LexPen window last worked in.
             case "back":
-                if (app.LastActive is MainForm last) AppHost.BringToFront(last);
-                return true;
-
             case "close-window":
-                BeginInvoke(Close);
-                return null;
+                if (window is not null) window.Post(new JsonObject { ["event"] = "toolEscape", ["kind"] = "themesets" });
+                else if (app.LastActive is MainForm last) AppHost.BringToFront(last);
+                return true;
 
             default:
                 throw new InvalidOperationException($"Unknown request '{op}'.");

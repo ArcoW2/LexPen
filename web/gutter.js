@@ -227,7 +227,7 @@ function setupGutter(pane) {
   const numbers = setting('lineNumbers');   // none | tens | all
   const gutters = [
     ...(numbers !== 'none' ? ['CodeMirror-linenumbers'] : []),
-    ...(document.body.hasAttribute('data-outline') && hasOutline(doc) ? [OUTLINE_GUTTER] : []),
+    ...(outlineServed(pane) && hasOutline(doc) ? [OUTLINE_GUTTER] : []),
     ...(gutterOn('bookmarks') ? [BM_GUTTER] : []),
     ...(gutterOn('changes') ? [CHANGE_GUTTER] : []), ...(gutterOn('git') ? [GIT_GUTTER] : []), ...(gutterOn('folds') ? [FOLD_GUTTER] : []),
   ];

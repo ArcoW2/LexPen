@@ -40,6 +40,15 @@ public class ViewProjectTests : IDisposable
     }
 
     [Fact]
+    public void TheViewLayoutKeepsTheShippedDocking()
+    {
+        var shipped = new JsonObject { ["docks"] = new JsonObject { ["left"] = new JsonObject() } };
+        var mine = new JsonObject { ["docks"] = new JsonObject { ["right"] = new JsonObject { ["open"] = true } } };
+        var layout = ViewProject.Layout(shipped, mine);
+        Assert.Equal("""{"left":{}}""", layout["docks"]!.ToJsonString());
+    }
+
+    [Fact]
     public void ASessionInTheViewLayoutHasOnePaneOfPreviews()
     {
         var session = JsonNode.Parse("""

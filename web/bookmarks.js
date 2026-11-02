@@ -91,6 +91,7 @@ function repaintBookmarks(doc) {
   for (const pane of panes) if (pane.active?.doc === doc && pane.cm && pane.el.dataset.mode !== 'preview') paintBookmarks(pane);
   markPreviewCursors();   // the previews draw them beside their lines (previewcursor.js)
   schedulePreviewOverviews();
+  tellBookmarksPanes();   // the Bookmarks panes (bookmarkspane.js)
 }
 
 // ---------- What the actions do ----------
@@ -172,7 +173,7 @@ async function nextBookmark(pane, dir, extend, preview) {
   moveTo(pane, Pos5(target.line, target.ch), extend, preview);
 }
 
-// ---------- Lists: Edit > Go to / Store bookmark, and Ctrl+K, L ----------
+// ---------- Lists: Edit > Bookmarks > Go to / Store bookmark, and Ctrl+K, L ----------
 const bookmarkText = b => `${b.line + 1}:${b.ch + 1}  ${b.text.slice(b.ch).trim().slice(0, 50)}`;
 
 async function bookmarkItems(kind) {

@@ -26,6 +26,7 @@ sealed class CharPickerForm : Form, IWebPost
         startCode = code;
         Text = "Characters - LexPen";
         Icon = owner.Icon;
+        app.FollowCaption(this, () => app.LastActive);   // the caption: Windows' own or the theme's
         ShowInTaskbar = false;
         MinimumSize = new Size(460, 340);
         StartPosition = FormStartPosition.Manual;
@@ -39,6 +40,7 @@ sealed class CharPickerForm : Form, IWebPost
         Controls.Add(web);
         ResizeEnd += (_, _) => KeepBounds();
         FormClosing += (_, _) => KeepBounds();
+        DockMoves.Report(this, () => Owner as MainForm, "chars");   // moved over its window: the place to dock it
     }
 
     void KeepBounds()
@@ -76,6 +78,7 @@ sealed class CharPickerForm : Form, IWebPost
         BackColor = web.DefaultBackgroundColor = app.AppBackground(app.LastActive);
         var on = app.Mode == "dark" ? 1 : 0;
         DwmSetWindowAttribute(Handle, 20 /* DWMWA_USE_IMMERSIVE_DARK_MODE */, ref on, sizeof(int));
+        app.ApplyCaption(this, app.LastActive);
     }
 
     [DllImport("dwmapi.dll")]
@@ -92,6 +95,7 @@ sealed class CharPickerForm : Form, IWebPost
     {
         if (IsDisposed) return;
         var msg = JsonNode.Parse(json)!;
+        if (msg["id"] is null) return;   // not a request
         var reply = new JsonObject { ["id"] = msg["id"]!.GetValue<int>() };
         try { reply["result"] = Dispatch(msg); }
         catch (Exception ex) { reply["error"] = ex.Message; }
@@ -105,34 +109,16 @@ sealed class CharPickerForm : Form, IWebPost
         }
     }
 
+    // Its requests as a docked picker's, for the window last worked in (AppHost.CharPickerRequest); Esc closes it.
     JsonNode? Dispatch(JsonNode msg)
     {
-        var op = msg["op"]?.GetValue<string>() ?? "";
-        if (CharInfo.Request(op, msg) is { Handled: true } done) return done.Result;
-        switch (op)
+        if (msg["op"]?.GetValue<string>() == "close")
         {
-            case "init":
-            {
-                var code = startCode;
-                startCode = null;
-                return new JsonObject { ["settings"] = app.SettingsFor(app.LastActive)["values"]?.DeepClone(), ["look"] = app.Look(app.LastActive), ["code"] = code };
-            }
-
-            // Into the LexPen window last worked in, at its cursors; that window comes to the front.
-            case "insert":
-            {
-                if (app.LastActive is not MainForm w) return false;
-                w.Post(new JsonObject { ["event"] = "insertText", ["text"] = msg["text"]!.GetValue<string>() });
-                AppHost.BringToFront(w);
-                return true;
-            }
-
-            case "close":
-                BeginInvoke(Close);
-                return null;
-
-            default:
-                throw new InvalidOperationException($"Unknown request '{op}'.");
+            BeginInvoke(Close);
+            return null;
         }
+        var code = msg["op"]?.GetValue<string>() == "init" ? startCode : null;
+        if (code is not null) startCode = null;
+        return app.CharPickerRequest(null, msg, code);
     }
 }

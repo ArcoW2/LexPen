@@ -29,6 +29,7 @@ sealed class ReplacePreviewForm : Form
         this.changes = changes;
         Text = "Replace - LexPen";
         Icon = owner.Icon;
+        app.FollowCaption(this, () => owner);   // the caption: Windows' own or the theme's
         ShowInTaskbar = false;
         MinimumSize = new Size(420, 260);
         StartPosition = FormStartPosition.Manual;
@@ -44,6 +45,7 @@ sealed class ReplacePreviewForm : Form
         BackColor = web.DefaultBackgroundColor = app.AppBackground(owner);
         var on = app.Mode == "dark" ? 1 : 0;
         DwmSetWindowAttribute(Handle, 20 /* DWMWA_USE_IMMERSIVE_DARK_MODE */, ref on, sizeof(int));
+        app.ApplyCaption(this, owner);
         await web.EnsureCoreWebView2Async(await app.WebEnvironment());
         var core = web.CoreWebView2;
         core.Settings.IsStatusBarEnabled = false;

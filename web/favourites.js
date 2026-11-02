@@ -47,13 +47,11 @@ async function openFavourite(path) {
 
 // A favourite folder: in the folder pane, selected when inside the folder open there, else the pane's base folder.
 async function openFavouriteFolder(path) {
-  setSidebar(true);
-  setSideView('folder');
+  showFolderView();
   const base = (state.root || '').replace(/\\$/, '').toLowerCase(), p = path.replace(/\\$/, '').toLowerCase();
   if (base && p.startsWith(base + '\\')) return showInTree(path);
   if (base && p === base) {
-    const row = ui.tree.querySelector('.mm-row.mm-base');
-    if (row) setTreeCursor(row);
+    toFolder({ kind: 'cursor', path: state.root });   // its base row
     return;
   }
   await openFolder(path);

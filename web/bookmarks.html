@@ -1,0 +1,28 @@
+<!doctype html>
+<!-- The Bookmarks pane as a page of its own (bookmarks-pane.js; docs/plans/24-PLAN-docking.md stage 10). -->
+<html><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:">
+<title>Bookmarks</title>
+<link rel="stylesheet" href="app.css">
+<style>
+  body { background: var(--bg-side); color: var(--fg); display: flex; flex-direction: column; height: 100vh; margin: 0; overflow: hidden;
+    font-family: var(--app-font); font-size: calc(13px * var(--ui-scale, 1)); }
+  .bp-head { flex: none; display: flex; gap: 8px; align-items: baseline; padding: 8px 10px 6px; border-bottom: 1px solid var(--border); }
+  .bp-name { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bp-count { flex: none; color: var(--fg-dim); }
+  .bp-list { flex: 1; min-height: 0; overflow: auto; outline: none; padding: 4px 0; }
+  .bp-row { display: flex; gap: 8px; align-items: baseline; padding: 3px 10px; cursor: pointer; white-space: nowrap; }
+  .bp-row:hover { background: var(--hover); }
+  .bp-row.bp-on { background: var(--select); }
+  .bp-n { flex: none; width: 1.4em; text-align: center; font-weight: 700; color: var(--accent); }
+  .bp-line { flex: none; min-width: 3ch; text-align: right; color: var(--fg-dim); font-family: var(--editor-font, Consolas, monospace); }
+  .bp-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-family: var(--editor-font, Consolas, monospace); }
+  .bp-empty { padding: 10px; color: var(--fg-dim); }
+</style>
+</head>
+<body>
+<div class="bp-head"><span class="bp-name"></span><span class="bp-count"></span></div>
+<div class="bp-list" tabindex="0"></div>
+<script src="pane.js"></script>
+<script src="bookmarks-pane.js"></script>
+</body></html>

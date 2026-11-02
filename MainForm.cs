@@ -139,6 +139,7 @@ sealed class MainForm : Form
 
         Activated += (_, _) => active = true;
         Deactivate += (_, _) => active = false;
+        app.FollowCaption(this, () => this);
 
         treeWatcher.Created += (_, e) => OnTreeEvent(e.FullPath);
         treeWatcher.Deleted += (_, e) => OnTreeEvent(e.FullPath);
@@ -297,8 +298,8 @@ sealed class MainForm : Form
         Watch(treeWatcher, Root, "*");
     }
 
-    // Window chrome follows the mode; the background shown before the page paints is the theme's.
-    // Secondary windows get a dimmed caption and border (Windows 11; Windows 10 ignores it).
+    // Window chrome follows the mode; the background shown before the page paints is the theme's; the caption and
+    // border Windows' own or the theme's (AppHost.ApplyCaption).
     public void ApplyTheme()
     {
         var dark = app.Mode == "dark";
@@ -306,9 +307,7 @@ sealed class MainForm : Form
         UpdateFirstPaint();
         var on = dark ? 1 : 0;
         DwmSetWindowAttribute(Handle, 20 /* DWMWA_USE_IMMERSIVE_DARK_MODE */, ref on, sizeof(int));
-        var color = unchecked((int)0xFFFFFFFF);   // DWMWA_COLOR_DEFAULT: every window the same
-        DwmSetWindowAttribute(Handle, 35 /* DWMWA_CAPTION_COLOR */, ref color, sizeof(int));
-        DwmSetWindowAttribute(Handle, 34 /* DWMWA_BORDER_COLOR */, ref color, sizeof(int));
+        app.ApplyCaption(this, this);
     }
 
     // The theme's colours before the page's first paint (AppHost.FirstPaintScript), also after a reload.
@@ -379,6 +378,11 @@ sealed class MainForm : Form
         core.AddWebResourceRequestedFilter(FileUrl + "*", CoreWebView2WebResourceContext.All);
         core.WebResourceRequested += OnFileRequested;
 
+        // A tool docked in this window (plan 24 7b): its page in a frame named "tool:kind" asks the host itself.
+        core.FrameCreated += (_, fc) =>
+        {
+            if (fc.Frame.Name is { } name && name.StartsWith("tool:")) app.AddToolFrame(new ToolFrame(app, this, fc.Frame, name[5..]));
+        };
         // Dialogs must not run inside a WebView2 event handler, so handle the message afterwards.
         // Files dropped from Explorer come along as objects that carry their path.
         core.WebMessageReceived += (_, m) =>
@@ -394,9 +398,22 @@ sealed class MainForm : Form
             BeginInvoke(() => OnMessage(json, files));
         };
         // Printing is not a LexPen feature: the browser's right-click menu loses its Print item.
-        core.ContextMenuRequested += (_, m) =>
+        core.ContextMenuRequested += async (_, m) =>
         {
             foreach (var item in m.MenuItems.Where(i => i.Name == "print").ToList()) m.MenuItems.Remove(item);
+            // The items below belong to a document pane's editor and preview only: the page says where the right-click was.
+            var deferral = m.GetDeferral();
+            try
+            {
+                bool inDocument;
+                try { inDocument = await core.ExecuteScriptAsync("typeof contextInDocument === 'function' && contextInDocument()") == "true"; }
+                catch (Exception ex) when (ex is InvalidOperationException or COMException) { inDocument = false; }
+                if (inDocument) AddDocumentItems(m);
+            }
+            finally { deferral.Complete(); }
+        };
+        void AddDocumentItems(CoreWebView2ContextMenuRequestedEventArgs m)
+        {
             // Highlights (docs/plans/executed/PLAN-highlights.md): in the editor and the preview, on the selection or the cursor.
             var env = core.Environment;
             m.MenuItems.Add(env.CreateContextMenuItem("", null, CoreWebView2ContextMenuItemKind.Separator));
@@ -414,7 +431,7 @@ sealed class MainForm : Form
                 occurrences.CustomItemSelected += (_, _) => Post(new JsonObject { ["event"] = "contextAction", ["action"] = "occurrences.show" });
                 m.MenuItems.Add(occurrences);
             }
-        };
+        }
         core.DocumentTitleChanged += (_, _) => UpdateTitle();
         core.DOMContentLoaded += (_, _) => loading.Hide();
 
@@ -453,6 +470,14 @@ sealed class MainForm : Form
     }
 
     /// <summary>An event for the page; held back until the page has started.</summary>
+    /// <summary>A point on the screen as the page counts it: CSS pixels from its view's top left.</summary>
+    public JsonArray PagePoint(Point screen)
+    {
+        var p = web.PointToClient(screen);
+        var scale = DeviceDpi / 96.0;
+        return new JsonArray(Math.Round(p.X / scale), Math.Round(p.Y / scale));
+    }
+
     public void Post(JsonObject message)
     {
         using var _ = StallLog.Doing($"the event {message["event"]} to {Text}");
@@ -692,9 +717,17 @@ sealed class MainForm : Form
                 app.OpenHighlights(this);
                 return null;
 
+            case "closeHighlights":   // the floating highlights window (Highlights docked here now)
+                app.CloseHighlights();
+                return null;
+
             // Projects > Manage projects (ProjectsForm).
             case "openProjects":
                 app.OpenProjects(this);
+                return null;
+
+            case "closeProjects":   // its window (Manage projects docked here now)
+                app.CloseProjectsWindow();
                 return null;
 
             // The page's answer to a question of the host (AppHost.Ask: the unsaved work of this window).
@@ -712,7 +745,15 @@ sealed class MainForm : Form
                 return null;
 
             case "pickerCursor":
-                app.CharPickerCursor(msg["code"]?.GetValue<int>());
+                app.CharPickerCursor(this, msg["code"]?.GetValue<int>(), msg["pane"]?.GetValue<int>());
+                return null;
+
+            case "charPickerGoTo":   // the picker docked in this window at a character
+                app.CharPickerGoTo(this, msg["code"]?.GetValue<int>(), msg["pane"]?.GetValue<int>());
+                return null;
+
+            case "closeCharPicker":   // the floating picker (Characters docked here now)
+                app.CloseCharPicker();
                 return null;
 
             case "clipGet":
@@ -933,6 +974,14 @@ sealed class MainForm : Form
             case "settingSet":
                 return app.SetSetting(Arg("name"), msg["value"]?.DeepClone(), this);   // a colour: into this window's set
 
+            case "openThemeSetsWindow":
+                app.OpenThemeSetsWindow(this);
+                return null;
+
+            case "closeThemeSets":   // its window (Manage theme sets docked here now)
+                app.CloseThemeSetsWindow();
+                return null;
+
             case "openThemeSets":
                 app.OpenThemeSets(this);
                 return null;
@@ -963,6 +1012,34 @@ sealed class MainForm : Form
             // its settings window); the old values of the page's storage, moved to the settings once.
             case "windowLayout":
                 return app.LayoutFor(this);
+
+            // A pane floating in a window of its own (plan 24 3.3): open, a message to it, back in this window.
+            case "paneFloat":   // atCursor: dropped outside this window, it floats there
+                return app.FloatPane(this, Arg("pane"), Arg("page"), msg["atCursor"]?.GetValue<bool>() == true);
+
+            case "paneSend":
+                app.SendToPane(this, Arg("pane"), msg["msg"]!);
+                return null;
+
+            case "paneDock":
+                return app.DockPane(this, Arg("pane"));
+
+            case "toolWindowsOpen":   // View > Panels: the floating panes whose window is open (plan 24 stage 9)
+                return app.ToolWindowsOpen(this);
+
+            case "closeToolWindow":
+                app.CloseToolWindow(this, Arg("kind"));
+                return null;
+
+            case "outlineWanted":   // the one floating outline may serve this window now, or not (plan 24 7.3)
+                app.OutlineWanted(this, msg["wants"]?.GetValue<bool>() == true);
+                return null;
+
+            case "layoutSources":   // View > Layout > Use layout of... (plan 24 3.13a)
+                return app.LayoutSources(this);
+
+            case "layoutFrom":
+                return app.LayoutFrom(Arg("kind"), msg["source"]!.GetValue<int>());   // not "id": that is the call's
 
             case "layoutShown":
                 PageLayout = msg["layout"]?.DeepClone() as JsonObject;
@@ -1015,8 +1092,12 @@ sealed class MainForm : Form
                 app.SwitchMode();
                 return null;
 
-            case "openSettings":
-                app.OpenSettings(this);
+            case "openSettings":   // its window of its own (the action settings decides: AppHost.OpenSettings)
+                app.OpenSettingsWindow(this);
+                return null;
+
+            case "closeSettings":   // its window of its own (Settings docked here now)
+                app.CloseSettings(this);
                 return null;
 
             case "newDraft":

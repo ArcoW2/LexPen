@@ -402,84 +402,87 @@ appAction('macro.manage', { title: 'Manage macros...', hint: 'The stored macros,
 appAction('macro.window', { title: 'Macro...', hint: 'A macro\'s window: play it, step by step, record more onto it, edit, a name, a key, delete', group: 'macros',
   run: ([name]) => openMacroWindow(name ?? null) });
 
-// ---------- The macro window (plan 36 3.3, 3.4) ----------
-// One macro's window (from View > Macros), or Manage: the same window with the list. Not modal: the editor and the
-// menus go on working while it is open; a play from it runs on the document active at that moment.
-const macroWindow = { name: null, manage: false };
+// ---------- The macro window (plan 36 3.3, 3.4; docs/plans/24-PLAN-docking.md 7b) ----------
+// One macro's window (from View > Macros), or Manage: the same window with the list. A pane of its own (macros.html,
+// macros-pane.js) that docks in the window's dock areas or floats in a window of its own, floating the first time; not
+// modal: the editor and the menus go on working while it is shown; a play from it runs on the document active at
+// that moment. Its window closed by hand: it stays floating, so it opens floating again.
+const macroWindow = { name: null, manage: true, selected: null, names: [], back: false };
+
+const macrosPane = paneChannel({ id: 'macros', page: 'macros.html', title: 'Macros', view: () => $('.mm-macros-view'),
+  state: () => new Map([['look', paneLook()], ['title', { kind: 'title', text: macroWindowTitle() }], ['macros', macroWindowState()]]),
+  receive: m => fromMacrosPane(m),
+  onFloat: () => setDockFloating('macros', true),
+  // Back in its view: docked (moved onto the window: macroWindow.back); its window closed by hand: still floating.
+  onDock: () => { if (macroWindow.back) { macroWindow.back = false; setDockFloating('macros', false); } } });
 
 async function openMacroWindow(name) {
-  const dialog = $('.mm-macros-dialog');
-  if (!dialog.wired) wireMacroWindow(dialog);
-  Object.assign(macroWindow, { name, manage: !name });
+  Object.assign(macroWindow, { name, manage: !name, selected: name });
   await fillMacroWindow(name);
-  if (!dialog.open) dialog.show();
-  (macroWindow.manage ? dialog.querySelector('.mm-macros-list') : dialog.querySelector('[data-macro="play"]')).focus();
+  if (dockModel().state.macros === 'floating') macrosPane.float();   // its window (or already open there)
+  else showDockPane('macros');
+  macrosPane.send({ kind: 'focus' });
+  macrosPane.focus();
 }
 
 // The macro the buttons act on: the window's own, or the one chosen in Manage's list.
-const macroWindowName = () => macroWindow.manage ? $('.mm-macros-dialog .mm-macros-list').value || null : macroWindow.name;
+const macroWindowName = () => macroWindow.manage ? macroWindow.selected ?? macroWindow.names[0] ?? null : macroWindow.name;
+const macroWindowTitle = () => macroWindow.manage ? 'Macros' : macroWindow.name ?? 'Macros';
+
+function macroWindowState() {
+  const name = macroWindowName(), keys = name ? keysOf('macroRun', name) : [];
+  return { kind: 'macros', manage: macroWindow.manage, name: macroWindow.name, selected: name, title: macroWindowTitle(),
+    names: macroWindow.names.map(n => ({ name: n, keys: keysOf('macroRun', n).join(', ') })),
+    keyText: !name ? 'No macros yet: New recording or New macro.' : keys.length ? `Key: ${keys.join(', ')}` : 'No key.' };
+}
 
 async function fillMacroWindow(keep) {
-  const dialog = $('.mm-macros-dialog'), list = dialog.querySelector('.mm-macros-list');
-  const names = await loadMacroNames();
-  dialog.toggleAttribute('data-manage', macroWindow.manage);
-  if (macroWindow.manage) {
-    list.replaceChildren(...names.map(n => {
-      const keys = keysOf('macroRun', n);
-      return Object.assign(document.createElement('option'), { value: n, textContent: n + (keys.length ? `   (${keys.join(', ')})` : '') });
-    }));
-    list.value = keep && names.includes(keep) ? keep : names[0] ?? '';
+  macroWindow.names = await loadMacroNames();
+  if (macroWindow.manage) macroWindow.selected = keep && macroWindow.names.includes(keep) ? keep : macroWindow.names[0] ?? null;
+  macrosPane.send({ kind: 'title', text: macroWindowTitle() });
+  macrosPane.send(macroWindowState());
+}
+
+// Shown or not: hidden when docked; its window closed when floating (it stays floating).
+function closeMacroWindow() {
+  if (macrosPane.floating) macrosPane.back();
+  else hideDockPane('macros');
+}
+
+async function fromMacrosPane(m) {
+  if (m.kind === 'escape') return focusPane(panes[state.activePane]);
+  if (m.kind === 'select') { macroWindow.selected = m.name; return macrosPane.send(macroWindowState()); }
+  if (m.kind !== 'macro') return;
+  const what = m.what, name = m.name ?? macroWindowName();
+  if (what === 'close') return closeMacroWindow();
+  if (what === 'new') return newMacro().then(() => fillMacroWindow());
+  if (what === 'record') { closeMacroWindow(); macroStore.nextRecording = null; return runAction('macro.record', [], { from: 'menu' }); }
+  if (!name) return;
+  if (what === 'play') return playStoredMacro(name);
+  if (what === 'times') return playMacroTimes(name);
+  if (what === 'toEnd') return playStoredMacro(name, { times: 0 });
+  if (what === 'step') return stepStoredMacro(name);
+  if (what === 'continue') { closeMacroWindow(); macroStore.nextRecording = { name }; return runAction('macro.record', [], { from: 'menu' }); }
+  if (what === 'edit') return openMacro(name);
+  if (what === 'rename') {
+    const to = await renameMacro(name);
+    if (to && !macroWindow.manage) macroWindow.name = to;
+    return to && fillMacroWindow(to);
   }
-  const name = macroWindowName();
-  dialog.querySelector('h1').textContent = macroWindow.manage ? 'Macros' : name;
-  const keys = name ? keysOf('macroRun', name) : [];
-  dialog.querySelector('.mm-macros-key').textContent = !name ? 'No macros yet: New recording or New macro.' : keys.length ? `Key: ${keys.join(', ')}` : 'No key.';
-  for (const b of dialog.querySelectorAll('.mm-macros-one button')) b.disabled = !name;
+  if (what === 'key') { await macroKey(name); return fillMacroWindow(name); }
+  if (what === 'delete') {
+    if (!await deleteMacro(name)) return;
+    if (macroWindow.manage) return fillMacroWindow();
+    return closeMacroWindow();
+  }
 }
 
-function wireMacroWindow(dialog) {
-  dialog.wired = true;
-  const list = dialog.querySelector('.mm-macros-list');
-  dialog.addEventListener('click', async e => {
-    const what = e.target.closest('[data-macro]')?.dataset.macro, name = macroWindowName();
-    if (!what) return;
-    if (what === 'close') return dialog.close();
-    if (what === 'new') return newMacro().then(() => fillMacroWindow());
-    if (what === 'record') { dialog.close(); macroStore.nextRecording = null; return runAction('macro.record', [], { from: 'menu' }); }
-    if (!name) return;
-    if (what === 'play') return playStoredMacro(name);
-    if (what === 'times') return playMacroTimes(name);
-    if (what === 'toEnd') return playStoredMacro(name, { times: 0 });
-    if (what === 'step') return stepStoredMacro(name);
-    if (what === 'continue') { dialog.close(); macroStore.nextRecording = { name }; return runAction('macro.record', [], { from: 'menu' }); }
-    if (what === 'edit') return openMacro(name);
-    if (what === 'rename') {
-      const to = await renameMacro(name);
-      if (to && !macroWindow.manage) macroWindow.name = to;
-      return to && fillMacroWindow(to);
-    }
-    if (what === 'key') { await macroKey(name); return fillMacroWindow(name); }
-    if (what === 'delete') {
-      if (!await deleteMacro(name)) return;
-      if (macroWindow.manage) return fillMacroWindow();
-      return dialog.close();
-    }
-  });
-  list.addEventListener('change', () => fillMacroWindow(list.value));
-  list.addEventListener('dblclick', () => { if (list.value) playStoredMacro(list.value); });
-  dialog.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); dialog.close(); } });
-  // Moved by its title.
-  dialog.querySelector('h1').addEventListener('mousedown', e => {
-    if (e.button !== 0) return;
-    const r = dialog.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top;
-    const move = m => Object.assign(dialog.style, { left: Math.max(0, Math.min(innerWidth - 60, m.clientX - dx)) + 'px', top: Math.max(0, Math.min(innerHeight - 30, m.clientY - dy)) + 'px', right: 'auto' });
-    addEventListener('mousemove', move);
-    addEventListener('mouseup', () => removeEventListener('mousemove', move), { once: true });
-    e.preventDefault();
-  });
-}
-
-loadMacroNames();
+// Shown since the start (docked at a restart): Manage, with the list.
+loadMacroNames().then(names => {
+  macroWindow.names = names;
+  macroWindow.selected ??= names[0] ?? null;
+  if (macrosPane.frame || macrosPane.floating) macrosPane.send(macroWindowState());
+});
 
 // ---------- Recording (3.1) ----------
 // What you do becomes the steps of a macro: the actions you run (keys, menus, bars) with their values; typed text, a
@@ -901,9 +904,10 @@ appAction('macro.reference', { title: 'The macro language', hint: 'Every stateme
 
 // ---------- Step by step (3.6) ----------
 // The macro in one pane, the document it works on in the other. Before each line: the line marked in the macro's
-// tab, its variables in the panel under it. Step (F10): the next line, a gosub or a call as one step; Step into
-// (F11): into it too; Continue (F5): on to a breakpoint (a click on a line number, F9) or the end; Stop (Shift+F5, Esc).
-const macroDebug = { tab: null, pane: null, active: null, how: 'into', level: 0, resume: null, panel: null, line: null, before: null };
+// tab, its variables in the Step by step pane (below). Step (F10): the next line, a gosub or a call as one step; Step
+// into (F11): into it too; Continue (F5): on to a breakpoint (a click on a line number, F9) or the end; Stop
+// (Shift+F5, Esc).
+const macroDebug = { tab: null, pane: null, active: null, how: 'into', level: 0, resume: null, view: null, line: null, before: null };
 
 async function stepThisMacro(how = 'over') {
   if (macroDebug.resume) return macroDebug.resume(how);
@@ -932,7 +936,7 @@ async function macroPause(info) {
   await fillMacroDebugPanel(info);
   const how = await new Promise(r => { d.resume = r; });
   d.resume = null;
-  d.panel?.toggleAttribute('data-running', true);
+  if (d.view) { d.view.running = true; tellStepPanes(); }
   if (how === 'stop') { macroPlay.stop = true; return true; }
   Object.assign(d, { how, level: info.level });
   state.activePane = d.active;
@@ -958,41 +962,76 @@ function toggleMacroBreak(pane, line) {
   else { breaks.add(h); doc.addLineClass(h, 'gutter', 'mm-macro-break'); }
 }
 
-// The panel under the macro: the buttons, the macro's variables and the system ones apart.
-function showMacroDebugPanel(pane) {
-  macroDebug.panel?.remove();
-  const el = document.createElement('div'), key = a => keyText(a) ? ` (${keyText(a)})` : '';
-  el.className = 'mm-macro-debug';
-  el.toggleAttribute('data-running', true);
-  const bar = document.createElement('div');
-  bar.className = 'mm-macro-debug-bar';
-  const where = document.createElement('span');
-  where.className = 'mm-macro-debug-where';
-  bar.append(where);
-  for (const [how, label, hint, action] of [
-    ['over', 'Step', 'The next line; a gosub or a call runs as one step', 'macro.stepThis'],
-    ['into', 'Step into', 'The next line, also into a gosub or a call', 'macro.stepInto'],
-    ['continue', 'Continue', 'On to a breakpoint (a click on a line number) or the end', 'macro.continue'],
-    ['stop', 'Stop', 'The macro ends here (also Esc)', 'macro.stopDebug']]) {
-    const b = document.createElement('button');
-    b.textContent = label;
-    b.title = hint + key(action);
-    b.onclick = () => macroDebug.resume?.(how);
-    bar.append(b);
+// ---------- The Step by step pane (docs/plans/24-PLAN-docking.md stage 13) ----------
+// A page of its own (step.html): where the macro stopped, the buttons, the macro's variables and the system ones apart.
+// By default at the bottom of the macro's editor pane (`step:0`, `step:1`, that pane's own); moved to the window's
+// dock areas or floating it is the window's (`step`). A step by step shows the one in use (the macro's pane's own
+// when it is not closed, else the window's when that is not closed, else another editor pane's, else the macro's
+// pane's own at its bottom); it stays shown when the macro ends (the last variables, the buttons off).
+const stepPanes = { channels: new Map(), back: false };
+const STEP_BUTTONS = [['over', 'The next line; a gosub or a call runs as one step', 'macro.stepThis'],
+  ['into', 'The next line, also into a gosub or a call', 'macro.stepInto'],
+  ['continue', 'On to a breakpoint (a click on a line number) or the end', 'macro.continue'],
+  ['stop', 'The macro ends here (also Esc)', 'macro.stopDebug']];
+
+function stepState() {
+  const v = macroDebug.view ?? { where: '', running: false, ended: true, tables: [] };
+  return { kind: 'step', ...v, titles: Object.fromEntries(STEP_BUTTONS.map(([how, hint, action]) => [how, hint + (keyText(action) ? ` (${keyText(action)})` : '')])) };
+}
+function stepChannel(id) {
+  const ch = paneChannel({ id, page: 'step.html', title: 'Step by step', view: () => dockPanes.get(id).view,
+    state: () => new Map([['look', paneLook()], ['title', { kind: 'title', text: 'Step by step' }], ['step', stepState()]]),
+    receive: m => {
+      if (m.kind === 'escape') return events.toolEscape({ pane: macroDebug.active ?? undefined });
+      if (m.kind === 'step') return macroDebug.resume?.(m.how);
+    },
+    onFloat: () => setDockFloating(id, true),
+    // Back in its view: docked (moved onto the window); its window closed by hand: it stays floating.
+    onDock: () => { if (stepPanes.back) { stepPanes.back = false; setDockFloating(id, false); } } });
+  stepPanes.channels.set(id, ch);
+  return ch;
+}
+const tellStepPanes = () => { for (const ch of stepPanes.channels.values()) if (ch.frame || ch.floating) ch.send(stepState()); };
+
+function registerStepPanes() {
+  const view = () => { const v = Object.assign(document.createElement('div'), { className: 'mm-tool-view' }); $('.mm-dock-hold').append(v); return v; };
+  const sync = (id, ch) => () => { if (dockShown(dockModel(), id) && !ch.frame) ch.send(stepState()); };
+  registerDockPane('step', { title: 'Step by step', view: view(), home: 'bottom', startHidden: true, kind: 'step',
+    focus: () => stepPanes.channels.get('step').focus() });
+  const win = stepChannel('step');
+  Object.assign(dockPanes.get('step'), {
+    leave: m => { if (m.state.step === 'floating') win.back(); m.state.step = 'hidden'; },
+    sync: sync('step', win),
+    channel: { get floating() { return win.floating; }, float: opts => win.float(opts), back: () => { stepPanes.back = true; win.back(); } } });
+  for (const pane of panes) {
+    const id = `step:${pane.index}`;
+    registerDockPane(id, { title: 'Step by step', view: view(), scope: 'pane', pane: pane.index, home: `${pane.index}.bottom`, startHidden: true, kind: 'step',
+      focus: () => stepPanes.channels.get(id).focus() });
+    const ch = stepChannel(id);
+    Object.assign(dockPanes.get(id), {
+      leave: m => { m.state[id] = 'hidden'; },
+      sync: sync(id, ch),
+      // Floating: the window's (its window of its own); this one goes.
+      channel: { floating: false, back() {}, float: () => {
+        const m = dockModel();
+        m.state[id] = 'hidden';
+        m.state.step = 'floating';
+        saveDocks(m);
+        win.float();
+      } } });
   }
-  const vars = document.createElement('div');
-  vars.className = 'mm-macro-debug-vars';
-  el.append(bar, vars);
-  el.addEventListener('mousedown', e => e.preventDefault());   // the focus stays where it is
-  pane.editorEl.append(el);
-  macroDebug.panel = el;
+}
+
+function showMacroDebugPanel(pane) {
+  macroDebug.view = { where: '', running: true, ended: false, tables: [] };
+  const m = dockModel(), open = id => dockPanes.has(id) && !dockHidden(m, id);
+  const id = [`step:${pane.index}`, 'step', ...panes.map(p => `step:${p.index}`)].find(open) ?? `step:${pane.index}`;
+  if (m.state[id] === 'floating') stepPanes.channels.get(id).float();
+  else showDockPane(id);
+  tellStepPanes();
 }
 
 async function fillMacroDebugPanel(info) {
-  const el = macroDebug.panel;
-  if (!el) return;
-  el.toggleAttribute('data-running', false);
-  el.querySelector('.mm-macro-debug-where').textContent = `Line ${info.line}`;
   const own = info.vars().map(v => [`$${v.name}${v.type ? ':' + v.type : ''}${v.ref ? ' (ref)' : ''}${v.where === 'local' ? ' (local)' : ''}`, v.value]);
   const sys = [['$$found', info.found ? 'true' : 'false'], ['$$error', info.error ? 'true' : 'false'], ['$$errorText', info.errorText]];
   for (const n of MACRO_SYSTEM.filter(n => !['found', 'error', 'errortext'].includes(n))) {
@@ -1000,31 +1039,20 @@ async function fillMacroDebugPanel(info) {
     sys.push(['$$' + (MACRO_SYSTEM_NAMES[n] ?? n), typeof v === 'boolean' ? (v ? 'true' : 'false') : String(v ?? '')]);
   }
   const before = macroDebug.before ?? new Map(), now = new Map();
-  const table = (title, rows) => {
-    const t = document.createElement('table'), head = t.insertRow().insertCell();
-    head.colSpan = 2;
-    head.className = 'mm-macro-debug-head';
-    head.textContent = title;
-    if (!rows.length) { const c = t.insertRow().insertCell(); c.colSpan = 2; c.className = 'mm-macro-debug-none'; c.textContent = '(none yet)'; }
-    for (const [name, value] of rows) {
-      const r = t.insertRow(), n = r.insertCell(), v = r.insertCell();
-      n.textContent = name;
-      v.textContent = value === '' ? '""' : value;
-      v.title = value;
-      now.set(name, value);
-      if (before.has(name) ? before.get(name) !== value : macroDebug.before) r.classList.add('mm-macro-changed');
-    }
-    return t;
-  };
-  el.querySelector('.mm-macro-debug-vars').replaceChildren(table('Variables', own), table('System variables', sys));
+  const table = (title, rows) => ({ title, rows: rows.map(([name, value]) => {
+    now.set(name, value);
+    return { name, value: String(value ?? ''), changed: before.has(name) ? before.get(name) !== value : !!macroDebug.before };
+  }) });
+  macroDebug.view = { where: `Line ${info.line}`, running: false, ended: false, tables: [table('Variables', own), table('System variables', sys)] };
   macroDebug.before = now;
+  tellStepPanes();
 }
 
 function endMacroDebug() {
   const d = macroDebug;
   if (d.line) d.tab.cmDoc.removeLineClass(d.line, 'background', 'mm-macro-current');
-  d.panel?.remove();
-  Object.assign(d, { tab: null, pane: null, panel: null, line: null, resume: null, before: null });
+  if (d.view) { Object.assign(d.view, { running: false, ended: true }); tellStepPanes(); }   // the pane stays, its last variables
+  Object.assign(d, { tab: null, pane: null, line: null, resume: null, before: null });
 }
 
 // A click on a line number of a macro's tab: a breakpoint there, or none.

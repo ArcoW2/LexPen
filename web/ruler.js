@@ -277,7 +277,7 @@ function paintScale(pane, g, upTo) {
   const first = Math.max(1, Math.floor((base - g.x0) / g.cw));
   for (let n = first; n <= upTo; n++) {
     const mid = at(n - 1) + g.cw / 2;
-    if (n % 10 === 0) ctx.fillText(String(n), mid, 1);
+    if (n % 10 === 0) ctx.fillText(String(n), mid, 3);   // clear of the line above the ruler
     else ctx.fillRect(Math.round(mid), height - (n % 5 === 0 ? 6 : 3), 1, n % 5 === 0 ? 6 : 3);
   }
   ctx.fillStyle = getComputedStyle(scale.querySelector('.mm-ruler-probe')).color;   // --col-guide, resolved

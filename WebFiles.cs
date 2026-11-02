@@ -12,6 +12,9 @@ namespace LexPen;
 static class WebFiles
 {
     public const string Host = "lexpen.example";
+    // The same files for the docked panes' frames, as another site, so the browser runs a pane in a process of its own
+    // (docs/plans/24-PLAN-docking.md 3.5).
+    public const string PaneHost = "lexpen-panes.example";
     const string Prefix = "web\\";   // the resource names: web\vendor\katex\katex.min.css (LexPen.csproj)
 
     static readonly Assembly Assembly = typeof(WebFiles).Assembly;
@@ -61,19 +64,25 @@ static class WebFiles
         return reader.ReadToEnd();
     }
 
-    /// <summary>Makes a WebView2 serve the page at https://lexpen.example/.</summary>
+    /// <summary>Makes a WebView2 serve the page at https://lexpen.example/, and the panes' frames at
+    /// https://lexpen-panes.example/ (the same files).</summary>
     public static void Serve(CoreWebView2 core)
     {
         if (ProjectWeb is not null)
         {
             core.SetVirtualHostNameToFolderMapping(Host, ProjectWeb, CoreWebView2HostResourceAccessKind.Deny);
+            // DenyCors: the page may show it in a frame (a cross-origin load); fetches from other origins stay refused.
+            core.SetVirtualHostNameToFolderMapping(PaneHost, ProjectWeb, CoreWebView2HostResourceAccessKind.DenyCors);
             return;
         }
         core.AddWebResourceRequestedFilter($"https://{Host}/*", CoreWebView2WebResourceContext.All);
+        // All source kinds: the panes' frames run in a process of their own, and the filter without them only
+        // catches the main page's requests (the frame's document loaded, its scripts did not).
+        core.AddWebResourceRequestedFilter($"https://{PaneHost}/*", CoreWebView2WebResourceContext.All, CoreWebView2WebResourceRequestSourceKinds.All);
         core.WebResourceRequested += (_, e) =>
         {
             var uri = new Uri(e.Request.Uri);
-            if (!uri.Host.Equals(Host, StringComparison.OrdinalIgnoreCase)) return;
+            if (!uri.Host.Equals(Host, StringComparison.OrdinalIgnoreCase) && !uri.Host.Equals(PaneHost, StringComparison.OrdinalIgnoreCase)) return;
             var path = Uri.UnescapeDataString(uri.AbsolutePath);
             var stream = Open(path);
             e.Response = stream is null

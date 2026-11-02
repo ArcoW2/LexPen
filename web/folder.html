@@ -1,0 +1,23 @@
+<!doctype html>
+<!-- The Folder pane as a page of its own (folder-pane.js; docs/plans/24-PLAN-docking.md 3.3). -->
+<html><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:">
+<title>Folder</title>
+<link rel="stylesheet" href="app.css">
+<style>body { background: var(--bg-side); display: flex; flex-direction: column; height: 100vh; margin: 0; overflow: hidden; user-select: none; }</style>
+</head>
+<body class="mm-folder-page">
+<div class="mm-tree-head">
+  <span class="mm-tree-title">No folder open</span>
+  <select class="mm-sort" title="Sort by">
+    <option value="name">Name</option>
+    <option value="modified">Modified</option>
+  </select>
+  <button data-cmd="sortDir" class="mm-sort-dir" title="Ascending / descending"></button>
+  <button data-cmd="knownOnly" class="mm-known-only" title="Show known file types only (the extensions of the language packs)">Known</button>
+  <button data-cmd="refresh" title="Refresh">&#10227;</button>
+</div>
+<div class="mm-tree" tabindex="0"></div>
+<script src="pane.js"></script>
+<script src="folder-pane.js"></script>
+</body></html>

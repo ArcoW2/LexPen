@@ -1,0 +1,40 @@
+<!doctype html>
+<!-- The Search pane as a page of its own (search-pane.js; docs/plans/24-PLAN-docking.md 3.3). -->
+<html><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:">
+<title>Search</title>
+<link rel="stylesheet" href="app.css">
+<style>body { background: var(--bg-side); display: flex; flex-direction: column; height: 100vh; margin: 0; overflow: hidden; }</style>
+</head>
+<body class="mm-search-page" data-side="search">
+<div class="mm-search-view">
+  <input class="mm-search-input" type="text" spellcheck="false" placeholder="Search, then Enter"
+    title="Codes: ^p line break (CR, LF or CRLF), ^t tab, ^? any character, ^# digit, ^$ letter, ^w spaces or tabs, ^^ the ^ itself">
+  <div class="mm-search-bar">
+    <button data-opt="case" title="Match case">Aa</button>
+    <button data-opt="word" title="Whole word only">W</button>
+    <button data-opt="regex" title="Regular expression (then the ^ codes do not apply)">.*</button>
+    <button class="mm-search-toggle" title="Replace (Ctrl+Shift+R)">Replace</button>
+    <select class="mm-search-scope" title="Where to search">
+      <option value="selection">In selection</option>
+      <option value="file">Current file</option>
+      <option value="open">Open files</option>
+      <option value="folder">Files in folder</option>
+    </select>
+  </div>
+  <div class="mm-search-replace" hidden>
+    <input class="mm-search-with" type="text" spellcheck="false" placeholder="Replace with"
+      title="Codes: ^p line break, ^t tab, ^^ the ^ itself; with .*: $1 a group, $&amp; the match, \n \t">
+    <div class="mm-search-replace-bar">
+      <button class="mm-search-all" title="Every match in the results (Alt+A)">Replace all</button>
+      <button class="mm-search-preview" title="What Replace all would change, in a window: check or uncheck each change, then Apply">Preview...</button>
+      <button class="mm-search-codes" title="The codes of Find and Replace with">?</button>
+    </div>
+  </div>
+  <div class="mm-search-status"></div>
+  <div class="mm-search-results"></div>
+</div>
+<script src="pane.js"></script>
+<script src="search-pane.js"></script>
+<script src="history.js"></script>
+</body></html>

@@ -7,16 +7,15 @@
 // A file in the folder that is not open is read, changed and written: no undo and no copy (the preview is the check).
 // Read-only files are skipped and said so; a file changed since the search is searched again first. Loaded after app.js.
 
+// The replace row is in the Search pane's page (app.js searchPage): these stand for it here.
 const replaceUi = {
-  row: $('.mm-search-replace'), with: $('.mm-search-with'), toggle: $('.mm-search-toggle'),
-  all: $('.mm-search-all'), preview: $('.mm-search-preview'), codes: $('.mm-search-codes'),
+  row: { get hidden() { return !searchPage.replace; }, set hidden(v) { searchPage.replace = !v; toSearch({ kind: 'replace', on: !v }); } },
+  with: searchField('with'),
 };
 let searchScope = null;   // In selection: { doc, marks }, the parts marked while the results show
 
 function showReplace(on) {
-  replaceUi.row.hidden = !on;
-  replaceUi.toggle.classList.toggle('mm-on', on);
-  document.body.toggleAttribute('data-search-replace', on);
+  replaceUi.row.hidden = !on;   // its page shows the row and its button on
 }
 
 // Ctrl+Shift+R: the panel with its replace row; the focus in Replace with when there is something to find.
@@ -223,23 +222,5 @@ async function replaceMatch(hit) {
 }
 
 // ---------- The panel ----------
-replaceUi.toggle.addEventListener('click', () => {
-  showReplace(replaceUi.row.hidden);
-  (replaceUi.row.hidden ? searchUi.input : replaceUi.with).focus();
-});
-replaceUi.all.addEventListener('click', replaceAllResults);
-replaceUi.preview.addEventListener('click', () => replaceGroups(searchGroups.filter(g => !g.skip), true, 'Replace all'));
-replaceUi.codes.addEventListener('click', () => showSearchCodes(replaceUi.codes, replaceUi.with));
-attachHistory(replaceUi.with, 'replace', entry => { replaceUi.with.value = entry.text; });
-// Enter in Replace with: search (the results to replace in); Alt+A: Replace all.
-replaceUi.with.addEventListener('keydown', e => {
-  if (e.key !== 'Enter') return;
-  e.preventDefault();
-  runSearch();
-});
-$('.mm-search-view').addEventListener('keydown', e => {
-  if (!e.altKey || e.ctrlKey || e.key.toLowerCase() !== 'a' || replaceUi.row.hidden) return;
-  e.preventDefault();
-  e.stopPropagation();
-  replaceAllResults();
-});
+// Its buttons and keys (Replace, Replace all, Preview..., ?, Enter, Alt+A) are in the Search pane's page; their
+// messages come to app.js fromSearch.

@@ -21,6 +21,8 @@
   "followWindows": true,          // light or dark as Windows is (Settings > Personalization > Colors), at once
   "themeLight": "light",          // the app's theme for light mode (a file name in themes\ without .json)
   "themeDark": "dark",            // the app's theme for dark mode
+  "titleBarColours": "windows", // the windows' title bar, its text and border (Windows 11): "windows" (Windows' own)
+                                  // or "theme" (the app theme's: active and not active)
   "theme": "light",               // "light" or "dark": the mode when not following Windows (Day / night)
   "openIn.*": "",                 // how a file opens, per language ("openIn.markdown", "openIn.sql", ...): "edit",
                                   // "split" (editor and preview), "preview", or "" as the language pack says
@@ -116,6 +118,8 @@
   "trimTrailing": true,           // saving removes the spaces and tabs at the line ends of the whole file (a language
                                   // can keep some, or never trim: trimTrailing in its language.yaml)
   "newFileEol": "crlf",           // line ends of a new file (and of one without a line break): "crlf", "lf" or "cr"
+  "newFileLanguageFrom": "given", // a new file's language: "active" (the active document's) or "given" (newFileLanguage)
+  "newFileLanguage": "markdown",  // a new file's language when given, or when no document is active
   "askSaveDrafts": true,          // closing LexPen asks to save changed drafts too (false: they stay drafts, unasked)
 
   // ---------- Tabs ----------
@@ -123,6 +127,11 @@
   "scrollTogether": "distance",   // scroll together (the button between the panes): "distance" (as the panes are aligned now) or "line" (the same line number)
   "movePinned": true,             // closing a pane or window moves its pinned tabs to the main pane / another
                                   // open window of the same project
+  "dockTabBar": "rows",           // a dock area's tabs that do not fit: "rows" (several rows, all tabs visible) or
+                                  // "scroll" (one row that scrolls)
+  "dockTabIntensity": 100,        // a dock area's tab bar: 100 the theme's colours; more: the text further from its
+                                  // background, the backgrounds and lines further from the text (a dark theme: the
+                                  // text brighter, the rest darker); less (to 25): the text fades towards its background
 
   // ---------- Find ----------
   "findShared": false,            // one find for both panes (off: each pane its own)
@@ -157,11 +166,20 @@
     "sidebar": true,              // the sidebar (Folder or Search) shown when a folder is open
     "sideView": "folder",         // "folder" or "search"
     "sidebarWidth": 0,            // in px; 0 is the standard width
-    "outline": false,             // the outline next to each editor pane
+    // The dock areas (docs/plans/24-PLAN-docking.md 3.6): left (open: "sidebar", width: "sidebarWidth"), right and
+    // bottom (open, size in px; 0 is the standard size; the bottom's width "full" or "inner": between the sides); per
+    // area its groups (their panes as tabs, the one in front, their share); per pane "hidden" or "floating".
+    "docks": { "left": { "groups": [ { "panes": [ "folder", "search" ], "active": "folder", "size": 1 } ] },
+               "right": { "open": true, "size": 0, "groups": [] },
+               "bottom": { "open": true, "size": 0, "width": "inner", "groups": [] }, "state": {} },
+    "outline": false,             // the outline next to the first editor pane
+    "outline2": false,            // the outline next to the second editor pane
     "outlineWidth": 0,            // in px; 0 is the standard width
     "orient": "v",                // two panes: "v" side by side, "h" above each other
     "ratio": 50,                  // two panes: the first pane's share, in percent
     "editShare": 0,               // editor and preview side by side: the editor's share, 0.1 to 0.9; 0 is half
+    "previewPlace": "right",      // editor and preview both shown: the preview "right", "left", "top" (above) or
+    "previewPlace2": "right",     // "bottom" (below) of the text; previewPlace2: the second editor pane's
     "searchScope": "file",        // the sidebar search: "file", "open" (the open files) or "folder"
     "tree": "all",                // the folder pane: "all" files, or "known" (the file types the language packs know)
     "sort": "name",               // the folder pane: by "name" or "modified"

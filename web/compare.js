@@ -659,7 +659,7 @@ function stopFolderCompare() {
   document.body.toggleAttribute('data-folder-compare', false);
   fcmp.el?.remove();
   fcmp.el = fcmp.list = null;
-  ui.tree.focus?.();
+  focusFolder();
 }
 
 // The second pass: the contents of the files with the same size and another date; with the compare's options on also

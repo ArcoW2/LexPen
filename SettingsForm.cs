@@ -11,7 +11,7 @@ namespace LexPen;
 /// LexPen window follows. The rows come from a main window's page (AppHost.SettingDefs), so a setting is
 /// described in one place (actions.js).
 /// </summary>
-sealed class SettingsForm : Form
+sealed class SettingsForm : Form, IWebPost
 {
     const string AppUrl = "https://lexpen.example/";
     const string KeysTemplate = "// Your own keys, on top of the defaults (F1 lists every action and key). For example:\n" +
@@ -29,6 +29,7 @@ sealed class SettingsForm : Form
         window = owner;
         UpdateTitle();
         Icon = owner.Icon;
+        app.FollowCaption(this, () => window);   // the caption: Windows' own or the theme's
         ShowInTaskbar = false;
         MinimumSize = new Size(480, 400);
         StartPosition = FormStartPosition.Manual;
@@ -36,6 +37,7 @@ sealed class SettingsForm : Form
         var at = owner.WindowState == FormWindowState.Normal ? owner.Bounds : owner.RestoreBounds;
         Bounds = new Rectangle(at.X + (at.Width - size.Width) / 2, at.Y + (at.Height - size.Height) / 2, size.Width, size.Height);
         Controls.Add(web);
+        DockMoves.Report(this, () => window, "settings");   // moved over its window: the place to dock it
     }
 
     protected override async void OnLoad(EventArgs e)
@@ -72,6 +74,7 @@ sealed class SettingsForm : Form
         BackColor = web.DefaultBackgroundColor = app.AppBackground(window);
         var on = dark ? 1 : 0;
         DwmSetWindowAttribute(Handle, 20 /* DWMWA_USE_IMMERSIVE_DARK_MODE */, ref on, sizeof(int));
+        app.ApplyCaption(this, window);
         UpdateFirstPaint();
     }
 
@@ -102,7 +105,11 @@ sealed class SettingsForm : Form
         if (IsDisposed) return;
         var msg = JsonNode.Parse(json)!;
         var reply = new JsonObject { ["id"] = msg["id"]!.GetValue<int>() };
-        try { reply["result"] = Dispatch(msg); }
+        try
+        {
+            if (msg["op"]?.GetValue<string>() == "close") BeginInvoke(Close);
+            else reply["result"] = Request(app, this, this, window, msg);
+        }
         catch (Exception ex) { reply["error"] = ex.Message; }
         if (IsDisposed) return;
         web.CoreWebView2.PostWebMessageAsJson(reply.ToJsonString());
@@ -114,9 +121,18 @@ sealed class SettingsForm : Form
         }
     }
 
-    JsonNode? Dispatch(JsonNode msg)
+    /// <summary>A request of a settings page for main window `window`: its window of its own (`page`, `owner`: the
+    /// form), or the one docked in that window (docs/plans/24-PLAN-docking.md 7b: `page` the frame, `owner` the main
+    /// window, for the questions it asks).</summary>
+    public static JsonNode? Request(AppHost app, IWebPost page, IWin32Window owner, MainForm window, JsonNode msg)
     {
         string Arg(string name) => msg[name]!.GetValue<string>();
+        void ToWindow(JsonObject message)
+        {
+            if (window.IsDisposed) return;
+            window.Post(message);
+            AppHost.BringToFront(window);
+        }
         switch (msg["op"]?.GetValue<string>())
         {
             case "init":
@@ -128,6 +144,7 @@ sealed class SettingsForm : Form
                 init["layout"] = window.PageLayout?.DeepClone();   // the rows of "this window" (docs/plans/executed/PLAN-settings-layers.md)
                 init["window"] = app.ProjectInfo(window)["display"]?.DeepClone();   // its name in the rows' tooltips
                 init["screen"] = app.ScreenOf(window);   // the zoom of its monitor
+                app.SettingsPageStarted(window, page);   // what was meant for it while it was being opened
                 return init;
             }
 
@@ -143,10 +160,10 @@ sealed class SettingsForm : Form
 
             // Save as default for the main window (asks when its theme set is part of it); the Undo of the set part.
             case "saveAsDefault":
-                return window.IsDisposed ? null : app.SaveAsDefault(this, window);
+                return window.IsDisposed ? null : app.SaveAsDefault(owner, window);
 
             case "themeSetCommand":
-                return app.ThemeSetCommand(this, msg);
+                return app.ThemeSetCommand(owner, msg);
 
             // The main window's project gets a set of its own (null: none).
             case "themeSet":
@@ -178,7 +195,7 @@ sealed class SettingsForm : Form
                 return app.ProjectNames();
 
             case "viewReset":
-                BeginInvoke(() => app.ResetViewLayout(this));   // after this reply: it asks first
+                window.BeginInvoke(() => app.ResetViewLayout(owner));   // after this reply: it asks first
                 return null;
 
             // File types (docs/plans/executed/PLAN-file-types.md): every extension of the language packs, how LexPen opens it and
@@ -187,7 +204,7 @@ sealed class SettingsForm : Form
                 return FileTypes.List(app.Languages, Environment.ProcessPath ?? Application.ExecutablePath);
 
             case "assignFileTypes":
-                return AssignFileTypes(msg["chosen"]?.AsArray() ?? []);
+                return AssignFileTypes(app, owner, msg["chosen"]?.AsArray() ?? []);
 
             // An action of the main window this one belongs to, without bringing it to the front (Reset to default).
             case "runInWindow":
@@ -199,17 +216,13 @@ sealed class SettingsForm : Form
                 ToWindow(new JsonObject { ["event"] = "runAction", ["name"] = "commands" });
                 return null;
 
-            case "close":
-                BeginInvoke(Close);
-                return null;
-
             default:
                 throw new InvalidOperationException($"Unknown request '{msg["op"]}'.");
         }
     }
 
     // Assign of the File types dialog: the extensions checked, each "edit" or "view"; the others LexPen had are taken off.
-    JsonObject AssignFileTypes(JsonArray chosen)
+    static JsonObject AssignFileTypes(AppHost app, IWin32Window owner, JsonArray chosen)
     {
 #if DEBUG
         throw new InvalidOperationException("Assign registers the LexPen that runs it: a debug build does not. Use the published LexPen.");
@@ -235,14 +248,14 @@ sealed class SettingsForm : Form
         if (list.Any(c => c.Mode == "view")) question.Add("Open in LexPen to view: " + Some(list.Where(c => c.Mode == "view").Select(c => c.Extension)));
         if (off.Count > 0) question.Add("Take LexPen off: " + Some(off));
         if (question.Count == 0) question.Add("No extension opens in LexPen.");
-        if (MessageBox.Show(this, "Assign these file types?\n\n" + string.Join("\n\n", question), "LexPen",
+        if (MessageBox.Show(owner, "Assign these file types?\n\n" + string.Join("\n\n", question), "LexPen",
             MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return new JsonObject { ["cancelled"] = true };
         FileTypes.Assign(exe, list, extensions.Select(e => e.Key));
         // What Windows starts now: an association it protects stays with another app; Default apps for those.
         var kept = list.Where(c => !FileTypes.OpensWith(c.Extension, exe).Ours).Select(c => c.Extension).ToList();
         if (kept.Count > 0)
         {
-            MessageBox.Show(this, $"LexPen could not set every file type: Windows keeps another app for\n\n{Some(kept)}\n\n" +
+            MessageBox.Show(owner, $"LexPen could not set every file type: Windows keeps another app for\n\n{Some(kept)}\n\n" +
                 "After OK, Windows Settings opens at Apps > Default apps > LexPen. Choose LexPen there for each of these file types.\n\n" +
                 "Only LexPen is chosen there: whether a file type opens to edit or to view is what you set here, in LexPen's File types; " +
                 "Windows has no setting for it.",
@@ -251,12 +264,5 @@ sealed class SettingsForm : Form
         }
         return new JsonObject { ["assigned"] = list.Count, ["off"] = off.Count, ["kept"] = new JsonArray(kept.Select(k => (JsonNode?)k).ToArray()) };
 #endif
-    }
-
-    void ToWindow(JsonObject message)
-    {
-        if (window.IsDisposed) return;
-        window.Post(message);
-        AppHost.BringToFront(window);
     }
 }

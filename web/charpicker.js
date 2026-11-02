@@ -38,16 +38,21 @@ async function charTitle(at) {
 
 const pickerCode = at => at && !at.byte && !at.eol ? at.code : null;
 
-// Opens the picker window (or brings it to the front) at a character.
+// The picker at a character, as it was last (docs/plans/24-PLAN-docking.md 3.7a): the active editor pane's own when it
+// has one (not closed); else the window's: its window of its own (opened, or brought to the front), or docked in this
+// window (shown, its area opened).
 function openCharPicker(code = null) {
-  host('openCharPicker', { code });
+  const at = openToolPane('chars', 'openCharPicker', { code });   // app.js
+  if (at !== undefined) host('charPickerGoTo', { code, pane: at });
 }
 
-// The bottom bar moved on: the picker, when open, hears the character after the cursor (not at every key at once).
+// The bottom bar moved on: the picker, when open, hears the character after the active editor pane's cursor (not at
+// every key at once); a picker of the other editor pane keeps its own.
 function tellCharPicker(at) {
-  if (!charPicker.open) return;
+  const docked = ['chars', `chars:${state.activePane}`].some(id => dockPanes.has(id) && dockPaneVisible(id));
+  if (!charPicker.open && !docked) return;   // floating open, or docked and shown here
   clearTimeout(charPicker.timer);
-  charPicker.timer = setTimeout(() => host('pickerCursor', { code: pickerCode(at) }), 150);
+  charPicker.timer = setTimeout(() => host('pickerCursor', { code: pickerCode(at), pane: state.activePane }), 150);
 }
 
 // The host's events; app.js (loaded after this file) makes `events`, so they are set once every script has run.
@@ -56,10 +61,10 @@ addEventListener('DOMContentLoaded', () => {
     charPicker.open = open;
     if (open) updateStatus();
   };
-  // From the picker: at the cursor(s) of the active editor, as typing does (several cursors, a block in column mode:
-  // on every line; past a line's end the spaces first).
-  events.insertText = ({ text }) => {
-    const pane = panes[state.activePane], cm = pane?.cm;
+  // From the picker: at the cursor(s) of the active editor (`pane`: an editor pane's own picker: that pane's), as
+  // typing does (several cursors, a block in column mode: on every line; past a line's end the spaces first).
+  events.insertText = ({ text, pane: index }) => {
+    const pane = panes[index ?? state.activePane], cm = pane?.cm;
     if (!cm || !pane.active || pane.el.dataset.mode === 'preview') return toast('The editor is not shown: nothing inserted.');
     if (cm.getOption('readOnly')) return toast('This tab is read-only: nothing inserted.');
     if (virtualOf(cm)) fillVirtual(cm);

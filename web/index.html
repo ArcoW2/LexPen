@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <!-- script-src 'self' also blocks inline scripts/handlers coming from a document's raw HTML.
      connect-src 'self': the page reads its own files (the language packs). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: http: data: blob:; font-src 'self' data:; media-src https: http:; connect-src 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: http: data: blob:; font-src 'self' data:; media-src https: http:; connect-src 'self'; frame-src https://lexpen-panes.example">
 <title>LexPen</title>
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="app.css">
@@ -15,7 +15,6 @@
 
 <!-- Buttons with data-action run that action; their tooltip shows its key (see showKeys). -->
 <header class="mm-toolbar">
-  <button data-action="sidebar.toggle">&#9776;</button>
   <nav class="mm-menubar"></nav>
   <button data-action="macro.record" class="mm-record-stop" title="Stop recording the macro">Stop recording</button>
   <span class="mm-doc-name"></span>
@@ -25,59 +24,15 @@
     <button data-action="editor.toggle" class="mm-switch-editor" data-title="Show / hide the editor">Editor</button>
     <button data-action="preview.toggle" class="mm-switch-preview" data-title="Show / hide the preview">Preview</button>
   </span>
-  <button data-action="outline.toggle" class="mm-outline-button">Outline</button>
   <button data-action="theme.toggle" class="mm-theme"></button>
   <button data-action="zoomReset" class="mm-zoom" data-key-action="zoomIn" data-title="Preview zoom on this screen: click for the zoom of every screen. Zoom in / out">100%</button>
 </header>
 
 <main class="mm-main">
-  <aside class="mm-sidebar">
-    <div class="mm-side-tabs">
-      <button data-cmd="viewFolder" class="mm-side-tab mm-side-folder">Folder</button>
-      <button data-cmd="viewSearch" class="mm-side-tab mm-side-search">Search</button>
-    </div>
-    <div class="mm-folder-view">
-    <div class="mm-tree-head">
-      <span class="mm-tree-title">No folder open</span>
-      <select class="mm-sort" title="Sort by">
-        <option value="name">Name</option>
-        <option value="modified">Modified</option>
-      </select>
-      <button data-cmd="sortDir" class="mm-sort-dir" title="Ascending / descending"></button>
-      <button data-cmd="knownOnly" class="mm-known-only" title="Show known file types only (the extensions of the language packs)">Known</button>
-      <button data-cmd="refresh" title="Refresh">&#10227;</button>
-    </div>
-    <div class="mm-tree"></div>
-    </div>
-    <div class="mm-search-view">
-      <input class="mm-search-input" type="text" spellcheck="false" placeholder="Search, then Enter"
-        title="Codes: ^p line break (CR, LF or CRLF), ^t tab, ^? any character, ^# digit, ^$ letter, ^w spaces or tabs, ^^ the ^ itself">
-      <div class="mm-search-bar">
-        <button data-opt="case" title="Match case">Aa</button>
-        <button data-opt="word" title="Whole word only">W</button>
-        <button data-opt="regex" title="Regular expression (then the ^ codes do not apply)">.*</button>
-        <button class="mm-search-toggle" title="Replace (Ctrl+Shift+R)">Replace</button>
-        <select class="mm-search-scope" title="Where to search">
-          <option value="selection">In selection</option>
-          <option value="file">Current file</option>
-          <option value="open">Open files</option>
-          <option value="folder">Files in folder</option>
-        </select>
-      </div>
-      <div class="mm-search-replace" hidden>
-        <input class="mm-search-with" type="text" spellcheck="false" placeholder="Replace with"
-          title="Codes: ^p line break, ^t tab, ^^ the ^ itself; with .*: $1 a group, $&amp; the match, \n \t">
-        <div class="mm-search-replace-bar">
-          <button class="mm-search-all" title="Every match in the results (Alt+A)">Replace all</button>
-          <button class="mm-search-preview" title="What Replace all would change, in a window: check or uncheck each change, then Apply">Preview...</button>
-          <button class="mm-search-codes" title="The codes of Find and Replace with">?</button>
-        </div>
-      </div>
-      <div class="mm-search-status"></div>
-      <div class="mm-search-results"></div>
-    </div>
-  </aside>
-  <div class="mm-splitter"></div>
+  <!-- The dock areas (docks.js; docs/plans/24-PLAN-docking.md 3.6): each a strip (closed: its panes' tabs) and its
+       groups; the splitter against the editor area. -->
+  <div class="mm-dock" data-side="left" data-area="left"><div class="mm-dock-strip"></div><div class="mm-dock-body"></div></div>
+  <div class="mm-dock-split" data-side="left" data-area="left" title="Drag: the width of the dock area"></div>
   <div class="mm-work">
   <!-- The compare (compare.js): its bar above the panes, the line strip below them. -->
   <div class="mm-cmp-bar" hidden>
@@ -114,6 +69,19 @@
     <div class="mm-cmp-texts"><div class="mm-cmp-text"></div><div class="mm-cmp-text"></div></div>
   </div>
   </div>
+  <div class="mm-dock-split" data-side="right" data-area="right" title="Drag: the width of the dock area"></div>
+  <div class="mm-dock" data-side="right" data-area="right"><div class="mm-dock-strip"></div><div class="mm-dock-body"></div></div>
+  <div class="mm-dock-split" data-side="bottom" data-area="bottom" title="Drag: the height of the dock area"></div>
+  <div class="mm-dock" data-side="bottom" data-area="bottom"><div class="mm-dock-strip"></div><div class="mm-dock-body"></div></div>
+  <!-- The panes' views (their pages' frames go in them), until docks.js places them; a pane not shown keeps it here. -->
+  <div class="mm-dock-hold" hidden>
+    <div class="mm-folder-view"></div>
+    <div class="mm-search-view"></div>
+    <div class="mm-chars-view"></div>
+    <div class="mm-macros-view"></div>
+    <div class="mm-messages-view"></div>
+    <div class="mm-clips-view"></div>
+  </div>
 </main>
 
 <!-- Bottom bar: the active pane's file (see updateStatus). -->
@@ -146,6 +114,8 @@
   <button data-cmd="copyPath">Copy path</button>
   <button data-cmd="copyRelativePath">Copy relative path</button>
   <button data-cmd="treeFavourite" class="mm-fav-item">Add to favourites</button>
+  <hr>
+  <button data-cmd="folderFloat">Float the folder pane in a window of its own</button>
   <hr>
   <button data-cmd="treeCompareActive">Compare with the file in the editor</button>
   <button data-cmd="treeCompareWith">Compare with...</button>
@@ -231,34 +201,7 @@
   <p class="mm-pal-foot"></p>
 </dialog>
 
-<!-- Messages: every toast of this window, with its time and document (app.js, showMessages). -->
-<dialog class="mm-about mm-messages-dialog">
-  <h1>Messages</h1>
-  <p>What showed at the bottom of this window since it opened, newest first; the document is the one active then.</p>
-  <div class="mm-messages-scroll"><table><tbody class="mm-messages-list"></tbody></table></div>
-  <p class="mm-messages-none">No messages yet.</p>
-  <div class="mm-name-buttons"><button type="button" class="mm-messages-clear">Clear</button><button type="button" class="mm-messages-close">Close</button></div>
-</dialog>
-
 <!-- A macro's window, and Macros > Manage (the same window with the list): macros.js, plan 36. Not modal. -->
-<dialog class="mm-about mm-macros-dialog">
-  <h1 title="Drag to move">Macros</h1>
-  <select class="mm-macros-list" size="10"></select>
-  <p class="mm-macros-key"></p>
-  <div class="mm-macros-buttons mm-macros-one">
-    <button type="button" data-macro="play">Play</button><button type="button" data-macro="times">Play X times...</button>
-    <button type="button" data-macro="toEnd">Play to the end of the file</button><button type="button" data-macro="step">Step by step</button>
-  </div>
-  <div class="mm-macros-buttons mm-macros-one">
-    <button type="button" data-macro="continue">Continue recording</button><button type="button" data-macro="edit">Edit</button>
-    <button type="button" data-macro="rename">Give name...</button><button type="button" data-macro="key">Key...</button>
-    <button type="button" data-macro="delete">Delete</button>
-  </div>
-  <div class="mm-macros-buttons mm-macros-manage">
-    <button type="button" data-macro="new">New macro...</button><button type="button" data-macro="record">New recording</button>
-  </div>
-  <div class="mm-name-buttons"><button type="button" data-macro="close">Close</button></div>
-</dialog>
 
 <!-- A name (a project): askName in app.js. -->
 <dialog class="mm-about mm-name-dialog">
@@ -313,6 +256,8 @@
 <script src="ruler.js"></script>
 <script src="charpicker.js"></script>
 <script src="places.js"></script>
+<script src="panechannel.js"></script>
+<script src="docks.js"></script>
 <script src="app.js"></script>
 <script src="searchreplace.js"></script>
 <script src="compare.js"></script>
@@ -325,5 +270,6 @@
 <script src="occurrences.js"></script>
 <script src="macrolang.js"></script>
 <script src="macros.js"></script>
+<script src="bookmarkspane.js"></script>
 </body>
 </html>

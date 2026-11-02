@@ -1,0 +1,19 @@
+<!doctype html>
+<!-- An editor pane's outline as a page of its own (outline-pane.js; docs/plans/24-PLAN-docking.md 3.3). -->
+<html><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:">
+<title>Outline</title>
+<link rel="stylesheet" href="app.css">
+<style>body { background: var(--bg-side); }
+/* The first entry at the height of the text's first line (the editor's own top padding). */
+.mm-outline-list { padding-top: 12px; }
+/* Wide and low (under the text, plan 24 3.10): the entries run in columns, as many as fit the width. */
+@media (min-aspect-ratio: 2/1) {
+  .mm-outline-list { column-width: 180px; column-gap: 12px; column-fill: auto; height: 100%; overflow: auto hidden; padding-bottom: 8px; }
+  .mm-outline-list > * { break-inside: avoid; }
+}</style>
+</head>
+<body class="mm-outline-page"><div class="mm-outline-list" tabindex="-1"></div>
+<script src="pane.js"></script>
+<script src="outline-pane.js"></script>
+</body></html>

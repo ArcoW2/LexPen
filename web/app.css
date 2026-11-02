@@ -263,28 +263,12 @@ body[data-show-eol] .CodeMirror[data-eol=cr] .CodeMirror-line:not(.mm-last-line)
 /* Asking a name (a project). */
 .mm-name-dialog { min-width: 26em; }
 /* Messages (app.js, showMessages): time, message, document; errors in the caution colour. */
-.mm-messages-dialog { width: min(900px, 90vw); }
-.mm-messages-scroll { max-height: 60vh; overflow: auto; border: 1px solid var(--border); border-radius: 4px; }
-.mm-messages-dialog table { width: 100%; border-collapse: collapse; font-size: calc(12px * var(--ui-scale)); }
-.mm-messages-dialog td { padding: 3px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
-.mm-messages-dialog .mm-msg-at { white-space: nowrap; color: var(--fg-dim); }
-.mm-messages-dialog .mm-msg-error td:nth-child(2) { color: var(--caution); }
-.mm-messages-dialog a { color: var(--accent); }
-.mm-messages-none { margin-top: 8px; }
 .mm-name-dialog label { display: block; margin-bottom: 8px; }
 .mm-name-dialog input { width: 100%; box-sizing: border-box; padding: 4px 6px; font: inherit; color: var(--fg);
   background: var(--bg); border: 1px solid var(--border); border-radius: 4px; }
 .mm-name-dialog .mm-name-buttons { display: flex; justify-content: flex-end; gap: 6px; margin-top: 12px; }
 /* Macros > Manage (macros.js) */
 /* A macro's window and Manage (macros.js, plan 36): not modal, over the window at its right, moved by its title. */
-.mm-macros-dialog { position: fixed; top: 70px; right: 24px; left: auto; margin: 0; z-index: 50; width: min(460px, 90vw);
-  box-shadow: 0 6px 24px rgba(0, 0, 0, .35); }
-.mm-macros-dialog h1 { cursor: move; user-select: none; }
-.mm-macros-dialog .mm-macros-list { width: 100%; font: inherit; color: var(--fg); background: var(--bg-side); border: 1px solid var(--border); }
-.mm-macros-dialog:not([data-manage]) .mm-macros-list, .mm-macros-dialog:not([data-manage]) .mm-macros-manage { display: none; }
-.mm-macros-dialog .mm-macros-buttons { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-.mm-macros-dialog .mm-name-buttons { display: flex; justify-content: flex-end; margin-top: 12px; }
-.mm-macros-dialog .mm-macros-key { min-height: 1.2em; margin-top: 6px; opacity: .8; }
 /* A macro's mistakes as you type (macros.js): underlined, their line numbers marked; the message as a tooltip. */
 .CodeMirror .mm-macro-error { text-decoration: wavy underline var(--caution); text-underline-offset: 3px; }
 .CodeMirror .mm-macro-warning { text-decoration: wavy underline var(--warning); text-underline-offset: 3px; }
@@ -296,20 +280,9 @@ body[data-show-eol] .CodeMirror[data-eol=cr] .CodeMirror-line:not(.mm-last-line)
 .mm-macro-picker input { margin: 6px 0; padding: 4px 6px; }
 .mm-macro-picker .mm-macro-picker-hint { min-height: 2.4em; margin-top: 6px; }
 .mm-macro-picker .mm-name-buttons { display: flex; justify-content: flex-end; gap: 6px; }
-/* Step by step (macros.js): the line it stops at, the breakpoints (a dot by the line number), the panel under the macro. */
+/* Step by step (macros.js): the line it stops at, the breakpoints (a dot by the line number); its pane: step.html. */
 .CodeMirror .mm-macro-current { background: color-mix(in srgb, var(--accent) 22%, transparent); }
 .CodeMirror .mm-macro-break .CodeMirror-linenumber { background: radial-gradient(circle at 7px 50%, var(--caution) 4px, transparent 5px); color: var(--caution); font-weight: bold; opacity: 1; }
-.mm-macro-debug { flex: 0 0 auto; max-height: 40%; overflow: hidden auto; border-top: 1px solid var(--border); background: var(--bg-side); font-size: 12px; }
-.mm-macro-debug-bar { position: sticky; top: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 4px 8px; background: var(--bg-side); white-space: nowrap; }
-.mm-macro-debug-where { font-weight: 600; margin-right: auto; }
-.mm-macro-debug[data-running] .mm-macro-debug-bar button { opacity: .5; pointer-events: none; }
-.mm-macro-debug[data-running] .mm-macro-debug-where::after { content: " (running)"; font-weight: normal; }
-.mm-macro-debug-vars { display: flex; flex-wrap: wrap; gap: 4px 24px; padding: 0 8px 6px; }
-.mm-macro-debug-vars table { border-collapse: collapse; max-width: 100%; }
-.mm-macro-debug-vars td { padding: 1px 8px 1px 0; vertical-align: top; max-width: 30ch; overflow: hidden; text-overflow: ellipsis; white-space: pre; }
-.mm-macro-debug-vars .mm-macro-debug-head { font-weight: 600; padding-top: 4px; }
-.mm-macro-debug-vars .mm-macro-debug-none { opacity: .6; }
-.mm-macro-debug-vars .mm-macro-changed td { color: var(--accent); font-weight: 600; }
 /* A macro running (macros.js): the bottom bar says so. */
 body[data-macro-running] .mm-status { box-shadow: inset 0 2px var(--accent); }
 
@@ -323,25 +296,98 @@ body[data-macro-running] .mm-status { box-shadow: inset 0 2px var(--accent); }
 .mm-st-pane.mm-empty .mm-st-eye { cursor: default; }
 .mm-st-pane.mm-empty .mm-st-eye:hover { background: none; }
 
-.mm-main { flex: 1; display: flex; min-height: 0; }
-.mm-sidebar {
-  flex: none; width: var(--sidebar-w, 260px); display: flex; flex-direction: column;
-  background: var(--bg-side); user-select: none;
+.mm-main {
+  flex: 1; min-height: 0; display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto auto; grid-template-rows: minmax(0, 1fr) auto auto;
+  grid-template-areas: "left lsplit work rsplit right" "left lsplit bsplit rsplit right" "left lsplit bottom rsplit right";
 }
-.mm-splitter { flex: none; width: 5px; margin-right: -4px; z-index: 5; cursor: col-resize; border-left: 1px solid var(--border); }
-.mm-splitter:hover { border-left-color: var(--accent); }
-body[data-sidebar=off] .mm-sidebar, body[data-sidebar=off] .mm-splitter { display: none; }
+/* The bottom area the full width of the window: under the side areas. */
+body[data-dock-bottom-width=full] .mm-main {
+  grid-template-areas: "left lsplit work rsplit right" "bsplit bsplit bsplit bsplit bsplit" "bottom bottom bottom bottom bottom";
+}
+.mm-work { grid-area: work; }
+
+/* The dock areas (docks.js): open, the groups; closed, a strip along the edge with the panes' tabs; with no pane
+   shown, nothing. */
+.mm-dock { display: flex; min-width: 0; min-height: 0; background: var(--bg-side); user-select: none; }
+.mm-main > .mm-dock[data-side=left] { grid-area: left; width: var(--sidebar-w, 260px); }
+.mm-main > .mm-dock[data-side=right] { grid-area: right; width: var(--dock-right-w, 260px); }
+.mm-main > .mm-dock[data-side=bottom] { grid-area: bottom; height: var(--dock-bottom-h, 220px); }
+body[data-dock-left=none] .mm-main > .mm-dock[data-side=left], body[data-dock-right=none] .mm-main > .mm-dock[data-side=right],
+body[data-dock-bottom=none] .mm-main > .mm-dock[data-side=bottom] { display: none; }
+.mm-dock-body { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.mm-dock[data-side=bottom] .mm-dock-body { flex-direction: row; }
+.mm-dock-strip { display: none; }
+body[data-dock-left=closed] .mm-main > .mm-dock[data-side=left], body[data-dock-right=closed] .mm-main > .mm-dock[data-side=right] { width: auto; }
+body[data-dock-bottom=closed] .mm-main > .mm-dock[data-side=bottom] { height: auto; }
+body[data-dock-left=closed] .mm-main > .mm-dock[data-side=left] .mm-dock-body, body[data-dock-right=closed] .mm-main > .mm-dock[data-side=right] .mm-dock-body,
+body[data-dock-bottom=closed] .mm-main > .mm-dock[data-side=bottom] .mm-dock-body { display: none; }
+body[data-dock-left=closed] .mm-main > .mm-dock[data-side=left] .mm-dock-strip, body[data-dock-right=closed] .mm-main > .mm-dock[data-side=right] .mm-dock-strip,
+body[data-dock-bottom=closed] .mm-main > .mm-dock[data-side=bottom] .mm-dock-strip { display: flex; }
+.mm-dock-strip { gap: 2px; padding: 4px 2px; }
+.mm-dock[data-side=left] .mm-dock-strip, .mm-dock[data-side=right] .mm-dock-strip { flex-direction: column; align-items: center; }
+.mm-dock[data-side=left] .mm-dock-strip { border-right: 1px solid var(--border); }
+.mm-dock[data-side=right] .mm-dock-strip { border-left: 1px solid var(--border); }
+.mm-dock[data-side=bottom] .mm-dock-strip { flex-direction: row; align-items: center; border-top: 1px solid var(--border); padding: 2px 4px; }
+/* At the sides the strip's tabs read upward at the left, downward at the right. */
+.mm-dock[data-side=left] .mm-dock-strip .mm-dock-tab { writing-mode: vertical-rl; transform: rotate(180deg); }
+.mm-dock[data-side=right] .mm-dock-strip .mm-dock-tab { writing-mode: vertical-rl; }
+/* The splitters against the editor area: only with the area open. */
+.mm-dock-split { display: none; z-index: 7; }
+.mm-main > .mm-dock-split[data-side=left] { grid-area: lsplit; width: 5px; margin-right: -4px; cursor: col-resize; border-left: 1px solid var(--border); }
+/* The right one reaches into its own area, not over the editor's overview strip at the editor area's right edge. */
+.mm-main > .mm-dock-split[data-side=right] { grid-area: rsplit; width: 5px; margin-right: -4px; cursor: col-resize; border-left: 1px solid var(--border); }
+.mm-main > .mm-dock-split[data-side=bottom] { grid-area: bsplit; height: 5px; margin-bottom: -4px; cursor: row-resize; border-top: 1px solid var(--border); }
+body[data-dock-left=open] .mm-main > .mm-dock-split[data-side=left], body[data-dock-right=open] .mm-main > .mm-dock-split[data-side=right],
+body[data-dock-bottom=open] .mm-main > .mm-dock-split[data-side=bottom] { display: block; }
+.mm-dock-split:hover { border-color: var(--accent); }
+/* A group: its tabs (and in the first group the area's button, at the side toward the editor), its panes' views. */
+.mm-dock-group { flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; position: relative; }
+.mm-dock-group + .mm-dock-group { border-top: 1px solid var(--border); }
+.mm-dock[data-side=bottom] .mm-dock-group + .mm-dock-group { border-top: 0; border-left: 1px solid var(--border); }
+.mm-dock-gsplit { position: absolute; left: 0; right: 0; top: -3px; height: 6px; z-index: 3; cursor: row-resize; }
+.mm-dock[data-side=bottom] .mm-dock-gsplit { top: 0; bottom: 0; left: -3px; right: auto; width: 6px; height: auto; cursor: col-resize; }
+.mm-dock-gsplit:hover { background: var(--accent); opacity: .5; }
+.mm-dock-gsplit[hidden] { display: none; }
+/* A group rolled up: as high as its tabs. */
+.mm-dock-group.mm-rolled { flex: 0 0 auto; }
+.mm-dock-group.mm-rolled .mm-dock-views { display: none; }
+.mm-dock-roll { align-self: center; padding: 2px 4px; color: var(--fg-dim); margin-bottom: 3px; }
+.mm-dock-roll:hover { color: var(--fg); }
+.mm-dock-roll svg { display: block; }
+.mm-dock-roll[data-dir=down] svg { transform: rotate(180deg); }
+/* A group's head: a band of its own in the theme's accent (tinted, an accent line above it as the divider), so its
+   tabs stand out from the contents above and under it in any theme; the tabs bold, the one in front on the panes'
+   own background with a thick accent line on top. The --dock-* colours: the setting dockTabIntensity (app.js
+   applyDockTabs); unset at 100%. Tabs that do not fit: several rows, or one row that scrolls (the setting dockTabBar). */
+.mm-dock-head { flex: none; display: flex; align-items: flex-end; gap: 2px; padding: 6px 4px 0 8px; border-bottom: 1px solid var(--dock-head-line, var(--border));
+  border-top: 2px solid var(--dock-head-top, color-mix(in srgb, var(--accent) 60%, var(--border))); background: var(--dock-head-bg, color-mix(in srgb, var(--accent) 18%, var(--bg-bar))); }
+.mm-dock-tabs { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 2px; }
+body[data-dock-tab-bar=scroll] .mm-dock-tabs { flex-wrap: nowrap; overflow: auto hidden; scrollbar-width: none; margin-bottom: -1px; padding-bottom: 1px; }
+.mm-dock-head .mm-dock-tab { font-weight: 700; color: var(--dock-tab-fg, color-mix(in srgb, var(--fg) 80%, var(--bg))); }
+.mm-dock[data-side=right] .mm-dock-head, .mm-dock[data-side=right] .mm-dock-tabs { flex-direction: row-reverse; }
+.mm-dock[data-side=right] .mm-dock-head { padding: 6px 8px 0 4px; }
+.mm-dock-tab { border-radius: 4px 4px 0 0; color: var(--fg-dim); font-size: calc(12px * var(--ui-scale)); white-space: nowrap; }
+.mm-dock-tab.mm-on { color: var(--fg); background: var(--bg); border-color: var(--border); border-bottom-color: var(--bg); margin-bottom: -1px; }
+.mm-dock-head .mm-dock-tab.mm-on { color: var(--dock-tab-on-fg, var(--fg)); background: var(--dock-tab-on-bg, var(--bg));
+  border-color: var(--dock-head-line, var(--border)); border-bottom-color: var(--dock-tab-on-bg, var(--bg)); box-shadow: inset 0 3px 0 var(--dock-tab-on-line, var(--accent)); }
+.mm-dock-head .mm-dock-tab:not(.mm-on):hover { color: var(--dock-tab-on-fg, var(--fg)); }
+.mm-dock-strip .mm-dock-tab { border-radius: 4px; padding: 6px 3px; }
+.mm-dock-strip .mm-dock-tab:hover, .mm-dock-tab:not(.mm-on):hover { color: var(--fg); }
+.mm-dock-button { align-self: center; padding: 2px 4px; color: var(--fg-dim); margin-bottom: 3px; }
+.mm-dock-button:hover { color: var(--fg); }
+.mm-dock-button svg { display: block; }
+.mm-dock-button[data-dir=right] svg { transform: rotate(180deg); }
+.mm-dock-button[data-dir=up] svg { transform: rotate(90deg); }
+.mm-dock-button[data-dir=down] svg { transform: rotate(-90deg); }
+.mm-dock-views { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.mm-dock-views > [hidden] { display: none !important; }
 
 .mm-tree-head { display: flex; align-items: center; padding: 6px 4px 6px 12px; }
 
-/* Sidebar views: the folder tree or the search. */
-.mm-side-tabs { flex: none; display: flex; gap: 2px; padding: 6px 8px 0; border-bottom: 1px solid var(--border); }
-.mm-side-tab { border-radius: 4px 4px 0 0; color: var(--fg-dim); font-size: calc(12px * var(--ui-scale)); }
-body:not([data-side=search]) .mm-side-folder, body[data-side=search] .mm-side-search {
-  color: var(--fg); background: var(--bg); border-color: var(--border); border-bottom-color: var(--bg); margin-bottom: -1px;
-}
-.mm-folder-view, .mm-search-view { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-body[data-side=search] .mm-folder-view, body:not([data-side=search]) .mm-search-view { display: none; }
+/* A pane's view (the Folder pane, the Search pane): its page's frame fills it. */
+.mm-folder-view, .mm-search-view, .mm-chars-view, .mm-tool-view, .mm-macros-view, .mm-messages-view, .mm-clips-view { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.mm-pane-frame { flex: 1; min-height: 0; width: 100%; border: 0; display: block; background: var(--bg-side); }
 .mm-search-input {
   margin: 8px 8px 4px; padding: 4px 6px; font: inherit; color: var(--fg); background: var(--bg);
   border: 1px solid var(--border); border-radius: 4px; outline: none;
@@ -444,6 +490,11 @@ body[data-two] .mm-pane:first-child { flex: 0 0 var(--ratio, calc(50% - 3px)); }
 .mm-focus-ring { position: fixed; z-index: 15; box-sizing: border-box; pointer-events: none; border: 2px solid var(--pane-active); }
 .mm-focus-ring[hidden] { display: none; }
 body[data-focus-away] .mm-focus-ring { border-color: color-mix(in srgb, var(--pane-active) 40%, transparent); }
+/* While a tool pane has the focus: the active document's frame, dimmed (app.js placeFocusRing), and its cursors shown,
+   steady (the editor hides them without the focus; !important over the blink's own visibility). */
+.mm-focus-ring.mm-doc-ring { border-color: color-mix(in srgb, var(--pane-active) 40%, transparent); }
+.mm-pane[data-keep-cursor] .CodeMirror:not(.CodeMirror-focused):not(.mm-virtual) div.CodeMirror-cursors { visibility: visible !important; }
+.mm-pane[data-keep-cursor] .CodeMirror:not(.CodeMirror-focused) .mm-vcursor:not([hidden]) { display: block; animation: none; }
 .mm-outline-list:focus { outline: none; }
 .mm-outline-item.mm-outline-key { box-shadow: inset 0 0 0 1px var(--accent); }   /* the outline's keyboard entry */
 
@@ -491,6 +542,12 @@ body[data-comparing] .mm-cmp-go:hover { filter: brightness(1.15); }
 .mm-pane-button { display: none; flex: none; align-self: flex-start; margin: 3px 4px; padding: 3px 5px; color: var(--fg-dim); }
 body[data-two] .mm-pane-button, body[data-pane-hidden] .mm-pane-button { display: block; }
 .mm-pane-button svg { display: block; }
+/* Next to it: this pane's outline on or off. */
+.mm-pane-outline { flex: none; align-self: flex-start; margin: 3px 2px; padding: 3px 5px; color: var(--fg-dim); }
+.mm-pane-outline:hover { color: var(--fg); }
+.mm-pane-outline svg { display: block; }
+.mm-pane[data-outline-on] .mm-pane-outline { background: var(--active); color: var(--accent); }
+.mm-pane .mm-pane-outline:disabled { opacity: .45; cursor: default; background: none; color: var(--fg-dim); }   /* no outline in this language */
 /* At its left end: the file of the active tab in the folder pane. */
 .mm-sync-tree { flex: none; align-self: flex-start; margin: 3px 2px 3px 4px; padding: 3px 5px; color: var(--fg-dim); }
 .mm-sync-tree:hover { color: var(--fg); }
@@ -538,7 +595,38 @@ body[data-tab-bar=menu] .mm-tabs { overflow-x: hidden; }
 .mm-tab[data-dot]::before { content: ""; flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--bar-changed); }
 .mm-tab[data-dot=removed]::before { background: var(--bar-removed); }
 
-.mm-body { flex: 1; display: flex; min-height: 0; position: relative; }
+.mm-body {
+  flex: 1; min-height: 0; position: relative; display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto auto; grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-areas: "left lsplit bars bars bars" "left lsplit content rsplit right" "bsplit bsplit bsplit bsplit bsplit" "bottom bottom bottom bottom bottom";
+}
+.mm-content { grid-area: content; display: flex; min-width: 0; min-height: 0; position: relative; }
+/* The formatting bar and a code language's bar: above the text and the right dock area (not the left one); not
+   while only the preview is shown. */
+.mm-bars { grid-area: bars; display: flex; flex-direction: column; min-width: 0; }
+.mm-pane[data-mode=preview] .mm-bars { display: none; }
+/* An editor pane's own dock areas (docks.js, 3.10): at the left and right of its text, and under it the full width of
+   the pane; their sizes per editor pane (the outline's old width as the sides' default). */
+.mm-body > .mm-dock[data-side=left] { grid-area: left; width: var(--pdock-left-w, var(--outline-w, 220px)); }
+.mm-body > .mm-dock[data-side=right] { grid-area: right; width: var(--pdock-right-w, var(--outline-w, 220px)); }
+.mm-body > .mm-dock[data-side=bottom] { grid-area: bottom; height: var(--pdock-bottom-h, 160px); }
+/* At the sides of the text their heads are as high as the bars above the text (app.js alignPaneDocks), so the
+   outline's first entry is at the height of the first line. */
+.mm-body > .mm-dock[data-side=left] .mm-dock-group:not([hidden]) .mm-dock-head { min-height: var(--pane-bar-h-left, 0px); box-sizing: border-box; }
+.mm-body > .mm-dock[data-side=right] .mm-dock-group:not([hidden]) .mm-dock-head { min-height: var(--pane-bar-h, 0px); box-sizing: border-box; }
+.mm-pane[data-dock-left=none] .mm-body > .mm-dock[data-side=left], .mm-pane[data-dock-right=none] .mm-body > .mm-dock[data-side=right],
+.mm-pane[data-dock-bottom=none] .mm-body > .mm-dock[data-side=bottom] { display: none; }
+.mm-pane[data-dock-left=closed] .mm-body > .mm-dock[data-side=left], .mm-pane[data-dock-right=closed] .mm-body > .mm-dock[data-side=right] { width: auto; }
+.mm-pane[data-dock-bottom=closed] .mm-body > .mm-dock[data-side=bottom] { height: auto; }
+.mm-pane[data-dock-left=closed] .mm-body > .mm-dock[data-side=left] .mm-dock-body, .mm-pane[data-dock-right=closed] .mm-body > .mm-dock[data-side=right] .mm-dock-body,
+.mm-pane[data-dock-bottom=closed] .mm-body > .mm-dock[data-side=bottom] .mm-dock-body { display: none; }
+.mm-pane[data-dock-left=closed] .mm-body > .mm-dock[data-side=left] .mm-dock-strip, .mm-pane[data-dock-right=closed] .mm-body > .mm-dock[data-side=right] .mm-dock-strip,
+.mm-pane[data-dock-bottom=closed] .mm-body > .mm-dock[data-side=bottom] .mm-dock-strip { display: flex; }
+.mm-body > .mm-dock-split[data-side=left] { grid-area: lsplit; width: 5px; margin-right: -4px; cursor: col-resize; border-left: 1px solid var(--border); }
+.mm-body > .mm-dock-split[data-side=right] { grid-area: rsplit; width: 5px; margin-right: -4px; cursor: col-resize; border-left: 1px solid var(--border); }
+.mm-body > .mm-dock-split[data-side=bottom] { grid-area: bsplit; height: 5px; margin-bottom: -4px; cursor: row-resize; border-top: 1px solid var(--border); }
+.mm-pane[data-dock-left=open] .mm-body > .mm-dock-split[data-side=left], .mm-pane[data-dock-right=open] .mm-body > .mm-dock-split[data-side=right],
+.mm-pane[data-dock-bottom=open] .mm-body > .mm-dock-split[data-side=bottom] { display: block; }
 .mm-editor-pane, .mm-preview-pane { flex: 1 1 0; min-width: 0; }
 .mm-preview-pane { overflow: auto; outline: none; }
 .mm-preview-pane.mm-themed { background: var(--bg); color: var(--fg); }
@@ -549,11 +637,27 @@ body[data-tab-bar=menu] .mm-tabs { overflow-x: hidden; }
 .mm-split { flex: none; width: 5px; cursor: col-resize; border-left: 1px solid var(--border); }
 .mm-split:hover { background: var(--hover); }
 .mm-pane:not([data-mode=split]) .mm-split { display: none; }
+/* The preview's place (app.js applyPreviewPlace): at the right (the default), the left, above or below the text; above
+   and below the splitter lies across and sets the heights. */
+.mm-pane[data-preview-place=left] .mm-content { flex-direction: row-reverse; }
+.mm-pane[data-preview-place=top] .mm-content { flex-direction: column-reverse; }
+.mm-pane[data-preview-place=bottom] .mm-content { flex-direction: column; }
+.mm-pane[data-preview-place=left] .mm-split { border-left: none; border-right: 1px solid var(--border); }
+.mm-pane:is([data-preview-place=top], [data-preview-place=bottom]) .mm-editor-pane,
+.mm-pane:is([data-preview-place=top], [data-preview-place=bottom]) .mm-preview-pane { min-height: 0; }
+.mm-pane:is([data-preview-place=top], [data-preview-place=bottom]) .mm-split { width: auto; height: 5px; cursor: row-resize; border-left: none; border-top: 1px solid var(--border); }
+.mm-pane[data-preview-place=top] .mm-split { border-top: none; border-bottom: 1px solid var(--border); }
 
 /* Outline: the headings of the pane's tab, at its right. */
-.mm-outline { display: none; flex: none; width: var(--outline-w, 220px); position: relative; border-left: 1px solid var(--border); background: var(--bg-side); }
-body[data-outline] .mm-pane:not([data-no-outline]) .mm-outline { display: flex; }
-.mm-outline-edge { position: absolute; left: -3px; top: 0; bottom: 0; width: 6px; cursor: col-resize; z-index: 2; }
+.mm-outline { display: flex; flex: 1; min-width: 0; min-height: 0; position: relative; background: var(--bg-side); }
+.mm-outline-edge { display: none; }   /* its width: its dock area's splitter (docks.js) */
+/* The outline's own page (outline.html) fills its column; its list and entries are styled there by the rules below. */
+.mm-outline-frame { flex: 1; min-width: 0; border: 0; display: block; background: var(--bg-side); }
+/* A floating pane's own menu (pane.js paneMenu): the window's page cannot draw in its window. */
+.mm-pane-menu { position: fixed; z-index: 100; display: flex; flex-direction: column; min-width: 180px; padding: 4px 0;
+  background: var(--bg-side); border: 1px solid var(--border); box-shadow: 0 4px 16px rgba(0, 0, 0, .3); }
+.mm-pane-menu button { text-align: left; border-radius: 0; padding: 4px 12px; white-space: nowrap; }
+.mm-pane-menu-sep { border: 0; border-top: 1px solid var(--border); margin: 4px 0; }
 .mm-outline-list { flex: 1; overflow: auto; padding: 8px 0 40px; user-select: none; }
 .mm-outline-item {
   padding: 3px 8px; color: var(--fg-dim); cursor: pointer;
@@ -592,7 +696,6 @@ body[data-outline] .mm-pane:not([data-no-outline]) .mm-outline { display: flex; 
 .mm-outline-bullet { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; vertical-align: middle; flex: none; }
 .mm-zoom { min-width: 52px; color: var(--fg-dim); font-variant-numeric: tabular-nums; }
 body[data-zoomed] .mm-zoom { color: var(--accent); }
-body[data-outline] .mm-outline-button { background: var(--active); color: var(--accent); }
 
 /* Where a dragged tab or file will land: the whole pane, or the half that opens the second pane. */
 .mm-drop { position: absolute; inset: 0; z-index: 7; pointer-events: none; background: var(--active); border: 2px dashed var(--accent); }
@@ -982,8 +1085,8 @@ body[data-indent-guides=off] .mm-editor-pane .CodeMirror pre.CodeMirror-line { -
   flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 1px; padding: 3px 6px;
   background: var(--bg-side); border-bottom: 1px solid var(--border); user-select: none;
 }
-body[data-no-format-bar] .mm-format, .mm-editor-pane[data-lang] .mm-format:not(.mm-code-bar),
-.mm-editor-pane:not([data-lang]) .mm-code-bar { display: none; }
+body[data-no-format-bar] .mm-format, .mm-pane[data-lang] .mm-format:not(.mm-code-bar),
+.mm-pane:not([data-lang]) .mm-code-bar { display: none; }
 .mm-fmt-label { font-size: calc(12px * var(--ui-scale)); }
 .mm-format[data-disabled] { opacity: .45; pointer-events: none; }
 .mm-fmt { display: inline-flex; align-items: center; justify-content: center; gap: 2px; min-width: 28px; height: 26px; padding: 0 5px; font-size: calc(14px * var(--ui-scale)); }
@@ -1105,6 +1208,21 @@ body:not([data-preview-nowrap]) .mm-preview pre, .mm-preview pre.mm-long-line { 
 li.CodeMirror-hint-active { background: var(--select); color: var(--fg); }
 .mm-hint-kind { color: var(--fg-dim); font-size: .85em; }
 
+/* Every other scroll bar (lists, panes, the character grid, ...) in the look of the editor's and the preview's: a strip
+   as wide as theirs (overviewWidth: --mm-overview-w) in the theme's colours, a light line along its inner edge, a
+   rounded thumb, no arrow buttons. The editor's own rules below go first where they differ. */
+::-webkit-scrollbar { width: var(--mm-overview-w, 20px); height: var(--mm-overview-w, 20px); }
+::-webkit-scrollbar-button { display: none; }
+::-webkit-scrollbar-track { background: color-mix(in srgb, var(--fg) 7%, var(--bg)); box-shadow: inset 1px 0 0 color-mix(in srgb, var(--fg) 22%, var(--bg)); }
+::-webkit-scrollbar-track:horizontal { box-shadow: inset 0 1px 0 color-mix(in srgb, var(--fg) 22%, var(--bg)); }
+::-webkit-scrollbar-thumb { min-width: 24px; min-height: 24px; border-radius: 3px; background: color-mix(in srgb, var(--fg) 28%, transparent); }
+::-webkit-scrollbar-thumb:active { background: color-mix(in srgb, var(--fg) 40%, transparent); }
+::-webkit-scrollbar-corner { background: color-mix(in srgb, var(--fg) 7%, var(--bg)); }
+
+/* A very narrow editor: no gutter (fitGutter, app.js). */
+.CodeMirror.mm-no-gutter .CodeMirror-gutters, .CodeMirror.mm-no-gutter .CodeMirror-gutter-wrapper,
+.CodeMirror.mm-no-gutter .CodeMirror-gutter-background { display: none; }
+
 /* The overview ruler (overview.js): the editor's vertical scroll bar, a strip at its right with the marks and a block. */
 .mm-overview { position: absolute; top: 0; right: 0; width: var(--mm-overview-w, 20px); z-index: 6; cursor: pointer; background: color-mix(in srgb, var(--fg) 7%, transparent);
   box-shadow: inset 1px 0 0 color-mix(in srgb, var(--fg) 22%, transparent); }   /* a light line along its left */
@@ -1120,7 +1238,7 @@ li.CodeMirror-hint-active { background: var(--select); color: var(--fg); }
 .mm-editor-pane .CodeMirror-hscrollbar { right: 0 !important; height: var(--mm-overview-w, 20px); }
 .mm-editor-pane .CodeMirror-hscrollbar::-webkit-scrollbar { height: var(--mm-overview-w, 20px); }
 .mm-editor-pane .CodeMirror-hscrollbar::-webkit-scrollbar-button { display: none; }
-.mm-editor-pane .CodeMirror-hscrollbar::-webkit-scrollbar-track { background: color-mix(in srgb, var(--fg) 7%, var(--bg));
+.mm-editor-pane .CodeMirror-hscrollbar::-webkit-scrollbar-track { background: color-mix(in srgb, var(--fg) 7%, var(--bg)); box-shadow: none;
   border-top: 1px solid color-mix(in srgb, var(--fg) 22%, var(--bg)); }
 .mm-editor-pane .CodeMirror-hscrollbar::-webkit-scrollbar-thumb { min-width: 24px; border-radius: 3px;
   background: color-mix(in srgb, var(--fg) 28%, transparent); }
@@ -1130,7 +1248,7 @@ li.CodeMirror-hint-active { background: var(--select); color: var(--fg); }
 .mm-overview-view.mm-dragging { background: color-mix(in srgb, var(--fg) 40%, transparent); }
 
 /* The compare (compare.js): the bar above the panes, the line strip below them, the marks in the editors. */
-.mm-work { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.mm-work { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 .mm-cmp-bar { display: flex; align-items: center; gap: 8px; padding: 4px 10px; border-bottom: 1px solid var(--border);
   background: var(--bg-bar); font-size: calc(13px * var(--ui-scale)); white-space: nowrap; overflow: hidden; }
 .mm-cmp-bar[hidden], .mm-cmp-strip[hidden] { display: none; }
@@ -1163,7 +1281,7 @@ body[data-highlight=underline] .CodeMirror .mm-cmp-mirror { background: none; bo
 .mm-cmp-none { color: var(--fg-dim); font-style: italic; }
 
 /* The folder compare (compare.js): the folder pane's tree replaced by one of both folders. */
-body[data-folder-compare] .mm-folder-view > .mm-tree-head, body[data-folder-compare] .mm-folder-view > .mm-tree { display: none; }
+body[data-folder-compare] .mm-folder-view > .mm-folder-frame { display: none !important; }
 .mm-fcmp { flex: 1; display: flex; flex-direction: column; min-height: 0; }
 .mm-fcmp-head { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-bottom: 1px solid var(--border); }
 .mm-fcmp-paths { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: left;
@@ -1218,3 +1336,11 @@ body[data-highlight=underline] .CodeMirror .mm-hl { background: none; box-shadow
    clear of it. */
 .mm-preview-pane { scrollbar-width: none; padding-right: var(--mm-overview-w, 20px); box-sizing: border-box; }
 .mm-pv-overview, .mm-pv-overview-view { position: absolute; }
+
+/* During a splitter's drag (docks.js dockDrag): over everything, so a pane's frame does not take the moves. */
+.mm-drag-cover { position: fixed; inset: 0; z-index: 1000; }
+
+/* Where a dragged pane goes (docks.js showDropPlace). */
+.mm-drop-place { position: fixed; z-index: 1001; pointer-events: none; border: 2px solid var(--accent); border-radius: 4px;
+  background: color-mix(in srgb, var(--accent) 22%, transparent); }
+.mm-drop-place[hidden] { display: none; }

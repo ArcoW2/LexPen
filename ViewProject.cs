@@ -19,15 +19,16 @@ static class ViewProject
         (id > 0 ? store.Get(id) : null) ?? store.Projects.FirstOrDefault(p => p.Name == Name);
 
     // What the view layout turns off, over the default layout.
-    static readonly string[] Off = ["sidebar", "outline", "formatBar", "ruler"];
+    static readonly string[] Off = ["sidebar", "outline", "outline2", "formatBar", "ruler"];
 
     /// <summary>The view layout: the shipped default layout with yours over it (a value of the shipped kind), and the
-    /// side panes, the outline, the format bar and the ruler off.</summary>
+    /// side panes, the outline, the format bar and the ruler off; the docking the shipped one (docs/plans/24-PLAN-docking.md
+    /// 3.12: no pane of yours docked or floating there).</summary>
     public static JsonObject Layout(JsonObject? shipped, JsonObject? mine)
     {
         var layout = (JsonObject?)shipped?.DeepClone() ?? new JsonObject();
         foreach (var (name, value) in mine ?? [])
-            if (layout[name] is JsonNode standard && value is not null && Kind(value) == Kind(standard))
+            if (name != "docks" && layout[name] is JsonNode standard && value is not null && Kind(value) == Kind(standard))
                 layout[name] = value.DeepClone();
         foreach (var name in Off) layout[name] = false;
         return layout;

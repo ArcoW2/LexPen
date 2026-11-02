@@ -1,0 +1,32 @@
+<!doctype html>
+<!-- Step by step as a page of its own (step-pane.js; docs/plans/24-PLAN-docking.md stage 13). -->
+<html><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:">
+<title>Step by step</title>
+<link rel="stylesheet" href="app.css">
+<style>
+  body { background: var(--bg-side); color: var(--fg); display: flex; flex-direction: column; height: 100vh; margin: 0; overflow: hidden;
+    font-family: var(--app-font); font-size: 12px; }
+  .sp-bar { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 4px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  .sp-where { font-weight: 600; margin-right: auto; }
+  .sp-bar button { padding: 2px 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-bar); color: var(--fg); font: inherit; }
+  .sp-bar button:hover:not(:disabled) { border-color: var(--accent); }
+  .sp-bar button:disabled { opacity: .5; }
+  .sp-vars { flex: 1; min-height: 0; overflow: auto; display: flex; flex-wrap: wrap; gap: 4px 24px; padding: 4px 8px 6px; align-content: flex-start; }
+  table { border-collapse: collapse; max-width: 100%; }
+  td { padding: 1px 8px 1px 0; vertical-align: top; max-width: 30ch; overflow: hidden; text-overflow: ellipsis; white-space: pre; }
+  td:first-child { font-family: var(--editor-font, Consolas, monospace); }
+  .sp-head { font-weight: 600; color: var(--fg-dim); padding-top: 2px; }
+  .sp-none { color: var(--fg-dim); font-style: italic; }
+  .sp-changed td { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="sp-bar"><span class="sp-where"></span>
+  <button type="button" data-how="over">Step</button><button type="button" data-how="into">Step into</button>
+  <button type="button" data-how="continue">Continue</button><button type="button" data-how="stop">Stop</button>
+</div>
+<div class="sp-vars"></div>
+<script src="pane.js"></script>
+<script src="step-pane.js"></script>
+</body></html>

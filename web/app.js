@@ -15,9 +15,9 @@ const PATH_TYPE = 'application/x-lexpen-path';
 
 const $ = sel => document.querySelector(sel);
 const ui = {
-  tree: $('.mm-tree'), treeTitle: $('.mm-tree-title'), docName: $('.mm-doc-name'),
+  docName: $('.mm-doc-name'),
   panes: $('.mm-panes'), divider: $('.mm-divider'), sync: $('.mm-sync'),
-  splitter: $('.mm-splitter'), toast: $('.mm-toast'), sort: $('.mm-sort'),
+  toast: $('.mm-toast'),
   about: $('.mm-about-dialog'), aboutBody: $('.mm-about-body'),
   treeMenu: $('.mm-tree-menu'), tabMenu: $('.mm-tab-menu'), stripMenu: $('.mm-strip-menu'),
   paneMenu: $('.mm-pane-menu'), dividerMenu: $('.mm-divider-menu'),
@@ -170,6 +170,24 @@ function resetLayoutToDefault() {
   if (own) host('themeSet', { set: null });
   toast(own ? `This window has the default layout and theme set again (no longer "${own}").` : 'This window has the default layout again.', true);
 }
+
+// View > Layout > Use layout of... (docs/plans/24-PLAN-docking.md 3.13a): this window takes the layout of another open
+// window, or of a project with no window open (its last window's); its tabs, folder and place stay; Undo in the message.
+async function layoutSourceItems() {
+  const sources = await host('layoutSources');
+  if (!sources.length) return [{ label: '(no other window or project)', enabled: false }];
+  return sources.map(s => ({ label: (s.kind === 'project' ? `${s.label}  (no window open)` : s.label).replace(/&/g, '&&'),
+    action: 'layoutUseFrom', params: [s.kind, s.id, s.label] }));
+}
+
+async function useLayoutFrom(kind, id, name) {
+  const layout = await host('layoutFrom', { kind, source: +id });
+  if (!layout) return toast(`${name ?? 'That window'} has no layout to take (any more).`, true);
+  const before = { ...layoutOwn };
+  const take = values => { layoutOwn = values; mergeLayout(); applySettings(); layoutChanged(); };
+  take({ ...layout });
+  toast(`This window has the layout of ${name ?? 'the other window'} now.`, true, { label: 'Undo', run: () => take(before) });
+}
 chrome.webview.addEventListener('message', e => {
   if (e.data.event) return events[e.data.event]?.(e.data);
   const { id, result, error } = e.data;
@@ -196,37 +214,46 @@ function toast(message, info, action) {
   toast.timer = setTimeout(() => ui.toast.hidden = true, 5000);
 }
 // ---------- Messages: what the toast showed, kept ----------
-// Every toast of this window since it opened (the last 200), with its time and the document active then: View >
-// Messages... (also F1, and a click on the toast) lists them, newest first; a click on a document goes there.
+// Every toast of this window since it opened (the last 200), with its time and the document active then: the
+// Messages pane (View > Messages..., also F1, and a click on the toast; docs/plans/24-PLAN-docking.md stage 11) lists
+// them, newest first, kept up to date while shown; a click on a document goes there. A page of its own (messages.html)
+// that docks in the window's dock areas or floats in a window of its own, floating the first time; not modal. Its
+// window closed by hand: it stays floating, so it opens floating again.
 const messageLog = [];
 function logMessage(text, info) {
   let doc = null, name = '';
   try { doc = activeTab()?.doc; name = doc ? docName(doc) : ''; } catch { /* a message while the page is still loading */ }
   messageLog.push({ at: new Date(), text: String(text), info: !!info, path: doc?.path ?? null, draft: doc?.draft ?? null, name });
   if (messageLog.length > 200) messageLog.shift();
-  if ($('.mm-messages-dialog').open) showMessages();
+  if (messagesPane.frame || messagesPane.floating) messagesPane.send(messagesState());
 }
 
-function showMessages() {
-  const dialog = $('.mm-messages-dialog'), list = dialog.querySelector('.mm-messages-list');
+function messagesState() {
   const today = new Date().toDateString(), two = n => String(n).padStart(2, '0');
   const when = d => (d.toDateString() === today ? '' : `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())} `) +
     `${two(d.getHours())}:${two(d.getMinutes())}:${two(d.getSeconds())}`;
-  list.replaceChildren(...[...messageLog].reverse().map(m => {
-    const row = document.createElement('tr');
-    row.className = m.info ? 'mm-msg-info' : 'mm-msg-error';
-    const doc = document.createElement('td');
-    if (m.name) {
-      const link = Object.assign(document.createElement('a'), { href: '#', textContent: m.name, title: m.path || `Draft ${m.draft}` });
-      link.addEventListener('click', e => { e.preventDefault(); dialog.close(); goToMessageDoc(m); });
-      doc.append(link);
-    }
-    row.append(Object.assign(document.createElement('td'), { textContent: when(m.at), className: 'mm-msg-at' }),
-      Object.assign(document.createElement('td'), { textContent: m.text }), doc);
-    return row;
-  }));
-  dialog.querySelector('.mm-messages-none').hidden = messageLog.length > 0;
-  if (!dialog.open) dialog.showModal();
+  return { kind: 'messages', list: messageLog.map((m, i) => ({ i, at: when(m.at), text: m.text, info: m.info, name: m.name,
+    where: m.path || (m.draft ? `Draft ${m.draft}` : '') })).reverse() };
+}
+
+const messagesPane = paneChannel({ id: 'messages', page: 'messages.html', title: 'Messages', view: () => $('.mm-messages-view'),
+  state: () => new Map([['look', paneLook()], ['title', { kind: 'title', text: 'Messages' }], ['messages', messagesState()]]),
+  receive: m => fromMessagesPane(m),
+  onFloat: () => setDockFloating('messages', true),
+  // Back in its view: docked (moved onto the window); its window closed by hand: it stays floating.
+  onDock: () => { if (messagesPane.toDock) { messagesPane.toDock = false; setDockFloating('messages', false); } } });
+
+// As it was last: its window (floating), or docked here.
+function showMessages() {
+  if (dockModel().state.messages === 'floating') messagesPane.float();
+  else showDockPane('messages');
+  messagesPane.send(messagesState());
+}
+
+function fromMessagesPane(m) {
+  if (m.kind === 'escape') return events.toolEscape();
+  if (m.kind === 'clear') { messageLog.length = 0; return messagesPane.send(messagesState()); }
+  if (m.kind === 'go' && messageLog[m.i]) return goToMessageDoc(messageLog[m.i]);
 }
 
 async function goToMessageDoc(m) {
@@ -236,8 +263,6 @@ async function goToMessageDoc(m) {
   await activate(paneOf(tab), tab);
   focusPane(paneOf(tab));
 }
-$('.mm-messages-dialog .mm-messages-clear').addEventListener('click', () => { messageLog.length = 0; showMessages(); });
-$('.mm-messages-dialog .mm-messages-close').addEventListener('click', () => $('.mm-messages-dialog').close());
 ui.toast.addEventListener('click', e => { if (!e.target.closest('.mm-toast-action')) { ui.toast.hidden = true; showMessages(); } });
 
 // With the page's own place it came from (file:line), so a report can be traced.
@@ -538,43 +563,30 @@ function makePane(index) {
     '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.5h11M10 2.5l3 3-3 3M14 10.5H3M6 7.5l-3 3 3 3"/></svg></button>' +
     '<div class="mm-tabs"></div>' +
     '<button class="mm-tabs-more" title="Tabs out of view" hidden></button>' +
+    '<button class="mm-pane-outline" title="The outline of this pane: show / hide">' +
+    '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M2 3.5h9M4.5 7h9M4.5 10.5h9M2 14h7"/></svg></button>' +
     '<button class="mm-pane-button" title="This pane: hide or close it; show a hidden pane">' +
     '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><path d="M8 2.5v11"/></svg></button></div>' +
     '<div class="mm-find" hidden></div>' +
     '<div class="mm-find mm-occ" hidden></div>' +   // the Occurrences bar (occurrences.js)
-    '<div class="mm-body"><div class="mm-editor-pane"></div>' +
-    '<div class="mm-split" title="Drag: the widths of editor and preview; double-click: half and half"></div><div class="mm-preview-pane"></div>' +
-    '<nav class="mm-outline"><div class="mm-outline-edge" title="Drag to resize"></div><div class="mm-outline-list"></div></nav>' +
+    // Its body: the text (editor, preview) with its own dock areas around it (docks.js; 3.10), the outline in one.
+    '<div class="mm-body">' + ['left', 'right', 'bottom'].map(side => `<div class="mm-dock" data-side="${side}" data-area="${index}.${side}">` +
+      `<div class="mm-dock-strip"></div><div class="mm-dock-body"></div></div><div class="mm-dock-split" data-side="${side}" data-area="${index}.${side}"></div>`).join('') +
+    '<div class="mm-content"><div class="mm-editor-pane"></div>' +
+    '<div class="mm-split" title="Drag: the sizes of editor and preview; double-click: half and half; right-click: where the preview is"></div><div class="mm-preview-pane"></div></div>' +
+    '<nav class="mm-outline"><div class="mm-outline-edge" title="Drag to resize"></div></nav>' +   // its page: outlineFrame
     '<div class="mm-drop" hidden></div><div class="mm-bar" hidden></div></div>';
   const pane = {
     index, el, tabs: [], active: null, cm: null, ignoreScroll: false, ignoreEditorScroll: false,
     tabsEl: el.querySelector('.mm-tabs'), editorEl: el.querySelector('.mm-editor-pane'),
     previewEl: el.querySelector('.mm-preview-pane'), dropEl: el.querySelector('.mm-drop'), barEl: el.querySelector('.mm-bar'),
-    outlineEl: el.querySelector('.mm-outline-list'),
+    outlineNav: el.querySelector('.mm-outline'), outlineFrame: null, outlineRows: [],
   };
-  pane.outlineEl.addEventListener('click', e => {
-    if (pane.sneakEnded) { pane.sneakEnded = false; return; }   // the release of a sneak preview
-    const head = e.target.closest('[data-group-head]');
-    if (head) return toggleOutlineGroup(pane, head);      // a group's header: fold or unfold
-    const item = e.target.closest('[data-line]');
-    if (item) goToLine(pane, +item.dataset.line, true, true);   // placed as a find; the cursor stays (a double-click moves it)
-  });
-  // A long click: a sneak preview (startSneak).
-  pane.outlineEl.addEventListener('pointerdown', e => { pane.sneakEnded = false; startSneak(pane, e); });
-  pane.outlineEl.addEventListener('pointermove', e => { if (pane.sneak) sneakTo(pane, e.target.closest('[data-line]')); });
-  for (const type of ['pointerup', 'pointercancel']) addEventListener(type, () => endSneak(pane));
-  pane.outlineEl.addEventListener('contextmenu', outlineMenu);
-  // A double-click: the cursor on the entry's own text in its line, in the editor.
-  pane.outlineEl.addEventListener('dblclick', e => {
-    const item = e.target.closest('[data-line]');
-    if (!item || !pane.cm || pane.active?.mode === 'preview') return;
-    const line = +item.dataset.line, ch = Math.min(+item.dataset.ch || 0, pane.cm.getLine(line)?.length ?? 0);
-    pane.cm.setCursor(line, ch);
-    pane.cm.focus();
-  });
+  for (const type of ['pointerup', 'pointercancel']) addEventListener(type, () => endSneak(pane));   // a sneak released outside the outline
   el.querySelector('.mm-outline-edge').addEventListener('pointerdown', e => resizeOutline(e));
   el.querySelector('.mm-split').addEventListener('pointerdown', e => resizeSplit(e));
   el.querySelector('.mm-split').addEventListener('dblclick', () => setSplit(null));
+  el.querySelector('.mm-split').addEventListener('contextmenu', e => previewPlaceMenu(e, pane));
   el.querySelector('.mm-tabs-more').addEventListener('click', e => showTabsMore(pane, e.currentTarget));
   // Alt + mouse wheel: this pane alone, the distance to the other taken again (scroll together, plan 13).
   el.addEventListener('wheel', e => { if (e.altKey && state.sync && keepsDistance()) pane.solo = performance.now(); }, { capture: true, passive: true });
@@ -584,6 +596,7 @@ function makePane(index) {
     if (path) showInTree(path); else toast('This file is not saved yet, so it is in no folder.');
   });
   el.querySelector('.mm-tabs').addEventListener('scroll', () => updateTabsMore(pane));
+  el.querySelector('.mm-pane-outline').addEventListener('click', () => toggleOutline(pane));
   el.querySelector('.mm-pane-button').addEventListener('click', e => {
     const open = ui.paneMenu.hidden;
     hideMenus();
@@ -604,8 +617,7 @@ function makePane(index) {
     if (pane.editorEl.contains(e.target)) pane.active.focusPart = 'editor';
     else if (pane.previewEl.contains(e.target)) pane.active.focusPart = 'preview';
   });
-  pane.outlineEl.tabIndex = -1;   // can take the focus (Ctrl+Shift+Tab): its keys go through the entries (outlineKeys)
-  pane.outlineEl.addEventListener('keydown', e => outlineKeys(pane, e));
+
   pane.previewEl.addEventListener('scroll', () => onPreviewScroll(pane));
   pane.previewEl.addEventListener('wheel', e => {
     if (!e.ctrlKey) return;
@@ -807,7 +819,11 @@ async function ensureEditor(pane) {
   if (pane.cm) return;
   await loadEditor();
   if (pane.cm) return;
-  pane.editorEl.append(makeFormatBar(pane), makeCodeBar(pane));   // see format.js
+  // The formatting bar and a code language's bar (format.js): above the text and the pane's right dock area, the
+  // whole width of the document but its left dock area (app.css: .mm-bars).
+  pane.barsEl = Object.assign(document.createElement('div'), { className: 'mm-bars' });
+  pane.barsEl.append(makeFormatBar(pane), makeCodeBar(pane));
+  pane.el.querySelector('.mm-body').append(pane.barsEl);
   pane.cm = CodeMirror(pane.editorEl, {
     value: '',
     lineNumbers: true,
@@ -818,6 +834,8 @@ async function ensureEditor(pane) {
     gutters: ['CodeMirror-linenumbers', BM_GUTTER],   // all columns: setupGutter (gutter.js)
     scrollbarStyle: 'mmHorizontal',   // the vertical scroll bar is the overview strip (overview.js)
   });
+  // The bars above the text change, so does the editor's height: its side areas' heads follow (alignPaneDocks).
+  new ResizeObserver(() => { alignPaneDocks(pane); fitGutter(pane); }).observe(pane.cm.getWrapperElement());
   // The last line has no line end (showLineEnds): the line elements know which one is the last.
   pane.cm.on('renderLine', (cm, line, el) => {
     el.classList.toggle('mm-last-line', cm.getLineNumber(line) === cm.lastLine());
@@ -1150,6 +1168,11 @@ document.querySelector('.mm-st-panes').addEventListener('click', e => {
 function setActivePane(index) {
   if (state.activePane === index || panes[index].el.hidden) return;
   state.activePane = index;
+  if (winOutline) showOutline(panes[index]);   // the window's outline takes its document (when it has no outline of its own)
+  reportOutlineWanted();   // the floating outline (7.3): this pane may have its own
+  placeFocusRing();   // the document's dimmed frame, while a tool pane has the focus
+  if (typeof tellHighlightsWindow === 'function') tellHighlightsWindow();   // the highlights shown: its document's (highlights.js)
+  tellBookmarksPanes();   // the window's Bookmarks pane: its document's (bookmarkspane.js)
   layout();
   updateChrome();
   updateStatus();
@@ -1223,8 +1246,34 @@ function paneItems(menu) {
   if (sep) sep.hidden = !two && state.hidden === null;
 }
 
+// A very narrow editor (room for about GUTTER_HIDE characters of text beside the gutter, or less): the gutter goes, the
+// text gets its room; it comes back once there is room for it and GUTTER_SHOW characters (not back and forth at the
+// edge).
+const GUTTER_HIDE = 6, GUTTER_SHOW = 12;
+function fitGutter(pane) {
+  const cm = pane.cm, wrap = cm.getWrapperElement(), off = wrap.classList.contains('mm-no-gutter');
+  if (!wrap.clientWidth) return;
+  if (!off) pane.gutterWidth = cm.getGutterElement().offsetWidth;
+  const chars = (wrap.clientWidth - (pane.gutterWidth ?? 0)) / cm.defaultCharWidth();
+  if (off === (off ? chars < GUTTER_SHOW : chars < GUTTER_HIDE)) return;
+  wrap.classList.toggle('mm-no-gutter', !off);
+  cm.refresh();   // the text's left edge follows (CodeMirror measures the gutter)
+}
+
 // After a resize: editors measure again, line maps are rebuilt.
+// An editor pane's side areas (docks.js): their heads as high as what is above its text beside them, so a pane there
+// starts at the height of the text: at the right the ruler (the bars are above that area too), at the left the bars
+// and the ruler; with the editor not shown, their own height.
+function alignPaneDocks(pane) {
+  const cm = pane.cm?.getWrapperElement(), shown = cm && pane.el.dataset.mode !== 'preview';
+  const top = shown ? cm.getBoundingClientRect().top : 0;
+  const set = (name, h) => h > 0 ? pane.el.style.setProperty(name, Math.round(h) + 'px') : pane.el.style.removeProperty(name);
+  set('--pane-bar-h', shown ? top - pane.editorEl.getBoundingClientRect().top : 0);
+  set('--pane-bar-h-left', shown ? top - pane.el.querySelector('.mm-body').getBoundingClientRect().top : 0);
+}
+
 function relayout() {
+  for (const pane of panes) alignPaneDocks(pane);
   for (const pane of panes) pane.cm?.refresh();
   for (const tab of allTabs()) tab.lines = null;
   if (typeof placeFocusRing === 'function') requestAnimationFrame(placeFocusRing);   // a part moved (sidebar, panes)
@@ -1264,7 +1313,7 @@ async function showActive(pane) {
       }
       pane.cm.setOption('readOnly', !editable(tab));
       applyTabStops(pane, tab.doc);   // tab and indent sizes of its language (tabs.js)
-      if (tab.doc.language) pane.editorEl.dataset.lang = tab.doc.language; else delete pane.editorEl.dataset.lang;
+      for (const el of [pane.editorEl, pane.el]) if (tab.doc.language) el.dataset.lang = tab.doc.language; else delete el.dataset.lang;
       fillCodeBar(pane);
       pane.cm.refresh();
       updateInnerBar(pane);
@@ -1568,7 +1617,6 @@ function updateChrome() {
   document.body.toggleAttribute('data-dirty', !!doc && (doc.dirty || !!doc.draft));
   $('.mm-switch-editor').classList.toggle('mm-on', !!tab && tab.mode !== 'preview');
   $('.mm-switch-preview').classList.toggle('mm-on', !!tab && tab.mode !== 'edit');
-  $('.mm-outline-button').disabled = !!doc && !hasOutline(doc);   // markdown's headings, or a pack's outline
   markTreeActive();
 }
 
@@ -1662,6 +1710,7 @@ try {
 } catch { }   // no long task timing: no notes
 
 function updateStatus() {
+  if (typeof tellBookmarksPanes === 'function') tellBookmarksPanes();   // their lines move with the text (bookmarkspane.js)
   const pane = panes[state.activePane], tab = pane.active, doc = tab?.doc;
   const cm = tab && pane.cm && pane.el.dataset.mode !== 'preview' ? pane.cm : null;
   let pos = '';
@@ -1721,11 +1770,39 @@ statusUi.lang.addEventListener('click', () => showLanguageList());
 statusUi.eol.addEventListener('mousedown', e => e.preventDefault());   // the focus stays in the editor
 statusUi.eol.addEventListener('click', () => showLineEndList());
 
-events.findHistory = onFindHistory;   // history.js
+// history.js; the Search pane's page has its own copy of the lists for its fields.
+events.findHistory = m => { onFindHistory(m); toSearch({ kind: 'history', lists: findHistory }); };
 events.clipboards = ({ state }) => {
   Object.assign(clips, state);
   updateStatus();
+  if (clipsPane.frame || clipsPane.floating) clipsPane.send(clipsState());
 };
+
+// ---------- The Clipboards pane (docs/plans/24-PLAN-docking.md stage 12) ----------
+// LexPen's clipboards (the Windows clipboard and 1 to 9) with the start of their text, the active one marked; a click
+// makes one active. A page of its own (clipboards.html) docked in the window's dock areas or floating; hidden at
+// first, docked at the right by its action. The popup list (clipboardList) stays.
+function clipsState() {
+  return { kind: 'clips', active: clips.active, items: Array.from({ length: 10 }, (_, n) => ({ n, name: n === 0 ? 'Windows clipboard' : `Clipboard ${n}`,
+    text: String(clips.previews?.[n] ?? ''), block: !!clips.columns?.[n] })) };
+}
+const clipsPane = paneChannel({ id: 'clips', page: 'clipboards.html', title: 'Clipboards', view: () => $('.mm-clips-view'),
+  state: () => new Map([['look', paneLook()], ['title', { kind: 'title', text: 'Clipboards' }], ['clips', clipsState()]]),
+  receive: m => {
+    if (m.kind === 'escape') return events.toolEscape();
+    if (m.kind === 'select') return host('clipSelect', { n: m.n });   // every window hears it (events.clipboards)
+  },
+  onFloat: () => setDockFloating('clips', true),
+  // Back in its view: docked (moved onto the window); its window closed by hand: it stays floating.
+  onDock: () => { if (clipsPane.toDock) { clipsPane.toDock = false; setDockFloating('clips', false); } } });
+
+// Its action: as it was last (floating: its window; else docked), with the clipboards as they are now.
+async function openClipboardsPane() {
+  Object.assign(clips, await host('clipState'));
+  if (dockModel().state.clips === 'floating') clipsPane.float();
+  else showDockPane('clips');
+  clipsPane.send(clipsState());
+}
 
 function showChord(stroke) {
   statusUi.chord.textContent = stroke ? stroke + ', ...' : '';
@@ -1859,7 +1936,10 @@ async function reopenTab(pane) {
 
 async function newFile() {
   const id = await host('newDraft');
-  const doc = makeDoc({ draft: id });
+  const active = activeDoc(), doc = makeDoc({ draft: id });
+  // Its language (Settings > Files): the active document's, or the one given (also without an active document).
+  const language = setting('newFileLanguageFrom') === 'active' && active ? languageOf(active) : setting('newFileLanguage');
+  if (packs[language] && language !== 'markdown') Object.assign(doc, { language, languageChosen: true, languageByDefault: true });
   const pane = panes[state.activePane];
   const tab = makeTab(doc, openMode(doc) === 'preview' ? 'split' : openMode(doc));   // a new file is for typing
   insertTab(pane, tab);
@@ -1909,7 +1989,7 @@ async function saveDoc(doc, saveAs) {
     if (doc.path) host('unlock', { path: doc.path });
     doc.path = path;
     doc.lock = await host('lock', { path });
-    if (!doc.languageChosen) doc.language = codeLang(path, docText(doc));   // saved as another file type
+    if (!doc.languageChosen || doc.languageByDefault) doc.language = codeLang(path, docText(doc));   // saved as another file type
     unfresh(path);
   }
   moveRulerLines(doc, was);
@@ -2129,7 +2209,10 @@ function deletedIn(dir, items) {
 }
 
 // ---------- Folder tree ----------
-const expanded = new Set();
+// The tree is the Folder pane's page (folder.html, folder-pane.js; docs/plans/24-PLAN-docking.md 3.3): it shows the
+// rows and keeps the open folders, the cursor and the scroll; this page lists a folder for it (listItems), keeps the
+// window's folder and acts on what is done there (fromFolder). treeOpen and treeTop: what it reported, for the session.
+let treeOpen = [], treeTop = 0;
 // Files that changed while the window was not active (lower case), highlighted until opened.
 const freshPaths = new Set();
 
@@ -2141,62 +2224,28 @@ function sortItems(items) {
   return items.sort((a, b) => b.dir - a.dir || desc * key(a, b));
 }
 
-async function fillDir(container, path, depth) {
-  // Backup files (name.ext.bak) only with the setting showBackupFiles; highlights next to a file (name.ext.lph,
-  // highlights.js) never: the file gets a mark instead. A file with a backup next to it: a dot before its name (plan 33).
+// A folder's entries for the Folder pane, with their marks. Backup files (name.ext.bak) only with the setting
+// showBackupFiles; highlights next to a file (name.ext.lph, highlights.js) never: the file gets a mark instead. A file
+// with a backup next to it: a dot before its name (plan 33).
+async function listItems(path) {
   const listed = await host('list', { path });
   const withHighlights = new Set(listed.filter(i => !i.dir && /\.lph$/i.test(i.name)).map(i => i.name.slice(0, -4).toLowerCase()));
   const withBackups = new Set(listed.filter(i => !i.dir && /\.bak$/i.test(i.name)).map(i => i.name.slice(0, -4).toLowerCase()));
   const items = listed.filter(i => i.dir || (!/\.lph$/i.test(i.name) && (setting('showBackupFiles') || !/\.bak$/i.test(i.name))));
-  container.replaceChildren();
-  for (const item of [...sortItems(items), ...deletedIn(path, items)]) {
-    const row = document.createElement('div');
-    row.className = 'mm-row' + (item.dir ? ' mm-dir' : knownFile(item.name) ? '' : ' mm-other') +
-      (item.gone ? ' mm-gone' : '');
-    row.dataset.path = item.path;
-    row.dataset.depth = depth;
-    row.draggable = !item.dir && !item.gone;
-    row.style.paddingLeft = 8 + depth * 14 + 'px';
-    row.title = item.name;
-    const name = document.createElement('span');
-    name.className = 'mm-name';
-    name.textContent = item.name;
-    if (!item.dir && !item.gone && withBackups.has(item.name.toLowerCase())) {
-      row.classList.add('mm-has-backup');
-      row.title += ' (has a .bak file)';
-      row.append(Object.assign(document.createElement('span'), { className: 'mm-backup-dot', title: 'A backup file exists next to this file' }));
-    }
-    row.append(name);
-    if (!item.dir && withHighlights.has(item.name.toLowerCase())) {
-      row.classList.add('mm-has-highlights');
-      row.title += '\nHas highlights next to it (' + item.name + '.lph)';
-    }
-    const status = gitStatusOf(item);
-    if (status) row.dataset.git = status;
-    container.append(row);
-    if (item.dir && !item.gone) {
-      const children = document.createElement('div');
-      children.hidden = true;
-      container.append(children);
-      if (expanded.has(item.path)) await toggleDir(row);
-    }
-  }
+  return [...sortItems(items), ...deletedIn(path, items)].map(item => ({
+    path: item.path, name: item.name, dir: !!item.dir, gone: !!item.gone, other: !item.dir && !knownFile(item.name),
+    backup: !item.dir && !item.gone && withBackups.has(item.name.toLowerCase()),
+    highlights: !item.dir && withHighlights.has(item.name.toLowerCase()), git: gitStatusOf(item) || null,
+  }));
 }
 
-// Rebuilds the tree off screen and swaps it in, so open folders and scroll position stay put.
+// The Folder pane reads its folder again, its open folders and scroll position staying put.
 // `withGit`: also ask git again (false: the status was just loaded).
 async function refreshTree(withGit = true) {
   if (!state.root) return;
   if (withGit) await loadGit(state.root);
-  const fresh = document.createElement('div');
-  await fillDir(fresh, state.root, 0);
-  addUpRow(fresh);
-  const top = ui.tree.scrollTop, cursor = treeCursor()?.dataset.path;
-  ui.tree.replaceChildren(...fresh.childNodes);
-  ui.tree.scrollTop = top;
-  if (cursor) setTreeCursor(treeRows().find(r => r.dataset.path === cursor), false);
-  markFresh();
-  markTreeActive();
+  toFolder({ kind: 'refresh' });
+  sendFolderMarks();
 }
 
 // The folder that holds this one; null at a drive or share root.
@@ -2208,60 +2257,15 @@ function parentOf(path) {
   return /^[a-z]:$/i.test(parent) ? parent + '\\' : parent;
 }
 
-// ".." at the top of the tree: the folder above the open one.
-// The two rows on top: the base folder with its full path (to right-click: copy, favourite folders; not a folder to
-// open or close), and above it `..`, up a folder (none at a drive's root).
-function addUpRow(container) {
-  if (state.root) {
-    const base = document.createElement('div');
-    base.className = 'mm-row mm-base';
-    base.dataset.path = state.root;
-    base.dataset.depth = -1;
-    base.style.paddingLeft = '8px';
-    base.title = state.root;
-    // The path as text in a right-to-left row (app.css), held left-to-right by a mark at each end: a long one is cut
-    // off at its start, so the folder's own name stays in view.
-    const ltr = String.fromCharCode(0x200E);
-    base.textContent = ltr + state.root + ltr;
-    container.prepend(base);
-  }
-  const parent = parentOf(state.root || '');
-  if (!parent) return;
-  const row = document.createElement('div');
-  row.className = 'mm-row mm-dir mm-up';
-  row.dataset.path = parent;
-  row.dataset.depth = 0;
-  row.style.paddingLeft = '8px';
-  row.title = 'Up to ' + parent + ' (Alt+Up)';
-  row.innerHTML = '<span class="mm-name">..</span>';
-  container.prepend(row);
-}
-
 // Opens the folder above as the tree's root, with the folder we came from open and selected.
 async function goUp() {
   const from = state.root, parent = parentOf(from || '');
   if (!parent) return;
-  await openFolder(parent);
-  const row = treeRows().find(r => samePath(r.dataset.path, from));
-  if (row) {
-    await toggleDir(row);
-    setTreeCursor(row);
-  }
+  await openFolder(parent, [from], { cursor: from });
 }
 
 // ---------- Folder pane keyboard ----------
-// The tree takes the focus (click a row, or Ctrl+Shift+E); the cursor row is where the keys act.
-ui.tree.tabIndex = 0;
-const treeRows = () => [...ui.tree.querySelectorAll('.mm-row')].filter(r => r.offsetParent !== null);
-const treeCursor = () => ui.tree.querySelector('.mm-row.mm-cursor');
-
-function setTreeCursor(row, scroll = true) {
-  if (!row) return;
-  treeCursor()?.classList.remove('mm-cursor');
-  row.classList.add('mm-cursor');
-  if (scroll) row.scrollIntoView({ block: 'nearest' });
-}
-
+// The tree takes the focus (click a row, or Ctrl+Shift+E); its keys work in its page (folder-pane.js).
 // The keys go to the pane's file: the editor, or the preview (arrows scroll it).
 // The editor or the preview, as the tab had it last (both are shown in split; the editor at first).
 function focusPane(pane) {
@@ -2286,24 +2290,38 @@ const focusRing = Object.assign(document.createElement('div'), { className: 'mm-
 document.body.append(focusRing);
 const focusRingWatch = new ResizeObserver(() => placeFocusRing());
 
+// While a tool pane has the focus (docked, its outline, or a floating pane's window: paneWindowFocus), the active
+// document keeps a dimmed frame of its own and its cursors shown, steady (docs/plans/24-PLAN-docking.md 3.11): so it is
+// clear where Characters inserts and whose highlights are listed. Its selection keeps the colour without the focus.
+const docRing = Object.assign(document.createElement('div'), { className: 'mm-focus-ring mm-doc-ring', hidden: true });
+document.body.append(docRing);
+let paneWindowActive = false;   // a floating pane's window of this window has the focus
+const docPartEl = pane => pane.active?.mode === 'preview' || pane.lastPart === 'preview' && pane.active?.mode !== 'edit' ? pane.previewEl : pane.editorEl;
+
 function placeFocusRing() {
   const el = focused && partEl(focused), r = el?.getBoundingClientRect();
   focusRing.hidden = !r || !r.width || !r.height;
   if (!focusRing.hidden) Object.assign(focusRing.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' });
+  const pane = panes[state.activePane], inTool = paneWindowActive || !!focused && !['editor', 'preview'].includes(focused.part);
+  const d = inTool && pane?.active ? docPartEl(pane).getBoundingClientRect() : null;
+  docRing.hidden = !d || !d.width || !d.height;
+  if (!docRing.hidden) Object.assign(docRing.style, { left: d.left + 'px', top: d.top + 'px', width: d.width + 'px', height: d.height + 'px' });
+  for (const p of panes) p.el.toggleAttribute('data-keep-cursor', inTool && p === pane);
 }
 addEventListener('resize', () => placeFocusRing());
 
 function partAt(target) {
   if (!(target instanceof Element)) return null;
-  if (target.closest('.mm-sidebar')) return { pane: -1, part: 'sidebar' };
+  // A tool pane: in the window's dock areas or at an editor pane (its own dock areas).
+  if (target.closest('.mm-dock .mm-dock-group')) return { pane: -1, part: 'dock', el: target.closest('.mm-dock-group') };
   const pane = panes.find(p => p.el.contains(target));
   if (!pane) return null;
   if (pane.editorEl.contains(target)) return { pane: pane.index, part: 'editor' };
   if (pane.previewEl.contains(target)) return { pane: pane.index, part: 'preview' };
-  if (pane.outlineEl.parentElement.contains(target)) return { pane: pane.index, part: 'outline' };
+  if (pane.outlineNav.contains(target)) return { pane: pane.index, part: 'outline' };
   return null;
 }
-const partEl = p => p.pane < 0 ? $('.mm-sidebar') : panes[p.pane][{ editor: 'editorEl', preview: 'previewEl' }[p.part]] ?? panes[p.pane].outlineEl.parentElement;
+const partEl = p => p.pane < 0 ? p.el : panes[p.pane][{ editor: 'editorEl', preview: 'previewEl' }[p.part]] ?? panes[p.pane].outlineNav;
 
 function markFocused(p) {
   for (const el of document.querySelectorAll('.mm-focused')) el.classList.remove('mm-focused');
@@ -2329,7 +2347,7 @@ addEventListener('focus', () => {
 
 // The parts of a document pane Ctrl+Shift+Tab goes through: the editor, the preview and the outline, each when shown (a part
 // not shown is passed, not opened).
-const outlineShown = pane => document.body.hasAttribute('data-outline') && !pane.el.hasAttribute('data-no-outline');
+const outlineShown = pane => !pane.el.hasAttribute('data-no-outline');
 
 // Ctrl+Shift+Tab: the next part (the previous: the action focusPart -1, no key) of the active document pane: editor, preview, outline (when shown).
 function nextPart(dir) {
@@ -2355,128 +2373,39 @@ function focusPart(pane, part) {
 // Ctrl+Tab: the next pane (the previous: the action focusPane -1, no key): the sidebar (when shown), document pane 1, document pane 2 (when
 // shown); in a document pane the part it had last.
 function nextPane(dir) {
-  const order = [...(document.body.dataset.sidebar === 'on' ? [-1] : []), ...panes.filter(p => !p.el.hidden && p.active).map(p => p.index)];
+  const dockPane = dockFocusPane();   // docks.js: the pane in front of the first open dock group
+  const order = [...(dockPane ? [-1] : []), ...panes.filter(p => !p.el.hidden && p.active).map(p => p.index)];
   if (!order.length) return;
   const now = focused?.pane ?? state.activePane;
   const next = order[(Math.max(0, order.indexOf(now)) + dir + order.length) % order.length];
-  if (next < 0) {
-    if (document.body.dataset.side === 'search') searchUi.input.focus();
-    else {
-      ui.tree.focus();
-      if (!treeCursor()) setTreeCursor(ui.tree.querySelector('.mm-row.mm-active') || treeRows()[0]);
-    }
-    return;
-  }
+  if (next < 0) return dockPanes.get(dockPane).focus();
   focusPart(panes[next], panes[next].lastPart ?? (panes[next].active.mode === 'preview' ? 'preview' : 'editor'));
 }
 
 // ---------- The outline with the keyboard ----------
-// Up / Down, PgUp / PgDn (a view's worth), Ctrl+Home / Ctrl+End go through the entries shown (a folded group's are
-// passed); Enter goes there as a click does, the focus staying in the outline.
-function outlineItems(pane) { return [...pane.outlineEl.querySelectorAll('.mm-outline-item')].filter(el => !el.hidden); }
-
-function setOutlineKey(pane, item) {
-  for (const el of pane.outlineEl.querySelectorAll('.mm-outline-key')) el.classList.remove('mm-outline-key');
-  if (!item) return;
-  item.classList.add('mm-outline-key');
-  item.scrollIntoView({ block: 'nearest' });
-}
-
+// Its keys work in its page (outline-pane.js): Up / Down, PgUp / PgDn, Ctrl+Home / Ctrl+End, Enter. Here: the focus
+// into it (Ctrl+Shift+Tab), its entry at the cursor marked for the keys.
 function focusOutline(pane) {
-  const items = outlineItems(pane);
-  setOutlineKey(pane, pane.outlineEl.querySelector('.mm-outline-key:not([hidden])') ?? pane.outlineEl.querySelector('.mm-outline-item.mm-on') ?? items[0]);
-  pane.outlineEl.focus();
-}
-
-function outlineKeys(pane, e) {
-  const items = outlineItems(pane);
-  if (!items.length) return;
-  const at = Math.max(0, items.indexOf(pane.outlineEl.querySelector('.mm-outline-key')));
-  const page = Math.max(1, Math.floor(pane.outlineEl.clientHeight / (items[0].offsetHeight || 20)) - 1);
-  const to = { ArrowDown: at + 1, ArrowUp: at - 1, PageDown: at + page, PageUp: at - page }[e.key]
-    ?? (e.ctrlKey && e.key === 'Home' ? 0 : e.ctrlKey && e.key === 'End' ? items.length - 1 : null);
-  if (to !== null) {
-    e.preventDefault();
-    setOutlineKey(pane, items[Math.max(0, Math.min(items.length - 1, to))]);
-  } else if (e.key === 'Enter') {
-    e.preventDefault();
-    goToLine(pane, +items[at].dataset.line, false, true);   // placed as a find; the focus stays here
-    pane.outlineEl.focus();
-  }
+  outlineFrame(pane).focus();
+  toOutline(pane, { kind: 'focus' });
 }
 
 function focusTree() {
-  setSidebar(true);
-  setSideView('folder');
-  ui.tree.focus();
-  if (!treeCursor()) setTreeCursor(ui.tree.querySelector('.mm-row.mm-active') || treeRows()[0]);
+  showFolderView();
+  focusFolder();
 }
 
-ui.tree.addEventListener('keydown', async e => {
-  const rows = treeRows(), row = treeCursor() ?? rows[0];
-  if (!row) return;
-  const at = rows.indexOf(row), page = Math.max(1, Math.floor(ui.tree.clientHeight / (row.offsetHeight || 22)) - 1);
-  const move = to => setTreeCursor(rows[Math.max(0, Math.min(rows.length - 1, to))]);
-  const isDir = row.classList.contains('mm-dir') && !row.classList.contains('mm-up');
-  const open = row.classList.contains('mm-open');
-  let handled = true;
-  switch (e.key) {
-    case 'ArrowDown': move(at + 1); break;
-    case 'ArrowUp':
-      if (e.altKey) await goUp(); else move(at - 1);
-      break;
-    case 'Home': move(0); break;
-    case 'End': move(rows.length - 1); break;
-    case 'PageDown': move(at + page); break;
-    case 'PageUp': move(at - page); break;
-    case 'ArrowRight':
-      if (isDir && !open) await toggleDir(row);
-      else if (isDir) move(at + 1);
-      break;
-    case 'ArrowLeft':
-      if (isDir && open) await toggleDir(row);
-      else {
-        // To the folder this row is in.
-        const parent = rows.slice(0, at).reverse().find(r => r.classList.contains('mm-dir') && +r.dataset.depth < +row.dataset.depth);
-        if (parent) move(rows.indexOf(parent));
-      }
-      break;
-    case 'Enter':
-      if (row.classList.contains('mm-up')) await goUp();
-      else if (isDir) await toggleDir(row);
-      else if (!row.classList.contains('mm-gone') && !row.classList.contains('mm-base')) {
-        await openFromTree(row.dataset.path, e);
-        ui.tree.focus();   // keep walking the tree
-      }
-      break;
-    case 'Backspace': await goUp(); break;
-    case 'F2':   // rename, as in Explorer
-      if (row.classList.contains('mm-up') || row.classList.contains('mm-gone')) break;
-      await renameFile(row.dataset.path, isDir || row.classList.contains('mm-base'));
-      ui.tree.focus();
-      break;
-    case 'Escape': focusPane(panes[state.activePane]); break;
-    default: handled = false;
-  }
-  if (handled) {
-    e.preventDefault();
-    e.stopPropagation();
-  }
-});
-
-function markTreeActive() {
-  const path = activeTab()?.doc.path;
-  for (const row of ui.tree.querySelectorAll('.mm-row'))
-    row.classList.toggle('mm-active', samePath(row.dataset.path, path));
+// The Folder pane in view: the sidebar on its Folder view; floating, its window of its own is where it is.
+function showFolderView() {
+  showDockPane('folder');   // docks.js: floating, nothing
 }
 
-function markFresh() {
-  for (const row of ui.tree.querySelectorAll('.mm-row:not(.mm-up):not(.mm-base)')) {
-    const key = row.dataset.path.toLowerCase();
-    row.classList.toggle('mm-fresh', freshPaths.has(key));
-    row.classList.toggle('mm-fresh-dir', row.classList.contains('mm-dir') && [...freshPaths].some(p => p.startsWith(key + '\\')));
-  }
+// The marks of the Folder pane: the active document's row, the files that changed while the window was not active.
+function sendFolderMarks() {
+  toFolder({ kind: 'marks', active: activeTab()?.doc.path ?? null, fresh: [...freshPaths] });
 }
+const markTreeActive = () => sendFolderMarks();
+const markFresh = () => sendFolderMarks();
 
 function unfresh(path) {
   if (freshPaths.delete(path.toLowerCase())) markFresh();
@@ -2486,56 +2415,16 @@ function unfresh(path) {
 // the row is selected, scrolled to and lights up. A file outside the open folder: its folder is opened.
 async function showInTree(path) {
   if (!path) return;
-  setSidebar(true);
-  setSideView('folder');
+  showFolderView();
   const inside = root => root && path.toLowerCase().startsWith(root.replace(/\\$/, '').toLowerCase() + '\\');
   if (!inside(state.root)) await openFolder(dirOf(path));
   if (document.body.dataset.tree === 'known' && !knownFile(path)) {
     setKnownOnly(false);   // the filter would hide it
     toast('The folder pane shows all files again (not only known file types), so the file can be shown.', true);
   }
-  const rowOf = p => [...ui.tree.querySelectorAll('.mm-row:not(.mm-up)')].find(r => samePath(r.dataset.path, p));
-  let dir = state.root.replace(/\\$/, '');
-  for (const part of path.slice(dir.length + 1).split('\\').slice(0, -1)) {
-    dir += '\\' + part;
-    const row = rowOf(dir);
-    if (!row) break;
-    if (!row.classList.contains('mm-open')) await toggleDir(row);
-  }
-  const row = rowOf(path);
-  if (!row) return toast(`${nameOf(path)} is not listed in the folder pane.`);
-  setTreeCursor(row, false);
-  row.scrollIntoView({ block: 'center' });
-  ui.tree.focus({ preventScroll: true });
-  row.classList.remove('mm-flash');
-  void row.offsetWidth;   // restart the animation when it is asked for again
-  row.classList.add('mm-flash');
-  row.addEventListener('animationend', () => row.classList.remove('mm-flash'), { once: true });
+  folderPane.focus();
+  toFolder({ kind: 'reveal', path });
 }
-
-async function toggleDir(row) {
-  const children = row.nextElementSibling;
-  const open = row.classList.toggle('mm-open');
-  children.hidden = !open;
-  if (open) expanded.add(row.dataset.path); else expanded.delete(row.dataset.path);
-  saveSession();   // the open folders are kept with the window (sessionData)
-  if (open && !children.childElementCount) {
-    await fillDir(children, row.dataset.path, +row.dataset.depth + 1);
-    markFresh();
-    markTreeActive();
-  }
-}
-
-ui.tree.addEventListener('scroll', () => saveSession(), { passive: true });   // its scroll position, with the session
-ui.tree.addEventListener('click', e => {
-  const row = e.target.closest('.mm-row');
-  if (!row) return;
-  setTreeCursor(row, false);
-  if (row.classList.contains('mm-gone') || row.classList.contains('mm-base')) return;
-  if (row.classList.contains('mm-up')) goUp();
-  else if (row.classList.contains('mm-dir')) toggleDir(row);
-  else openFromTree(row.dataset.path, e);
-});
 
 // A file from the tree: shown in the current tab of the pane (when it is already open there: that tab).
 // Ctrl: the other pane; Shift: a new tab. A draft or a changed file is never replaced (a new tab instead).
@@ -2544,40 +2433,88 @@ function openFromTree(path, { ctrlKey, shiftKey }) {
   if (shiftKey || !tab || tab.doc.draft || tab.doc.dirty || pane.tabs.some(t => samePath(t.doc.path, path))) return openFile(path, { pane });
   return navigate(tab, path);
 }
-ui.tree.addEventListener('dragstart', e => {
-  const row = e.target.closest('.mm-row');
-  if (!row || row.classList.contains('mm-base')) return;
-  draggedPathIsImage = IMAGE_FILE.test(row.dataset.path);
-  e.dataTransfer.setData(PATH_TYPE, row.dataset.path);
-  e.dataTransfer.setData('text/plain', row.dataset.path);
-  e.dataTransfer.effectAllowed = 'copyMove';
-});
-
-// `open`: the folders to open again (a restored session: the tree as it was).
-async function openFolder(path, open = []) {
-  expanded.clear();
-  for (const dir of open) if (typeof dir === 'string') expanded.add(dir);
+// `open`: the folders to open again (a restored session: the tree as it was); `cursor`: the row selected; `top`: the
+// scroll position.
+async function openFolder(path, open = [], { cursor = null, top = 0 } = {}) {
+  treeOpen = open.filter(dir => typeof dir === 'string');
+  treeTop = top;
   git = new Map();   // no colours of the previous folder meanwhile
-  await fillDir(ui.tree, path, 0);
   state.root = path;
   loadGitLater(path);
-  addUpRow(ui.tree);
   noteOpened('folders', path);
-  ui.treeTitle.textContent = ui.treeTitle.title = nameOf(path) || path;
-  markFresh();
-  markTreeActive();
+  sendFolderHead();
+  toFolder({ kind: 'root', root: path, parent: parentOf(path), open: treeOpen, top, cursor });
+  sendFolderMarks();
   syncWatch();
   saveSession();
 }
 
-ui.sort.addEventListener('change', () => {
-  keepLayout('sort', ui.sort.value);
-  refreshTree();
-});
-
 function showSort() {
-  ui.sort.value = setting('sort') === 'modified' ? 'modified' : 'name';
-  document.body.toggleAttribute('data-sort-desc', !!setting('sortDesc'));
+  sendFolderHead();
+}
+
+// The Folder pane's head: the folder's name, the sort, the filter of known file types.
+function sendFolderHead() {
+  toFolder({ kind: 'head', title: state.root ? nameOf(state.root) || state.root : 'No folder open',
+    sort: setting('sort') === 'modified' ? 'modified' : 'name', desc: !!setting('sortDesc'), known: document.body.dataset.tree === 'known' });
+}
+
+// ---------- The Folder pane's page (docs/plans/24-PLAN-docking.md 3.3, 3.5) ----------
+// In a frame in its view in a dock area (docks.js), or floating in a window of its own (panechannel.js).
+const folderPane = paneChannel({ id: 'folder', page: 'folder.html', title: 'Folder', view: () => $('.mm-folder-view'),
+  state: () => folderPaneState(), receive: (m, from) => fromFolder(m, from),
+  onFloat: () => setDockFloating('folder', true), onDock: () => setDockFloating('folder', false) });
+const toFolder = msg => folderPane.send(msg);
+const floatFolder = () => folderPane.float();
+const folderBack = () => folderPane.back();
+
+// What it shows, for a page that starts showing it.
+function folderPaneState() {
+  const name = state.root ? nameOf(state.root) || state.root : '';
+  return new Map([['look', paneLook()], ['title', { kind: 'title', text: `Folder: ${name}` }],
+    ['head', { kind: 'head', title: name || 'No folder open', sort: setting('sort') === 'modified' ? 'modified' : 'name',
+      desc: !!setting('sortDesc'), known: document.body.dataset.tree === 'known' }],
+    ...(state.root ? [['root', { kind: 'root', root: state.root, parent: parentOf(state.root), open: treeOpen, top: treeTop, cursor: null }]] : []),
+    ['marks', { kind: 'marks', active: activeTab()?.doc.path ?? null, fresh: [...freshPaths] }]]);
+}
+
+function focusFolder() {
+  if (folderPane.focus()) toFolder({ kind: 'focus' });
+}
+
+// From the Folder pane's page: its frame, or (`from` 'float') its window of its own.
+async function fromFolder(m, from) {
+  switch (m.kind) {
+    case 'list': return toFolder({ kind: 'listed', id: m.id, items: await listItems(m.path).catch(() => []) });
+    case 'state': treeOpen = m.open; treeTop = m.top; return saveSession();
+    case 'open':
+      await openFromTree(m.path, m);
+      if (m.keep) focusFolder();   // Enter: keep walking the tree
+      return;
+    case 'up': return goUp();
+    case 'rename':
+      await renameFile(m.path, m.folder);
+      return focusFolder();
+    case 'escape': return focusPane(panes[state.activePane]);
+    case 'sort': keepLayout('sort', m.value); return refreshTree();
+    case 'cmd': return commands[m.name]?.();
+    case 'drag': draggedPathIsImage = IMAGE_FILE.test(m.path); return;
+    case 'dragStart': return startFolderDrag(m.path);
+    case 'dragMove': return folderDragFrom(m);
+    case 'dragEnd': return folderDragFrom(m, m.drop);
+    case 'notListed': return toast(`${nameOf(m.path)} is not listed in the folder pane.`);
+    case 'menu': {
+      if (!folderPane.floating) {
+        const r = folderPane.frame.getBoundingClientRect();
+        return openTreeMenu(m, r.left + m.x, r.top + m.y);
+      }
+      // Floating: the menu is drawn by its page, its items as the window's menu has them now.
+      openTreeMenu(m, 0, 0);
+      ui.treeMenu.hidden = true;
+      if (m.dir || m.base) await host('hasBackups', { path: m.path }).then(has => { ui.treeMenu.querySelector('[data-cmd=treeDeleteBackups]').hidden = !has || m.up || m.gone; }).catch(() => {});
+      return folderPane.menuThere(ui.treeMenu, m.x, m.y);
+    }
+  }
 }
 
 // ---------- Drag and drop ----------
@@ -2585,12 +2522,68 @@ function showSort() {
 function dropTarget(pane, e) {
   const types = e.dataTransfer.types;
   if (!types.includes(TAB_TYPE) && !types.includes(PATH_TYPE) && !types.includes('Files')) return null;
+  return dropPaneAt(pane, e.clientX, e.clientY);
+}
+function dropPaneAt(pane, x, y) {
   if (!bothShown()) {
     const r = pane.el.getBoundingClientRect();
-    const far = state.orient === 'v' ? e.clientX > r.left + r.width / 2 : e.clientY > r.top + r.height / 2;
+    const far = state.orient === 'v' ? x > r.left + r.width / 2 : y > r.top + r.height / 2;
     if (far) return panes[1 - pane.index];   // the second pane, or the hidden one
   }
   return pane;
+}
+
+// A file dragged from the docked Folder pane (folder-pane.js: it starts there; the moves over its frame come from it,
+// those over the rest of the window come here): the editor pane under it lights up as for a drop (its far half: the
+// second pane); let go there, the file opens there. An image over a Markdown editor: a link at that point (as a drop,
+// onEditorDrop), no pane marked. Esc: nothing opens.
+let folderDrag = null;
+function startFolderDrag(path) {
+  endFolderDrag();
+  const move = e => { if (e.buttons & 1) folderDragAt(e.clientX, e.clientY, false); else endFolderDrag(); };
+  const up = e => { folderDragAt(e.clientX, e.clientY, true, e.shiftKey); endFolderDrag(); };
+  const key = e => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); endFolderDrag(); } };
+  folderDrag = { path, off: () => { removeEventListener('pointermove', move, true); removeEventListener('pointerup', up, true); removeEventListener('keydown', key, true); } };
+  addEventListener('pointermove', move, true);
+  addEventListener('pointerup', up, true);
+  addEventListener('keydown', key, true);
+  document.body.style.cursor = 'copy';
+}
+function endFolderDrag() {
+  if (!folderDrag) return;
+  folderDrag.off();
+  folderDrag = null;
+  document.body.style.cursor = '';
+  hideDrops();
+  toFolder({ kind: 'dragDone' });
+}
+// From the Folder pane's page: a point in its frame.
+function folderDragFrom(m, drop) {
+  if (!folderDrag) return;
+  if (drop === undefined) {
+    const r = folderPane.frame.getBoundingClientRect();
+    return folderDragAt(r.left + m.x, r.top + m.y, false);
+  }
+  if (drop) { const r = folderPane.frame.getBoundingClientRect(); folderDragAt(r.left + m.x, r.top + m.y, true, m.shift); }
+  endFolderDrag();
+}
+function folderDragAt(x, y, drop, shift = false) {
+  hideDrops();
+  const path = folderDrag?.path;
+  if (!path) return;
+  const pane = panes.find(p => { const b = p.el.getBoundingClientRect(); return b.width && x >= b.left && x <= b.right && y >= b.top && y <= b.bottom; });
+  if (!pane) return;
+  const editor = pane.cm && document.elementFromPoint(x, y)?.closest('.CodeMirror');
+  if (editor && IMAGE_FILE.test(path)) {
+    if (!drop) return;
+    pane.cm.focus();
+    pane.cm.setCursor(pane.cm.coordsChar({ left: x, top: y }));
+    return insertImages(pane, [], [path], shift);
+  }
+  const target = dropPaneAt(pane, x, y);
+  if (drop) return openFile(path, { pane: target }).catch(e => toast(e.message));
+  pane.dropEl.hidden = false;
+  pane.dropEl.dataset.half = target === pane ? '' : state.orient;
 }
 
 function hideDrops() {
@@ -2631,7 +2624,7 @@ async function onDrop(data, pane) {
     if (!item.path) continue;
     if (item.dir) {
       await openFolder(item.path);
-      setSidebar(true);
+      if (!folderPane.floating) setSidebar(true);
     } else await openFile(item.path, { pane }).catch(e => toast(e.message));
   }
 }
@@ -2800,9 +2793,20 @@ events.adoptTab = async ({ tab: p, pane: index }) => {
 // the folder (searched by the host; open ones are searched here instead). One pattern serves both:
 // the ^ codes become regular expression parts that JavaScript and .NET read the same way.
 const SEARCH_CODES = { p: '(?:\\r\\n|\\n|\\r)', t: '\\t', '?': '.', '#': '\\d', '$': '[A-Za-z]', w: '[ \\t]+', '^': '\\^' };
+// The panel is the Search pane's page (search.html, search-pane.js; docs/plans/24-PLAN-docking.md 3.3): it has the
+// fields, switches and results; this page searches, replaces and keeps what they show (searchPage). searchUi and
+// replaceUi (searchreplace.js) stand for its fields here: what is set on them goes to its page.
+const searchPage = { values: { find: '', with: '' }, scope: 'selection', status: '', replace: false, html: '' };
+const searchField = name => ({
+  get value() { return searchPage.values[name]; },
+  set value(v) { searchPage.values[name] = v; toSearch({ kind: 'text', key: 'text:' + name, field: name, value: v }); },
+  focus() { if (searchPane.focus()) toSearch({ kind: 'focus', field: name }); },
+  select() { toSearch({ kind: 'focus', field: name, select: true }); },
+});
 const searchUi = {
-  input: $('.mm-search-input'), scope: $('.mm-search-scope'),
-  status: $('.mm-search-status'), results: $('.mm-search-results'),
+  input: searchField('find'),
+  scope: { get value() { return searchPage.scope; }, set value(v) { searchPage.scope = v; toSearch({ kind: 'scope', value: v }); } },
+  status: { get textContent() { return searchPage.status; }, set textContent(v) { searchPage.status = v; toSearch({ kind: 'status', text: v }); } },
 };
 const searchOptions = { case: false, word: false, regex: false };
 let searchRun = 0, searchHits = [];
@@ -2968,19 +2972,14 @@ function drawSearchResults() {
     }
     parts.push(head, list);
   }
-  searchUi.results.replaceChildren(...parts);
+  const box = document.createElement('div');
+  box.append(...parts);
+  searchPage.html = box.innerHTML;
+  toSearch({ kind: 'results', html: searchPage.html });
 }
 
-searchUi.results.addEventListener('click', async e => {
-  const head = e.target.closest('.mm-result-file');
-  if (head && e.target.closest('.mm-result-rep')) return replaceFile(+head.dataset.group);   // searchreplace.js
-  if (head) return head.classList.toggle('mm-closed');
-  const row = e.target.closest('.mm-result');
-  if (!row) return;
-  if (e.target.closest('.mm-result-rep')) return replaceMatch(searchHits[+row.dataset.hit]);
-  for (const on of searchUi.results.querySelectorAll('.mm-result.mm-on')) on.classList.remove('mm-on');
-  row.classList.add('mm-on');
-  const hit = searchHits[+row.dataset.hit];
+// A match clicked in the results: there in the window, selected (and in the preview's view).
+async function goToSearchHit(hit) {
   let tab;
   if (hit.draft) {
     const doc = findDraft(hit.draft);
@@ -2995,55 +2994,214 @@ searchUi.results.addEventListener('click', async e => {
     asFound(pane, () => pane.cm.setSelection({ line: hit.line, ch: hit.col }, { line: hit.endLine, ch: hit.endCol }));   // places.js
     revealFound(pane.cm, { line: hit.line, ch: 0 }, { line: hit.endLine, ch: hit.endCol });
   }
-});
-
-// The history (history.js): an entry with its switches; `typed`: the text as typed, the switches as they are.
-attachHistory(searchUi.input, 'find', (entry, typed) => {
-  searchUi.input.value = entry.text;
-  if (typed) return;
-  for (const button of document.querySelectorAll('.mm-search-bar [data-opt]')) {
-    searchOptions[button.dataset.opt] = !!entry[button.dataset.opt];
-    button.classList.toggle('mm-on', searchOptions[button.dataset.opt]);
-  }
-});
-searchUi.input.addEventListener('keydown', e => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    runSearch();
-  }
-});
-// Esc in the search (unless a find bar is open: that closes first): the sidebar as before the search, back to the file.
-$('.mm-search-view').addEventListener('keydown', e => {
-  if (e.key !== 'Escape' || panes.some(p => p.find && !p.find.el.hidden)) return;
-  e.preventDefault();
-  const back = searchReturn ?? { sidebar: true, view: 'folder' };
-  searchReturn = null;
-  clearSearchScope();   // searchreplace.js: the selection's marks go
-  setSideView(back.view && back.view !== 'search' ? back.view : 'folder');
-  if (!back.sidebar) setSidebar(false);
-  focusPane(panes[state.activePane]);
-});
-searchUi.scope.addEventListener('change', () => { keepLayout('searchScope', searchUi.scope.value); runSearch(); });
-for (const button of document.querySelectorAll('.mm-search-bar [data-opt]')) {
-  button.addEventListener('click', () => {
-    searchOptions[button.dataset.opt] = !searchOptions[button.dataset.opt];
-    button.classList.toggle('mm-on', searchOptions[button.dataset.opt]);
-    runSearch();
-  });
 }
 
+// ---------- The Search pane's page (docs/plans/24-PLAN-docking.md 3.3, 3.5) ----------
+// In a frame in its view in a dock area (docks.js), or floating in a window of its own (panechannel.js).
+const searchPane = paneChannel({ id: 'search', page: 'search.html', title: 'Search', view: () => $('.mm-search-view'),
+  state: () => searchPaneState(), receive: m => fromSearch(m),
+  onFloat: () => setDockFloating('search', true), onDock: () => setDockFloating('search', false) });
+const toSearch = msg => searchPane.send(msg);
+
+// A tool docked (Characters: chars, the window's; chars:0, chars:1, an editor pane's own; Highlights: hls, hls:0,
+// hls:1): its frame with its page, made the first time it is shown. Its name tells the host which tool it is and where
+// it works (ToolFrame.cs).
+function toolFrame(id) {
+  const d = dockPanes.get(id);
+  let frame = d.view.querySelector('iframe');
+  if (!frame) {
+    frame = Object.assign(document.createElement('iframe'), { className: 'mm-pane-frame', title: d.title, name: 'tool:' + id });
+    frame.src = PANE_ORIGIN + '/' + d.page;
+    d.view.append(frame);
+  }
+  return frame;
+}
+const charsFrame = (id = 'chars') => toolFrame(id);
+
+// A tool of a window or of LexPen (Settings, ...): its page docked in a frame in the window's dock areas (not at an
+// editor pane), or floating in its window of its own (`open` / `close` to the host); floating the first time, and a
+// new window does not open that one of its own accord.
+function registerToolPane(id, title, page, open, close) {
+  const view = Object.assign(document.createElement('div'), { className: 'mm-tool-view' });
+  $('.mm-dock-hold').append(view);
+  registerDockPane(id, { title, page, view, home: 'right', startState: 'floating', floatsOnCall: true,
+    focus: () => toolFrame(id).focus(),
+    sync: () => { if (dockShown(dockModel(), id)) toolFrame(id); },
+    channel: { get floating() { return dockModel().state[id] === 'floating'; },
+      float: () => { setDockFloating(id, true); host(open); },
+      back: () => { host(close); setDockFloating(id, false); } } });
+}
+
+// A tool opened from its menu item, as it was last (docs/plans/24-PLAN-docking.md 3.7a): the active editor pane's own
+// when it has one (not closed); else the window's: its window of its own (`open` to the host), or docked in this
+// window (shown, its area opened). The editor pane whose own it is, null: the window's docked, undefined: floating.
+function openToolPane(kind, open, args = {}) {
+  const own = `${kind}:${state.activePane}`;
+  if (dockPanes.has(own) && !dockHidden(dockModel(), own)) {
+    showDockPane(own);   // docks.js
+    toolFrame(own);
+    return state.activePane;
+  }
+  if (dockModel().state[kind] === 'floating') { host(open, args); return undefined; }
+  showDockPane(kind);
+  toolFrame(kind);
+  return null;
+}
+// The host asks for a tool as it was last (Manage theme sets from the Settings page, ...).
+events.openToolPane = ({ kind, open }) => openToolPane(kind, open);
+// A docked tool's Esc (its page's close): the keys back to the document.
+events.toolEscape = ({ pane } = {}) => {
+  const to = panes[pane ?? state.activePane];
+  setActivePane(to.index);   // an editor pane's own: that pane, also when the other was active
+  focusPane(to);
+};
+
+// The panes of the dock areas (docks.js), registered at the start (once this file has run: their definitions use what
+// it defines further on).
+function registerDockPanes() {
+  // The panes of the dock areas (docks.js): Folder and Search, tabbed in the left area by default.
+  registerDockPane('folder', { title: 'Folder', view: $('.mm-folder-view'), channel: folderPane, focus: () => focusFolder() });
+  registerDockPane('search', { title: 'Search', view: $('.mm-search-view'), channel: searchPane, focus: () => searchUi.input.focus() });
+  // Each editor pane's outline: at a side of its own editor pane (at the right by default); on or off as its own
+  // setting (outline, outline2), no tab and no room for a document of a language without an outline. Floating it is
+  // the window's floating outline (floatOutline), which serves the active document.
+  for (const pane of panes) registerDockPane(`outline:${pane.index}`, { title: 'Outline', view: pane.outlineNav, scope: 'pane', pane: pane.index,
+    home: `${pane.index}.right`, hidden: () => !outlineOn(pane), setHidden: on => setSetting(outlineKey(pane), !on),
+    available: () => hasOutline(pane.active?.doc), focus: () => focusOutline(pane), kind: 'outline',
+    // Moved to the window's place: the window's outline serves its document there, its own goes.
+    // Moved to the other editor pane: that pane's own shows, this one goes.
+    leave: (m, other) => { if (other === 'outline:w') winOutlineWish = { pane }; setSetting(outlineKey(pane), false); },
+    channel: { floating: false, float: opts => floatOutline(pane, opts), back() {} } });
+  // Characters and Highlights (7b): its own page (charpicker.html, highlights.html) docked in a frame named tool:<id>
+  // (it asks the host itself: ToolFrame.cs), working on this window; or floating in its own window (CharPickerForm,
+  // HighlightsForm: one for LexPen, working on the window last worked in). Floating the first time (3.4a); opened from
+  // its menu item in its last state (3.7a: openToolPane). Moved to an editor pane it is that pane's own (chars:0,
+  // hls:1, ...), working on that pane's document; one moved away from its editor pane is the window's again.
+  for (const [kind, title, page, open, close] of [['chars', 'Characters', 'charpicker.html', 'openCharPicker', 'closeCharPicker'],
+    ['hls', 'Highlights', 'highlights.html', 'openHighlights', 'closeHighlights']]) {
+    const view = () => { const v = Object.assign(document.createElement('div'), { className: 'mm-tool-view' }); $('.mm-dock-hold').append(v); return v; };
+    registerDockPane(kind, { title, page, view: kind === 'chars' ? $('.mm-chars-view') : view(), home: 'right', startState: 'floating', kind, floatsOnCall: true,
+      focus: () => toolFrame(kind).focus(),
+      leave: m => { if (m.state[kind] === 'floating') host(close); m.state[kind] = 'hidden'; },
+      sync: () => { if (dockShown(dockModel(), kind)) toolFrame(kind); },
+      channel: { get floating() { return dockModel().state[kind] === 'floating'; },
+        float: () => { setDockFloating(kind, true); host(open, { code: null }); },
+        back: () => { host(close); setDockFloating(kind, false); } } });
+    for (const pane of panes) {
+      const id = `${kind}:${pane.index}`;
+      registerDockPane(id, { title, page, view: view(), scope: 'pane', pane: pane.index, home: `${pane.index}.right`, startHidden: true, kind,
+        focus: () => toolFrame(id).focus(),
+        leave: m => { m.state[id] = 'hidden'; },
+        sync: () => { if (dockShown(dockModel(), id)) toolFrame(id); },
+        // Floating: the window's (one for LexPen, working on the window last worked in); this one goes.
+        channel: { floating: false, back() {}, float: () => {
+          const m = dockModel();
+          m.state[id] = 'hidden';
+          m.state[kind] = 'floating';
+          saveDocks(m);
+          host(open, { code: null });
+        } } });
+    }
+  }
+  // Settings (7b): the window's (its "this window" rows and the global ones), docked in its dock areas (not at an
+  // editor pane) or floating in its window of its own (SettingsForm, one per window); floating the first time.
+  registerToolPane('settings', 'Settings', 'settings.html', 'openSettings', 'closeSettings');
+  // Manage projects (7b): LexPen's, docked in a window's dock areas or floating in its window (ProjectsForm).
+  registerToolPane('projects', 'Manage projects', 'projects.html', 'openProjects', 'closeProjects');
+  // The Macros window (7b; macros.js): LexPen's, a page of its own (macros.html) docked in the window's dock areas or
+  // floating in a window of its own; floating the first time; not reopened by a new window of its own accord.
+  registerDockPane('macros', { title: 'Macros', view: $('.mm-macros-view'), home: 'right', startState: 'floating', floatsOnCall: true,
+    focus: () => macrosPane.focus(),
+    sync: () => { if (dockShown(dockModel(), 'macros') && !macrosPane.frame) macrosPane.send(macroWindowState()); },
+    channel: { get floating() { return macrosPane.floating; }, float: opts => macrosPane.float(opts),
+      back: () => { macroWindow.back = true; macrosPane.back(); } } });
+  // Messages (stage 11): the window's, a page of its own docked in its dock areas or floating; floating the first
+  // time; not reopened by a new window of its own accord.
+  registerDockPane('messages', { title: 'Messages', view: $('.mm-messages-view'), home: 'right', startState: 'floating', floatsOnCall: true,
+    focus: () => messagesPane.focus(),
+    sync: () => { if (dockShown(dockModel(), 'messages') && !messagesPane.frame) messagesPane.send(messagesState()); },
+    channel: { get floating() { return messagesPane.floating; }, float: opts => messagesPane.float(opts),
+      back: () => { messagesPane.toDock = true; messagesPane.back(); } } });
+  // Clipboards (stage 12): LexPen's, docked in the window's dock areas or floating; hidden at first.
+  registerDockPane('clips', { title: 'Clipboards', view: $('.mm-clips-view'), home: 'right', startHidden: true,
+    focus: () => clipsPane.focus(),
+    sync: () => { if (dockShown(dockModel(), 'clips') && !clipsPane.frame) clipsPane.send(clipsState()); },
+    channel: { get floating() { return clipsPane.floating; }, float: opts => clipsPane.float(opts),
+      back: () => { clipsPane.toDock = true; clipsPane.back(); } } });
+  // Step by step (stage 13; macros.js): at the bottom of the macro's editor pane, or the window's.
+  registerStepPanes();
+  // Bookmarks (stage 10; bookmarkspane.js): the window's (the active document) and each editor pane's own.
+  registerBookmarksPanes();
+  // Manage theme sets (7b): LexPen's, as Manage projects (ThemeSetsForm).
+  registerToolPane('themesets', 'Theme sets', 'themesets.html', 'openThemeSetsWindow', 'closeThemeSets');
+  // The window's outline: in one of the window's dock areas (at the right, the first time it is docked) or floating;
+  // hidden at first. Moved to an editor pane it is that pane's own (outline:0, outline:1).
+  registerDockPane('outline:w', { title: 'Outline', view: winOutlineNav, kind: 'outline', home: 'right', startHidden: true, hostId: FLOATING_OUTLINE,
+    focus: () => { winOutlineFrame?.focus(); if (winOutline) toFloating({ kind: 'focus' }); },
+    leave: m => { m.state['outline:w'] = 'hidden'; },
+    sync: () => syncWinOutline(),
+    channel: { get floating() { return !!winOutline && !winOutline.docked; },
+      float: ({ atCursor = false } = {}) => { winOutlineWish = { atCursor }; setDockFloating('outline:w', true); },
+      back: () => setDockFloating('outline:w', false) } });
+}
+
+function searchPaneState() {
+  return new Map([['look', paneLook()], ['title', { kind: 'title', text: 'Search' }],
+    ['text:find', { kind: 'text', key: 'text:find', field: 'find', value: searchPage.values.find }],
+    ['text:with', { kind: 'text', key: 'text:with', field: 'with', value: searchPage.values.with }],
+    ['options', { kind: 'options', options: { ...searchOptions } }], ['scope', { kind: 'scope', value: searchPage.scope }],
+    ['replace', { kind: 'replace', on: searchPage.replace }], ['status', { kind: 'status', text: searchPage.status }],
+    ['results', { kind: 'results', html: searchPage.html }], ['history', { kind: 'history', lists: findHistory }]]);
+}
+
+// From the Search pane's page.
+function fromSearch(m) {
+  switch (m.kind) {
+    case 'input': searchPage.values[m.field] = m.value; return;
+    case 'run': return runSearch();
+    case 'options':   // a switch, or an entry of the history with its switches
+      Object.assign(searchOptions, m.options);
+      return m.run && runSearch();
+    case 'scope': searchPage.scope = m.value; keepLayout('searchScope', m.value); return runSearch();
+    case 'goto': return searchHits[m.hit] && goToSearchHit(searchHits[m.hit]);
+    case 'replaceFile': return replaceFile(m.group);   // searchreplace.js
+    case 'replaceMatch': return searchHits[m.hit] && replaceMatch(searchHits[m.hit]);
+    case 'replaceAll': return replaceAllResults();
+    case 'preview': return replaceGroups(searchGroups.filter(g => !g.skip), true, 'Replace all');
+    case 'toggleReplace':
+      showReplace(replaceUi.row.hidden);
+      return (replaceUi.row.hidden ? searchUi.input : replaceUi.with).focus();
+    case 'codes': {   // the ? window, drawn here below its button (floating: at the top of this window)
+      const r = searchPane.floating ? { left: 8, right: 320, top: 40, bottom: 40 } : searchPane.frame.getBoundingClientRect();
+      const at = searchPane.floating ? r : { left: r.left + m.left, right: r.left + m.right, top: r.top + m.top, bottom: r.top + m.bottom };
+      return showSearchCodes({ getBoundingClientRect: () => at }, replaceUi.with);
+    }
+    case 'clearHistory': return host('findHistoryClear', { kind: m.which }).catch(() => {});
+    case 'escape': return escapeSearch();
+  }
+}
+
+// Esc in the search (unless a find bar is open: that closes first): the sidebar as before the search, back to the file.
+function escapeSearch() {
+  const finding = panes.find(p => p.find && !p.find.el.hidden);   // closed first, the focus staying in the search
+  if (finding) return closeFind(panes[state.activePane].find?.el.hidden === false ? panes[state.activePane] : finding, false);
+  const back = searchReturn;
+  searchReturn = null;
+  clearSearchScope();   // searchreplace.js: the selection's marks go
+  if (!searchPane.floating) dockRestore('search', back);   // docks.js: its area as before the search
+  focusPane(panes[state.activePane]);
+}
+
+// The Folder or the Search pane in front of its group (docks.js); its area as it is.
 function setSideView(view) {
-  document.body.dataset.side = view;
-  keepLayout('sideView', view);
+  activateDockPane(view);
 }
 
 // Ctrl+Shift+F: the search, filled with the editor's selection when that is one line.
-let searchReturn = null;   // the sidebar as it was before the search opened: Esc goes back to it
+let searchReturn = null;   // the Search pane's area as it was before the search opened: Esc goes back to it
 function startSearch() {
-  if (document.body.dataset.side !== 'search' || document.body.dataset.sidebar !== 'on')
-    searchReturn = { sidebar: document.body.dataset.sidebar === 'on', view: document.body.dataset.side };
-  setSidebar(true);
-  setSideView('search');
+  if (!dockPaneVisible('search')) searchReturn = dockSnapshot('search');   // docks.js
+  showDockPane('search');   // floating: its window is where it is
   const selected = activeTab() && paneOf(activeTab()).cm?.getSelection();
   if (selected && !selected.includes('\n')) searchUi.input.value = selected;
   searchUi.input.focus();
@@ -3139,6 +3297,7 @@ function applyFonts() {
   columnFontChanged();
   virtualFontChanged();
   if (typeof applyRuler === 'function') applyRuler();   // the columns' width (ruler.js)
+  lookToPanes();   // the panes' pages: the same fonts
 }
 
 // ---------- Wrap long lines (View menu, Alt+Z) ----------
@@ -3191,63 +3350,85 @@ function headingsOf(doc) {
   return doc.headings = headings;
 }
 
-function setOutline(on) {
-  document.body.toggleAttribute('data-outline', on);
-  keepLayout('outline', on);
+// Each editor pane's outline at its right is on or off for that pane alone (its button in the tab strip, or
+// outline.toggle on the active pane), kept in the layout: `outline` for the first pane, `outline2` for the second.
+const outlineKey = pane => pane.index ? 'outline2' : 'outline';
+const outlineOn = pane => !!setting(outlineKey(pane));
+const toggleOutline = pane => setSetting(outlineKey(pane), !outlineOn(pane));
+
+// The window's outline (outline:w; 24-PLAN-docking.md 3.9): docked in one of the window's dock areas (a frame in its
+// view, winOutlineNav) or floating (a window of its own, PaneForm.cs); null: neither. { pane: the editor pane whose
+// document it serves, docked, queue: what waits until its page is ready, runs: its floating menu's items }. It serves
+// the active document when that pane has no outline of its own; else it keeps showing the last one it served. Where it
+// is: the docks' state of outline:w (docks.js); syncWinOutline makes it so.
+let winOutline = null;
+const winOutlineNav = Object.assign(document.createElement('nav'), { className: 'mm-outline' });
+let winOutlineFrame = null, winOutlineReady = false, winOutlineClosing = false;
+let winOutlineWish = null;   // { pane: to serve, atCursor: its floating window at the cursor }, for the next sync
+let outlineWantedSent = null;   // reportOutlineWanted (7.3)
+const outlineServed = pane => outlineOn(pane) || winOutline?.pane === pane;
+
+// A pane's outline turned on or off, or the floating one moved: every pane shows what it serves now.
+function applyOutlines() {
   for (const pane of panes) {
     if (typeof setupGutter === 'function') setupGutter(pane);   // the outline's column in the gutter, or not
     pane.outlineFor = null;
     showOutline(pane);
   }
-  relayout();
+  renderDocks();   // docks.js: an editor pane's outline in its area, or not
+  reportOutlineWanted();
 }
 
 function showOutline(pane) {
   const doc = pane.active?.doc;
-  const show = document.body.hasAttribute('data-outline') && hasOutline(doc);
-  pane.el.toggleAttribute('data-no-outline', !show);
-  if (!show) return;
+  if (winOutline && winOutline.pane !== pane && pane.index === state.activePane && !outlineOn(pane)) {
+    const was = winOutline.pane;   // the window's outline takes the active document
+    winOutline.pane = pane;
+    pane.outlineFor = null;
+    if (typeof setupGutter === 'function') { setupGutter(was); setupGutter(pane); }
+  }
+  const has = hasOutline(doc);
+  pane.el.querySelector('.mm-pane-outline').disabled = !has;   // a language without an outline: greyed out
+  pane.el.toggleAttribute('data-outline-on', outlineOn(pane));
+  pane.el.toggleAttribute('data-no-outline', !(outlineOn(pane) && has));
+  const place = `${outlineOn(pane)},${has}`;   // its dock area shows it or not (docks.js: its tab, its room)
+  if (place !== pane.outlinePlace) { pane.outlinePlace = place; if (typeof renderDocks === 'function' && dockPanes.size) renderDocks(); }
+  if (!outlineServed(pane)) return;
+  if (!has) {
+    // A pane's own column is hidden; the window's one stays open, empty (it may serve another document next).
+    pane.outlineFor = null;
+    pane.outlineRows = [];
+    if (winOutline?.pane === pane) {
+      toFloating(outlineTitle(pane));
+      toFloating({ kind: 'rows', rows: [] });
+    }
+    return;
+  }
   const headings = outlineOf(doc) ?? [];
   if (pane.outlineFor === doc && pane.outlineVersion === doc.version) return markOutline(pane);
   pane.outlineFor = doc;
   pane.outlineVersion = doc.version;
   // Groups (a pack's tag groups): a header per group with entries, or all together in line order (outlineMerged);
-  // a bullet in the group's colour (outlineBullets).
+  // a bullet in the group's colour (outlineBullets). The rows go to the outline's page (outline-pane.js).
   const groups = headings.groups, merged = !groups || setting('outlineMerged'), bullets = groups && setting('outlineBullets') !== false;
   const folded = outlineFolded(doc);
   const item = h => {
-    const el = document.createElement('div'), level = merged ? h.mergedLevel ?? h.level : h.level;   // indent: auto (languages.js)
-    el.className = 'mm-outline-item';
-    el.dataset.line = h.line;
-    el.dataset.ch = h.ch ?? 0;
-    el.dataset.level = level;
-    el.style.paddingLeft = 8 + (level - 1) * 12 + (groups && !merged ? 10 : 0) + 'px';
-    if (h.group !== undefined) el.dataset.group = h.group;
-    if (bullets) {
-      const b = document.createElement('span');
-      b.className = 'mm-outline-bullet';
-      b.style.background = groups[h.group].colour;
-      el.append(b);
-    }
-    el.append(h.text);
-    el.title = groups ? `${h.text} (${groups[h.group].name})` : h.text;
-    if (!merged && folded.has(groups[h.group].name)) el.hidden = true;
-    return el;
+    const level = merged ? h.mergedLevel ?? h.level : h.level;   // indent: auto (languages.js)
+    return { t: 'item', line: h.line, ch: h.ch ?? 0, level, pad: 8 + (level - 1) * 12 + (groups && !merged ? 10 : 0),
+      group: h.group, text: h.text, title: groups ? `${h.text} (${groups[h.group].name})` : h.text,
+      colour: bullets ? groups[h.group].colour : null, hidden: !merged && folded.has(groups[h.group].name) };
   };
-  if (merged) pane.outlineEl.replaceChildren(...[...headings].sort((a, b) => a.line - b.line).map(item));
-  else pane.outlineEl.replaceChildren(...groups.flatMap((g, gi) => {
-    const own = headings.filter(h => h.group === gi);
-    if (!own.length) return [];                             // a group without entries is left out
-    const head = document.createElement('div');
-    head.className = 'mm-outline-group';
-    head.dataset.groupHead = gi;
-    head.toggleAttribute('data-folded', folded.has(g.name));
-    if (bullets) { const b = document.createElement('span'); b.className = 'mm-outline-bullet'; b.style.background = g.colour; head.append(b); }
-    head.append(`${g.name} (${own.length})`);
-    head.title = 'Click: fold or unfold';
-    return [head, ...own.map(item)];
-  }));
-  if (!headings.length) pane.outlineEl.innerHTML = `<div class="mm-outline-none">${doc.language ? 'Nothing found' : 'No headings'}</div>`;
+  const rows = !headings.length ? [{ t: 'none', text: doc.language ? 'Nothing found' : 'No headings' }]
+    : merged ? [...headings].sort((a, b) => a.line - b.line).map(item)
+    : groups.flatMap((g, gi) => {
+      const own = headings.filter(h => h.group === gi);
+      if (!own.length) return [];                             // a group without entries is left out
+      return [{ t: 'group', gi, label: `${g.name} (${own.length})`, folded: folded.has(g.name), colour: bullets ? g.colour : null }, ...own.map(item)];
+    });
+  pane.outlineRows = rows;
+  pane.outlineCurrent = undefined;
+  toOutline(pane, outlineTitle(pane));
+  toOutline(pane, { kind: 'rows', rows });
   paintOutlineGutter(pane, headings);
   markOutline(pane);
 }
@@ -3258,7 +3439,7 @@ function paintOutlineGutter(pane, headings) {
   const cm = pane.cm;
   if (!cm || typeof OUTLINE_GUTTER === 'undefined') return;
   cm.clearGutter(OUTLINE_GUTTER);
-  if (!document.body.hasAttribute('data-outline')) return;
+  if (!outlineServed(pane)) return;
   const groups = headings.groups;
   cm.operation(() => {
     for (const h of headings) {
@@ -3281,21 +3462,27 @@ function setOutlineFolded(doc, name, fold) {
   if (fold) set.add(name); else set.delete(name);
   try { localStorage['outlineFolded.' + languageOf(doc)] = JSON.stringify([...set]); } catch { }
 }
-function toggleOutlineGroup(pane, head, fold = !head.hasAttribute('data-folded')) {
-  const doc = pane.active?.doc, gi = head.dataset.groupHead, name = outlineOf(doc)?.groups?.[gi]?.name;
-  if (name === undefined) return;
+function toggleOutlineGroup(pane, gi, fold) {
+  const doc = pane.active?.doc, name = outlineOf(doc)?.groups?.[gi]?.name, head = pane.outlineRows.find(r => r.t === 'group' && r.gi === gi);
+  if (name === undefined || !head) return;
+  fold ??= !head.folded;
   setOutlineFolded(doc, name, fold);
-  head.toggleAttribute('data-folded', fold);
-  for (const el of pane.outlineEl.querySelectorAll(`.mm-outline-item[data-group="${gi}"]`)) el.hidden = fold;
+  head.folded = fold;
+  for (const r of pane.outlineRows) if (r.t === 'item' && r.group === gi) r.hidden = fold;
+  toOutline(pane, { kind: 'fold', gi, fold });
 }
 
-// The outline's right-click menu: its two settings.
-function outlineMenu(e) {
-  e.preventDefault();
-  openPopupMenu([
-    { label: 'Groups together, by line', plain: true, checked: !!setting('outlineMerged'), run: () => setSetting('outlineMerged', !setting('outlineMerged')) },
-    { label: 'Bullet in the group\'s colour', plain: true, checked: setting('outlineBullets') !== false, run: () => setSetting('outlineBullets', setting('outlineBullets') === false) },
-  ], e.clientX, e.clientY);
+// The outline's right-click menu: its two settings, and floating in a window of its own or (`from` 'float': the
+// floating one's menu) back at the editor pane it serves. `from` 'win': the window's outline docked in a dock area.
+function outlineMenuItems(pane, from = 'frame') {
+  return [
+    { label: 'Groups together, by line', checked: !!setting('outlineMerged'), run: () => setSetting('outlineMerged', !setting('outlineMerged')) },
+    { label: 'Bullet in the group\'s colour', checked: setting('outlineBullets') !== false, run: () => setSetting('outlineBullets', setting('outlineBullets') === false) },
+    '-',
+    from === 'float' ? { label: 'Back in the window', run: () => outlineBack() }
+      : from === 'win' ? { label: 'Float in a window of its own', run: () => setDockFloating('outline:w', true) }
+      : { label: 'Float in a window of its own', run: () => floatOutline(pane) },
+  ];
 }
 
 let outlineTimer = 0;
@@ -3307,7 +3494,7 @@ function scheduleOutline() {
 // The heading the pane is at: the last one at or above the cursor's line (the editor shown), else the top line of
 // the preview.
 function markOutline(pane) {
-  if (pane.el.hasAttribute('data-no-outline') || !document.body.hasAttribute('data-outline')) return;
+  if (!outlineServed(pane) || !pane.outlineRows.length) return;
   cancelAnimationFrame(pane.markFrame);
   pane.markFrame = requestAnimationFrame(() => {
     const tab = pane.active;
@@ -3315,18 +3502,222 @@ function markOutline(pane) {
     const line = tab.mode !== 'preview' && pane.cm ? pane.cm.getCursor().line : previewLine(pane);
     // The last entry at or above the line, of all groups (in groups the list is not in line order).
     let current = null;
-    for (const item of pane.outlineEl.querySelectorAll('[data-line]'))
-      if (+item.dataset.line <= line + 0.5 && (!current || +item.dataset.line >= +current.dataset.line)) current = item;
-    if (current?.hidden) {                                 // in a folded group: the group opens
-      const head = pane.outlineEl.querySelector(`[data-group-head="${current.dataset.group}"]`);
-      if (head) toggleOutlineGroup(pane, head, false);
-    }
-    for (const item of pane.outlineEl.querySelectorAll('.mm-on')) if (item !== current) item.classList.remove('mm-on');
-    if (current && !current.classList.contains('mm-on')) {
-      current.classList.add('mm-on');
-      current.scrollIntoView({ block: 'nearest' });
-    }
+    for (const r of pane.outlineRows)
+      if (r.t === 'item' && r.line <= line + 0.5 && (!current || r.line >= current.line)) current = r;
+    if (current?.hidden) toggleOutlineGroup(pane, current.group, false);   // in a folded group: the group opens
+    const at = current?.line ?? null;
+    if (at === pane.outlineCurrent) return;
+    pane.outlineCurrent = at;
+    toOutline(pane, { kind: 'current', line: at });
   });
+}
+
+// ---------- The outline's page (docs/plans/24-PLAN-docking.md 3.3, 3.5) ----------
+// Each editor pane's outline is a page of its own (outline.html) in a frame from the panes' site, so it runs in a
+// process of its own; made the first time the outline shows. Until it says it is ready, the last message of each kind
+// waits. Its theme and fonts are this page's (lookToPanes).
+const PANE_ORIGIN = 'https://lexpen-panes.example';
+
+function outlineFrame(pane) {
+  if (pane.outlineFrame) return pane.outlineFrame;
+  const frame = document.createElement('iframe');
+  frame.className = 'mm-outline-frame';
+  frame.title = 'Outline';
+  frame.src = PANE_ORIGIN + '/outline.html?pane=' + pane.index;   // which pane's, for a look from outside (the tests)
+  pane.outlineQueue = new Map();
+  pane.outlineFrameReady = false;
+  pane.outlineFrame = frame;
+  pane.outlineNav.append(frame);
+  return frame;
+}
+
+// To where the pane's outline is shown: its own (when on), and the window's (when that serves the pane).
+function toOutline(pane, msg) {
+  if (outlineOn(pane)) toDocked(pane, msg);
+  if (winOutline?.pane === pane) toFloating(msg);
+}
+function toDocked(pane, msg) {
+  outlineFrame(pane);
+  if (pane.outlineQueue) return void pane.outlineQueue.set(msg.kind, msg);
+  pane.outlineFrame.contentWindow.postMessage({ toPane: msg }, PANE_ORIGIN);
+}
+function toFloating(msg) {   // the window's outline: its frame in a dock area, or its window of its own (through the host)
+  if (!winOutline.docked && !winOutline.owner) return;   // the floating outline serves another window now (7.3)
+  if (winOutline.queue) return void winOutline.queue.set(msg.kind, msg);
+  if (winOutline.docked) winOutlineFrame.contentWindow.postMessage({ toPane: msg }, PANE_ORIGIN);
+  else host('paneSend', { pane: FLOATING_OUTLINE, msg });
+}
+
+const FLOATING_OUTLINE = 'outline';   // the floating outline's name for the host (its window's place is kept by it)
+const outlineTitle = pane => ({ kind: 'title', text: `Outline: ${pane.active ? docName(pane.active.doc) : ''}` });
+
+// What the outline shows, for a page that starts showing it.
+function outlineState(pane) {
+  return new Map([['look', paneLook()], ['title', outlineTitle(pane)], ['rows', { kind: 'rows', rows: pane.outlineRows }],
+    ['current', { kind: 'current', line: pane.outlineCurrent ?? null }]]);
+}
+
+// An editor pane's outline floats (PaneForm.cs): its own goes and the window's outline floats and serves its document
+// (`atCursor`: its window at the cursor, dropped outside the window).
+function floatOutline(pane, { atCursor = false } = {}) {
+  winOutlineWish = { pane, atCursor };
+  setDockFloating('outline:w', true);   // docks.js; then syncWinOutline
+  if (outlineOn(pane)) setSetting(outlineKey(pane), false);
+  else applyOutlines();
+}
+
+// Back in the window (the floating one's menu): its window closes and the pane it served gets its own outline.
+function outlineBack() {
+  if (!winOutline) return;
+  const pane = winOutline.pane;
+  hideDockPane('outline:w');
+  if (!outlineOn(pane)) setSetting(outlineKey(pane), true);
+  else applyOutlines();
+}
+
+// The window's outline as the docks have it (docks.js, after each change): docked (its frame in its view, made once),
+// floating (its window), or neither.
+function syncWinOutline() {
+  const m = dockModel(), st = m.state['outline:w'];
+  const want = st === 'hidden' ? null : st === 'floating' ? 'float' : 'dock';
+  const now = !winOutline ? null : winOutline.docked ? 'dock' : 'float';
+  const wish = winOutlineWish;
+  winOutlineWish = null;
+  if (want === now) {
+    if (wish?.pane && winOutline && winOutline.pane !== wish.pane) { winOutline.pane = wish.pane; applyOutlines(); }
+    return;
+  }
+  const serves = wish?.pane ?? winOutline?.pane ?? panes[state.activePane];
+  if (now === 'float' && winOutline.owner) {   // its window closes, or (7.3) moves on to another LexPen window
+    winOutlineClosing = true;
+    host('paneDock', { pane: FLOATING_OUTLINE }).then(r => { if (r !== 'closed') winOutlineClosing = false; });
+  }
+  winOutline = null;
+  if (want === 'float') {
+    // One for LexPen (7.3): a new window (its page says when it is ready), or the open one, now this window's.
+    const mine = winOutline = { pane: serves, docked: false, owner: true, queue: new Map() };
+    host('paneFloat', { pane: FLOATING_OUTLINE, page: 'outline.html', atCursor: !!wish?.atCursor })
+      .then(r => { if (r !== 'created' && winOutline === mine) flushFloating(); });
+  } else if (want === 'dock') {
+    if (!winOutlineFrame) {
+      winOutlineFrame = Object.assign(document.createElement('iframe'), { className: 'mm-outline-frame', title: 'Outline' });
+      winOutlineFrame.src = PANE_ORIGIN + '/outline.html?pane=w';
+      winOutlineNav.append(winOutlineFrame);
+    }
+    winOutline = { pane: serves, docked: true, queue: winOutlineReady ? null : new Map() };
+    if (winOutlineReady) for (const msg of outlineState(serves).values()) toFloating(msg);
+  }
+  applyOutlines();
+}
+
+// Its window closed by hand (or by Back in the window, or moved into a dock area): the panes' own outlines stay as
+// they are.
+events.paneClosed = ({ pane: id }) => {
+  if (paneChannels.has(id)) return void paneChannels.get(id).docked();   // back in its view (panechannel.js)
+  if (id !== FLOATING_OUTLINE) return;
+  if (winOutlineClosing) return void (winOutlineClosing = false);   // closed here (syncWinOutline)
+  if (winOutline && !winOutline.docked) hideDockPane('outline:w');   // also when it served another window (7.3)
+};
+
+// The one floating outline for LexPen (3.9, 7.3; AppHost): this window now serves it (it was activated, or the window
+// it served let it go), or another window does. What it shows is sent whole when this window takes it.
+function flushFloating() {
+  const waiting = new Map([...outlineState(winOutline.pane), ...(winOutline.queue ?? [])]);
+  winOutline.queue = null;
+  for (const msg of waiting.values()) toFloating(msg);
+}
+events.outlineServe = () => {
+  if (!winOutline) return setDockFloating('outline:w', true);   // hidden here: floating now (syncWinOutline asks for it)
+  if (winOutline.docked) return;
+  winOutline.owner = true;
+  applyOutlines();   // the active document, when its editor pane has no outline of its own
+  flushFloating();
+};
+events.outlineRelease = () => { if (winOutline && !winOutline.docked) winOutline.owner = false; };
+// Whether the floating outline may serve this window now: its own outline not docked in its dock areas, and its active
+// editor pane without an outline of its own. Told to the host when it changes (outlineWantedSent: the last told).
+function reportOutlineWanted() {
+  if (typeof dockModel !== 'function' || !dockPanes.has('outline:w')) return;
+  const st = dockModel().state['outline:w'], pane = panes[state.activePane];
+  const wants = (st === 'hidden' || st === 'floating') && !!pane && !outlineOn(pane);
+  if (wants === outlineWantedSent) return;
+  outlineWantedSent = wants;
+  host('outlineWanted', { wants });
+}
+events.fromPane = ({ pane: id, msg }) => {
+  if (paneChannels.has(id)) return void paneChannels.get(id).receive(msg, 'float');
+  if (id === FLOATING_OUTLINE && winOutline && !winOutline.docked) fromOutline(winOutline.pane, msg, 'float');
+};
+
+// This page's theme colours, fonts and day / night, for the panes' pages.
+function paneLook() {
+  const root = document.documentElement;
+  // With the editor's scroll bar width (on the body here): their scroll bars as wide (app.css).
+  return { kind: 'look', css: `${root.style.cssText} --mm-overview-w: ${document.body.style.getPropertyValue('--mm-overview-w') || '20px'};`, theme: root.dataset.theme ?? null, mode: root.dataset.mode ?? null };
+}
+function lookToPanes() {
+  for (const pane of panes) if (pane.outlineFrame) toDocked(pane, paneLook());
+  if (winOutline) toFloating(paneLook());
+  for (const ch of paneChannels.values()) if (ch.frame || ch.floating) ch.send(paneLook());
+}
+
+addEventListener('message', e => {
+  if (e.origin !== PANE_ORIGIN || !e.data?.fromPane) return;
+  if (winOutlineFrame && winOutlineFrame.contentWindow === e.source) {   // the window's outline, docked
+    if (e.data.fromPane.kind === 'ready') winOutlineReady = true;
+    return void (winOutline?.docked && fromOutline(winOutline.pane, e.data.fromPane, 'win'));
+  }
+  const pane = panes.find(p => p.outlineFrame && p.outlineFrame.contentWindow === e.source);
+  if (pane) fromOutline(pane, e.data.fromPane, 'frame');
+});
+
+// From the outline's page: its frame, or (`from` 'float') its window of its own.
+function fromOutline(pane, m, from) {
+  switch (m.kind) {
+    case 'ready': {
+      // Everything it shows, every time: a frame loads again when its element moves in the page.
+      if (from === 'float' || from === 'win') return flushFloating();
+      pane.outlineFrameReady = true;
+      const waiting = new Map([...outlineState(pane), ...(pane.outlineQueue ?? [])]);
+      pane.outlineQueue = null;
+      for (const msg of waiting.values()) toDocked(pane, msg);
+      return;
+    }
+    case 'activate':   // a press in its page: as a press here, it closes the window's menus
+      closeMenus();
+      hideMenus();
+      return setActivePane(pane.index);
+    case 'click':
+      if (pane.sneakEnded) { pane.sneakEnded = false; return; }   // the release of a sneak preview
+      return goToLine(pane, m.line, true, true);   // placed as a find; the cursor stays (a double-click moves it)
+    case 'group': return toggleOutlineGroup(pane, m.gi);   // a group's header: fold or unfold
+    case 'dblclick': {   // the cursor on the entry's own text in its line, in the editor
+      if (!pane.cm || pane.active?.mode === 'preview') return;
+      pane.cm.setCursor(m.line, Math.min(m.ch, pane.cm.getLine(m.line)?.length ?? 0));
+      return pane.cm.focus();
+    }
+    case 'down': pane.sneakEnded = false; return startSneak(pane, m);
+    case 'move': return sneakTo(pane, m);
+    case 'up': return endSneak(pane);
+    case 'menu': {   // docked: shown here, over everything, at the place in the frame; floating: drawn by the pane itself
+      const items = outlineMenuItems(pane, from);
+      if (from === 'float') {
+        winOutline.runs = items.map(i => i.run);
+        return toFloating({ kind: 'menu', x: m.x, y: m.y, items: items.map((i, n) => i === '-' ? '-' : { label: i.label, checked: !!i.checked, id: n }) });
+      }
+      const r = (from === 'win' ? winOutlineFrame : pane.outlineFrame).getBoundingClientRect();
+      return openPopupMenu(items.map(i => i === '-' ? '-' : { ...i, plain: true }), r.left + m.x, r.top + m.y);
+    }
+    case 'menuPick': return winOutline?.runs?.[m.id]?.();
+    case 'enter':   // placed as a find; the focus stays in the outline
+      goToLine(pane, m.line, false, true);
+      if (from === 'frame') pane.outlineFrame.focus();
+      else if (from === 'win') winOutlineFrame.focus();
+      return;
+    case 'key':   // a key the outline does not use: this window's (keys.js), as if pressed here
+      return document.dispatchEvent(new KeyboardEvent('keydown', { key: m.key, code: m.code, ctrlKey: m.ctrlKey,
+        shiftKey: m.shiftKey, altKey: m.altKey, metaKey: m.metaKey, bubbles: true, cancelable: true }));
+  }
 }
 
 // A place jumped to (a find, a search result, a compare difference, a bookmark, Go to line) into view, after the cursor
@@ -3419,13 +3810,34 @@ function applyInlineCode() {
       else el.style.removeProperty('--inline-code-mark');
 }
 
-// A colour (any CSS, theme variables too) moved along the line from the background through it: 0% the background,
-// 100% the colour, beyond further away (each channel clamped, up to 200%), as an rgb() for a CSS variable.
-function atIntensity(css, percent, where = document.body) {
+// The tab bars of the dock areas at the setting dockTabIntensity (app.css --dock-*): above 100% the text further from
+// its background and the backgrounds and lines further from the text (a dark theme: the text brighter, the rest
+// darker); below, the text closer to its background. 100%: the theme's own (the variables unset). Again when the
+// theme changes (applyLook).
+const DOCK_TAB_HEAD_BG = 'color-mix(in srgb, var(--accent) 18%, var(--bg-bar))';
+function applyDockTabs() {
+  const percent = setting('dockTabIntensity'), root = document.documentElement.style;
+  const vars = { '--dock-head-bg': [DOCK_TAB_HEAD_BG, 'var(--fg)'], '--dock-head-top': ['color-mix(in srgb, var(--accent) 60%, var(--border))', 'var(--fg)'],
+    '--dock-head-line': ['var(--border)', 'var(--fg)'], '--dock-tab-on-bg': ['var(--bg)', 'var(--fg)'], '--dock-tab-on-line': ['var(--accent)', 'var(--fg)'],
+    '--dock-tab-fg': ['color-mix(in srgb, var(--fg) 80%, var(--bg))', DOCK_TAB_HEAD_BG], '--dock-tab-on-fg': ['var(--fg)', 'var(--bg)'] };
+  const texts = new Set(['--dock-tab-fg', '--dock-tab-on-fg']);
+  for (const [name, [css, from]] of Object.entries(vars))
+    if (!Number.isFinite(percent) || percent === 100 || percent < 100 && !texts.has(name)) root.removeProperty(name);
+    else root.setProperty(name, atIntensity(css, percent, document.body, from));
+}
+
+// A colour (any CSS, theme variables too) moved along the line from the background (or `from`) through it: 0% the
+// background, 100% the colour, beyond further away (each channel clamped, up to 200%), as an rgb() for a CSS variable.
+function atIntensity(css, percent, where = document.body, from = 'var(--bg)') {
   const probe = document.createElement('div');
   where.append(probe);   // the colours and background of `where` (the preview may have a theme of its own)
-  const rgb = value => { probe.style.color = ''; probe.style.color = value; return getComputedStyle(probe).color.match(/[\d.]+/g).slice(0, 3).map(Number); };
-  const colour = rgb(css), bg = rgb('var(--bg)');
+  const rgb = value => {
+    probe.style.color = '';
+    probe.style.color = value;
+    const s = getComputedStyle(probe).color, n = s.match(/[\d.]+/g).slice(0, 3).map(Number);
+    return s.startsWith('color(') ? n.map(c => c * 255) : n;   // a color-mix(): color(srgb r g b), 0 to 1
+  };
+  const colour = rgb(css), bg = rgb(from);
   probe.remove();
   const k = (Number.isFinite(percent) ? Math.min(200, Math.max(0, percent)) : 100) / 100;
   return `rgb(${colour.map((c, i) => Math.round(Math.min(255, Math.max(0, bg[i] + (c - bg[i]) * k)))).join(', ')})`;
@@ -3456,11 +3868,11 @@ function goToLine(pane, line, focus = true, found = false) {
 }
 
 // A long click on an outline entry: a sneak preview. While the button is held the pane shows the entry (and the
-// entry under the pointer as it moves along the outline); on release it goes back to where it was.
+// entry under the pointer as it moves along the outline); on release it goes back to where it was. The outline's
+// page (outline-pane.js) sends the press, the moves and the release: `item` is { line, text } of the entry.
 const SNEAK_DELAY = 400;
-function startSneak(pane, e) {
-  const item = e.target.closest('[data-line]');
-  if (!item || e.button !== 0) return;
+function startSneak(pane, item) {
+  if (item.line == null || item.button !== 0) return;
   clearTimeout(pane.sneakTimer);
   pane.sneakTimer = setTimeout(() => {
     pane.sneak = { editor: pane.cm?.getScrollInfo().top ?? 0, preview: pane.previewEl.scrollTop, line: null };
@@ -3475,10 +3887,9 @@ function startSneak(pane, e) {
   }, SNEAK_DELAY);
 }
 function sneakTo(pane, item) {
-  if (!pane.sneak || !item || +item.dataset.line === pane.sneak.line) return;
-  pane.sneak.line = +item.dataset.line;
-  for (const el of pane.outlineEl.querySelectorAll('.mm-sneak')) el.classList.remove('mm-sneak');
-  item.classList.add('mm-sneak');
+  if (!pane.sneak || item?.line == null || item.line === pane.sneak.line) return;
+  pane.sneak.line = item.line;
+  toOutline(pane, { kind: 'sneak', line: item.line });
   goToLine(pane, pane.sneak.line, false);
   // The previewed line tinted, and a badge that says what this is (app.css: the frame, the tint, no cursor).
   if (pane.cm && pane.active?.mode !== 'preview') {
@@ -3491,7 +3902,7 @@ function sneakTo(pane, item) {
     badge.className = 'mm-sneak-badge';
     pane.el.querySelector('.mm-body').append(badge);
   }
-  badge.textContent = `Sneak preview: line ${pane.sneak.line + 1}, ${item.textContent} (release to go back)`;
+  badge.textContent = `Sneak preview: line ${pane.sneak.line + 1}, ${item.text} (release to go back)`;
 }
 function endSneak(pane) {
   clearTimeout(pane.sneakTimer);
@@ -3507,7 +3918,7 @@ function endSneak(pane) {
   }
   pane.el.querySelector('.mm-sneak-badge')?.remove();
   if (s.mark && pane.cm) pane.cm.removeLineClass(s.mark, 'background', 'mm-sneak-line');
-  for (const el of pane.outlineEl.querySelectorAll('.mm-sneak')) el.classList.remove('mm-sneak');
+  if (pane.outlineFrame) toOutline(pane, { kind: 'sneak', line: null });
   if (pane.cm) pane.cm.scrollTo(null, s.editor);
   pane.previewEl.scrollTop = s.preview;
 }
@@ -3533,11 +3944,32 @@ function setSplit(share) {
   relayout();
 }
 
+// The preview's place in its editor pane (docs/plans/24-PLAN-docking.md 3.4c): at the right (the default), the left,
+// above or below the text (above and below the full width of the pane, the splitter setting the height). Per editor
+// pane, kept in the window's layout also while the second pane is closed (previewPlace, previewPlace2).
+const previewPlaceKey = pane => pane.index ? 'previewPlace2' : 'previewPlace';
+const previewPlace = pane => ['left', 'top', 'bottom'].includes(setting(previewPlaceKey(pane))) ? setting(previewPlaceKey(pane)) : 'right';
+const setPreviewPlace = (pane, place) => setSetting(previewPlaceKey(pane), place);
+function applyPreviewPlace() {
+  for (const pane of panes) pane.el.dataset.previewPlace = previewPlace(pane);
+  relayout();
+}
+
+// The splitter's right-click: the places for its own editor pane.
+function previewPlaceMenu(e, pane) {
+  e.preventDefault();
+  openPopupMenu(PREVIEW_PLACES.map(([place, title]) => ({ label: title, checked: previewPlace(pane) === place, plain: true,
+    run: () => setPreviewPlace(pane, place) })), e.clientX, e.clientY);
+}
+
 function resizeSplit(e) {
   const edge = e.target;
   edge.setPointerCapture(e.pointerId);
-  const box = edge.parentElement.getBoundingClientRect();
-  const share = ev => Math.round(Math.max(0.1, Math.min(0.9, (ev.clientX - box.left) / box.width)) * 1000) / 1000;
+  const box = edge.parentElement.getBoundingClientRect(), place = edge.closest('.mm-pane').dataset.previewPlace;
+  // The editor's share, measured from its own side: the left (preview at the right), the right, the top, the bottom.
+  const at = ev => place === 'left' ? (box.right - ev.clientX) / box.width : place === 'top' ? (box.bottom - ev.clientY) / box.height
+    : place === 'bottom' ? (ev.clientY - box.top) / box.height : (ev.clientX - box.left) / box.width;
+  const share = ev => Math.round(Math.max(0.1, Math.min(0.9, at(ev))) * 1000) / 1000;
   const move = ev => document.body.style.setProperty('--edit-share', share(ev));
   edge.addEventListener('pointermove', move);
   edge.addEventListener('pointerup', ev => {
@@ -3750,7 +4182,7 @@ function sessionData() {
   return {
     layout: windowLayout(),   // every name, so a later Save as default changes only new projects
     root: state.root,
-    tree: state.root ? { open: [...expanded], top: Math.round(ui.tree.scrollTop) } : undefined,   // the open folders, the scroll
+    tree: state.root ? { open: treeOpen, top: treeTop } : undefined,   // the open folders, the scroll
     activePane: before ? before.activePane : state.activePane,
     hidden: before ? before.hidden : state.hidden,
     ...((before ? before.sync : state.sync) && { sync: true, syncGap: before ? 0 : Math.round((state.syncGap ?? 0) * 100) / 100 }),
@@ -3907,7 +4339,7 @@ function themeSetMenuItems() {
   return [
     { label: "None (the desktop's or the app's default)", plain: true, checked: !s.own, run: () => host('themeSet', { set: null }) },
     ...s.sets.map(name => ({ label: name, plain: true, checked: s.own === name, run: () => host('themeSet', { set: name }) })),
-    '-', { label: 'Manage theme sets...', plain: true, run: () => host('openThemeSets') },
+    '-', { label: 'Manage theme sets...', plain: true, run: () => openToolPane('themesets', 'openThemeSetsWindow') },
   ];
 }
 setChip.addEventListener('mousedown', e => e.preventDefault());   // the focus stays in the editor
@@ -3943,13 +4375,14 @@ async function projectMenuItems() {
   const list = await host('projects');
   const ask = async (title, then) => { const name = await askName(title, ''); if (name !== null) then(name); };
   const tabs = n => `${n} tab${n === 1 ? '' : 's'}`;
+  const empty = () => panes.every(p => !p.tabs.length);   // no documents here: this window goes when another opens
   const projectItem = p => ({
     label: p.display + (p.mine ? '   (this window)' : ''), plain: true, checked: p.open, sub: [
-      { label: 'Open project', plain: true, title: 'All its windows', run: () => host('project', { kind: 'open', project: p.id }) },
+      { label: 'Open project', plain: true, title: 'All its windows', run: () => host('project', { kind: 'open', project: p.id, empty: empty() }) },
       ...(p.windows.length ? ['-'] : []),
       ...p.windows.map((w, i) => ({
         label: `Window ${i + 1}: ${w.folder ?? '(no folder)'}, ${tabs(w.tabs)}${w.mine ? '   (this window)' : ''}`,
-        plain: true, checked: w.open, run: () => host('project', { kind: 'window', key: w.key }),
+        plain: true, checked: w.open, run: () => host('project', { kind: 'window', key: w.key, empty: empty() }),
       })),
       '-',
       { label: 'New window in this project', plain: true, run: () => host('project', { kind: 'newWindow', project: p.id }) },
@@ -3960,7 +4393,7 @@ async function projectMenuItems() {
     ],
   });
   return [
-    { label: '&Manage projects...', title: 'All projects in a window: open, close, merge, rename, delete', run: () => host('openProjects') }, '-',
+    { label: '&Manage projects...', title: 'All projects in a window: open, close, merge, rename, delete', run: () => openToolPane('projects', 'openProjects') }, '-',
     ...list.map(projectItem), '-',
     { label: '&New project...', title: 'A new empty window in a new project', run: () => ask('New project', name => host('project', { kind: 'new', name })) },
     '-',
@@ -4025,18 +4458,17 @@ events.renamed = async ({ from, to }) => {
     }
     for (const tab of tabsOf(doc)) tab.stale = true;
   }
-  for (const dir of [...expanded]) {
-    const path = renamed(dir);
-    if (path) { expanded.delete(dir); expanded.add(path); }
-  }
-  const cursor = renamed(treeCursor()?.dataset.path), root = renamed(state.root);
+  treeOpen = treeOpen.map(dir => renamed(dir) ?? dir);
+  const root = renamed(state.root);
   if (root) {
     state.root = root;
-    ui.treeTitle.textContent = ui.treeTitle.title = nameOf(root) || root;
+    sendFolderHead();
     syncWatch();
   }
-  await refreshTree();
-  if (cursor) setTreeCursor(treeRows().find(r => samePath(r.dataset.path, cursor)));
+  if (state.root) {
+    await loadGit(state.root);
+    toFolder({ kind: 'renamed', from, to, root });   // its open folders and cursor follow; it reads the tree again
+  }
   syncWatchFiles();
   refreshTabs();
   showDocName();
@@ -4113,9 +4545,11 @@ function applyLook(next) {
   }
   applyHighlight();   // after the editor's own theme: its colour is measured from its background
   applyInlineCode();   // after the editor's and the preview's own themes: the box is measured from their background
+  applyDockTabs();
   if (typeof applyPreviewHighlight === 'function') applyPreviewHighlight();   // highlights.js: the same for the highlights
   if (!before) state.theme = root.dataset.theme = look.mode;   // at start, before anything is shown
   else if (look.mode !== state.theme) applyTheme(look.mode);   // the mode: tab colour rules, diagrams
+  lookToPanes();   // the panes' pages: the same colours
   // Another list of themes: the settings window's lists follow.
   if (before && before.themes.map(t => t.id + t.name).join() !== look.themes.map(t => t.id + t.name).join())
     host('settingDefs', { defs: settingDefs() });
@@ -4146,8 +4580,7 @@ events.tabColours = ({ text }) => {
 events.view = async ({ folder, files }) => {
   if (folder) {
     await openFolder(folder).catch(e => toast(e.message));
-    setSidebar(true);
-    setSideView('folder');
+    showFolderView();
   }
   for (const path of files || []) await viewFile(path).catch(e => toast(e.message));
 };
@@ -4185,6 +4618,8 @@ events.viewLayout = async ({ layout }) => {
     afterPaneChange();
   }
   for (const tab of allTabs()) tab.mode = 'preview';
+  // The docking too (docs/plans/24-PLAN-docking.md 3.12): the shipped one, this window's windows of their own closed.
+  for (const kind of await host('toolWindowsOpen').catch(() => [])) host('closeToolWindow', { kind });
   layoutOwn = { ...layout };
   mergeLayout();
   applySettings();
@@ -4196,7 +4631,7 @@ events.viewLayout = async ({ layout }) => {
 events.open = async ({ folder, files, edit }) => {
   if (folder) {
     await openFolder(folder);
-    setSidebar(true);
+    if (!folderPane.floating) setSidebar(true);
   }
   for (const path of files || []) await (edit ? editFile(path) : goToOrOpen(path)).catch(e => toast(e.message));
 };
@@ -4264,6 +4699,13 @@ host('doubleClickTime').then(ms => { if (ms > 0) activation.double = ms; }).catc
 addEventListener('blur', () => { activation.away = true; });
 addEventListener('focus', () => { activation.back = performance.now(); });
 addEventListener('keydown', () => { activation.away = false; activation.until = 0; }, true);   // back by the keys (Alt+Tab): not a click
+// A floating pane window of this window (PaneForm.cs) got the focus, or lost it to this window: going there and back is
+// not coming back from elsewhere, so the click back here acts. It lost the focus to another program: that is away.
+events.paneWindowFocus = ({ active, toOwner }) => {
+  activation.away = !active && !toOwner;
+  paneWindowActive = active;   // the document's dimmed frame and steady cursor while it has the focus (placeFocusRing)
+  placeFocusRing();
+};
 const activationEating = () => performance.now() < activation.until;
 addEventListener('pointerdown', e => {
   const now = performance.now();
@@ -4283,13 +4725,14 @@ for (const type of ['mousedown', 'mouseup', 'pointerup', 'click', 'dblclick', 'a
     if (type === 'pointerup') activation.until = performance.now() + activation.double;   // a next press may follow
   }, true);
 
-document.addEventListener('contextmenu', e => {
-  const row = e.target.closest('.mm-tree .mm-row');
-  if (row) showMenu(ui.treeMenu, e, () => {
-    contextPath = row.dataset.path;
-    contextKind = row.classList.contains('mm-dir') || row.classList.contains('mm-base') ? 'folders' : 'files';
+// The right-click menu of a row in the Folder pane's page (`row`: its path and kind, as its page sends them), at x, y
+// in this page.
+function openTreeMenu(row, x, y) {
+  showMenu(ui.treeMenu, { clientX: x, clientY: y, preventDefault() {} }, () => {
+    contextPath = row.path;
+    contextKind = row.dir || row.base ? 'folders' : 'files';
     favouriteItem(ui.treeMenu, contextPath, contextKind);   // favourites.js
-    ui.treeMenu.querySelector('[data-cmd=treeRename]').hidden = row.classList.contains('mm-up') || row.classList.contains('mm-gone');
+    ui.treeMenu.querySelector('[data-cmd=treeRename]').hidden = row.up || row.gone;
     ui.treeMenu.querySelector('[data-cmd=treeSetRoot]').hidden = contextKind !== 'folders' || samePath(contextPath, state.root);
     // The compare (compare.js): a file with the file in the editor or a picked one; a folder with a picked folder.
     const active = activeDoc()?.path, file = contextKind === 'files';
@@ -4297,18 +4740,21 @@ document.addEventListener('contextmenu', e => {
     ui.treeMenu.querySelector('[data-cmd=treeCompareWith]').hidden = !file;
     ui.treeMenu.querySelector('[data-cmd=treeCompareFolder]').hidden = file;
     leftSideItems(ui.treeMenu, 'tree', contextPath, !file);   // compare.js: the left side to compare
-    gitCompareItems(ui.treeMenu, 'tree', row.classList.contains('mm-up') ? null : contextPath, file && !!findDoc(contextPath)?.dirty);
+    gitCompareItems(ui.treeMenu, 'tree', row.up ? null : contextPath, file && !!findDoc(contextPath)?.dirty);
     // The backups LexPen made (plan 33): a file's own (it has the dot); a folder's, asked of the host (below it too).
     const one = ui.treeMenu.querySelector('[data-cmd=treeDeleteBackup]'), all = ui.treeMenu.querySelector('[data-cmd=treeDeleteBackups]');
-    one.hidden = !file || !row.classList.contains('mm-has-backup');
+    one.hidden = !file || !row.backup;
     one.textContent = `Delete ${nameOf(contextPath)}.bak`;
     all.hidden = true;
     const asked = contextPath;
-    if (!file && !row.classList.contains('mm-up') && !row.classList.contains('mm-gone'))
+    if (!file && !row.up && !row.gone)
       host('hasBackups', { path: asked }).then(has => { if (contextPath === asked) all.hidden = !has; }).catch(() => {});
     ui.treeMenu.querySelector('[data-cmd=treeCopyName]').textContent = file ? 'Copy file name' : 'Copy folder name';
+    ui.treeMenu.querySelector('[data-cmd=folderFloat]').textContent = folderPane.floating ? 'Back in the window' : 'Float the folder pane in a window of its own';
   });
-  else if (!e.target.closest('.mm-tabs, .mm-divider')) hideMenus();   // those open their own menu
+}
+document.addEventListener('contextmenu', e => {
+  if (!e.target.closest('.mm-tabs, .mm-divider')) hideMenus();   // those open their own menu
 });
 
 // The backups LexPen made (plan 33, Backups.cs): a file's own (no question), or a folder's after the question (here,
@@ -4343,7 +4789,7 @@ async function copyText(text) {
 function setKnownOnly(on) {
   document.body.dataset.tree = on ? 'known' : 'all';
   keepLayout('tree', on ? 'known' : 'all');
-  $('.mm-known-only').classList.toggle('mm-on', on);
+  sendFolderHead();   // its page hides the other file types (app.css, body[data-tree=known])
 }
 
 // Off (the default) follows the spec: a single line break inside a paragraph renders as a space.
@@ -4454,6 +4900,9 @@ function applySettings() {
   if (changed('previewWrap')) document.body.toggleAttribute('data-preview-nowrap', now.previewWrap === false);
   if (changed('showBackupFiles') && 'showBackupFiles' in was) refreshTree(false);
   if (changed('tabBar')) applyTabBar(now.tabBar);
+  if (changed('dockTabBar')) document.body.dataset.dockTabBar = now.dockTabBar;
+  if (changed('previewPlace') || changed('previewPlace2')) applyPreviewPlace();
+  if (changed('dockTabIntensity')) applyDockTabs();
   if (changed('scrollTogether')) { takeDistance(); layout(); }
   if ((changed('outlineMerged') || changed('outlineBullets')) && 'outlineMerged' in was)
     for (const pane of panes) { pane.outlineFor = null; showOutline(pane); }   // the outline drawn again
@@ -4524,9 +4973,11 @@ function applySettings() {
   if (changed('sidebarWidth')) layoutWidth('--sidebar-w', now.sidebarWidth);
   if (changed('outlineWidth')) layoutWidth('--outline-w', now.outlineWidth);
   if (changed('tree')) setKnownOnly(now.tree === 'known' || now.tree === 'md');   // md: the markdown filter before
-  if (changed('outline')) setOutline(!!now.outline);
+  if (changed('outline') || changed('outline2')) applyOutlines();
   if (changed('editShare')) setSplit(now.editShare || null);
-  if (changed('sideView')) setSideView(now.sideView === 'search' ? 'search' : 'folder');
+  // The layout of before the dock areas: its sideView the left group's pane in front, once (docks has its own then).
+  if (changed('sideView') && !layoutOwn.docks && 'sideView' in layoutOwn) setSideView(now.sideView === 'search' ? 'search' : 'folder');
+  if (changed('docks')) renderDocks();
   if (changed('searchScope') && ['file', 'open', 'folder'].includes(now.searchScope)) searchUi.scope.value = now.searchScope;
   if (changed('sort') || changed('sortDesc')) { showSort(); if ('sort' in was) refreshTree(); }
   if (changed('orient') || changed('ratio')) {
@@ -4538,9 +4989,9 @@ function applySettings() {
 }
 
 // A width of the layout in px (0: the standard one, app.css).
-function layoutWidth(property, px) {
-  if (px > 0) document.body.style.setProperty(property, px + 'px');
-  else document.body.style.removeProperty(property);
+function layoutWidth(property, px, el = document.body) {
+  if (px > 0) el.style.setProperty(property, px + 'px');
+  else el.style.removeProperty(property);
 }
 
 // The layout values this page kept in its storage before they were per window: moved to defaultLayout in your
@@ -4582,22 +5033,12 @@ async function movePageSettings() {
 }
 const GUTTER_NAMES = ['bookmarks', 'changes', 'git', 'folds'];
 
+// The left dock area open or closed (the layout's `sidebar`, as before the dock areas).
 function setSidebar(visible) {
   document.body.dataset.sidebar = visible ? 'on' : 'off';
   keepLayout('sidebar', visible);
-  relayout();
+  renderDocks();
 }
-
-ui.splitter.addEventListener('pointerdown', e => {
-  ui.splitter.setPointerCapture(e.pointerId);
-  const move = ev => document.body.style.setProperty('--sidebar-w', Math.max(120, Math.min(ev.clientX, innerWidth - 300)) + 'px');
-  ui.splitter.addEventListener('pointermove', move);
-  ui.splitter.addEventListener('pointerup', () => {
-    ui.splitter.removeEventListener('pointermove', move);
-    keepLayout('sidebarWidth', parseInt(document.body.style.getPropertyValue('--sidebar-w')) || 0);
-    relayout();
-  }, { once: true });
-});
 
 async function openRecent(list, path, missing) {
   if (missing) {
@@ -4606,7 +5047,7 @@ async function openRecent(list, path, missing) {
   }
   if (list === 'folders') {
     await openFolder(path);
-    setSidebar(true);
+    if (!folderPane.floating) setSidebar(true);
   } else await openFile(path).catch(e => toast(e.message));
 }
 
@@ -4646,7 +5087,7 @@ const commands = {
     const path = await host('pickFolder');
     if (!path) return;
     await openFolder(path);
-    setSidebar(true);
+    if (!folderPane.floating) setSidebar(true);   // floating: its own window shows it
   },
   newFile,
   save: () => activeDoc() && saveDoc(activeDoc()).then(refocus),
@@ -4674,7 +5115,7 @@ const commands = {
   zoomIn: () => zoomBy(1),
   zoomOut: () => zoomBy(-1),
   zoomReset: () => zoomReset(false),
-  outline: () => setOutline(!document.body.hasAttribute('data-outline')),
+  outline: () => toggleOutline(panes[state.activePane]),
   orient() {
     state.orient = state.orient === 'v' ? 'h' : 'v';
     keepLayout('orient', state.orient);
@@ -4737,8 +5178,9 @@ const commands = {
   // The folder becomes the tree's root; its subfolders that were open stay open.
   treeSetRoot: () => {
     const under = contextPath.replace(/\\$/, '').toLowerCase() + '\\';
-    return openFolder(contextPath, [...expanded].filter(dir => dir.toLowerCase().startsWith(under)));
+    return openFolder(contextPath, treeOpen.filter(dir => dir.toLowerCase().startsWith(under)));
   },
+  folderFloat: () => folderPane.floating ? folderBack() : floatFolder(),
   treeCompareActive: () => activeTab() && startCompare({ tab: activeTab() }, { path: contextPath }),
   async treeCompareWith() {
     const left = contextPath, [right] = await host('pickFile', { one: true, at: left }) ?? [];
@@ -4812,6 +5254,8 @@ track((async () => {
   // After every script of the page has run: the ones after this file add actions the keys name (macros.js), and
   // served from the exe they come in one by one, while this runs on.
   if (document.readyState === 'loading') await new Promise(r => document.addEventListener('DOMContentLoaded', r, { once: true }));
+  registerDockPanes();
+  initDocks();   // docks.js: the panes in their dock areas
   Object.assign(settings, await host('settings'));
   if (!settings.pageSettingsMoved) await movePageSettings();
   if (!settings.layoutMoved) await moveLayoutStorage();
@@ -4830,6 +5274,7 @@ track((async () => {
   host('settingDefs', { defs: settingDefs() });   // the rows of the settings window
   Object.assign(clips, await host('clipState').catch(() => ({})));   // the Windows clipboard busy elsewhere: no previews
   await loadFindHistory();   // history.js
+  toSearch({ kind: 'history', lists: findHistory });
   buildMenuBar();
   showKeys();
   state.win = start.id;
@@ -4839,23 +5284,27 @@ track((async () => {
   const session = start.restore;
   const root = start.folder ?? session?.root ?? null;
 
-  document.body.dataset.sidebar = root && setting('sidebar') ? 'on' : 'off';
+  document.body.dataset.sidebar = setting('sidebar') ? 'on' : 'off';
+  renderDocks();
   // The tree as it was: its open folders and scroll position (when it is the session's folder).
   const tree = root && session?.root === root && session.tree && typeof session.tree === 'object' ? session.tree : null;
-  if (root) await openFolder(root, Array.isArray(tree?.open) ? tree.open : []).catch(() => {});
-  if (tree && Number.isFinite(tree.top)) ui.tree.scrollTop = tree.top;
+  if (root) await openFolder(root, Array.isArray(tree?.open) ? tree.open : [], { top: Number.isFinite(tree?.top) ? tree.top : 0 }).catch(() => {});
   if (start.restore !== undefined || start.drafts) await restore(session, start.drafts || []);
+  // The panes that floated when the window closed float again (docs/plans/24-PLAN-docking.md 3.13); not Characters (its
+  // window is one for LexPen; floating says only how Insert character opens it).
+  for (const [id, p] of dockPanes) if (dockModel().state[id] === 'floating' && !p.floatsOnCall) p.channel.float();
   // View in LexPen (docs/plans/executed/PLAN-view-window.md): the files in the preview, the folder in the Folder pane.
   // A window of a project opened again for them (it was closed): the files after its tabs as they were.
   const reopened = start.restore !== undefined && start.restore !== null;
   for (const path of start.files) await (start.view ? viewFile(path, reopened) : start.edit ? editFile(path, reopened) : goToOrOpen(path, { last: reopened })).catch(e => toast(e.message));
-  if (start.view && start.folder) { setSidebar(true); setSideView('folder'); }
+  if (start.view && start.folder) showFolderView();
   syncWatch();
   syncWatchFiles();
   await showAll();
   // The keys act on the file shown last right away.
   if (panes[state.activePane].active) focusPane(panes[state.activePane]);
   started = true;
+  host('layoutShown', { layout: windowLayout() });   // what it shows from the start (another window may take it: Use layout of...)
   // --compare (compare.js): two files side by side, or two folders in the folder pane.
   if (start.compare) {
     const { left, right, folders } = start.compare;

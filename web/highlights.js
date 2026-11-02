@@ -525,6 +525,9 @@ function wordNear(text, at) {
 addEventListener('mousedown', () => hl.menuAt = null, true);
 addEventListener('keydown', () => hl.menuAt = null, true);
 addEventListener('contextmenu', e => hl.menuAt = { target: e.target, x: e.clientX, y: e.clientY }, true);
+// The right-click was in a document pane's editor or preview: only there does the browser's menu get the Highlight
+// and occurrences items (MainForm.cs asks this; not in the Search pane's fields, the find bar, the status bar, ...).
+const contextInDocument = () => !!hl.menuAt && panes.some(p => p.editorEl.contains(hl.menuAt.target) || p.previewEl.contains(hl.menuAt.target));
 function menuOffset(pane) {
   const m = hl.menuAt;
   if (!m || !pane.previewEl.contains(m.target) || pane.active?.mode === 'edit') return null;
@@ -586,30 +589,35 @@ document.addEventListener('DOMContentLoaded', () => {
   $('.mm-confirm-dialog .mm-confirm-cancel').addEventListener('click', () => $('.mm-confirm-dialog').close('cancel'));
 });
 
-// ---------- The highlights window (HighlightsForm.cs, web/highlightsview.js) ----------
-// It lists the highlights of the document last worked in: told whenever they change or another document is shown.
+// ---------- The highlights window (HighlightsForm.cs, web/highlightsview.js) and the docked ones ----------
+// They list the highlights of a document: each editor pane's is told (with which pane is the active one) whenever they
+// change or another document is shown there; the host passes them on (the window: the active pane's of the window last
+// worked in; docked in the window: its active pane's; docked beside an editor pane: that pane's).
 function tellHighlightsWindow() {
   clearTimeout(tellHighlightsWindow.timer);
   tellHighlightsWindow.timer = setTimeout(() => {
-    const doc = panes[state.activePane]?.active?.doc;
-    if (!doc) return;
-    const text = docText(doc);
-    const list = hlsOf(doc).list.map(h => {
-      const r = hlRange(doc, h);
-      return { id: h.id, line: r ? r.from[0] : null, text: h.text ?? '', note: h.note ?? '', state: h.state ?? '', was: h.was ?? null,
-        from: r ? hlOffset(text, r.from) : null, to: r ? hlOffset(text, r.to) : null };
-    }).sort((a, b) => (a.from ?? 1e15) - (b.from ?? 1e15));
-    host('highlightsShown', { path: doc.path, draft: doc.draft, name: docName(doc), list }).catch(() => {});
+    for (const pane of panes) {
+      const doc = pane.active?.doc, at = { pane: pane.index, active: pane.index === state.activePane };
+      if (!doc) { host('highlightsShown', { ...at, none: true }).catch(() => {}); continue; }
+      const text = docText(doc);
+      const list = hlsOf(doc).list.map(h => {
+        const r = hlRange(doc, h);
+        return { id: h.id, line: r ? r.from[0] : null, text: h.text ?? '', note: h.note ?? '', state: h.state ?? '', was: h.was ?? null,
+          from: r ? hlOffset(text, r.from) : null, to: r ? hlOffset(text, r.to) : null };
+      }).sort((a, b) => (a.from ?? 1e15) - (b.from ?? 1e15));
+      host('highlightsShown', { ...at, path: doc.path, draft: doc.draft, name: docName(doc), list }).catch(() => {});
+    }
   }, 150);
 }
 
-// The window: go to a highlight (by its id in the document shown, or by path and offsets for another file).
-events.highlightGo = async ({ path, id, from, to, line, text: wanted }) => {
-  let pane = panes[state.activePane], doc = pane.active?.doc;
+// The window: go to a highlight (by its id in the document shown, or by path and offsets for another file); `pane`:
+// from the highlights docked beside that editor pane (its document), else the active pane's.
+events.highlightGo = async ({ path, id, from, to, line, text: wanted, pane: index }) => {
+  let pane = panes[index ?? state.activePane], doc = pane.active?.doc;
   if (path && !(doc && samePath(doc.path, path))) {
-    const tab = await openFile(path).catch(e => { toast(e.message); return null; });
+    const tab = await openFile(path, { pane }).catch(e => { toast(e.message); return null; });
     if (!tab) return;
-    pane = panes[state.activePane];
+    pane = paneOf(tab);
     doc = tab.doc;
   }
   if (!doc) return;
@@ -629,8 +637,8 @@ events.highlightGo = async ({ path, id, from, to, line, text: wanted }) => {
 };
 
 // The window's right-click on a highlight of the document shown.
-events.highlightAction = async ({ action, id }) => {
-  const pane = panes[state.activePane], doc = pane.active?.doc;
+events.highlightAction = async ({ action, id, pane: index }) => {
+  const pane = panes[index ?? state.activePane], doc = pane.active?.doc;
   const h = doc && hlsOf(doc).list.find(x => x.id === id);
   if (!h) return;
   if (action === 'remove') await removeHighlights(doc, [h]);

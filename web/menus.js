@@ -30,9 +30,9 @@ const MENUS = [
   ['&Edit', [
     ['&Undo', 'undo'], ['&Redo', 'redo'], '-',
     ['Cu&t', 'cut'], ['&Copy', 'copy'], ['&Paste', 'paste'], ['Paste &image (asks how to link it)...', 'pasteImage'],
-    { label: 'Select c&lipboard', fill: () => clipboardItems() }, '-',
+    { label: 'Select c&lipboard', fill: () => clipboardItems() }, ['Manage clipboards...', 'clipboards.pane'], '-',
     ['Col&umn mode', 'columnMode.toggle'], '-',
-    ['&Find', 'find'], ['R&eplace', 'replace'], ['&Search in files', 'searchInFiles'], ['Go to line...', 'goToLine'], ['Insert c&haracter...', 'insertCharacter'], ['Complete word', 'complete'], '-',
+    ['&Find', 'find'], ['R&eplace', 'replace'], ['&Search in files', 'searchInFiles'], ['Go to line...', 'goToLine'], ['Complete word', 'complete'], '-',
     ['Select inside brac&kets', 'selectInsideBrackets'],
     { label: '&Multiple cursors', sub: [['&Add occurrence', 'cursorAdd'], ['&Next occurrence', 'cursorNext'],
       ['&Previous occurrence', 'cursorPrevious'], ['&Remove occurrence', 'cursorRemove'], ['&Clear added cursors', 'cursorClear']] },
@@ -40,9 +40,11 @@ const MENUS = [
       ['De&lete lines', 'deleteLines'], ['&Join lines', 'joinLines']] }, '-',
     ['Show all occu&rrences', 'occurrences.show'],
     ['Next secti&on', 'section', 1], ['Pre&vious section', 'section', -1], ['Ne&xt block', 'block.next', 1], ['Previous block', 'block.next', -1], '-',
-    { label: '&Go to bookmark', fill: () => loadEditor().then(() => bookmarkItems('go')) },   // bookmarks.js comes with the editor
-    { label: 'Store &bookmark', fill: () => loadEditor().then(() => bookmarkItems('store')) },
-    ['&Next bookmark', 'bookmarkNext', 1], ['Previous boo&kmark', 'bookmarkNext', -1], '-',
+    { label: '&Bookmarks', sub: [
+      { label: '&Go to bookmark', fill: () => loadEditor().then(() => bookmarkItems('go')) },   // bookmarks.js comes with the editor
+      { label: '&Store bookmark', fill: () => loadEditor().then(() => bookmarkItems('store')) },
+      ['&Next bookmark', 'bookmarkNext', 1], ['&Previous bookmark', 'bookmarkNext', -1], '-',
+      ['&Manage bookmarks...', 'bookmarks.pane']] },
     { label: '&Highlights', sub: [['&Highlight', 'highlight.toggle'], ['&Selection to highlight', 'highlight.fromSelection'],
       ['Highlight &note...', 'highlight.note'], ['&Remove highlight', 'highlight.remove'], ['Remove &all highlights in this file', 'highlight.clear'], '-',
       ['&Next highlight', 'highlight.next', 1], ['&Previous highlight', 'highlight.next', -1], ['&Keep the adjusted highlight', 'highlight.keep'], '-',
@@ -55,8 +57,11 @@ const MENUS = [
   // (the zoom), the actions without a layer, all windows (global settings).
   ['&View', [
     { header: 'This window' },
-    ['&Editor', 'editor.toggle'], ['&Preview', 'preview.toggle'], ['&Outline', 'outline.toggle'],
-    ['S&idebar', 'sidebar.toggle'], ['&Folders', 'folders'], ['&Search', 'searchView'],
+    // Panels: every tool pane with a check when shown, the dock areas, Reset docking (docks.js); Document panels: what
+    // only exists inside a document's pane (docs/plans/24-PLAN-docking.md 3.14).
+    { label: 'Panels', fill: () => panelItems() },
+    { label: 'Document panels', sub: [['&Editor', 'editor.toggle'], ['&Preview', 'preview.toggle']] },
+    { label: 'Preview place', sub: [['At the &right', 'preview.right'], ['At the &left', 'preview.left'], ['&Above', 'preview.top'], ['&Below', 'preview.bottom']] },
     { label: '&Macros', fill: () => macroMenuItems() },   // macros.js
     ['R&uler', 'ruler.toggle'], ['For&matting bar', 'formatBar.toggle'], ['&Wrap long lines', 'wrap.toggle'],
     { label: 'Tab ba&r', sub: [['One row that &scrolls', 'tabBar.set', 'scroll'], ['One row, a &menu for the rest', 'tabBar.set', 'menu'],
@@ -68,7 +73,8 @@ const MENUS = [
       ['&Bookmarks', 'overviewMark.toggle', 'bookmarks'], ['&Highlights', 'overviewMark.toggle', 'highlights'], ['&Compare differences', 'overviewMark.toggle', 'compare']] },
     { label: 'Pane orient&ation', sub: [['Side &by side', 'paneOrientation.set', 'v'], ['&Above each other', 'paneOrientation.set', 'h']] },
     ['Scroll both panes &together', 'compareScroll.toggle'],
-    { label: 'La&yout', sub: [['&Save as default', 'layoutSaveDefault'], ['&Reset to default', 'layoutResetDefault']] },
+    { label: 'La&yout', sub: [['&Save as default', 'layoutSaveDefault'], ['&Reset to default', 'layoutResetDefault'],
+      { label: '&Use layout of', fill: () => layoutSourceItems() }] },   // app.js
     { header: 'This screen' },
     { label: '&Zoom', sub: [['Zoom &in', 'zoomIn'], ['Zoom &out', 'zoomOut'], ['&100%', 'zoomReset'], '-', ['Use on &every screen', 'zoomEveryScreen']] },
     '-',

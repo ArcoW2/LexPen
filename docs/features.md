@@ -162,7 +162,8 @@ every action with its key.
 - **Search** (Ctrl+Shift+F): in the current file, the open files (unsaved edits included) or the files in the
   folder (the open folder, otherwise the folder of the current file), with match case, whole word and regular
   expressions. Codes: `^p` line break (CR, LF or CRLF), `^t` tab, `^?` any character, `^#` digit, `^$` letter,
-  `^w` spaces or tabs, `^^` the `^` itself. Click a result to go there.
+  `^w` spaces or tabs, `^^` the `^` itself. Click a result to go there. The Search pane can float in a window of its
+  own (and back), as the Folder pane (its tab's right-click menu).
 - **Replace in files** (Ctrl+Shift+R, or the Replace button in the Search panel): a Replace with field, and a scope
   In selection (the editor's selection when the search runs: one, several or a column block, marked while the
   results show). Replace on a result (one undo step), on a file's head (that file) or Replace all (Alt+A in the
@@ -215,8 +216,13 @@ every action with its key.
   opening it), moved with their text, `adjusted` when their text changed a little (dotted until Keep), `detached`
   when it is gone (kept in the window, Attach to selection puts it back). Look: Editor view > Highlight and
   Preview > Highlight; marks on the scroll bar.
-- **Outline**: Ctrl+Alt+V, O shows the headings of each pane's file at its right; click one to go there (preview
-  and editor). The entry above the cursor is highlighted (in the preview: the one at the top). Its width can be dragged.
+- **Outline**: the headings of a pane's file beside its text, on or off per pane: the outline button in that pane's tab
+  strip, or Ctrl+Alt+V, O for the active pane; click one to go there (preview and editor). It sits at the right of
+  the text, or drag its tab (or its right-click menu) to put it at the left or under the text (its entries then in
+  columns); its area closes to a strip as the window's dock areas do. Each editor pane has its own place for it.
+  Dragged into a dock area of the window (or floated) it is the window's outline: it shows the active document
+  whose pane has no outline of its own; dropped back at an editor pane it is that pane's own again. Beside the text
+  its first entry is at the height of the text's first line. The entry above the cursor is highlighted (in the preview: the one at the top). Its width can be dragged.
   Languages from an UltraEdit word file show their tag groups as UltraEdit's function list does: a header per
   group (TODO, Procs/Funcs/triggers, Regions, Tables for ASA; Functions, Classes, ...), its entries in line order;
   a click on a header folds it (kept per language), and a folded group opens when its entry is the one you are at.
@@ -226,7 +232,10 @@ every action with its key.
   on its text, a long click is a sneak preview: the entry is shown while the button is held (moving along the
   outline shows the entry under the pointer), and on release the pane is back where it was. It stands out (a frame,
   a badge, a tint), or has a theme of its own: Options > Settings, Outline, Theme of the sneak preview (a light one
-  next to a dark editor).
+  next to a dark editor). Right-click > Float in a window of its own: one outline in a window of its own
+  (another monitor too), titled with its document; it shows the active document when that pane has no outline of its
+  own. Back in the window puts it at the pane it shows; closing it just closes it. A language without an outline
+  (JSON, for example) greys out the pane's button and hides its outline; a floating one stays open, empty.
 - **Locate the cursor**: a short tap on Ctrl alone shows rings, in the find box's colour, shrinking onto every cursor,
   in both panes when two show (side by side, a compare); a cursor out of view gets a marker at that edge (top: higher, bottom: lower) with its line number, several in one
   direction one marker with the count. A double tap scrolls to the cursor first (setting, off by default). Also View >
@@ -392,13 +401,54 @@ every action with its key.
 
 ## Files and folders
 
-- **Folder sidebar** (Ctrl+Shift+B): browse all files in a folder, sorted by name or modified time. The `..` row
+- **Characters docked**: Characters can dock in a dock area as the other panes (its tab's right-click menu, a drag,
+  or drag its own window onto the LexPen window); docked it inserts into that window. Insert character opens it as
+  it was last: its own window, or docked where it was. Docked, its list of blocks is hidden; the button at its top
+  shows and hides it. Docked beside an editor pane's text (its tab's menu: At the left / right of the text, Under
+  the text; or a drag to the pane's edge) it is that pane's own and inserts into that pane's document; each editor
+  pane can have one. Insert character opens the active pane's own when it has one. The top field searches, the
+  bottom field (To insert) gathers the characters Insert puts in. Docked it is a small picker: the blocks' menu, All
+  chars and the size, the grid, the character's code and name; a double click or Enter inserts. Its scroll bar marks
+  where each block starts.
+- **Title bar colours**: the setting titleBarColours: Windows' own colours (the default) or the app theme's for every
+  LexPen window's title bar, its text and the line around the window, active and not active (Windows 11).
+- **Preview place**: per editor pane the preview at the right of the text, at its left, above or below it (View >
+  Preview place, or a right-click on the line between text and preview); kept with the window's layout.
+- **View > Panels**: every panel with a check when it is shown; choosing one shows it as it was last or hides it;
+  the dock areas open or closed; Reset docking. View > Document panels: Editor and Preview.
+- **Dock tab bars**: tabs that do not fit wrap over several rows or scroll in one row (setting dockTabBar); a tab
+  dragged onto a head goes between the tabs where it is let go; the setting dockTabIntensity sets the contrast of the
+  tab bars' colours.
+- **Panes that dock**: Settings, Manage projects, Theme sets, the Macros window (Manage and a macro's window), Messages,
+  Bookmarks (Edit > Bookmarks > Manage bookmarks...), Clipboards (Edit > Manage clipboards...) and Step by step dock in a dock area like
+  Folder and Search (their tab's right-click menu, a drag) or float in a window of their own; each opens as it was
+  last. Bookmarks and Step by step can also dock beside an editor pane's text, working on that pane's document (Step
+  by step by default under the macro's text). None of them is modal.
+- **Highlights docked**: the Highlights window docks as Characters does: in a dock area it lists the active
+  document's highlights, beside an editor pane's text that pane's document's (each editor pane can have one); a click
+  goes to the highlight there. The Highlights window item opens it as it was last.
+- **Dock areas**: the Folder and Search panes sit in dock areas at the left, the right or the bottom of the window
+  (the bottom one the full width or between the side areas). An area holds groups of tabs; splitters set the sizes.
+  Drag a tab to move its pane: the place it goes lights up (a group as a tab, above or under a group, the window's
+  edges, the bottom the full width or between the sides); let go elsewhere and it floats there; Esc cancels. A
+  floating window dragged over its LexPen window docks where it is let go.
+  A tab's right-click menu: Float in a window of its own, Dock left / right / at the bottom, Close. An area's button
+  (at the side toward the editor) closes it to a strip along the edge with its panes' tabs; a tab there opens it.
+  Groups stacked at a side have a roll-up button (as high as their tabs; shown again, rolled down).
+  Ctrl+Shift+B opens and closes the left area; View: Dock area left / right / bottom. Kept per window, floating
+  panes too (they float again when the window opens).
+- **Folder pane** (Ctrl+Shift+E): browse all files in a folder, sorted by name or modified time. The `..` row
   (Alt+Up, Backspace) goes up a folder; F2 renames the file or folder. Ctrl+Shift+E (or a click) gives it the keyboard: arrows, Home/End,
   PgUp/PgDn, Enter (Shift+Enter: new tab, Ctrl+Enter: other pane, Ctrl+Shift+Enter: new tab there), Esc back to
   the document (hidden files, dot folders and `node_modules` are skipped), with git status markers (modified,
   added, untracked, deleted, renamed, conflict) when the folder is in a repository. File types no language pack
   knows are dimmed; the **Known** button in the sidebar header hides them (folders stay).
-  Right-click a file or folder to copy its absolute path, or its path relative to the open folder.
+  Right-click a file or folder to copy its absolute path, or its path relative to the open folder. Right-click >
+  Float the folder pane in a window of its own: the same tree in a window of its own (another monitor too), titled
+  with its folder (also from its tab's right-click menu); Back in the window (its right-click menu) or closing it puts
+  it back in its place in the dock.
+- **Language of a new file** (Settings > Files): the active document's, or a given language (Markdown by default;
+  also used when no document is open). Saved under a name with another extension, the file takes that language.
 - **File menu**: New file, Open file, Open folder, Favourite files, Favourite folders, the recently opened files
   and folders and the recently closed files (15 each, shared by all windows). An entry that no longer exists is
   dimmed; choosing it removes it.
@@ -492,17 +542,19 @@ every action with its key.
   shutdown or crash every window that was open comes back, on its own desktop. The menu lists
   every project (checked: open) with its windows: open a project (all its windows) or one window, a new window in
   a project, a new project (a new empty window), rename this project, move this window to another or a new
-  project. A window closed by hand while another window of its project stays open is forgotten; the last window of
+  project. A window without documents that opens another project (or another project's window) from the menu
+  closes, as closed by hand. A window closed by hand while another window of its project stays open is forgotten; the last window of
   a project closes the project (it stays in the menu, to open again). A project you did not name is dropped when
   none of its windows has files left (or always, with Keep unnamed projects off); a named one stays until you
   delete it. A new window joins the project of the last window used on its desktop, or starts a new one
   (Options > Settings > General > Windows).
-- **Window layout**: what a window shows (the sidebar, the outline, the panes and their sizes, the ruler, the
-  bars) is kept per window, with its session, so per project. A new window copies the layout of its project's last
-  window; a new project starts from the default layout. View > Layout > Save as default makes this window's layout
-  the default, Reset to default goes back to it (its tabs and folder stay). Every row in the settings window has a
-  coloured line on its left that says where the setting lives: global, this window, the theme set or this screen;
-  the legend filters on it. Each main window has a settings window of its own.
+- **Window layout**: what a window shows (the sidebar, the outline, the panes and their sizes, the ruler, the bars)
+  is kept per window, with its session, so per project. A new window copies the layout of its project's last window;
+  a new project starts from the default layout. View > Layout > Save as default makes this window's layout the
+  default, Reset to default goes back to it (its tabs and folder stay), and Use layout of gives it the layout of
+  another open window, or of a project with no window open (Undo in the message). Every row in the settings window
+  has a coloured line on its left that says where the setting lives: global, this window, the theme set or this
+  screen; the legend filters on it. Each main window has a settings window of its own.
 
 ## Languages and themes
 

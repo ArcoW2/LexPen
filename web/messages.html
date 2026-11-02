@@ -1,0 +1,31 @@
+<!doctype html>
+<!-- The Messages pane as a page of its own (messages-pane.js; docs/plans/24-PLAN-docking.md stage 11). -->
+<html><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:">
+<title>Messages</title>
+<link rel="stylesheet" href="app.css">
+<style>
+  body { background: var(--bg-side); color: var(--fg); display: flex; flex-direction: column; height: 100vh; margin: 0; overflow: hidden;
+    font-family: var(--app-font); font-size: calc(13px * var(--ui-scale, 1)); }
+  .ms-head { flex: none; display: flex; gap: 8px; align-items: center; padding: 6px 10px; border-bottom: 1px solid var(--border); }
+  .ms-note { flex: 1; min-width: 0; color: var(--fg-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ms-head button { padding: 3px 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-bar); color: var(--fg); font: inherit; }
+  .ms-head button:hover { border-color: var(--accent); }
+  .ms-scroll { flex: 1; min-height: 0; overflow: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: calc(12px * var(--ui-scale, 1)); }
+  td { padding: 3px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .ms-at { white-space: nowrap; color: var(--fg-dim); }
+  .ms-error td:nth-child(2) { color: var(--caution); }
+  a { color: var(--accent); }
+  .ms-none { padding: 10px; color: var(--fg-dim); }
+</style>
+</head>
+<body>
+<div class="ms-head">
+  <span class="ms-note" title="What showed at the bottom of this window since it opened, newest first; the document is the one active then">Newest first; the document is the one active then.</span>
+  <button type="button" class="ms-clear">Clear</button>
+</div>
+<div class="ms-scroll"><table><tbody class="ms-list"></tbody></table><div class="ms-none">No messages yet.</div></div>
+<script src="pane.js"></script>
+<script src="messages-pane.js"></script>
+</body></html>
