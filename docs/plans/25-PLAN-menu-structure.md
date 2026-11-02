@@ -70,7 +70,7 @@ looking for it.
 | E. The text: marking it for review | highlights (highlight, from selection, note, remove, remove all, keep adjusted, next / previous, window, move all) |
 | F. The text: its form | the language's formatting (format bar items, reformat); convert (case, whitespace, tabs / spaces, line ends); the file's language |
 | G. The document: how it shows | editor / preview / side by side, preview place; wrap; ruler; formatting bar; gutter columns and line numbers; scroll bar marks |
-| H. The window: what is where | the panels (Folder, Search, Outline, Characters, Highlights, Bookmarks, Step by step, Messages, Clipboards, Macros, Settings, Manage projects, Theme sets) and the dock areas; the two editor panes (orientation, hide, close, show, split into the other, level, scroll together); the tabs (next / previous document and tab, back / forward in the window, pin, read-only, tab bar); the layout (save as default, reset, use layout of); messages |
+| H. The window: what is where | the panels (Folder, Search, Outline, Characters, Highlights, Bookmarks, Step by step, Messages, Clipboards, Macros, Settings, Manage projects, Theme sets) and the dock areas; the two document panes (orientation, hide, close, show, a document in the other one too, level, scroll together); the tabs (next / previous document and tab, back / forward in the window, pin, read-only, tab bar); the layout (save as default, reset, use layout of); messages |
 | I. Projects and windows | manage projects, new, rename, move this window, the list of projects with their windows, close window |
 | J. Comparing | compare files, compare folders; next / previous difference, align the cursor lines, swap, leave; ignore whitespace / case, line strip |
 | K. Automation | macros: record / stop, play, play X times, play to the end, a macro's window, manage, step by step (step, step into, continue, stop, breakpoint), the macro language |
@@ -91,6 +91,32 @@ Three other views on the same features, used to order things inside a menu:
   macros, layout, settings. There is no usage data: the frequencies are an estimate ([not yet calculated]: a local,
   opt-in count of action use per session would turn this into data; not part of this plan).
 
+### 3.2a The words
+
+"Pane" alone is unclear: it is used for the place a document shows in, for the tool windows and for the panels. The
+menus, F1 and the hints use these words, and only these:
+
+| Word | What it is |
+|---|---|
+| Window | A LexPen window: its menus, its document panes, its dock areas. |
+| Document | A file (or a draft) open in a tab. |
+| Document pane | One of the (at most) two places in a window where documents show: left and right, or top and bottom. Each has its own tabs and shows the document of its active tab. Today's "editor pane" and "pane". |
+| Editor, Preview | The two ways a document shows in its document pane: the editor (the text), the preview, or both (Editor and preview; the preview's place: right, left, above, below). Not panels. |
+| Panel | A tool window: Folder, Search, Outline, Characters, Highlights, Bookmarks, Step by step, Messages, Clipboards, Macros, Settings, Manage projects, Theme sets. Docked in a dock area, docked at a document pane, or floating. |
+| Document panel | A panel about the document it is with: docked at a document pane, it shows that pane's document (the Outline does so now). Elsewhere it follows the active document. |
+| Dock area | The left, right and bottom edge of the window, where panels dock. |
+
+What changes in the names:
+
+- Window > Panes > becomes Document panes >; its items say "document pane" (Hide this document pane, ...).
+- Its orientation items become Left and right / Top and bottom: "Side by side" is the editor and the preview of one
+  document, so it is not used for the document panes too. In View that one becomes Editor and preview.
+- Today's View > Document panels (Editor, Preview) goes: the editor and the preview are not panels. They are the
+  first items of View.
+- Split becomes This document in the other pane too (what it does: the same file in the other document pane, with
+  its own cursor).
+- The action names stay (paneHide, levelPanes, split, ...); only titles and hints change. "Tool pane" in the code's
+  comments is a panel.
 ### 3.3 Rules for the menus
 
 - At most ten menus on the bar; each with at most about fifteen first-level entries, in groups of two to five
@@ -182,7 +208,7 @@ Convert stops being a menu of its own (one fewer on the bar); its key menu at th
 
 **View** (how the document shows)
 
-- Editor [ ], Preview [ ], Side by side [ ]
+- Editor [ ], Preview [ ], Editor and preview [ ]
 - | Preview place > (At the right, At the left, Above, Below)
 - | Wrap long lines [ ], Ruler [ ], Formatting bar [ ]
 - | Gutter > (as now), Scroll bar marks > (as now), Tab bar > (as now)
@@ -190,7 +216,7 @@ Convert stops being a menu of its own (one fewer on the bar); its key menu at th
 **Window** (what is where in the window)
 
 - Panels > (as built in plan 24: every panel with its check, the dock areas, Reset docking)
-- | Panes > (Side by side, Above each other, | Hide this pane, Hide other pane, Close this pane, Close other pane, Show hidden pane, | Split into the other pane, Level the panes, Scroll both panes together [ ])
+- | Document panes > (Left and right, Top and bottom, | Hide this document pane, Hide the other document pane, Close this document pane, Close the other document pane, Show the hidden document pane, | This document in the other pane too, Level the document panes, Scroll both document panes together [ ])
 - | Layout > (Save as default, Reset to default, Use layout of >)
 - | Messages...
 - | Manage projects..., New project..., Rename this project..., Move this window to >
@@ -225,8 +251,9 @@ What moves, against today:
 | Compare files / folders, Compare >, Compare options > | File, View | Tools > Compare |
 | Convert | own menu | Format > Convert |
 | Language... | View | Format |
-| Pane orientation, Pane visibility, Level, Split, Scroll together | View | Window > Panes |
+| Pane orientation, Pane visibility, Level, Split, Scroll together | View | Window > Document panes |
 | Layout >, Messages..., Panels > | View | Window |
+| Document panels > (Editor, Preview) | View | View, first level: Editor, Preview, Editor and preview |
 | Projects menu | own menu | Window |
 | Settings, Theme set | Options | Options (stay) |
 | Keyboard shortcuts, About | Options | Options (stay); The macro language joins them |
@@ -332,6 +359,8 @@ Proposed default content, left to right, in groups:
 6. The action bar's default buttons in 3.7: anything to add or drop before it gets its own plan?
 7. Emoticon...: open Windows' own emoji panel (as Win+. does; it types into the editor), or the Characters panel on
    an emoticon group of its own (LexPen's look, searchable, with recent ones)?
+8. Which panels are document panels (they follow the document they are with): only the Outline, or also Highlights and
+   Bookmarks (showing this file's), Characters, Step by step?
 
 ## 5. Resolved during execution
 
