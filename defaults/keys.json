@@ -128,6 +128,7 @@
   "Ctrl+K, P": ["bookmarkNext", -1],
   "Ctrl+K, L": "bookmarkList",
   "Ctrl+O": "occurrences.field",     // the Occurrences bar opened, its field focused
+  "Ctrl+Shift+O": "occurrences.clear", // the occurrences no longer marked
   "Ctrl+M": "macro.play",            // the macro played last, else the last recording (View > Macros)
   "Ctrl+Shift+M": "macro.record",    // record / stop recording
   "F10": "macro.stepThis",           // in a macro's tab: step by step; while it runs: the next line
