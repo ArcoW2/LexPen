@@ -105,6 +105,7 @@ format:
     message: []
     merge: [using, 'on', when]
     with: [select]
+  alignAfter: [set]
   items:
     join: {start: [left outer join, right outer join, full outer join, inner join, cross join, left join, right join, join], clause: ['on']}
   operators: [and not, or not, and, or, xor]
