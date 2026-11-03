@@ -227,6 +227,7 @@ them with notes, and `docs/plans/reformat-prototype` is the reference that tried
 | `ends` | What ends a statement: `;`, and `"\n"` where a line does (VB, shell, JavaScript) |
 | `continue`, `continueAfter` | A line starting with these (`.`, `|`) continues the one above, one step in; so does a line after one matching the pattern (VB's ` _`) |
 | `statements`, `items` | Statements with their clause words (SQL: `update: [set, from, where]`); list items with their start words and clause (joins and `on`) |
+| `alignAfter` | Clause words whose next lines line up under the code after the word, when the word has code after it (ASA: `[set]`); other clauses: one step in |
 | `operators`, `compare`, `align` | `and` / `or` ...; comparisons; other texts lines are lined up on (`=`, `default`, `:=`) |
 | `separators`, `space`, `trail`, `joinAfterClose` | List separators; one space after / before a sign; what may follow a `)` on its line; words joined after a `}` (`} else {`) |
 | `keepLines`, `labels`, `keepIndent` | Lines at column 0 (`#if`, batch labels); lines at the column of their braces (C++ `public:`); keep the indentation as written (Python, markdown) |

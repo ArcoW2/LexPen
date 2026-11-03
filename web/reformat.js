@@ -480,6 +480,7 @@ function rfSimulate(lines, cfg, override = new Map()) {
       } else if (rr === 'clause') {
         const k = activeStmt(); popTo(k + 1);
         const c = rfFrame('clause', { name: role[1], col: here, line: li, content: here + step, opener: t });
+        if (nxtCode && lows(cfg.alignAfter).includes(rfLow(cfg, role[1]))) c.content = cols[nxt];   // set a = 1,: under the a
         stack.push(c); frames.push(c);
       } else if (rr === 'item') {
         if (stack.length) {                               // the item belongs to the list it is in
