@@ -368,6 +368,8 @@ function rfSimulate(lines, cfg, override = new Map()) {
     if (line[0].fz) col = line[0].oi;                     // outside the selection: as it is
     if (override.has(li)) col = override.get(li);
     if (verbatim) col = null;
+    // Enter: a line typed inside an open ( keeps its own column for the lines after it.
+    if (cfg.followTyped && line[0].fz && col !== null && r === null && f && f.kind === 'group') f.content = col;
     if (f && r !== 'cont') f.lastbase = col;
     if (r !== 'cont') prevBase = col;
     prevText = rfText(line.filter(t => t.k !== 'com'));
@@ -1071,7 +1073,7 @@ function reformatLines(text, cfg, opts) {
 
 // The column a line belongs at (Enter, a closing word typed): the lines up to it, as Format would indent them.
 function reformatIndentAt(textUpTo, cfg, opts) {
-  const c = { ...cfg, indent: opts.indent };
+  const c = { ...cfg, indent: opts.indent, followTyped: true };
   const lines = rfLines(rfTokenize(textUpTo, c));
   if (!lines.at(-1).length) lines[lines.length - 1] = [RF_TOK('s', '\u0001')];   // an empty line: a neutral probe
   lines.forEach((l, li) => { if (li < lines.length - 1 && l.length) { l[0].fz = true; } });
