@@ -21,7 +21,7 @@
   "F4": "previousActive",            // the document active before this one; again: back
   "Ctrl+PgDn": ["outline.next", 1],  // the next outline entry (heading, procedure, ...); with Shift: selected to it
   "Ctrl+PgUp": ["outline.next", -1],
-  "Ctrl+F1": ["focusPart", 1],       // the keyboard to the next part of this document: editor, preview, outline
+  "Ctrl+Shift+F1": ["focusPart", 1], // the keyboard to the next part of this document: editor, preview, outline
   "Shift+F1": "otherDocPane",        // the keyboard to the other document pane
   "Ctrl+W": "closeTab",
   "Ctrl+F4": "closeTab",

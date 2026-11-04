@@ -245,7 +245,7 @@ every action with its key.
 - **F4**: the document active before this one, in either pane; F4 again goes back.
 - **Ctrl+PgDn / Ctrl+PgUp**: the next / previous entry of the outline (a heading, a procedure, ...), also when the
   outline is not shown; with Shift: selected to it. In the preview its cursor goes there.
-- **Ctrl+F1**: the keyboard to the next part of this document (editor, preview, outline; a part not shown is
+- **Ctrl+Shift+F1**: the keyboard to the next part of this document (editor, preview, outline; a part not shown is
   passed). **Shift+F1**: the keyboard to the other document pane (when shown). Next / previous document (recently used or tab bar order, the setting Document order)
   and next / previous pane (the sidebar, the documents) have no key by default (F1, keys.json).
   The part the keyboard is in has a border, dimmed while the focus is elsewhere. In the outline: Up, Down, PgUp,

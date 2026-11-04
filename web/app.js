@@ -2307,12 +2307,12 @@ function refocus() {
   if (el === document.body || el?.matches('.mm-save')) focusPane(panes[state.activePane]);
 }
 
-// ---------- The focused part: a border around it; Ctrl+F1, Shift+F1 and focusPane ----------
+// ---------- The focused part: a border around it; Ctrl+Shift+F1, Shift+F1 and focusPane ----------
 // Where the keyboard is: the sidebar (Folder or Search), or a document pane's editor, preview or outline (.mm-focused).
 // A border lies over that part (.mm-focus-ring, one for the window, above the parts: the editor's gutter and scroll bar
 // would cover a border of its own), placed again when the part moves or changes size. With the focus elsewhere (the
 // tabs, the find bar, a menu, a dialog, another window) it stays on the part last used, dimmed (body[data-focus-away]):
-// what Ctrl+F1, Shift+F1 and focusPane start from.
+// what Ctrl+Shift+F1, Shift+F1 and focusPane start from.
 let focused = null;   // { pane: its index, or -1 for the sidebar; part: sidebar, editor, preview or outline }
 const focusRing = Object.assign(document.createElement('div'), { className: 'mm-focus-ring', hidden: true });
 document.body.append(focusRing);
@@ -2373,11 +2373,11 @@ addEventListener('focus', () => {
   if (p) markFocused(p);
 });
 
-// The parts of a document pane Ctrl+F1 goes through: the editor, the preview and the outline, each when shown (a part
+// The parts of a document pane Ctrl+Shift+F1 goes through: the editor, the preview and the outline, each when shown (a part
 // not shown is passed, not opened).
 const outlineShown = pane => !pane.el.hasAttribute('data-no-outline');
 
-// Ctrl+F1: the next part (-1: the previous) of the active document pane: editor, preview, outline (when shown).
+// Ctrl+Shift+F1: the next part (-1: the previous) of the active document pane: editor, preview, outline (when shown).
 function nextPart(dir) {
   const pane = panes[state.activePane], tab = pane.active;
   if (!tab) return;
@@ -2419,7 +2419,7 @@ function otherDocPane() {
 
 // ---------- The outline with the keyboard ----------
 // Its keys work in its page (outline-pane.js): Up / Down, PgUp / PgDn, Ctrl+Home / Ctrl+End, Enter. Here: the focus
-// into it (Ctrl+F1), its entry at the cursor marked for the keys.
+// into it (Ctrl+Shift+F1), its entry at the cursor marked for the keys.
 function focusOutline(pane) {
   outlineFrame(pane).focus();
   toOutline(pane, { kind: 'focus' });
