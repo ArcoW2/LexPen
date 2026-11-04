@@ -252,6 +252,8 @@ appAction('focusPart', { title: 'Part', hint: 'The keyboard to the next / previo
   variants: [[1], [-1]], variantTitles: { 1: 'Next part (editor, preview, outline)', '-1': 'Previous part' }, run: ([dir = 1]) => nextPart(+dir) });
 appAction('focusPane', { title: 'Pane', hint: 'The keyboard to the next / previous pane: the sidebar (when shown), the first document, the second (when shown)', group: 'view',
   variants: [[1], [-1]], variantTitles: { 1: 'Next pane (sidebar, documents)', '-1': 'Previous pane' }, run: ([dir = 1]) => nextPane(+dir) });
+appAction('otherDocPane', { title: 'Other document pane', hint: 'The keyboard to the other document pane (when shown), in the part it had last', group: 'view',
+  run: () => otherDocPane() });
 appAction('searchView', { title: 'Search', hint: 'The search in the sidebar', group: 'view', run: () => startSearch() });
 // The window's layout as the default for new projects, or back to that default (docs/plans/executed/PLAN-settings-layers.md).
 appAction('layoutSaveDefault', { title: 'Save layout as default', group: 'view',
@@ -918,6 +920,9 @@ appAction('bookmarkNext', { title: 'Bookmark', hint: 'Numbered or not; with Shif
 appAction('block.next', { title: 'Block', hint: 'The next / previous block at the level of the cursor: its indentation, in markdown its heading; with Shift: select to it (not in the preview)',
   group: 'edit', preview: true, move: true, variants: [[1], [-1]], variantTitles: { 1: 'Next block', '-1': 'Previous block' },
   run: ([dir], { pane, extend, preview }) => goBlock(pane, +dir, extend, preview) });
+appAction('outline.next', { title: 'Outline entry', hint: 'The next / previous entry of the outline (heading, procedure, ...), also when the outline is not shown; with Shift: select to it (not in the preview)',
+  group: 'edit', preview: true, move: true, variants: [[1], [-1]], variantTitles: { 1: 'Next outline entry', '-1': 'Previous outline entry' },
+  run: ([dir], { pane, extend, preview }) => goOutlineEntry(pane, +dir, extend, preview) });
 // Occurrences (occurrences.js, docs/plans/executed/PLAN-show-occurrences.md): marked everywhere, the cursor stays.
 appAction('occurrences.show', { title: 'Show all occurrences', hint: 'Of the selection (the first one, or a block\'s first line), else of the word at the cursor: marked everywhere in the editor and the preview, the cursor stays',
   group: 'edit', run: (_, ctx) => showOccurrencesOfSelection(ctx) });
