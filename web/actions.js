@@ -171,6 +171,9 @@ appAction('closeWindow', { title: 'Close window', hint: 'Asks about unsaved chan
 
 appAction('nextDocument', { title: 'Next document', hint: 'Through the tabs of the window', group: 'tabs', run: () => nextDocument(1) });
 appAction('previousDocument', { title: 'Previous document', hint: 'Through the tabs of the window', group: 'tabs', run: () => nextDocument(-1) });
+appAction('stepTab', { title: 'Tab', hint: 'The next / previous tab in tab bar order, on to the other pane after the last one (before the first one)', group: 'tabs',
+  variants: [[1], [-1]], variantTitles: { 1: 'Next tab, on to the other pane', '-1': 'Previous tab, on to the other pane' }, run: ([dir = 1]) => stepTab(+dir) });
+appAction('previousActive', { title: 'Previously active document', hint: 'The document active before this one; again: back', group: 'tabs', run: () => previousActive() });
 // While comparing, the key with a selection or with the cursor in a difference copies it across instead (compare.js).
 appAction('nextTab', { title: 'Next tab', hint: 'The tab to the right in this pane, in tab bar order; comparing, with a selection or the cursor in a difference: the left side\'s lines over the right side\'s', group: 'tabs',
   run: (_, ctx) => (ctx.from === 'key' && comparing() && compareCopy(1)) || cycleTab(1) });
@@ -491,7 +494,7 @@ appAction('settings', { title: 'Settings...', hint: 'Every setting, searchable; 
 appAction('chooseLanguage', { title: 'Language...', hint: 'Of the active tab: colouring, outline, bar and actions (also a click on the language in the bottom bar)', group: 'view',
   enabled: () => !!activeDoc(), run: () => showLanguageList() });
 appAction('tabOrder.set', { title: 'Document order', hint: 'Recently used, or the order of the tab bar', group: 'settings',
-  variants: [['recent'], ['tabs']], variantTitles: { recent: 'Ctrl+PgDn in recently used order', tabs: 'Ctrl+PgDn in tab bar order' },
+  variants: [['recent'], ['tabs']], variantTitles: { recent: 'Next document in recently used order', tabs: 'Next document in tab bar order' },
   checked: ([order]) => setting('tabOrder') === order, run: ([order]) => setSetting('tabOrder', order) });
 toggleAction('backup', { title: 'Keep a backup when saving', hint: 'The old file becomes name.ext.bak (overwritten at the next save)', group: 'settings' },
   () => setting('backup'), () => setSetting('backup', !setting('backup')));

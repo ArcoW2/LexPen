@@ -1598,6 +1598,25 @@ async function cycleTab(step) {
   focusPane(pane);
 }
 
+// Ctrl+Tab: the next tab in tab bar order, past the last one of this pane on to the first one of the other pane
+// (Ctrl+Shift+Tab: back, from the first one to the last one of the other pane). A hidden pane is passed.
+async function stepTab(step) {
+  const tabs = panes.filter(p => p.index !== state.hidden).flatMap(p => p.tabs), tab = activeTab();
+  if (tabs.length < 2) return;
+  const next = tabs[(tabs.indexOf(tab) + step + tabs.length) % tabs.length], pane = paneOf(next);
+  await activate(pane, next);
+  focusPane(pane);
+}
+
+// F4: the document active before this one; again: back to this one.
+async function previousActive() {
+  const tab = allTabs().find(t => t.id === recentTabs[1]);
+  if (!tab) return;
+  const pane = paneOf(tab);
+  await activate(pane, tab);
+  focusPane(pane);
+}
+
 // ---------- Window chrome ----------
 // The full name above the tabs: of the tab the mouse is on, else of the active file.
 let hoverTab = null;
@@ -1647,9 +1666,9 @@ function setSwitch(part) {
   setMode(e && p ? 'split' : e ? 'edit' : 'preview');
 }
 
-// ---------- Next document: Ctrl+PgDn ----------
+// ---------- Next document (nextDocument; no key by default) ----------
 // Recently used order (the default) or tab bar order (Options > Settings > Document order). In recently
-// used order, holding Ctrl and pressing PgDn again goes further back; letting go of Ctrl makes the
+// used order, holding Ctrl and pressing its key again goes further back; letting go of Ctrl makes the
 // document reached the most recent one.
 const recentTabs = [];   // tab ids, most recently active first
 let tabWalk = null;      // { list, at } while Ctrl is held
@@ -2279,12 +2298,12 @@ function refocus() {
   if (el === document.body || el?.matches('.mm-save')) focusPane(panes[state.activePane]);
 }
 
-// ---------- The focused part: a border around it; Ctrl+Shift+Tab and Ctrl+Tab ----------
+// ---------- The focused part: a border around it; Ctrl+PgDn / Ctrl+PgUp and focusPane ----------
 // Where the keyboard is: the sidebar (Folder or Search), or a document pane's editor, preview or outline (.mm-focused).
 // A border lies over that part (.mm-focus-ring, one for the window, above the parts: the editor's gutter and scroll bar
 // would cover a border of its own), placed again when the part moves or changes size. With the focus elsewhere (the
 // tabs, the find bar, a menu, a dialog, another window) it stays on the part last used, dimmed (body[data-focus-away]):
-// what Ctrl+Shift+Tab and Ctrl+Tab start from.
+// what Ctrl+PgDn / Ctrl+PgUp and focusPane start from.
 let focused = null;   // { pane: its index, or -1 for the sidebar; part: sidebar, editor, preview or outline }
 const focusRing = Object.assign(document.createElement('div'), { className: 'mm-focus-ring', hidden: true });
 document.body.append(focusRing);
@@ -2345,11 +2364,11 @@ addEventListener('focus', () => {
   if (p) markFocused(p);
 });
 
-// The parts of a document pane Ctrl+Shift+Tab goes through: the editor, the preview and the outline, each when shown (a part
+// The parts of a document pane Ctrl+PgDn / Ctrl+PgUp go through: the editor, the preview and the outline, each when shown (a part
 // not shown is passed, not opened).
 const outlineShown = pane => !pane.el.hasAttribute('data-no-outline');
 
-// Ctrl+Shift+Tab: the next part (the previous: the action focusPart -1, no key) of the active document pane: editor, preview, outline (when shown).
+// Ctrl+PgDn: the next part (Ctrl+PgUp: the previous) of the active document pane: editor, preview, outline (when shown).
 function nextPart(dir) {
   const pane = panes[state.activePane], tab = pane.active;
   if (!tab) return;
@@ -2370,7 +2389,7 @@ function focusPart(pane, part) {
   if (part === 'editor') pane.cm?.focus(); else pane.previewEl.focus();
 }
 
-// Ctrl+Tab: the next pane (the previous: the action focusPane -1, no key): the sidebar (when shown), document pane 1, document pane 2 (when
+// focusPane (no key by default): the next pane (-1: the previous): the sidebar (when shown), document pane 1, document pane 2 (when
 // shown); in a document pane the part it had last.
 function nextPane(dir) {
   const dockPane = dockFocusPane();   // docks.js: the pane in front of the first open dock group
@@ -2384,7 +2403,7 @@ function nextPane(dir) {
 
 // ---------- The outline with the keyboard ----------
 // Its keys work in its page (outline-pane.js): Up / Down, PgUp / PgDn, Ctrl+Home / Ctrl+End, Enter. Here: the focus
-// into it (Ctrl+Shift+Tab), its entry at the cursor marked for the keys.
+// into it (Ctrl+PgDn), its entry at the cursor marked for the keys.
 function focusOutline(pane) {
   outlineFrame(pane).focus();
   toOutline(pane, { kind: 'focus' });

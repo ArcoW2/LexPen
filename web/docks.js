@@ -271,7 +271,7 @@ function dockRestore(id, was) {
   if (was.key === 'left' && !was.open) setSidebar(false);
 }
 
-// Ctrl+Tab's stop at the window's dock areas: the pane in front of the first open group (left, right, bottom); null:
+// focusPane's stop at the window's dock areas: the pane in front of the first open group (left, right, bottom); null:
 // none. (An editor pane's own panes are its parts: Ctrl+Shift+Tab.)
 function dockFocusPane() {
   const m = dockModel();

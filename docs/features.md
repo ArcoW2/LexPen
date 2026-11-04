@@ -240,10 +240,12 @@ every action with its key.
   in both panes when two show (side by side, a compare); a cursor out of view gets a marker at that edge (top: higher, bottom: lower) with its line number, several in one
   direction one marker with the count. A double tap scrolls to the cursor first (setting, off by default). Also View >
   Locate the cursor; settings in Editor view > Locate the cursor (on / off, the longest tap).
-- **Ctrl+PgDn / Ctrl+PgUp**: through the documents in recently used order (hold Ctrl and press PgDn again to go
-  further back), or in tab bar order (the setting Document order).
-- **Ctrl+Tab / Ctrl+Shift+Tab**: the keyboard to the next pane (the sidebar, the first document, the second) / the
-  next part of this document (editor, preview, outline; a part not shown is passed).
+- **Ctrl+Tab / Ctrl+Shift+Tab**: the next / previous tab in tab bar order; after the last tab of a pane on to the first
+  one of the other pane, before the first one to the last one of the other pane (a hidden pane is passed).
+- **F4**: the document active before this one, in either pane; F4 again goes back.
+- **Ctrl+PgDn / Ctrl+PgUp**: the keyboard to the next / previous part of this document (editor, preview, outline; a
+  part not shown is passed). Next / previous document (recently used or tab bar order, the setting Document order)
+  and next / previous pane (the sidebar, the documents) have no key by default (F1, keys.json).
   The part the keyboard is in has a border, dimmed while the focus is elsewhere. In the outline: Up, Down, PgUp,
   PgDn, Ctrl+Home, Ctrl+End, Enter.
 

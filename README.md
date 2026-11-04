@@ -33,8 +33,8 @@ The short list, by group. Every feature in detail: [docs/features.md](docs/featu
 - **Outline** of headings, procedures and classes, grouped per language, with a sneak preview on a long click.
 - **Position back / forward** (Ctrl+Alt+- / Ctrl+Alt++, or the mouse buttons) through the places you jumped from.
 - **Locate the cursor**: tap Ctrl alone.
-- **Keyboard between panes and parts**: Ctrl+Tab to the next pane, Ctrl+Shift+Tab to the editor, preview or outline;
-  Ctrl+PgDn / Ctrl+PgUp through the documents.
+- **Keyboard through tabs and parts**: Ctrl+Tab / Ctrl+Shift+Tab to the next / previous tab, on to the other pane;
+  F4 to the document active before (again: back); Ctrl+PgDn / Ctrl+PgUp to the editor, preview or outline.
 
 ### How the text looks
 
@@ -100,8 +100,9 @@ F1 lists every key and action. The main ones of the default set:
 |---|---|
 | Ctrl+S / Ctrl+Shift+S | Save / save as |
 | Ctrl+W / Ctrl+F4, Ctrl+Shift+T | Close tab, reopen the last closed tab |
-| Ctrl+PgDn / Ctrl+PgUp | Next / previous document |
-| Ctrl+Tab / Ctrl+Shift+Tab | The keyboard to the next pane / the next part (editor, preview, outline) |
+| Ctrl+Tab / Ctrl+Shift+Tab | Next / previous tab, on to the other pane after the last (before the first) |
+| F4 | The document active before this one; again: back |
+| Ctrl+PgDn / Ctrl+PgUp | The keyboard to the next / previous part (editor, preview, outline) |
 | Ctrl+Space | Word completion: keywords, the document's words, snippets |
 | F7 / Shift+F7, Ctrl+F7 | Comparing: the next / previous difference; align the two cursor lines |
 | Ctrl+Alt+- / Ctrl+Alt++ | Position back / forward in the document (also the mouse buttons; with Ctrl: through the tabs) |

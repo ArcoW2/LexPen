@@ -16,10 +16,11 @@
   "Ctrl+Shift+S": "saveAs",
 
   // ---------- Tabs and documents ----------
-  "Ctrl+PgDn": "nextDocument",       // through the documents (recently used or tab bar order: the setting Document order)
-  "Ctrl+PgUp": "previousDocument",
-  "Ctrl+Tab": ["focusPane", 1],      // the keyboard to the next pane: the sidebar, the first document, the second
-  "Ctrl+Shift+Tab": ["focusPart", 1], // the keyboard to the next part of this document: editor, preview, outline
+  "Ctrl+Tab": ["stepTab", 1],        // the next tab in tab bar order, after the last one on to the other pane's first
+  "Ctrl+Shift+Tab": ["stepTab", -1], // the previous one, before the first one on to the other pane's last
+  "F4": "previousActive",            // the document active before this one; again: back
+  "Ctrl+PgDn": ["focusPart", 1],     // the keyboard to the next part of this document: editor, preview, outline
+  "Ctrl+PgUp": ["focusPart", -1],
   "Ctrl+W": "closeTab",
   "Ctrl+F4": "closeTab",
   "Ctrl+Shift+T": "reopenTab",
