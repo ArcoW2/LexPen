@@ -3157,8 +3157,9 @@ function registerDockPanes() {
     sync: () => { if (dockShown(dockModel(), 'messages') && !messagesPane.frame) messagesPane.send(messagesState()); },
     channel: { get floating() { return messagesPane.floating; }, float: opts => messagesPane.float(opts),
       back: () => { messagesPane.toDock = true; messagesPane.back(); } } });
-  // Clipboards (stage 12): LexPen's, docked in the window's dock areas or floating; hidden at first.
-  registerDockPane('clips', { title: 'Clipboards', view: $('.mm-clips-view'), home: 'right', startHidden: true,
+  // Clipboards (stage 12): LexPen's, docked in the window's dock areas or floating; hidden at first. Floating, its window
+  // opens by its action only, not at the start (its window closed by hand, it stays floating).
+  registerDockPane('clips', { title: 'Clipboards', view: $('.mm-clips-view'), home: 'right', startHidden: true, floatsOnCall: true,
     focus: () => clipsPane.focus(),
     sync: () => { if (dockShown(dockModel(), 'clips') && !clipsPane.frame) clipsPane.send(clipsState()); },
     channel: { get floating() { return clipsPane.floating; }, float: opts => clipsPane.float(opts),
