@@ -471,11 +471,15 @@ async function fromMacrosPane(m) {
   }
   if (what === 'key') { await macroKey(name); return fillMacroWindow(name); }
   if (what === 'delete') {
+    const rest = macroWindow.names.filter(n => n !== name), at = macroWindow.names.indexOf(name);
     if (!await deleteMacro(name)) return;
-    if (macroWindow.manage) return fillMacroWindow();
+    if (macroWindow.manage) return fillMacroWindow(rest[at] ?? rest.at(-1));   // the next one; the last one deleted: the one above
     return closeMacroWindow();
   }
 }
+
+// The macros folder changed (AppHost.WatchMacros): the list again, the chosen macro kept when it is still there.
+events.macros = () => fillMacroWindow(macroWindowName());
 
 // Shown since the start (docked at a restart): Manage, with the list.
 loadMacroNames().then(names => {

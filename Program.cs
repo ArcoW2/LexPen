@@ -56,6 +56,7 @@ static class Program
         app.WatchSettings();
         app.WatchThemes();
         app.WatchLanguages();
+        app.WatchMacros();
         app.Launch(paths, shift, compare, view, edit);
         if (owner) app.Listen(name);
         Application.EnterThreadModal += ShowPointer;

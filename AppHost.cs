@@ -748,6 +748,23 @@ sealed class AppHost : ApplicationContext
             SendLook();
         };
     }
+    // The macros folder changed (a macro added, removed or renamed, also outside LexPen): every window reads the list
+    // again (Manage macros, View > Macros, F1).
+    FileSystemWatcher? macrosWatcher;
+    readonly System.Windows.Forms.Timer macrosTimer = new() { Interval = 300 };
+
+    public void WatchMacros()
+    {
+        var dir = MacroStore.Dir(DataDir);
+        try { Directory.CreateDirectory(dir); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+        macrosWatcher = Watch(dir, "*" + MacroStore.Extension, false, () => { macrosTimer.Stop(); macrosTimer.Start(); });
+        macrosTimer.Tick += (_, _) =>
+        {
+            macrosTimer.Stop();
+            foreach (var w in windows) w.Post(new JsonObject { ["event"] = "macros" });
+        };
+    }
     /// <summary>The rows of the settings window, as a main window's page describes them (actions.js).</summary>
     public JsonNode? SettingDefs { get; set; }
     readonly Dictionary<MainForm, SettingsForm> settingsWindows = [];   // per main window, at most one
