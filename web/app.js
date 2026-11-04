@@ -1973,13 +1973,22 @@ function writeDraft(doc) {
 }
 const flushDrafts = () => Promise.all([...docs].filter(d => d.draftTimer).map(writeDraft));
 
+// The name Save as offers a draft: its name as given (Rename draft), with the first extension of its language when
+// the name has none; a name with an extension of its own keeps it.
+function draftSaveName(doc) {
+  const name = doc.draftName || doc.draft;
+  if (/\.[^.]+$/.test(name)) return name;
+  const ext = packOf(doc)?.extensions?.[0];
+  return ext ? name + (ext.startsWith('.') ? ext : '.' + ext) : name;
+}
+
 // Returns false when nothing was saved (dialog cancelled, or the file is edited elsewhere).
 async function saveDoc(doc, saveAs) {
   let path = doc.path;
   const was = { path: doc.path, draft: doc.draft };   // the ruler's lines move to the new name (ruler.js)
   if (!path || saveAs) {
     path = await host('pickSave', {
-      name: path ? nameOf(path) : doc.draftName || doc.draft + '.md',   // a draft's name as given (Rename draft)
+      name: path ? nameOf(path) : draftSaveName(doc),
       dir: path ? dirOf(path) : state.root || '',
     });
     if (!path) return false;
