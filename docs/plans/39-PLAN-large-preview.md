@@ -2,18 +2,21 @@
 
 ## 1. The defect
 
-The preview of a large code file (AlleStoredProcs.sql: 7,260,535 bytes) freezes LexPen for seconds: when the
-preview is first shown, and again every time you switch to its tab. Nothing tells you what is going on, and the
-editor cannot be used meanwhile, even when the preview is not what you came for. The stall log has it too
-(11:59:12, a script ran 6360 ms; 11:59:21, 5385 ms; both AlleStoredProcs.sql).
+The preview of a large code file (AlleStoredProcs.sql: 7,260,535 bytes) freezes LexPen for seconds, and two
+things make it worse than a one-off wait:
+
+- **It comes back on every tab switch.** Switching away and back costs the same seconds again, each time.
+- **It cannot be stopped.** While it renders the app does not respond, so the preview cannot be switched off,
+  even when it is not what you came for. Nothing tells you what is going on.
+
+The stall log has it too (11:59:12, a script ran 6360 ms; 11:59:21, 5385 ms; both AlleStoredProcs.sql).
 
 ## 2. The solution, in brief
 
-The code preview is built as blocks of lines that the browser lays out only when they come into view
-(`content-visibility: auto`), so showing it or switching back to it costs about the same for a large file as for a
-small one. The build itself runs in slices between frames, with a "Rendering preview..." notice in the preview
-until it is done; the editor and the rest of the app keep responding, and a newer render (an edit, another tab)
-cancels an older one.
+Switching back to a tab no longer redoes the preview's layout: the browser lays out only the lines in view
+(blocks of lines with `content-visibility: auto`), and a tab's preview keeps its layout while another tab is
+shown. A first render runs in slices between frames with a "Rendering preview..." notice, so the app keeps
+responding: switching the preview off (or to another tab) during it stops the render.
 
 ## 3. Details
 
@@ -43,7 +46,7 @@ So the JavaScript is cheap; the cost is the layout of a block per line for the w
 
 Layout cannot run off the main thread (a worker has no DOM), and building the HTML in slices only spreads the
 part that already takes a few hundred ms. The layout has to become small. The background slices and the notice
-(3.4) are still worth having for files where building the HTML is slow (colouring is on below 2 MB:
+(3.6) are still worth having for files where building the HTML is slow (colouring is on below 2 MB:
 [not yet measured] for a large coloured file).
 
 ### 3.3 Blocks of lines
@@ -67,7 +70,30 @@ part that already takes a few hundred ms. The layout has to become small. The ba
   occurrences, the preview's scroll bar).
 - Markdown previews keep their layout; a large markdown file is not in this plan.
 
-### 3.4 Built in slices, with a notice
+### 3.4 The tab switch: keep the layout
+
+The repeated cost on a tab switch is not a rebuild (the article is kept, `tab.stale` stays false): the article is
+taken out of the page when another tab is shown (`replaceChildren` at `web/app.js:1297`), and an article taken out
+of the page loses its layout. Two ways, not exclusive:
+
+- **Blocks (3.3).** The re-layout is then only the blocks in view: measured 467 ms instead of 6529 / 7205 ms.
+- **Keep the article in the page.** Inactive tabs' articles stay in the preview element, hidden with
+  `content-visibility: hidden` (which, unlike `display: none`, keeps the rendering state), and only the active one
+  is shown. Switching back then needs no layout at all. [not yet measured]; to check: memory with many tabs open,
+  and that find, the outline and the scroll bar only see the active article.
+
+The proposal is both: blocks for the first show and for scrolling, the kept article for the switch.
+
+### 3.5 Stopping a render
+
+- During a render the app responds (3.6), so the Editor / Preview switches and the tab strip work.
+- Switching the preview off, switching tabs, or editing the text stops the render that is under way (`tab.renderId`
+  is checked between slices). The part built so far is dropped; the tab is marked `stale`, so it renders again
+  only when its preview is shown again.
+- Today the slow part is one layout of the whole file that cannot be interrupted; with blocks there is no long
+  step left to wait for.
+
+### 3.6 Built in slices, with a notice
 
 - `renderNow` for a code file builds and attaches the blocks a slice at a time (a few blocks per frame), checking
   `tab.renderId` between slices so an edit or another render stops the old one. Until the last slice: a notice at
@@ -77,7 +103,7 @@ part that already takes a few hundred ms. The layout has to become small. The ba
 - The passes after a render (preview cursors, highlights, occurrences, the scroll bar) run once, after the last
   slice.
 
-### 3.5 What to check (risks)
+### 3.7 What to check (risks)
 
 Off-screen blocks have an estimated height until first shown, and asking for a position inside one lays it out.
 To check with the large file and a small one:
@@ -90,15 +116,18 @@ To check with the large file and a small one:
 - Long lines (`mm-long-line`) and wrapping; printing / export if the preview is used for it.
 - The scroll position kept per tab (`previewTop`) landing on the same spot after a switch.
 
-### 3.6 Tests
+### 3.8 Tests
 
 - The CDP measurement of 3.1 repeated after the change: first show, switch away, switch back, scroll to the middle,
   with the numbers it gives.
+- Switching away from the large file and back, several times: each switch back is as fast as the first one after
+  the change, with the scroll position kept.
 - During a slow build: typing in the editor and switching tabs respond; the notice is shown and goes away.
-- Every check of 3.5, by hand or over CDP.
+- Switching the preview off during a build: it stops at once, the editor stays; switching it on again renders anew.
+- Every check of 3.7, by hand or over CDP.
 - Unit tests (`dotnet test tests\LexPen.Tests`) unchanged.
 
-### 3.7 Open questions
+### 3.9 Open questions
 
 1. Where the notice goes: in the preview (the proposal), in the status bar, or both?
 2. Large files: should the preview of a code file over some size not open by itself at all (only when asked
