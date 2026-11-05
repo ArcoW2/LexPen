@@ -1,0 +1,55 @@
+{
+  "path": "D:\\prive\\SynologyDrive\\Projects\\LexPen\\docs\\plans\\24-PLAN-docking.md",
+  "size": 76356,
+  "time": "639292063509084759",
+  "list": [
+    {
+      "from": [
+        16,
+        9
+      ],
+      "to": [
+        16,
+        14
+      ],
+      "text": "panes",
+      "before": "er.\n\n## 1. What this is about\n\nLexPen\u0027s ",
+      "after": " are fixed: the side pane (Folder and Se",
+      "note": "",
+      "state": "",
+      "was": null
+    },
+    {
+      "from": [
+        33,
+        0
+      ],
+      "to": [
+        33,
+        9
+      ],
+      "text": "The panes",
+      "before": "; docking must not make LexPen slower.\n\n",
+      "after": " that work on the active document (Chara",
+      "note": "This is a note",
+      "state": "",
+      "was": null
+    },
+    {
+      "from": [
+        20,
+        0
+      ],
+      "to": [
+        20,
+        7
+      ],
+      "text": "monitor",
+      "before": "older in a window of its own on another\n",
+      "after": ", or an outline at the other side of its",
+      "note": "This is a note",
+      "state": "",
+      "was": null
+    }
+  ]
+}
