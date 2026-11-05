@@ -46,8 +46,8 @@ item is a file or a folder. Its `GetState` hides an item that does not fit; its 
 
 ### 3.3 Building it
 
-- C++ needs Visual Studio's "Desktop development with C++" tools; on this PC Visual Studio 2022 and 2026 are installed
-  without them (vswhere, `Microsoft.VisualStudio.Component.VC.Tools.x86.x64`: not found). They are to be added first.
+- C++ needs Visual Studio's "Desktop development with C++" tools: added to Visual Studio 2026 on this PC (Visual
+  Studio 2022 stays without them). The build checks for them (vswhere) and says so when they are missing.
 - A project of its own in the solution (`LexPen.Shell`), built to `LexPenShell.dll`, x64, published next to the exe.
 - Explorer keeps a loaded handler DLL open: a new LexPen cannot overwrite it while Explorer runs. The publish writes
   the DLL under a versioned name and the registration points at it; an older one is removed when no longer loaded.
@@ -79,6 +79,4 @@ that would need, but packaging is not in this plan.
 
 ## 4. Open questions
 
-1. Is adding the C++ tools to Visual Studio acceptable, or should the C# handler (3.4) be weighed again despite the
-   runtime conflict?
-2. A file and a folder selected together: no items (as above), or Compare, which then fails with a message?
+1. A file and a folder selected together: no items (as above), or Compare, which then fails with a message?
