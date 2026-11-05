@@ -921,6 +921,25 @@ body { --col-guide: color-mix(in srgb, var(--col-guide-colour, var(--border)) va
 /* The preview of a code file: a block per line (data-line: outline, scroll sync); an empty line keeps its height. */
 .mm-preview pre.mm-code { font: var(--editor-size)/var(--editor-line) var(--editor-font); }
 .mm-code > div { min-height: 1em; }
+
+/* The preview of a CSV: the column view (csvview.js). Every row one line high; the body is as high as all rows, the
+   rows in view drawn at their place (--first). */
+.mm-csv { --csv-row: calc(var(--editor-size) * var(--editor-line)); width: max-content; min-width: 100%;
+  font: var(--editor-size)/var(--editor-line) var(--editor-font); }
+.mm-csv-pre { margin-bottom: .5em; color: var(--fg-dim); }
+.mm-csv-pre summary { cursor: pointer; }
+.mm-csv-pre pre { margin: .3em 0 0; font: inherit; }
+.mm-csv-head, .mm-csv-row { display: flex; height: var(--csv-row); white-space: pre; }
+.mm-csv-head { font-weight: 700; background: var(--bg); border-bottom: 1px solid var(--border); }
+.mm-csv-sticky .mm-csv-head { position: sticky; top: 0; z-index: 1; }
+.mm-csv-body { position: relative; height: calc(var(--rows) * var(--csv-row)); }
+.mm-csv-rows { position: absolute; left: 0; right: 0; top: calc(var(--first, 0) * var(--csv-row)); }
+.mm-csv-cell { flex: none; box-sizing: content-box; padding: 0 .6ch; overflow: hidden; text-overflow: ellipsis;
+  border-right: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
+.mm-csv-right { text-align: right; }
+.mm-csv-row:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.mm-csv-bad { text-decoration: underline wavy var(--warning); text-decoration-skip-ink: none; }
+.mm-csv-problem { background: color-mix(in srgb, var(--warning) 12%, transparent); }
 .mm-editor-pane[data-lang] .CodeMirror .cm-error { background: none; }   /* powershell marks tokens it does not know */
 
 /* Find bar of a pane (find.js), between its tabs and its content. */

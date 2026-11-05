@@ -108,6 +108,8 @@
                                   // not read as their code in a box (0x1B, U+200B, 0xAB)
 
   // ---------- Preview ----------
+  "csvMaxWidth": 40,              // a CSV in the preview: the widest column, in characters
+  "csvStickyHeader": true,        // a CSV in the preview: the column names stay at the top while scrolling
   "lineBreaks": false,            // a single line break starts a new line (off: joins the lines, as on GitHub)
   "zoom": 1,                      // preview zoom: 1 is 100%, 0.5 to 3
   "previewThemeLight": "",        // the preview in light mode: "" is the app's theme, else a theme of its own

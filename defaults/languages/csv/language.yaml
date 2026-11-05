@@ -1,0 +1,8 @@
+# CSV: values in columns, a delimiter between them (docs/plans/29-PLAN-csv-columns.md). The editor shows the file as
+# it is; the preview is the column view (csvview.js), read by a definition detected from the text.
+# Every part is explained in languages\_template\language.yaml.
+name: CSV
+extensions: [.csv, .tsv, .tab, .psv]
+aliases: [tsv]   # other names it is known by (a markdown fence ```tsv, an embedded block); see languages\README.md
+open: split
+fold: none
