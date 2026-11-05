@@ -2548,8 +2548,6 @@ const folderPane = paneChannel({ id: 'folder', page: 'folder.html', title: 'Fold
   state: () => folderPaneState(), receive: (m, from) => fromFolder(m, from),
   onFloat: () => setDockFloating('folder', true), onDock: () => setDockFloating('folder', false) });
 const toFolder = msg => folderPane.send(msg);
-const floatFolder = () => folderPane.float();
-const folderBack = () => folderPane.back();
 
 // What it shows, for a page that starts showing it.
 function folderPaneState() {
@@ -4841,12 +4839,15 @@ function openTreeMenu(row, x, y) {
     const one = ui.treeMenu.querySelector('[data-cmd=treeDeleteBackup]'), all = ui.treeMenu.querySelector('[data-cmd=treeDeleteBackups]');
     one.hidden = !file || !row.backup;
     one.textContent = `Delete ${nameOf(contextPath)}.bak`;
+    // A CSV's definition next to it (plan 29): its file deleted, LexPen keeps the definition (csvview.js).
+    const cols = ui.treeMenu.querySelector('[data-cmd=treeDeleteColumns]');
+    cols.hidden = !file || !row.columns;
+    cols.textContent = `Delete ${nameOf(contextPath)}-metadata.json`;
     all.hidden = true;
     const asked = contextPath;
     if (!file && !row.up && !row.gone)
       host('hasBackups', { path: asked }).then(has => { if (contextPath === asked) all.hidden = !has; }).catch(() => {});
     ui.treeMenu.querySelector('[data-cmd=treeCopyName]').textContent = file ? 'Copy file name' : 'Copy folder name';
-    ui.treeMenu.querySelector('[data-cmd=folderFloat]').textContent = folderPane.floating ? 'Back in the window' : 'Float the folder pane in a window of its own';
   });
 }
 document.addEventListener('contextmenu', e => {
@@ -5272,6 +5273,7 @@ const commands = {
   treeCopyName: () => copyText(nameOf(contextPath.replace(/\\$/, '')) || contextPath),   // a drive (D:\): as it is
   treeDeleteBackup: () => deleteBackups(contextPath),
   treeDeleteBackups: () => deleteBackups(contextPath, true),
+  treeDeleteColumns: () => csvDeleteBeside(contextPath),
   favouriteToggle: () => toggleFavourite(activeDoc()?.path),
   tabFavourite: () => menuTab && toggleFavourite(menuTab.doc.path),
   treeFavourite: () => toggleFavourite(contextPath, contextKind),
@@ -5281,7 +5283,6 @@ const commands = {
     const under = contextPath.replace(/\\$/, '').toLowerCase() + '\\';
     return openFolder(contextPath, treeOpen.filter(dir => dir.toLowerCase().startsWith(under)));
   },
-  folderFloat: () => folderPane.floating ? folderBack() : floatFolder(),
   treeCompareActive: () => activeTab() && startCompare({ tab: activeTab() }, { path: contextPath }),
   async treeCompareWith() {
     const left = contextPath, [right] = await host('pickFile', { one: true, at: left }) ?? [];

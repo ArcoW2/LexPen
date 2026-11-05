@@ -42,6 +42,19 @@ async function csvSaveBeside(doc) {
   } catch (e) { toast(`The definition could not be saved: ${e.message ?? e}`); }
 }
 
+// Keep in LexPen instead (the Columns pane; the Folder pane's Delete name.csv-metadata.json): the file's definition
+// next to it to the Recycle Bin, what it held kept in LexPen's store (the host); an open document goes on with it there.
+async function csvDeleteBeside(path) {
+  let deleted = false;
+  try { ({ deleted } = await host('columnsDeleteBeside', { path })); }
+  catch (e) { return toast(`The definition file could not be deleted: ${e.message ?? e}`); }
+  toast(deleted ? `${nameOf(path)}-metadata.json deleted (Recycle Bin); LexPen keeps the definition.` : `${nameOf(path)}-metadata.json was not deleted.`, deleted);
+  const doc = findDoc(path);
+  if (deleted && doc) doc.csvBeside = null;
+  if (typeof tellColumnsPane === 'function') tellColumnsPane();
+  if (state.root) refreshTree(false);
+}
+
 // The document read as CSV, kept until its text changes: { gen, text, def, read, lines (the source line each row
 // starts on), widths (per column, in characters), longest (per column, its longest value as shown), order (the shown
 // columns as shown), slots (every column in its place: a hidden one as a thin mark) }.

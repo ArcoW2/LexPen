@@ -64,8 +64,13 @@ function drawAll(keepFocus) {
   const f = cp.found, before = f?.pre.filter((_, i) => i !== cp.draft.header - 1) ?? [];   // the header line aside
   $c('.cp-note').textContent = f ? `${f.rows.toLocaleString()} rows${f.partial ? ' in the first 64 KB' : ''}, ${cp.draft.columns.length} columns` +
     (before.length ? `; before the data: ${before.map(l => JSON.stringify(l)).slice(0, 3).join(', ')}` : '') : '';
-  $c('.cp-save').disabled = !cp.state?.path;
-  $c('.cp-save').textContent = cp.state?.beside ? 'Saved next to the file' : 'Save next to the file';
+  // Where the definition is kept: LexPen's own store (the default), or a file next to the CSV; the button moves it.
+  const save = $c('.cp-save'), file = cp.state?.beside?.replace(/^.*[\\/]/, '');
+  save.disabled = !cp.state?.path;
+  save.textContent = file ? 'Keep in LexPen instead' : 'Save next to the file';
+  save.title = file ? `The definition is kept in ${file} next to the CSV. This deletes that file (Recycle Bin) and LexPen keeps the definition itself`
+    : 'LexPen keeps the definition itself (in its data folder). This applies it and saves it as name.csv-metadata.json next to the CSV ' +
+      '(CSV on the Web, which other tools read too), to share it or keep it in source control; Apply then writes there';
 }
 
 function drawFile() {
@@ -265,7 +270,7 @@ function apply(kind = 'apply') {
   toWindow({ kind, def: cp.draft });
 }
 $c('.cp-apply').addEventListener('click', () => apply());
-$c('.cp-save').addEventListener('click', () => apply('saveBeside'));
+$c('.cp-save').addEventListener('click', () => cp.state?.beside ? toWindow({ kind: 'deleteBeside' }) : apply('saveBeside'));
 $c('.cp-revert').addEventListener('click', () => { if (cp.state) paneHandlers.columns(cp.state); });
 $c('.cp-detect').addEventListener('click', () => toWindow({ kind: 'detect' }));
 $c('.cp-info').addEventListener('click', () => toWindow({ kind: 'info' }));

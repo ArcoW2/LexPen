@@ -63,6 +63,7 @@ function fromColumnsPane(m) {
     const text = colsText(doc), def = csvDetect(text);
     return colsChannel.send({ kind: 'probe', def, found: colsFound(text, def, false), detected: true });
   }
+  if (m.kind === 'deleteBeside') return doc.path && csvDeleteBeside(doc.path);   // Keep in LexPen instead
   if (m.kind === 'apply' || m.kind === 'saveBeside') {
     csvApply(doc, m.def);
     if (m.kind === 'saveBeside' && !doc.csvBeside) csvSaveBeside(doc).then(tellColumnsPane);

@@ -102,6 +102,7 @@ async function fill(container, path, depth) {
       row.append(Object.assign(document.createElement('span'), { className: 'mm-backup-dot', title: 'A backup file exists next to this file' }));
     }
     if (item.columns) {   // a CSV definition next to it (plan 29)
+      row.classList.add('mm-has-columns');
       row.title += `\nHas a CSV definition (${item.name}-metadata.json)`;
       row.append(Object.assign(document.createElement('span'), { className: 'mm-columns-mark', title: `Has a CSV definition (${item.name}-metadata.json)` }));
     }
@@ -232,7 +233,7 @@ tree.addEventListener('contextmenu', e => {
   if (!row) return;
   const has = c => row.classList.contains(c);
   toWindow({ kind: 'menu', x: e.clientX, y: e.clientY, path: row.dataset.path, dir: has('mm-dir'), base: has('mm-base'),
-    up: has('mm-up'), gone: has('mm-gone'), backup: has('mm-has-backup') });
+    up: has('mm-up'), gone: has('mm-gone'), backup: has('mm-has-backup'), columns: has('mm-has-columns') });
 });
 
 // Docked (a frame of another site than the window): the browser lets no drag from here drop in the window around it,

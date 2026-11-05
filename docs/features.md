@@ -381,7 +381,8 @@ every action with its key.
   alignment, trim, shown, width and order; ticked columns take a value set in one of them; a warning counts the values
   that do not fit; the Definition tab shows it all as CSV on the Web (CSVW) text. Apply keeps it in LexPen
   (`file-columns.json`), or next to the file after Save next to the file (`name.csv-metadata.json`, which other tools
-  read too; the Folder pane marks such a file); a definition from there is read first, also the folder's
+  read too; the Folder pane marks such a file, its right-click deletes that file, and the pane's Keep in LexPen
+  instead does too, LexPen keeping the definition); a definition from there is read first, also the folder's
   `csv-metadata.json`. In the column view the header is the ruler: drag an edge to size a column (double click: to its
   longest value), drag a name to move it. A right-click on a column opens a small box beside it (its title drags it;
   the next one opens where it was left) with that column's settings (name, type, quotes, Read as, format, alignment,

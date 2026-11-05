@@ -816,6 +816,17 @@ sealed class MainForm : Form
             case "columnsSaveBeside":
                 return ColumnStore.SaveBeside(Arg("path"), msg["table"]!.AsObject());
 
+            // The file's own definition next to it (name.csv-metadata.json) to the Recycle Bin, as a .bak file goes; what
+            // it held is kept in LexPen's store, so the file still reads the same.
+            case "columnsDeleteBeside":
+            {
+                var path = Arg("path");
+                if (ColumnStore.Beside(path) is var (beside, table) && beside == ColumnStore.OwnName(path))
+                    app.Columns.Set(BookmarkStore.Key(path, null), table);
+                var (deleted, _) = Backups.Delete([ColumnStore.OwnName(path)]);
+                return new JsonObject { ["deleted"] = deleted > 0 };
+            }
+
             // After a reload from disk: the bookmarks the file had, placed in its new text.
             case "bookmarksResolve":
                 return BookmarkStore.Resolve(msg["list"]!.AsArray(), Arg("text"));
