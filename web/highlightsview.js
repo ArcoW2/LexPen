@@ -65,7 +65,8 @@ function files() {
   const shown = view.shown;
   if (view.scope === 'file') return shown ? [{ path: shown.path, draft: shown.draft, name: shown.name, list: shown.list, live: true }] : [];
   const all = (view.all ?? []).map(f => ({ ...f, name: f.path ? nameOf(f.path) : 'Draft ' + f.draft,
-    list: (f.list ?? []).map((h, i) => ({ id: null, index: i, line: h.from ? h.from[0] : null, text: h.text ?? '', note: h.note ?? '', state: h.state ?? '', was: h.was ?? null })) }));
+    list: (f.list ?? []).map((h, i) => ({ id: null, index: i, line: Array.isArray(h.from) ? h.from[0] : h.page ? h.page - 1 : null, page: h.page ?? null,
+      text: h.text ?? '', note: h.note ?? '', state: h.state ?? '', was: h.was ?? null })) }));
   const same = f => shown && (shown.path ? f.path && f.path.toLowerCase() === shown.path.toLowerCase() : f.draft === shown.draft);
   const rest = all.filter(f => !same(f));
   return shown?.list.length ? [{ path: shown.path, draft: shown.draft, name: shown.name, list: shown.list, live: true }, ...rest] : rest;
@@ -88,8 +89,10 @@ function draw() {
       if (group) out.push(`<div class="hv-group-sub">${group}</div>`);
       for (const h of list) {
         const i = view.items.push({ file: f, h }) - 1;
-        out.push(`<div class="hv-item${h.state ? ' hv-' + h.state : ''}" data-i="${i}" title="${escapeHtml(h.note || h.text)}">` +
-          `<span class="hv-line">${h.line == null ? '' : h.line + 1}</span><span class="hv-text">${marked(h.text.replace(/\s+/g, ' '), ws)}</span>` +
+        // A PDF's: its page (p. 12); the PDF's own highlight annotations marked, and, kept elsewhere, not to be changed.
+        const own = h.own ? (h.fixed ? 'The PDF\'s own highlight (in the file; keep the highlights inside the PDF to change it)' : 'In the PDF') : '';
+        out.push(`<div class="hv-item${h.state ? ' hv-' + h.state : ''}${h.own ? ' hv-own' : ''}" data-i="${i}" title="${escapeHtml([h.note || h.text, own].filter(Boolean).join('\n'))}">` +
+          `<span class="hv-line">${h.page ? 'p.' + h.page : h.line == null ? '' : h.line + 1}</span><span class="hv-text">${h.own ? '<span class="hv-own-sign">PDF</span>' : ''}${marked(h.text.replace(/\s+/g, ' '), ws)}</span>` +
           (h.note ? `<span class="hv-note">${marked(h.note, ws)}</span>` : '') +
           (h.state === 'adjusted' && h.was != null ? `<span class="hv-was">The text was: ${escapeHtml(h.was.replace(/\s+/g, ' '))}</span>` : '') + '</div>');
       }

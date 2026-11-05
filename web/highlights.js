@@ -293,6 +293,7 @@ events.highlights = ({ path, draft }) => {
 function goHighlight(pane, dir) {
   const tab = pane.active, doc = tab?.doc;
   if (!doc) return;
+  if (doc.pdf) return pdfHlGo(pane, dir);
   const text = docText(doc);
   const spots = placedHls(doc).map(h => { const r = hlRange(doc, h); return r && { h, a: hlOffset(text, r.from), b: hlOffset(text, r.to) }; })
     .filter(Boolean).sort((x, y) => x.a - y.a);
@@ -432,6 +433,7 @@ function cursorOffset(pane) {
 async function highlightToggle(pane) {
   const doc = pane.active?.doc;
   if (!doc) return;
+  if (doc.pdf) return pdfHlToggle(pane);   // a PDF's (pdfhighlights.js)
   await loadHighlights(doc);
   const ranges = selectedRanges(pane);
   if (ranges === null) return;
@@ -445,6 +447,7 @@ async function highlightToggle(pane) {
 async function highlightFromSelection(pane) {
   const doc = pane.active?.doc;
   if (!doc) return;
+  if (doc.pdf) return pdfHlToggle(pane);
   await loadHighlights(doc);
   const ranges = selectedRanges(pane);
   if (ranges?.length) addHighlights(doc, ranges);
@@ -454,6 +457,7 @@ async function highlightFromSelection(pane) {
 async function highlightRemove(pane) {
   const doc = pane.active?.doc;
   if (!doc) return;
+  if (doc.pdf) return pdfHlRemoveSelected(pane);
   await loadHighlights(doc);
   const ranges = selectedRanges(pane) ?? [];
   const hit = ranges.length ? ranges.flatMap(([a, b]) => highlightsAt(doc, a, b)) : highlightsAt(doc, cursorOffset(pane) ?? -1);
@@ -472,6 +476,7 @@ async function removeHighlights(doc, list) {
 async function highlightClear(pane) {
   const doc = pane.active?.doc;
   if (!doc) return;
+  if (doc.pdf) return pdfHlClear(pane);
   await loadHighlights(doc);
   const list = hlsOf(doc).list, notes = list.filter(h => h.note).length;
   if (!list.length) return toast('No highlights in this document.', true);
@@ -486,6 +491,7 @@ async function highlightClear(pane) {
 async function highlightNote(pane, target) {
   const doc = pane.active?.doc;
   if (!doc) return;
+  if (doc.pdf) return target ? pdfHlNote(doc, target) : pdfHlNoteSelected(pane);
   await loadHighlights(doc);
   let h = target, ranges = [];
   if (!h) {
@@ -572,14 +578,15 @@ function noteBox(value, text) {
   return new Promise(resolve => dialog.addEventListener('close', () => resolve(dialog.returnValue === 'ok' ? area.value : null), { once: true }));
 }
 
-// A question with OK and Cancel (the page's own: the viewer shows no confirm()).
-function confirmBox(question) {
-  const dialog = $('.mm-confirm-dialog');
+// A question with OK and Cancel (the page's own: the viewer shows no confirm()); `ok`: the OK button's own name.
+function confirmBox(question, ok) {
+  const dialog = $('.mm-confirm-dialog'), button = dialog.querySelector('[value=ok]'), name = button.textContent;
   dialog.querySelector('.mm-confirm-text').textContent = question;
+  if (ok) button.textContent = ok;
   dialog.returnValue = '';
   dialog.showModal();
-  dialog.querySelector('[value=ok]').focus();
-  return new Promise(resolve => dialog.addEventListener('close', () => resolve(dialog.returnValue === 'ok'), { once: true }));
+  button.focus();
+  return new Promise(resolve => dialog.addEventListener('close', () => { button.textContent = name; resolve(dialog.returnValue === 'ok'); }, { once: true }));
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -599,6 +606,7 @@ function tellHighlightsWindow() {
     for (const pane of panes) {
       const doc = pane.active?.doc, at = { pane: pane.index, active: pane.index === state.activePane };
       if (!doc) { host('highlightsShown', { ...at, none: true }).catch(() => {}); continue; }
+      if (doc.pdf) { host('highlightsShown', { ...at, path: doc.path, name: docName(doc), list: pdfHlPaneList(doc) }).catch(() => {}); continue; }
       const text = docText(doc);
       const list = hlsOf(doc).list.map(h => {
         const r = hlRange(doc, h);
@@ -621,6 +629,12 @@ events.highlightGo = async ({ path, id, from, to, line, text: wanted, pane: inde
     doc = tab.doc;
   }
   if (!doc) return;
+  if (doc.pdf) {   // a PDF's: by its id, else by its page and text (pdfhighlights.js)
+    await pdfHlLoad(doc);
+    const list = pdfHlsOf(doc).list, h = list.find(x => x.id === id && !path) ?? list.find(x => x.text === wanted) ?? null;
+    if (h) pdfSend(pane.active, { kind: 'showHighlight', page: h.page, from: h.from, to: h.to });
+    return;
+  }
   await loadHighlights(doc);
   let h = id != null && !path ? hlsOf(doc).list.find(x => x.id === id) : null;
   if (!h && from != null) {
@@ -639,6 +653,13 @@ events.highlightGo = async ({ path, id, from, to, line, text: wanted, pane: inde
 // The window's right-click on a highlight of the document shown.
 events.highlightAction = async ({ action, id, pane: index }) => {
   const pane = panes[index ?? state.activePane], doc = pane.active?.doc;
+  if (doc?.pdf) {   // a PDF's (pdfhighlights.js)
+    const p = pdfHlsOf(doc).list.find(x => x.id === id);
+    if (!p) return;
+    if (action === 'remove') return pdfHlRemove(doc, [p]);
+    if (action === 'note') return pdfHlNote(doc, p);
+    return;
+  }
   const h = doc && hlsOf(doc).list.find(x => x.id === id);
   if (!h) return;
   if (action === 'remove') await removeHighlights(doc, [h]);

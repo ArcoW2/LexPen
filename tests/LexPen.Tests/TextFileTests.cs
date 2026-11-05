@@ -105,6 +105,16 @@ public class TextFileTests : IDisposable
     }
 
     [Fact]
+    public void BytesAreWrittenAsTheyAreWithTheBackup()
+    {
+        var path = FileWith([0x25, 0x50, 0x44, 0x46, 0x00, 0xFF]);   // a PDF's bytes: a zero byte, not text
+        byte[] next = [0x25, 0x50, 0x44, 0x46, 0x00, 0xFE, 0x01];
+        TextFile.WriteBytes(path, next, backup: true);
+        Assert.Equal(next, File.ReadAllBytes(path));
+        Assert.Equal([0x25, 0x50, 0x44, 0x46, 0x00, 0xFF], File.ReadAllBytes(path + ".bak"));
+    }
+
+    [Fact]
     public void LeavesNoTemporaryFiles()
     {
         var path = FileWith("one"u8.ToArray());

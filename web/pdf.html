@@ -14,6 +14,12 @@
     color: var(--pdf-fg, #ddd); font: 14px system-ui, sans-serif; text-align: center; }
   #pdf-error[hidden] { display: none; }   /* else its display above wins over hidden, and it covers the PDF */
   #pdf-scroll:focus { outline: none; }
+  /* Highlights (pdf-pane.js): a layer between a page and its text layer; the highlight look of the preview. */
+  .pdf-hl-layer { position: absolute; inset: 0; pointer-events: none; }
+  .pdf-hl { position: absolute; background: var(--pdf-hl); border-radius: 2px; }
+  .pdf-hl.pdf-hl-under { background: none; border-bottom: 2px solid var(--pdf-hl-line); }
+  .pdf-hl.pdf-hl-blink { background: rgb(255 140 0 / .6); }
+  .pdf-hl-sign { position: absolute; width: 6px; height: 6px; margin: 1px 0 0 1px; border-radius: 50%; background: var(--pdf-hl-line); }
 </style>
 </head>
 <body>

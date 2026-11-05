@@ -17,6 +17,9 @@
 .hv-item:hover { background: var(--hover); }
 .hv-item.hv-on { background: var(--active); border-left-color: var(--accent); }
 .hv-line { color: var(--fg-dim); text-align: right; font-variant-numeric: tabular-nums; }
+/* A PDF's own highlight annotation (pdfhighlights.js): a small PDF mark before its text. */
+.hv-own-sign { display: inline-block; margin-right: 5px; padding: 0 3px; border: 1px solid var(--border); border-radius: 3px;
+  font-size: .75em; color: var(--fg-dim); vertical-align: 1px; }
 .hv-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hv-text b { background: var(--highlight); color: inherit; font-weight: normal; border-radius: 2px; }
 .hv-note { grid-column: 2; color: var(--fg-dim); white-space: pre-wrap; overflow-wrap: anywhere; }

@@ -11,8 +11,10 @@ const pdfFrames = new Map();   // a frame's window -> its tab
 
 // Follow the theme or the original: per file (the host keeps it, as a file's language); the threshold is a setting.
 const pdfLook = doc => doc.pdfLook ?? 'theme';
+// With the rest the host keeps of the PDF (doc.pdfPrefs): where its highlights are kept, and whether it is read-only.
 async function loadPdfLook(doc) {
-  try { doc.pdfLook = (await host('pdfLookGet', { path: doc.path }))?.look ?? 'theme'; } catch { doc.pdfLook = 'theme'; }
+  try { doc.pdfPrefs = await host('pdfLookGet', { path: doc.path }) ?? {}; } catch { doc.pdfPrefs = {}; }
+  doc.pdfLook = doc.pdfPrefs.look ?? 'theme';
 }
 
 // The mode the PDF follows: the preview's (its own theme's, when it has one), from its background's lightness.
@@ -144,9 +146,10 @@ function pdfTellAll() {
 }
 
 // The right-click on the PDF (its frame tells where): the look and the threshold.
-function pdfMenu(tab, x, y) {
+function pdfMenu(tab, x, y, m = {}) {
   const r = tab.pdf.frame.getBoundingClientRect(), doc = tab.doc, t = setting('pdfThreshold') ?? 50, following = pdfLook(doc) !== 'original';
   openPopupMenu([
+    ...(typeof pdfHlMenuItems === 'function' ? pdfHlMenuItems(tab, m) : []),   // its highlights (pdfhighlights.js)
     { label: 'Follow the &theme', checked: following, run: () => pdfSetLook(doc, 'theme') },
     { label: '&Original', checked: !following, run: () => pdfSetLook(doc, 'original') },
     '-',
@@ -170,8 +173,11 @@ addEventListener('message', e => {
   }
   else if (m.kind === 'outline') pdfOutline(tab.doc, m.entries);
   // Loaded (again: the tab was moved, or shown again in its pane): the place it had, when it had one.
-  else if (m.kind === 'ready') pdfSend(tab, { ...(tab.pdf.state ?? {}), kind: 'restore' });
-  else if (m.kind === 'menu') pdfMenu(tab, m.x, m.y);
+  else if (m.kind === 'ready') { pdfSend(tab, { ...(tab.pdf.state ?? {}), kind: 'restore' }); pdfHlSend(tab); }
+  else if (m.kind === 'menu') pdfMenu(tab, m.x, m.y, m);
+  else if (m.kind === 'selection') tab.pdf.selection = m.parts;   // for Highlight from the keys (pdfhighlights.js)
+  else if (m.kind === 'annotations') pdfHlAnnotations(tab.doc, m);
+  else if (m.kind === 'saved') { for (const resolve of pdfHl.saving.values()) resolve(m); }
   else if (m.kind === 'activate') { const pane = paneOf(tab); if (pane && pane.index !== state.activePane) setActivePane(pane.index); }
   else if (m.kind === 'key') document.dispatchEvent(new KeyboardEvent('keydown', { key: m.key, code: m.code, ctrlKey: m.ctrlKey,
     shiftKey: m.shiftKey, altKey: m.altKey, metaKey: m.metaKey, bubbles: true, cancelable: true }));
