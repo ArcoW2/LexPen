@@ -224,7 +224,7 @@ body[data-orient=h] .mm-orient::before { content: "Above each other"; }
 .mm-pal-replaced { color: var(--fg-dim); }
 .mm-pal-fixed td { color: var(--fg-dim); }
 .mm-palette mark { background: rgba(255, 200, 0, .45); color: inherit; border-radius: 2px; }
-.mm-pal-foot { flex: none; margin: 8px 0 0; font-size: calc(12px * var(--ui-scale)); }
+.mm-pal-foot { margin: 0 0 8px; color: var(--fg-dim); font-size: calc(12px * var(--ui-scale)); }
 .mm-preview kbd, .mm-palette kbd {
   padding: 1px 5px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 4px;
   background: var(--bg-code); font: .85em Consolas, monospace;

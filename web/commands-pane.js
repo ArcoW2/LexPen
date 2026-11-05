@@ -9,7 +9,6 @@ const cp = {
   jump: document.querySelector('.mm-pal-jump'),
   list: document.querySelector('.mm-pal-list'),
   marks: document.querySelector('.mm-pal-marks'),
-  foot: document.querySelector('.mm-pal-foot'),
   selected: -1,
 };
 const escapeHtml = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -19,9 +18,9 @@ paneHandlers.commands = ({ html, sections, foot, q }) => {
   const searched = cp.list.dataset.q !== q;
   cp.list.dataset.q = q;
   const top = cp.list.scrollTop;
-  cp.list.innerHTML = html;
+  // Where your own keys are: above the table, so it scrolls away with it.
+  cp.list.innerHTML = `<p class="mm-pal-foot">${escapeHtml(foot)}</p>` + html;
   cp.jump.innerHTML = '<option value="">Go to section...</option>' + sections.map((s, i) => `<option value="${i}">${escapeHtml(s)}</option>`).join('');
-  cp.foot.textContent = foot;
   // The same search again (a family opened, the focus back): the place stays; a new one starts at the top.
   if (searched) { cp.list.scrollTop = 0; select(firstRow(), 0); }
   else { cp.list.scrollTop = top; select(Math.max(0, cp.selected), 0); }
