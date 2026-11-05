@@ -196,8 +196,11 @@
 
 <!-- F1: every action with its key; Enter runs the selected one (palette.js). -->
 <dialog class="mm-about mm-palette">
-  <input class="mm-pal-search" type="text" spellcheck="false" placeholder="Search a command, key or name; Enter runs it">
-  <div class="mm-pal-list"></div>
+  <div class="mm-pal-top">
+    <input class="mm-pal-search" type="text" spellcheck="false" placeholder="Search a command, key or name; Enter runs it">
+    <select class="mm-pal-jump" aria-label="Go to a section"></select>
+  </div>
+  <div class="mm-pal-body"><div class="mm-pal-list"></div><div class="mm-pal-marks" aria-hidden="true"></div></div>
   <p class="mm-pal-foot"></p>
 </dialog>
 

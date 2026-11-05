@@ -61,6 +61,8 @@ const palette = {
   dialog: document.querySelector('.mm-palette'),
   input: document.querySelector('.mm-pal-search'),
   list: document.querySelector('.mm-pal-list'),
+  jump: document.querySelector('.mm-pal-jump'),
+  marks: document.querySelector('.mm-pal-marks'),
   foot: document.querySelector('.mm-pal-foot'),
   rows: [],          // the rows shown: { name, params, folded }
   selected: -1,      // index in rows of the selected (runnable) row
@@ -98,12 +100,14 @@ function renderPalette() {
   const entries = paletteEntries().filter(e => !q ||
     [e.keys.join(' '), e.title, e.hint, callId([e.name, ...e.params])].some(t => t.toLowerCase().includes(q)));
   palette.rows = [];
+  const sections = [];
+  const sectionHead = label => `<tr data-section="${sections.push(label) - 1}"><th colspan="3">${escapeHtml(label)}</th></tr>`;
   let html = '';
   for (const [group, label] of ACTION_GROUPS) {
     let list = entries.filter(e => e.group === group);
     if (!list.length) continue;
     list = [...list.filter(e => e.keys.length), ...list.filter(e => !e.keys.length)];   // no key: at the end
-    html += `<tr><th colspan="3">${label}</th></tr>`;
+    html += sectionHead(label);
     for (let i = 0; i < list.length; i++) {
       const e = list[i], family = list.filter(f => f.name === e.name);
       // A numbered family is one row until searched for or opened (Enter).
@@ -111,7 +115,7 @@ function renderPalette() {
         if (family[0] !== e) continue;
         const def = actionDef(e.name), first = family[0].keys[0], last = family.at(-1).keys[0];
         palette.rows.push({ name: e.name, params: [], folded: true });
-        html += `<tr class="mm-pal-row" data-row="${palette.rows.length - 1}"><td>${first && last ? escapeHtml(first + ' .. ' + last) : '<i>no key</i>'}</td>` +
+        html += `<tr class="mm-pal-row" data-row="${palette.rows.length - 1}"><td>${first && last ? `<span class="mm-pal-key">${escapeHtml(first)} ..</span> <span class="mm-pal-key">${escapeHtml(last)}</span>` : '<i>no key</i>'}</td>` +
           `<td>${escapeHtml(def.title)} n<span class="mm-pal-hint">${escapeHtml(def.hint || '')} (Enter: show all)</span></td><td class="mm-pal-name">${escapeHtml(e.name)}</td></tr>`;
         continue;
       }
@@ -120,20 +124,42 @@ function renderPalette() {
       palette.rows.push({ name: e.name, params: e.params, folded: false, available });
       // Your own keys are marked; a default key that no longer runs this action is shown struck through.
       const replaced = (keys.defaults.get(callId([e.name, ...e.params])) ?? []).filter(k => !e.keys.includes(k));
-      const keyCell = (e.keys.length ? e.keys.map(k => keys.user.has(k) ? `<span class="mm-pal-mine" title="Your keys.json">${markIn(k, q)}</span>` : markIn(k, q)).join(' ') : '<i>no key</i>') +
-        replaced.map(k => ` <s class="mm-pal-replaced" title="Default, replaced in your keys.json">${escapeHtml(k)}</s>`).join('');
+      const keyCell = (e.keys.length ? e.keys.map(k => keys.user.has(k) ? `<span class="mm-pal-key mm-pal-mine" title="Your keys.json">${markIn(k, q)}</span>` : `<span class="mm-pal-key">${markIn(k, q)}</span>`).join(' ') : '<i>no key</i>') +
+        replaced.map(k => ` <s class="mm-pal-key mm-pal-replaced" title="Default, replaced in your keys.json">${escapeHtml(k)}</s>`).join('');
       html += `<tr class="mm-pal-row${available ? '' : ' mm-pal-off'}" data-row="${palette.rows.length - 1}"><td>${keyCell}</td>` +
         `<td>${markIn(e.title, q)}<span class="mm-pal-hint">${markIn(e.hint, q)}${why ? ` (${why})` : ''}</span></td>` +
         `<td class="mm-pal-name">${markIn(e.params.length ? JSON.stringify([e.name, ...e.params]) : e.name, q)}</td></tr>`;
     }
   }
   if (!q) for (const [group, rows] of FIXED_KEYS)
-    html += `<tr><th colspan="3">${group} (fixed keys)</th></tr>` + rows.map(([k, t]) => `<tr class="mm-pal-fixed"><td>${escapeHtml(k)}</td><td>${escapeHtml(t)}</td><td></td></tr>`).join('');
+    html += sectionHead(`${group} (fixed keys)`) + rows.map(([k, t]) => `<tr class="mm-pal-fixed"><td>${escapeHtml(k)}</td><td>${escapeHtml(t)}</td><td></td></tr>`).join('');
   // The column names stay on top while the list scrolls; a group's header stays just under them.
   palette.list.innerHTML = '<table><thead><tr class="mm-pal-head"><th>Keys</th><th>Command</th><th>Action</th></tr></thead>' +
     `<tbody>${html || '<tr><td>Nothing found.</td></tr>'}</tbody></table>`;
+  palette.jump.innerHTML = '<option value="">Go to section...</option>' + sections.map((s, i) => `<option value="${i}">${escapeHtml(s)}</option>`).join('');
   selectPaletteRow(palette.rows.findIndex(r => r.folded || r.available), 0);
+  markSections();
 }
+
+// Where a section's header is in the list (its scroll position), and a mark per section on the scrollbar.
+const sectionTop = tr => tr.getBoundingClientRect().top - palette.list.getBoundingClientRect().top + palette.list.scrollTop;
+function markSections() {
+  const { scrollHeight, clientHeight } = palette.list;
+  palette.marks.replaceChildren(...(scrollHeight > clientHeight ? [...palette.list.querySelectorAll('[data-section]')] : []).map(tr => {
+    const mark = document.createElement('div');
+    mark.style.top = Math.round(sectionTop(tr) / scrollHeight * clientHeight) + 'px';
+    return mark;
+  }));
+}
+new ResizeObserver(() => { if (palette.dialog.open) markSections(); }).observe(palette.list);
+
+// The section list: its header at the top, under the column names; the focus back in the search.
+palette.jump.addEventListener('change', () => {
+  const tr = palette.list.querySelector(`[data-section="${palette.jump.value}"]`);
+  if (tr) palette.list.scrollTop = sectionTop(tr) - palette.list.querySelector('thead').offsetHeight;
+  palette.jump.value = '';
+  palette.input.focus();
+});
 
 // Moves the selection to row `from` or the next runnable one in direction `dir` (0: that row or after it).
 function selectPaletteRow(from, dir) {
