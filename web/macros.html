@@ -10,8 +10,14 @@
     font-family: var(--app-font); font-size: calc(13px * var(--ui-scale, 1)); }
   .mp-body { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; overflow: auto; }
   .mp-title { margin: 0; font-size: 1.15em; font-weight: 600; }
-  .mp-list { flex: 1 1 auto; min-height: 6em; width: 100%; font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--border); }
+  .mp-list { flex: 1 1 auto; min-height: 6em; overflow: auto; outline: none; color: var(--fg); background: var(--bg); border: 1px solid var(--border); }
   body:not([data-manage]) .mp-list, body:not([data-manage]) .mp-manage { display: none; }
+  /* The chosen macro as the Folder pane's active row: the theme's colour; with the keyboard in the list, outlined. */
+  .mp-row { padding: 2px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: default; }
+  .mp-row:hover { background: var(--hover); }
+  .mp-row.mp-on { background: var(--active); }
+  .mp-list:focus .mp-row.mp-on { box-shadow: inset 0 0 0 1px var(--accent); }
+  .mp-keys { color: var(--fg-dim); }
   .mp-key { margin: 0; min-height: 1.2em; color: var(--fg-dim); }
   .mp-buttons { display: flex; flex-wrap: wrap; gap: 6px; }
   .mp-buttons button { padding: 4px 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-bar); color: var(--fg); font: inherit; }
@@ -28,7 +34,7 @@
 <body>
 <div class="mp-body">
   <h1 class="mp-title">Macros</h1>
-  <select class="mp-list" size="10" aria-label="The stored macros"></select>
+  <div class="mp-list" tabindex="0" role="listbox" aria-label="The stored macros"></div>
   <p class="mp-key"></p>
   <!-- Play, Edit and New open a menu of their own (macros.js: MACRO_MENUS), drawn by the window (docked) or this page (floating). -->
   <div class="mp-buttons">

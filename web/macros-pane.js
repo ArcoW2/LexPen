@@ -4,16 +4,28 @@
 // what is done in it going there: a button (`macro`, with the macro it acts on), another macro chosen in the list
 // (`select`), Esc (`escape`). A double click in the list plays that macro.
 
-const mp = { list: document.querySelector('.mp-list'), title: document.querySelector('.mp-title'), key: document.querySelector('.mp-key'), state: null };
-const chosen = () => mp.state?.manage ? mp.list.value || null : mp.state?.name ?? null;
+const mp = { list: document.querySelector('.mp-list'), title: document.querySelector('.mp-title'), key: document.querySelector('.mp-key'), state: null, value: '' };
+const chosen = () => mp.state?.manage ? mp.value || null : mp.state?.name ?? null;
+const escapeHtml = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+// The list (Manage): a row per macro, drawn here as the Folder pane's rows are (a list box's chosen row would have the
+// browser's colours). `notify`: chosen by a click or a key, the window hears of it.
+const rows = () => [...mp.list.querySelectorAll('.mp-row')];
+function choose(name, notify) {
+  mp.value = name ?? '';
+  for (const r of rows()) r.classList.toggle('mp-on', r.dataset.name === mp.value);
+  mp.list.querySelector('.mp-on')?.scrollIntoView({ block: 'nearest' });
+  if (notify) toWindow({ kind: 'select', name: mp.value });
+}
 
 paneHandlers.macros = m => {
   mp.state = m;
   document.body.toggleAttribute('data-manage', m.manage);
   if (m.manage) {
-    const keep = mp.list.value;
-    mp.list.replaceChildren(...m.names.map(n => Object.assign(document.createElement('option'), { value: n.name, textContent: n.name + (n.keys ? `   (${n.keys})` : '') })));
-    mp.list.value = m.names.some(n => n.name === m.selected) ? m.selected : m.names.some(n => n.name === keep) ? keep : m.names[0]?.name ?? '';
+    const keep = mp.value;
+    mp.list.innerHTML = m.names.map(n => `<div class="mp-row" role="option" data-name="${escapeHtml(n.name)}" title="${escapeHtml(n.name)}">` +
+      `${escapeHtml(n.name)}${n.keys ? ` <span class="mp-keys">(${escapeHtml(n.keys)})</span>` : ''}</div>`).join('');
+    choose(m.names.some(n => n.name === m.selected) ? m.selected : m.names.some(n => n.name === keep) ? keep : m.names[0]?.name ?? '', false);
   }
   mp.title.textContent = m.title;
   mp.key.textContent = m.keyText;
@@ -40,8 +52,16 @@ document.addEventListener('click', e => {
   const what = e.target.closest('[data-macro]')?.dataset.macro;
   if (what) toWindow({ kind: 'macro', what, name: chosen() });
 });
-mp.list.addEventListener('change', () => toWindow({ kind: 'select', name: mp.list.value }));
-mp.list.addEventListener('dblclick', () => { if (mp.list.value) toWindow({ kind: 'macro', what: 'play', name: mp.list.value }); });
+mp.list.addEventListener('mousedown', e => { const row = e.target.closest('.mp-row'); if (row) choose(row.dataset.name, true); });
+mp.list.addEventListener('dblclick', e => { const row = e.target.closest('.mp-row'); if (row) toWindow({ kind: 'macro', what: 'play', name: row.dataset.name }); });
+// Up / Down, Home / End, PgUp / PgDn through the list (handled here: not passed on to the window, pane.js).
+mp.list.addEventListener('keydown', e => {
+  const list = rows(), at = list.findIndex(r => r.dataset.name === mp.value), page = Math.max(1, Math.floor(mp.list.clientHeight / (list[0]?.offsetHeight || 20)) - 1);
+  const to = { ArrowDown: at + 1, ArrowUp: at - 1, Home: 0, End: list.length - 1, PageDown: at + page, PageUp: at - page }[e.key];
+  if (to === undefined || !list.length) return;
+  e.preventDefault();
+  choose(list[Math.max(0, Math.min(list.length - 1, to))].dataset.name, true);
+});
 addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
   e.preventDefault();
