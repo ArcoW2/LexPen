@@ -612,9 +612,10 @@ every action with its key.
   tell what happened and where the cursor is; every switch has its on and off (`wrap.on`, `wrap.off`). `show`,
   `new` and `show recent` move between documents, to collect text in one from another.
 - **Stored by name** in `macros\` of the data folder, each until you delete it. A click on one in View > Macros
-  opens its window (not modal: the editor goes on working): Play, Play X times, Play to the end of the file, Step by
-  step, Continue recording (recorded steps added to its end), Edit, Give name, Key (in your keys.json), Delete.
-  Manage... is the same window with the list of macros, and New macro, New recording. F1 lists them, and a macro's
+  opens its window (not modal: the editor goes on working), its buttons on one row: Play (once, X times, to the end
+  of the file, step by step), Edit (continue recording: recorded steps added to its end; edit; give name; key, in
+  your keys.json) and Delete. Manage... is the same window with the list of macros, and New (macro, recording).
+  Close is its window's X (floating) or its tab's menu (docked). F1 lists them, and a macro's
   key plays it directly.
 - **The macro editor**: a bar with Action..., Statement... (a whole block, the cursor at its first gap) and
   Variable..., Check, Run and Step; completion of actions, statements and `$$` names; mistakes underlined while

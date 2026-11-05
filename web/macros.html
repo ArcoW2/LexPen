@@ -17,6 +17,9 @@
   .mp-buttons button { padding: 4px 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-bar); color: var(--fg); font: inherit; }
   .mp-buttons button:hover:not(:disabled) { border-color: var(--accent); }
   .mp-buttons button:disabled { opacity: .45; }
+  /* A button with a menu: a down chevron after its text, as a drop-down box has. */
+  .mp-buttons .mp-drop::after { content: ""; display: inline-block; width: .38em; height: .38em; margin: 0 2px 0 .6em;
+    border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: translateY(-.2em) rotate(45deg); }
 </style>
 </head>
 <body>
@@ -24,19 +27,11 @@
   <h1 class="mp-title">Macros</h1>
   <select class="mp-list" size="10" aria-label="The stored macros"></select>
   <p class="mp-key"></p>
-  <div class="mp-buttons mp-one">
-    <button type="button" data-macro="play">Play</button><button type="button" data-macro="times">Play X times...</button>
-    <button type="button" data-macro="toEnd">Play to the end of the file</button><button type="button" data-macro="step">Step by step</button>
+  <!-- Play, Edit and New open a menu of their own (macros.js: MACRO_MENUS), drawn by the window (docked) or this page (floating). -->
+  <div class="mp-buttons">
+    <button type="button" class="mp-one mp-drop" data-menu="play">Play</button><button type="button" class="mp-one mp-drop" data-menu="edit">Edit</button>
+    <button type="button" class="mp-manage mp-drop" data-menu="new">New</button><button type="button" class="mp-one" data-macro="delete">Delete...</button>
   </div>
-  <div class="mp-buttons mp-one">
-    <button type="button" data-macro="continue">Continue recording</button><button type="button" data-macro="edit">Edit</button>
-    <button type="button" data-macro="rename">Give name...</button><button type="button" data-macro="key">Key...</button>
-    <button type="button" data-macro="delete">Delete</button>
-  </div>
-  <div class="mp-buttons mp-manage">
-    <button type="button" data-macro="new">New macro...</button><button type="button" data-macro="record">New recording</button>
-  </div>
-  <div class="mp-buttons"><button type="button" data-macro="close">Close</button></div>
 </div>
 <script src="pane.js"></script>
 <script src="macros-pane.js"></script>

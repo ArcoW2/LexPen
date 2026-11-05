@@ -17,11 +17,17 @@ paneHandlers.macros = m => {
   }
   mp.title.textContent = m.title;
   mp.key.textContent = m.keyText;
-  for (const b of document.querySelectorAll('.mp-one button')) b.disabled = !chosen();
+  for (const b of document.querySelectorAll('.mp-one')) b.disabled = !chosen();
 };
-paneHandlers.focus = () => (mp.state?.manage ? mp.list : document.querySelector('[data-macro="play"]')).focus();
+paneHandlers.focus = () => (mp.state?.manage ? mp.list : document.querySelector('[data-menu="play"]')).focus();
 
+// A button with a menu: the menu below it (`buttonMenu`, the place in this page); else the button's own action.
 document.addEventListener('click', e => {
+  const drop = e.target.closest('[data-menu]');
+  if (drop) {
+    const r = drop.getBoundingClientRect();
+    return toWindow({ kind: 'buttonMenu', menu: drop.dataset.menu, x: Math.round(r.left), y: Math.round(r.bottom + 2), name: chosen() });
+  }
   const what = e.target.closest('[data-macro]')?.dataset.macro;
   if (what) toWindow({ kind: 'macro', what, name: chosen() });
 });

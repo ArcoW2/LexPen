@@ -449,12 +449,31 @@ function closeMacroWindow() {
   else hideDockPane('macros');
 }
 
+// The menus of the window's Play, Edit and New buttons: [label, what the macro message does].
+const MACRO_MENUS = {
+  play: [['Play once', 'play'], ['Play X times...', 'times'], ['Play to the end of the file', 'toEnd'], ['Step by step', 'step']],
+  edit: [['Continue recording', 'continue'], ['Edit', 'edit'], ['Give name...', 'rename'], ['Key...', 'key']],
+  new: [['New macro...', 'new'], ['New recording', 'record']],
+};
+
+// A button's menu below it: docked, drawn here over everything at its place in the frame; floating, by its page.
+function macroButtonMenu(m) {
+  const items = (MACRO_MENUS[m.menu] ?? []).map(([label, what]) => ({ label, plain: true, run: () => fromMacrosPane({ kind: 'macro', what, name: m.name }) }));
+  if (!items.length) return;
+  if (macrosPane.floating) {
+    macrosPane.runs = items.map(i => i.run);
+    return macrosPane.send({ kind: 'menu', x: m.x, y: m.y, items: items.map((i, id) => ({ label: i.label, id })) });
+  }
+  const r = macrosPane.frame.getBoundingClientRect();
+  openPopupMenu(items, r.left + m.x, r.top + m.y);
+}
+
 async function fromMacrosPane(m) {
   if (m.kind === 'escape') return focusPane(panes[state.activePane]);
   if (m.kind === 'select') { macroWindow.selected = m.name; return macrosPane.send(macroWindowState()); }
+  if (m.kind === 'buttonMenu') return macroButtonMenu(m);
   if (m.kind !== 'macro') return;
   const what = m.what, name = m.name ?? macroWindowName();
-  if (what === 'close') return closeMacroWindow();
   if (what === 'new') return newMacro().then(() => fillMacroWindow());
   if (what === 'record') { closeMacroWindow(); macroStore.nextRecording = null; return runAction('macro.record', [], { from: 'menu' }); }
   if (!name) return;
