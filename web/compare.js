@@ -243,17 +243,21 @@ function applyCompare() {
 // again after each redraw (alignSoon), since a wrapped line's height is only known once it is drawn.
 function compareBlocks() {
   const blocks = [], [A, B] = cmp.sides.map(s => s.pane.cm);
-  const add = (af, at, bf, bt, equal, quiet) => { if (at > af || bt > bf) blocks.push({ r: [[af, at], [bf, bt]], equal, quiet }); };
+  // kind: '' lines missing on one side, 'quiet' a difference that is ignored, 'wrap' equal lines wrapped differently.
+  const add = (af, at, bf, bt, equal, kind) => { if (at > af || bt > bf) blocks.push({ r: [[af, at], [bf, bt]], equal, kind }); };
   let a = 0, b = 0;
   for (const h of cmp.hunks) {
-    add(a, h.aFrom, b, h.bFrom, true, true);
-    add(h.aFrom, h.aTo, h.bFrom, h.bTo, false, !!h.ignorable);
+    add(a, h.aFrom, b, h.bFrom, true, 'wrap');
+    // As many lines on both sides: a filler there only evens out wrapping.
+    add(h.aFrom, h.aTo, h.bFrom, h.bTo, false, h.ignorable ? 'quiet' : h.aTo - h.aFrom === h.bTo - h.bFrom ? 'wrap' : '');
     [a, b] = [h.aTo, h.bTo];
   }
-  add(a, A.lineCount(), b, B.lineCount(), true, true);
+  add(a, A.lineCount(), b, B.lineCount(), true, 'wrap');
   cmp.fills = [new Map(), new Map()];   // per side: the line a filler is below (-1: above line 0) -> { w, el, px }
   return blocks;
 }
+
+const FILL_RANK = { '': 2, quiet: 1, wrap: 0 };
 
 function alignFillers() {
   if (!cmp.on || !cmp.blocks) return false;
@@ -268,10 +272,10 @@ function alignFillers() {
   const pieces = [];
   for (const bl of cmp.blocks) {
     const h = [height(0, bl.r[0]), height(1, bl.r[1])];
-    if (!bl.equal || Math.abs(h[0] - h[1]) < 0.5) { pieces.push({ r: bl.r, h, quiet: bl.quiet }); continue; }
+    if (!bl.equal || Math.abs(h[0] - h[1]) < 0.5) { pieces.push({ r: bl.r, h, kind: bl.kind }); continue; }
     for (let k = 0; k < bl.r[0][1] - bl.r[0][0]; k++) {
       const r = [[bl.r[0][0] + k, bl.r[0][0] + k + 1], [bl.r[1][0] + k, bl.r[1][0] + k + 1]];
-      pieces.push({ r, h: [height(0, r[0]), height(1, r[1])], quiet: true });
+      pieces.push({ r, h: [height(0, r[0]), height(1, r[1])], kind: 'wrap' });
     }
   }
   // Whole pixels (a filler is drawn that high), the rounding carried on: `off`, how far the left side's bottom is
@@ -288,7 +292,9 @@ function alignFillers() {
     w.forEach((px, i) => {
       if (!px) return;
       const at = atOf(p, i), was = wants[i].get(at);
-      wants[i].set(at, { px: (was?.px ?? 0) + px, quiet: (was?.quiet ?? true) && p.quiet });
+      // Two pieces below one line: the filler shows the one that matters most (missing lines over the others).
+      const kind = was && FILL_RANK[was.kind] > FILL_RANK[p.kind] ? was.kind : p.kind;
+      wants[i].set(at, { px: (was?.px ?? 0) + px, kind });
     });
   }
   let changed = false;
@@ -296,7 +302,7 @@ function alignFillers() {
     const fills = cmp.fills[i];
     for (const [at, f] of fills) if (!wants[i].has(at)) { f.w.clear(); fills.delete(at); changed = true; }
     for (const [at, want] of wants[i]) {
-      const f = fills.get(at), cls = 'mm-cmp-filler' + (want.quiet ? ' mm-cmp-quiet' : '');
+      const f = fills.get(at), cls = 'mm-cmp-filler' + (want.kind ? ' mm-cmp-' + want.kind : '');
       if (f && f.px === want.px && f.el.className === cls) continue;
       changed = true;
       if (f) { f.px = want.px; f.el.className = cls; f.el.style.height = want.px + 'px'; f.w.changed(); continue; }
