@@ -47,7 +47,7 @@ every action with its key.
   up. Such a cursor on every line (a block of width 0) moves as a whole with Left / Right, Ctrl+Left / Ctrl+Right,
   Home and End, the step taken on the head's line; on a wider block over several lines Left / Right leave the
   cursors at its left / right edge (its columns go, its lines stay); Up / Down and the other keys end it at its head.
-  Ctrl+Alt+Shift+arrows move the active end of a selection (where the cursor is, what Shift+arrows move) to another
+  Ctrl+Alt+Shift+arrows set the position of the cursor in a selection (the end Shift+arrows move) to another
   side, the selection staying as it is: on a block Left / Right to its left / right edge and Up / Down to its top /
   bottom line (two presses reach any corner); on another selection Left / Up to its start, Right / Down to its end.
   Tab / Shift+Tab indent the block's lines. Copy and cut mark a block on the clipboard (`MSDEVColumnSelect`,
