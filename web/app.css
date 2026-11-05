@@ -955,7 +955,8 @@ body { --col-guide: color-mix(in srgb, var(--col-guide-colour, var(--border)) va
 .mm-csv-box input, .mm-csv-box select, .mm-csv-box button { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 3px; }
 .mm-csv-box input, .mm-csv-box select { padding: 1px 4px; }
 .mm-csv-box input:focus, .mm-csv-box select:focus { outline: none; border-color: var(--accent); }
-.mm-csv-box input[type=checkbox] { vertical-align: middle; }
+.mm-csv-box input[type=checkbox], .mm-csv-box input[type=radio] { vertical-align: middle; margin: 0 2px 0 0; }
+.mm-csv-box-grid label + label { margin-left: 10px; }
 .mm-csv-box button { padding: 2px 8px; background: var(--bg-side); cursor: pointer; }
 .mm-csv-box button:hover:not(:disabled) { border-color: var(--accent); }
 .mm-csv-box button:disabled { opacity: .45; cursor: default; }

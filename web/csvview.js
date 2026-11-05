@@ -368,7 +368,7 @@ function csvColumnBox(doc, c, x, y, cell) {
         ` <input class="mm-csv-box-sign" data-f="quoteEnd" value="${escapeHtml(col.quoteEnd ?? '')}" placeholder="${escapeHtml(def.quoteEnd ?? def.quote)}" title="End quote; empty: the file's"></div>` +
       `<label>Read as</label><div>${readAs}</div>` +
       `<label>Format</label><input data-f="format" value="${escapeHtml(col.format ?? '')}" placeholder="${numeric(col.type) ? '#,##0.00' : col.type === 'date' ? 'yyyy-MM-dd' : 'as read'}" title="How the view shows it; empty: as read">` +
-      `<label>Align</label><div><select data-f="align">${opts([['left', 'left'], ['right', 'right']], col.align ?? 'left')}</select>` +
+      `<label>Align</label><div>${['left', 'right'].map(a => `<label><input type="radio" name="mm-csv-box-align" data-f="align" value="${a}"${(col.align ?? 'left') === a ? ' checked' : ''}> ${a}</label>`).join(' ')}` +
         ` <label><input type="checkbox" data-f="trim"${col.trim ? ' checked' : ''}> Trim</label></div>` +
       `<label>Width</label><div><input class="mm-csv-box-num" type="number" min="1" data-f="width" value="${col.width ?? ''}" placeholder="${data.widths[c]}" title="In characters; empty: as wide as its longest value">` +
         ` <label><input type="checkbox" data-f="shown"${col.hidden ? '' : ' checked'}${!col.hidden && shown.length < 2 ? ' disabled' : ''}> Shown</label></div>` +
@@ -403,7 +403,7 @@ function csvColumnBox(doc, c, x, y, cell) {
     else { change(); if (f === 'type' || f === 'shown') { draw(); box.querySelector(`[data-f="${f}"]`)?.focus(); } }
   };
   box.addEventListener('input', e => { if (e.target.matches('input:not([type=checkbox])')) set(e.target, true); });
-  box.addEventListener('change', e => { if (e.target.dataset.f && (e.target.tagName === 'SELECT' || e.target.type === 'checkbox')) set(e.target, false); });
+  box.addEventListener('change', e => { if (e.target.dataset.f && (e.target.tagName === 'SELECT' || e.target.type === 'checkbox' || e.target.type === 'radio')) set(e.target, false); });
 
   const close = keep => {
     clearTimeout(timer);
