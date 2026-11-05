@@ -373,9 +373,10 @@ function simpleMode(pack) {
   };
 }
 
-// Above this size the preview of a code file is not coloured (measured with SQL, two runs: 1 MB took 179 / 200
-// ms, 4 MB 715 / 953 ms to colour; the editor colours only what is on screen and needs no limit).
-const PREVIEW_COLOUR_LIMIT = 2 * 1024 * 1024;
+// Above the setting previewColourMaxSize (MB; 0: no limit) the preview of a code file is not coloured (measured with
+// SQL, two runs: 1 MB took 179 / 200 ms, 4 MB 715 / 953 ms to colour; the editor colours only what is on screen and
+// needs no limit).
+const previewColoured = text => { const mb = setting('previewColourMaxSize') ?? 2; return !mb || text.length <= mb * 1024 * 1024; };
 
 // The preview of a code file: the editor's colouring (run mode), a block per line, so the outline, the
 // scroll sync and long lines (executed/PLAN-long-lines.md) work as in markdown. The lines in blocks of CODE_CHUNK

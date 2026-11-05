@@ -1024,7 +1024,7 @@ async function renderNow(tab) {
   }
   const tpl = document.createElement('template');
   tpl.innerHTML = doc.language
-    ? `<pre class="mm-code" data-lang="${doc.language}">${codeHtml(text, text.length > PREVIEW_COLOUR_LIMIT ? 'text/plain' : editorMode(doc))}</pre>`
+    ? `<pre class="mm-code" data-lang="${doc.language}">${codeHtml(text, previewColoured(text) ? editorMode(doc) : 'text/plain')}</pre>`
     : doc.ranges?.length ? renderMarkdownWithRanges(text, doc) : md.render(withFrontMatter(text));
   const content = tpl.content;
   if (doc.language && hasLongLine(text)) content.firstElementChild.classList.add('mm-long-line');
@@ -4969,6 +4969,8 @@ function applySettings() {
   const changed = name => !(name in was) || was[name] !== now[name];
   if (FONT_SETTINGS.some(changed)) applyFonts();
   if (changed('wrap')) applyWrap(now.wrap);
+  if (changed('previewColourMaxSize') && 'previewColourMaxSize' in was)   // the code previews coloured again, or not
+    for (const tab of allTabs()) if (tab.doc.language) { if (paneOf(tab)?.active === tab && tab.mode !== 'edit') render(tab); else tab.stale = true; }
   if (changed('previewWrap')) document.body.toggleAttribute('data-preview-nowrap', now.previewWrap === false);
   if (changed('showBackupFiles') && 'showBackupFiles' in was) refreshTree(false);
   if (changed('tabBar')) applyTabBar(now.tabBar);
