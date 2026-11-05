@@ -177,32 +177,40 @@ public class ExplorerMenuTests : IDisposable
 
     const string LeftClsid = "{E47540AF-B66D-4FAF-849E-D0B2D0D28E65}";
 
-    // The Explorer extension (Plan 40): with LexPenShell.dll next to the exe the compare items are its, for files and
-    // folders together, with its classes and what it reads; without the DLL, registry entries and nothing of it left.
+    // The Explorer extension (Plan 40): with LexPenShell.dll next to the exe every LexPen item is its, for files and
+    // folders together (so they stay together), with its classes and what it reads; in a submenu one item LexPen; without
+    // the DLL, registry entries and nothing of it left.
     [Fact]
-    public void TheCompareItemsByTheExtensionAndBack()
+    public void TheItemsByTheExtensionAndBack()
     {
         ExplorerMenu.ShellDllForTests = true;
         try
         {
             ExplorerMenu.Apply(Exe, new ExplorerMenu.Choice(true, true, false, false));
-            foreach (var verb in new[] { "LexPen.CompareLeft", "LexPen.CompareTo", "LexPen.ComparePair" })
+            foreach (var verb in new[] { "LexPen.CompareLeft", "LexPen.CompareTo", "LexPen.ComparePair", "LexPen.View" })
                 Assert.NotNull(Value($@"AllFilesystemObjects\shell\{verb}", "ExplorerCommandHandler"));
+            Assert.Null(Value(@"AllFilesystemObjects\shell\LexPen.Edit", "ExplorerCommandHandler"));   // not chosen
             Assert.Equal(LeftClsid, Value(@"AllFilesystemObjects\shell\LexPen.CompareLeft", "ExplorerCommandHandler"));
             Assert.Equal(@"C:\Apps\LexPen\LexPenShell.dll", Value($@"CLSID\{LeftClsid}\InprocServer32", null));
             Assert.Equal("Apartment", Value($@"CLSID\{LeftClsid}\InprocServer32", "ThreadingModel"));
             Assert.Equal(Exe, Value("LexPen.Shell", "Exe"));
             Assert.Equal(ExplorerMenu.LeftFileForTests, Value("LexPen.Shell", "LeftFile"));
-            Assert.Null(Label("*", "LexPen.CompareLeft"));            // not registry entries as well
-            Assert.Equal("View in LexPen", Label("*", "LexPen.View"));   // the other items stay entries
+            Assert.Null(Label("*", "LexPen.CompareLeft"));   // no registry entries as well
+            Assert.Null(Label("*", "LexPen.View"));
+            // A line above the first, and above Compare (two items: Select left side is not shown then); below the last.
+            Assert.NotNull(Value(@"AllFilesystemObjects\shell\LexPen.CompareLeft", "SeparatorBefore"));
+            Assert.NotNull(Value(@"AllFilesystemObjects\shell\LexPen.ComparePair", "SeparatorBefore"));
+            Assert.Null(Value(@"AllFilesystemObjects\shell\LexPen.CompareTo", "SeparatorBefore"));
+            Assert.NotNull(Value(@"AllFilesystemObjects\shell\LexPen.View", "SeparatorAfter"));
             Assert.Equal(new ExplorerMenu.Choice(true, true, false, false), ExplorerMenu.Installed);
             Assert.Equal(Exe, ExplorerMenu.InstalledExe);
 
-            // In a submenu: in the submenu of files and of folders.
-            ExplorerMenu.Apply(Exe, new ExplorerMenu.Choice(true, false, false, true));
-            Assert.Equal(LeftClsid, Value(@"LexPen.Menu.Files\shell\LexPen.CompareLeft", "ExplorerCommandHandler"));
-            Assert.Equal(LeftClsid, Value(@"LexPen.Menu.Folders\shell\LexPen.CompareLeft", "ExplorerCommandHandler"));
+            // In a submenu: one item LexPen for files, folders and both; the extension gives its items.
+            ExplorerMenu.Apply(Exe, new ExplorerMenu.Choice(true, false, true, true, Backups: true));
+            Assert.Equal("{136D8442-3780-48FE-9BB1-9C9D47F10E37}", Value(@"AllFilesystemObjects\shell\LexPen.Menu", "ExplorerCommandHandler"));
             Assert.Null(Value(@"AllFilesystemObjects\shell\LexPen.CompareLeft", "ExplorerCommandHandler"));
+            Assert.Null(Value(@"*\shell\LexPen.Menu", "ExtendedSubCommandsKey"));
+            Assert.Equal(new ExplorerMenu.Choice(true, false, true, true, true), ExplorerMenu.Installed);
 
             // The DLL gone (a LexPen built without it): registry entries, the extension gone (Explorer no longer loads it).
             ExplorerMenu.ShellDllForTests = false;
@@ -211,6 +219,7 @@ public class ExplorerMenuTests : IDisposable
             Assert.Null(Value($@"CLSID\{LeftClsid}\InprocServer32", null));
             Assert.Null(Value("LexPen.Shell", "Exe"));
             Assert.Null(Value(@"AllFilesystemObjects\shell\LexPen.ComparePair", "ExplorerCommandHandler"));
+            Assert.Null(Value(@"AllFilesystemObjects\shell\LexPen.Menu", "ExplorerCommandHandler"));
         }
         finally { ExplorerMenu.ShellDllForTests = false; }
     }

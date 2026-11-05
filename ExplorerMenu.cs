@@ -25,12 +25,16 @@ static class ExplorerMenu
     // Explorer puts the entries of a kind in the order of their key names: compare, delete backups, edit, view.
     static readonly string[] Verbs = [LeftVerb, PairVerb, ToVerb, BackupsVerb, EditVerb, ViewVerb];
 
-    // The Explorer extension (LexPenShell.dll, shell\LexPenShell.cpp; docs/plans/40-PLAN-explorer-compare-two.md): its
-    // three commands, each a class of its own, shown by what is selected. What they need from LexPen is in ShellKey.
+    // The Explorer extension (LexPenShell.dll, shell\LexPenShell.cpp; docs/plans/40-PLAN-explorer-compare-two.md): every
+    // LexPen item a command of it, each a class of its own, shown by what is selected; all under AllKind, so Explorer keeps
+    // them together. In a submenu: one command, LexPen, whose items the extension gives. What they need from LexPen is in
+    // ShellKey (the exe, the left side's file, which items are on). `Item`: the setting that turns it on.
     public const string ShellDll = "LexPenShell.dll";
-    static readonly (string Verb, string Clsid)[] ShellCommands = [
-        (LeftVerb, "{E47540AF-B66D-4FAF-849E-D0B2D0D28E65}"), (ToVerb, "{1658ED18-A409-45B4-B31F-C2E8895D23A9}"),
-        (PairVerb, "{367A334E-ECD6-4031-AC52-899B5F49C42C}")];
+    static readonly (string Verb, string Clsid, string Item)[] ShellCommands = [
+        (LeftVerb, "{E47540AF-B66D-4FAF-849E-D0B2D0D28E65}", "Compare"), (PairVerb, "{367A334E-ECD6-4031-AC52-899B5F49C42C}", "Compare"),
+        (ToVerb, "{1658ED18-A409-45B4-B31F-C2E8895D23A9}", "Compare"), (BackupsVerb, "{E7AAC44D-A969-408A-A62C-70F16630E17C}", "Backups"),
+        (EditVerb, "{2C3C3546-DF09-4511-A0E3-C8BA1C799B73}", "Edit"), (ViewVerb, "{944489B3-1E13-4BFD-86EA-3EDF8281BACA}", "View")];
+    const string MenuClsid = "{136D8442-3780-48FE-9BB1-9C9D47F10E37}";
     const string ShellKey = "LexPen.Shell";
     const string AllKind = "AllFilesystemObjects";   // files and folders in one: a file with a folder selected too
 
@@ -71,8 +75,16 @@ static class ExplorerMenu
     {
         get
         {
+            // The extension's: as it was written (which items are on, a submenu or not).
+            using (var shell = Registry.CurrentUser.OpenSubKey($@"{Root}\{ShellKey}"))
+                if (shell is not null)
+                {
+                    bool On(string item) => shell.GetValue(item) is int v && v != 0;
+                    var chosen = new Choice(On("Compare"), On("View"), On("Edit"), Has($@"{Root}\{AllKind}\shell\{MenuVerb}"), On("Backups"));
+                    return chosen.Any ? chosen : null;
+                }
             var submenu = Kinds.Any(kind => Has($@"{Root}\{kind}\shell\{MenuVerb}"));
-            var c = new Choice(Has($@"{ShellOf("*", submenu)}\{LeftVerb}") || Has($@"{Root}\{AllKind}\shell\{LeftVerb}"),
+            var c = new Choice(Has($@"{ShellOf("*", submenu)}\{LeftVerb}"),
                 Kinds.Any(kind => Has($@"{ShellOf(kind, submenu)}\{ViewVerb}")), Has($@"{ShellOf("*", submenu)}\{EditVerb}"), submenu,
                 Kinds.Any(kind => Has($@"{ShellOf(kind, submenu)}\{BackupsVerb}")));
             return c.Any ? c : null;
@@ -145,11 +157,13 @@ static class ExplorerMenu
             Registry.CurrentUser.DeleteSubKeyTree($@"{Root}\{SubKey(kind)}", throwOnMissingSubKey: false);
         }
         // The extension: its items, its classes (Explorer no longer loads the DLL then) and what it reads.
-        foreach (var (verb, clsid) in ShellCommands)
+        foreach (var (verb, clsid, _) in ShellCommands)
         {
             Registry.CurrentUser.DeleteSubKeyTree($@"{Root}\{AllKind}\shell\{verb}", throwOnMissingSubKey: false);
             Registry.CurrentUser.DeleteSubKeyTree($@"{Root}\CLSID\{clsid}", throwOnMissingSubKey: false);
         }
+        Registry.CurrentUser.DeleteSubKeyTree($@"{Root}\{AllKind}\shell\{MenuVerb}", throwOnMissingSubKey: false);
+        Registry.CurrentUser.DeleteSubKeyTree($@"{Root}\CLSID\{MenuClsid}", throwOnMissingSubKey: false);
         Registry.CurrentUser.DeleteSubKeyTree($@"{Root}\{ShellKey}", throwOnMissingSubKey: false);
     }
 
@@ -160,21 +174,18 @@ static class ExplorerMenu
     {
         var leftIsFolder = left is not null && Directory.Exists(left);
         var lexpen = $"\"{exe}\",0";   // LexPen's own icon
-        // The compare items by the extension when it is next to the exe (not built: the registry entries).
+        // Every item by the extension when it is next to the exe (not built: the registry entries below).
         var dll = Path.Combine(Path.GetDirectoryName(exe)!, ShellDll);
-        var byShell = c.Compare && (File.Exists(dll) || ShellDllForTests);
-        if (byShell) WriteShell(exe, dll, c.Submenu);
+        if (File.Exists(dll) || ShellDllForTests)
+        {
+            WriteShell(exe, dll, c);
+            return;
+        }
         foreach (var kind in Kinds)
         {
             var shell = ShellOf(kind, c.Submenu);
             var written = new List<string>();
-            if (byShell && c.Submenu)   // in the submenu of files and of folders (a file with a folder: none)
-                foreach (var (verb, clsid) in ShellCommands)
-                {
-                    ShellVerb(shell, verb, clsid);
-                    written.Add(verb);
-                }
-            if (c.Compare && !byShell)
+            if (c.Compare)
             {
                 Verb(shell, LeftVerb, left is null ? "Select left side to compare" : "Select as new left side to compare",
                     lexpen, $"\"{exe}\" --compare-left \"%1\"");
@@ -219,31 +230,39 @@ static class ExplorerMenu
 
     internal static bool ShellDllForTests;
 
-    // The extension: its classes (in-process, the DLL next to the exe), what it reads (the exe, the left side's file),
-    // and between two lines its items once for files and folders together (in a submenu: Write puts them there).
-    static void WriteShell(string exe, string dll, bool submenu)
+    // The extension: its classes (in-process, the DLL next to the exe), what it reads (the exe, the left side's file,
+    // which items are on), and its items for files and folders together: the chosen ones next to each other, or one
+    // LexPen whose submenu the extension fills.
+    static void WriteShell(string exe, string dll, Choice c)
     {
-        foreach (var (_, clsid) in ShellCommands)
+        foreach (var clsid in ShellCommands.Select(s => s.Clsid).Append(MenuClsid))
         {
             using var server = Registry.CurrentUser.CreateSubKey($@"{Root}\CLSID\{clsid}\InprocServer32");
             server.SetValue(null, dll);
             server.SetValue("ThreadingModel", "Apartment");
         }
+        bool On(string item) => item switch { "Compare" => c.Compare, "Backups" => c.Backups, "Edit" => c.Edit, _ => c.View };
         using (var config = Registry.CurrentUser.CreateSubKey($@"{Root}\{ShellKey}"))
         {
             config.SetValue("Exe", exe);
             config.SetValue("LeftFile", LeftFile);
+            foreach (var item in new[] { "Compare", "Backups", "Edit", "View" }) config.SetValue(item, On(item) ? 1 : 0, RegistryValueKind.DWord);
         }
-        if (submenu) return;
-        foreach (var (verb, clsid) in ShellCommands)
+        var shell = $@"{Root}\{AllKind}\shell";
+        if (c.Submenu)
         {
-            var path = ShellVerb($@"{Root}\{AllKind}\shell", verb, clsid);
-            // A line above and below each: Explorer shows one line where two meet, and an item not shown takes its
-            // lines along.
+            ShellVerb(shell, MenuVerb, MenuClsid);
+            return;
+        }
+        // In the order of their key names (Explorer's); a line above the first and below the last. Select left side
+        // (one item) and Compare (two) never show together: each has the line above.
+        var written = ShellCommands.Where(s => On(s.Item)).Select(s => ShellVerb(shell, s.Verb, s.Clsid)).ToList();
+        foreach (var path in written.Take(1).Concat(written.Where(p => p.EndsWith(PairVerb))))
+        {
             using var key = Registry.CurrentUser.OpenSubKey(path, writable: true);
             key!.SetValue("SeparatorBefore", "");
-            key.SetValue("SeparatorAfter", "");
         }
+        using (var last = Registry.CurrentUser.OpenSubKey(written[^1], writable: true)) last!.SetValue("SeparatorAfter", "");
     }
 
     static string ShellVerb(string shell, string verb, string clsid)

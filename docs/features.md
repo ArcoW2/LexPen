@@ -408,7 +408,11 @@ every action with its key.
   in the project for comparing (Settings > General > Viewing: the project "Compare", made on the first compare, the
   same project as Viewing, or any project): in its window on this desktop, else its last closed window, else a new
   one. Opening a file never lands there and its windows are not restored at start. A compare started inside LexPen
-  stays in its window. The left side stays until you select another ("Select as new left side to compare"). The folder
+  stays in its window. With LexPenShell.dll next to LexPen.exe (built when Visual Studio's C++ tools are there) the
+  items follow what is selected, as Beyond Compare's do: one file or folder: Select left side and Compare to; two
+  (a file and a folder too: the file against the folder's file of the same name): Compare; more: none. Then every
+  LexPen item (also View, Edit, Delete .bak) comes from that extension, so they stay together, next to each other or in
+  one submenu LexPen; Edit only for files, Delete .bak file only for a file that has one. The left side stays until you select another ("Select as new left side to compare"). The folder
   pane's and a tab's right-click have the same two items, with the same left side. The entries run the LexPen that
   turned the setting on; turning it off removes them.
 
