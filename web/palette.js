@@ -27,15 +27,16 @@ const SEARCH_CODE_HELP = [
   ]],
 ];
 
-// Keys that are not actions: they work where they are (the editor, the folder pane, a search, a menu).
+// Keys that are not actions: they work where they are (the editor, the folder pane, a search, a menu). An editor key
+// has a third element: what a macro writes for it (editorKey presses it in the editor, as it does the arrows).
 const FIXED_KEYS = [
   ['Editor', [
-    ['Tab / Shift+Tab', 'In a table: next / previous cell (in the last cell: a new row). Elsewhere: indent / indent less'],
-    ['Enter', 'At the end of a table row: a new row. On an empty last row: end the table'],
-    ['Shift+Enter', 'Line break as <br> (also inside a table cell)'],
-    ['Ctrl+V', 'With the Windows clipboard: a picture or an image file becomes an image link'],
+    ['Tab / Shift+Tab', 'In a table: next / previous cell (in the last cell: a new row). Elsewhere: indent / indent less', 'editorKey "Tab" / "Shift-Tab"'],
+    ['Enter', 'At the end of a table row: a new row. On an empty last row: end the table', 'editorKey "Enter"'],
+    ['Shift+Enter', 'Line break as <br> (also inside a table cell)', 'editorKey "Shift-Enter"'],
+    ['Ctrl+V', 'With the Windows clipboard: a picture or an image file becomes an image link', 'paste'],
     ['Ctrl+Shift+V', 'Paste an image file, asking how to link it (also: drop it with Shift held)'],
-    ['Ctrl+click / Alt+drag', 'Another cursor / a rectangular selection'],
+    ['Ctrl+click / Alt+drag', 'Another cursor / a rectangular selection', '- / blockSelect'],
   ]],
   ['Menus', [
     ['Alt+F / E / R / V / O', 'Open the File / Edit / Format / View / Options menu'],
@@ -132,7 +133,7 @@ function renderPalette() {
     }
   }
   if (!q) for (const [group, rows] of FIXED_KEYS)
-    html += sectionHead(`${group} (fixed keys)`) + rows.map(([k, t]) => `<tr class="mm-pal-fixed"><td>${escapeHtml(k)}</td><td>${escapeHtml(t)}</td><td></td></tr>`).join('');
+    html += sectionHead(`${group} (fixed keys)`) + rows.map(([k, t, macro]) => `<tr class="mm-pal-fixed"><td>${escapeHtml(k)}</td><td>${escapeHtml(t)}</td><td class="mm-pal-name">${escapeHtml(macro ?? '')}</td></tr>`).join('');
   // The column names stay on top while the list scrolls; a group's header stays just under them.
   palette.list.innerHTML = '<table><thead><tr class="mm-pal-head"><th>Keys</th><th>Command</th><th>Action</th></tr></thead>' +
     `<tbody>${html || '<tr><td>Nothing found.</td></tr>'}</tbody></table>`;
