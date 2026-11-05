@@ -380,12 +380,12 @@ every action with its key.
   per column the type, Read as (decimal and thousands sign, a date pattern), format (`#,##0.00`, `dd-MM-yyyy`),
   alignment, trim, shown, width and order; ticked columns take a value set in one of them; a warning counts the values
   that do not fit; the Definition tab shows it all as CSV on the Web (CSVW) text. Apply keeps it in LexPen
-  (`file-columns.json`), or next to the file after Save next to the file (`name.csv-metadata.json`, which other tools
-  read too; the Folder pane marks such a file, its right-click Keep column settings of name.csv in LexPen only deletes
-  that file, and the pane's Keep in LexPen instead does too, LexPen keeping the definition); a definition from there
-  is read first, also the folder's `csv-metadata.json`. In the column view the header is the ruler: drag an edge to
-  size a column (double click: to its longest value), drag a name to move it. A right-click on a column opens a small
-  box beside it (its title drags it; the next one opens where it was left) with that column's settings (name, type,
+  (`file-columns.json`), or next to the file (the pane's Settings kept: in LexPen / next to the file;
+  `name.csv-metadata.json`, which other tools read too; the Folder pane marks such a file, its right-click Keep column
+  settings of name.csv in LexPen only deletes that file, LexPen keeping the settings); a definition from there is read
+  first, also the folder's `csv-metadata.json`. In the column view the header is the ruler: drag an edge to size a
+  column (double click: to its longest value), drag a name to move it. A right-click on a column opens a small box
+  beside it (its title drags it; the next one opens where it was left) with that column's settings (name, type,
   quotes, Read as, format, alignment, trim, width, shown), shown at once as you change them (Esc or Cancel: back as it
   was), and buttons to move it left or right, fit it, hide it, Column info and More...; beside the columns the
   right-click shows all columns again, opens Column info (per column its longest and shortest value, empty ones, ones

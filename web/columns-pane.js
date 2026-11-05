@@ -64,13 +64,16 @@ function drawAll(keepFocus) {
   const f = cp.found, before = f?.pre.filter((_, i) => i !== cp.draft.header - 1) ?? [];   // the header line aside
   $c('.cp-note').textContent = f ? `${f.rows.toLocaleString()} rows${f.partial ? ' in the first 64 KB' : ''}, ${cp.draft.columns.length} columns` +
     (before.length ? `; before the data: ${before.map(l => JSON.stringify(l)).slice(0, 3).join(', ')}` : '') : '';
-  // Where the definition is kept: LexPen's own store (the default), or a file next to the CSV; the button moves it.
-  const save = $c('.cp-save'), file = cp.state?.beside?.replace(/^.*[\\/]/, '');
-  save.disabled = !cp.state?.path;
-  save.textContent = file ? 'Keep in LexPen instead' : 'Save next to the file';
-  save.title = file ? `The definition is kept in ${file} next to the CSV. This deletes that file (Recycle Bin) and LexPen keeps the definition itself`
-    : 'LexPen keeps the definition itself (in its data folder). This applies it and saves it as name.csv-metadata.json next to the CSV ' +
-      '(CSV on the Web, which other tools read too), to share it or keep it in source control; Apply then writes there';
+  // Where the settings are kept: LexPen's own store (the default), or a file next to the CSV; choosing the other moves them.
+  const name = cp.state?.path?.replace(/^.*[\\/]/, '') ?? 'the file', file = cp.state?.beside?.replace(/^.*[\\/]/, '') ?? `${name}-metadata.json`;
+  const [inLexPen, nextTo] = document.querySelectorAll('.cp-kept input');
+  inLexPen.checked = !cp.state?.beside;
+  nextTo.checked = !!cp.state?.beside;
+  nextTo.disabled = !cp.state?.path;   // a draft has no folder
+  nextTo.parentElement.classList.toggle('cp-off', nextTo.disabled);
+  inLexPen.parentElement.title = 'In LexPen\'s own data folder' + (cp.state?.beside ? `; choosing this deletes ${file} (Recycle Bin)` : '');
+  nextTo.parentElement.title = `As ${file} next to ${name} (CSV on the Web, which other tools read too), to share them or keep them in source control; ` +
+    (cp.state?.beside ? 'Apply writes there' : 'choosing this applies them and writes that file');
 }
 
 function drawFile() {
@@ -270,7 +273,11 @@ function apply(kind = 'apply') {
   toWindow({ kind, def: cp.draft });
 }
 $c('.cp-apply').addEventListener('click', () => apply());
-$c('.cp-save').addEventListener('click', () => cp.state?.beside ? toWindow({ kind: 'deleteBeside' }) : apply('saveBeside'));
+// Settings kept in LexPen / next to the file: the other choice moves them there.
+for (const radio of document.querySelectorAll('.cp-kept input')) radio.addEventListener('change', () => {
+  if (radio.value === 'file' && !cp.state?.beside) apply('saveBeside');
+  else if (radio.value === 'lexpen' && cp.state?.beside) toWindow({ kind: 'deleteBeside' });
+});
 $c('.cp-revert').addEventListener('click', () => { if (cp.state) paneHandlers.columns(cp.state); });
 $c('.cp-detect').addEventListener('click', () => toWindow({ kind: 'detect' }));
 $c('.cp-info').addEventListener('click', () => toWindow({ kind: 'info' }));

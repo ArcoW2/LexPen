@@ -231,8 +231,8 @@ Differs from the plan:
   definition when it is kept next to the file.
 - Asked for after the build: the Folder pane's right-click on a CSV with its definition next to it deletes that file
   (Keep column settings of name.csv in LexPen only: the file to the Recycle Bin as a .bak file goes), and the Columns
-  pane's button, once saved there, is Keep in LexPen instead (the same); either way LexPen keeps the definition in its
-  store. The button sits with the others, after Column info.
+  pane has Settings kept: in LexPen / next to the file (one click moves them; in LexPen deletes the file as the Folder
+  pane does) in place of Save definition next to the file; either way LexPen keeps the definition in its store.
 - A hidden column's mark is a thin bar in the header and in every row; a click on either shows it.
 - The Folder pane marks a CSV with its own `name.csv-metadata.json` next to it; one described only by the folder's
   `csv-metadata.json` is read, but not marked (that would mean reading that file for every listing).

@@ -44,7 +44,11 @@
   .cp-def textarea { flex: 1; resize: none; font-family: var(--editor-font, Consolas, monospace); font-size: calc(12px * var(--ui-scale, 1)); padding: 4px; white-space: pre; }
   .cp-def-error { color: var(--warning); min-height: 1.3em; }
   .cp-bar { flex: none; display: flex; gap: 6px; padding: 6px 10px; border-top: 1px solid var(--border); flex-wrap: wrap; }
-  .cp-bar .cp-gap { flex: 1; }
+  .cp-kept { display: inline-flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; margin-left: 6px; }   /* narrow: its choices on rows of their own */
+  .cp-kept > * { white-space: nowrap; }
+  .cp-kept-label { color: var(--fg-dim); }
+  .cp-kept input { vertical-align: middle; margin: 0 2px 0 0; }
+  .cp-kept label.cp-off { opacity: .5; }
   .cp-note { color: var(--fg-dim); padding: 0 10px 4px; }
   .cp-menu { position: fixed; z-index: 10; background: var(--bg-bar); border: 1px solid var(--border); border-radius: 4px; padding: 3px 0; }
   .cp-menu button { display: block; width: 100%; text-align: left; border: 0; background: none; padding: 3px 14px; }
@@ -80,7 +84,9 @@
     <button type="button" class="cp-revert" title="Back to the kept settings">Revert</button>
     <button type="button" class="cp-detect" title="Forget the settings and guess them again from the text">Detect</button>
     <button type="button" class="cp-info" title="Per column: its type, longest and shortest value, how many are empty and how many do not fit (as applied)">Column info</button>
-    <button type="button" class="cp-save"></button>
+    <span class="cp-kept"><span class="cp-kept-label">Settings kept:</span>
+      <label><input type="radio" name="cp-kept" value="lexpen"> in LexPen</label>
+      <label class="cp-kept-file"><input type="radio" name="cp-kept" value="file"> next to the file</label></span>
   </div>
 </div>
 <script src="pane.js"></script>
