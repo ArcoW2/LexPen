@@ -221,10 +221,11 @@ Differs from the plan:
   The menu items for one column (3.5) are those buttons. The box opens beside the column; its title drags it, and
   the next box opens where it was left. A column's edge handle reaches 3 px to both sides.
 - Asked for after the build: a current cell in the column view (a click; the arrows, PgUp / PgDn, Home / End,
-  Ctrl+Home / Ctrl+End; the bottom bar names it), and the find bar on a CSV in one column or all, by row or by
-  column, from the current cell (the editor: its cursor), in the values as shown (column view) or the file's text
-  (editor), the cells with a match marked (`web/csvfind.js`). Replace stays by line, so it waits for All columns,
-  By row. Measured: the next match in 100,000 rows of 6 columns (all columns, the matches found anew) 253 ms.
+  Ctrl+Home / Ctrl+End, Tab / Shift+Tab on to the next / previous row; the bottom bar names it), and the find bar on a
+  CSV in one column or all, by row or by column, from the current cell (the editor: its cursor), in the values as
+  shown (column view) or the file's text (editor), the cells with a match marked (`web/csvfind.js`). Replace stays by
+  line, so it waits for All columns, By row. Measured: the next match in 100,000 rows of 6 columns (all columns, the
+  matches found anew) 253 ms.
 - A hidden column's mark is a thin bar in the header and in every row; a click on either shows it.
 - The Folder pane marks a CSV with its own `name.csv-metadata.json` next to it; one described only by the folder's
   `csv-metadata.json` is read, but not marked (that would mean reading that file for every listing).

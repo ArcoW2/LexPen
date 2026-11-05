@@ -323,7 +323,8 @@ function csvClick(pane, e) {
 // ---------- The current cell ----------
 // The column view has a cell cursor (tab.csvCur: { row, col }, the column by its place in the file): a click puts it
 // on a cell, the keys move it (Up / Down, Left / Right in the order shown, PgUp / PgDn a screen, Home / End the
-// row's first / last column, Ctrl+Home / Ctrl+End the first / last cell). The find bar starts from it (csvfind.js).
+// row's first / last column, Ctrl+Home / Ctrl+End the first / last cell, Tab / Shift+Tab the next / previous cell, on
+// to the next / previous row at the row's end, as a spreadsheet). The find bar starts from it (csvfind.js).
 function csvSetCell(pane, row, col, reveal = true) {
   const tab = pane.active;
   tab.csvCur = { row, col };
@@ -352,7 +353,7 @@ function csvReveal(pane, row, col) {
 // The keys in the column view: true when one moved the current cell.
 function csvKey(pane, e) {
   const tab = pane.active, view = tab?.csv;
-  if (!view || e.altKey || e.metaKey || e.shiftKey || e.target.closest?.('input, textarea, select')) return false;
+  if (!view || e.altKey || e.metaKey || (e.shiftKey && e.key !== 'Tab') || e.target.closest?.('input, textarea, select')) return false;
   const count = view.data.read.rows.length, order = view.data.order;
   if (!count || !order.length) return false;
   const cur = tab.csvCur ?? { row: Math.max(0, view.first + 1), col: order[0] };
@@ -364,6 +365,11 @@ function csvKey(pane, e) {
   else if (k === 'ArrowUp' && !ctrl) row--;
   else if (k === 'ArrowRight' && !ctrl) at++;
   else if (k === 'ArrowLeft' && !ctrl) at--;
+  else if (k === 'Tab' && !ctrl) {   // on to the next / previous row at the row's end
+    at += e.shiftKey ? -1 : 1;
+    if (at >= order.length && row < count - 1) { at = 0; row++; }
+    else if (at < 0 && row > 0) { at = order.length - 1; row--; }
+  }
   else if (k === 'PageDown' && !ctrl) row += screen;
   else if (k === 'PageUp' && !ctrl) row -= screen;
   else if (k === 'Home') { at = 0; if (ctrl) row = 0; }

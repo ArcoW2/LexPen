@@ -305,6 +305,11 @@ const PC_KEYS = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Hom
 // Before the keys of keys.json (keys.js listens on the document): with the focus in a preview, these keys move its
 // cursor. Shift is ignored for now; Ctrl+Up / Ctrl+Down and Ctrl+PgUp / Ctrl+PgDn keep their own meaning.
 window.addEventListener('keydown', e => {
+  if (e.key === 'Tab' && !e.ctrlKey && !e.altKey && !e.metaKey && !e.defaultPrevented && !keys.pending) {   // a CSV's column view: the next cell
+    const pane = panes.find(p => p.active?.csv && p.active.mode !== 'edit' && !p.el.hidden && p.previewEl.contains(document.activeElement));
+    if (pane && csvKey(pane, e)) { e.preventDefault(); e.stopPropagation(); }
+    return;
+  }
   if (!PC_KEYS.has(e.key) || e.altKey || e.metaKey || e.defaultPrevented || keys.pending || document.querySelector('dialog[open]')) return;
   if (e.ctrlKey && !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
   const pane = panes.find(p => p.active && p.active.mode !== 'edit' && !p.el.hidden && p.previewEl.contains(document.activeElement));

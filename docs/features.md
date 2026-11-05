@@ -370,29 +370,30 @@ every action with its key.
 - **CSV as columns** (`.csv`, `.tsv`, `.tab`, `.psv`; any document by View > Read as CSV): opens in split view, the
   editor with the file as it is, the preview as columns: each value in its column's format and alignment, the original
   text when the mouse rests on it, a value that does not fit its type marked, the lines before the data folded, the
-  header kept at the top, a current cell (a click, or the arrows, PgUp / PgDn, Home / End, Ctrl+Home / Ctrl+End move
-  it; the bottom bar names it), only the rows in view drawn (the view of 100,000 rows measured at under half a
-  second). The bottom bar names the row and column under the mouse or the editor's cursor; a double click on a cell
-  puts the editor's cursor on that character. How the file is read is detected when it opens (delimiter, quote, lines
-  before the data, header, per column the type), and set in the Columns pane (View > Panels, or the column view's
-  right-click > Columns...): delimiter (more than one character too), quotes (start and end may differ, per column
-  too) and their escape, lines before the data and the header line; per column the type, Read as (decimal and
-  thousands sign, a date pattern), format (`#,##0.00`, `dd-MM-yyyy`), alignment, trim, shown, width and order; ticked
-  columns take a value set in one of them; a warning counts the values that do not fit; the Definition tab shows it
-  all as CSV on the Web (CSVW) text. Apply keeps it in LexPen (`file-columns.json`), or next to the file after Save
-  next to the file (`name.csv-metadata.json`, which other tools read too; the Folder pane marks such a file); a
-  definition from there is read first, also the folder's `csv-metadata.json`. In the column view the header is the
-  ruler: drag an edge to size a column (double click: to its longest value), drag a name to move it. A right-click on
-  a column opens a small box beside it (its title drags it; the next one opens where it was left) with that column's
-  settings (name, type, quotes, Read as, format, alignment, trim, width, shown), shown at once as you change them (Esc
-  or Cancel: back as it was), and buttons to move it left or right, fit it, hide it, Column info and More...; beside
-  the columns the right-click shows all columns again, opens Column info (per column its longest and shortest value,
-  empty ones, ones that do not fit) and Write the columns in this order (the editor's text rewritten in the shown
-  order, as one undo step). The find bar on a CSV has a column list (All columns, or one) and By row / By column (down
-  a column, then the next, in the order shown); it starts from the current cell (in the editor: the cursor's), finds
-  in the values as shown in the column view and in the file's text in the editor, and marks the cells with a match;
-  Replace (by line) works with All columns, By row. Settings > Preview > Columns (CSV): the widest column (40
-  characters), the header at the top, detecting a file's build.
+  header kept at the top, a current cell (a click, or the arrows, PgUp / PgDn, Home / End, Ctrl+Home / Ctrl+End, Tab /
+  Shift+Tab (on to the next row at the row's end) move it; the bottom bar names it), only the rows in view drawn (the
+  view of 100,000 rows measured at under half a second). The bottom bar names the row and column under the mouse or
+  the editor's cursor; a double click on a cell puts the editor's cursor on that character. How the file is read is
+  detected when it opens (delimiter, quote, lines before the data, header, per column the type), and set in the
+  Columns pane (View > Panels, or the column view's right-click > Columns...): delimiter (more than one character
+  too), quotes (start and end may differ, per column too) and their escape, lines before the data and the header line;
+  per column the type, Read as (decimal and thousands sign, a date pattern), format (`#,##0.00`, `dd-MM-yyyy`),
+  alignment, trim, shown, width and order; ticked columns take a value set in one of them; a warning counts the values
+  that do not fit; the Definition tab shows it all as CSV on the Web (CSVW) text. Apply keeps it in LexPen
+  (`file-columns.json`), or next to the file after Save next to the file (`name.csv-metadata.json`, which other tools
+  read too; the Folder pane marks such a file); a definition from there is read first, also the folder's
+  `csv-metadata.json`. In the column view the header is the ruler: drag an edge to size a column (double click: to its
+  longest value), drag a name to move it. A right-click on a column opens a small box beside it (its title drags it;
+  the next one opens where it was left) with that column's settings (name, type, quotes, Read as, format, alignment,
+  trim, width, shown), shown at once as you change them (Esc or Cancel: back as it was), and buttons to move it left
+  or right, fit it, hide it, Column info and More...; beside the columns the right-click shows all columns again,
+  opens Column info (per column its longest and shortest value, empty ones, ones that do not fit) and Write the
+  columns in this order (the editor's text rewritten in the shown order, as one undo step). The find bar on a CSV has
+  a column list (All columns, or one) and By row / By column (down a column, then the next, in the order shown); it
+  starts from the current cell (in the editor: the cursor's), finds in the values as shown in the column view and in
+  the file's text in the editor, and marks the cells with a match; Replace (by line) works with All columns, By row.
+  Settings > Preview > Columns (CSV): the widest column (40 characters), the header at the top, detecting a file's
+  build.
 - **Preview zoom**: Ctrl+= / Ctrl+- / Ctrl+mouse wheel over a preview. The level shows at the right of the top
   bar (click it for 100%) and is kept.
 - **Safe by default**: a Content Security Policy blocks scripts embedded in a document's raw HTML.
