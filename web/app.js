@@ -990,6 +990,14 @@ async function reloadDoc(doc, text, encoding) {
 
 // ---------- Rendering ----------
 const render = tab => track(renderNow(tab));
+// A large code file (docs/plans/executed/PLAN-large-preview.md 3.5, 3.6): a notice first ("Rendering preview..."), then its
+// blocks of lines attached a slice at a time, a frame between, so the app keeps responding; the render stops when its
+// preview is no longer wanted (switched off, another tab, an edit: a newer render).
+const RENDER_NOTE_SIZE = 1024 * 1024;   // characters
+const CHUNKS_PER_FRAME = 40;            // blocks of CODE_CHUNK lines (languages.js)
+const nextFrame = () => new Promise(r => requestAnimationFrame(() => setTimeout(r)));
+const previewWanted = tab => tab.mode !== 'edit' && panes.some(p => p.active === tab);
+
 async function renderNow(tab) {
   const id = ++tab.renderId;
   tab.stale = false;
@@ -1004,6 +1012,15 @@ async function renderNow(tab) {
   if (needsEngine && !window.CodeMirror?.runMode) {
     await loadEditor();
     if (id !== tab.renderId) return;
+  }
+  const large = doc.language && text.length > RENDER_NOTE_SIZE;
+  let note = null;
+  if (large) {   // shown before the work, which takes the thread
+    note = Object.assign(document.createElement('div'), { className: 'mm-render-note', textContent: 'Rendering preview...' });
+    article.prepend(note);
+    await nextFrame();
+    if (id !== tab.renderId) return;
+    if (!previewWanted(tab)) { tab.stale = true; note.remove(); return; }
   }
   const tpl = document.createElement('template');
   tpl.innerHTML = doc.language
@@ -1033,7 +1050,18 @@ async function renderNow(tab) {
   for (const code of content.querySelectorAll('pre > code'))
     if (hasLongLine(code.textContent)) code.parentElement.classList.add('mm-long-line');
 
-  article.replaceChildren(content);
+  if (large) {
+    const pre = content.firstElementChild, chunks = [...pre.children];
+    pre.replaceChildren();
+    article.replaceChildren(note, content);
+    for (let i = 0; i < chunks.length; i += CHUNKS_PER_FRAME) {
+      pre.append(...chunks.slice(i, i + CHUNKS_PER_FRAME));
+      await nextFrame();
+      if (id !== tab.renderId) return;
+      if (!previewWanted(tab)) { tab.stale = true; return; }   // again when its preview is shown again
+    }
+    note.remove();
+  } else article.replaceChildren(content);
 
   const formulas = article.querySelectorAll('.tex');
   if (formulas.length) {

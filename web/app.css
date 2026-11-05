@@ -920,7 +920,15 @@ body { --col-guide: color-mix(in srgb, var(--col-guide-colour, var(--border)) va
    the preview (.mm-code, run mode). */
 /* The preview of a code file: a block per line (data-line: outline, scroll sync); an empty line keeps its height. */
 .mm-preview pre.mm-code { font: var(--editor-size)/var(--editor-line) var(--editor-font); }
-.mm-code > div { min-height: 1em; }
+.mm-code [data-line] { min-height: 1em; }
+/* Blocks of lines (codeHtml): one not in view is not laid out, its height estimated from its lines until it is
+   shown once (then the real one is kept: auto). */
+.mm-code > .mm-chunk { content-visibility: auto; contain-intrinsic-block-size: auto 500lh; }
+/* A large code file's preview being built (renderNow): at the top while its blocks come in. */
+.mm-render-note {
+  position: sticky; top: 0; z-index: 2; margin: 0 0 6px; padding: 4px 10px; border-radius: 4px;
+  background: var(--accent); color: var(--bg); font: 600 calc(12px * var(--ui-scale)) var(--app-font);
+}
 .mm-editor-pane[data-lang] .CodeMirror .cm-error { background: none; }   /* powershell marks tokens it does not know */
 
 /* Find bar of a pane (find.js), between its tabs and its content. */

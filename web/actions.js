@@ -790,6 +790,8 @@ const SETTING_ROWS = [
     hint: 'A colour of the theme (the preview\'s own when it has one; the highlight colour of the theme is yellow) or one you pick', options: () => GUIDE_COLOURS },
   { name: 'previewHighlightIntensity', group: 'Preview', sub: 'Highlight', kind: 'range', range: [0, 200, 5], unit: '%',
     title: 'Highlight in the preview: intensity', hint: '100%: the colour itself; lower fades it into the background, higher takes it further from it' },
+  { name: 'previewMaxSize', group: 'Preview', kind: 'range', range: [0, 50, 1], unit: ' MB', title: 'A code file larger than this opens without its preview',
+    hint: 'It opens in the editor only (the Preview switch shows the preview when wanted); View in LexPen still shows it. 0: no limit, every file opens as its language does' },
   { name: 'previewWrap', group: 'Preview', kind: 'toggle', title: 'Wrap long lines in code blocks',
     hint: 'Long lines in the code blocks of the preview wrap at the edge',
     hintOff: 'Long lines in the code blocks of the preview run on and scroll sideways (a line of more than 10000 characters wraps all the same, to keep the preview fast)' },

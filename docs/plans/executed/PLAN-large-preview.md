@@ -86,6 +86,25 @@ of the page loses its layout. Two ways, not exclusive:
 
 The proposal is both: blocks for the first show and for scrolling, the kept article for the switch.
 
+Built: the blocks only. With them the switch back measured 148 ms (250 ms in a later run, with the passes after it),
+so the kept article was not needed and not built.
+
+### 3.4a Results (measured after the change, same file, same test copy)
+
+| Step | Before | After |
+|---|---|---|
+| First show (notice, blocks attached in slices) | 6612 | 477 / 625 (two runs) |
+| Switching back to the tab | 6529 / 7205 | 148 / 250 |
+| Scrolling to the middle | -- | 28 |
+| Showing all occurrences of a word (2084 in the file): longest stall | -- | 300 |
+| Tab away and back with those occurrences shown: longest stall | -- | 589 (first try: 3943, see below) |
+| The editor to line 100000 (the preview follows): longest stall | -- | 415 |
+
+The preview's scroll bar placed its marks by measuring each one (up to 3000 ranges), which laid out the blocks of every
+mark again: 3.9 s per tab switch with occurrences shown. A mark in a code preview now goes by its line number as a share
+of the code's height (previewoverview.js); measured 6531 px off for one mark in 2,577,487 px of content (the blocks'
+estimated heights), a pixel or so on the strip.
+
 ### 3.5 Stopping a render
 
 - During a render the app responds (3.6), so the Editor / Preview switches and the tab strip work.
@@ -108,8 +127,8 @@ The proposal is both: blocks for the first show and for scrolling, the kept arti
 ### 3.6a A large code file: the preview only when asked for
 
 - A setting (Settings > Preview): a code file larger than it opens without its preview (editor only), whatever its
-  language would open in; the Preview switch (or Side by side) shows it when wanted. Default 2 MB, the size above
-  which the code preview is not coloured (`PREVIEW_COLOUR_LIMIT`); 0: no limit.
+  language would open in; the Preview switch (or Side by side) shows it when wanted. Default 3 MB (colouring already
+  stops above 2 MB, `PREVIEW_COLOUR_LIMIT`); 0: no limit.
 - Only how such a file opens: a tab already showing its preview keeps it, and View in LexPen (the project for
   viewing) still shows the preview, as that is what it was asked for.
 

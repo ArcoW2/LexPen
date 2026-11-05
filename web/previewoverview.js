@@ -54,7 +54,26 @@ function pvMarks(pane) {
   if (!tab || tab.mode === 'edit') return out;
   const doc = tab.doc, base = el.getBoundingClientRect().top - el.scrollTop;
   const span = rect => rect && rect.height ? { top: rect.top - base, bottom: rect.bottom - base } : null;
-  const ofLine = line => { const b = typeof previewBlockAt === 'function' ? previewBlockAt(tab, line) : null; return b && span(b.getBoundingClientRect()); };
+  // A code preview in blocks of lines (codeHtml, docs/plans/executed/PLAN-large-preview.md): a line's place as its share of
+  // the code's height, from its line number; measuring anything per mark (the line, even its block) lays out the
+  // blocks again after a tab switch, and with many marks brings back the freeze of a large file. Close enough for
+  // a strip; lines that wrap make it less exact.
+  const code = tab.article.querySelector('pre.mm-code');
+  const codeRect = code?.getBoundingClientRect(), codeTop = codeRect ? codeRect.top - base : 0, codeHeight = codeRect?.height ?? 0;
+  const lineCount = code ? +(code.lastElementChild?.lastElementChild?.dataset.line ?? 0) + 1 : 1;
+  const lineSpan = lineEl => {
+    const h = codeHeight / lineCount, top = codeTop + +lineEl.dataset.line * h;
+    return h ? { top, bottom: top + h } : null;
+  };
+  const inBlock = el => el?.parentElement?.classList.contains('mm-chunk');
+  const rangeSpan = range => {
+    const node = range.startContainer, line = (node.nodeType === 1 ? node : node.parentElement)?.closest('[data-line]');
+    return inBlock(line) ? lineSpan(line) : span(range.getBoundingClientRect());
+  };
+  const ofLine = line => {
+    const b = typeof previewBlockAt === 'function' ? previewBlockAt(tab, line) : null;
+    return b && (inBlock(b) ? lineSpan(b) : span(b.getBoundingClientRect()));
+  };
   const add = (kind, s, line) => { if (s) out.push({ kind, ...s, line }); };
   const editor = tab.mode === 'split' ? pane : panes.find(p => p !== pane && p.active?.doc === doc && p.active.mode !== 'preview' && !p.el.hidden);
   if (pvKind('changes')) for (const h of editor?.changeHunks ?? []) add('changes', ofLine(h.bFrom), h.bFrom);
@@ -67,16 +86,16 @@ function pvMarks(pane) {
       const r = h.state !== 'detached' && hlRange(doc, h);
       if (!r) continue;
       const ranges = previewRangesOf(tab, hlOffset(text, r.from), hlOffset(text, r.to));
-      if (ranges.length) add('highlights', span(ranges[0].getBoundingClientRect()), r.from[0]);
+      if (ranges.length) add('highlights', rangeSpan(ranges[0]), r.from[0]);
     }
   }
   if (pvKind('occurrences')) {   // occurrences.js, below the find marks
     let n = 0;
-    for (const r of pane.occPreview ?? []) { if (++n > 3000) break; add('occurrences', span(r.getBoundingClientRect())); }
+    for (const r of pane.occPreview ?? []) { if (++n > 3000) break; add('occurrences', rangeSpan(r)); }
   }
   if (pvKind('find')) {   // the preview's find marks (find.js), at most a few thousand looked at
     let n = 0;
-    for (const r of CSS.highlights.get('mm-find-' + pane.index) ?? []) { if (++n > 3000) break; add('find', span(r.getBoundingClientRect())); }
+    for (const r of CSS.highlights.get('mm-find-' + pane.index) ?? []) { if (++n > 3000) break; add('find', rangeSpan(r)); }
   }
   if (editor?.cm) add('cursor', ofLine(editor.cm.getCursor().line), editor.cm.getCursor().line);
   return out;
