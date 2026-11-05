@@ -457,15 +457,24 @@ const MACRO_MENUS = {
 };
 
 // A button's menu below it: docked, drawn here over everything at its place in the frame; floating, by its page.
-function macroButtonMenu(m) {
+// m: the button's place in the page (x, its top and bottom); below it, else above it, never over it. The page hears
+// when the menu closes (menuClosed: its button no longer pressed).
+async function macroButtonMenu(m) {
   const items = (MACRO_MENUS[m.menu] ?? []).map(([label, what]) => ({ label, plain: true, run: () => fromMacrosPane({ kind: 'macro', what, name: m.name }) }));
   if (!items.length) return;
   if (macrosPane.floating) {
     macrosPane.runs = items.map(i => i.run);
-    return macrosPane.send({ kind: 'menu', x: m.x, y: m.y, items: items.map((i, id) => ({ label: i.label, id })) });
+    return macrosPane.send({ kind: 'menu', x: m.x, y: m.bottom + 2, above: m.top - 2, closed: 'menuClosed', items: items.map((i, id) => ({ label: i.label, id })) });
   }
   const r = macrosPane.frame.getBoundingClientRect();
-  openPopupMenu(items, r.left + m.x, r.top + m.y);
+  closeMenus();
+  hideMenus();
+  await openMenuLevel(items, r.left + m.x, r.top + m.bottom + 2, true, false);
+  const el = menuBar.levels.at(-1)?.el;
+  if (!el) return macrosPane.send({ kind: 'menuClosed', menu: m.menu });
+  if (r.top + m.bottom + 2 + el.offsetHeight > innerHeight - 4) el.style.top = Math.max(4, r.top + m.top - 2 - el.offsetHeight) + 'px';
+  const gone = new MutationObserver(() => { if (!el.isConnected) { gone.disconnect(); macrosPane.send({ kind: 'menuClosed', menu: m.menu }); } });
+  gone.observe(document.body, { childList: true });
 }
 
 async function fromMacrosPane(m) {

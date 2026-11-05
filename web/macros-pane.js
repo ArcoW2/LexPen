@@ -21,12 +21,21 @@ paneHandlers.macros = m => {
 };
 paneHandlers.focus = () => (mp.state?.manage ? mp.list : document.querySelector('[data-menu="play"]')).focus();
 
-// A button with a menu: the menu below it (`buttonMenu`, the place in this page); else the button's own action.
+// A button with a menu: its menu (`buttonMenu`, the button's place in this page), the button pressed while it is open
+// (menuClosed: no longer); a click on it while its menu is open only closes the menu. Else the button's own action.
+let menuOpen = null, menuWasOpen = null;
+const pressed = name => { menuOpen = name; for (const b of document.querySelectorAll('[data-menu]')) b.classList.toggle('mp-open', b.dataset.menu === name); };
+// A menu closed: its button no longer pressed (not one opened since: another button's menu replaces it).
+paneHandlers.menuClosed = ({ menu }) => { if (!menu || menu === menuOpen) pressed(null); };
+// Before the press closes the menu (pane.js, the menu's own): which one was open.
+addEventListener('pointerdown', () => { menuWasOpen = menuOpen; }, true);
 document.addEventListener('click', e => {
   const drop = e.target.closest('[data-menu]');
   if (drop) {
+    if (menuWasOpen === drop.dataset.menu) return pressed(null);
     const r = drop.getBoundingClientRect();
-    return toWindow({ kind: 'buttonMenu', menu: drop.dataset.menu, x: Math.round(r.left), y: Math.round(r.bottom + 2), name: chosen() });
+    pressed(drop.dataset.menu);
+    return toWindow({ kind: 'buttonMenu', menu: drop.dataset.menu, x: Math.round(r.left), top: Math.round(r.top), bottom: Math.round(r.bottom), name: chosen() });
   }
   const what = e.target.closest('[data-macro]')?.dataset.macro;
   if (what) toWindow({ kind: 'macro', what, name: chosen() });

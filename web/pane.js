@@ -30,8 +30,9 @@ function applyPaneLook({ css, theme, mode }) {
 }
 
 // Floating, the window's page cannot draw here: a menu it sends ({ x, y, items: [{ label, checked, id } | '-'] }) is
-// drawn by the pane; a choice goes back as menuPick.
-function paneMenu({ x, y, items }) {
+// drawn by the pane; a choice goes back as menuPick. `above`: where it ends when it does not fit below y (a button's
+// menu: above the button, not over it); `closed`: a message kind for the pane's own page once it closes.
+function paneMenu({ x, y, above, closed, items }) {
   document.querySelector('.mm-pane-menu')?.remove();
   const menu = document.createElement('div');
   menu.className = 'mm-pane-menu';
@@ -45,12 +46,18 @@ function paneMenu({ x, y, items }) {
   }
   const outside = e => { if (!menu.contains(e.target)) close(); };
   const esc = e => { if (e.key === 'Escape') { e.preventDefault(); close(); } };
-  function close() { menu.remove(); removeEventListener('pointerdown', outside, true); removeEventListener('keydown', esc, true); }
+  function close() {
+    menu.remove();
+    removeEventListener('pointerdown', outside, true);
+    removeEventListener('keydown', esc, true);
+    if (closed) paneHandlers[closed]?.({ kind: closed });
+  }
   addEventListener('pointerdown', outside, true);
   addEventListener('keydown', esc, true);
   document.body.append(menu);
   menu.style.left = Math.max(0, Math.min(x, innerWidth - menu.offsetWidth - 2)) + 'px';
-  menu.style.top = Math.max(0, Math.min(y, innerHeight - menu.offsetHeight - 2)) + 'px';
+  const top = above !== undefined && y + menu.offsetHeight > innerHeight - 2 ? above - menu.offsetHeight : y;
+  menu.style.top = Math.max(0, Math.min(top, innerHeight - menu.offsetHeight - 2)) + 'px';
   menu.querySelector('button')?.focus();
 }
 

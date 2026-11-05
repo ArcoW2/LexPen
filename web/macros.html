@@ -17,6 +17,9 @@
   .mp-buttons button { padding: 4px 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-bar); color: var(--fg); font: inherit; }
   .mp-buttons button:hover:not(:disabled) { border-color: var(--accent); }
   .mp-buttons button:disabled { opacity: .45; }
+  /* A button whose menu is open: pressed in, its chevron pointing up. */
+  .mp-buttons button.mp-open { background: var(--active); border-color: var(--accent); }
+  .mp-buttons .mp-drop.mp-open::after { transform: translateY(.1em) rotate(225deg); }
   /* A button with a menu: a down chevron after its text, as a drop-down box has. */
   .mp-buttons .mp-drop::after { content: ""; display: inline-block; width: .38em; height: .38em; margin: 0 2px 0 .6em;
     border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: translateY(-.2em) rotate(45deg); }
