@@ -55,6 +55,25 @@ item is a file or a folder. Its `GetState` hides an item that does not fit; its 
   exists, the file keeping its side; otherwise it shows "<folder> has no <name>" and opens no compare. The same
   holds for `--compare` from the command line.
 
+### 3.2a Every LexPen item from the extension (step 3)
+
+Published, the compare items showed apart from View, Edit and Delete .bak: those are registry entries of `*\shell` and
+`Directory\shell`, the compare items of `AllFilesystemObjects\shell`, and Explorer builds its menu by those groups. So
+every LexPen item becomes a command of the extension, all in one place:
+
+- **Between two lines**: each item a command of its own (a class each), all under `AllFilesystemObjects\shell`, so
+  Explorer keeps them together in the order of their key names, a line above the first and below the last shown.
+- **In a submenu**: one command "LexPen" (`ECF_HASSUBCOMMANDS`) whose subcommands (`EnumSubCommands`) are the items, under
+  `AllFilesystemObjects\shell`: one submenu for files, folders and both together (a file with a folder too).
+- Each item shows by what is selected and by the settings (which items are on: read with Exe and LeftFile from
+  `LexPen.Shell`):
+  - **View in LexPen**: one or more files or folders (`--view` for each, as now).
+  - **Edit in LexPen**: one or more files, no folder among them.
+  - **Delete .bak file** (one file) / **Delete all .bak files** (a folder): only when there is something to delete (the
+    file's backup exists; a folder: always, as finding them may take long). `--delete-backups` as now.
+  - The compare items as in 3.2.
+- Without LexPenShell.dll next to the exe (built without the C++ tools): the registry entries of today, as now.
+
 ### 3.3 The setting
 
 - Settings > App > Windows Explorer gets **Compare by selection (Explorer extension)**, under "Compare entries in
@@ -106,6 +125,4 @@ that would need, but packaging is not in this plan.
 
 ## 4. Open questions
 
-1. In a submenu, a file and a folder selected together get no LexPen submenu (it is one per kind). Is that acceptable,
-   or should the submenu move to `AllFilesystemObjects` too (its other items, Edit and Delete .bak, then need a way to
-   show only for files, or labels for both)?
+None (the submenu for a file with a folder: answered by 3.2a, one submenu for all).
