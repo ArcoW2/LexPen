@@ -633,6 +633,9 @@ body[data-tab-bar=menu] .mm-tabs { overflow-x: hidden; }
    while only the preview is shown. */
 .mm-bars { grid-area: bars; display: flex; flex-direction: column; min-width: 0; }
 .mm-pane[data-mode=preview] .mm-bars { display: none; }
+/* A PDF (pdfview.js): its bar where the others are, shown in its preview-only pane; the others hidden meanwhile. */
+.mm-pane[data-pdf] .mm-bars { display: flex; }
+.mm-pane[data-pdf] .mm-bars > :not(.mm-pdf-bar), .mm-pane:not([data-pdf]) .mm-pdf-bar { display: none; }
 /* An editor pane's own dock areas (docks.js, 3.10): at the left and right of its text, and under it the full width of
    the pane; their sizes per editor pane (the outline's old width as the sides' default). */
 .mm-body > .mm-dock[data-side=left] { grid-area: left; width: var(--pdock-left-w, var(--outline-w, 220px)); }

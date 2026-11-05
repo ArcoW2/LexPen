@@ -1,7 +1,8 @@
 'use strict';
 // A PDF in a tab (docs/plans/38-PLAN-pdf-view.md): always on the preview side, read-only. The tab's preview holds a
-// bar (as the bar above the editor of other files) and a frame with pdf.html (pdf-pane.js), where pdf.js draws the file
-// and turns each page that does not suit the mode round. This side builds them, tells the frame the mode, the
+// frame with pdf.html (pdf-pane.js), where pdf.js draws the file and turns each page that does not suit the mode round;
+// its bar is the pane's, where the other files have theirs (above the editor and the preview: pane.barsEl), shown
+// while the pane's active tab is a PDF. This side builds them, tells the frame the mode, the
 // threshold and the preview's background, passes the bar's buttons on, and shows what the frame reports (its page, its
 // zoom). Loaded after app.js.
 
@@ -42,15 +43,11 @@ const PDF_ICON = {
   next: '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>',
 };
 
-// The tab's preview: the bar and the frame, built once; again only for a new version of the file (pdfChanged), so a
-// render for another reason (a setting, the theme) keeps the place in the PDF: the frame is told instead.
-function pdfViewElement(tab) {
-  const doc = tab.doc;
-  if (tab.pdf?.wrap && tab.pdf.version === (doc.pdfVersion ?? 0)) { pdfTellAll(); return tab.pdf.wrap; }
-  const wrap = document.createElement('div');
-  wrap.className = 'mm-pdf';
-  const bar = document.createElement('div');
-  bar.className = 'mm-pdf-bar';   // looks as .mm-format (app.css), which a code language's pane hides
+// The pane's PDF bar, made the first time; it works on the pane's active tab.
+function pdfBar(pane) {
+  if (pane.pdfBar) return pane.pdfBar;
+  const bar = pane.pdfBar = document.createElement('div');
+  bar.className = 'mm-pdf-bar';   // looks as .mm-format (app.css), which is hidden while a PDF is shown
   bar.innerHTML =
     `<button class="mm-fmt" data-pdf="look">${PDF_ICON.theme}</button>` +
     '<span class="mm-pdf-threshold"><button class="mm-fmt" data-pdf="less" title="Threshold lower">-</button>' +
@@ -65,21 +62,39 @@ function pdfViewElement(tab) {
     '<input class="mm-pdf-page" title="Go to page (Enter)"><span class="mm-pdf-pages"></span>' +
     `<button class="mm-fmt" data-pdf="next" title="Next page">${PDF_ICON.next}</button>`;
   bar.addEventListener('mousedown', e => { if (e.target.closest('button')) e.preventDefault(); });
-  bar.addEventListener('click', e => { const b = e.target.closest('[data-pdf]'); if (b) pdfCommand(tab, b.dataset.pdf); });
+  bar.addEventListener('click', e => { const b = e.target.closest('[data-pdf]'); if (b && pane.active?.doc.pdf) pdfCommand(pane.active, b.dataset.pdf); });
   const page = bar.querySelector('.mm-pdf-page');
   page.addEventListener('keydown', e => {
-    if (e.key !== 'Enter') return;
+    if (e.key !== 'Enter' || !pane.active?.doc.pdf) return;
     e.preventDefault();
-    pdfSend(tab, { kind: 'page', page: parseInt(page.value, 10) || 1 });
+    pdfSend(pane.active, { kind: 'page', page: parseInt(page.value, 10) || 1 });
   });
+  paneBars(pane).append(bar);   // app.js
+  return bar;
+}
+
+// The pane shows its active tab (showActive): its PDF bar shown while that is a PDF.
+function pdfShowBar(pane) {
+  const tab = pane.active, on = !!tab?.doc.pdf;
+  pane.el.toggleAttribute('data-pdf', on);
+  if (on) { pdfBar(pane); pdfSyncBar(tab); }
+}
+
+// The tab's preview: the frame, built once; again only for a new version of the file (pdfChanged), so a render for
+// another reason (a setting, the theme) keeps the place in the PDF: the frame is told instead.
+function pdfViewElement(tab) {
+  const doc = tab.doc;
+  if (tab.pdf?.wrap && tab.pdf.version === (doc.pdfVersion ?? 0)) { pdfTellAll(); return tab.pdf.wrap; }
+  const wrap = document.createElement('div');
+  wrap.className = 'mm-pdf';
   const frame = document.createElement('iframe');
   frame.className = 'mm-pdf-frame';
   frame.title = docName(doc);
   const q = new URLSearchParams({ file: FILE_URL + encodeURIComponent(doc.path) + '?v=' + (doc.pdfVersion ?? 0),
     mode: pdfMode(tab), threshold: String(setting('pdfThreshold') ?? 50), bg: pdfBackground(tab) });
   frame.src = PANE_ORIGIN + '/pdf.html?' + q;
-  wrap.append(bar, frame);
-  tab.pdf = { wrap, frame, bar, state: tab.pdf?.state ?? null, version: doc.pdfVersion ?? 0 };
+  wrap.append(frame);
+  tab.pdf = { wrap, frame, state: tab.pdf?.state ?? null, version: doc.pdfVersion ?? 0 };
   frame.addEventListener('load', () => pdfFrames.set(frame.contentWindow, tab));
   pdfSyncBar(tab);
   return wrap;
@@ -89,9 +104,9 @@ function pdfSend(tab, msg) {
   tab.pdf?.frame.contentWindow?.postMessage({ toPdf: msg }, PANE_ORIGIN);
 }
 
-// The bar as the PDF is now: the look, the threshold, the zoom and the page.
+// The bar as the PDF is now: the look, the threshold, the zoom and the page (the bar of the pane it is active in).
 function pdfSyncBar(tab) {
-  const bar = tab.pdf?.bar, s = tab.pdf.state;
+  const pane = paneOf(tab), bar = pane?.active === tab ? pane.pdfBar : null, s = tab.pdf?.state;
   if (!bar) return;
   const following = pdfLook(tab.doc) !== 'original', mode = pdfMode(tab);
   const look = bar.querySelector('[data-pdf=look]');
@@ -148,6 +163,8 @@ addEventListener('message', e => {
   const tab = pdfFrames.get(e.source), m = e.data.fromPdf;
   if (!tab) return;
   if (m.kind === 'state') { tab.pdf.state = m; pdfSyncBar(tab); }
+  // Loaded (again: the tab was moved, or shown again in its pane): the place it had, when it had one.
+  else if (m.kind === 'ready') pdfSend(tab, { ...(tab.pdf.state ?? {}), kind: 'restore' });
   else if (m.kind === 'menu') pdfMenu(tab, m.x, m.y);
   else if (m.kind === 'activate') { const pane = paneOf(tab); if (pane && pane.index !== state.activePane) setActivePane(pane.index); }
   else if (m.kind === 'key') document.dispatchEvent(new KeyboardEvent('keydown', { key: m.key, code: m.code, ctrlKey: m.ctrlKey,

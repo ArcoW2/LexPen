@@ -11,7 +11,8 @@ const { EventBus, PDFViewer, PDFLinkService } = await import('./vendor/pdfjs/pdf
 const here = new URL(location.href), asset = p => new URL(p, here).href;
 pdfjsLib.GlobalWorkerOptions.workerSrc = asset('vendor/pdfjs/pdf.worker.min.mjs');
 
-const pdf = { viewer: null, doc: null, started: performance.now(), firstPage: null, mode: 'original', threshold: 50, light: new Map() };
+// restoring: no state told until the window has answered `ready` with the place it had (or none).
+const pdf = { viewer: null, doc: null, started: performance.now(), firstPage: null, mode: 'original', threshold: 50, light: new Map(), restoring: true };
 globalThis.pdfPane = pdf;   // for a look from outside (the tests)
 
 // A drawn page's overall brightness, 0 to 1 (its canvas drawn small, the pixels' luminance averaged).
@@ -60,9 +61,23 @@ function setLook(mode, threshold, bg) {
 
 // To the window (pdfview.js): its state for the bar, a right-click, a key that is the window's.
 const toWindow = msg => parent.postMessage({ fromPdf: msg }, 'https://lexpen.example');
+// Its place too (the zoom, how far it is scrolled), so the window can give it back: a frame moved with its tab (another
+// tab shown in the pane and back) loads again.
 function tellState() {
-  const v = pdf.viewer;
-  if (v?.pagesCount) toWindow({ kind: 'state', page: v.currentPageNumber, pages: v.pagesCount, scale: v.currentScale });
+  const v = pdf.viewer, c = document.getElementById('pdf-scroll');
+  if (v?.pagesCount && !pdf.restoring) toWindow({ kind: 'state', page: v.currentPageNumber, pages: v.pagesCount, scale: v.currentScale,
+    scaleValue: v.currentScaleValue, top: c.scrollTop, left: c.scrollLeft });
+}
+// The place it had (from the window, after a load): the zoom first, then the scroll, once the pages have that size.
+function restore({ scaleValue, scale, top, left }) {
+  const v = pdf.viewer, c = document.getElementById('pdf-scroll');
+  if (/^(page-width|page-fit|page-actual|auto)$/.test(scaleValue)) v.currentScaleValue = scaleValue; else if (scale) v.currentScale = scale;
+  requestAnimationFrame(() => {
+    c.scrollTop = top ?? 0;
+    c.scrollLeft = left ?? 0;
+    pdf.restoring = false;
+    tellState();
+  });
 }
 
 async function open() {
@@ -77,7 +92,11 @@ async function open() {
     if (canvas) pdf.light.set(pageNumber, brightness(canvas));
     look(pageNumber);
   });
-  eventBus.on('pagesinit', () => { pdf.viewer.currentScaleValue = 'page-width'; tellState(); });
+  eventBus.on('pagesinit', () => {
+    pdf.viewer.currentScaleValue = 'page-width';
+    toWindow({ kind: 'ready', pages: pdf.viewer.pagesCount });
+  });
+  document.getElementById('pdf-scroll').addEventListener('scroll', () => { clearTimeout(pdf.scrollTimer); pdf.scrollTimer = setTimeout(tellState, 200); });
   eventBus.on('pagechanging', tellState);
   eventBus.on('scalechanging', tellState);
   try {
@@ -105,6 +124,7 @@ addEventListener('message', e => {
   if (e.origin !== 'https://lexpen.example' || !e.data?.toPdf) return;
   const m = e.data.toPdf, v = pdf.viewer;
   if (m.kind === 'look') return setLook(m.mode, m.threshold, m.bg);
+  if (m.kind === 'restore') return m.top === undefined ? (pdf.restoring = false, tellState()) : restore(m);
   if (!v?.pagesCount) return;
   if (m.kind === 'fitWidth') v.currentScaleValue = 'page-width';
   else if (m.kind === 'fitPage') v.currentScaleValue = 'page-fit';

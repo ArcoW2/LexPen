@@ -827,15 +827,22 @@ function releaseTabDoc(tab) {
   if (typeof remarkHighlights === 'function' && tab.doc.hls?.list.length) remarkHighlights(tab.doc);   // highlights.js
 }
 
+// The pane's bars: above the text and the pane's right dock area, the whole width of the document but its left dock
+// area (app.css: .mm-bars); made by the first that needs it (the editor, a PDF).
+function paneBars(pane) {
+  if (!pane.barsEl) {
+    pane.barsEl = Object.assign(document.createElement('div'), { className: 'mm-bars' });
+    pane.el.querySelector('.mm-body').append(pane.barsEl);
+  }
+  return pane.barsEl;
+}
+
 async function ensureEditor(pane) {
   if (pane.cm) return;
   await loadEditor();
   if (pane.cm) return;
-  // The formatting bar and a code language's bar (format.js): above the text and the pane's right dock area, the
-  // whole width of the document but its left dock area (app.css: .mm-bars).
-  pane.barsEl = Object.assign(document.createElement('div'), { className: 'mm-bars' });
-  pane.barsEl.append(makeFormatBar(pane), makeCodeBar(pane));
-  pane.el.querySelector('.mm-body').append(pane.barsEl);
+  // The formatting bar and a code language's bar (format.js), before a PDF's (pdfview.js) when that came first.
+  paneBars(pane).prepend(makeFormatBar(pane), makeCodeBar(pane));
   pane.cm = CodeMirror(pane.editorEl, {
     value: '',
     lineNumbers: true,
@@ -1343,6 +1350,7 @@ async function showActive(pane) {
   if (typeof markPreviewCursors === 'function') markPreviewCursors();
   if (typeof schedulePreviewOverviews === 'function') schedulePreviewOverviews();
   const tab = pane.active;
+  if (typeof pdfShowBar === 'function') pdfShowBar(pane);   // a PDF's bar, in the pane's bars (pdfview.js)
   if (!tab) {
     pane.el.dataset.mode = 'preview';
     if (pane.index === 0) pane.previewEl.replaceChildren(welcomeArticle());
