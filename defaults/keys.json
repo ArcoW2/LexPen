@@ -36,6 +36,10 @@
   "Alt+Shift+Down": ["blockSelect", "down"],
   "Alt+Shift+Left": ["blockSelect", "left"],
   "Alt+Shift+Right": ["blockSelect", "right"],
+  "Ctrl+Alt+Shift+Left": ["selectionEnd", "left"],     // the active end of the selection to its left / start (a block: its left edge)
+  "Ctrl+Alt+Shift+Right": ["selectionEnd", "right"],   // to its right / end (a block: its right edge)
+  "Ctrl+Alt+Shift+Up": ["selectionEnd", "up"],         // a block: to its top line (a selection: its start)
+  "Ctrl+Alt+Shift+Down": ["selectionEnd", "down"],     // a block: to its bottom line (a selection: its end)
 
   // ---------- View ----------
   "Ctrl+Alt+V, E": "editor.toggle",  // Ctrl+Alt+V, then: E the editor, P the preview (on / off; one of them stays), O the outline

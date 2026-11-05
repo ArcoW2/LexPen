@@ -127,6 +127,25 @@ function moveThinBlock(cm, dir) {
   return true;
 }
 
+// The active end of the selection (its head: where the cursor shows, what Shift+arrows move) to another side; the
+// selection itself stays. A block: Left / Right to its left / right edge, Up / Down to its top / bottom line, so two
+// presses reach any corner. Another selection (each one of several): Left / Up to its start, Right / Down to its end.
+function selectionEndTo(cm, side) {
+  const b = blockOf(cm);
+  if (b) {
+    const box = blockBox(b), anchor = { ...b.anchor }, head = { ...b.head };
+    if (side === 'left' || side === 'right') [head.col, anchor.col] = side === 'left' ? [box.left, box.right] : [box.right, box.left];
+    else [head.line, anchor.line] = side === 'up' ? [box.top, box.bottom] : [box.bottom, box.top];
+    return setBlock(cm, anchor, head);
+  }
+  const start = side === 'left' || side === 'up';
+  const ranges = cm.listSelections().map(r => {
+    const [from, to] = CodeMirror.cmpPos(r.anchor, r.head) <= 0 ? [r.anchor, r.head] : [r.head, r.anchor];
+    return start ? { anchor: to, head: from } : { anchor: from, head: to };
+  });
+  cm.setSelections(ranges, cm.getDoc().sel.primIndex);
+}
+
 // Column mode on or off (the window, all its tabs); the selection changes along (below).
 function setColumnMode(on) {
   if (on && !editorMonospaced())

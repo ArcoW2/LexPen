@@ -505,6 +505,10 @@ appAction('blockSelect', { title: 'Select a block', hint: 'Grows or shrinks a bl
   variantTitles: { up: 'Select a block: up', down: 'Select a block: down', left: 'Select a block: left', right: 'Select a block: right' },
   run: ([dir], { pane }) => editorMonospaced() ? extendBlock(pane.cm, dir)
     : toast('A block needs a monospaced editor font (Options > Settings > Editor view > Font and colours).') });
+appAction('selectionEnd', { title: 'Active end of the selection', hint: "The end of the selection the cursor is at moves to another side, the selection stays: a block's left / right edge or top / bottom line (two of them reach any corner), a selection's start (left, up) or end (right, down)",
+  group: 'edit', editor: true, variants: [['left'], ['right'], ['up'], ['down']],
+  variantTitles: { left: 'Active end: left / start', right: 'Active end: right / end', up: 'Active end: top / start', down: 'Active end: bottom / end' },
+  run: ([side], { pane }) => selectionEndTo(pane.cm, side) });
 appAction('convertMenu', { title: 'Convert menu at the cursor', hint: 'The conversions (case, tabs and spaces, whitespace at line ends), as a menu at the cursor; also the Convert button of the bar', group: 'format',
   editor: true, run: (_, { pane }) => openPopupAtCursor(pane, CONVERT_ITEMS) });
 toggleAction('overwrite', { title: 'Insert / overwrite', hint: 'Typing replaces the character at the cursor (OVR in the bottom bar)', group: 'edit', editor: true },
