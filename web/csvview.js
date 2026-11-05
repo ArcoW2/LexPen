@@ -319,7 +319,7 @@ function csvMenu(pane, e) {
   if (!tab?.csv) return;
   e.preventDefault();
   const cell = e.target.closest('.mm-csv-cell');
-  if (cell) return csvColumnBox(tab.doc, +cell.dataset.c, e.clientX, e.clientY);
+  if (cell) return csvColumnBox(tab.doc, +cell.dataset.c, e.clientX, e.clientY, cell.getBoundingClientRect());
   openPopupMenu(csvViewItems(tab.doc), e.clientX, e.clientY);
 }
 
@@ -342,7 +342,10 @@ function csvViewItems(doc) {
 const CSV_BOX_TYPES = [['text', 'text'], ['integer', 'integer'], ['decimal', 'decimal'], ['date', 'date / time'], ['boolean', 'boolean'], ['auto', 'auto']];
 const CSV_BOX_SIGNS = [['.', '.'], [',', ','], ["'", "'"], [' ', 'space'], ['', 'none']];
 
-function csvColumnBox(doc, c, x, y) {
+let csvBoxAt = null;   // where the box was dragged to last: the next one opens there
+
+// `x`, `y`: the mouse; `cell`: the column's place, which the box opens beside (not over it).
+function csvColumnBox(doc, c, x, y, cell) {
   document.querySelector('.mm-csv-box')?.remove();
   const was = JSON.parse(JSON.stringify(doc.csvDef));
   const box = document.createElement('div');
@@ -432,8 +435,31 @@ function csvColumnBox(doc, c, x, y) {
 
   draw();
   document.body.append(box);
-  box.style.left = Math.max(4, Math.min(x, innerWidth - box.offsetWidth - 4)) + 'px';
-  box.style.top = Math.max(4, Math.min(y, innerHeight - box.offsetHeight - 4)) + 'px';
+  const w = box.offsetWidth, h = box.offsetHeight;
+  let left = x, top = y;
+  if (csvBoxAt) ({ left, top } = csvBoxAt);
+  else if (cell && cell.right + 12 + w <= innerWidth) left = cell.right + 12;
+  else if (cell && cell.left - 12 - w >= 0) left = cell.left - 12 - w;
+  const place = (l, t) => {
+    box.style.left = Math.max(4, Math.min(l, innerWidth - w - 4)) + 'px';
+    box.style.top = Math.max(4, Math.min(t, innerHeight - h - 4)) + 'px';
+  };
+  place(left, top);
+  // Its title is a handle: dragged, the box moves (and the next one opens there).
+  box.addEventListener('pointerdown', e => {
+    if (e.button !== 0 || !e.target.closest('.mm-csv-box-title')) return;
+    e.preventDefault();
+    const dx = e.clientX - box.offsetLeft, dy = e.clientY - box.offsetTop, title = e.target.closest('.mm-csv-box-title');
+    title.setPointerCapture(e.pointerId);
+    const move = ev => place(ev.clientX - dx, ev.clientY - dy);
+    const up = () => {
+      title.removeEventListener('pointermove', move);
+      title.removeEventListener('pointerup', up);
+      csvBoxAt = { left: box.offsetLeft, top: box.offsetTop };
+    };
+    title.addEventListener('pointermove', move);
+    title.addEventListener('pointerup', up);
+  });
   box.querySelector('[data-f=type]').focus();
 }
 

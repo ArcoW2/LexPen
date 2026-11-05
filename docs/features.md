@@ -382,7 +382,7 @@ every action with its key.
   (`name.csv-metadata.json`, which other tools read too; the Folder pane marks such a file); a definition from there
   is read first, also the folder's `csv-metadata.json`. In the column view the header is the ruler: drag an edge to
   size a column (double click: to its longest value), drag a name to move it. A right-click on a column opens a small
-  box with that column's settings (name, type, quotes, Read as, format, alignment, trim, width, shown), shown at once
+  box beside it (its title drags it; the next one opens where it was left) with that column's settings (name, type, quotes, Read as, format, alignment, trim, width, shown), shown at once
   as you change them (Esc or Cancel: back as it was), and buttons to move it left or right, fit it, hide it, Column
   info and More...; beside the columns the right-click shows all columns again, opens Column info (per column its longest and shortest value, empty ones, ones that do not fit) and
   Write the columns in this order (the editor's text rewritten in the shown order, as one undo step). Settings >

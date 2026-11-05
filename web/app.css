@@ -945,7 +945,7 @@ body { --col-guide: color-mix(in srgb, var(--col-guide-colour, var(--border)) va
 .mm-csv-head.mm-csv-moving, .mm-csv-head.mm-csv-moving .mm-csv-cell { cursor: grabbing; }
 .mm-csv-head .mm-csv-cell { overflow: visible; }
 .mm-csv-name { display: block; overflow: hidden; text-overflow: ellipsis; }
-.mm-csv-grip { position: absolute; top: 0; right: calc(-6px - 1px); width: 12px; height: 100%; cursor: col-resize; z-index: 1; }
+.mm-csv-grip { position: absolute; top: 0; right: calc(-3px - 1px); width: 6px; height: 100%; cursor: col-resize; z-index: 1; }
 .mm-csv-grip:hover { background: color-mix(in srgb, var(--accent) 50%, transparent); }
 .mm-csv-gap { flex: none; width: 4px; background: color-mix(in srgb, var(--accent) 35%, transparent); cursor: pointer; }
 .mm-csv-gap:hover { background: var(--accent); }
@@ -959,7 +959,8 @@ body { --col-guide: color-mix(in srgb, var(--col-guide-colour, var(--border)) va
 .mm-csv-box button { padding: 2px 8px; background: var(--bg-side); cursor: pointer; }
 .mm-csv-box button:hover:not(:disabled) { border-color: var(--accent); }
 .mm-csv-box button:disabled { opacity: .45; cursor: default; }
-.mm-csv-box-title { font-weight: 600; margin-bottom: 6px; }
+.mm-csv-box-title { font-weight: 600; margin: -8px -10px 6px; padding: 6px 10px 4px; cursor: move; user-select: none; border-radius: 6px 6px 0 0; }
+.mm-csv-box-title:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
 .mm-csv-box-dim { color: var(--fg-dim); font-weight: 400; }
 .mm-csv-box-grid { display: grid; grid-template-columns: auto 1fr; gap: 4px 8px; align-items: center; }
 .mm-csv-box-grid > label { color: var(--fg-dim); }

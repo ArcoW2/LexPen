@@ -218,7 +218,8 @@ Differs from the plan:
 - The right-click on a column (asked for after the first build) opens a small box at the mouse with that column's
   settings (name, type, quotes, Read as, format, alignment, trim, width, shown), applied at once (Esc or Cancel: as it
   was; Close, Enter or a click outside: kept), with Move left / right, Fit, Hide, Info and More... (the view's items).
-  The menu items for one column (3.5) are those buttons. A column's edge handle reaches 6 px to both sides.
+  The menu items for one column (3.5) are those buttons. The box opens beside the column; its title drags it, and
+  the next box opens where it was left. A column's edge handle reaches 3 px to both sides.
 - A hidden column's mark is a thin bar in the header and in every row; a click on either shows it.
 - The Folder pane marks a CSV with its own `name.csv-metadata.json` next to it; one described only by the folder's
   `csv-metadata.json` is read, but not marked (that would mean reading that file for every listing).
