@@ -17,9 +17,9 @@ Messages, Macros, Clipboards, ...). Nothing on screen tells which, and two thing
 
 Every panel has a fixed scope: LexPen's (at most one floating window, following the window worked in last, in that
 window's look) or a window's (one floating window per LexPen window, in its own window's look). Every floating
-panel gets a bottom bar that says whose it is: the project of its window, or "All windows" for a panel of LexPen. A
-window that closes passes LexPen's panels on to the next window, look included. The active clipboard becomes per
-window.
+panel gets a bottom bar that says whose it is: at the far left the project (its window's, or *All projects* for a
+panel of LexPen), next to it the document it works on (or *All documents* when it does not work on one). A window
+that closes passes LexPen's panels on to the next window, look included. The active clipboard becomes per window.
 
 ## 3. Details
 
@@ -56,13 +56,25 @@ anyway.
 
 ### 3.3 The bottom bar of a floating panel
 
-- Every floating panel's window gets a thin bar at its bottom, in the panel's look, as the main window's bottom bar:
-  - A window's panel: its window's project and, when the project has more windows, the window's number:
-    `BankConnect`, `BankConnect [2]`.
-  - A panel of LexPen: `All windows`; when it works for one window now (the Outline, Characters inserting there),
-    also which: `All windows - now: BankConnect`.
-- It follows a rename of the project, a window moved to another project, the [n] shifting, and (LexPen's) the window
-  worked in last.
+- Every floating panel's window gets a thin bar at its bottom, in the panel's look, as the main window's bottom bar,
+  with two parts:
+  - At the far left, the project: a window's panel its window's project (and, when the project has more windows, the
+    window's number: `BankConnect [2]`); a panel of LexPen *All projects* (in italics).
+  - Next to it, the document: the one the panel works on now, or *All documents* (in italics) when it does not work
+    on one document.
+
+  | Panel | Project | Document |
+  |---|---|---|
+  | Outline (floating) | *All projects* | the document it shows now: the active one of the window worked in last |
+  | Characters | *All projects* | the document it inserts into now, the same way |
+  | Highlights, Manage projects, Theme sets | *All projects* | *All documents* |
+  | Folder, Search, Messages, Macros, Clipboards, Settings | its window's project | *All documents* |
+  | Bookmarks (the window's), Step by step | its window's project | the document it works on |
+
+- The Outline and Characters are the panels of LexPen that work on one document at a time: they follow the window
+  worked in last, so their document part changes when another window (also of another project) is worked in.
+- It follows a rename of the project, a window moved to another project, the [n] shifting, the active document, and
+  (LexPen's) the window worked in last.
 - A click on the bar brings the window it names to the front.
 - The caption stays as it is (`Clipboards - LexPen`); the bar says whose.
 - The windows of their own (Characters, Highlights, Manage projects, Theme sets, Settings) get the same bar as the
@@ -98,8 +110,7 @@ anyway.
 
 ## 4. Open questions
 
-1. The bottom bar of a panel of LexPen: `All windows - now: BankConnect` as proposed, or only `All windows`?
-2. A window's panel whose project has one window: only the project (`BankConnect`), as proposed, or always with the
+1. A window's panel whose project has one window: only the project (`BankConnect`), as proposed, or always with the
    window's number?
 
 ## 5. As built
