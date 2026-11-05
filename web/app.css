@@ -552,6 +552,16 @@ body[data-comparing] .mm-cmp-go {
 body[data-comparing] .mm-cmp-go[data-cmp=prev] { transform: translateY(-15px); }
 body[data-comparing] .mm-cmp-go[data-cmp=next] { transform: translateY(15px); }
 body[data-comparing] .mm-cmp-go:hover { filter: brightness(1.15); }
+/* Under them: left and right change places (compareSwap); its arrows up and down with the panes above each other. */
+.mm-cmp-swap { display: none; }
+body[data-comparing] .mm-cmp-swap {
+  display: flex; align-items: center; justify-content: center; position: absolute; width: 24px; height: 24px; padding: 0;
+  border-radius: 50%; cursor: pointer; transform: translateY(45px);
+  background: var(--bg-bar); border: 1px solid var(--border); color: var(--fg-dim);
+}
+body[data-comparing] .mm-cmp-swap:hover { color: var(--fg); border-color: var(--accent); }
+.mm-cmp-swap svg { display: block; }
+body[data-orient=h] .mm-cmp-swap svg { transform: rotate(90deg); }
 
 /* The tab strip, with the pane button (hide / close / show hidden pane) at its right end. */
 .mm-tabs-row { flex: none; display: flex; align-items: stretch; background: var(--bg-side); border-bottom: 1px solid var(--border); }

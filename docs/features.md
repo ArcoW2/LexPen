@@ -382,7 +382,7 @@ every action with its key.
   marked, fillers keeping both sides level (also with Wrap long lines on: a wrapped line counts as high as it is
   shown), the panes scrolling together, the differences on the scroll bars.
   F7 / Shift+F7, or the arrows on the divider between the panes: the next / previous difference (a block of changed
-  lines at once, or with the setting line by line). A selection on one side shows on the other over the matching lines, as a highlight
+  lines at once, or with the setting line by line); under them a button that swaps left and right. A selection on one side shows on the other over the matching lines, as a highlight
   (Editor view > Highlight: a background colour or underlined, its colour, an intensity of 0 to 200%). The bar above the panes: the count, Ignore whitespace, Ignore
   case, Align (Ctrl+F7: the two cursor lines are each other's match and the comparing goes on from there; again on
   the pair: untied), copy across (`<<` / `>>`, or Alt+Left / Alt+Right): the selected lines and the

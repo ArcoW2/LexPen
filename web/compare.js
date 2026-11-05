@@ -621,6 +621,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('.mm-divider').addEventListener('click', e => {
     const b = e.target.closest('.mm-cmp-go');
     if (b) compareGo(b.dataset.cmp === 'prev' ? -1 : 1);
+    if (e.target.closest('.mm-cmp-swap')) compareSwap();
   });
 });
 
