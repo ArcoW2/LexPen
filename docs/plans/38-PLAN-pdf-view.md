@@ -25,7 +25,8 @@ App > Windows Explorer.
   pane's marks (the active row).
 - It shows the PDF only, always on the preview side: no editor, no ruler, no outline column (unless 3.4 gives it
   one); above it its own bar (3.2). Editor and Preview switches do nothing for it.
-- Read-only: LexPen never writes a PDF. Save, Revert and the edit actions are greyed out for it.
+- Read-only: LexPen does not change a PDF's content; it writes only highlight annotations into it, when its
+  highlights are kept there (3.2b). Revert and the edit actions are greyed out for it.
 - It follows the file: changed on disk, it shows the new version (the watcher as for text files).
 - Opened from the folder pane (click), File > Open, a drop on a pane, the command line, and Explorer's
   "Open with" when LexPen is chosen for .pdf: Settings > App > Windows Explorer offers it, off by default.
@@ -70,6 +71,30 @@ colour chart all grey, a comic washed out).
   parts) with their levels; the current one follows the page shown; a click goes to the bookmark's own place on its
   page. A PDF without bookmarks: "No bookmarks". (Asked for while building; it was under later.)
 
+### 3.2b Highlights, with notes
+
+LexPen's highlights (docs/plans/executed/PLAN-highlights.md) on a PDF's text: select text in the PDF, Highlight it
+(Ctrl+F8, Edit > Highlights, the PDF's right-click: Highlight, Highlight with a note), with an optional note. Kept in
+one of three places, chosen per PDF, as a CSV's column settings are (plan 29).
+
+- Selecting: the text pdf.js lays over each page (its text layer); a highlight is a part of one page's text.
+- Where it is: its page, its place in that page's text (the characters from / to), the text itself and a few
+  characters before and after, so it is found again when the PDF changes (as a highlight in a text file is).
+- Shown: the highlight colour over the text on the page (Preview > Highlight: its colour, intensity, background or
+  underline), the note sign at its end, the note on the mouse; also on a turned-round page.
+- The Highlights pane lists them as for other files, with the page in place of the line; a click goes there; the
+  note is edited in the same note window.
+- Where they are kept, per PDF ("Highlights kept:" in the PDF bar's menu, and in the Highlights pane):
+  - in LexPen: its store, as other files' highlights;
+  - next to the file: `name.pdf.lph`, as other files' highlights can be (the setting highlightsStore "beside");
+  - inside the PDF: standard PDF highlight annotations, the note as their text, so other PDF readers (Acrobat,
+    Edge, ...) show them too. This is the one way LexPen writes a PDF: only its annotations, by pdf.js (it saves the
+    document with them). A PDF that cannot be changed (signed, protected, read-only) offers only the other two.
+  - Moving them from one place to another takes them all along (as Settings kept for a CSV); from the PDF they are
+    read back from its highlight annotations.
+- A new PDF's place: as the setting highlightsStore says (in LexPen, or next to the file).
+- Highlight annotations a PDF already has (made in another reader) are shown by pdf.js as they are; see question 2.
+
 ### 3.3 Keys and menus
 
 - Ctrl+F: LexPen's find bar, on the PDF's text (pdf.js gives the text of each page).
@@ -91,4 +116,7 @@ colour chart all grey, a comic washed out).
 
 ## 4. Open questions
 
-None.
+1. Inside the PDF: written at once with every change (a .bak first, as a save of a text file makes), or the tab marked
+   changed and written with Save (Ctrl+S), as a text file is?
+2. Highlight annotations a PDF already has, made in another reader: also listed in the Highlights pane (and their
+   notes editable) when the PDF's highlights are kept inside it, or only shown on the page?
