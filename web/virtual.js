@@ -352,7 +352,7 @@ function setupVirtual(pane) {
     return move(run)(c);
   };
   const ending = c => { clearVirtual(c); return CodeMirror.Pass; };
-  // Along the line on a column of cursors (a block of width 0, column.js): the column moves, the block stays.
+  // Along the line on a block over several lines (column.js): a cursor stays on each line, the column moves.
   const along = (dir, run) => c => moveThinBlock(c, dir) ? undefined : run(c);
   cm.addKeyMap({
     Up: vertical(c => moveVertical(c, -1)), Down: vertical(c => moveVertical(c, 1)),

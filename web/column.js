@@ -114,13 +114,15 @@ function stepHead(cm, b, dir) {
   return head;
 }
 
-// A block of width 0 over more than one line (a cursor on each line): a step along the line (Left, Right, a word,
-// Home, End) moves it as a whole, to where the step takes its head; it stays a block. False for any other selection:
-// the key then does what it does on a block (it ends it at its head).
+// A block over more than one line: a step along the line (Left, Right, a word, Home, End) keeps a cursor on each of
+// its lines. Of width 0 the column moves as a whole, to where the step takes its head. Wider, its columns go as a
+// selection's would: Left leaves the cursors at its left edge, Right at its right edge; the other steps go from its
+// head. False for a block on one line or no block: the key then does what it does there (a block ends at its head).
 function moveThinBlock(cm, dir) {
   const b = blockOf(cm);
-  if (!b || b.anchor.col !== b.head.col || b.anchor.line === b.head.line) return false;
-  const { col } = stepHead(cm, b, dir);
+  if (!b || b.anchor.line === b.head.line) return false;
+  const box = blockBox(b), wide = box.right > box.left;
+  const col = wide && dir === 'left' ? box.left : wide && dir === 'right' ? box.right : stepHead(cm, b, dir).col;
   setBlock(cm, { line: b.anchor.line, col }, { line: b.head.line, col });
   return true;
 }

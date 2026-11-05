@@ -45,7 +45,8 @@ every action with its key.
   block replaces it on every line; Backspace / Delete remove its part and leave a cursor on every line, where
   typing then goes on (overwriting in OVR mode); a shorter line is first filled up with spaces, so the text lines
   up. Such a cursor on every line (a block of width 0) moves as a whole with Left / Right, Ctrl+Left / Ctrl+Right,
-  Home and End, the step taken on the head's line; Up / Down and the other keys end it at its head.
+  Home and End, the step taken on the head's line; on a wider block over several lines Left / Right leave the
+  cursors at its left / right edge (its columns go, its lines stay); Up / Down and the other keys end it at its head.
   Tab / Shift+Tab indent the block's lines. Copy and cut mark a block on the clipboard (`MSDEVColumnSelect`,
   as Visual Studio and Notepad++; `[block]` in the clipboard list); paste puts a marked text in as a column at the
   cursor, and in column mode any text. A text of as many lines as there are cursors gives each cursor its line.
