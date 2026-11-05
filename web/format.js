@@ -515,6 +515,7 @@ function jumpTo(cm, spec, dir, extend) {
 // ---------- Keys that type ----------
 // Enter and Tab stay editor keys (in a table they move between cells); everything else is an action.
 const mdKey = run => markdownOnly(cm => { if (!cm.getOption('readOnly')) run(cm); });
+const isMarkdown = cm => markdownOnly(() => true)(cm) === true;
 
 // Home (setting homeStop): column 1, or the first non-blank character first (again: column 1, CodeMirror's smart
 // home). A motion: with Shift it selects.
@@ -528,8 +529,10 @@ function formatKeys() {
       return md === CodeMirror.Pass ? formatEnter(cm) : md;
     },
     'Shift-Enter': mdKey(cm => cm.replaceSelection('<br>')),
-    'Tab': cm => { if (cm.getOption('mode').name !== 'gfm' || !moveCell(cm, 1)) tabKey(cm); },   // tabs.js
-    'Shift-Tab': cm => { if (cm.getOption('mode').name !== 'gfm' || !moveCell(cm, -1)) shiftTabKey(cm); },
+    // A markdown document by its language (as Enter), not by the editor's mode: that is a wrapped one when the
+    // language has blocks of other languages (fences), and then its name is not 'gfm'.
+    'Tab': cm => { if (!isMarkdown(cm) || !moveCell(cm, 1)) tabKey(cm); },   // tabs.js
+    'Shift-Tab': cm => { if (!isMarkdown(cm) || !moveCell(cm, -1)) shiftTabKey(cm); },
   };
 }
 
