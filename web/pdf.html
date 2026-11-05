@@ -1,0 +1,23 @@
+<!doctype html>
+<!-- A PDF, drawn by pdf.js (pdf-pane.js; docs/plans/38-PLAN-pdf-view.md): a page of the panes' site, a process of its own. -->
+<html><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; connect-src 'self' https://file.lexpen.example">
+<title>PDF</title>
+<link rel="stylesheet" href="vendor/pdfjs/pdf_viewer.css">
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--pdf-bg, #525659); }
+  #pdf-scroll { position: absolute; inset: 0; overflow: auto; }
+  .pdfViewer .page { margin: 8px auto; border: 0; box-shadow: 0 1px 4px rgb(0 0 0 / .4); }
+  /* A page that does not suit the mode (pdf-pane.js): its lightness turned round, its hues kept. */
+  .pdfViewer .page.pdf-inverted .canvasWrapper { filter: invert(var(--pdf-invert, 1)) hue-rotate(180deg); }
+  #pdf-error { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 20px;
+    color: var(--pdf-fg, #ddd); font: 14px system-ui, sans-serif; text-align: center; }
+  #pdf-error[hidden] { display: none; }   /* else its display above wins over hidden, and it covers the PDF */
+  #pdf-scroll:focus { outline: none; }
+</style>
+</head>
+<body>
+<div id="pdf-scroll" tabindex="0"><div id="pdf-pages" class="pdfViewer"></div></div>
+<div id="pdf-error" hidden></div>
+<script type="module" src="pdf-pane.js"></script>
+</body></html>

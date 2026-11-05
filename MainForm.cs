@@ -375,7 +375,8 @@ sealed class MainForm : Form
         core.Settings.IsZoomControlEnabled = false;
         WebFiles.Serve(core);
 
-        core.AddWebResourceRequestedFilter(FileUrl + "*", CoreWebView2WebResourceContext.All);
+        // All source kinds: a PDF is read by pdf.js in a page of the panes' site, a process of its own (plan 38).
+        core.AddWebResourceRequestedFilter(FileUrl + "*", CoreWebView2WebResourceContext.All, CoreWebView2WebResourceRequestSourceKinds.All);
         core.WebResourceRequested += OnFileRequested;
 
         // A tool docked in this window (plan 24 7b): its page in a frame named "tool:kind" asks the host itself.
@@ -478,6 +479,15 @@ sealed class MainForm : Form
         if (!e.Request.Uri.StartsWith(FileUrl, StringComparison.OrdinalIgnoreCase)) return;   // the page's own files: WebFiles
         var path = Uri.UnescapeDataString(e.Request.Uri[FileUrl.Length..].Split('?', '#')[0]);
         var env = web.CoreWebView2.Environment;
+        // A PDF (plan 38): read by pdf.js in its page on the panes' site, so that site may fetch it.
+        if (Path.GetExtension(path).Equals(".pdf", StringComparison.OrdinalIgnoreCase))
+        {
+            e.Response = File.Exists(path)
+                ? env.CreateWebResourceResponse(new MemoryStream(File.ReadAllBytes(path)), 200, "OK",   // not held open: it may change
+                    $"Content-Type: application/pdf\r\nAccess-Control-Allow-Origin: https://{WebFiles.PaneHost}")
+                : env.CreateWebResourceResponse(null, 404, "Not Found", $"Access-Control-Allow-Origin: https://{WebFiles.PaneHost}");
+            return;
+        }
         e.Response = ImageTypes.TryGetValue(Path.GetExtension(path), out var type) && File.Exists(path)
             ? env.CreateWebResourceResponse(new MemoryStream(File.ReadAllBytes(path)), 200, "OK", $"Content-Type: {type}")
             : env.CreateWebResourceResponse(null, 404, "Not Found", "");
@@ -810,6 +820,15 @@ sealed class MainForm : Form
 
             case "columnsSet":
                 app.Columns.Set(BookmarkStore.Key(msg["path"]?.GetValue<string>(), msg["draft"]?.GetValue<string>()), msg["table"] as JsonObject);
+                return null;
+
+            // A PDF's look (plan 38): following the theme (nothing kept) or "original".
+            case "pdfLookGet":
+                return new JsonObject { ["look"] = app.PdfLooks.Open(BookmarkStore.Key(Arg("path"), null))?["look"]?.GetValue<string>() ?? "theme" };
+
+            case "pdfLookSet":
+                app.PdfLooks.Set(BookmarkStore.Key(Arg("path"), null),
+                    Arg("look") == "original" ? new JsonObject { ["look"] = "original" } : null);
                 return null;
 
             // Written next to the file: the path it went to.

@@ -63,6 +63,8 @@ sealed class AppHost : ApplicationContext
     public BookmarkStore Bookmarks { get; } = new(DataFolder.StatePath(DataDir, "bookmarks.json"));
     public RulerStore Rulers { get; } = new(DataFolder.StatePath(DataDir, "file-rulers.json"));
     public ColumnStore Columns { get; } = new(DataFolder.StatePath(DataDir, "file-columns.json"));
+    /// <summary>A PDF shown as it is instead of following the theme (plan 38): the same kind of store, of its own.</summary>
+    public ColumnStore PdfLooks { get; } = new(DataFolder.StatePath(DataDir, "file-pdf.json"));
     public HighlightStore Highlights { get; } = new(DataFolder.StatePath(DataDir, "highlights.json"));
 
     // Your settings (SettingsFile): the defaults with your settings.json on top.
@@ -2011,6 +2013,7 @@ sealed class AppHost : ApplicationContext
         Bookmarks.Rename(from, to);
         Rulers.Rename(from, to);
         Columns.Rename(from, to);
+        PdfLooks.Rename(from, to);
         Highlights.Rename(from, to);
         foreach (var (key, language) in fileLanguages.ToList())
             if (FileRename.Renamed(key, from, to) is string renamed) { SetFileLanguage(key, null); SetFileLanguage(renamed, language); }

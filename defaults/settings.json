@@ -110,6 +110,7 @@
   // ---------- Preview ----------
   "csvMaxWidth": 40,              // a CSV in the preview: the widest column, in characters
   "csvStickyHeader": true,        // a CSV in the preview: the column names stay at the top while scrolling
+  "pdfThreshold": 50,             // a PDF following the theme: a page past this brightness (percent) is turned round
   "csvStripes": true,             // a CSV in the preview: every other row in another colour
   "csvStripeColour": "border",    // its colour: a theme colour's name (the preview theme's own) or "#rrggbb"
   "csvStripeIntensity": 40,       // percent of that colour mixed into the background
