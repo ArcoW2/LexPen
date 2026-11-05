@@ -12,8 +12,9 @@ idea and what to check.
 A PDF opens in a tab of its own, always on the preview side, read-only: drawn by a bundled PDF renderer (pdf.js) in a
 page of its own. It follows LexPen's mode: each page, once drawn, is measured, and a page that does not suit the mode
 (a light page in dark mode, a dark page in light mode) is inverted with its hues kept, its paper becoming the preview's
-background; a page that suits the mode stays as it is. The right-click menu switches between following the theme and
-the original, and sets the threshold. No editor, nothing saved. LexPen can be made the program for .pdf in Settings >
+background; a page that suits the mode stays as it is. A bar above the PDF, as other files have, switches between
+following the theme and the original, sets the threshold, and holds the zoom and the page; the right-click menu has
+the same. No editor, nothing saved. LexPen can be made the program for .pdf in Settings >
 App > Windows Explorer.
 
 ## 3. Details
@@ -22,8 +23,8 @@ App > Windows Explorer.
 
 - A tab like any other: in either editor pane, in the tab strip, in the session, in Recent files, in the folder
   pane's marks (the active row).
-- It shows the PDF only, always on the preview side: no editor, no format bar, no ruler, no outline column
-  (unless 3.4 gives it one). Editor and Preview switches do nothing for it.
+- It shows the PDF only, always on the preview side: no editor, no ruler, no outline column (unless 3.4 gives it
+  one); above it its own bar (3.2). Editor and Preview switches do nothing for it.
 - Read-only: LexPen never writes a PDF. Save, Revert and the edit actions are greyed out for it.
 - It follows the file: changed on disk, it shows the new version (the watcher as for text files).
 - Opened from the folder pane (click), File > Open, a drop on a pane, the command line, and Explorer's
@@ -50,8 +51,10 @@ The look:
   light mode.
 - Original: every page as it is.
 - The threshold: 0 to 100 % brightness, 50 % by default.
-- The right-click menu on the PDF: Follow the theme / Original, and Threshold (a list of steps, the current one
-  ticked). The mode is kept per file, as a file's language is; the threshold is a setting (Preview > PDF), the same for
+- The bar above the PDF (as the bar above the editor of other files: icon buttons, LexPen's look): Follow the theme /
+  Original (one toggle button, pressed while following the theme), Threshold (a stepper: - 50 % +, in steps of 5),
+  then fit width, fit page, zoom out, zoom in, and the page (its number of the total, previous / next). The right-click
+  menu on the PDF has the same: Follow the theme / Original, Threshold (a list of steps, the current one ticked). The mode is kept per file, as a file's language is; the threshold is a setting (Preview > PDF), the same for
   every PDF; both are also in the settings window.
 - Per page, not per picture inside a page: pdf.js draws a page as one canvas; a picture on a light page is inverted
   with the page.
