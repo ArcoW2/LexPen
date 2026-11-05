@@ -13,7 +13,8 @@
   button { padding: 2px 10px; background: var(--bg-bar); cursor: pointer; }
   button:hover:not(:disabled) { border-color: var(--accent); }
   button:disabled { opacity: .5; cursor: default; }
-  .cp-name { flex: 1; min-width: 0; margin-left: 10px; align-self: center; text-align: right; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* A narrow dock: the tabs and the name wrap onto more rows; the name is cut only when it alone is wider. */
+  .cp-name { flex: 1 0 auto; max-width: 100%; padding: 0 0 3px 10px; box-sizing: border-box; align-self: center; text-align: right; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .cp-beside { font-weight: 400; color: var(--fg-dim); }
   .cp-empty { padding: 10px; color: var(--fg-dim); }
   .cp-empty button { margin-top: 8px; }
@@ -23,7 +24,7 @@
   .cp-file .cp-line { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
   .cp-file input.cp-short { width: 5ch; }
   .cp-file input[type=number] { width: 7ch; }
-  .cp-tabs { flex: none; display: flex; gap: 2px; padding: 6px 10px 0; border-bottom: 1px solid var(--border); }
+  .cp-tabs { flex: none; display: flex; flex-wrap: wrap; gap: 2px; padding: 6px 10px 0; border-bottom: 1px solid var(--border); }
   .cp-tabs button { border-bottom: 0; border-radius: 3px 3px 0 0; background: var(--bg-side); }
   .cp-tabs button.cp-on { background: var(--bg); border-color: var(--accent); }
   .cp-list { flex: 1; min-height: 0; overflow: auto; }
