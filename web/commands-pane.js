@@ -26,6 +26,7 @@ paneHandlers.commands = ({ html, sections, foot, q }) => {
   if (searched) { cp.list.scrollTop = 0; select(firstRow(), 0); }
   else { cp.list.scrollTop = top; select(Math.max(0, cp.selected), 0); }
   markSections();
+  showSection();
 };
 paneHandlers.focus = () => { cp.input.focus(); cp.input.select(); };
 
@@ -60,10 +61,26 @@ function markSections() {
 }
 new ResizeObserver(markSections).observe(cp.list);
 
-// The section list: its header at the top, under the column names; the keyboard back in the search.
+// The section the list is in: its name instead of the Keys column's, once its header has scrolled away under the
+// column names (at the top of the list: Keys).
+function showSection() {
+  const head = cp.list.querySelector('thead th');
+  if (!head) return;
+  const line = head.getBoundingClientRect().bottom - 1;   // the stuck cell: the thead itself scrolls along
+  const current = [...cp.list.querySelectorAll('[data-section]')].findLast(tr => tr.getBoundingClientRect().top < line);
+  const label = current?.textContent ?? '';
+  if (head.dataset.label === label) return;
+  head.dataset.label = label;
+  head.classList.toggle('mm-pal-section', !!current);
+  head.replaceChildren(current ? Object.assign(document.createElement('span'), { textContent: label }) : 'Keys');
+}
+cp.list.addEventListener('scroll', showSection);
+
+// The section list: its first row at the top, under the column names (its header just scrolled away: its name is
+// there); the keyboard back in the search.
 cp.jump.addEventListener('change', () => {
   const tr = cp.list.querySelector(`[data-section="${cp.jump.value}"]`);
-  if (tr) cp.list.scrollTop = sectionTop(tr) - cp.list.querySelector('thead').offsetHeight;
+  if (tr) cp.list.scrollTop = sectionTop(tr) + tr.offsetHeight - cp.list.querySelector('thead').offsetHeight;
   cp.jump.value = '';
   cp.input.focus();
 });

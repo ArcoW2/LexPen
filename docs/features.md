@@ -656,8 +656,9 @@ every action with its key.
 - **F1**: every action with its key (columns Keys, Command, Action, their names on top while the list scrolls),
   grouped and searchable (on key, title, hint or action name). Enter runs the
   selected one, so F1 is also a command palette and the way to actions without a key. Your own keys are marked;
-  a default you replaced is shown struck through. A section's header stands out, each section has a mark on the
-  scrollbar and Go to section jumps to one. Not modal: a pane of its own, floating the first time, dockable as the
+  a default you replaced is shown struck through. A section's header stands out and scrolls away with its rows; the
+  Keys column's name then shows the section the list is in. Each section has a mark on the scrollbar and Go to
+  section jumps to one. Not modal: a pane of its own, floating the first time, dockable as the
   other panes (View > Panels); it stays open after a command, which runs on the active document (the keyboard goes
   back there). Esc clears the search, then closes it.
 - **Menus**: File, Edit, Format, View and Options in the toolbar row. Every item shows its key; Alt+letter opens a

@@ -204,10 +204,13 @@ body[data-orient=h] .mm-orient::before { content: "Above each other"; }
 .mm-palette td:first-child { width: 1%; font-family: Consolas, "Cascadia Mono", monospace; font-size: calc(12px * var(--ui-scale)); padding-top: 4px; }
 /* A key never breaks; several keys of one command go under each other, so the column is as wide as its widest key. */
 .mm-pal-key { white-space: nowrap; display: inline-block; margin-right: .7em; }
-/* A section's header: as large and as bright as the text, so it reads as a heading; above the rows scrolling under
-   it (a greyed row, with its opacity, would be drawn over it otherwise). */
-.mm-palette tbody th { z-index: 1; padding: 6px 0 3px; font-size: calc(14px * var(--ui-scale)); font-weight: 700; color: var(--fg);
-  letter-spacing: .04em; border-bottom: 1px solid color-mix(in srgb, var(--fg) 30%, transparent); }
+/* A section's header: as large and as bright as the text, so it reads as a heading. It scrolls away with its rows;
+   the Keys column name then shows the section the list is in, in the same style (commands-pane.js). */
+.mm-palette tbody th, .mm-palette thead th.mm-pal-section { font-size: calc(14px * var(--ui-scale)); font-weight: 700; color: var(--fg); letter-spacing: .04em; }
+.mm-palette tbody th { position: static; padding: 6px 0 3px; border-bottom: 1px solid color-mix(in srgb, var(--fg) 30%, transparent); }
+/* A section's name longer than the Keys column goes on over the Command column's name. */
+.mm-palette thead th.mm-pal-section { white-space: nowrap; overflow: visible; }
+.mm-palette thead th.mm-pal-section span { position: relative; z-index: 1; padding-right: 12px; background: var(--bg); }
 .mm-palette td + td { font-family: inherit; color: var(--fg); }   /* not the About window's monospace */
 .mm-palette td i { color: var(--fg-dim); font-family: var(--app-font); }
 .mm-pal-row { cursor: pointer; }
