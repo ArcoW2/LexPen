@@ -11,6 +11,8 @@ const cmp = {
   before: null,                // the window as it was: restored when the compare ends
   hunks: [], ties: [],         // the differences; ties [{ a, b }] as bookmarks in the two documents
   worker: null, run: 0, timer: 0, decor: [null, null],
+  blocks: null, fills: null,   // the blocks to level and their fillers (compareBlocks)
+  alignFrame: 0, alignRuns: 0, // the fillers measured again on the next frame; redraws in a row that changed one (alignSoon)
   restoreAt: null,             // reopened: the cursors and the scroll to put back after the first compare
   mirror: null,                // the selection of one side shown on the other (mirrorSelection)
 };
@@ -48,7 +50,6 @@ async function startCompare(left, right) {
     s.tab.mode = 'edit';
     await activate(s.pane, s.tab);
     await showActive(s.pane);
-    s.pane.cm.setOption('lineWrapping', false);   // a wrapped line would take more rows on one side than the other
     watchSide(s);
   }
   showCompareUi(true);
@@ -107,7 +108,6 @@ async function stopCompare() {
   showCompareUi(false);
   for (const s of sides) {
     unwatchSide(s);
-    if (s.pane.cm) s.pane.cm.setOption('lineWrapping', setting('wrap'));
     if (!paneOf(s.tab)) continue;
     if (s.opened) await closeTab(s.tab, !!s.tab.doc.temp);
     else if (s.mode) s.tab.mode = s.mode;
@@ -130,11 +130,20 @@ async function stopCompare() {
 // ---------- Watching the two editors ----------
 function watchSide(s) {
   const cm = s.pane.cm;
-  s.onScroll = () => followScroll(s);
+  s.onScroll = () => {
+    // A scroll of more than a pixel or two (not the nudge a filler gives): the fillers may be measured again.
+    const top = cm.getScrollInfo().top;
+    if (Math.abs(top - (s.alignTop ?? -Infinity)) > 2) { cmp.alignRuns = 0; s.alignTop = top; }
+    followScroll(s);
+  };
+  s.onRefresh = () => { cmp.alignRuns = 0; alignSoon(); };   // a resize, wrap switched
   s.onChange = () => { clearTimeout(cmp.timer); cmp.timer = setTimeout(() => runCompare(), COMPARE_DELAY); };
   s.onCursor = () => { drawStrip(); showCompareCount(); mirrorSelection(s); };
   s.onSwap = () => { if (cmp.on && cm.getDoc() !== s.tab.cmDoc) stopCompare(); };   // another tab here, or closed
   cm.on('scroll', s.onScroll);
+  cm.on('update', alignSoon);   // a redraw: wrapped lines measured, the fillers to match
+  cm.on('refresh', s.onRefresh);
+  cm.on('optionChange', s.onRefresh);
   cm.on('changes', s.onChange);
   cm.on('cursorActivity', s.onCursor);
   cm.on('swapDoc', s.onSwap);
@@ -144,6 +153,9 @@ function unwatchSide(s) {
   const cm = s.pane.cm;
   if (!cm || !s.onScroll) return;
   cm.off('scroll', s.onScroll);
+  cm.off('update', alignSoon);
+  cm.off('refresh', s.onRefresh);
+  cm.off('optionChange', s.onRefresh);
   cm.off('changes', s.onChange);
   cm.off('cursorActivity', s.onCursor);
   cm.off('swapDoc', s.onSwap);
@@ -155,9 +167,12 @@ function followScroll(s) {
   const other = cmp.sides?.find(o => o !== s);
   if (!other?.pane.cm) return;
   const from = s.pane.cm.getScrollInfo(), to = other.pane.cm.getScrollInfo();
-  if (Math.abs(from.top - to.top) < 1 && Math.abs(from.left - to.left) < 1) return;
+  // At most as far as the other side goes: a side a pixel taller (rounding) would otherwise make the two push each
+  // other back and forth at the bottom.
+  const top = Math.min(from.top, Math.max(0, to.height - to.clientHeight)), left = Math.min(from.left, Math.max(0, to.width - to.clientWidth));
+  if (Math.abs(top - to.top) < 1 && Math.abs(left - to.left) < 1) return;
   other.ignoreScroll = true;
-  other.pane.cm.scrollTo(from.left, from.top);
+  other.pane.cm.scrollTo(left, top);
 }
 
 // ---------- Comparing ----------
@@ -188,9 +203,8 @@ function runCompare(first) {
 // The differences drawn: the line tints, the changed characters, the fillers, the ties, the overview's marks.
 function applyCompare() {
   clearDecor();
-  const lh = cmp.sides[0].pane.cm.defaultTextHeight();
   cmp.sides.forEach((s, i) => {
-    const cm = s.pane.cm, d = cmp.decor[i] = { lines: [], marks: [], widgets: [] }, marks = [];
+    const cm = s.pane.cm, d = cmp.decor[i] = { lines: [], marks: [] }, marks = [];
     const mine = h => i === 0 ? [h.aFrom, h.aTo, h.bTo - h.bFrom] : [h.bFrom, h.bTo, h.aTo - h.aFrom];
     cm.operation(() => {
       for (const h of cmp.hunks) {
@@ -205,13 +219,6 @@ function applyCompare() {
             d.marks.push(cm.markText(CodeMirror.Pos(i === 0 ? p.a : p.b, f), CodeMirror.Pos(i === 0 ? p.a : p.b, t), { className: 'mm-cmp-char' }));
           marks.push({ from: Math.min(from, cm.lastLine()), to: Math.max(from, Math.min(to - 1, cm.lastLine())), kind });
         }
-        if (other > n) {   // this side lacks lines: a filler as high as the missing lines
-          const el = document.createElement('div');
-          el.className = 'mm-cmp-filler' + (h.ignorable ? ' mm-cmp-quiet' : '');
-          el.style.height = (other - n) * lh + 'px';
-          const at = n ? to - 1 : from - 1;
-          d.widgets.push(at >= 0 ? cm.addLineWidget(Math.min(at, cm.lastLine()), el) : cm.addLineWidget(0, el, { above: true }));
-        }
       }
       for (const t of cmp.ties) {
         const at = (i === 0 ? t.ma : t.mb).find()?.line;
@@ -221,9 +228,96 @@ function applyCompare() {
     s.pane.compareMarks = marks;
     if (typeof scheduleOverview === 'function') scheduleOverview(s.pane);
   });
+  cmp.blocks = compareBlocks();
+  cmp.alignRuns = 0;
+  alignFillers();
   followScroll(cmp.sides[state.activePane] ?? cmp.sides[0]);
   showCompareCount();
   drawStrip();
+}
+
+// The fillers keeping both sides level: the text in blocks that match (each difference, and each run of equal lines
+// between two), and below a block on the side where it is lower a filler as high as the difference. Measured in
+// pixels, so a wrapped line (more rows on one side than on the other) counts as it is shown; a run of equal lines
+// whose heights differ (the panes not as wide: a line wraps on one side only) is levelled line by line. Measured
+// again after each redraw (alignSoon), since a wrapped line's height is only known once it is drawn.
+function compareBlocks() {
+  const blocks = [], [A, B] = cmp.sides.map(s => s.pane.cm);
+  const add = (af, at, bf, bt, equal, quiet) => { if (at > af || bt > bf) blocks.push({ r: [[af, at], [bf, bt]], equal, quiet }); };
+  let a = 0, b = 0;
+  for (const h of cmp.hunks) {
+    add(a, h.aFrom, b, h.bFrom, true, true);
+    add(h.aFrom, h.aTo, h.bFrom, h.bTo, false, !!h.ignorable);
+    [a, b] = [h.aTo, h.bTo];
+  }
+  add(a, A.lineCount(), b, B.lineCount(), true, true);
+  cmp.fills = [new Map(), new Map()];   // per side: the line a filler is below (-1: above line 0) -> { w, el, px }
+  return blocks;
+}
+
+function alignFillers() {
+  if (!cmp.on || !cmp.blocks) return false;
+  const cms = cmp.sides.map(s => s.pane.cm);
+  const top = (cm, l) => l > cm.lastLine() ? cm.heightAtLine(cm.lastLine(), 'local') + cm.getLineHandle(cm.lastLine()).height : cm.heightAtLine(l, 'local');
+  // A range's height on a side, the fillers in it left out (the drawn heights hold them): their lines in order, summed.
+  const own = cmp.fills.map(m => [...m].map(([at, f]) => [Math.max(0, at), f.px]).sort((x, y) => x[0] - y[0]));
+  const sums = own.map(list => list.reduce((s, [, px]) => (s.push(s.at(-1) + px), s), [0]));
+  const below = (list, l) => { let lo = 0, hi = list.length; while (lo < hi) { const mid = (lo + hi) >> 1; if (list[mid][0] < l) lo = mid + 1; else hi = mid; } return lo; };
+  const height = (i, [f, t]) => top(cms[i], t) - top(cms[i], f) - (sums[i][below(own[i], t)] - sums[i][below(own[i], f)]);
+  // The pieces to level: a block, or each line of a run of equal lines that is not as high on both sides.
+  const pieces = [];
+  for (const bl of cmp.blocks) {
+    const h = [height(0, bl.r[0]), height(1, bl.r[1])];
+    if (!bl.equal || Math.abs(h[0] - h[1]) < 0.5) { pieces.push({ r: bl.r, h, quiet: bl.quiet }); continue; }
+    for (let k = 0; k < bl.r[0][1] - bl.r[0][0]; k++) {
+      const r = [[bl.r[0][0] + k, bl.r[0][0] + k + 1], [bl.r[1][0] + k, bl.r[1][0] + k + 1]];
+      pieces.push({ r, h: [height(0, r[0]), height(1, r[1])], quiet: true });
+    }
+  }
+  // Whole pixels (a filler is drawn that high), the rounding carried on: `off`, how far the left side's bottom is
+  // below the right side's so far, goes into the next piece's fillers, so it does not add up down the file. A filler
+  // within a pixel of what it should be stays as it is: the browser places lines on whole pixels, so a filler's own
+  // height moves what is measured by a fraction, and rounding again would make it flip on every redraw.
+  const wants = [new Map(), new Map()];
+  const atOf = (p, i) => { const [from, to] = p.r[i]; return to > from ? to - 1 : from - 1; };
+  let off = 0;
+  for (const p of pieces) {
+    const d = off + p.h[0] - p.h[1], now = [0, 1].map(i => cmp.fills[i].get(atOf(p, i))?.px ?? 0);
+    const w = [Math.max(0, Math.round(-d)), Math.max(0, Math.round(d))].map((px, i) => Math.abs(px - now[i]) <= 1 ? now[i] : px);
+    off = d + w[0] - w[1];
+    w.forEach((px, i) => {
+      if (!px) return;
+      const at = atOf(p, i), was = wants[i].get(at);
+      wants[i].set(at, { px: (was?.px ?? 0) + px, quiet: (was?.quiet ?? true) && p.quiet });
+    });
+  }
+  let changed = false;
+  cms.forEach((cm, i) => cm.operation(() => {
+    const fills = cmp.fills[i];
+    for (const [at, f] of fills) if (!wants[i].has(at)) { f.w.clear(); fills.delete(at); changed = true; }
+    for (const [at, want] of wants[i]) {
+      const f = fills.get(at), cls = 'mm-cmp-filler' + (want.quiet ? ' mm-cmp-quiet' : '');
+      if (f && f.px === want.px && f.el.className === cls) continue;
+      changed = true;
+      if (f) { f.px = want.px; f.el.className = cls; f.el.style.height = want.px + 'px'; f.w.changed(); continue; }
+      const el = document.createElement('div');
+      el.className = cls;
+      el.style.height = want.px + 'px';
+      const w = at >= 0 ? cm.addLineWidget(Math.min(at, cm.lastLine()), el) : cm.addLineWidget(0, el, { above: true });
+      fills.set(at, { w, el, px: want.px });
+    }
+  }));
+  return changed;
+}
+
+// After a redraw (a wrapped line measured, the pane's width changed): the fillers again, once per frame. A filler
+// changed redraws too, and a line's measured height moves by a pixel with where it lands, so this could go on
+// forever: after a few redraws in a row that each changed a filler, it waits for a scroll, a resize or an edit
+// (alignRuns back to 0).
+const ALIGN_RUNS = 3;
+function alignSoon() {
+  if (cmp.alignFrame || cmp.alignRuns >= ALIGN_RUNS) return;
+  cmp.alignFrame = requestAnimationFrame(() => { cmp.alignFrame = 0; cmp.alignRuns = alignFillers() ? cmp.alignRuns + 1 : 0; });
 }
 
 function clearDecor() {
@@ -233,9 +327,11 @@ function clearDecor() {
     cm.operation(() => {
       for (const [h, cls, where] of d.lines) cm.removeLineClass(h, where ?? 'background', cls);
       for (const m of d.marks) m.clear();
-      for (const w of d.widgets) w.clear();
     });
   });
+  for (const m of cmp.fills ?? []) for (const f of m.values()) f.w.clear();
+  cmp.fills = null;
+  cmp.blocks = null;
   cmp.decor = [null, null];
   for (const p of panes) if (p.compareMarks) { p.compareMarks = null; if (typeof scheduleOverview === 'function') scheduleOverview(p); }
 }
@@ -398,7 +494,6 @@ async function compareSwap() {
   cmp.on = true;
   for (const s of cmp.sides) {
     await activate(s.pane, s.tab);
-    s.pane.cm.setOption('lineWrapping', false);
     watchSide(s);
   }
   await showAll();
