@@ -73,8 +73,21 @@
           Inputs="shell\LexPenShell.cpp;shell\LexPenShell.def;shell\build.cmd" Outputs="$(TargetDir)LexPenShell.dll">
     <Exec Command="&quot;$(ProjectDir)shell\build.cmd&quot; &quot;$(TargetDir).&quot; &quot;$(ProjectDir)$(IntermediateOutputPath)shell&quot;" />
   </Target>
+  <!-- Into the publish folder even while Explorer holds the one there (it keeps a DLL it loaded open, until it restarts):
+       that one is renamed first (allowed while it is loaded), and old ones no longer held are removed. -->
   <Target Name="PublishLexPenShell" AfterTargets="Publish" Condition="Exists('$(TargetDir)LexPenShell.dll')">
-    <Copy SourceFiles="$(TargetDir)LexPenShell.dll" DestinationFolder="$(PublishDir)" ContinueOnError="true" />
+    <ItemGroup>
+      <OldShellDll Include="$(PublishDir)\LexPenShell.*.old" />
+    </ItemGroup>
+    <Delete Files="@(OldShellDll)" ContinueOnError="true" />
+    <Move SourceFiles="$(PublishDir)\LexPenShell.dll" DestinationFiles="$(PublishDir)\LexPenShell.$([System.Guid]::NewGuid().ToString('N')).old"
+          Condition="Exists('$(PublishDir)\LexPenShell.dll')" ContinueOnError="true" />
+    <Copy SourceFiles="$(TargetDir)LexPenShell.dll" DestinationFolder="$(PublishDir)" />
+    <!-- The one just moved aside, when nothing held it. -->
+    <ItemGroup>
+      <MovedShellDll Include="$(PublishDir)\LexPenShell.*.old" />
+    </ItemGroup>
+    <Delete Files="@(MovedShellDll)" ContinueOnError="true" />
   </Target>
 
   <!-- The WebView2 package always references its WPF control too; this app only uses WinForms. -->
