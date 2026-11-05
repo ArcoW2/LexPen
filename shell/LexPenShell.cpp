@@ -133,7 +133,8 @@ public:
     {
         const auto exe = ReadConfig(L"Exe");
         const auto dir = exe.substr(0, exe.find_last_of(L'\\') + 1);
-        return SHStrDupW((dir + (K == Kind::Left ? L"compare-left.ico" : L"compare-to.ico")).c_str(), icon);
+        const wchar_t* file = K == Kind::Left ? L"compare-left.ico" : K == Kind::CompareTo ? L"compare-to.ico" : L"compare-pair.ico";
+        return SHStrDupW((dir + file).c_str(), icon);
     }
 
     IFACEMETHODIMP GetToolTip(IShellItemArray*, LPWSTR* tip) override { *tip = nullptr; return E_NOTIMPL; }
