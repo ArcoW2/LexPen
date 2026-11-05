@@ -993,6 +993,14 @@ async function reloadDoc(doc, text, encoding) {
 
 // ---------- Rendering ----------
 const render = tab => track(renderNow(tab));
+// A large code file (docs/plans/executed/PLAN-large-preview.md 3.5, 3.6): a notice first ("Rendering preview..."), then its
+// blocks of lines attached a slice at a time, a frame between, so the app keeps responding; the render stops when its
+// preview is no longer wanted (switched off, another tab, an edit: a newer render).
+const RENDER_NOTE_SIZE = 1024 * 1024;   // characters
+const CHUNKS_PER_FRAME = 40;            // blocks of CODE_CHUNK lines (languages.js)
+const nextFrame = () => new Promise(r => requestAnimationFrame(() => setTimeout(r)));
+const previewWanted = tab => tab.mode !== 'edit' && panes.some(p => p.active === tab);
+
 async function renderNow(tab) {
   const id = ++tab.renderId;
   tab.stale = false;
@@ -1014,10 +1022,19 @@ async function renderNow(tab) {
     await csvLoad(doc, text);
     if (id !== tab.renderId) return;
   }
+  const large = doc.language && !csv && text.length > RENDER_NOTE_SIZE;
+  let note = null;
+  if (large) {   // shown before the work, which takes the thread
+    note = Object.assign(document.createElement('div'), { className: 'mm-render-note', textContent: 'Rendering preview...' });
+    article.prepend(note);
+    await nextFrame();
+    if (id !== tab.renderId) return;
+    if (!previewWanted(tab)) { tab.stale = true; note.remove(); return; }
+  }
   const tpl = document.createElement('template');
   if (csv) tpl.content.append(csvViewElement(tab, text));
   else tpl.innerHTML = doc.language
-    ? `<pre class="mm-code" data-lang="${doc.language}">${codeHtml(text, text.length > PREVIEW_COLOUR_LIMIT ? 'text/plain' : editorMode(doc))}</pre>`
+    ? `<pre class="mm-code" data-lang="${doc.language}">${codeHtml(text, previewColoured(text) ? editorMode(doc) : 'text/plain')}</pre>`
     : doc.ranges?.length ? renderMarkdownWithRanges(text, doc) : md.render(withFrontMatter(text));
   const content = tpl.content;
   if (doc.language && !csv && hasLongLine(text)) content.firstElementChild.classList.add('mm-long-line');
@@ -1043,7 +1060,18 @@ async function renderNow(tab) {
   for (const code of content.querySelectorAll('pre > code'))
     if (hasLongLine(code.textContent)) code.parentElement.classList.add('mm-long-line');
 
-  article.replaceChildren(content);
+  if (large) {
+    const pre = content.firstElementChild, chunks = [...pre.children];
+    pre.replaceChildren();
+    article.replaceChildren(note, content);
+    for (let i = 0; i < chunks.length; i += CHUNKS_PER_FRAME) {
+      pre.append(...chunks.slice(i, i + CHUNKS_PER_FRAME));
+      await nextFrame();
+      if (id !== tab.renderId) return;
+      if (!previewWanted(tab)) { tab.stale = true; return; }   // again when its preview is shown again
+    }
+    note.remove();
+  } else article.replaceChildren(content);
   if (tab.csv) for (const pane of panes) if (pane.active === tab) csvDraw(pane);
 
   const formulas = article.querySelectorAll('.tex');
@@ -4967,6 +4995,8 @@ function applySettings() {
   if (changed('wrap')) applyWrap(now.wrap);
   if ((changed('csvMaxWidth') || changed('csvStickyHeader')) && 'csvMaxWidth' in was)
     for (const tab of allTabs()) if (tab.doc.language === 'csv') { tab.doc.csv = null; if (paneOf(tab)?.active === tab) render(tab); else tab.stale = true; }
+  if (changed('previewColourMaxSize') && 'previewColourMaxSize' in was)   // the code previews coloured again, or not
+    for (const tab of allTabs()) if (tab.doc.language) { if (paneOf(tab)?.active === tab && tab.mode !== 'edit') render(tab); else tab.stale = true; }
   if (changed('previewWrap')) document.body.toggleAttribute('data-preview-nowrap', now.previewWrap === false);
   if (changed('showBackupFiles') && 'showBackupFiles' in was) refreshTree(false);
   if (changed('tabBar')) applyTabBar(now.tabBar);

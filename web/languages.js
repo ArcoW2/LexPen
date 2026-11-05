@@ -373,19 +373,28 @@ function simpleMode(pack) {
   };
 }
 
-// Above this size the preview of a code file is not coloured (measured with SQL, two runs: 1 MB took 179 / 200
-// ms, 4 MB 715 / 953 ms to colour; the editor colours only what is on screen and needs no limit).
-const PREVIEW_COLOUR_LIMIT = 2 * 1024 * 1024;
+// Above the setting previewColourMaxSize (MB; 0: no limit) the preview of a code file is not coloured (measured with
+// SQL, two runs: 1 MB took 179 / 200 ms, 4 MB 715 / 953 ms to colour; the editor colours only what is on screen and
+// needs no limit).
+const previewColoured = text => { const mb = setting('previewColourMaxSize') ?? 2; return !mb || text.length <= mb * 1024 * 1024; };
 
 // The preview of a code file: the editor's colouring (run mode), a block per line, so the outline, the
-// scroll sync and long lines (executed/PLAN-long-lines.md) work as in markdown.
+// scroll sync and long lines (executed/PLAN-long-lines.md) work as in markdown. The lines in blocks of CODE_CHUNK
+// (mm-chunk, docs/plans/executed/PLAN-large-preview.md 3.3): the browser lays out only the blocks in view, so a large file
+// shows at once and a tab switch does not lay out the whole file again.
+const CODE_CHUNK = 500;
 function codeHtml(text, mode) {
   const lines = [[]];
   CodeMirror.runMode(text, mode, (token, style) => {
     if (token === '\n') return lines.push([]);
     lines.at(-1).push(style ? `<span class="${style.replace(/\S+/g, 'cm-$&')}">${escapeHtml(token)}</span>` : escapeHtml(token));
   });
-  return lines.map((parts, i) => `<div data-line="${i}">${parts.join('') || ' '}</div>`).join('');
+  const html = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (i % CODE_CHUNK === 0) html.push(i ? '</div><div class="mm-chunk">' : '<div class="mm-chunk">');
+    html.push(`<div data-line="${i}">${lines[i].join('') || ' '}</div>`);
+  }
+  return html.join('') + '</div>';
 }
 
 // ---------- Token looks ----------
@@ -584,9 +593,14 @@ function outlineOf(doc) {
 const outlineColour = (c, i) => typeof c === 'string' && c ? (c.startsWith('#') ? c : `var(--${c})`) : OUTLINE_COLOURS[i % OUTLINE_COLOURS.length];
 
 // ---------- How a file opens ----------
-// Your setting for the language (settings window, General > Open in), else the pack's "open", else the editor.
+// Your setting for the language (settings window, General > Open in), else the pack's "open", else the editor. A code
+// file larger than the setting previewMaxSize (MB; 0: no limit) opens in the editor only: its preview is often not
+// what it was opened for (docs/plans/executed/PLAN-large-preview.md 3.6a). View in LexPen asks for the preview itself.
 function openMode(doc) {
   const name = languageOf(doc), mode = setting('openIn.' + name) || packs[name]?.open || 'edit';
+  const limit = (setting('previewMaxSize') || 0) * 1024 * 1024;
+  // Not a CSV: its column view draws only the rows in view (csvview.js), so a large one opens as its pack says.
+  if (doc.language && doc.language !== 'csv' && limit > 0 && docText(doc).length > limit) return 'edit';
   return ['edit', 'split', 'preview'].includes(mode) ? mode : 'edit';
 }
 

@@ -612,7 +612,11 @@ every action with its key.
     blocks of whole lines between marker lines (ASA's JSON API block, markdown fences coloured by their pack, HTML's script / style / php), and lines you give a language yourself (select them, then the language in the bottom bar); 
     inside, the inner language's colours, comments, indent and bar (over the top row), and a tinted gutter. A debug build reads them (and the themes) from the project's `defaults` and picks up a change at once. 
     A pack gives the extensions, how the file opens, the colouring (a built-in mode, or word lists and patterns as SQL and Pascal), comments, the outline (procedures, classes, ...), actions and snippets and the buttons above the editor. 
-    The preview of a code file is coloured as the editor (not above 2 MB). 
+    The preview of a code file is coloured as the editor (not above Settings > Preview > "A code file larger than this
+    is not coloured in the preview", 2 MB; 0: no limit), its lines in blocks the browser lays out only when in view, so a large file shows in about half a second and a tab switch back to it does not lay it out again; a
+    large one (over 1 MB) shows "Rendering preview..." while it is built, and switching its preview off (or to another
+    tab) stops the build. A code file larger than Settings > Preview > "A code file larger than this opens without its
+    preview" (3 MB; 0: no limit) opens in the editor only; the Preview switch shows the preview, View in LexPen too. 
     The language in the bottom bar is a selector (also View > Language...); the choice is kept per file.
   - Your own packs go in `%LOCALAPPDATA%\LexPen\languages\` (start from `defaults\languages\_template`; the guide: `defaults\languages\README.md`; a folder with a shipped name replaces it) and apply at once; mistakes show in the settings window. 
   - How a file opens: per language, the pack's choice unless you set it (settings window, General > Open in).
