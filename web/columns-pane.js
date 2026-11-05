@@ -15,15 +15,16 @@ const readSign = s => s.replace(/\\t/g, '\t');
 
 paneHandlers.columns = st => {
   cp.state = st;
-  $c('.cp-name').textContent = st.name ?? 'No document';
-  $c('.cp-beside').textContent = st.beside ? 'next to the file' : '';
-  $c('.cp-beside').title = st.beside ?? '';
+  // The document, and where its definition is kept when that is a file next to it (Save next to the file).
+  const file = st.beside ? st.beside.replace(/^.*[\\/]/, '') : '';
+  $c('.cp-name').innerHTML = esc(st.name ?? 'No document') + (file ? ` <span class="cp-beside">(definition: ${esc(file)})</span>` : '');
+  $c('.cp-name').title = st.beside ? `${st.name}\nThe definition is kept in ${st.beside}` : st.name ?? '';
   const empty = $c('.cp-empty');
   empty.hidden = !!st.def;
   $c('.cp-main').hidden = !st.def;
   if (!st.def) {
     empty.innerHTML = !st.name ? 'No document.'
-      : 'This document is not read as CSV.<br><button type="button" class="cp-read">Read as CSV</button>';
+      : `${esc(st.name)} is not read as CSV.<br><button type="button" class="cp-read">Read as CSV</button>`;
     empty.querySelector('.cp-read')?.addEventListener('click', () => toWindow({ kind: 'readAsCsv' }));
     return;
   }
@@ -53,7 +54,7 @@ paneHandlers.showColumn = ({ column }) => {
   setTimeout(() => tr.classList.remove('cp-flash'), 1200);
 };
 
-paneHandlers.focus = () => ($c('.cp-main').hidden ? $c('.cp-read') : $c('#cp-delim'))?.focus();
+paneHandlers.focus = () => ($c('.cp-main').hidden ? $c('.cp-read') : $c('.cp-tabs .cp-on'))?.focus();   // the tab shown
 
 // ---------- Drawing ----------
 function drawAll(keepFocus) {
@@ -237,9 +238,10 @@ function smallMenu(x, y, items) {
 
 // ---------- The tabs and the buttons ----------
 for (const b of document.querySelectorAll('.cp-tabs button')) b.addEventListener('click', () => {
-  if (cp.tab === 'definition' && b.dataset.tab === 'columns' && !readDefinition()) return;   // a broken text stays on its tab
+  if (cp.tab === 'definition' && b.dataset.tab !== 'definition' && !readDefinition()) return;   // a broken text stays on its tab
   cp.tab = b.dataset.tab;
   for (const t of document.querySelectorAll('.cp-tabs button')) t.classList.toggle('cp-on', t === b);
+  $c('.cp-file').hidden = cp.tab !== 'file';
   $c('.cp-list').hidden = cp.tab !== 'columns';
   $c('.cp-def').hidden = cp.tab !== 'definition';
   drawAll();

@@ -226,6 +226,9 @@ Differs from the plan:
   shown (column view) or the file's text (editor), the cells with a match marked (`web/csvfind.js`). Replace stays by
   line, so it waits for All columns, By row. Measured: the next match in 100,000 rows of 6 columns (all columns, the
   matches found anew) 253 ms.
+- The Columns pane (asked for after the build): the file's settings (3.2, top part) in a first tab, File, before
+  Columns and Definition, one setting per row; the document's name in the tab row, with the CSVW file that holds its
+  definition when it is kept next to the file.
 - A hidden column's mark is a thin bar in the header and in every row; a click on either shows it.
 - The Folder pane marks a CSV with its own `name.csv-metadata.json` next to it; one described only by the folder's
   `csv-metadata.json` is read, but not marked (that would mean reading that file for every listing).
