@@ -135,7 +135,8 @@ function resetPreviewCursor(tab) {
 function drawPreviewCaret(pane) {
   const tab = pane.active, el = pane.previewEl;
   let layer = pane.pcLayer;
-  if (!tab || tab.mode === 'edit' || pane.el.hidden || el.firstChild !== tab.article) { layer?.remove(); return; }
+  // A PDF has no text of the preview's own (pdf.js draws it in its frame): no cursor, also not on its bar.
+  if (!tab || tab.mode === 'edit' || tab.doc.pdf || pane.el.hidden || el.firstChild !== tab.article) { layer?.remove(); return; }
   if (!layer) {
     layer = pane.pcLayer = document.createElement('div');
     layer.className = 'mm-pcaret-layer';
@@ -313,7 +314,7 @@ window.addEventListener('keydown', e => {
   if (!PC_KEYS.has(e.key) || e.altKey || e.metaKey || e.defaultPrevented || keys.pending || document.querySelector('dialog[open]')) return;
   if (e.ctrlKey && !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
   const pane = panes.find(p => p.active && p.active.mode !== 'edit' && !p.el.hidden && p.previewEl.contains(document.activeElement));
-  if (!pane) return;
+  if (!pane || pane.active.doc.pdf) return;   // a PDF: its frame scrolls with its own keys (pdf-pane.js)
   if (pane.active.csv) {   // a CSV's column view: they move its current cell (csvview.js)
     if (csvKey(pane, e)) { e.preventDefault(); e.stopPropagation(); }
     return;
