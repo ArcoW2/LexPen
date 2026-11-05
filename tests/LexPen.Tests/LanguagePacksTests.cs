@@ -22,7 +22,7 @@ public class LanguagePacksTests : IDisposable
         var all = LanguagePacks.Load(Shipped, Path.Combine(dir, "none"));
         Assert.Empty(Problems(all));
         Assert.Equal(["ahk", "asa", "batch", "cpp", "csharp", "css", "csv", "html", "java", "javascript", "json", "kusto", "macro", "markdown", "pascal",
-            "perl", "php", "plaintext", "powershell", "python", "ruby", "shell", "sql", "vb", "vbscript", "xml", "yaml"],
+            "pdf", "perl", "php", "plaintext", "powershell", "python", "ruby", "shell", "sql", "vb", "vbscript", "xml", "yaml"],
             all["packs"]!.AsObject().Select(p => p.Key));
         Assert.DoesNotContain("_template", all["packs"]!.AsObject().Select(p => p.Key));
     }

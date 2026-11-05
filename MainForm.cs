@@ -822,6 +822,15 @@ sealed class MainForm : Form
                 app.Columns.Set(BookmarkStore.Key(msg["path"]?.GetValue<string>(), msg["draft"]?.GetValue<string>()), msg["table"] as JsonObject);
                 return null;
 
+            // A PDF's look (plan 38): following the theme (nothing kept) or "original".
+            case "pdfLookGet":
+                return new JsonObject { ["look"] = app.PdfLooks.Open(BookmarkStore.Key(Arg("path"), null))?["look"]?.GetValue<string>() ?? "theme" };
+
+            case "pdfLookSet":
+                app.PdfLooks.Set(BookmarkStore.Key(Arg("path"), null),
+                    Arg("look") == "original" ? new JsonObject { ["look"] = "original" } : null);
+                return null;
+
             // Written next to the file: the path it went to.
             case "columnsSaveBeside":
                 return ColumnStore.SaveBeside(Arg("path"), msg["table"]!.AsObject());

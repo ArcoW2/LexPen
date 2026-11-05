@@ -946,6 +946,19 @@ body { --col-guide: color-mix(in srgb, var(--col-guide-colour, var(--border)) va
   border-right: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
 .mm-csv-right { text-align: right; }
 /* Alternate rows: a rule of their own (csvview.js applyCsvStripes); the mouse's row over it. */
+/* A PDF (pdfview.js): its bar and its frame fill the preview; the frame scrolls, the preview does not. */
+.mm-preview.mm-pdf-article { padding: 0; height: 100%; box-sizing: border-box; zoom: 1; }
+.mm-preview-pane:has(> .mm-pdf-article) { overflow: hidden; padding-right: 0; }
+.mm-pdf { display: flex; flex-direction: column; height: 100%; }
+.mm-pdf-frame { flex: 1; min-height: 0; width: 100%; border: 0; display: block; }
+.mm-pdf-bar { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 2px; padding: 3px 6px;
+  background: var(--bg-side); border-bottom: 1px solid var(--border); user-select: none; }
+.mm-pdf-threshold { display: inline-flex; align-items: center; }
+.mm-pdf-threshold.mm-off { opacity: .45; }
+.mm-pdf-value, .mm-pdf-zoom { min-width: 3.2em; text-align: center; font-size: calc(12px * var(--ui-scale)); color: var(--fg-dim); }
+.mm-pdf-page { width: 4ch; text-align: right; font: inherit; font-size: calc(12px * var(--ui-scale)); color: var(--fg);
+  background: var(--bg); border: 1px solid var(--border); border-radius: 3px; padding: 1px 3px; }
+.mm-pdf-pages { font-size: calc(12px * var(--ui-scale)); color: var(--fg-dim); margin-right: 2px; }
 .mm-csv .mm-csv-row:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
 /* The current cell (the keys move it), and the cells with a match of the find bar. */
 .mm-csv-cell.mm-csv-cur { outline: 2px solid var(--accent); outline-offset: -2px; }

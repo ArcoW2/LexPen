@@ -45,17 +45,29 @@ function look(pageNumber) {
 }
 const lookAll = () => { for (const n of pdf.light.keys()) look(n); };
 
-async function open() {
-  const file = here.searchParams.get('file'), bg = here.searchParams.get('bg');
-  pdf.mode = here.searchParams.get('mode') || 'original';
-  pdf.threshold = +(here.searchParams.get('threshold') ?? 50);
-  if (bg) document.documentElement.style.setProperty('--pdf-bg', bg);
+// The mode, the threshold and the preview's background: from the address at first, later from the window (`look`).
+function setLook(mode, threshold, bg) {
+  pdf.mode = mode || 'original';
+  pdf.threshold = Number.isFinite(+threshold) ? +threshold : 50;
+  const root = document.documentElement.style;
+  if (bg) root.setProperty('--pdf-bg', bg);
   // How far a page is turned round: so that its paper becomes the preview's background (dark mode: white paper turns
   // that dark; light mode: black paper turns that light), not pure black or white.
-  if (bg && pdf.mode !== 'original') {
-    const l = luminance(bg);
-    if (l !== null) document.documentElement.style.setProperty('--pdf-invert', String(pdf.mode === 'dark' ? 1 - l : l));
-  }
+  const l = bg ? luminance(bg) : null;
+  if (l !== null && pdf.mode !== 'original') root.setProperty('--pdf-invert', String(pdf.mode === 'dark' ? 1 - l : l));
+  lookAll();
+}
+
+// To the window (pdfview.js): its state for the bar, a right-click, a key that is the window's.
+const toWindow = msg => parent.postMessage({ fromPdf: msg }, 'https://lexpen.example');
+function tellState() {
+  const v = pdf.viewer;
+  if (v?.pagesCount) toWindow({ kind: 'state', page: v.currentPageNumber, pages: v.pagesCount, scale: v.currentScale });
+}
+
+async function open() {
+  const file = here.searchParams.get('file');
+  setLook(here.searchParams.get('mode'), here.searchParams.get('threshold') ?? 50, here.searchParams.get('bg'));
   const container = document.getElementById('pdf-scroll'), eventBus = new EventBus(), linkService = new PDFLinkService({ eventBus });
   pdf.viewer = new PDFViewer({ container, eventBus, linkService, textLayerMode: 1 });
   linkService.setViewer(pdf.viewer);
@@ -65,7 +77,9 @@ async function open() {
     if (canvas) pdf.light.set(pageNumber, brightness(canvas));
     look(pageNumber);
   });
-  eventBus.on('pagesinit', () => { pdf.viewer.currentScaleValue = 'page-width'; });
+  eventBus.on('pagesinit', () => { pdf.viewer.currentScaleValue = 'page-width'; tellState(); });
+  eventBus.on('pagechanging', tellState);
+  eventBus.on('scalechanging', tellState);
   try {
     pdf.doc = await pdfjsLib.getDocument({
       url: file, isEvalSupported: false,
@@ -81,5 +95,43 @@ async function open() {
   }
 }
 
-pdf.set = (mode, threshold) => { pdf.mode = mode; pdf.threshold = threshold; lookAll(); };
+// From the window: the bar's buttons, a new look.
+const ZOOM_STEPS = [0.25, 0.33, 0.5, 0.67, 0.75, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4];
+function zoom(dir) {
+  const v = pdf.viewer, now = v.currentScale;
+  v.currentScale = dir > 0 ? ZOOM_STEPS.find(z => z > now + 0.001) ?? now : [...ZOOM_STEPS].reverse().find(z => z < now - 0.001) ?? now;
+}
+addEventListener('message', e => {
+  if (e.origin !== 'https://lexpen.example' || !e.data?.toPdf) return;
+  const m = e.data.toPdf, v = pdf.viewer;
+  if (m.kind === 'look') return setLook(m.mode, m.threshold, m.bg);
+  if (!v?.pagesCount) return;
+  if (m.kind === 'fitWidth') v.currentScaleValue = 'page-width';
+  else if (m.kind === 'fitPage') v.currentScaleValue = 'page-fit';
+  else if (m.kind === 'zoomIn') zoom(1);
+  else if (m.kind === 'zoomOut') zoom(-1);
+  else if (m.kind === 'next') v.nextPage();
+  else if (m.kind === 'prev') v.previousPage();
+  else if (m.kind === 'page') v.currentPageNumber = Math.max(1, Math.min(v.pagesCount, m.page));
+});
+
+// Ctrl+mouse wheel: zoom, as the preview does.
+addEventListener('wheel', e => {
+  if (!e.ctrlKey || !pdf.viewer?.pagesCount) return;
+  e.preventDefault();
+  zoom(e.deltaY < 0 ? 1 : -1);
+}, { passive: false });
+addEventListener('contextmenu', e => { e.preventDefault(); toWindow({ kind: 'menu', x: e.clientX, y: e.clientY }); });
+addEventListener('pointerdown', () => toWindow({ kind: 'activate' }), true);
+// The window's keys (a key with Ctrl or Alt, F1 to F12, Esc); the arrows, PgUp / PgDn, Home / End and typing stay here.
+addEventListener('keydown', e => {
+  if (['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) return;
+  if (!(e.ctrlKey || e.altKey || e.metaKey || /^F\d+$/.test(e.key) || e.key === 'Escape')) return;
+  if (e.ctrlKey && !e.altKey && ['c', 'a'].includes(e.key.toLowerCase())) return;   // copy, select all: the PDF's text
+  e.preventDefault();
+  const { key, code, ctrlKey, shiftKey, altKey, metaKey } = e;
+  toWindow({ kind: 'key', key, code, ctrlKey, shiftKey, altKey, metaKey });
+});
+
+globalThis.pdfPane.setLook = setLook;
 open();

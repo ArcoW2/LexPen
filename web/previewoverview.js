@@ -102,7 +102,7 @@ function pvMarks(pane) {
 }
 
 function drawPreviewOverview(pane) {
-  const tab = pane.active, show = !!tab && tab.mode !== 'edit' && !pane.el.hidden && pane.previewEl.offsetParent;
+  const tab = pane.active, show = !!tab && tab.mode !== 'edit' && !tab.doc.pdf && !pane.el.hidden && pane.previewEl.offsetParent;   // a PDF scrolls itself
   if (show) setupPreviewOverview(pane);
   if (!pane.pvCanvas) return;
   const canvas = pane.pvCanvas, view = pane.pvView;

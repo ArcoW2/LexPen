@@ -784,6 +784,8 @@ const SETTING_ROWS = [
     title: 'Widest column', hint: 'A column of a CSV is as wide as its longest value, up to this; a longer value is cut with ... (the mouse on it shows it whole)' },
   { name: 'csvStickyHeader', group: 'Preview', sub: 'Columns (CSV)', kind: 'toggle', title: 'Header kept at the top',
     hint: 'The column names of a CSV stay at the top while scrolling', hintOff: 'The column names of a CSV scroll away with the rows' },
+  { name: 'pdfThreshold', group: 'Preview', sub: 'PDF', kind: 'range', range: [0, 100, 5], unit: '%', title: 'Turn a page round past this brightness',
+    hint: 'A PDF that follows the theme: in dark mode a page brighter than this is turned round (dark), in light mode a page darker than this (light); the bar above a PDF and its right-click set it too' },
   { name: 'csvStripes', group: 'Preview', sub: 'Columns (CSV)', kind: 'toggle', title: 'Alternate row colours',
     hint: 'Every other row of a CSV in another colour, so a row is easy to follow', hintOff: 'The rows of a CSV all in the background colour' },
   { name: 'csvStripeColour', group: 'Preview', sub: 'Columns (CSV)', kind: 'colour', title: 'Alternate rows: colour',

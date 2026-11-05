@@ -497,6 +497,15 @@ function makeDoc({ path = null, draft = null, text = '', encoding = 'UTF-8' }) {
 }
 
 async function loadDoc(path) {
+  if (isPdfPath(path)) {   // a PDF (pdfview.js): not read as text, pdf.js reads the file itself; never written
+    const found = findDoc(path), doc = found ?? makeDoc({ path, text: '', encoding: '' });
+    doc.pdf = doc.diskReadOnly = true;
+    if (!found) await loadPdfLook(doc);
+    doc.lock = await host('lock', { path });
+    unfresh(path);
+    syncWatchFiles();
+    return doc;
+  }
   const { text, encoding, readOnly, language, ranges } = await host('read', { path });
   const found = findDoc(path), doc = found ?? makeDoc({ path, text, encoding });
   doc.diskReadOnly = readOnly;
@@ -946,7 +955,7 @@ function setDocText(doc, text, encoding) {
 // Revert to saved (File menu, tab menu): the file as it is on disk, as one edit, so Ctrl+Z gives the changes back;
 // then it counts as saved. Only for a file whose text differs from the disk (changed here, or there) and still
 // exists.
-const canRevert = doc => !!doc?.path && doc.lock && doc.disk !== 'removed' && (doc.dirty || doc.disk === 'changed');
+const canRevert = doc => !!doc?.path && !doc.pdf && doc.lock && doc.disk !== 'removed' && (doc.dirty || doc.disk === 'changed');
 async function revertDoc(doc) {
   if (!canRevert(doc)) return;
   const { text, encoding, readOnly } = await host('read', { path: doc.path });
@@ -1008,6 +1017,12 @@ async function renderNow(tab) {
   tab.lineBlocks = null;
   tab.csv = null;
   const doc = tab.doc, text = docText(doc), article = tab.article;
+  article.classList.toggle('mm-pdf-article', !!doc.pdf);
+  if (doc.pdf) {   // a PDF: its bar and its frame (pdfview.js); the same view not put in again (a frame moved reloads)
+    const view = pdfViewElement(tab);
+    if (view.parentElement !== article) article.replaceChildren(view);
+    return;
+  }
   const csv = doc.language === 'csv';   // the column view (csvview.js)
 
   // Built in a <template> so images are not requested before their paths are fixed.
@@ -1684,7 +1699,7 @@ function updateChrome() {
 
 async function setMode(mode) {
   const pane = panes[state.activePane], tab = pane.active;
-  if (!tab) return;
+  if (!tab || tab.doc.pdf) return;   // a PDF is only its preview
   if (tab.mode === 'preview') tab.previewTop = pane.previewEl.scrollTop;
   // The preview opens: its cursor starts at the top of the view again (previewcursor.js).
   if (tab.mode === 'edit' && mode !== 'edit' && typeof resetPreviewCursor === 'function') resetPreviewCursor(tab);
@@ -1802,7 +1817,7 @@ function updateStatus() {
   statusUi.col.hidden = !column.on;
   statusUi.ins.classList.toggle('mm-on', !!cm?.state.overwrite);
   statusUi.enc.textContent = doc ? doc.encoding : '';
-  statusUi.eol.textContent = doc ? (doc.mixed ? 'Mixed' : EOL_NAMES[doc.eol]) : '';
+  statusUi.eol.textContent = doc && !doc.pdf ? (doc.mixed ? 'Mixed' : EOL_NAMES[doc.eol]) : '';   // a PDF has no line ends
   statusUi.eol.title = doc?.mixed ? `Line ends: mixed; saved as ${EOL_NAMES[doc.eol]} (click: choose)` : 'Line ends (click: choose)';
   // The line end each editor shows (showLineEnds): its own document's.
   for (const p of panes) if (p.cm && p.active) p.cm.getWrapperElement().dataset.eol = { '\r\n': 'crlf', '\n': 'lf', '\r': 'cr' }[p.active.doc.eol];
@@ -2029,6 +2044,7 @@ function draftSaveName(doc) {
 
 // Returns false when nothing was saved (dialog cancelled, or the file is edited elsewhere).
 async function saveDoc(doc, saveAs) {
+  if (doc.pdf) { toast('A PDF is only shown; LexPen does not write it.'); return false; }
   let path = doc.path;
   const was = { path: doc.path, draft: doc.draft };   // the ruler's lines move to the new name (ruler.js)
   if (!path || saveAs) {
@@ -2116,6 +2132,12 @@ events.changed = async ({ tree, git, files, fresh }) => {
 };
 
 async function diskChange(doc, kind, retry = true) {
+  if (doc.pdf) {   // a PDF: drawn again from the file (pdfview.js); nothing to keep, it is never edited
+    doc.disk = kind === 'removed' ? 'removed' : 'ok';
+    if (kind !== 'removed') pdfChanged(doc);
+    for (const pane of panes) updateBar(pane);
+    return refreshTabs();
+  }
   const path = doc.path;
   let text = null, encoding;
   if (kind === 'changed') {
@@ -4634,6 +4656,7 @@ function applyLook(next) {
   root.dataset.mode = look.mode;
   setThemeVars(root, look.app.vars);
   if (typeof applyRuler === 'function') applyRuler();   // the ruler's canvas takes the theme's colours (ruler.js)
+  if (typeof pdfTellAll === 'function') requestAnimationFrame(pdfTellAll);   // a PDF follows the preview's colours (pdfview.js)
   for (const pane of panes) {
     themePane(pane.editorEl, look.editor);
     themePane(pane.previewEl, look.preview);
@@ -5003,6 +5026,7 @@ function applySettings() {
   if (changed('previewColourMaxSize') && 'previewColourMaxSize' in was)   // the code previews coloured again, or not
     for (const tab of allTabs()) if (tab.doc.language) { if (paneOf(tab)?.active === tab && tab.mode !== 'edit') render(tab); else tab.stale = true; }
   if (['csvStripes', 'csvStripeColour', 'csvStripeIntensity'].some(changed)) applyCsvStripes(now);   // a CSV's alternate rows
+  if (changed('pdfThreshold') && 'pdfThreshold' in was && typeof pdfTellAll === 'function') pdfTellAll();   // pdfview.js
   if (changed('previewWrap')) document.body.toggleAttribute('data-preview-nowrap', now.previewWrap === false);
   if (changed('showBackupFiles') && 'showBackupFiles' in was) refreshTree(false);
   if (changed('tabBar')) applyTabBar(now.tabBar);
