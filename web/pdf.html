@@ -12,10 +12,12 @@
   .pdfViewer .page.pdf-inverted .canvasWrapper { filter: invert(var(--pdf-invert, 1)) hue-rotate(180deg); }
   #pdf-error { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 20px;
     color: var(--pdf-fg, #ddd); font: 14px system-ui, sans-serif; text-align: center; }
+  #pdf-error[hidden] { display: none; }   /* else its display above wins over hidden, and it covers the PDF */
+  #pdf-scroll:focus { outline: none; }
 </style>
 </head>
 <body>
-<div id="pdf-scroll"><div id="pdf-pages" class="pdfViewer"></div></div>
+<div id="pdf-scroll" tabindex="0"><div id="pdf-pages" class="pdfViewer"></div></div>
 <div id="pdf-error" hidden></div>
 <script type="module" src="pdf-pane.js"></script>
 </body></html>

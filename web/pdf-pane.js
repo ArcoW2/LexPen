@@ -122,7 +122,13 @@ addEventListener('wheel', e => {
   zoom(e.deltaY < 0 ? 1 : -1);
 }, { passive: false });
 addEventListener('contextmenu', e => { e.preventDefault(); toWindow({ kind: 'menu', x: e.clientX, y: e.clientY }); });
-addEventListener('pointerdown', () => toWindow({ kind: 'activate' }), true);
+// A press: its pane the active one; the keys scroll the PDF (PgUp / PgDn, the arrows, Home / End: its scroll area's
+// own), so the scroll area takes the focus.
+addEventListener('pointerdown', e => {
+  toWindow({ kind: 'activate' });
+  if (!e.target.closest?.('input, textarea, select')) setTimeout(() => document.getElementById('pdf-scroll').focus({ preventScroll: true }));
+}, true);
+addEventListener('focus', () => { if (document.activeElement === document.body) document.getElementById('pdf-scroll').focus({ preventScroll: true }); });
 // The window's keys (a key with Ctrl or Alt, F1 to F12, Esc); the arrows, PgUp / PgDn, Home / End and typing stay here.
 addEventListener('keydown', e => {
   if (['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) return;
