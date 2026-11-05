@@ -1811,9 +1811,9 @@ const clipsPane = paneChannel({ id: 'clips', page: 'clipboards.html', title: 'Cl
     if (m.kind === 'escape') return events.toolEscape();
     if (m.kind === 'select') return host('clipSelect', { n: m.n });   // every window hears it (events.clipboards)
   },
-  onFloat: () => setDockFloating('clips', true),
+  onFloat: () => { setDockFloating('clips', true); saveSession(); },   // saveSession: clipsOpen
   // Back in its view: docked (moved onto the window); its window closed by hand: it stays floating.
-  onDock: () => { if (clipsPane.toDock) { clipsPane.toDock = false; setDockFloating('clips', false); } } });
+  onDock: () => { if (clipsPane.toDock) { clipsPane.toDock = false; setDockFloating('clips', false); } saveSession(); } });
 
 // Its action: as it was last (floating: its window; else docked), with the clipboards as they are now.
 async function openClipboardsPane() {
@@ -3158,7 +3158,7 @@ function registerDockPanes() {
     channel: { get floating() { return messagesPane.floating; }, float: opts => messagesPane.float(opts),
       back: () => { messagesPane.toDock = true; messagesPane.back(); } } });
   // Clipboards (stage 12): LexPen's, docked in the window's dock areas or floating; hidden at first. Floating, its window
-  // opens by its action only, not at the start (its window closed by hand, it stays floating).
+  // opens by its action, and at the start when it was open as the window closed (sessionData: clipsOpen).
   registerDockPane('clips', { title: 'Clipboards', view: $('.mm-clips-view'), home: 'right', startHidden: true, floatsOnCall: true,
     focus: () => clipsPane.focus(),
     sync: () => { if (dockShown(dockModel(), 'clips') && !clipsPane.frame) clipsPane.send(clipsState()); },
@@ -4223,6 +4223,7 @@ function sessionData() {
     hidden: before ? before.hidden : state.hidden,
     ...((before ? before.sync : state.sync) && { sync: true, syncGap: before ? 0 : Math.round((state.syncGap ?? 0) * 100) / 100 }),
     ...(c.compare && { compare: c.compare }), ...(c.folders && { folderCompare: c.folders }),
+    ...(clipsPane.floating && { clipsOpen: true }),   // the Clipboards window open: open again at the start
     panes: panes.map((pane, i) => ({   // a compare's saved text (doc.temp) is not kept
       active: kept(pane).indexOf(before ? before.active[i] : pane.active),
       tabs: kept(pane).map(tab => ({
@@ -5329,6 +5330,8 @@ track((async () => {
   // The panes that floated when the window closed float again (docs/plans/24-PLAN-docking.md 3.13); not Characters (its
   // window is one for LexPen; floating says only how Insert character opens it).
   for (const [id, p] of dockPanes) if (dockModel().state[id] === 'floating' && !p.floatsOnCall) p.channel.float();
+  // Clipboards: its window only when it was open as the window closed (closed by hand it stays floating, not open).
+  if (session?.clipsOpen && dockModel().state.clips === 'floating') openClipboardsPane().catch(() => {});
   // View in LexPen (docs/plans/executed/PLAN-view-window.md): the files in the preview, the folder in the Folder pane.
   // A window of a project opened again for them (it was closed): the files after its tabs as they were.
   const reopened = start.restore !== undefined && start.restore !== null;
