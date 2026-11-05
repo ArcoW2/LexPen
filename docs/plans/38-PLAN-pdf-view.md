@@ -26,7 +26,7 @@ App > Windows Explorer.
 - It shows the PDF only, always on the preview side: no editor, no ruler, no outline column (unless 3.4 gives it
   one); above it its own bar (3.2). Editor and Preview switches do nothing for it.
 - Read-only: LexPen does not change a PDF's content; it writes only highlight annotations into it, when its
-  highlights are kept there (3.2b). Revert and the edit actions are greyed out for it.
+  highlights are kept there, with Save (3.2b). Revert and the edit actions are greyed out for it.
 - It follows the file: changed on disk, it shows the new version (the watcher as for text files).
 - Opened from the folder pane (click), File > Open, a drop on a pane, the command line, and Explorer's
   "Open with" when LexPen is chosen for .pdf: Settings > App > Windows Explorer offers it, off by default.
@@ -90,10 +90,17 @@ one of three places, chosen per PDF, as a CSV's column settings are (plan 29).
   - inside the PDF: standard PDF highlight annotations, the note as their text, so other PDF readers (Acrobat,
     Edge, ...) show them too. This is the one way LexPen writes a PDF: only its annotations, by pdf.js (it saves the
     document with them). A PDF that cannot be changed (signed, protected, read-only) offers only the other two.
+    A change marks the tab as changed (as an edited text file); Save (Ctrl+S) writes the PDF, a .bak first when
+    backups are on (as for a text file); closing it, or LexPen, with changes not saved asks first, as for a text file.
   - Moving them from one place to another takes them all along (as Settings kept for a CSV); from the PDF they are
     read back from its highlight annotations.
 - A new PDF's place: as the setting highlightsStore says (in LexPen, or next to the file).
-- Highlight annotations a PDF already has (made in another reader) are shown by pdf.js as they are; see question 2.
+- Highlight annotations a PDF already has (made in another reader) are always shown, and listed in the Highlights
+  pane with LexPen's:
+  - its highlights kept inside the PDF: they are the same thing; listed, and their notes changed and removed as any;
+  - kept in LexPen or next to the file: listed too, marked as the PDF's own (a sign and "in the PDF" in the list and on
+    the mouse), and not changed: no new note, no removal (they belong to the file; to change them, keep the PDF's
+    highlights inside it).
 
 ### 3.3 Keys and menus
 
@@ -116,7 +123,4 @@ one of three places, chosen per PDF, as a CSV's column settings are (plan 29).
 
 ## 4. Open questions
 
-1. Inside the PDF: written at once with every change (a .bak first, as a save of a text file makes), or the tab marked
-   changed and written with Save (Ctrl+S), as a text file is?
-2. Highlight annotations a PDF already has, made in another reader: also listed in the Highlights pane (and their
-   notes editable) when the PDF's highlights are kept inside it, or only shown on the page?
+None.
