@@ -2,7 +2,7 @@ using System.Text.Json;
 
 namespace LexPen.Tests;
 
-// web/csv.js run under Jint: the page's CSV reader, detection, value formats and CSVW (docs/plans/29-PLAN-csv-columns.md).
+// web/csv.js run under Jint: the page's CSV reader, detection, value formats and CSVW (docs/plans/executed/PLAN-csv-columns.md).
 public class CsvTests
 {
     static readonly string Source = File.ReadAllText(Path.Combine(AppHost.FindProjectFolder(AppContext.BaseDirectory, "web")!, "csv.js"));

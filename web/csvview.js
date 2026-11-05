@@ -1,5 +1,5 @@
 'use strict';
-// The preview of a CSV: the column view (docs/plans/29-PLAN-csv-columns.md, 3.3). The rows in aligned columns, each
+// The preview of a CSV: the column view (docs/plans/executed/PLAN-csv-columns.md, 3.3). The rows in aligned columns, each
 // value in its column's format, drawn per screen (only the rows in view are in the page), the header kept at the top.
 // The reading is csv.js; the definition is the document's (detected when it has none). Loaded after csv.js.
 
@@ -38,17 +38,25 @@ async function csvSaveBeside(doc) {
   try {
     doc.csvBeside = await host('columnsSaveBeside', { path: doc.path, table: csvTable(doc) });
     toast(`Definition saved: ${doc.csvBeside}`, true);
+    if (state.root) refreshTree(false);   // its mark in the Folder pane
   } catch (e) { toast(`The definition could not be saved: ${e.message ?? e}`); }
 }
 
 // The document read as CSV, kept until its text changes: { gen, text, def, read, lines (the source line each row
-// starts on), widths (per column, in characters) }.
+// starts on), widths (per column, in characters), longest (per column, its longest value as shown), order (the shown
+// columns as shown), slots (every column in its place: a hidden one as a thin mark) }.
 function csvData(doc, text) {
   const gen = doc.cmDoc ? doc.cmDoc.changeGeneration() : -1;
   if (text.includes('\r')) text = text.replace(/\r\n?/g, '\n');   // as the editor has it (a tab not yet in one: as read)
   if (doc.csv && doc.csv.gen === gen && doc.csv.text === text) return doc.csv;
   doc.csvDef ??= csvDetect(text);
-  const def = doc.csvDef, read = csvRead(text, def);
+  let def = doc.csvDef, read = csvRead(text, def);
+  // A column now at another place in the header (an undo of Write the columns in this order, an edit): the definition
+  // follows the columns by their names.
+  if (read.names && def.columns.some((c, i) => c.name && read.names[i] !== undefined && c.name !== read.names[i] && read.names.includes(c.name))) {
+    def = doc.csvDef = csvFit(def, text);
+    read = csvRead(text, def);
+  }
   const lines = new Int32Array(read.rows.length);
   let line = 0, at = 0;
   read.pre.forEach(p => { for (; at < p.start; at++) if (text.charCodeAt(at) === 10) line++; });
@@ -56,19 +64,18 @@ function csvData(doc, text) {
     for (; at < r.start; at++) if (text.charCodeAt(at) === 10) line++;
     lines[i] = line;
   });
-  const max = setting('csvMaxWidth') || 40, widths = [];
-  for (let c = 0; c < read.columns; c++) widths.push(Math.min(max, Math.max(3, csvName(read, def, c).length)));
+  const max = setting('csvMaxWidth') || 40, longest = new Array(read.columns).fill(0);
   for (const r of read.rows)
     r.fields.forEach((f, c) => {
-      if (widths[c] >= max) return;
-      const n = csvCellText(f.text, def.columns[c]).text.length;
-      if (n > widths[c]) widths[c] = Math.min(max, n);
+      const n = csvCellText(f.text, def.columns[c]).text.length;   // as shown
+      if (n > longest[c]) longest[c] = n;
     });
-  def.columns.forEach((col, c) => { if (col?.width > 0 && c < widths.length) widths[c] = col.width; });   // set by hand
-  // The columns as shown: by their order (unset: their place in the file), the hidden ones left out.
-  const order = widths.map((_, c) => c).filter(c => !def.columns[c]?.hidden)
-    .sort((a, b) => (def.columns[a]?.order ?? a) - (def.columns[b]?.order ?? b) || a - b);
-  return doc.csv = { gen, text, def, read, lines, widths, order };
+  const widths = longest.map((n, c) => def.columns[c]?.width > 0 ? def.columns[c].width   // set by hand
+    : Math.min(max, Math.max(3, n, csvName(read, def, c).length)));
+  // The columns in their places: by their order (unset: their place in the file); the hidden ones are not shown.
+  const slots = widths.map((_, c) => c).sort((a, b) => (def.columns[a]?.order ?? a) - (def.columns[b]?.order ?? b) || a - b);
+  const order = slots.filter(c => !def.columns[c]?.hidden);
+  return doc.csv = { gen, text, def, read, lines, widths, longest, order, slots };
 }
 
 const csvName = (read, def, c) => def.columns[c]?.name || read.names?.[c] || `Column ${c + 1}`;
@@ -100,7 +107,15 @@ function csvViewElement(tab, text) {
   }
   const head = document.createElement('div');
   head.className = 'mm-csv-head';
-  head.append(...order.map(c => csvCell(csvName(read, def, c), widths[c], def.columns[c], c)));
+  head.append(...data.slots.map(c => {
+    if (def.columns[c]?.hidden) return csvGap(c, csvName(read, def, c));
+    const cell = csvCell(csvName(read, def, c), widths[c], def.columns[c], c);
+    const type = def.columns[c]?.type ?? 'text';
+    cell.title = `${csvName(read, def, c)}\n${type === 'date' ? 'date / time' : type}, longest ${data.longest[c]} characters\nDrag the name: move; drag the edge: size (double click: to the longest)`;
+    cell.append(Object.assign(document.createElement('span'), { className: 'mm-csv-grip' }));
+    return cell;
+  }));
+  csvHeadEvents(tab, head);
   const body = document.createElement('div');
   body.className = 'mm-csv-body';
   const rows = document.createElement('div');
@@ -125,7 +140,7 @@ function csvCell(text, width, col, c) {
 function csvDraw(pane) {
   const tab = pane.active, view = tab?.csv;
   if (!view || !view.body.isConnected) return;
-  const { data: { read, def, widths, order, text }, body, rows } = view, count = read.rows.length;
+  const { data: { read, def, widths, slots, text }, body, rows } = view, count = read.rows.length;
   if (!count) return rows.replaceChildren();
   const r = body.getBoundingClientRect(), p = pane.previewEl.getBoundingClientRect(), h = r.height / count;
   if (!h) return;
@@ -145,7 +160,8 @@ function csvDraw(pane) {
       el.classList.add('mm-csv-problem');
       el.title = 'An end quote that never comes: the row ends at its line';
     }
-    for (const c of order) {
+    for (const c of slots) {
+      if (def.columns[c]?.hidden) { el.append(csvGap(c)); continue; }
       const f = row.fields[c], shown = f ? csvCellText(f.text, def.columns[c]) : { text: '', ok: true };
       const cell = csvCell(shown.text, widths[c], def.columns[c], c);
       if (!shown.ok) cell.classList.add('mm-csv-bad');
@@ -203,12 +219,200 @@ function csvHover(pane, e) {
   updateStatus();
 }
 
-// The right-click in the column view: its own menu.
-function csvMenu(pane, e) {
-  if (!pane.active?.csv) return;
-  e.preventDefault();
-  openPopupMenu([{ label: '&Columns...', action: 'csv.columns' }, { label: '&Save definition next to the file', action: 'csv.saveBeside' }], e.clientX, e.clientY);
+// ---------- Sizing, hiding and moving (3.5) ----------
+// The header is the view's ruler: each column's name, its right edge a handle. These change the view only; they land
+// in the definition (width, hidden, order) as Apply in the Columns pane does.
+
+// A hidden column: a thin mark at its place; a click shows it again.
+function csvGap(c, name) {
+  const el = document.createElement('span');
+  el.className = 'mm-csv-gap';
+  el.dataset.c = c;
+  if (name !== undefined) el.title = `${name} (hidden; click: show it)`;
+  return el;
 }
+
+// The definition changed by `change(def)` (a copy), applied and kept; the Columns pane shows it.
+function csvChange(doc, change) {
+  const def = JSON.parse(JSON.stringify(doc.csvDef)), count = doc.csv?.widths.length ?? def.columns.length;
+  for (let c = def.columns.length; c < count; c++) def.columns.push({ name: csvName(doc.csv.read, def, c), type: 'text', align: 'left' });
+  change(def);
+  csvApply(doc, def);
+  if (typeof tellColumnsPane === 'function') tellColumnsPane();
+}
+
+// The columns in a new order: `slots` every column in its place; each gets its place as its order.
+function csvOrder(doc, slots) {
+  csvChange(doc, def => slots.forEach((c, i) => { def.columns[c].order = i; }));
+}
+
+function csvMoveBy(doc, c, by) {
+  const data = doc.csv, shown = data.order, at = shown.indexOf(c), to = at + by;
+  if (at < 0 || to < 0 || to >= shown.length) return;
+  const slots = data.slots.slice(), a = slots.indexOf(c), b = slots.indexOf(shown[to]);
+  slots.splice(a, 1);
+  slots.splice(b, 0, c);
+  csvOrder(doc, slots);
+}
+
+const csvSizeToLongest = (doc, c) => csvChange(doc, def => { def.columns[c].width = Math.max(1, doc.csv.longest[c]); });
+const csvHide = (doc, c) => csvChange(doc, def => { def.columns[c].hidden = true; });
+const csvShowAll = doc => csvChange(doc, def => def.columns.forEach(col => delete col.hidden));
+
+// Dragging an edge sizes its column (the cells in view follow; kept when let go); dragging a name moves the column to
+// where it is let go; a double click on an edge sizes to the longest value; a click on a hidden column's mark shows it.
+function csvHeadEvents(tab, head) {
+  const doc = tab.doc;
+  head.addEventListener('dblclick', e => {
+    const grip = e.target.closest('.mm-csv-grip');
+    if (grip) { e.stopPropagation(); csvSizeToLongest(doc, +grip.parentElement.dataset.c); }
+  });
+  head.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    const cell = e.target.closest('.mm-csv-cell');
+    if (!cell) return;
+    const c = +cell.dataset.c, startX = e.clientX, view = head.parentElement;
+    const grip = e.target.closest('.mm-csv-grip');
+    e.preventDefault();
+    head.setPointerCapture(e.pointerId);
+    let moved = false, width = doc.csv.widths[c];
+    const chPx = cell.getBoundingClientRect().width / (width + 1.2);   // its padding: 0.6ch each side
+    const move = ev => {
+      if (Math.abs(ev.clientX - startX) > 3) moved = true;
+      if (!moved) return;
+      if (grip) {
+        width = Math.max(1, Math.round(doc.csv.widths[c] + (ev.clientX - startX) / chPx));
+        for (const el of view.querySelectorAll(`.mm-csv-cell[data-c="${c}"]`)) el.style.width = width + 'ch';
+      } else head.classList.add('mm-csv-moving');
+    };
+    const up = ev => {
+      head.removeEventListener('pointermove', move);
+      head.removeEventListener('pointerup', up);
+      head.classList.remove('mm-csv-moving');
+      if (!moved) return;
+      if (grip) return csvChange(doc, def => { def.columns[c].width = width; });
+      // Let go over another column: this one takes its place.
+      const over = [...head.querySelectorAll('.mm-csv-cell')].find(el => { const r = el.getBoundingClientRect(); return ev.clientX >= r.left && ev.clientX < r.right; });
+      const to = over ? +over.dataset.c : null;
+      if (to === null || to === c) return;
+      const slots = doc.csv.slots.slice();
+      slots.splice(slots.indexOf(c), 1);
+      slots.splice(slots.indexOf(to) + (ev.clientX > startX ? 1 : 0), 0, c);
+      csvOrder(doc, slots);
+    };
+    head.addEventListener('pointermove', move);
+    head.addEventListener('pointerup', up);
+  });
+}
+
+// A click on a hidden column's mark (the header or a row): shown again.
+function csvClick(pane, e) {
+  const gap = e.target.closest?.('.mm-csv-gap');
+  if (gap && pane.active?.csv) csvChange(pane.active.doc, def => { delete def.columns[+gap.dataset.c].hidden; });
+}
+
+// The right-click in the column view: the column's own items (on a cell or its name), then the view's.
+function csvMenu(pane, e) {
+  const tab = pane.active;
+  if (!tab?.csv) return;
+  e.preventDefault();
+  const cell = e.target.closest('.mm-csv-cell'), doc = tab.doc, c = cell ? +cell.dataset.c : null;
+  const items = [];
+  if (c !== null) {
+    const shown = doc.csv.order, at = shown.indexOf(c);
+    items.push(
+      { label: '&Hide column', run: () => csvHide(doc, c), enabled: shown.length > 1 },
+      { label: 'Size to &longest value', run: () => csvSizeToLongest(doc, c) },
+      { label: 'Move &left', run: () => csvMoveBy(doc, c, -1), enabled: at > 0 },
+      { label: 'Move &right', run: () => csvMoveBy(doc, c, 1), enabled: at < shown.length - 1 },
+      { label: 'Column &settings...', run: () => openColumnsPane(c) },
+      '-');
+  }
+  items.push(
+    { label: 'Show &all columns', run: () => csvShowAll(doc), enabled: doc.csvDef.columns.some(col => col.hidden) },
+    { label: 'Column &info', action: 'csv.info' },
+    { label: '&Write the columns in this order...', action: 'csv.writeOrder', params: [false] },
+    { label: 'Write the &shown columns in this order...', action: 'csv.writeOrder', params: [true], enabled: doc.csvDef.columns.some(col => col.hidden) },
+    '-',
+    { label: '&Columns...', action: 'csv.columns' },
+    { label: 'Sa&ve definition next to the file', action: 'csv.saveBeside' });
+  openPopupMenu(items, e.clientX, e.clientY);
+}
+
+// ---------- Column info (3.8) ----------
+// Per column: its name, type, longest and shortest value, how many are empty, how many do not fit its type.
+function csvColumnInfo(data) {
+  const { read, def } = data;
+  return data.widths.map((_, c) => {
+    let longest = '', shortest = null, empty = 0, bad = 0;
+    for (const r of read.rows) {
+      const v = r.fields[c]?.text ?? '';
+      if (!v.trim()) { empty++; continue; }
+      if (v.length > longest.length) longest = v;
+      if (shortest === null || v.length < shortest.length) shortest = v;
+      if (!csvShow(v, def.columns[c]).ok) bad++;
+    }
+    return { name: csvName(read, def, c), type: def.columns[c]?.type ?? 'text', longest, shortest: shortest ?? '', empty, bad };
+  });
+}
+
+function showColumnInfo(doc) {
+  if (!doc?.csv) return;
+  const info = csvColumnInfo(doc.csv), cut = s => s.length > 40 ? s.slice(0, 40) + '...' : s;
+  const dialog = document.createElement('dialog');
+  dialog.className = 'mm-csv-info';
+  dialog.innerHTML = `<h3>Column info: ${escapeHtml(docName(doc))} (${doc.csv.read.rows.length.toLocaleString()} rows)</h3>` +
+    '<div class="mm-csv-info-list"><table><thead><tr><th>#</th><th>Name</th><th>Type</th><th>Longest</th><th>Shortest</th><th>Empty</th><th>Do not fit</th></tr></thead><tbody>' +
+    info.map((i, c) => `<tr><td>${c + 1}</td><td>${escapeHtml(i.name)}</td><td>${i.type === 'date' ? 'date / time' : i.type}</td>` +
+      `<td title="${escapeHtml(i.longest)}">${i.longest.length}: ${escapeHtml(cut(i.longest))}</td><td title="${escapeHtml(i.shortest)}">${i.shortest.length}: ${escapeHtml(cut(i.shortest))}</td>` +
+      `<td>${i.empty}</td><td${i.bad ? ' class="mm-csv-info-bad"' : ''}>${i.bad}</td></tr>`).join('') +
+    '</tbody></table></div><div class="mm-csv-info-bar"><button type="button" value="close">Close</button></div>';
+  dialog.querySelector('button').addEventListener('click', () => dialog.close());
+  dialog.addEventListener('close', () => dialog.remove());
+  document.body.append(dialog);
+  dialog.showModal();
+}
+
+// ---------- Writing the order to the editor (3.6) ----------
+// Every row (and the header line) rewritten in the shown order, each field's text and quotes as they are, as one undo
+// step; `withoutHidden`: the hidden columns left out. The other lines before the data stay. Asks first.
+async function csvWriteOrder(doc, withoutHidden) {
+  if (!doc?.csvDef) return;
+  const data = csvData(doc, docText(doc)), { read, def, text } = data;
+  const slots = withoutHidden ? data.order : data.slots;
+  const same = slots.length === data.widths.length && slots.every((c, i) => c === i);
+  if (same) return toast('The columns are in the order of the file already.', true);
+  const hidden = data.slots.length - data.order.length;
+  if (!await confirmBox(`Rewrite every row of ${docName(doc)} in the order shown${withoutHidden && hidden ? `, without the ${hidden} hidden column${hidden === 1 ? '' : 's'}` : ''}? ` +
+    'One undo step; the file changes when saved.')) return;
+  const dl = def.delimiter || ',';
+  // A row's fields from its first to its last, in the new order (a field it does not have: empty).
+  const rewrite = fields => slots.map(c => fields[c] ? text.slice(fields[c].start, fields[c].end) : '').join(dl);
+  const edits = [];
+  const header = def.header > 0 ? read.pre[def.header - 1] : null;
+  if (header) {
+    const fields = csvRow(text, header.start, def, () => [def.quote ?? '', def.quoteEnd ?? def.quote ?? '']).fields;
+    edits.push([fields[0].start, fields[fields.length - 1].end, rewrite(fields)]);
+  }
+  for (const r of read.rows) if (r.fields.length) edits.push([r.fields[0].start, r.fields[r.fields.length - 1].end, rewrite(r.fields)]);
+  let out = '', at = 0;
+  for (const [from, to, by] of edits) { out += text.slice(at, from) + by; at = to; }
+  out += text.slice(at);
+  // The columns follow: the definition in the file's new order, the order unset.
+  const columns = slots.map(c => { const col = { ...(def.columns[c] ?? { name: csvName(read, def, c), type: 'text' }) }; delete col.order; return col; });
+  const tab = panes[state.activePane].active?.doc === doc ? panes[state.activePane].active : tabsOf(doc)[0];
+  if (!doc.cmDoc) { state.activePane = paneOf(tab).index; await setMode('split'); }   // the editor holds the undo step
+  const cd = doc.cmDoc;
+  cd.replaceRange(out, CodeMirror.Pos(cd.firstLine(), 0), CodeMirror.Pos(cd.lastLine(), cd.getLine(cd.lastLine()).length), 'csvOrder');
+  csvApply(doc, { ...def, columns });
+  if (typeof tellColumnsPane === 'function') tellColumnsPane();
+}
+
+appAction('csv.info', { title: 'Column info', hint: 'Per column of the CSV: its type, longest and shortest value, how many are empty and how many do not fit', group: 'view',
+  enabled: () => !!activeDoc()?.csv, run: () => showColumnInfo(activeDoc()) });
+appAction('csv.writeOrder', { title: 'Write the columns in this order', hint: 'Every row of the text rewritten in the order of the column view, as one undo step; asks first', group: 'edit',
+  variants: [[false], [true]], variantTitles: { false: 'Write the columns in this order', true: 'Write the shown columns in this order (without the hidden ones)' },
+  enabled: () => !!activeDoc()?.csvDef && activeDoc()?.language === 'csv', run: ([withoutHidden = false] = []) => csvWriteOrder(activeDoc(), !!withoutHidden) });
 
 // A double click on a cell: the editor's cursor at that character of the field (previewjump.js previewToEditor).
 function csvSourceAt(tab, e) {

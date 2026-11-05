@@ -367,6 +367,24 @@ every action with its key.
   cursor's colour (as on the ruler and in the gutter), and over it in the accent the rendered lines of the cursor line
   itself (a line of code: that line); a preview with a theme of its own uses its own colours. After a cursor move,
   with the cursor in the editor's view, the preview scrolls so the cursor's line is at the same height as in the editor.
+- **CSV as columns** (`.csv`, `.tsv`, `.tab`, `.psv`; any document by View > Read as CSV): opens in split view, the
+  editor with the file as it is, the preview as columns: each value in its column's format and alignment, the original
+  text when the mouse rests on it, a value that does not fit its type marked, the lines before the data folded, the
+  header kept at the top, only the rows in view drawn (the view of 100,000 rows measured at under half a second). The bottom bar
+  names the row and column under the mouse or the editor's cursor; a double click on a cell puts the editor's cursor
+  on that character. How the file is read is detected when it opens (delimiter, quote, lines before the data, header,
+  per column the type), and set in the Columns pane (View > Panels, or the column view's right-click > Columns...):
+  delimiter (more than one character too), quotes (start and end may differ, per column too) and their escape, lines
+  before the data and the header line; per column the type, Read as (decimal and thousands sign, a date pattern),
+  format (`#,##0.00`, `dd-MM-yyyy`), alignment, trim, shown, width and order; ticked columns take a value set in one of
+  them; a warning counts the values that do not fit; the Definition tab shows it all as CSV on the Web (CSVW) text.
+  Apply keeps it in LexPen (`file-columns.json`), or next to the file after Save next to the file
+  (`name.csv-metadata.json`, which other tools read too; the Folder pane marks such a file); a definition from there
+  is read first, also the folder's `csv-metadata.json`. In the column view the header is the ruler: drag an edge to
+  size a column (double click: to its longest value), drag a name to move it; the right-click hides, shows, sizes and
+  moves columns, opens Column info (per column its longest and shortest value, empty ones, ones that do not fit) and
+  Write the columns in this order (the editor's text rewritten in the shown order, as one undo step). Settings >
+  Preview > Columns (CSV): the widest column (40 characters), the header at the top, detecting a file's build.
 - **Preview zoom**: Ctrl+= / Ctrl+- / Ctrl+mouse wheel over a preview. The level shows at the right of the top
   bar (click it for 100%) and is kept.
 - **Safe by default**: a Content Security Policy blocks scripts embedded in a document's raw HTML.

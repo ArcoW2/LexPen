@@ -101,6 +101,10 @@ async function fill(container, path, depth) {
       row.title += ' (has a .bak file)';
       row.append(Object.assign(document.createElement('span'), { className: 'mm-backup-dot', title: 'A backup file exists next to this file' }));
     }
+    if (item.columns) {   // a CSV definition next to it (plan 29)
+      row.title += `\nHas a CSV definition (${item.name}-metadata.json)`;
+      row.append(Object.assign(document.createElement('span'), { className: 'mm-columns-mark', title: `Has a CSV definition (${item.name}-metadata.json)` }));
+    }
     row.append(name);
     if (item.highlights) {
       row.classList.add('mm-has-highlights');

@@ -4,7 +4,7 @@ using System.Text.Json.Nodes;
 namespace LexPen;
 
 /// <summary>
-/// How a CSV is read and shown (docs/plans/29-PLAN-csv-columns.md 3.4): its column definition, CSV on the Web (CSVW)
+/// How a CSV is read and shown (docs/plans/executed/PLAN-csv-columns.md 3.4): its column definition, CSV on the Web (CSVW)
 /// metadata. Next to the file (<see cref="Beside"/>, <see cref="SaveBeside"/>), else kept here, in file-columns.json:
 /// per file { opened, table }, the last <see cref="Max"/> files with a definition, as <see cref="RulerStore"/> keeps its
 /// lines. Keys as in <see cref="BookmarkStore.Key"/>: a file by its path, a draft by its id.

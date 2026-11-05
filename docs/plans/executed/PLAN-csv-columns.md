@@ -1,6 +1,6 @@
 # Plan: CSV as columns
 
-Status: draft 2026-11-02, not started.
+Status: executed 2026-11-05 (see 5. As built).
 The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
@@ -193,4 +193,30 @@ None.
 
 ## 5. As built
 
-Not started.
+Built on branch `plan-29` in three parts: the reader and the column view; the definition (ColumnStore, next to the
+file) and the Columns pane; sizing, hiding and moving, Column info, Write the columns in this order and the Folder
+pane mark.
+
+- `web/csv.js`: the reader (fields with their place in the text, quotes per column, the three escapes, lines before
+  the data), detection, `csvFit` (a kept definition onto columns changed outside LexPen), value formats, CSVW read and
+  write. Unit tests under Jint (`tests/LexPen.Tests/CsvTests.cs`; Jint is a package of the test project only).
+- `web/csvview.js`: the column view. `web/columnspane.js`, `web/columns.html`, `web/columns-pane.js`: the Columns
+  pane. `ColumnStore.cs`: `file-columns.json`, and finding / writing the CSVW file next to the CSV (tests:
+  `ColumnStoreTests.cs`).
+- Measured in a test copy, 100,000 rows of 6 columns (5.4 MB): reading and drawing the view 343 ms (part 1), 435 ms
+  after the longest value per column was added (part 3); twenty scroll steps of 300 px 335 ms in all.
+
+Differs from the plan:
+
+- No worker (3.1, 3.8): the reader runs on the page. At the size measured above it takes under half a second; a
+  worker would have to send every row back to the page (that cost not measured). To do when a larger file stalls.
+- The ruler (3.5) is the column view's header, always there, not the editor's ruler setting: the names are above the
+  columns already, and their edges are the handles.
+- The Definition tab (3.2) is a plain text field, not coloured.
+- Write the columns in this order (3.6) is two items: in this order, and the shown columns only (the hidden left
+  out), in place of a question.
+- A hidden column's mark is a thin bar in the header and in every row; a click on either shows it.
+- The Folder pane marks a CSV with its own `name.csv-metadata.json` next to it; one described only by the folder's
+  `csv-metadata.json` is read, but not marked (that would mean reading that file for every listing).
+- Split view scrolls by row through the preview's line map (one entry per row's first line), as other previews do.
+

@@ -1,5 +1,5 @@
 'use strict';
-// The Columns pane, the window's side (docs/plans/29-PLAN-csv-columns.md 3.2): a page of its own (columns.html) that
+// The Columns pane, the window's side (docs/plans/executed/PLAN-csv-columns.md 3.2): a page of its own (columns.html) that
 // sets how the active document is read as CSV and shown in the column view. Docked or floating (View > Panels), hidden
 // at first. It gets the document's definition and the columns found with it; what is set there stays in the pane until
 // Apply (csvApply, csvview.js). A definition being set is sent here to be tried on the text (`probe`): the columns
@@ -53,6 +53,7 @@ function fromColumnsPane(m) {
   const doc = colsDoc();
   if (m.kind === 'escape') return events.toolEscape();
   if (m.kind === 'readAsCsv') return runAction('csv.toggle');
+  if (m.kind === 'info') return showColumnInfo(doc);   // csvview.js
   if (!doc || doc.language !== 'csv') return;
   if (m.kind === 'probe') {   // a definition being set: fitted to the text (new columns detected), and what it finds
     const text = colsText(doc), def = csvFit(m.def, text);
@@ -69,10 +70,12 @@ function fromColumnsPane(m) {
   }
 }
 
-function openColumnsPane() {
+// `column`: the one to show (Column settings... in the column view's right-click).
+function openColumnsPane(column) {
   if (dockModel().state.cols === 'floating') colsChannel.float();
   else showDockPane('cols');
   tellColumnsPane();
+  if (column !== undefined) setTimeout(() => colsChannel.send({ kind: 'showColumn', column }), 300);
 }
 
 function registerColumnsPane() {

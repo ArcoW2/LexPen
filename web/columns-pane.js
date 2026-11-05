@@ -1,5 +1,5 @@
 'use strict';
-// The Columns pane's page (columns.html; docs/plans/29-PLAN-csv-columns.md 3.2): how the active document is read as
+// The Columns pane's page (columns.html; docs/plans/executed/PLAN-csv-columns.md 3.2): how the active document is read as
 // CSV. At the top the file's settings (delimiter, lines before the data, header line, quote and escape); below them the
 // columns found with those settings, each with its own; or the definition as CSVW text. What is set stays here (the
 // draft) until Apply; a change is tried on the text by the window (`probe`), which sends back the columns it finds.
@@ -40,6 +40,17 @@ paneHandlers.probe = ({ def, found, detected }) => {
   cp.found = found;
   for (const i of [...cp.ticked]) if (i >= cp.draft.columns.length) cp.ticked.delete(i);
   drawAll(true);
+};
+
+// Column settings... in the column view: that column's row, in view and marked.
+paneHandlers.showColumn = ({ column }) => {
+  if (cp.tab !== 'columns') document.querySelector('[data-tab=columns]').click();
+  const tr = $c(`tr[data-i="${column}"]`);
+  if (!tr) return;
+  tr.scrollIntoView({ block: 'nearest' });
+  tr.querySelector('[data-f=name]')?.focus();
+  tr.classList.add('cp-flash');
+  setTimeout(() => tr.classList.remove('cp-flash'), 1200);
 };
 
 paneHandlers.focus = () => ($c('.cp-main').hidden ? $c('.cp-read') : $c('#cp-delim'))?.focus();
@@ -255,6 +266,7 @@ $c('.cp-apply').addEventListener('click', () => apply());
 $c('.cp-save').addEventListener('click', () => apply('saveBeside'));
 $c('.cp-revert').addEventListener('click', () => { if (cp.state) paneHandlers.columns(cp.state); });
 $c('.cp-detect').addEventListener('click', () => toWindow({ kind: 'detect' }));
+$c('.cp-info').addEventListener('click', () => toWindow({ kind: 'info' }));
 
 addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.ctrlKey && !e.altKey && !e.shiftKey && !$c('.cp-main').hidden) { e.preventDefault(); e.stopImmediatePropagation(); apply(); }

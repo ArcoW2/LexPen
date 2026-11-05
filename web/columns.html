@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- The Columns pane as a page of its own (columns-pane.js; docs/plans/29-PLAN-csv-columns.md 3.2). -->
+<!-- The Columns pane as a page of its own (columns-pane.js; docs/plans/executed/PLAN-csv-columns.md 3.2). -->
 <html><head><meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:">
 <title>Columns</title>
@@ -32,6 +32,7 @@
   .cp-list th { position: sticky; top: 0; z-index: 1; background: var(--bg-side); text-align: left; font-weight: 600; color: var(--fg-dim); padding: 4px 4px; white-space: nowrap; border-bottom: 1px solid var(--border); }
   .cp-list td { padding: 2px 4px; white-space: nowrap; border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent); }
   .cp-list tr.cp-ticked td { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+  .cp-list tr.cp-flash td { background: color-mix(in srgb, var(--accent) 30%, transparent); transition: background .3s; }
   .cp-list td.cp-n { color: var(--fg-dim); text-align: right; }
   .cp-list td.cp-sample { max-width: 16ch; overflow: hidden; text-overflow: ellipsis; color: var(--fg-dim); font-family: var(--editor-font, Consolas, monospace); }
   .cp-list input.cp-text { width: 12ch; }
@@ -75,6 +76,7 @@
     <button type="button" class="cp-apply" title="The preview redraws with these settings, and they are kept (Ctrl+Enter)">Apply</button>
     <button type="button" class="cp-revert" title="Back to the kept settings">Revert</button>
     <button type="button" class="cp-detect" title="Forget the settings and guess them again from the text">Detect</button>
+    <button type="button" class="cp-info" title="Per column: its type, longest and shortest value, how many are empty and how many do not fit (as applied)">Column info</button>
     <span class="cp-gap"></span>
     <button type="button" class="cp-save" title="The definition as name.csv-metadata.json next to the file (CSV on the Web); Apply then writes there too">Save next to the file</button>
   </div>

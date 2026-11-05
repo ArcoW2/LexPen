@@ -624,7 +624,7 @@ function makePane(index) {
     e.preventDefault();
     zoomBy(e.deltaY < 0 ? 1 : -1);
   }, { passive: false });
-  pane.previewEl.addEventListener('click', e => onPreviewClick(pane, e));
+  pane.previewEl.addEventListener('click', e => { csvClick(pane, e); onPreviewClick(pane, e); });   // a hidden column's mark (csvview.js)
   pane.previewEl.addEventListener('dblclick', e => typeof previewToEditor === 'function' && previewToEditor(pane, e));   // previewjump.js
   pane.previewEl.addEventListener('mousemove', e => csvHover(pane, e));   // the cell in the bottom bar (csvview.js)
   pane.previewEl.addEventListener('mouseleave', () => pane.csvHover && csvHover(pane, {}));
@@ -2271,16 +2271,19 @@ function sortItems(items) {
 
 // A folder's entries for the Folder pane, with their marks. Backup files (name.ext.bak) only with the setting
 // showBackupFiles; highlights next to a file (name.ext.lph, highlights.js) never: the file gets a mark instead. A file
-// with a backup next to it: a dot before its name (plan 33).
+// with a backup next to it: a dot before its name (plan 33). A CSV with its definition next to it (name.csv-metadata.json,
+// plan 29): a mark before its name; the metadata file stays listed.
 async function listItems(path) {
   const listed = await host('list', { path });
   const withHighlights = new Set(listed.filter(i => !i.dir && /\.lph$/i.test(i.name)).map(i => i.name.slice(0, -4).toLowerCase()));
   const withBackups = new Set(listed.filter(i => !i.dir && /\.bak$/i.test(i.name)).map(i => i.name.slice(0, -4).toLowerCase()));
+  const withColumns = new Set(listed.filter(i => !i.dir && /-metadata\.json$/i.test(i.name)).map(i => i.name.slice(0, -14).toLowerCase()));
   const items = listed.filter(i => i.dir || (!/\.lph$/i.test(i.name) && (setting('showBackupFiles') || !/\.bak$/i.test(i.name))));
   return [...sortItems(items), ...deletedIn(path, items)].map(item => ({
     path: item.path, name: item.name, dir: !!item.dir, gone: !!item.gone, other: !item.dir && !knownFile(item.name),
     backup: !item.dir && !item.gone && withBackups.has(item.name.toLowerCase()),
     highlights: !item.dir && withHighlights.has(item.name.toLowerCase()), git: gitStatusOf(item) || null,
+    columns: !item.dir && !item.gone && withColumns.has(item.name.toLowerCase()),
   }));
 }
 

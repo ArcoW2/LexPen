@@ -1,5 +1,5 @@
 'use strict';
-// CSV as columns (docs/plans/29-PLAN-csv-columns.md): reading a CSV by a definition, detecting a definition, a value
+// CSV as columns (docs/plans/executed/PLAN-csv-columns.md): reading a CSV by a definition, detecting a definition, a value
 // shown in its column's format, and the definition as CSV on the Web (CSVW) metadata. No page here: the page, a
 // worker and the tests (Jint, tests/LexPen.Tests/CsvTests.cs) load this file alike.
 //

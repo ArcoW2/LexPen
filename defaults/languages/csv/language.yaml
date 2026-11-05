@@ -1,4 +1,4 @@
-# CSV: values in columns, a delimiter between them (docs/plans/29-PLAN-csv-columns.md). The editor shows the file as
+# CSV: values in columns, a delimiter between them (docs/plans/executed/PLAN-csv-columns.md). The editor shows the file as
 # it is; the preview is the column view (csvview.js), read by a definition detected from the text.
 # Every part is explained in languages\_template\language.yaml.
 name: CSV
