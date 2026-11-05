@@ -1,66 +1,84 @@
-# Plan 40: Compare two items selected in Explorer
+# Plan 40: Compare in Explorer by what is selected
 
 ## 1. The enhancement
 
-With two files (or two folders) selected in Windows Explorer, the right-click menu should have **Compare**, which
-opens the Compare project with the two items left and right. Today this takes two steps: "Select left side to
-compare" on one, then "Compare to <name>" on the other (docs/plans/executed/PLAN-explorer-compare.md).
+LexPen's compare items in Explorer's right-click menu should depend on the selection, as Beyond Compare's do:
+
+- **One file or folder**: "Select left side to compare", and once a left side is chosen "Compare to <its name>"
+  (as now).
+- **Two files, or two folders**: one item, **Compare**, which opens the Compare project with the two left and right.
+  The one-item entries are not shown then.
+- **More than two, or a file with a folder**: no compare items at all.
+
+Today the registry entries show the same items whatever is selected, so two files take the two steps of the
+one-item entries (docs/plans/executed/PLAN-explorer-compare.md).
 
 ## 2. The solution, in brief
 
-A new Explorer entry, Compare, on files and folders. Explorer starts LexPen once per selected item. Each start hands
-its item to the running LexPen over the existing single-instance pipe, and LexPen collects the items that arrive
-close together. Two items open a compare, as `--compare` does, in the Compare project. A single item becomes the left
-side, as "Select left side to compare" does, so the next Compare on one item compares with it. More than two give a
-message. The entry is one more choice in the Explorer menu settings, next to the existing ones.
+An Explorer command handler: a small DLL that Explorer loads, registered for the current user, which sees the whole
+selection and shows only the items that fit it. A choice runs LexPen as now: `--compare-left <path>` for the left
+side, `--compare <left> <path>` for Compare to, and `--compare <first> <second>` for Compare. It replaces the
+registry entries of the compare items; Edit, View and Delete .bak stay registry entries. The handler is written in
+C++, so Explorer does not load a .NET runtime.
 
 ## 3. Details
 
-### 3.1 Why one start per item
+### 3.1 Why registry entries cannot do it
 
-An Explorer entry made of registry keys (the kind LexPen uses now) runs its command once for every selected item,
-each with its own `%1`. Explorer has no way to hand both paths to one command line from such an entry, and no way to
-show the entry only when exactly two items are selected. So LexPen sees the selection as separate starts, and the
-entry also shows with one item selected (hence the single-item fallback in section 2).
+An entry made of registry keys (what LexPen writes now) runs its command once per selected item, each with its own
+`%1`, and cannot ask how many items are selected. It can be hidden when more than one is selected
+(`MultiSelectModel` = `Single`), which covers the one-item entries, but nothing makes an entry show only for exactly
+two. A handler (`IExplorerCommand`) gets the selection as a whole (`IShellItemArray`): its count, and whether each
+item is a file or a folder. Its `GetState` hides an item that does not fit; its `Invoke` gets the paths in one call.
 
-### 3.2 Collecting the starts
+### 3.2 The handler
 
-- `LexPen.exe --compare-pick "%1"`: the process sends the path to the running instance through the pipe it already
-  uses for opening files (Program.Send), then exits. With no LexPen running, the first one to start becomes the
-  instance and collects the others.
-- The instance waits a short time after the first item for more to arrive, then acts on what it has: two items ->
-  compare, one -> left side, more -> "Select two files or two folders to compare." The wait is a setting in code,
-  not a user setting; its value is [not yet measured]: it has to cover how fast Explorer starts the second process.
-- A file and a folder together: the same message as for more than two.
+- One handler for files and folders (registered under `*\shell` and `Directory\shell`, `ExplorerCommandHandler`), its
+  class under `HKCU\Software\Classes\CLSID`, with the DLL next to LexPen.exe. Written by ExplorerMenu.Apply as the
+  entries are now, removed by Remove.
+- What it reads: LexPen's exe and the left side, from the same places the registry entries use now (the exe from a value
+  ExplorerMenu writes with its registration, the left side from `compare-left.txt` in the state folder), each time the menu opens, so a left
+  side selected a moment ago shows at once.
+- The settings for the Explorer menu keep working: between two lines, or in a "LexPen" submenu (the handler's
+  subcommands, `EnumSubCommands`).
+- Left and right: the order Explorer gives the items (its selection order, not always the order they were clicked).
+  The compare's Swap button puts them the other way round.
 
-### 3.3 Left and right
+### 3.3 Building it
 
-Explorer does not guarantee the order in which it starts the processes, so which item lands left is not certain.
-The plan puts them in the order they arrive. See open question 1.
+- C++ needs Visual Studio's "Desktop development with C++" tools; on this PC Visual Studio 2022 and 2026 are installed
+  without them (vswhere, `Microsoft.VisualStudio.Component.VC.Tools.x86.x64`: not found). They are to be added first.
+- A project of its own in the solution (`LexPen.Shell`), built to `LexPenShell.dll`, x64, published next to the exe.
+- Explorer keeps a loaded handler DLL open: a new LexPen cannot overwrite it while Explorer runs. The publish writes
+  the DLL under a versioned name and the registration points at it; an older one is removed when no longer loaded.
 
 ### 3.4 Alternatives not taken
 
-- **A shell extension (IExplorerCommand, a COM handler).** It receives all selected items in one call and can show
-  Compare only for exactly two. But it runs inside Explorer as a registered COM component; that is a native or
-  packaged component of its own, a much larger project. It would also be the way into Windows 11's compact menu
-  (PLAN-explorer-compare.md 3.4).
-- **A "Send to" shortcut.** Send to passes all selected items on one command line, so no collecting is needed, but it
-  lives under Send to, not as a menu item of its own.
+- **A handler in C# (.NET COM hosting).** No C++ tools needed, but Explorer would load the .NET runtime into its own
+  process, and one process can hold only one .NET runtime: another program's .NET handler of another version would
+  then fail, or LexPen's would.
+- **Registry entries plus collecting** (the first version of this plan): one LexPen start per selected item, the
+  running LexPen collecting them. Compare would also show with one item, and with three or more, and two quick
+  starts are not a reliable way to tell a selection of two from two separate clicks.
+- **A "Send to" shortcut.** It gets all selected items on one command line, but lives under Send to, and cannot hide
+  itself for one or three items.
 
 ### 3.5 Windows 11
 
-Like the other LexPen entries: under "Show more options" (or Shift+right-click), not in the compact menu.
+Like the other LexPen items: under "Show more options" (or Shift+right-click). The compact menu takes only handlers of
+an app with a package identity (a signed package, or a sparse package next to the exe); the handler here is the part
+that would need, but packaging is not in this plan.
 
 ### 3.6 Tests
 
-- Unit: the entry written and removed below the test registry root (`LEXPEN_REGISTRY_ROOT`), and its label.
-- Unit: the collector: two paths -> compare, one -> left side, three -> message, a file with a folder -> message.
-- In the app: two files and two folders selected in Explorer, Compare, the compare opens; one file, Compare, then
-  Compare on another file.
+- Unit (C#): ExplorerMenu writes and removes the handler's registration below the test registry root
+  (`LEXPEN_REGISTRY_ROOT`), next to the remaining registry entries.
+- Unit (C++ or through a small test exe): the handler's choice per selection: one file, one folder, two files, two
+  folders, a file and a folder, three files; with and without a left side.
+- By hand in Explorer: each of these selections, the items shown, and what each runs.
 
 ## 4. Open questions
 
-1. When the order of left and right comes out the other way round: is a swap in the compare (if it has none yet)
-   enough, or should the order be fixed in another way (for example, the older file left)?
-2. Should Compare replace "Select left side to compare" / "Compare to <name>" in the menu (its single-item fallback
-   covers them), or sit next to them?
+1. Is adding the C++ tools to Visual Studio acceptable, or should the C# handler (3.4) be weighed again despite the
+   runtime conflict?
+2. A file and a folder selected together: no items (as above), or Compare, which then fails with a message?
