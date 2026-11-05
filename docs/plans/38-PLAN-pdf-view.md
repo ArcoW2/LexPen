@@ -10,9 +10,11 @@ idea and what to check.
 ## 2. The solution, in brief
 
 A PDF opens in a tab of its own, always on the preview side, read-only: drawn by a bundled PDF renderer (pdf.js) in a
-page of its own, in the colours of the preview's theme, dark or light as LexPen is (its text and lines in the
-theme's foreground on its background, pictures as they are). No editor, nothing saved. LexPen can be made the
-program for .pdf in Settings > App > Windows Explorer.
+page of its own. It follows LexPen's mode: each page, once drawn, is measured, and a page that does not suit the mode
+(a light page in dark mode, a dark page in light mode) is inverted with its hues kept, its paper becoming the preview's
+background; a page that suits the mode stays as it is. The right-click menu switches between following the theme and
+the original, and sets the threshold. No editor, nothing saved. LexPen can be made the program for .pdf in Settings >
+App > Windows Explorer.
 
 ## 3. Details
 
@@ -27,30 +29,37 @@ program for .pdf in Settings > App > Windows Explorer.
 - Opened from the folder pane (click), File > Open, a drop on a pane, the command line, and Explorer's
   "Open with" when LexPen is chosen for .pdf: Settings > App > Windows Explorer offers it, off by default.
 
-### 3.2 How it is shown: pdf.js, for the dark mode
+### 3.2 How it is shown: pdf.js, each page inverted when it does not suit the mode
 
-A PDF has to follow the theme, dark mode included, in its preview pane too. That decides between the two ways that
-were open:
+A PDF has to follow the theme, dark mode included, in its preview pane too. Of the two ways that were open:
 
-1. **The built-in viewer** (Chromium's, in WebView2) has no dark mode for the pages: they stay white. The only way
-   is a colour inversion of the whole viewer (a CSS filter on its frame), which inverts the pictures and its own
-   toolbar too. Not good enough; not used.
-2. **pdf.js** (Mozilla's renderer in JavaScript), bundled under `web/vendor/` as the other libraries are, in a page of
-   its own (as the panes of plan 24, so a large PDF renders in a process of its own). It draws each page itself, so
-   the colours are LexPen's: its viewer has page colours (a background and a foreground that replace the text and
-   line colours; pictures keep theirs), as Firefox uses for its high contrast mode. More to ship and keep up to
-   date; in return the theme, LexPen's own find bar and the outline of 3.4.
+1. **The built-in viewer** (Chromium's, in WebView2) has no dark mode for the pages, and is not under LexPen's
+   control page by page. Not used.
+2. **pdf.js** (Mozilla's renderer in JavaScript), bundled under `web/vendor/pdfjs` as the other libraries are (also
+   in `vendor.ps1`), in a page of its own on the panes' site (a process of its own, as the panes of plan 24). It draws
+   each page itself, so LexPen decides how each page looks; also LexPen's own find bar and the outline of 3.4.
 
 The look:
 
-- The PDF follows LexPen's mode, dark or light, as the preview does: the pages in the background colour of the
-  preview's theme (its own theme when it has one, Preview > Theme for the preview), text and lines in its foreground,
-  pictures as they are. In a light theme that is close to the PDF as printed; in a dark one the pages are dark.
-- A switch in the PDF tab's bar shows one PDF as it is (white pages, its own colours), for a PDF that reads better
-  unchanged (a form, a drawing whose colours carry meaning); kept per file, as a file's language is.
-- To check first, before the rest is built: that the page colours of the pdf.js version bundled do this on the PDFs
-  in `docs/examples` and a scanned one (a page that is one picture stays as it is: that is expected), and how fast a
-  large PDF draws with them.
+- Follow the theme (the default): each page, once drawn, is measured: its overall brightness (the average luminance
+  of the drawn page). In dark mode a page brighter than the threshold is inverted; in light mode a page darker than
+  the threshold is. A page that already suits the mode stays as it is: a dark page is never lightened in dark mode
+  (a comic's dark cover keeps its colours), a light one never darkened in light mode.
+- Inverted means its lightness turned round and its hues kept (a red stays red), scaled so its paper becomes the
+  preview's background: white paper turns the dark theme's background in dark mode, black paper the light theme's in
+  light mode.
+- Original: every page as it is.
+- The threshold: 0 to 100 % brightness, 50 % by default.
+- The right-click menu on the PDF: Follow the theme / Original, and Threshold (a list of steps, the current one
+  ticked). The mode is kept per file, as a file's language is; the threshold is a setting (Preview > PDF), the same for
+  every PDF; both are also in the settings window.
+- Per page, not per picture inside a page: pdf.js draws a page as one canvas; a picture on a light page is inverted
+  with the page.
+
+The check (done 2026-11-05, pdf.js 6.4.299, a test copy, the PDFs in `docs/examples`): every one opened, its first
+page drawn in 64 to 502 ms (the 2003 pages of `hpmor.pdf` and the 18.6 MB comic included). pdf.js's own page colours
+(the first idea) were tried and dropped: they turn every page into the theme's two colours, pictures included (a
+colour chart all grey, a comic washed out).
 
 ### 3.3 Keys and menus
 

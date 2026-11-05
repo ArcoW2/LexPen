@@ -8,6 +8,8 @@
   html, body { margin: 0; height: 100%; overflow: hidden; background: var(--pdf-bg, #525659); }
   #pdf-scroll { position: absolute; inset: 0; overflow: auto; }
   .pdfViewer .page { margin: 8px auto; border: 0; box-shadow: 0 1px 4px rgb(0 0 0 / .4); }
+  /* A page that does not suit the mode (pdf-pane.js): its lightness turned round, its hues kept. */
+  .pdfViewer .page.pdf-inverted .canvasWrapper { filter: invert(var(--pdf-invert, 1)) hue-rotate(180deg); }
   #pdf-error { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 20px;
     color: var(--pdf-fg, #ddd); font: 14px system-ui, sans-serif; text-align: center; }
 </style>
