@@ -23,7 +23,7 @@ function actionGroup(name, def) {
       for (const it of items) {
         const action = Array.isArray(it) ? it[1] : it?.action;
         if (action && !menuHomes.has(action)) menuHomes.set(action, group);
-        if (it?.sub) walk(it.sub, group);
+        if (Array.isArray(it?.sub)) walk(it.sub, group);   // a list ('-', a separator, is a string: its .sub is String's)
       }
     };
     for (const [title, items] of MENUS) if (Array.isArray(items)) walk(items, title.replace('&', '').toLowerCase());
