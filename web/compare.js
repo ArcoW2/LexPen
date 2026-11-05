@@ -427,7 +427,9 @@ function drawStrip() {
   const pair = match.hunk?.pairs.find(p => (i === 0 ? p.a : p.b) === cur.line);
   const labels = strip.querySelectorAll('.mm-cmp-label'), texts = strip.querySelectorAll('.mm-cmp-text');
   [0, 1].forEach(n => {
-    const line = lines[n], cm = cmp.sides[n].pane.cm, lang = cmp.sides[n].tab.doc.language;
+    const cm = cmp.sides[n].pane.cm, lang = cmp.sides[n].tab.doc.language;
+    // A line past the end (the text changed, its differences not compared again yet): none.
+    const line = lines[n] != null && lines[n] <= cm.lastLine() ? lines[n] : null;
     labels[n].innerHTML = `<span>${n === 0 ? 'L' : 'R'} ${line == null ? '' : line + 1}</span>${STRIP_ARROWS[n]}`;
     texts[n].dataset.line = line ?? '';
     if (lang) texts[n].dataset.lang = lang; else delete texts[n].dataset.lang;   // the language's colours (languages.js)
