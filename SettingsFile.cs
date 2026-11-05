@@ -76,6 +76,12 @@ static class SettingsFile
         ("occurrences.markFirst", "occurrences.first", v => v?.GetValueKind() == JsonValueKind.False ? "same" : "underline"),
     ];
 
+    // Settings that went (their part is done by another): removed from your file, once, when it is read.
+    static readonly string[] Retired =
+    [
+        "explorerShell",   // plan 40: the Explorer extension is what explorerCompare does when LexPenShell.dll is there
+    ];
+
     // Settings that kept their name but became a choice: an on / off value in your file becomes the choice it meant.
     // Done once when your file is read.
     static readonly (string Name, Func<bool, string> Value)[] Retyped =
@@ -107,6 +113,7 @@ static class SettingsFile
             if (!own.ContainsKey(renamed)) own[renamed] = convert is null ? value?.DeepClone() : convert(value);
             changed = true;
         }
+        foreach (var name in Retired) changed |= own.Remove(name);
         foreach (var (name, retype) in Retyped)
         {
             if (own[name]?.GetValueKind() is not (JsonValueKind.True or JsonValueKind.False) || own[name] is not JsonNode value) continue;

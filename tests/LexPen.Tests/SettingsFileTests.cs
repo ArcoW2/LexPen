@@ -96,6 +96,14 @@ public class SettingsFileTests
         Assert.Null(SettingsFile.Upgrade("""{ "theme": "dark" }"""));
     }
 
+    // A setting that went (explorerShell, plan 40): removed from your file, the others as they were.
+    [Fact]
+    public void ARetiredSettingGoes()
+    {
+        var own = JsonNode.Parse(SettingsFile.Upgrade("""{ "explorerShell": true, "explorerCompare": true }""")!)!.AsObject();
+        Assert.Equal(["explorerCompare"], own.Select(p => p.Key));
+    }
+
     // occurrences.bar (on / off) became a choice: on is always, off never; a choice already there stays.
     [Theory]
     [InlineData("true", "always")]

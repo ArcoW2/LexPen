@@ -34,9 +34,9 @@ static class ExplorerMenu
     const string ShellKey = "LexPen.Shell";
     const string AllKind = "AllFilesystemObjects";   // files and folders in one: a file with a folder selected too
 
-    /// <summary>The settings explorerCompare, explorerView, explorerEdit, explorerPlace ("submenu"), explorerBackups and
-    /// explorerShell (the compare items by the Explorer extension).</summary>
-    public sealed record Choice(bool Compare, bool View, bool Edit, bool Submenu, bool Backups = false, bool Shell = false)
+    /// <summary>The settings explorerCompare, explorerView, explorerEdit, explorerPlace ("submenu") and explorerBackups.
+    /// The compare items are the Explorer extension's when LexPenShell.dll is next to the exe, else registry entries.</summary>
+    public sealed record Choice(bool Compare, bool View, bool Edit, bool Submenu, bool Backups = false)
     {
         public bool Any => Compare || View || Edit || Backups;
     }
@@ -72,10 +72,9 @@ static class ExplorerMenu
         get
         {
             var submenu = Kinds.Any(kind => Has($@"{Root}\{kind}\shell\{MenuVerb}"));
-            var shell = Has($@"{Root}\{ShellKey}");
             var c = new Choice(Has($@"{ShellOf("*", submenu)}\{LeftVerb}") || Has($@"{Root}\{AllKind}\shell\{LeftVerb}"),
                 Kinds.Any(kind => Has($@"{ShellOf(kind, submenu)}\{ViewVerb}")), Has($@"{ShellOf("*", submenu)}\{EditVerb}"), submenu,
-                Kinds.Any(kind => Has($@"{ShellOf(kind, submenu)}\{BackupsVerb}")), shell);
+                Kinds.Any(kind => Has($@"{ShellOf(kind, submenu)}\{BackupsVerb}")));
             return c.Any ? c : null;
         }
     }
@@ -161,9 +160,9 @@ static class ExplorerMenu
     {
         var leftIsFolder = left is not null && Directory.Exists(left);
         var lexpen = $"\"{exe}\",0";   // LexPen's own icon
-        // The compare items by the extension, when it is chosen and next to the exe (not built: today's entries).
+        // The compare items by the extension when it is next to the exe (not built: the registry entries).
         var dll = Path.Combine(Path.GetDirectoryName(exe)!, ShellDll);
-        var byShell = c.Compare && c.Shell && (File.Exists(dll) || ShellDllForTests);
+        var byShell = c.Compare && (File.Exists(dll) || ShellDllForTests);
         if (byShell) WriteShell(exe, dll, c.Submenu);
         foreach (var kind in Kinds)
         {
@@ -178,11 +177,11 @@ static class ExplorerMenu
             if (c.Compare && !byShell)
             {
                 Verb(shell, LeftVerb, left is null ? "Select left side to compare" : "Select as new left side to compare",
-                    Icon(exe, 101), $"\"{exe}\" --compare-left \"%1\"");
+                    lexpen, $"\"{exe}\" --compare-left \"%1\"");
                 written.Add(LeftVerb);
                 if (left is not null && (kind == "Directory") == leftIsFolder)
                 {
-                    Verb(shell, ToVerb, $"Compare to {NameOf(left)}", Icon(exe, 102), $"\"{exe}\" --compare \"{left}\" \"%1\"");
+                    Verb(shell, ToVerb, $"Compare to {NameOf(left)}", lexpen, $"\"{exe}\" --compare \"{left}\" \"%1\"");
                     written.Add(ToVerb);
                 }
             }
@@ -253,14 +252,6 @@ static class ExplorerMenu
         using var key = Registry.CurrentUser.CreateSubKey(path);
         key.SetValue("ExplorerCommandHandler", clsid);
         return path;
-    }
-
-    // The compare entries' icons (img\icon\compare-*.svg): inside LexPenShell.dll next to the exe (shell\LexPenShell.rc:
-    // 101 left side, 102 compare to), so none ship as files; without the DLL (not built) LexPen's own icon.
-    static string Icon(string exe, int id)
-    {
-        var dll = Path.Combine(Path.GetDirectoryName(exe)!, ShellDll);
-        return File.Exists(dll) || ShellDllForTests ? $"\"{dll}\",-{id}" : $"\"{exe}\",0";
     }
 
     static void Verb(string shell, string verb, string label, string icon, string command)
