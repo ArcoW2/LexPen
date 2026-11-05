@@ -1038,6 +1038,10 @@ sealed class MainForm : Form
             case "paneDock":
                 return app.DockPane(this, Arg("pane"));
 
+            case "activate":   // this window to the front (a floating pane gives the keyboard back to it: F1 after a command)
+                AppHost.BringToFront(this);
+                return null;
+
             case "toolWindowsOpen":   // View > Panels: the floating panes whose window is open (plan 24 stage 9)
                 return app.ToolWindowsOpen(this);
 

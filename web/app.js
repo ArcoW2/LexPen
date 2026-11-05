@@ -3157,6 +3157,13 @@ function registerDockPanes() {
     sync: () => { if (dockShown(dockModel(), 'messages') && !messagesPane.frame) messagesPane.send(messagesState()); },
     channel: { get floating() { return messagesPane.floating; }, float: opts => messagesPane.float(opts),
       back: () => { messagesPane.toDock = true; messagesPane.back(); } } });
+  // F1, Keyboard shortcuts and commands (palette.js): a page of its own, floating the first time, docked or floating
+  // after that as it was left; not reopened at the start (its window closed by hand, it stays floating).
+  registerDockPane('commands', { title: 'Commands', view: $('.mm-commands-view'), home: 'right', startState: 'floating', floatsOnCall: true,
+    focus: () => commandsChannel().focus(),
+    sync: () => { if (dockShown(dockModel(), 'commands') && !commandsChannel().frame) commandsChannel().send(renderPalette()); },
+    channel: { get floating() { return commandsChannel().floating; }, float: opts => commandsChannel().float(opts),
+      back: () => { commandsChannel().toDock = true; commandsChannel().back(); } } });
   // Clipboards (stage 12): LexPen's, docked in the window's dock areas or floating; hidden at first. Floating, its window
   // opens by its action, and at the start when it was open as the window closed (sessionData: clipsOpen).
   registerDockPane('clips', { title: 'Clipboards', view: $('.mm-clips-view'), home: 'right', startHidden: true, floatsOnCall: true,

@@ -177,9 +177,8 @@ body[data-orient=h] .mm-orient::before { content: "Above each other"; }
 .mm-about form { margin-top: 18px; text-align: right; }
 .mm-about-ok { padding: 4px 20px; border-color: var(--border); }
 
-/* F1: every action with its key, searchable; Enter runs the selected one (palette.js). */
-.mm-palette { width: min(860px, 92vw); height: 80vh; padding: 12px 16px; display: none; }
-.mm-palette[open] { display: flex; flex-direction: column; }
+/* F1: every action with its key, searchable; Enter runs the selected one (palette.js): its pane's page (commands.html). */
+.mm-palette { display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; padding: 10px 12px; color: var(--fg); background: var(--bg); }
 .mm-pal-search {
   flex: none; padding: 6px 8px; font: inherit; font-size: calc(14px * var(--ui-scale)); color: var(--fg); background: var(--bg);
   border: 1px solid var(--border); border-radius: 5px; outline: none;
@@ -194,9 +193,9 @@ body[data-orient=h] .mm-orient::before { content: "Above each other"; }
 .mm-pal-list { height: 100%; overflow: auto; }
 .mm-pal-marks { position: absolute; top: 0; right: 0; bottom: 0; width: var(--mm-overview-w, 20px); pointer-events: none; }
 .mm-pal-marks div { position: absolute; left: 3px; right: 3px; height: 2px; background: var(--accent); }
-.mm-palette table { width: 100%; }
+.mm-palette table { width: 100%; border-collapse: collapse; }
 /* F1: the column names on top (a fixed height, so a group's header sticks just under them). */
-.mm-palette th { position: sticky; top: calc(24px * var(--ui-scale)); background: var(--bg); }
+.mm-palette th { position: sticky; top: calc(24px * var(--ui-scale)); background: var(--bg); text-align: left; text-transform: uppercase; letter-spacing: .05em; }
 .mm-palette thead th { top: 0; z-index: 2; height: calc(24px * var(--ui-scale)); box-sizing: border-box; padding: 0 8px 0 0;
   text-align: left; vertical-align: middle; color: var(--fg-dim); font-weight: 600; font-size: calc(12px * var(--ui-scale));
   border-bottom: 1px solid var(--border); }
@@ -401,7 +400,7 @@ body[data-dock-tab-bar=scroll] .mm-dock-tabs { flex-wrap: nowrap; overflow: auto
 .mm-tree-head { display: flex; align-items: center; padding: 6px 4px 6px 12px; }
 
 /* A pane's view (the Folder pane, the Search pane): its page's frame fills it. */
-.mm-folder-view, .mm-search-view, .mm-chars-view, .mm-tool-view, .mm-macros-view, .mm-messages-view, .mm-clips-view { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.mm-folder-view, .mm-search-view, .mm-chars-view, .mm-tool-view, .mm-macros-view, .mm-messages-view, .mm-clips-view, .mm-commands-view { flex: 1; display: flex; flex-direction: column; min-height: 0; }
 .mm-pane-frame { flex: 1; min-height: 0; width: 100%; border: 0; display: block; background: var(--bg-side); }
 .mm-search-input {
   margin: 8px 8px 4px; padding: 4px 6px; font: inherit; color: var(--fg); background: var(--bg);

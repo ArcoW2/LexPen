@@ -480,7 +480,7 @@ function onPaneMoved({ pane, at }) {
 }
 
 // ---------- The actions (F1, keys.json): a pane as their value ----------
-const DOCK_PANE_TITLES = { folder: 'the Folder pane', search: 'the Search pane', chars: 'Characters', hls: 'Highlights', settings: 'Settings', projects: 'Manage projects', themesets: 'Theme sets', macros: 'Macros', bm: 'Bookmarks', messages: 'Messages', clips: 'Clipboards', step: 'Step by step' };
+const DOCK_PANE_TITLES = { folder: 'the Folder pane', search: 'the Search pane', chars: 'Characters', hls: 'Highlights', settings: 'Settings', projects: 'Manage projects', themesets: 'Theme sets', macros: 'Macros', bm: 'Bookmarks', messages: 'Messages', clips: 'Clipboards', step: 'Step by step', commands: 'Keyboard shortcuts and commands' };
 for (const [name, title, hint, run] of [
   ['dock.left', 'Dock left', 'In the dock area at the left, a tab beside the panes there', id => dockPaneAt(id, 'left')],
   ['dock.right', 'Dock right', 'In the dock area at the right, a tab beside the panes there', id => dockPaneAt(id, 'right')],
@@ -508,6 +508,7 @@ const PANELS = [
   ['&Messages', 'messages', () => runAction('messages')],
   ['C&lipboards', 'clips', () => runAction('clipboards.pane')],
   ['M&acros', 'macros', () => runAction('macro.manage')],
+  ['&Keyboard shortcuts and commands', 'commands', () => runAction('commands')],
   ['Se&ttings', 'settings', () => runAction('settings')],
   ['Manage &projects', 'projects', () => openToolPane('projects', 'openProjects')],
   ['Th&eme sets', 'themesets', () => openToolPane('themesets', 'openThemeSetsWindow')],

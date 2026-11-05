@@ -1,0 +1,22 @@
+<!doctype html>
+<!-- F1, Keyboard shortcuts and commands, as a page of its own (commands-pane.js; palette.js makes its rows). -->
+<html><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:">
+<title>Keyboard shortcuts and commands</title>
+<link rel="stylesheet" href="app.css">
+<style>
+  body { margin: 0; overflow: hidden; font-family: var(--app-font); font-size: calc(13px * var(--ui-scale, 1)); }
+</style>
+</head>
+<body>
+<div class="mm-palette">
+  <div class="mm-pal-top">
+    <input class="mm-pal-search" type="text" spellcheck="false" placeholder="Search a command, key or name; Enter runs it">
+    <select class="mm-pal-jump" aria-label="Go to a section"></select>
+  </div>
+  <div class="mm-pal-body"><div class="mm-pal-list"></div><div class="mm-pal-marks" aria-hidden="true"></div></div>
+  <p class="mm-pal-foot"></p>
+</div>
+<script src="pane.js"></script>
+<script src="commands-pane.js"></script>
+</body></html>

@@ -1,6 +1,8 @@
 'use strict';
 // F1: every action with its key, grouped as in the key tables and searchable; Enter runs the selected one,
-// like a command palette. Loaded before app.js.
+// like a command palette. A pane of its own (commands.html, commands-pane.js), floating the first time, dockable as
+// the other panes; not modal: it stays open after a command, which runs on the active document. Its rows are made here
+// (the actions and keys live in this page) and sent there; the search, a run and Esc come back. Loaded before app.js.
 
 // The codes of the find field and the replacement (docs/plans/executed/PLAN-find-bar-replace.md 3.4): code, what it does,
 // an example. The F1 list and the ? window of the find bar and the Search panel show this one list.
@@ -59,16 +61,9 @@ const FIXED_KEYS = [
 ];
 
 const palette = {
-  dialog: document.querySelector('.mm-palette'),
-  input: document.querySelector('.mm-pal-search'),
-  list: document.querySelector('.mm-pal-list'),
-  jump: document.querySelector('.mm-pal-jump'),
-  marks: document.querySelector('.mm-pal-marks'),
-  foot: document.querySelector('.mm-pal-foot'),
-  rows: [],          // the rows shown: { name, params, folded }
-  selected: -1,      // index in rows of the selected (runnable) row
+  rows: [],          // the rows shown: { name, params, folded, available }
+  q: '',             // the search, as typed in the pane
   unfolded: new Set(),
-  focus: null,       // where the focus was before F1
 };
 
 // Every action, also the ones without a key: app actions first, then the language actions.
@@ -96,7 +91,7 @@ const markIn = (text, q) => {
 };
 
 function renderPalette() {
-  const q = palette.input.value.trim().toLowerCase();
+  const q = palette.q.trim().toLowerCase();
   const language = languageTitle(activeDoc()) || 'this file';
   const entries = paletteEntries().filter(e => !q ||
     [e.keys.join(' '), e.title, e.hint, callId([e.name, ...e.params])].some(t => t.toLowerCase().includes(q)));
@@ -135,96 +130,59 @@ function renderPalette() {
   if (!q) for (const [group, rows] of FIXED_KEYS)
     html += sectionHead(`${group} (fixed keys)`) + rows.map(([k, t, macro]) => `<tr class="mm-pal-fixed"><td>${escapeHtml(k)}</td><td>${escapeHtml(t)}</td><td class="mm-pal-name">${escapeHtml(macro ?? '')}</td></tr>`).join('');
   // The column names stay on top while the list scrolls; a group's header stays just under them.
-  palette.list.innerHTML = '<table><thead><tr class="mm-pal-head"><th>Keys</th><th>Command</th><th>Action</th></tr></thead>' +
-    `<tbody>${html || '<tr><td>Nothing found.</td></tr>'}</tbody></table>`;
-  palette.jump.innerHTML = '<option value="">Go to section...</option>' + sections.map((s, i) => `<option value="${i}">${escapeHtml(s)}</option>`).join('');
-  selectPaletteRow(palette.rows.findIndex(r => r.folded || r.available), 0);
-  markSections();
+  return { kind: 'commands', q: palette.q, sections, foot: `Your own keys: ${keys.userFile} (create it to change keys; it overrides the defaults key by key).`,
+    html: '<table><thead><tr class="mm-pal-head"><th>Keys</th><th>Command</th><th>Action</th></tr></thead>' +
+      `<tbody>${html || '<tr><td>Nothing found.</td></tr>'}</tbody></table>` };
 }
 
-// Where a section's header is in the list (its scroll position), and a mark per section on the scrollbar.
-const sectionTop = tr => tr.getBoundingClientRect().top - palette.list.getBoundingClientRect().top + palette.list.scrollTop;
-function markSections() {
-  const { scrollHeight, clientHeight } = palette.list;
-  palette.marks.replaceChildren(...(scrollHeight > clientHeight ? [...palette.list.querySelectorAll('[data-section]')] : []).map(tr => {
-    const mark = document.createElement('div');
-    mark.style.top = Math.round(sectionTop(tr) / scrollHeight * clientHeight) + 'px';
-    return mark;
-  }));
-}
-new ResizeObserver(() => { if (palette.dialog.open) markSections(); }).observe(palette.list);
+// The pane: made on first use (panechannel.js loads after this file).
+let commandsPane = null;
+const commandsChannel = () => commandsPane ??= paneChannel({ id: 'commands', page: 'commands.html', title: 'Keyboard shortcuts and commands',
+  view: () => $('.mm-commands-view'),
+  state: () => new Map([['look', paneLook()], ['title', { kind: 'title', text: 'Keyboard shortcuts and commands' }], ['commands', renderPalette()]]),
+  receive: m => fromCommandsPane(m),
+  onFloat: () => setDockFloating('commands', true),
+  // Back in its view: docked (moved onto the window); its window closed by hand: it stays floating.
+  onDock: () => { if (commandsPane.toDock) { commandsPane.toDock = false; setDockFloating('commands', false); } } });
 
-// The section list: its header at the top, under the column names; the focus back in the search.
-palette.jump.addEventListener('change', () => {
-  const tr = palette.list.querySelector(`[data-section="${palette.jump.value}"]`);
-  if (tr) palette.list.scrollTop = sectionTop(tr) - palette.list.querySelector('thead').offsetHeight;
-  palette.jump.value = '';
-  palette.input.focus();
-});
-
-// Moves the selection to row `from` or the next runnable one in direction `dir` (0: that row or after it).
-function selectPaletteRow(from, dir) {
-  const ok = i => palette.rows[i] && (palette.rows[i].folded || palette.rows[i].available);
-  let i = from;
-  if (dir === 0) { while (i >= 0 && i < palette.rows.length && !ok(i)) i++; }
-  else { do i += dir; while (i >= 0 && i < palette.rows.length && !ok(i)); }
-  if (!ok(i)) return;
-  palette.selected = i;
-  for (const el of palette.list.querySelectorAll('.mm-pal-sel')) el.classList.remove('mm-pal-sel');
-  const el = palette.list.querySelector(`[data-row="${i}"]`);
-  el?.classList.add('mm-pal-sel');
-  el?.scrollIntoView({ block: 'nearest' });
-}
-
+// F1: the pane as it was last (floating: its window; else docked), a new search; the keyboard in its search field.
 function showPalette() {
-  if (palette.dialog.open) return;
-  palette.focus = document.activeElement;
-  palette.input.value = '';
+  const ch = commandsChannel();
+  palette.q = '';
   palette.unfolded.clear();
-  palette.foot.textContent = `Your own keys: ${keys.userFile} (create it to change keys; it overrides the defaults key by key).`;
-  palette.dialog.showModal();
-  renderPalette();
-  palette.list.scrollTop = 0;
-  palette.input.focus();
+  ch.send(renderPalette());
+  if (dockModel().state.commands === 'floating') ch.float();
+  else showDockPane('commands');
+  ch.send({ kind: 'focus' });
+  ch.focus();
 }
 
-function runPaletteRow(i) {
-  const row = palette.rows[i];
+// Closed (Esc in it with nothing searched): hidden when docked, its window closed when floating (it stays floating).
+function closePalette() {
+  const floating = commandsPane.floating;
+  if (floating) commandsPane.back();
+  else hideDockPane('commands');
+  toDocument(floating);
+}
+
+// The keyboard back to the active document; from a floating window its LexPen window comes to the front first.
+async function toDocument(floating = commandsPane?.floating) {
+  if (floating) await host('activate').catch(() => {});
+  focusPane(panes[state.activePane]);
+}
+
+async function fromCommandsPane(m) {
+  if (m.kind === 'search') { palette.q = m.q; return commandsPane.send(renderPalette()); }
+  if (m.kind === 'refresh') return commandsPane.send(renderPalette());   // its window got the focus: this document's commands
+  if (m.kind === 'close') return closePalette();
+  if (m.kind !== 'run') return;
+  const row = palette.rows[m.row];
   if (!row) return;
-  if (row.folded) {
+  if (row.folded) {   // a numbered family opened
     palette.unfolded.add(row.name);
-    return renderPalette();
+    return commandsPane.send(renderPalette());
   }
   if (!row.available) return;
-  palette.dialog.close();
-  palette.focus?.focus?.();
+  await toDocument();
   setTimeout(() => runAction(row.name, row.params, { from: 'palette' }));
 }
-
-palette.input.addEventListener('input', renderPalette);
-palette.input.addEventListener('keydown', e => {
-  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') selectPaletteRow(palette.selected, e.key === 'ArrowDown' ? 1 : -1);
-  else if (e.key === 'PageDown' || e.key === 'PageUp') for (let n = 0; n < 10; n++) selectPaletteRow(palette.selected, e.key === 'PageDown' ? 1 : -1);
-  else if (e.key === 'Enter') runPaletteRow(palette.selected);
-  else return;
-  e.preventDefault();
-});
-// Esc: first clears the search, then closes.
-palette.dialog.addEventListener('cancel', e => {
-  if (!palette.input.value) return;
-  e.preventDefault();
-  palette.input.value = '';
-  renderPalette();
-});
-palette.dialog.addEventListener('close', () => {
-  if (document.activeElement === document.body) palette.focus?.focus?.();
-});
-palette.list.addEventListener('click', e => {
-  const row = e.target.closest('[data-row]');
-  if (row) selectPaletteRow(+row.dataset.row, 0);
-  palette.input.focus();
-});
-palette.list.addEventListener('dblclick', e => {
-  const row = e.target.closest('[data-row]');
-  if (row) runPaletteRow(+row.dataset.row);
-});
