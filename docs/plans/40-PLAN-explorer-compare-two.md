@@ -22,7 +22,8 @@ selection and shows only the items that fit it. A choice runs LexPen as now: `--
 side, `--compare <left> <path>` for Compare to, and `--compare <first> <second>` for Compare (a file and a folder:
 the folder's file of the same name in the folder's place, else a message). It replaces the
 registry entries of the compare items; Edit, View and Delete .bak stay registry entries. The handler is written in
-C++, so Explorer does not load a .NET runtime.
+C++, so Explorer does not load a .NET runtime. A setting turns the handler on or off; off, the compare items are the
+registry entries of today.
 
 ## 3. Details
 
@@ -51,7 +52,18 @@ item is a file or a folder. Its `GetState` hides an item that does not fit; its 
   exists, the file keeping its side; otherwise it shows "<folder> has no <name>" and opens no compare. The same
   holds for `--compare` from the command line.
 
-### 3.3 Building it
+### 3.3 The setting
+
+- Settings > App > Windows Explorer gets **Compare by selection (Explorer extension)**, under "Compare entries in
+  Explorer's right-click menu" and only in use while that one is on.
+- On: the handler is registered (ExplorerMenu.Apply) and the registry entries of the compare items are removed.
+  Off: the handler's registration is removed, so Explorer no longer loads the DLL, and the registry entries of today
+  are written again. Turning it off is also the way out when the handler misbehaves.
+- Off by default: the handler is new, and today's entries keep working until it is turned on.
+- Explorer reads its menu entries when a menu opens: a change shows on the next right-click, no restart. A DLL
+  Explorer already loaded stays loaded (and locked) until Explorer restarts, but no longer shows anything.
+
+### 3.4 Building it
 
 - C++ needs Visual Studio's "Desktop development with C++" tools: added to Visual Studio 2026 on this PC (Visual
   Studio 2022 stays without them). The build checks for them (vswhere) and says so when they are missing.
@@ -59,7 +71,7 @@ item is a file or a folder. Its `GetState` hides an item that does not fit; its 
 - Explorer keeps a loaded handler DLL open: a new LexPen cannot overwrite it while Explorer runs. The publish writes
   the DLL under a versioned name and the registration points at it; an older one is removed when no longer loaded.
 
-### 3.4 Alternatives not taken
+### 3.5 Alternatives not taken
 
 - **A handler in C# (.NET COM hosting).** No C++ tools needed, but Explorer would load the .NET runtime into its own
   process, and one process can hold only one .NET runtime: another program's .NET handler of another version would
@@ -70,16 +82,17 @@ item is a file or a folder. Its `GetState` hides an item that does not fit; its 
 - **A "Send to" shortcut.** It gets all selected items on one command line, but lives under Send to, and cannot hide
   itself for one or three items.
 
-### 3.5 Windows 11
+### 3.6 Windows 11
 
 Like the other LexPen items: under "Show more options" (or Shift+right-click). The compact menu takes only handlers of
 an app with a package identity (a signed package, or a sparse package next to the exe); the handler here is the part
 that would need, but packaging is not in this plan.
 
-### 3.6 Tests
+### 3.7 Tests
 
 - Unit (C#): ExplorerMenu writes and removes the handler's registration below the test registry root
-  (`LEXPEN_REGISTRY_ROOT`), next to the remaining registry entries.
+  (`LEXPEN_REGISTRY_ROOT`), next to the remaining registry entries; with the setting off, today's compare entries
+  and no handler, with it on the handler and no compare entries.
 - Unit (C++ or through a small test exe): the handler's choice per selection: one file, one folder, two files, two
   folders, a file and a folder, three files; with and without a left side.
 - Unit (C#): `--compare <file> <folder>` and `--compare <folder> <file>`: the folder's file of that name, either
