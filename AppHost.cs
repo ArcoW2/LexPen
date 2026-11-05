@@ -756,6 +756,19 @@ sealed class AppHost : ApplicationContext
     FileSystemWatcher? macrosWatcher;
     readonly System.Windows.Forms.Timer macrosTimer = new() { Interval = 300 };
 
+    ExplorerMenu.Choice ExplorerChoice() => new(SettingFlag("explorerCompare"), SettingFlag("explorerView"), SettingFlag("explorerEdit"),
+        SettingText("explorerPlace") == "submenu", SettingFlag("explorerBackups"));
+
+    /// <summary>At the start: Explorer's entries written again when they run this exe, so a new version of LexPen
+    /// published over the old one writes them its way (the Explorer extension next to it, its items together). Entries of
+    /// another LexPen (a debug build, another folder) stay as they are.</summary>
+    public void RefreshExplorerMenu()
+    {
+        var exe = Environment.ProcessPath ?? Application.ExecutablePath;
+        if (ExplorerMenu.InstalledExe is string installed && string.Equals(installed, exe, StringComparison.OrdinalIgnoreCase))
+            ExplorerMenu.Apply(exe, ExplorerChoice());
+    }
+
     public void WatchMacros()
     {
         var dir = MacroStore.Dir(DataDir);
@@ -1246,8 +1259,7 @@ sealed class AppHost : ApplicationContext
         ReloadSettings();
         // The Explorer menu's entries (ExplorerMenu): written for this exe as the settings now say, or removed.
         if (name is "explorerCompare" or "explorerView" or "explorerEdit" or "explorerPlace" or "explorerBackups")
-            ExplorerMenu.Apply(Environment.ProcessPath ?? Application.ExecutablePath, new ExplorerMenu.Choice(SettingFlag("explorerCompare"),
-                SettingFlag("explorerView"), SettingFlag("explorerEdit"), SettingText("explorerPlace") == "submenu", SettingFlag("explorerBackups")));
+            ExplorerMenu.Apply(Environment.ProcessPath ?? Application.ExecutablePath, ExplorerChoice());
         return from is not null && ThemeSetFile.Names.Contains(name)
             ? new JsonObject { ["set"] = ThemeSetFile.Default, ["also"] = AlsoUsedBy(from, ThemeSetFile.Default) } : null;
     }

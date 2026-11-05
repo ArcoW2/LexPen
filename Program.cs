@@ -57,6 +57,7 @@ static class Program
         app.WatchThemes();
         app.WatchLanguages();
         app.WatchMacros();
+        if (owner) app.RefreshExplorerMenu();   // a new version over the old one: Explorer's entries its way
         app.Launch(paths, shift, compare, view, edit);
         if (owner) app.Listen(name);
         Application.EnterThreadModal += ShowPointer;
