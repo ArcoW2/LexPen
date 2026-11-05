@@ -4842,7 +4842,9 @@ function openTreeMenu(row, x, y) {
     // A CSV's definition next to it (plan 29): its file deleted, LexPen keeps the definition (csvview.js).
     const cols = ui.treeMenu.querySelector('[data-cmd=treeDeleteColumns]');
     cols.hidden = !file || !row.columns;
-    cols.textContent = `Delete ${nameOf(contextPath)}-metadata.json`;
+    // Said as what stays, not as a file most do not know: LexPen keeps the settings, only the file goes.
+    cols.textContent = `Keep column settings of ${nameOf(contextPath)} in LexPen only`;
+    cols.title = `Deletes ${nameOf(contextPath)}-metadata.json next to it (Recycle Bin); LexPen keeps the settings`;
     all.hidden = true;
     const asked = contextPath;
     if (!file && !row.up && !row.gone)

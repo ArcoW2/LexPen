@@ -48,7 +48,8 @@ async function csvDeleteBeside(path) {
   let deleted = false;
   try { ({ deleted } = await host('columnsDeleteBeside', { path })); }
   catch (e) { return toast(`The definition file could not be deleted: ${e.message ?? e}`); }
-  toast(deleted ? `${nameOf(path)}-metadata.json deleted (Recycle Bin); LexPen keeps the definition.` : `${nameOf(path)}-metadata.json was not deleted.`, deleted);
+  toast(deleted ? `Column settings of ${nameOf(path)} kept in LexPen only; ${nameOf(path)}-metadata.json deleted (Recycle Bin).`
+    : `${nameOf(path)}-metadata.json was not deleted.`, deleted);
   const doc = findDoc(path);
   if (deleted && doc) doc.csvBeside = null;
   if (typeof tellColumnsPane === 'function') tellColumnsPane();
