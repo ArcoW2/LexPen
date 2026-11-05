@@ -381,21 +381,22 @@ every action with its key.
   alignment, trim, shown, width and order; ticked columns take a value set in one of them; a warning counts the values
   that do not fit; the Definition tab shows it all as CSV on the Web (CSVW) text. Apply keeps it in LexPen
   (`file-columns.json`), or next to the file (the pane's Settings kept: in LexPen / next to the file;
-  `name.csv-metadata.json`, which other tools read too; the Folder pane marks such a file, its right-click Keep column
-  settings of name.csv in LexPen only deletes that file, LexPen keeping the settings); a definition from there is read
-  first, also the folder's `csv-metadata.json`. In the column view the header is the ruler: drag an edge to size a
-  column (double click: to its longest value), drag a name to move it. A right-click on a column opens a small box
-  beside it (its title drags it; the next one opens where it was left) with that column's settings (name, type,
-  quotes, Read as, format, alignment, trim, width, shown), shown at once as you change them (Esc or Cancel: back as it
-  was), and buttons to move it left or right, fit it, hide it, Column info and More...; beside the columns the
-  right-click shows all columns again, opens Column info (per column its longest and shortest value, empty ones, ones
-  that do not fit) and Write the columns in this order (the editor's text rewritten in the shown order, as one undo
-  step). The find bar on a CSV has a column list (All columns, or one) and By row / By column (down a column, then the
-  next, in the order shown); it starts from the current cell (in the editor: the cursor's), finds in the values as
-  shown in the column view and in the file's text in the editor, and marks the cells with a match; Replace (by line)
-  works with All columns, By row. Settings > Preview > Columns (CSV): the widest column (40 characters), the header at
-  the top, alternate row colours (on; a colour of the theme or one you pick, and how much of it is mixed into the
-  background), detecting a file's build.
+  `name.csv-metadata.json`, which other tools read too; the Folder pane marks such a CSV and does not list the
+  metadata file beside it (one whose CSV is not there is listed), its right-click Keep column settings of name.csv in
+  LexPen only deletes that file, LexPen keeping the settings); a definition from there is read first, also the
+  folder's `csv-metadata.json`. In the column view the header is the ruler: drag an edge to size a column (double
+  click: to its longest value), drag a name to move it. A right-click on a column opens a small box beside it (its
+  title drags it; the next one opens where it was left) with that column's settings (name, type, quotes, Read as,
+  format, alignment, trim, width, shown), shown at once as you change them (Esc or Cancel: back as it was), and
+  buttons to move it left or right, fit it, hide it, Column info and More...; beside the columns the right-click shows
+  all columns again, opens Column info (per column its longest and shortest value, empty ones, ones that do not fit)
+  and Write the columns in this order (the editor's text rewritten in the shown order, as one undo step). The find bar
+  on a CSV has a column list (All columns, or one) and By row / By column (down a column, then the next, in the order
+  shown); it starts from the current cell (in the editor: the cursor's), finds in the values as shown in the column
+  view and in the file's text in the editor, and marks the cells with a match; Replace (by line) works with All
+  columns, By row. Settings > Preview > Columns (CSV): the widest column (40 characters), the header at the top,
+  alternate row colours (on; a colour of the theme or one you pick, and how much of it is mixed into the background),
+  detecting a file's build.
 - **Preview zoom**: Ctrl+= / Ctrl+- / Ctrl+mouse wheel over a preview. The level shows at the right of the top
   bar (click it for 100%) and is kept.
 - **Safe by default**: a Content Security Policy blocks scripts embedded in a document's raw HTML.

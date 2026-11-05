@@ -234,7 +234,8 @@ Differs from the plan:
   pane has Settings kept: in LexPen / next to the file (one click moves them; in LexPen deletes the file as the Folder
   pane does) in place of Save definition next to the file; either way LexPen keeps the definition in its store.
 - A hidden column's mark is a thin bar in the header and in every row; a click on either shows it.
-- The Folder pane marks a CSV with its own `name.csv-metadata.json` next to it; one described only by the folder's
+- The Folder pane marks a CSV with its own `name.csv-metadata.json` next to it and, as a .bak file, does not list that
+  metadata file (asked for after the build; one whose CSV is not there is listed); one described only by the folder's
   `csv-metadata.json` is read, but not marked (that would mean reading that file for every listing).
 - Split view scrolls by row through the preview's line map (one entry per row's first line), as other previews do.
 
