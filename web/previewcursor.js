@@ -309,6 +309,10 @@ window.addEventListener('keydown', e => {
   if (e.ctrlKey && !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
   const pane = panes.find(p => p.active && p.active.mode !== 'edit' && !p.el.hidden && p.previewEl.contains(document.activeElement));
   if (!pane) return;
+  if (pane.active.csv) {   // a CSV's column view: they move its current cell (csvview.js)
+    if (csvKey(pane, e)) { e.preventDefault(); e.stopPropagation(); }
+    return;
+  }
   e.preventDefault();
   e.stopPropagation();
   movePreviewCursor(pane, e.key, e.ctrlKey);

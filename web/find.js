@@ -19,6 +19,9 @@ const FIND_HTML =
   '<span class="mm-find-label">Find</span>' +
   '<input class="mm-find-input" type="text" spellcheck="false" title="Enter / F3: next; Shift+Enter / Shift+F3: previous; Esc: close. Codes: ^p line break, ^t tab, ... (the ? button)">' +
   '<span class="mm-find-count"></span>' +
+  // A CSV (csvfind.js): in which column, and in which order.
+  '<select class="mm-find-csvcol" title="Find in this column, or in all columns" hidden></select>' +
+  '<button data-find="csvOrder" class="mm-find-csvorder" hidden></button>' +
   '<button data-find="case" class="mm-find-opt" title="Match case">Aa</button>' +
   '<button data-find="word" class="mm-find-opt" title="Whole word only">W</button>' +
   '<button data-find="regex" class="mm-find-opt" title="Regular expression (then the ^ codes do not apply)">.*</button>' +
@@ -44,6 +47,7 @@ function findBar(pane) {
     el, input: el.querySelector('.mm-find-input'), with: el.querySelector('.mm-find-with'),
     count: el.querySelector('.mm-find-count'), replaceRow: el.querySelector('.mm-find-replace'),
     toggle: el.querySelector('.mm-find-toggle'),
+    csvColEl: el.querySelector('.mm-find-csvcol'), csvOrderEl: el.querySelector('.mm-find-csvorder'),
     target: null, origin: null, at: null, lap: null, wrapped: false,
     scope: null,   // the selection the bar finds in: { doc, marks, id } (3.3), else the whole file
   };
@@ -59,6 +63,10 @@ function findBar(pane) {
     const f = findOf(pane);
     if (action === 'case' || action === 'word' || action === 'regex') {
       f[action] = !f[action];
+      syncBar(pane);
+      refresh(pane, true);
+    } else if (action === 'csvOrder') {   // a CSV: by row / by column (csvfind.js)
+      bar.csvOrder = bar.csvOrder === 'col' ? 'row' : 'col';
       syncBar(pane);
       refresh(pane, true);
     } else if (action === 'replaceRow') showReplace(pane, bar.replaceRow.hidden);
@@ -78,6 +86,7 @@ function findBar(pane) {
       replaceAll(pane);
     }
   });
+  bar.csvColEl.addEventListener('change', () => { bar.csvCol = bar.csvColEl.value; syncBar(pane); refresh(pane, true); });
   // As you type: the first match from where the search started. In a large file after a short pause in typing, so
   // the letters keep coming while a first letter is found on thousands of lines.
   bar.input.addEventListener('input', () => {
@@ -119,6 +128,7 @@ function syncBar(pane) {
   if (bar.input.value !== f.query) bar.input.value = f.query;
   if (bar.with.value !== f.replace) bar.with.value = f.replace;
   for (const b of bar.el.querySelectorAll('.mm-find-opt')) b.classList.toggle('mm-on', f[b.dataset.find]);
+  csvSyncFindBar(pane);   // a CSV: its column list and order (csvfind.js)
 }
 
 function showReplace(pane, on) {
@@ -130,10 +140,10 @@ function showReplace(pane, on) {
 
 // In the preview the replace row cannot work (the editor's text is what changes): the Replace button is disabled.
 function syncReplaceButton(pane) {
-  const bar = pane.find, editor = findTarget(pane) === 'editor';
-  bar.toggle.disabled = !editor;
-  bar.toggle.title = editor ? REPLACE_TIP : 'Replace works in the editor';
-  if (!editor && !bar.replaceRow.hidden) showReplace(pane, false);
+  const bar = pane.find, editor = findTarget(pane) === 'editor', csv = csvReplaceBlocked(pane);
+  bar.toggle.disabled = !editor || csv;
+  bar.toggle.title = csv ? 'Replace works with All columns, By row' : editor ? REPLACE_TIP : 'Replace works in the editor';
+  if ((!editor || csv) && !bar.replaceRow.hidden) showReplace(pane, false);
 }
 
 // ---------- The scope: the selection or the file (3.3) ----------
@@ -203,7 +213,7 @@ function showBar(pane, focus) {
   const selected = focus && findTarget(pane) === 'preview' && selectedText(pane);
   if (selected) f.query = selected;
   bar.el.hidden = false;
-  bar.origin = bar.lap = null;
+  bar.origin = bar.lap = bar.csvOrigin = null;
   syncBar(pane);
   syncReplaceButton(pane);
   pane.cm?.refresh();
@@ -265,6 +275,7 @@ function refresh(pane, moving) {
   if (regex instanceof Error) return bar.count.textContent = 'Not valid';
   const where = findTarget(pane);
   syncReplaceButton(pane);
+  if (csvFinding(pane)) return csvRefresh(pane, regex, where, moving);   // a CSV: by cell (csvfind.js)
   const matches = where === 'editor' ? editorMatches(pane, regex) : previewMatches(pane, regex);
   if (where === 'editor' && pane.cm) scheduleFindLines(pane, regex);   // the gutter and the overview ruler, after this key
   mark(pane, where, regex, matches);
@@ -289,6 +300,7 @@ function findGo(pane, dir, fromOrigin) {
   if (!fromOrigin) recordFind(findOf(pane).query, findOf(pane));   // a search done, not one typed (history.js)
   if (typeof recordMacroFind === 'function') recordMacroFind(findOf(pane).query, findOf(pane), dir < 0, fromOrigin);   // macros.js
   if (bar.marked !== where + pane.active?.id) refresh(pane, false);   // another tab or mode since the marks
+  if (csvFinding(pane)) return csvGo(pane, regex, where, dir, fromOrigin);   // a CSV: by cell (csvfind.js)
   if (where === 'editor') return goEditor(pane, regex, dir, fromOrigin);
   goPreview(pane, regex, dir, fromOrigin);
 }
@@ -660,9 +672,11 @@ function clearMarks(pane) {
   clearGutterMarks(pane);
   if (pane.find) pane.find.at = pane.find.marked = null;
   CSS.highlights.delete('mm-find-cur-' + pane.index);
+  csvClearFind(pane);   // a CSV's marks in the column view (csvfind.js)
 }
 
 function refreshMarks(pane) {
+  if (csvFinding(pane)) return refresh(pane, false);   // a CSV marks by cell (csvfind.js)
   const regex = findRegex(pane);
   if (pane.findOverlay) pane.cm?.removeOverlay(pane.findOverlay);
   pane.findOverlay = null;

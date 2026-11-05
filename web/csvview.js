@@ -168,11 +168,14 @@ function csvDraw(pane) {
       const cell = csvCell(shown.text, widths[c], def.columns[c], c);
       if (!shown.ok) cell.classList.add('mm-csv-bad');
       if (f) cell.title = text.slice(f.start, f.end);   // the field as it is in the file
+      if (tab.csvCur?.row === i && tab.csvCur.col === c) cell.classList.add('mm-csv-cur');
+      if (tab.csvHits?.has(i + ':' + c)) cell.classList.add('mm-csv-hit');   // a match of the find bar (csvfind.js)
       el.append(cell);
     }
     out.push(el);
   }
   rows.replaceChildren(...out);
+  if (typeof csvMarkCurrent === 'function') csvMarkCurrent(pane);   // the current match's text (csvfind.js)
 }
 
 // The preview's lines for the scroll sync (app.js lineMap): where each row is, by its source line.
@@ -207,6 +210,8 @@ function csvStatus(pane, cm) {
   const doc = pane.active?.doc, data = doc?.csv;
   if (!data || doc.language !== 'csv') return '';
   if (pane.csvHover) return csvPlace(data, pane.csvHover);
+  const cur = pane.active.csvCur;
+  if (cur && (!cm || pane.previewEl.contains(document.activeElement))) return csvPlace(data, cur);
   // Read before the editor had it: the same text while unchanged.
   const gen = doc.cmDoc ? doc.cmDoc.changeGeneration() : -1;
   if (!cm || (data.gen !== gen && !(data.gen === -1 && !doc.dirty))) return '';
@@ -310,7 +315,62 @@ function csvHeadEvents(tab, head) {
 // A click on a hidden column's mark (the header or a row): shown again.
 function csvClick(pane, e) {
   const gap = e.target.closest?.('.mm-csv-gap');
-  if (gap && pane.active?.csv) csvChange(pane.active.doc, def => { delete def.columns[+gap.dataset.c].hidden; });
+  if (gap && pane.active?.csv) return csvChange(pane.active.doc, def => { delete def.columns[+gap.dataset.c].hidden; });
+  const cell = e.target.closest?.('.mm-csv-row .mm-csv-cell');
+  if (cell && pane.active?.csv) csvSetCell(pane, +cell.parentElement.dataset.r, +cell.dataset.c, false);
+}
+
+// ---------- The current cell ----------
+// The column view has a cell cursor (tab.csvCur: { row, col }, the column by its place in the file): a click puts it
+// on a cell, the keys move it (Up / Down, Left / Right in the order shown, PgUp / PgDn a screen, Home / End the
+// row's first / last column, Ctrl+Home / Ctrl+End the first / last cell). The find bar starts from it (csvfind.js).
+function csvSetCell(pane, row, col, reveal = true) {
+  const tab = pane.active;
+  tab.csvCur = { row, col };
+  if (reveal) csvReveal(pane, row, col);
+  for (const el of tab.article.querySelectorAll('.mm-csv-cur')) el.classList.remove('mm-csv-cur');
+  tab.article.querySelector(`.mm-csv-row[data-r="${row}"] .mm-csv-cell[data-c="${col}"]`)?.classList.add('mm-csv-cur');
+  updateStatus();
+}
+
+// The row (below the header kept at the top) and the column in view.
+function csvReveal(pane, row, col) {
+  const view = pane.active.csv, el = pane.previewEl, count = view.data.read.rows.length;
+  const r = view.body.getBoundingClientRect(), p = el.getBoundingClientRect(), h = r.height / count;
+  const head = view.body.parentElement.querySelector('.mm-csv-head').getBoundingClientRect().height;
+  const top = r.top + row * h, sticky = setting('csvStickyHeader') !== false ? head : 0;
+  if (top < p.top + sticky) el.scrollTop -= p.top + sticky - top;
+  else if (top + h > p.bottom) el.scrollTop += top + h - p.bottom;
+  csvDraw(pane);
+  const cell = view.rows.querySelector(`.mm-csv-row[data-r="${row}"] .mm-csv-cell[data-c="${col}"]`);
+  if (!cell) return;
+  const c = cell.getBoundingClientRect();
+  if (c.left < p.left) el.scrollLeft -= p.left - c.left + 8;
+  else if (c.right > p.right - 24) el.scrollLeft += c.right - p.right + 32;   // clear of the preview's scroll strip
+}
+
+// The keys in the column view: true when one moved the current cell.
+function csvKey(pane, e) {
+  const tab = pane.active, view = tab?.csv;
+  if (!view || e.altKey || e.metaKey || e.shiftKey || e.target.closest?.('input, textarea, select')) return false;
+  const count = view.data.read.rows.length, order = view.data.order;
+  if (!count || !order.length) return false;
+  const cur = tab.csvCur ?? { row: Math.max(0, view.first + 1), col: order[0] };
+  let row = cur.row, at = Math.max(0, order.indexOf(cur.col));
+  // A screen of rows (both heights as drawn, zoom included), less the header and a row of overlap.
+  const screen = Math.max(1, Math.floor(pane.previewEl.getBoundingClientRect().height / (view.body.getBoundingClientRect().height / count)) - 2);
+  const k = e.key, ctrl = e.ctrlKey;
+  if (k === 'ArrowDown' && !ctrl) row++;
+  else if (k === 'ArrowUp' && !ctrl) row--;
+  else if (k === 'ArrowRight' && !ctrl) at++;
+  else if (k === 'ArrowLeft' && !ctrl) at--;
+  else if (k === 'PageDown' && !ctrl) row += screen;
+  else if (k === 'PageUp' && !ctrl) row -= screen;
+  else if (k === 'Home') { at = 0; if (ctrl) row = 0; }
+  else if (k === 'End') { at = order.length - 1; if (ctrl) row = count - 1; }
+  else return false;
+  csvSetCell(pane, Math.max(0, Math.min(count - 1, row)), order[Math.max(0, Math.min(order.length - 1, at))]);
+  return true;
 }
 
 // The right-click in the column view: the column's own items (on a cell or its name), then the view's.
