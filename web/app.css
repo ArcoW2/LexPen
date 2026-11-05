@@ -193,7 +193,8 @@ body[data-orient=h] .mm-orient::before { content: "Above each other"; }
 .mm-pal-list { height: 100%; overflow: auto; }
 .mm-pal-marks { position: absolute; top: 0; right: 0; bottom: 0; width: var(--mm-overview-w, 20px); pointer-events: none; }
 .mm-pal-marks div { position: absolute; left: 3px; right: 3px; height: 2px; background: var(--accent); }
-.mm-palette table { width: 100%; border-collapse: collapse; }
+/* Separate borders (no spacing): with collapsed ones a stuck header's background and line do not move along with it. */
+.mm-palette table { width: 100%; border-collapse: separate; border-spacing: 0; }
 /* F1: the column names on top (a fixed height, so a group's header sticks just under them). */
 .mm-palette th { position: sticky; top: calc(24px * var(--ui-scale)); background: var(--bg); text-align: left; text-transform: uppercase; letter-spacing: .05em; }
 .mm-palette thead th { top: 0; z-index: 2; height: calc(24px * var(--ui-scale)); box-sizing: border-box; padding: 0 8px 0 0;
