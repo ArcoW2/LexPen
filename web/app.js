@@ -3541,7 +3541,7 @@ function showOutline(pane) {
       group: h.group, text: h.text, title: groups ? `${h.text} (${groups[h.group].name})` : h.text,
       colour: bullets ? groups[h.group].colour : null, hidden: !merged && folded.has(groups[h.group].name) };
   };
-  const rows = !headings.length ? [{ t: 'none', text: doc.language ? 'Nothing found' : 'No headings' }]
+  const rows = !headings.length ? [{ t: 'none', text: doc.pdf ? 'No bookmarks' : doc.language ? 'Nothing found' : 'No headings' }]
     : merged ? [...headings].sort((a, b) => a.line - b.line).map(item)
     : groups.flatMap((g, gi) => {
       const own = headings.filter(h => h.group === gi);
@@ -3560,7 +3560,7 @@ function showOutline(pane) {
 // adds the column).
 function paintOutlineGutter(pane, headings) {
   const cm = pane.cm;
-  if (!cm || typeof OUTLINE_GUTTER === 'undefined') return;
+  if (!cm || typeof OUTLINE_GUTTER === 'undefined' || pane.active?.doc.pdf) return;   // a PDF has no editor of its own
   cm.clearGutter(OUTLINE_GUTTER);
   if (!outlineServed(pane)) return;
   const groups = headings.groups;
@@ -3622,7 +3622,7 @@ function markOutline(pane) {
   pane.markFrame = requestAnimationFrame(() => {
     const tab = pane.active;
     if (!tab) return;
-    const line = tab.mode !== 'preview' && pane.cm ? pane.cm.getCursor().line : previewLine(pane);
+    const line = tab.doc.pdf ? pdfOutlineLine(tab) : tab.mode !== 'preview' && pane.cm ? pane.cm.getCursor().line : previewLine(pane);
     // The last entry at or above the line, of all groups (in groups the list is not in line order).
     let current = null;
     for (const r of pane.outlineRows)
@@ -3811,6 +3811,7 @@ function fromOutline(pane, m, from) {
       hideMenus();
       return setActivePane(pane.index);
     case 'click':
+      if (pane.active?.doc.pdf) return pdfOutlineGo(pane.active, m);   // a PDF's bookmark: its place (pdfview.js)
       if (pane.sneakEnded) { pane.sneakEnded = false; return; }   // the release of a sneak preview
       return goToLine(pane, m.line, true, true);   // placed as a find; the cursor stays (a double-click moves it)
     case 'group': return toggleOutlineGroup(pane, m.gi);   // a group's header: fold or unfold
@@ -3819,7 +3820,7 @@ function fromOutline(pane, m, from) {
       pane.cm.setCursor(m.line, Math.min(m.ch, pane.cm.getLine(m.line)?.length ?? 0));
       return pane.cm.focus();
     }
-    case 'down': pane.sneakEnded = false; return startSneak(pane, m);
+    case 'down': pane.sneakEnded = false; return pane.active?.doc.pdf ? undefined : startSneak(pane, m);   // a PDF: no sneak preview
     case 'move': return sneakTo(pane, m);
     case 'up': return endSneak(pane);
     case 'menu': {   // docked: shown here, over everything, at the place in the frame; floating: drawn by the pane itself

@@ -77,7 +77,7 @@ list.addEventListener('click', e => {
   const head = e.target.closest('[data-group-head]');
   if (head) return toWindow({ kind: 'group', gi: +head.dataset.groupHead });
   const item = entry(e);
-  if (item) toWindow({ kind: 'click', line: +item.dataset.line });
+  if (item) toWindow({ kind: 'click', line: +item.dataset.line, ch: +item.dataset.ch || 0 });
 });
 list.addEventListener('dblclick', e => {
   const item = entry(e);

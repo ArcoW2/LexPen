@@ -162,7 +162,13 @@ addEventListener('message', e => {
   if (e.origin !== PANE_ORIGIN || !e.data?.fromPdf) return;
   const tab = pdfFrames.get(e.source), m = e.data.fromPdf;
   if (!tab) return;
-  if (m.kind === 'state') { tab.pdf.state = m; pdfSyncBar(tab); }
+  if (m.kind === 'state') {
+    const page = tab.pdf.state?.page;
+    tab.pdf.state = m;
+    pdfSyncBar(tab);
+    if (m.page !== page) { const pane = paneOf(tab); if (pane?.active === tab) markOutline(pane); }   // its bookmark (app.js)
+  }
+  else if (m.kind === 'outline') pdfOutline(tab.doc, m.entries);
   // Loaded (again: the tab was moved, or shown again in its pane): the place it had, when it had one.
   else if (m.kind === 'ready') pdfSend(tab, { ...(tab.pdf.state ?? {}), kind: 'restore' });
   else if (m.kind === 'menu') pdfMenu(tab, m.x, m.y);
@@ -170,6 +176,17 @@ addEventListener('message', e => {
   else if (m.kind === 'key') document.dispatchEvent(new KeyboardEvent('keydown', { key: m.key, code: m.code, ctrlKey: m.ctrlKey,
     shiftKey: m.shiftKey, altKey: m.altKey, metaKey: m.metaKey, bubbles: true, cancelable: true }));
 });
+
+// Its bookmarks as the document's outline (app.js showOutline, languages.js outlineOf): an entry's line is its page
+// (0-based) and its ch its number in the frame's list, so a click goes to its own place (pdfOutlineGo).
+function pdfOutline(doc, entries) {
+  doc.pdfOutline = entries.map((e, i) => ({ level: Math.max(1, Math.min(6, e.level)), text: e.title, line: e.page - 1, ch: i }));
+  doc.version++;   // the outline is built again
+  scheduleOutline();
+}
+const pdfOutlineGo = (tab, m) => pdfSend(tab, { kind: 'dest', i: m.ch ?? 0 });
+// The line the outline marks its current entry by: the page shown (0-based).
+const pdfOutlineLine = tab => (tab.pdf?.state?.page ?? 1) - 1;
 
 // The file changed on disk: drawn again (a new version, so the browser does not show the old one).
 function pdfChanged(doc) {

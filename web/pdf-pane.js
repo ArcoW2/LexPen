@@ -68,6 +68,32 @@ function tellState() {
   if (v?.pagesCount && !pdf.restoring) toWindow({ kind: 'state', page: v.currentPageNumber, pages: v.pagesCount, scale: v.currentScale,
     scaleValue: v.currentScaleValue, top: c.scrollTop, left: c.scrollLeft });
 }
+// Its bookmarks (the PDF's outline, chapters and their parts) for the Outline pane: each with its level and the page
+// its place is on; a click there comes back as `dest` (its number in this list) and goes to its place on that page.
+async function tellOutline() {
+  const outline = await pdf.doc.getOutline().catch(() => null), entries = [];
+  pdf.dests = [];
+  const pageOf = async dest => {
+    try {
+      const d = typeof dest === 'string' ? await pdf.doc.getDestination(dest) : dest;
+      const ref = Array.isArray(d) ? d[0] : null;
+      return ref == null ? null : typeof ref === 'number' ? ref + 1 : await pdf.doc.getPageIndex(ref) + 1;
+    } catch { return null; }
+  };
+  const walk = async (items, level) => {
+    for (const item of items ?? []) {
+      const page = item.dest ? await pageOf(item.dest) : null;
+      if (page) {
+        entries.push({ title: item.title?.trim() || '(untitled)', level, page });
+        pdf.dests.push(item.dest);
+      }
+      await walk(item.items, level + 1);
+    }
+  };
+  await walk(outline, 1);
+  toWindow({ kind: 'outline', entries });
+}
+
 // The place it had (from the window, after a load): the zoom first, then the scroll, once the pages have that size.
 function restore({ scaleValue, scale, top, left }) {
   const v = pdf.viewer, c = document.getElementById('pdf-scroll');
@@ -96,6 +122,11 @@ async function open() {
     pdf.viewer.currentScaleValue = 'page-width';
     toWindow({ kind: 'ready', pages: pdf.viewer.pagesCount });
   });
+  // Fit to the width or the page: fitted again when its room changes (the outline opened, the pane resized).
+  new ResizeObserver(() => {
+    const v = pdf.viewer;
+    if (v?.pagesCount && /^(page-width|page-fit|auto)$/.test(v.currentScaleValue)) v.currentScaleValue = v.currentScaleValue;
+  }).observe(document.getElementById('pdf-scroll'));
   document.getElementById('pdf-scroll').addEventListener('scroll', () => { clearTimeout(pdf.scrollTimer); pdf.scrollTimer = setTimeout(tellState, 200); });
   eventBus.on('pagechanging', tellState);
   eventBus.on('scalechanging', tellState);
@@ -107,6 +138,8 @@ async function open() {
     }).promise;
     pdf.viewer.setDocument(pdf.doc);
     linkService.setDocument(pdf.doc);
+    pdf.linkService = linkService;
+    tellOutline();
   } catch (e) {
     const error = document.getElementById('pdf-error');
     error.textContent = `This PDF cannot be shown: ${e.message ?? e}`;
@@ -124,6 +157,7 @@ addEventListener('message', e => {
   if (e.origin !== 'https://lexpen.example' || !e.data?.toPdf) return;
   const m = e.data.toPdf, v = pdf.viewer;
   if (m.kind === 'look') return setLook(m.mode, m.threshold, m.bg);
+  if (m.kind === 'dest') return void (pdf.dests?.[m.i] && pdf.linkService?.goToDestination(pdf.dests[m.i]));
   if (m.kind === 'restore') return m.top === undefined ? (pdf.restoring = false, tellState()) : restore(m);
   if (!v?.pagesCount) return;
   if (m.kind === 'fitWidth') v.currentScaleValue = 'page-width';

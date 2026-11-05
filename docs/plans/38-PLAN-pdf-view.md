@@ -64,6 +64,12 @@ page drawn in 64 to 502 ms (the 2003 pages of `hpmor.pdf` and the 18.6 MB comic 
 (the first idea) were tried and dropped: they turn every page into the theme's two colours, pictures included (a
 colour chart all grey, a comic washed out).
 
+### 3.2a The outline: the PDF's bookmarks
+
+- The Outline pane (the editor pane's own, or the window's) shows a PDF's bookmarks (its outline: chapters and their
+  parts) with their levels; the current one follows the page shown; a click goes to the bookmark's own place on its
+  page. A PDF without bookmarks: "No bookmarks". (Asked for while building; it was under later.)
+
 ### 3.3 Keys and menus
 
 - Ctrl+F: LexPen's find bar, on the PDF's text (pdf.js gives the text of each page).
@@ -72,7 +78,6 @@ colour chart all grey, a comic washed out).
 
 ### 3.4 Later, not in the first step
 
-- The PDF's own outline (bookmarks) in the Outline pane.
 - Text selection and copy into a document.
 - A link in a markdown file to a PDF (`[spec](spec.pdf#page=4)`) opening it in a tab at that page.
 

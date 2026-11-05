@@ -498,7 +498,7 @@ function updatePackColours() {
 // A pack's outline is a list of patterns (one list in line order) or of groups (docs/plans/executed/PLAN-outline-groups.md):
 // { group, colour, patterns }, as UltraEdit's tag groups. A group's patterns are matched against the whole text
 // (`^` / `$` at line starts and ends, a pattern may span lines); an entry belongs to the line its match starts on.
-const hasOutline = doc => !!doc && (!doc.language || Array.isArray(packOf(doc)?.outline));
+const hasOutline = doc => !!doc && (!doc.language || !!doc.pdf || Array.isArray(packOf(doc)?.outline));   // a PDF: its bookmarks (pdfview.js)
 // The bullet colours of groups without a colour of their own, by their place.
 const OUTLINE_COLOURS = ['#e5534b', '#57ab5a', '#539bf5', '#c69026', '#b083f0', '#39c5cf', '#e0823d', '#d65e9b'];
 // An entry's text without the dashes or equals signs a comment line draws around it (// ------ Tables ------: Tables);
@@ -507,6 +507,7 @@ const outlineText = s => s.replace(/^[\s=-]+|[\s=-]+$/g, '');
 const isOutlineText = s => /[\p{L}\p{N}]/u.test(s);
 
 function outlineOf(doc) {
+  if (doc.pdf) return doc.pdfOutline ?? [];
   if (!doc.language) return headingsOf(doc);
   const list = packOf(doc)?.outline;
   if (!Array.isArray(list)) return null;
