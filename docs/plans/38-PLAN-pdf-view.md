@@ -95,7 +95,9 @@ one of three places, chosen per PDF, as a CSV's column settings are (plan 29).
   - Moving them from one place to another takes them all along (as Settings kept for a CSV); from the PDF they are
     read back from its highlight annotations. Moving them into the PDF, or out of it, asks first: the PDF will be
     changed, its highlights added to the file (into it) or removed from it (out of it); Go ahead or Cancel. Go ahead
-    marks the tab as changed; the file changes with Save (as any change of its highlights).
+    marks the tab as changed; the file changes with Save (as any change of its highlights). Moving them between
+    LexPen and next to the file leaves the PDF as it is: no question, and the way for a PDF that is not to be changed
+    or cannot be (it then offers only these two).
 - A new PDF's place: as the setting highlightsStore says (in LexPen, or next to the file).
 - Highlight annotations a PDF already has (made in another reader) are always shown, and listed in the Highlights
   pane with LexPen's:
