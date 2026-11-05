@@ -19,6 +19,8 @@
 
 using namespace Microsoft::WRL;
 
+extern "C" IMAGE_DOS_HEADER __ImageBase;   // this DLL's own module
+
 namespace {
 
 const wchar_t ConfigKey[] = L"Software\\Classes\\LexPen.Shell";
@@ -129,12 +131,13 @@ public:
         return SHStrDupW(title.c_str(), name);
     }
 
+    // Its icon, inside this DLL (LexPenShell.rc): 101 left side, 102 compare to, 103 compare.
     IFACEMETHODIMP GetIcon(IShellItemArray*, LPWSTR* icon) override
     {
-        const auto exe = ReadConfig(L"Exe");
-        const auto dir = exe.substr(0, exe.find_last_of(L'\\') + 1);
-        const wchar_t* file = K == Kind::Left ? L"compare-left.ico" : K == Kind::CompareTo ? L"compare-to.ico" : L"compare-pair.ico";
-        return SHStrDupW((dir + file).c_str(), icon);
+        wchar_t dll[MAX_PATH] = {};
+        GetModuleFileNameW(reinterpret_cast<HMODULE>(&__ImageBase), dll, MAX_PATH);
+        const int id = K == Kind::Left ? 101 : K == Kind::CompareTo ? 102 : 103;
+        return SHStrDupW((std::wstring(dll) + L",-" + std::to_wstring(id)).c_str(), icon);
     }
 
     IFACEMETHODIMP GetToolTip(IShellItemArray*, LPWSTR* tip) override { *tip = nullptr; return E_NOTIMPL; }

@@ -1,0 +1,6 @@
+// The icons of LexPen's compare items in Explorer's right-click menu, inside LexPenShell.dll, so none ship as files:
+// the extension's (LexPenShell.cpp) and the registry entries' (ExplorerMenu.cs: "<dll>",-<id>). Made from
+// img\icon\compare-*.svg with img\icon\make-ico.ps1.
+101 ICON "..\\img\\icon\\compare-left.ico"
+102 ICON "..\\img\\icon\\compare-to.ico"
+103 ICON "..\\img\\icon\\compare-pair.ico"

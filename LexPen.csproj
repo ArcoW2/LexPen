@@ -28,9 +28,6 @@
   <ItemGroup>
     <!-- What you may read and copy (keys, settings, language packs, themes): next to the exe. -->
     <Content Include="defaults\**" CopyToOutputDirectory="PreserveNewest" />
-    <!-- The icons of the compare entries in Explorer's right-click menu (ExplorerMenu.cs, LexPenShell.dll): next to the
-         exe. compare-pair: the extension's Compare of two items. -->
-    <Content Include="img\icon\compare-left.ico;img\icon\compare-to.ico;img\icon\compare-pair.ico" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <!-- The page's files: inside the exe (WebFiles). -->
     <EmbeddedResource Include="web\**" LogicalName="web\%(RecursiveDir)%(Filename)%(Extension)" />
     <EmbeddedResource Include="$(ApplicationIcon)" LogicalName="app.ico" />
@@ -68,10 +65,11 @@
   </Target>
 
   <!-- The Explorer extension (shell\LexPenShell.cpp, docs/plans/40-PLAN-explorer-compare-two.md): LexPenShell.dll next
-       to the exe, built with Visual Studio's C++ tools (shell\build.cmd); without them a warning and no DLL, and the
-       setting explorerShell then keeps today's entries. Also into a publish. -->
+       to the exe, built with Visual Studio's C++ tools (shell\build.cmd), the compare items' icons inside it; without
+       the tools a warning and no DLL, and the setting explorerShell then keeps today's entries (with LexPen's own
+       icon). Also into a publish. -->
   <Target Name="LexPenShell" AfterTargets="Build" Condition="'$(DesignTimeBuild)' != 'true'"
-          Inputs="shell\LexPenShell.cpp;shell\LexPenShell.def;shell\build.cmd" Outputs="$(TargetDir)LexPenShell.dll">
+          Inputs="shell\LexPenShell.cpp;shell\LexPenShell.def;shell\LexPenShell.rc;shell\build.cmd;img\icon\compare-left.ico;img\icon\compare-to.ico;img\icon\compare-pair.ico" Outputs="$(TargetDir)LexPenShell.dll">
     <Exec Command="&quot;$(ProjectDir)shell\build.cmd&quot; &quot;$(TargetDir).&quot; &quot;$(ProjectDir)$(IntermediateOutputPath)shell&quot;" />
   </Target>
   <!-- Into the publish folder even while Explorer holds the one there (it keeps a DLL it loaded open, until it restarts):

@@ -52,7 +52,7 @@ public class ExplorerMenuTests : IDisposable
         Assert.Equal("Select left side to compare", Label("*", "LexPen.CompareLeft"));
         Assert.Equal("Select left side to compare", Label("Directory", "LexPen.CompareLeft"));
         Assert.Equal($"\"{Exe}\" --compare-left \"%1\"", Command("*", "LexPen.CompareLeft"));
-        Assert.Equal("\"C:\\Apps\\LexPen\\compare-left.ico\"", IconOf("*", "LexPen.CompareLeft"));
+        Assert.Equal($"\"{Exe}\",0", IconOf("*", "LexPen.CompareLeft"));   // no LexPenShell.dll there: LexPen's own icon
         Assert.Null(Label("*", "LexPen.CompareTo"));
 
         // A file as the left side: Compare to on files only.
@@ -63,7 +63,7 @@ public class ExplorerMenuTests : IDisposable
         Assert.Equal("Select as new left side to compare", Label("*", "LexPen.CompareLeft"));
         Assert.Equal("Compare to old.sql", Label("*", "LexPen.CompareTo"));
         Assert.Equal($"\"{Exe}\" --compare \"{file}\" \"%1\"", Command("*", "LexPen.CompareTo"));
-        Assert.Equal("\"C:\\Apps\\LexPen\\compare-to.ico\"", IconOf("*", "LexPen.CompareTo"));
+        Assert.Equal($"\"{Exe}\",0", IconOf("*", "LexPen.CompareTo"));
         Assert.Null(Label("Directory", "LexPen.CompareTo"));
 
         // Another left side, a folder: Compare to on folders only.
@@ -207,6 +207,7 @@ public class ExplorerMenuTests : IDisposable
             // Off: today's entries, the extension gone (Explorer no longer loads it).
             ExplorerMenu.Apply(Exe, new ExplorerMenu.Choice(true, false, false, false, Shell: false));
             Assert.Equal("Select left side to compare", Label("*", "LexPen.CompareLeft"));
+            Assert.Equal("\"C:\\Apps\\LexPen\\LexPenShell.dll\",-101", IconOf("*", "LexPen.CompareLeft"));   // the icon inside the DLL
             Assert.Null(Value($@"CLSID\{LeftClsid}\InprocServer32", null));
             Assert.Null(Value("LexPen.Shell", "Exe"));
             Assert.Null(Value(@"AllFilesystemObjects\shell\LexPen.ComparePair", "ExplorerCommandHandler"));

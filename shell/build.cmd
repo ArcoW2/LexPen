@@ -14,7 +14,9 @@ if not defined VS (
 )
 if not exist "%OBJ%" mkdir "%OBJ%"
 call "%VS%\VC\Auxiliary\Build\vcvars64.bat" >nul 2>nul || exit /b 1
-cl /nologo /O2 /EHsc /std:c++17 /W4 /WX /MT /LD /Fo"%OBJ%\\" "%~dp0LexPenShell.cpp" ^
+rem The icons (LexPenShell.rc: img\icon\compare-*.ico) into the DLL.
+rc /nologo /fo "%OBJ%\LexPenShell.res" "%~dp0LexPenShell.rc" || exit /b 1
+cl /nologo /O2 /EHsc /std:c++17 /W4 /WX /MT /LD /Fo"%OBJ%\\" "%~dp0LexPenShell.cpp" "%OBJ%\LexPenShell.res" ^
   /link /DEF:"%~dp0LexPenShell.def" /OUT:"%OBJ%\LexPenShell.dll" /IMPLIB:"%OBJ%\LexPenShell.lib" shlwapi.lib ole32.lib shell32.lib runtimeobject.lib advapi32.lib user32.lib || exit /b 1
 rem Old ones Explorer no longer holds: gone.
 del /q "%OUT%\LexPenShell.*.old" 2>nul

@@ -178,11 +178,11 @@ static class ExplorerMenu
             if (c.Compare && !byShell)
             {
                 Verb(shell, LeftVerb, left is null ? "Select left side to compare" : "Select as new left side to compare",
-                    $"\"{Icon(exe, "compare-left.ico")}\"", $"\"{exe}\" --compare-left \"%1\"");
+                    Icon(exe, 101), $"\"{exe}\" --compare-left \"%1\"");
                 written.Add(LeftVerb);
                 if (left is not null && (kind == "Directory") == leftIsFolder)
                 {
-                    Verb(shell, ToVerb, $"Compare to {NameOf(left)}", $"\"{Icon(exe, "compare-to.ico")}\"", $"\"{exe}\" --compare \"{left}\" \"%1\"");
+                    Verb(shell, ToVerb, $"Compare to {NameOf(left)}", Icon(exe, 102), $"\"{exe}\" --compare \"{left}\" \"%1\"");
                     written.Add(ToVerb);
                 }
             }
@@ -255,8 +255,13 @@ static class ExplorerMenu
         return path;
     }
 
-    // The compare entries' icons (made from img\icon\compare-*.svg) ship next to the exe.
-    static string Icon(string exe, string file) => Path.Combine(Path.GetDirectoryName(exe)!, file);
+    // The compare entries' icons (img\icon\compare-*.svg): inside LexPenShell.dll next to the exe (shell\LexPenShell.rc:
+    // 101 left side, 102 compare to), so none ship as files; without the DLL (not built) LexPen's own icon.
+    static string Icon(string exe, int id)
+    {
+        var dll = Path.Combine(Path.GetDirectoryName(exe)!, ShellDll);
+        return File.Exists(dll) || ShellDllForTests ? $"\"{dll}\",-{id}" : $"\"{exe}\",0";
+    }
 
     static void Verb(string shell, string verb, string label, string icon, string command)
     {
