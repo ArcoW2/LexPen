@@ -155,7 +155,7 @@ function csvDraw(pane) {
   const out = [];
   for (let i = first; i < last; i++) {
     const row = read.rows[i], el = document.createElement('div');
-    el.className = 'mm-csv-row';
+    el.className = i % 2 ? 'mm-csv-row mm-csv-odd' : 'mm-csv-row';   // every other row: the alternate colour (csvStripes)
     el.dataset.r = i;
     el.dataset.line = view.data.lines[i];
     if (row.problem) {
@@ -176,6 +176,17 @@ function csvDraw(pane) {
   }
   rows.replaceChildren(...out);
   if (typeof csvMarkCurrent === 'function') csvMarkCurrent(pane);   // the current match's text (csvfind.js)
+}
+
+// Alternate rows (settings csvStripes, csvStripeColour, csvStripeIntensity): every other row (.mm-csv-odd) gets the
+// colour mixed into the background. A rule of its own, so the colours are the preview's (its own theme's, when it has
+// one), as the theme changes.
+function applyCsvStripes(values) {
+  let style = document.getElementById('mm-csv-stripes-style');
+  if (!style) { style = Object.assign(document.createElement('style'), { id: 'mm-csv-stripes-style' }); document.head.append(style); }
+  const pct = Math.min(100, Math.max(0, values.csvStripeIntensity ?? 40));
+  style.textContent = values.csvStripes === false ? ''
+    : `.mm-csv-row.mm-csv-odd { background: color-mix(in srgb, ${colourCss(values.csvStripeColour, 'border')} ${pct}%, var(--bg)); }`;
 }
 
 // The preview's lines for the scroll sync (app.js lineMap): where each row is, by its source line.

@@ -945,7 +945,8 @@ body { --col-guide: color-mix(in srgb, var(--col-guide-colour, var(--border)) va
 .mm-csv-cell { flex: none; box-sizing: content-box; padding: 0 .6ch; overflow: hidden; text-overflow: ellipsis;
   border-right: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
 .mm-csv-right { text-align: right; }
-.mm-csv-row:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+/* Alternate rows: a rule of their own (csvview.js applyCsvStripes); the mouse's row over it. */
+.mm-csv .mm-csv-row:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
 /* The current cell (the keys move it), and the cells with a match of the find bar. */
 .mm-csv-cell.mm-csv-cur { outline: 2px solid var(--accent); outline-offset: -2px; }
 .mm-find-csvcol { max-width: 14em; margin: 0 2px; font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 3px; }

@@ -392,7 +392,8 @@ every action with its key.
   a column list (All columns, or one) and By row / By column (down a column, then the next, in the order shown); it
   starts from the current cell (in the editor: the cursor's), finds in the values as shown in the column view and in
   the file's text in the editor, and marks the cells with a match; Replace (by line) works with All columns, By row.
-  Settings > Preview > Columns (CSV): the widest column (40 characters), the header at the top, detecting a file's
+  Settings > Preview > Columns (CSV): the widest column (40 characters), the header at the top, alternate row colours
+  (on; a colour of the theme or one you pick, and how much of it is mixed into the background), detecting a file's
   build.
 - **Preview zoom**: Ctrl+= / Ctrl+- / Ctrl+mouse wheel over a preview. The level shows at the right of the top
   bar (click it for 100%) and is kept.

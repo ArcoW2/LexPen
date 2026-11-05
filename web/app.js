@@ -4997,6 +4997,7 @@ function applySettings() {
     for (const tab of allTabs()) if (tab.doc.language === 'csv') { tab.doc.csv = null; if (paneOf(tab)?.active === tab) render(tab); else tab.stale = true; }
   if (changed('previewColourMaxSize') && 'previewColourMaxSize' in was)   // the code previews coloured again, or not
     for (const tab of allTabs()) if (tab.doc.language) { if (paneOf(tab)?.active === tab && tab.mode !== 'edit') render(tab); else tab.stale = true; }
+  if (['csvStripes', 'csvStripeColour', 'csvStripeIntensity'].some(changed)) applyCsvStripes(now);   // a CSV's alternate rows
   if (changed('previewWrap')) document.body.toggleAttribute('data-preview-nowrap', now.previewWrap === false);
   if (changed('showBackupFiles') && 'showBackupFiles' in was) refreshTree(false);
   if (changed('tabBar')) applyTabBar(now.tabBar);

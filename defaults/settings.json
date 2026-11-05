@@ -110,6 +110,9 @@
   // ---------- Preview ----------
   "csvMaxWidth": 40,              // a CSV in the preview: the widest column, in characters
   "csvStickyHeader": true,        // a CSV in the preview: the column names stay at the top while scrolling
+  "csvStripes": true,             // a CSV in the preview: every other row in another colour
+  "csvStripeColour": "border",    // its colour: a theme colour's name (the preview theme's own) or "#rrggbb"
+  "csvStripeIntensity": 40,       // percent of that colour mixed into the background
   "csvGuess": true,               // a CSV without a definition: how it is built detected from its first lines
   "lineBreaks": false,            // a single line break starts a new line (off: joins the lines, as on GitHub)
   "previewMaxSize": 3,            // MB: a code file larger than this opens without its preview (0: no limit)

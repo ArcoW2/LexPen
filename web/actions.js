@@ -784,6 +784,12 @@ const SETTING_ROWS = [
     title: 'Widest column', hint: 'A column of a CSV is as wide as its longest value, up to this; a longer value is cut with ... (the mouse on it shows it whole)' },
   { name: 'csvStickyHeader', group: 'Preview', sub: 'Columns (CSV)', kind: 'toggle', title: 'Header kept at the top',
     hint: 'The column names of a CSV stay at the top while scrolling', hintOff: 'The column names of a CSV scroll away with the rows' },
+  { name: 'csvStripes', group: 'Preview', sub: 'Columns (CSV)', kind: 'toggle', title: 'Alternate row colours',
+    hint: 'Every other row of a CSV in another colour, so a row is easy to follow', hintOff: 'The rows of a CSV all in the background colour' },
+  { name: 'csvStripeColour', group: 'Preview', sub: 'Columns (CSV)', kind: 'colour', title: 'Alternate rows: colour',
+    hint: 'A colour of the theme (the preview\'s own when it has one) or one you pick', options: () => GUIDE_COLOURS },
+  { name: 'csvStripeIntensity', group: 'Preview', sub: 'Columns (CSV)', kind: 'range', range: [0, 100, 5], unit: '%',
+    title: 'Alternate rows: intensity', hint: 'How much of the colour is mixed into the background: 100% the colour itself' },
   { name: 'csvGuess', group: 'Preview', sub: 'Columns (CSV)', kind: 'toggle', title: 'Detect how a CSV is built',
     hint: 'A CSV without a definition: its delimiter, quote, header and column types guessed from its first lines',
     hintOff: 'A CSV without a definition is read with a comma, double quotes and a header line' },
@@ -918,7 +924,7 @@ const formatRows = () => PACK_NAMES.filter(name => packs[name].format?.style).fl
 const THEME_SET_NAMES = new Set(['themeLight', 'themeDark', 'editorThemeLight', 'editorThemeDark', 'previewThemeLight',
   'previewThemeDark', 'sneakTheme', 'highlightColour', 'highlightIntensity', 'previewHighlightColour', 'previewHighlightIntensity',
   'inlineCodeIntensity', 'indentGuideColour', 'indentGuideIntensity', 'indentGuideCursorColour', 'indentGuideCursorIntensity',
-  'columnGuideColour', 'columnGuideIntensity', 'helperLineIntensity', 'tabStopIntensity']);
+  'columnGuideColour', 'columnGuideIntensity', 'helperLineIntensity', 'tabStopIntensity', 'csvStripeColour', 'csvStripeIntensity']);
 
 function settingDefs() {
   // In the order of the groups (a stable sort keeps the rows' own order within a group).
