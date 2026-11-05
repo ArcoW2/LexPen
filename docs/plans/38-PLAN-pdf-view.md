@@ -93,7 +93,9 @@ one of three places, chosen per PDF, as a CSV's column settings are (plan 29).
     A change marks the tab as changed (as an edited text file); Save (Ctrl+S) writes the PDF, a .bak first when
     backups are on (as for a text file); closing it, or LexPen, with changes not saved asks first, as for a text file.
   - Moving them from one place to another takes them all along (as Settings kept for a CSV); from the PDF they are
-    read back from its highlight annotations.
+    read back from its highlight annotations. Moving them into the PDF, or out of it, asks first: the PDF will be
+    changed, its highlights added to the file (into it) or removed from it (out of it); Go ahead or Cancel. Go ahead
+    marks the tab as changed; the file changes with Save (as any change of its highlights).
 - A new PDF's place: as the setting highlightsStore says (in LexPen, or next to the file).
 - Highlight annotations a PDF already has (made in another reader) are always shown, and listed in the Highlights
   pane with LexPen's:
