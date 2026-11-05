@@ -78,6 +78,11 @@ function extendBlock(cm, dir) {
     const past = virtualOf(cm);   // the cursor past the end of the line (virtual.js): the block starts there
     b = past ? { anchor: { ...past }, head: { ...past } } : { anchor: at(range.anchor), head: at(range.head) };
   }
+  setBlock(cm, b.anchor, stepHead(cm, b, dir));
+}
+
+// Where a key takes the block's head (extendBlock; moveThinBlock for the steps along a line).
+function stepHead(cm, b, dir) {
   const head = { ...b.head }, page = Math.max(1, Math.floor(cm.getScrollInfo().clientHeight / cm.defaultTextHeight()) - 1);
   switch (dir) {
     case 'left': head.col = stepCol(cm, head.line, head.col, -1); break;
@@ -106,7 +111,18 @@ function extendBlock(cm, dir) {
       break;
     }
   }
-  setBlock(cm, b.anchor, head);
+  return head;
+}
+
+// A block of width 0 over more than one line (a cursor on each line): a step along the line (Left, Right, a word,
+// Home, End) moves it as a whole, to where the step takes its head; it stays a block. False for any other selection:
+// the key then does what it does on a block (it ends it at its head).
+function moveThinBlock(cm, dir) {
+  const b = blockOf(cm);
+  if (!b || b.anchor.col !== b.head.col || b.anchor.line === b.head.line) return false;
+  const { col } = stepHead(cm, b, dir);
+  setBlock(cm, { line: b.anchor.line, col }, { line: b.head.line, col });
+  return true;
 }
 
 // Column mode on or off (the window, all its tabs); the selection changes along (below).

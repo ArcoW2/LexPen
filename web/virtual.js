@@ -352,19 +352,21 @@ function setupVirtual(pane) {
     return move(run)(c);
   };
   const ending = c => { clearVirtual(c); return CodeMirror.Pass; };
+  // Along the line on a column of cursors (a block of width 0, column.js): the column moves, the block stays.
+  const along = (dir, run) => c => moveThinBlock(c, dir) ? undefined : run(c);
   cm.addKeyMap({
     Up: vertical(c => moveVertical(c, -1)), Down: vertical(c => moveVertical(c, 1)),
     PageUp: vertical(c => moveVertical(c, -1, true)), PageDown: vertical(c => moveVertical(c, 1, true)),
-    Right: move(c => stepVirtual(c, 1)),
+    Right: along('right', move(c => stepVirtual(c, 1))),
     // Left at a line's start goes to the line above unless the setting leftWraps is off.
-    Left: c => !setting('leftWraps') && !c.somethingSelected() && !virtualOf(c) && c.getCursor().ch === 0 ? undefined : move(x => stepVirtual(x, -1))(c),
+    Left: along('left', c => !setting('leftWraps') && !c.somethingSelected() && !virtualOf(c) && c.getCursor().ch === 0 ? undefined : move(x => stepVirtual(x, -1))(c)),
     'Shift-Left': c => !setting('leftWraps') && !column.on && !blockOf(c) && c.getCursor('head').ch === 0 ? undefined : CodeMirror.Pass,
     // A word step on a block: from its head (CodeMirror would move every line's cursor).
-    'Ctrl-Right': move(() => CodeMirror.Pass), 'Ctrl-Left': move(() => CodeMirror.Pass),
+    'Ctrl-Right': along('wordRight', move(() => CodeMirror.Pass)), 'Ctrl-Left': along('wordLeft', move(() => CodeMirror.Pass)),
     Backspace: when(c => virtualOf(c) ? stepVirtual(c, -1) : CodeMirror.Pass),
     Delete: when(c => virtualOf(c) ? deleteVirtual(c) : CodeMirror.Pass),
     Tab: when(c => { fillVirtual(c); return CodeMirror.Pass; }),
-    End: ending, Home: ending, Enter: ending,
+    End: along('end', ending), Home: along('home', ending), Enter: ending,
   });
 }
 
