@@ -39,8 +39,8 @@ public class CompareProjectTests : IDisposable
         var file = Path.Combine(a, "x.sql");
         File.WriteAllText(file, "1");
         File.WriteAllText(Path.Combine(b, "x.sql"), "2");
-        Assert.Equal([file, Path.Combine(b, "x.sql")], CompareProject.FileInFolder([file, b]).Pair);
-        Assert.Equal([Path.Combine(b, "x.sql"), file], CompareProject.FileInFolder([b, file]).Pair);   // the folder first: left
+        Assert.Equal([file, Path.Combine(b, "x.sql")], CompareProject.FileInFolder([file, b]).Pair!);
+        Assert.Equal([Path.Combine(b, "x.sql"), file], CompareProject.FileInFolder([b, file]).Pair!);   // the folder first: left
         // Not in the folder: no compare, and why.
         var (none, why) = CompareProject.FileInFolder([file, dir]);
         Assert.Null(none);
@@ -48,8 +48,8 @@ public class CompareProjectTests : IDisposable
         // The file's own folder: it would be compared with itself.
         Assert.Null(CompareProject.FileInFolder([file, a]).Pair);
         // Two files, two folders: as given.
-        Assert.Equal([a, b], CompareProject.FileInFolder([a, b]).Pair);
-        Assert.Equal([file, file], CompareProject.FileInFolder([file, file]).Pair);
+        Assert.Equal([a, b], CompareProject.FileInFolder([a, b]).Pair!);
+        Assert.Equal([file, file], CompareProject.FileInFolder([file, file]).Pair!);
         Assert.Null(CompareProject.FileInFolder([a, b]).Message);
     }
 

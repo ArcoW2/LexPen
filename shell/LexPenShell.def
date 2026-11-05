@@ -1,0 +1,4 @@
+LIBRARY LexPenShell
+EXPORTS
+    DllGetClassObject PRIVATE
+    DllCanUnloadNow PRIVATE

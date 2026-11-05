@@ -1245,9 +1245,10 @@ sealed class AppHost : ApplicationContext
         SettingsFile.Write(DataDir, name, value);
         ReloadSettings();
         // The Explorer menu's entries (ExplorerMenu): written for this exe as the settings now say, or removed.
-        if (name is "explorerCompare" or "explorerView" or "explorerEdit" or "explorerPlace" or "explorerBackups")
+        if (name is "explorerCompare" or "explorerView" or "explorerEdit" or "explorerPlace" or "explorerBackups" or "explorerShell")
             ExplorerMenu.Apply(Environment.ProcessPath ?? Application.ExecutablePath, new ExplorerMenu.Choice(SettingFlag("explorerCompare"),
-                SettingFlag("explorerView"), SettingFlag("explorerEdit"), SettingText("explorerPlace") == "submenu", SettingFlag("explorerBackups")));
+                SettingFlag("explorerView"), SettingFlag("explorerEdit"), SettingText("explorerPlace") == "submenu", SettingFlag("explorerBackups"),
+                SettingFlag("explorerShell")));
         return from is not null && ThemeSetFile.Names.Contains(name)
             ? new JsonObject { ["set"] = ThemeSetFile.Default, ["also"] = AlsoUsedBy(from, ThemeSetFile.Default) } : null;
     }

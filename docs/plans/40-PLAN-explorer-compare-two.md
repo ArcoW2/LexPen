@@ -37,9 +37,12 @@ item is a file or a folder. Its `GetState` hides an item that does not fit; its 
 
 ### 3.2 The handler
 
-- One handler for files and folders (registered under `*\shell` and `Directory\shell`, `ExplorerCommandHandler`), its
-  class under `HKCU\Software\Classes\CLSID`, with the DLL next to LexPen.exe. Written by ExplorerMenu.Apply as the
-  entries are now, removed by Remove.
+- Three commands, each a class of its own (Left, CompareTo, Compare; `ExplorerCommandHandler`), their classes under
+  `HKCU\Software\Classes\CLSID`, the DLL next to LexPen.exe. Between two lines they are registered once under
+  `AllFilesystemObjects\shell` (files and folders together, so a file with a folder selected gets them too); in a
+  submenu, in LexPen's submenu of files and of folders (a file with a folder selected then has no LexPen submenu: open
+  question 1). What they read: `HKCU\Software\Classes\LexPen.Shell` (Exe, LeftFile). Written by ExplorerMenu.Apply as
+  the entries are now, removed by Remove.
 - What it reads: LexPen's exe and the left side, from the same places the registry entries use now (the exe from a value
   ExplorerMenu writes with its registration, the left side from `compare-left.txt` in the state folder), each time the menu opens, so a left
   side selected a moment ago shows at once.
@@ -67,7 +70,9 @@ item is a file or a folder. Its `GetState` hides an item that does not fit; its 
 
 - C++ needs Visual Studio's "Desktop development with C++" tools: added to Visual Studio 2026 on this PC (Visual
   Studio 2022 stays without them). The build checks for them (vswhere) and says so when they are missing.
-- A project of its own in the solution (`LexPen.Shell`), built to `LexPenShell.dll`, x64, published next to the exe.
+- `shell\LexPenShell.cpp` (WRL, no ATL), built by `shell\build.cmd` with cl.exe to `LexPenShell.dll`, x64, next to the
+  exe: LexPen.csproj runs it after each build (and copies the DLL into a publish). Without the C++ tools: a warning, no
+  DLL, and the setting keeps today's entries.
 - Explorer keeps a loaded handler DLL open: a new LexPen cannot overwrite it while Explorer runs. The publish writes
   the DLL under a versioned name and the registration points at it; an older one is removed when no longer loaded.
 
@@ -101,4 +106,6 @@ that would need, but packaging is not in this plan.
 
 ## 4. Open questions
 
-None.
+1. In a submenu, a file and a folder selected together get no LexPen submenu (it is one per kind). Is that acceptable,
+   or should the submenu move to `AllFilesystemObjects` too (its other items, Edit and Delete .bak, then need a way to
+   show only for files, or labels for both)?

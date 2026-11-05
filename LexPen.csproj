@@ -66,6 +66,17 @@
     <Message Importance="high" Text="LexPen version $(Version) $(GitCommit)" />
   </Target>
 
+  <!-- The Explorer extension (shell\LexPenShell.cpp, docs/plans/40-PLAN-explorer-compare-two.md): LexPenShell.dll next
+       to the exe, built with Visual Studio's C++ tools (shell\build.cmd); without them a warning and no DLL, and the
+       setting explorerShell then keeps today's entries. Also into a publish. -->
+  <Target Name="LexPenShell" AfterTargets="Build" Condition="'$(DesignTimeBuild)' != 'true'"
+          Inputs="shell\LexPenShell.cpp;shell\LexPenShell.def;shell\build.cmd" Outputs="$(TargetDir)LexPenShell.dll">
+    <Exec Command="&quot;$(ProjectDir)shell\build.cmd&quot; &quot;$(TargetDir).&quot; &quot;$(ProjectDir)$(IntermediateOutputPath)shell&quot;" />
+  </Target>
+  <Target Name="PublishLexPenShell" AfterTargets="Publish" Condition="Exists('$(TargetDir)LexPenShell.dll')">
+    <Copy SourceFiles="$(TargetDir)LexPenShell.dll" DestinationFolder="$(PublishDir)" ContinueOnError="true" />
+  </Target>
+
   <!-- The WebView2 package always references its WPF control too; this app only uses WinForms. -->
   <Target Name="DropWebView2Wpf" BeforeTargets="ResolveAssemblyReferences">
     <ItemGroup>

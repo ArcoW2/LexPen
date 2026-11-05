@@ -47,6 +47,7 @@
                                   // not move the cursor or press a button there)
   "logActivationClicks": false,  // ...each one ignored noted in View > Messages (to check it; not needed in use)
   "explorerCompare": false,       // Explorer's right-click menu: Select left side to compare, then Compare to <name>
+  "explorerShell": false,         // ...those compare entries by what is selected (one: left side / compare to; two: Compare), LexPenShell.dll
   "explorerView": false,          // ...View in LexPen, on files and folders (the project for viewing, viewProject)
   "explorerEdit": false,          // ...Edit in LexPen, on files (as opening one, never in the project for viewing)
   "explorerBackups": false,       // ...Delete .bak file on files, Delete all .bak files on folders (to the Recycle Bin)
