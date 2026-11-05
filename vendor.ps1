@@ -61,6 +61,14 @@ Copy-Item "$m\katex\dist\katex.min.js", "$m\katex\dist\katex.min.css" "$out\kate
 Copy-Item "$m\katex\dist\fonts\*.woff2" "$out\katex\fonts"
 Copy-Item "$m\mermaid\dist\mermaid.min.js" $out
 
+# A PDF (docs/plans/38-PLAN-pdf-view.md): pdf.js, its viewer, and what it loads as it needs it (character maps, the
+# standard fonts, the decoders of some image types).
+New-Item -ItemType Directory -Force "$out\pdfjs" | Out-Null
+Copy-Item "$m\pdfjs-dist\build\pdf.min.mjs", "$m\pdfjs-dist\build\pdf.worker.min.mjs", "$m\pdfjs-dist\web\pdf_viewer.mjs",
+    "$m\pdfjs-dist\web\pdf_viewer.css", "$m\pdfjs-dist\LICENSE" "$out\pdfjs"
+foreach ($d in 'cmaps', 'standard_fonts', 'wasm', 'iccs') { Copy-Item "$m\pdfjs-dist\$d" "$out\pdfjs" -Recurse }
+Copy-Item "$m\pdfjs-dist\web\images" "$out\pdfjs" -Recurse
+
 # Library versions, shown in the About window.
 $versions = [ordered]@{}
 foreach ($name in (Get-Content (Join-Path $PSScriptRoot 'package.json') -Raw | ConvertFrom-Json).dependencies.PSObject.Properties.Name) {
