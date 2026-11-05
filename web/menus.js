@@ -1,5 +1,5 @@
 'use strict';
-// The menu bar: File, Edit, Format, View, Options. Every item runs an action (actions.js), so its key
+// The menu bar: File, Edit, Select, Find, Go, Format, View, Window, Tools, Options. Every item runs an action (actions.js), so its key
 // comes from keys.json and the same thing can be done from a key, F1 or here. Alt+letter opens a menu;
 // in an open menu the arrows move, Enter runs, Esc closes one level, a letter runs its item. The focus
 // stays where it was (the editor), so an item works on the cursor and the selection there.
@@ -15,89 +15,106 @@ const GUTTER_ITEMS = [{ label: '&Line numbers', sub: [['&None', 'lineNumbers.set
   ['&Relative to the cursor', 'lineNumberCount.set', 'relative']] }, ['&Bookmarks', 'gutterColumn.toggle', 'bookmarks'],
   ['&Change markers (not saved)', 'gutterColumn.toggle', 'changes'], ['&Git markers (since the last commit)', 'gutterColumn.toggle', 'git'],
   ['&Fold markers', 'gutterColumn.toggle', 'folds'], ['&Highlights (a strip at the edge)', 'gutterColumn.toggle', 'highlights'], ['&Occurrences (their line numbers)', 'gutterColumn.toggle', 'occurrences']];
+// The menus follow the features (docs/plans/25-PLAN-menu-structure.md): each menu one subject, in the order of the
+// work (File, Edit, Select, Find, Go, Format, View, Window, Tools, Options); F1 groups the actions the same way.
 const MENUS = [
   ['&File', [
     ['&New file', 'newFile'], ['&Open file...', 'openFile'], ['Open &folder...', 'openFolder'], '-',
-    { label: 'Fa&vourite files', fill: () => favouriteItems('files') },
-    { label: 'Favo&urite folders', fill: () => favouriteItems('folders') },
-    { label: '&Recent files', fill: () => recentItems('files') },
-    { label: 'Recent fold&ers', fill: () => recentItems('folders') },
-    { label: 'Recently &closed', fill: () => recentItems('closed') }, '-',
-    ['Co&mpare files...', 'compareFiles'], ['Compare f&olders...', 'compareFolders'], '-',
-    ['&Save', 'save'], ['Save &as...', 'saveAs'], ['Revert to save&d', 'revertToSaved'], '-',
-    ['Close &tab', 'closeTab'], ['Close a&ll tabs', 'closeAllTabs'], ['Reopen closed ta&b', 'reopenTab'], ['Close &window', 'closeWindow'],
+    { label: '&Recents && Favourites', sub: [
+      { label: '&Recent files', fill: () => recentItems('files') },
+      { label: 'Recent fold&ers', fill: () => recentItems('folders') },
+      { label: 'Recently &closed', fill: () => recentItems('closed') }, '-',
+      { label: 'Fa&vourite files', fill: () => favouriteItems('files') },
+      { label: 'Favo&urite folders', fill: () => favouriteItems('folders') }] }, '-',
+    ['&Save', 'save'], ['Save &as...', 'saveAs'], ['Revert to save&d', 'revertToSaved'], ['Rena&me...', 'file.rename'], '-',
+    ['Close &tab', 'closeTab'], ['Close a&ll tabs', 'closeAllTabs'], ['Reopen closed ta&b', 'reopenTab'], '-',
+    { label: 'Close &window', action: 'closeWindow', key: 'Alt+F4' },   // Windows' own key: the window closes as by its X
   ]],
   ['&Edit', [
     ['&Undo', 'undo'], ['&Redo', 'redo'], '-',
-    ['Cu&t', 'cut'], ['&Copy', 'copy'], ['&Paste', 'paste'], ['Paste &image (asks how to link it)...', 'pasteImage'],
-    { label: 'Select c&lipboard', fill: () => clipboardItems() }, ['Manage clipboards...', 'clipboards.pane'], '-',
-    ['Col&umn mode', 'columnMode.toggle'], '-',
-    ['&Find', 'find'], ['R&eplace', 'replace'], ['&Search in files', 'searchInFiles'], ['Go to line...', 'goToLine'], ['Complete word', 'complete'], '-',
-    ['Select inside brac&kets', 'selectInsideBrackets'],
+    ['Cu&t', 'cut'], ['&Copy', 'copy'], ['&Paste', 'paste'], ['Paste i&mage (asks how to link it)...', 'pasteImage'], '-',
+    { label: 'C&lipboards', fill: async () => [...await clipboardItems(), '-', ['&Manage clipboards...', 'clipboards.pane']] }, '-',
+    { label: '&Insert', sub: [['&Character...', 'insertCharacter'], '-', ['&Link...', 'link'], ['&Image...', 'imageFromFile']] },
+    ['Complete wor&d', 'complete'], ['Insert / &overwrite', 'overwrite.toggle'], '-',
+    { label: 'Li&nes', sub: [['&Duplicate', 'duplicateLines'], ['Move &up', 'moveLinesUp'], ['Move do&wn', 'moveLinesDown'],
+      ['De&lete', 'deleteLines'], ['&Join', 'joinLines'], '-', ['&Indent', 'indentMore'], ['&Outdent', 'indentLess']] },
+    { label: 'H&elpers', sub: [['&Add tab stop', 'tabAdd'], ['&Remove tab stop', 'tabRemove'], ['&Clear tab stops', 'tabClear'], '-',
+      ['Add &helper line', 'helperAdd'], ['R&emove helper line', 'helperRemove'], ['C&lear helper lines', 'helperClear']] },
+    { label: '&Highlights', sub: [['&Highlight', 'highlight.toggle'], ['&Selection to highlight', 'highlight.fromSelection'],
+      ['Highlight &note...', 'highlight.note'], ['&Remove highlight', 'highlight.remove'], ['Remove &all highlights in this file', 'highlight.clear'],
+      ['&Keep the adjusted highlight', 'highlight.keep'], ['&Move all highlights to where the setting says', 'highlight.moveAll'], '-',
+      ['Manage highlights...', 'highlight.list']] },
+  ]],
+  ['&Select', [
+    ['Select &all', 'selectAll'], ['Select &line', 'selectLine'], ['Select inside &brackets', 'selectInsideBrackets'], '-',
+    ['&Column mode', 'columnMode.toggle'], { label: 'Select a bloc&k', sub: [['&Up', 'blockSelect', 'up'], ['&Down', 'blockSelect', 'down'],
+      ['&Left', 'blockSelect', 'left'], ['&Right', 'blockSelect', 'right']] }, '-',
     { label: '&Multiple cursors', sub: [['&Add occurrence', 'cursorAdd'], ['&Next occurrence', 'cursorNext'],
       ['&Previous occurrence', 'cursorPrevious'], ['&Remove occurrence', 'cursorRemove'], ['&Clear added cursors', 'cursorClear']] },
-    { label: 'Line comman&ds', sub: [['&Duplicate lines', 'duplicateLines'], ['Move lines &up', 'moveLinesUp'], ['Move lines do&wn', 'moveLinesDown'],
-      ['De&lete lines', 'deleteLines'], ['&Join lines', 'joinLines']] }, '-',
-    ['Show all occu&rrences', 'occurrences.show'],
-    ['Next secti&on', 'section', 1], ['Pre&vious section', 'section', -1], ['Ne&xt block', 'block.next', 1], ['Previous block', 'block.next', -1], '-',
+  ]],
+  ['F&ind', [
+    ['&Find', 'find'], ['Find &next', 'findNext'], ['Find &previous', 'findPrevious'], '-',
+    { label: '&Occurrences', fill: () => [['&Show all occurrences', 'occurrences.show'], ['Occurrences &field', 'occurrences.field'],
+      ...occurrenceItems()] },   // occurrences.js: Clear, and the bar shown or closed
+    '-', ['&Replace', 'replace'], ['Replace &all', 'replaceAll'], '-',
+    ['&Search in files', 'searchInFiles'], ['R&eplace in files', 'searchReplace'],
+  ]],
+  ['&Go', [
+    ['Go to &line...', 'goToLine'], ['Locate the &cursor (tap Ctrl)', 'locateCursor'], '-',
     { label: '&Bookmarks', sub: [
       { label: '&Go to bookmark', fill: () => loadEditor().then(() => bookmarkItems('go')) },   // bookmarks.js comes with the editor
       { label: '&Store bookmark', fill: () => loadEditor().then(() => bookmarkItems('store')) },
-      ['&Next bookmark', 'bookmarkNext', 1], ['&Previous bookmark', 'bookmarkNext', -1], '-',
-      ['&Manage bookmarks...', 'bookmarks.pane']] },
-    { label: '&Highlights', sub: [['&Highlight', 'highlight.toggle'], ['&Selection to highlight', 'highlight.fromSelection'],
-      ['Highlight &note...', 'highlight.note'], ['&Remove highlight', 'highlight.remove'], ['Remove &all highlights in this file', 'highlight.clear'], '-',
-      ['&Next highlight', 'highlight.next', 1], ['&Previous highlight', 'highlight.next', -1], ['&Keep the adjusted highlight', 'highlight.keep'], '-',
-      ['Highlights &window', 'highlight.list'], ['&Move all highlights to where the setting says', 'highlight.moveAll']] },
+      { label: '&Toggle bookmark', fill: () => loadEditor().then(() => bookmarkItems('toggle')) },
+      ['Toggle &unnumbered bookmark', 'bookmarkToggleFree'], ['&Next bookmark', 'bookmarkNext', 1], ['&Previous bookmark', 'bookmarkNext', -1],
+      { label: '&Clear bookmark', fill: () => loadEditor().then(() => bookmarkItems('clear')) },
+      ['Bookmarks of this &file...', 'bookmarkList'], '-', ['&Manage bookmarks...', 'bookmarks.pane']] }, '-',
+    ['Next &highlight', 'highlight.next', 1], ['Previous h&ighlight', 'highlight.next', -1], '-',
+    ['Next secti&on', 'section', 1], ['Pre&vious section', 'section', -1], ['Ne&xt block', 'block.next', 1], ['Previous bloc&k', 'block.next', -1], '-',
+    ['Opening b&racket', 'goToOpenBracket'], ['Closing br&acket', 'goToCloseBracket'], '-',
+    ['&Position back', 'positionBack'], ['Position &forward', 'positionForward'], '-',
+    ['Next &document', 'nextDocument'], ['Previous docu&ment', 'previousDocument'], ['Back in the &window', 'back'], ['Forward in the wi&ndow', 'forward'],
   ]],
-  // Filled when they open: the bar items, and the conversions, of the file's language and of the cursor line's.
+  // Filled when it opens: the bar items of the file's language and of the cursor line's, then Convert.
   ['Fo&rmat', () => formatMenuItems()],
-  ['Co&nvert', () => convertMenuItems()],
-  // Grouped by what the items belong to (docs/plans/executed/PLAN-settings-layers.md): this window (its layout), this screen
-  // (the zoom), the actions without a layer, all windows (global settings).
   ['&View', [
-    { header: 'This window' },
-    // Panels: every tool pane with a check when shown, the dock areas, Reset docking (docks.js); Document panels: what
-    // only exists inside a document's pane (docs/plans/24-PLAN-docking.md 3.14).
-    { label: 'Panels', fill: () => panelItems() },
-    { label: 'Document panels', sub: [['&Editor', 'editor.toggle'], ['&Preview', 'preview.toggle']] },
-    { label: 'Preview place', sub: [['At the &right', 'preview.right'], ['At the &left', 'preview.left'], ['&Above', 'preview.top'], ['&Below', 'preview.bottom']] },
-    { label: '&Macros', fill: () => macroMenuItems() },   // macros.js
-    ['R&uler', 'ruler.toggle'], ['For&matting bar', 'formatBar.toggle'], ['&Wrap long lines', 'wrap.toggle'],
-    { label: 'Tab ba&r', sub: [['One row that &scrolls', 'tabBar.set', 'scroll'], ['One row, a &menu for the rest', 'tabBar.set', 'menu'],
-      ['Several &rows', 'tabBar.set', 'rows']] },
+    ['&Editor', 'editor.toggle'], ['&Preview', 'preview.toggle'], ['Editor &and preview', 'split.toggle'], '-',
+    { label: 'Preview pla&ce', sub: [['At the &right', 'preview.right'], ['At the &left', 'preview.left'], ['&Above', 'preview.top'], ['&Below', 'preview.bottom']] }, '-',
+    ['&Wrap long lines', 'wrap.toggle'], ['R&uler', 'ruler.toggle'], ['For&matting bar', 'formatBar.toggle'], '-',
     { label: '&Gutter', sub: GUTTER_ITEMS },
-    { label: 'Occu&rrences', fill: () => occurrenceItems() },   // occurrences.js
     { label: 'Scroll &bar marks', sub: [['&Find matches', 'overviewMark.toggle', 'find'], ['&Occurrences', 'overviewMark.toggle', 'occurrences'],
       ['&Unsaved changes', 'overviewMark.toggle', 'changes'], ['&Git changes', 'overviewMark.toggle', 'git'],
       ['&Bookmarks', 'overviewMark.toggle', 'bookmarks'], ['&Highlights', 'overviewMark.toggle', 'highlights'], ['&Compare differences', 'overviewMark.toggle', 'compare']] },
-    { label: 'Pane orient&ation', sub: [['Side &by side', 'paneOrientation.set', 'v'], ['&Above each other', 'paneOrientation.set', 'h']] },
-    ['Scroll both panes &together', 'compareScroll.toggle'],
-    { label: 'La&yout', sub: [['&Save as default', 'layoutSaveDefault'], ['&Reset to default', 'layoutResetDefault'],
-      { label: '&Use layout of', fill: () => layoutSourceItems() }] },   // app.js
-    { header: 'This screen' },
-    { label: '&Zoom', sub: [['Zoom &in', 'zoomIn'], ['Zoom &out', 'zoomOut'], ['&100%', 'zoomReset'], '-', ['Use on &every screen', 'zoomEveryScreen']] },
-    '-',
-    ['Locate the &cursor (tap Ctrl)', 'locateCursor'], ['&Messages...', 'messages'],
-    { label: 'Pane &visibility', sub: [['&Hide this pane', 'paneHide'], ['Hide &other pane', 'paneHideOther'], ['&Close this pane', 'paneClose'],
-      ['C&lose other pane', 'paneCloseOther'], ['&Show hidden pane', 'paneShow']] },
-    ['Level the pa&nes', 'levelPanes'], ['Split into the ot&her pane', 'split'],
-    ['Position bac&k', 'positionBack'], ['Position forward', 'positionForward'], ['Back in the window', 'back'], ['Forward in the window', 'forward'],
-    ['&Language...', 'chooseLanguage'],
-    { label: 'Compare', sub: [['&Next difference', 'compareNext'], ['&Previous difference', 'comparePrevious'],
-      ['&Align the cursor lines', 'compareAlign'], ['&Swap the files', 'compareSwap'], '-', ['L&eave the compare', 'compareClose']] },
-    { header: 'All windows' },
-    { label: 'Compare options', sub: [['Ignore &whitespace', 'compareWhitespace.toggle'], ['Ignore &case', 'compareCase.toggle'],
-      ['&Line strip', 'compareStrip.toggle']] },
-    ['&Day / night', 'theme.toggle'],
+    { label: '&Tab bar', sub: [['One row that &scrolls', 'tabBar.set', 'scroll'], ['One row, a &menu for the rest', 'tabBar.set', 'menu'],
+      ['Several &rows', 'tabBar.set', 'rows']] },
   ]],
-  // Filled when it opens: every project with its windows (app.js, projectMenuItems).
-  ['&Projects', () => projectMenuItems()],
+  ['&Window', [
+    // Panels: every panel with a check when shown, the dock areas, Reset docking (docks.js, docs/plans/24-PLAN-docking.md 3.14).
+    { label: '&Panels', fill: () => panelItems() }, '-',
+    { label: '&Document panes', sub: [['&Left and right', 'paneOrientation.set', 'v'], ['&Top and bottom', 'paneOrientation.set', 'h'], '-',
+      ['&Hide this document pane', 'paneHide'], ['Hide the &other document pane', 'paneHideOther'], ['&Close this document pane', 'paneClose'],
+      ['C&lose the other document pane', 'paneCloseOther'], ['&Show the hidden document pane', 'paneShow'], '-',
+      ['This document in the other pane &too', 'split'], ['Le&vel the document panes', 'levelPanes'], ['Scroll both document panes toget&her', 'compareScroll.toggle']] },
+    { label: 'La&yout', sub: [['&Save as default', 'layoutSaveDefault'], ['&Reset to default', 'layoutResetDefault'],
+      { label: '&Use layout of', fill: () => layoutSourceItems() }] }, '-',   // app.js
+    // Filled when it opens: Manage, New, Rename, Move this window to, then every project with its windows (app.js).
+    { label: 'P&rojects', fill: () => projectMenuItems() }, '-',
+    { label: 'Close &window', action: 'closeWindow', key: 'Alt+F4' },
+  ]],
+  ['&Tools', [
+    { label: '&Macros', fill: () => macroMenuItems() }, '-',   // macros.js
+    { label: '&Compare', sub: [['Compare &files...', 'compareFiles'], ['Compare f&olders...', 'compareFolders'], '-',
+      ['&Next difference', 'compareNext'], ['&Previous difference', 'comparePrevious'],
+      ['&Align the cursor lines', 'compareAlign'], ['&Swap the files', 'compareSwap'], ['L&eave the compare', 'compareClose'], '-',
+      ['Ignore &whitespace', 'compareWhitespace.toggle'], ['Ignore &case', 'compareCase.toggle'], ['&Line strip', 'compareStrip.toggle']] },
+  ]],
   ['&Options', [
     ['&Settings...', 'settings'],
     { label: '&Theme set', fill: () => themeSetMenuItems() },   // this project's set (docs/plans/executed/PLAN-theme-sets.md)
-    '-',
-    ['&Keyboard shortcuts and commands', 'commands'], ['&About LexPen', 'about'],
+    ['&File types...', 'fileTypes'], '-',
+    ['&Day / night', 'theme.toggle'],
+    { label: '&Zoom', sub: [['Zoom &in', 'zoomIn'], ['Zoom &out', 'zoomOut'], ['&100%', 'zoomReset'], '-', ['Use on &every screen', 'zoomEveryScreen']] }, '-',
+    ['&Keyboard shortcuts and commands', 'commands'], ['The &macro language', 'macro.reference'], '-',
+    ['&About LexPen', 'about'],
   ]],
 ];
 
@@ -107,11 +124,12 @@ const menuBar = {
   top: -1,       // the open top menu
 };
 
-// "Save &as..." -> label "Save as..." with "a" as its letter.
+// "Save &as..." -> label "Save as..." with "a" as its letter; "&&" is an & itself ("Recents && Favourites").
 function menuLabel(text, plain) {
-  const at = plain ? -1 : text.indexOf('&');
-  if (at < 0) return { html: escapeHtml(text), letter: '' };
-  return { html: escapeHtml(text.slice(0, at)) + '<u>' + escapeHtml(text[at + 1]) + '</u>' + escapeHtml(text.slice(at + 2)),
+  const show = s => escapeHtml(plain ? s : s.replace(/&&/g, '&'));
+  const at = plain ? -1 : text.search(/(?<!&)&(?!&)/);
+  if (at < 0) return { html: show(text), letter: '' };
+  return { html: show(text.slice(0, at)) + '<u>' + escapeHtml(text[at + 1]) + '</u>' + show(text.slice(at + 2)),
     letter: text[at + 1].toLowerCase() };
 }
 
@@ -314,7 +332,9 @@ async function formatMenuItems() {
   const doc = activeDoc(), lang = languageOf(doc) ?? 'plaintext';
   const icon = { toggleComment: 'comment', blockComment: 'blockcomment' };   // as on the bars
   const items = [...COMMENT_ITEMS.map(([label, action]) => ({ label, action, icon: packs.plaintext?.icons?.[icon[action]] })), '-', ...barMenuItems(lang, null)];
-  return withInner(lang, items, inner => barMenuItems(inner, inner));
+  // Convert (no menu of its own: docs/plans/25-PLAN-menu-structure.md) and the file's language, after the language's own.
+  return [...withInner(lang, items, inner => barMenuItems(inner, inner)), '-', { label: 'Con&vert', fill: () => convertMenuItems() },
+    ['Lan&guage...', 'chooseLanguage']];
 }
 
 async function convertMenuItems() {

@@ -183,8 +183,8 @@ async function bookmarkItems(kind) {
   const list = bookmarkList(pane.active.doc);
   return Array.from({ length: 9 }, (_, i) => {
     const n = i + 1, b = list.find(x => x.n === n);
-    return { label: `Bookmark &${n}`, action: kind === 'go' ? 'bookmarkGo' : 'bookmarkStore', params: [n],
-      key: b ? bookmarkText(b) : '(not set)', enabled: kind === 'store' || !!b };
+    return { label: `Bookmark &${n}`, action: { go: 'bookmarkGo', store: 'bookmarkStore', toggle: 'bookmarkToggle', clear: 'bookmarkClear' }[kind],
+      params: [n], key: b ? bookmarkText(b) : '(not set)', enabled: kind === 'store' || kind === 'toggle' || !!b };
   });
 }
 

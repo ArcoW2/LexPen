@@ -218,7 +218,6 @@ Convert stops being a menu of its own (one fewer on the bar); its key menu at th
 - Panels > (as built in plan 24: every panel with its check, the dock areas, Reset docking)
 - | Document panes > (Left and right, Top and bottom, | Hide this document pane, Hide the other document pane, Close this document pane, Close the other document pane, Show the hidden document pane, | This document in the other pane too, Level the document panes, Scroll both document panes together [ ])
 - | Layout > (Save as default, Reset to default, Use layout of >)
-- | Messages...
 - | Projects > (Manage projects..., New project..., Rename this project..., Move this window to >, | each project with its windows, this one marked)
 - | Close window
 
@@ -254,7 +253,8 @@ What moves, against today:
 | Convert | own menu | Format > Convert |
 | Language... | View | Format |
 | Pane orientation, Pane visibility, Level, Split, Scroll together | View | Window > Document panes |
-| Layout >, Messages..., Panels > | View | Window |
+| Layout >, Panels > | View | Window |
+| Messages... | View | Window > Panels > Messages (it is a panel) |
 | Document panels > (Editor, Preview) | View | View, first level: Editor, Preview, Editor and preview |
 | Projects menu | own menu | Window > Projects > (Manage, New, Rename, Move to, the projects) |
 | Settings, Theme set | Options | Options (stay) |

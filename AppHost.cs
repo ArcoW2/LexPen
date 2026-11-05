@@ -405,6 +405,9 @@ sealed class AppHost : ApplicationContext
     string? SettingText(string name) => settings["values"]?[name]?.GetValueKind() == JsonValueKind.String ? settings["values"]![name]!.GetValue<string>() : null;
     bool SettingFlag(string name) => settings["values"]?[name]?.GetValueKind() == JsonValueKind.True;
 
+    /// <summary>A document's right-click menu offers WebView2's Voice typing (the setting voiceTyping).</summary>
+    public bool VoiceTyping => SettingFlag("voiceTyping");
+
     // ---------- Language packs (LanguagePacks) ----------
     static string UserLanguagesDir => Path.Combine(DataDir, LanguagePacks.FolderName);
     static string ShippedLanguagesDir => ShippedDir(LanguagePacks.FolderName);

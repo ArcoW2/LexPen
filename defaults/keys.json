@@ -130,6 +130,9 @@
   "Ctrl+K, N": ["bookmarkNext", 1],
   "Ctrl+K, P": ["bookmarkNext", -1],
   "Ctrl+K, L": "bookmarkList",
+  "F2": ["bookmarkNext", 1],          // as UltraEdit: F2 the next bookmark, Shift+F2 the previous one (numbered or not), Ctrl+F2 an unnumbered one
+  "Shift+F2": ["bookmarkNext", -1],
+  "Ctrl+F2": "bookmarkToggleFree",
   "Ctrl+O": "occurrences.field",     // the Occurrences bar opened, its field focused
   "Ctrl+Shift+O": "occurrences.clear", // the occurrences no longer marked
   "Ctrl+M": "macro.play",            // the macro played last, else the last recording (View > Macros)

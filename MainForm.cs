@@ -401,6 +401,15 @@ sealed class MainForm : Form
         core.ContextMenuRequested += async (_, m) =>
         {
             foreach (var item in m.MenuItems.Where(i => i.Name == "print").ToList()) m.MenuItems.Remove(item);
+            // Voice typing only with the setting (docs/plans/25-PLAN-menu-structure.md 3.5). WebView2 gives it no name of
+            // its own: the command in More tools named "other" (Share is "share"); its label is in Windows' language.
+            // More tools left empty goes too.
+            if (!app.VoiceTyping && m.MenuItems.FirstOrDefault(i => i.Name == "moreTools") is { } more)
+            {
+                foreach (var item in more.Children.Where(i => i.Name == "other" && i.Kind == CoreWebView2ContextMenuItemKind.Command).ToList())
+                    more.Children.Remove(item);
+                if (more.Children.Count == 0) m.MenuItems.Remove(more);
+            }
             // The items below belong to a document pane's editor and preview only: the page says where the right-click was.
             var deferral = m.GetDeferral();
             try
@@ -409,21 +418,26 @@ sealed class MainForm : Form
                 try { inDocument = await core.ExecuteScriptAsync("typeof contextInDocument === 'function' && contextInDocument()") == "true"; }
                 catch (Exception ex) when (ex is InvalidOperationException or COMException) { inDocument = false; }
                 if (inDocument) AddDocumentItems(m);
+                File.WriteAllLines(Path.Combine(Path.GetTempPath(), "lexpen-ctx.txt"), Dump(m.MenuItems, ""));   // TEMP
+                static IEnumerable<string> Dump(IList<CoreWebView2ContextMenuItem> items, string indent) => items.SelectMany(i => new[] { $"{indent}{i.Name} | {i.Label} | {i.Kind}" }.Concat(i.Kind == CoreWebView2ContextMenuItemKind.Submenu ? Dump(i.Children, indent + "  ") : []));   // TEMP
             }
             finally { deferral.Complete(); }
         };
         void AddDocumentItems(CoreWebView2ContextMenuRequestedEventArgs m)
         {
-            // Highlights (docs/plans/executed/PLAN-highlights.md): in the editor and the preview, on the selection or the cursor.
+            // Highlights (docs/plans/executed/PLAN-highlights.md): in the editor and the preview, on the selection or the cursor;
+            // one submenu (docs/plans/25-PLAN-menu-structure.md 3.5).
             var env = core.Environment;
             m.MenuItems.Add(env.CreateContextMenuItem("", null, CoreWebView2ContextMenuItemKind.Separator));
+            var highlight = env.CreateContextMenuItem("Highlight", null, CoreWebView2ContextMenuItemKind.Submenu);
             foreach (var (label, action) in new[] { ("Highlight", "highlight.toggle"), ("Selection to highlight", "highlight.fromSelection"),
                 ("Highlight note...", "highlight.note"), ("Remove highlight", "highlight.remove") })
             {
                 var item = env.CreateContextMenuItem(label, null, CoreWebView2ContextMenuItemKind.Command);
                 item.CustomItemSelected += (_, _) => Post(new JsonObject { ["event"] = "contextAction", ["action"] = action });
-                m.MenuItems.Add(item);
+                highlight.Children.Add(item);
             }
+            m.MenuItems.Add(highlight);
             // Occurrences (docs/plans/executed/PLAN-show-occurrences.md): on a selection, in the editor and the preview.
             if (m.ContextMenuTarget.HasSelection)
             {

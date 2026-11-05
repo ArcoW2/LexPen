@@ -8,10 +8,28 @@
 const PASS = Symbol('pass');   // returned by an action that does not apply here: the key keeps its own meaning
 
 // F1 shows the actions in these groups, in this order.
-const ACTION_GROUPS = [
-  ['files', 'Files'], ['tabs', 'Tabs and documents'], ['view', 'View'], ['edit', 'Edit and find'],
-  ['clipboard', 'Clipboards'], ['bookmarks', 'Bookmarks'], ['highlights', 'Highlights'], ['macros', 'Macros'], ['format', 'Format'], ['settings', 'Settings'],
-];
+// F1's groups are the menus (docs/plans/25-PLAN-menu-structure.md 3.6), then the setting toggles.
+const ACTION_GROUPS = [['file', 'File'], ['edit', 'Edit'], ['select', 'Select'], ['find', 'Find'], ['go', 'Go'], ['format', 'Format'],
+  ['view', 'View'], ['window', 'Window'], ['tools', 'Tools'], ['options', 'Options'], ['settings', 'Settings']];
+// An action's F1 group: the menu it is in (the first, its submenus included; not the ones filled when they open), else
+// by its own group.
+const GROUP_MENU = { files: 'file', tabs: 'window', view: 'view', edit: 'edit', clipboard: 'edit', bookmarks: 'go', highlights: 'edit',
+  macros: 'tools', format: 'format', settings: 'settings' };
+let menuHomes = null;
+function actionGroup(name, def) {
+  if (!menuHomes) {
+    menuHomes = new Map();
+    const walk = (items, group) => {
+      for (const it of items) {
+        const action = Array.isArray(it) ? it[1] : it?.action;
+        if (action && !menuHomes.has(action)) menuHomes.set(action, group);
+        if (it?.sub) walk(it.sub, group);
+      }
+    };
+    for (const [title, items] of MENUS) if (Array.isArray(items)) walk(items, title.replace('&', '').toLowerCase());
+  }
+  return menuHomes.get(name) ?? GROUP_MENU[def.group] ?? 'format';
+}
 
 // ---------- App actions ----------
 // { title, hint, group, run(params, ctx), editor: works on the editor, move: Shift selects,
@@ -213,7 +231,7 @@ appAction('forward', { title: 'Forward in the window', hint: 'Again forward thro
 appAction('positionBack', { title: 'Position back', hint: 'The cursor back to where it was before its last jump in this document (go to line, a find, a bookmark, Ctrl+Home, a click far away); also the mouse back button', group: 'edit', run: () => stepPlace(-1) });
 appAction('positionForward', { title: 'Position forward', hint: 'Again forward after Position back; also the mouse forward button', group: 'edit', run: () => stepPlace(1) });
 
-toggleAction('split', { title: 'Editor and preview side by side', hint: 'The preview next to the editor, or the editor alone', group: 'view',
+toggleAction('split', { title: 'Editor and preview', hint: 'The editor and the preview both (the preview at its place), or the editor alone', group: 'view',
   enabled: () => !!activeTab() }, () => activeTab()?.mode === 'split', () => togglePreview());
 toggleAction('editor', { title: 'Editor', hint: 'Show or hide the editor (at least one of editor and preview stays)', group: 'view',
   enabled: () => !!activeTab() }, () => !!activeTab() && activeTab().mode !== 'preview', () => setSwitch('editor'), ['show', 'hide']);
@@ -223,7 +241,7 @@ toggleAction('preview', { title: 'Preview', hint: 'Show or hide the preview (at 
 // layout (previewPlace, previewPlace2); the active pane's (the splitter's right-click menu: its own pane's, app.js).
 const PREVIEW_PLACES = [['right', 'Preview at the right'], ['left', 'Preview at the left'], ['top', 'Preview above'], ['bottom', 'Preview below']];
 for (const [place, title] of PREVIEW_PLACES)
-  appAction(`preview.${place}`, { title, hint: 'Where the preview is in this editor pane when editor and preview both show (also the right-click on the line between them)', group: 'view',
+  appAction(`preview.${place}`, { title, hint: 'Where the preview is in this document pane when editor and preview both show (also the right-click on the line between them)', group: 'view',
     checked: () => previewPlace(panes[state.activePane]) === place, run: () => setPreviewPlace(panes[state.activePane], place) });
 toggleAction('outline', { title: 'Outline', hint: 'The headings (or procedures, classes, ...) at the right of the active pane; click one to go there (each pane has its own, also its button in the tab strip)', group: 'view',
   enabled: () => hasOutline(activeDoc()) }, () => outlineOn(panes[state.activePane]), () => commands.outline(), ['show', 'hide']);
@@ -267,16 +285,16 @@ appAction('layoutUseFrom', { title: 'Use layout of...', group: 'view',
     if (kind) return useLayoutFrom(kind, id, name);
     openPopupMenu(await layoutSourceItems(), innerWidth / 2 - 150, innerHeight / 3);   // from F1: the same list
   } });
-appAction('paneOrientation.set', { title: 'Panes', hint: 'Side by side or above each other', group: 'view',
-  variants: [['v'], ['h']], variantTitles: { v: 'Panes side by side', h: 'Panes above each other' },
+appAction('paneOrientation.set', { title: 'Document panes', hint: 'The two document panes left and right, or top and bottom', group: 'view',
+  variants: [['v'], ['h']], variantTitles: { v: 'Document panes left and right', h: 'Document panes top and bottom' },
   checked: ([o]) => state.orient === o, run: ([o]) => state.orient === o || commands.orient() });
 const paneAction = (name, title, run, enabled = () => bothShown()) =>
   appAction(name, { title, group: 'view', enabled, run: () => { menuPaneIndex = state.activePane; run(); } });
-paneAction('paneHide', 'Hide this pane', () => commands.paneHide());
-paneAction('paneHideOther', 'Hide other pane', () => commands.paneHideOther());
-paneAction('paneClose', 'Close this pane', () => commands.paneClose());
-paneAction('paneCloseOther', 'Close other pane', () => commands.paneCloseOther());
-paneAction('paneShow', 'Show hidden pane', () => showHiddenPane(), () => state.hidden !== null);
+paneAction('paneHide', 'Hide this document pane', () => commands.paneHide());
+paneAction('paneHideOther', 'Hide the other document pane', () => commands.paneHideOther());
+paneAction('paneClose', 'Close this document pane', () => commands.paneClose());
+paneAction('paneCloseOther', 'Close the other document pane', () => commands.paneCloseOther());
+paneAction('paneShow', 'Show the hidden document pane', () => showHiddenPane(), () => state.hidden !== null);
 appAction('tabBar.set', { title: 'Tab bar', hint: 'Tabs that do not fit: one row that scrolls, one row with a menu for the tabs out of view, or several rows', group: 'view',
   variants: [['scroll'], ['menu'], ['rows']],
   variantTitles: { scroll: 'Tab bar: one row that scrolls', menu: 'Tab bar: one row, a menu for the rest', rows: 'Tab bar: several rows' },
@@ -298,11 +316,11 @@ appAction('zoomEveryScreen', { title: 'Zoom: use on every screen', hint: 'This s
   run: () => zoomOnEveryScreen() });
 toggleAction('theme', { title: 'Day / night', hint: 'Light or dark, for all windows', group: 'view' },
   () => state.theme === 'dark', () => commands.theme(), ['night', 'day']);
-toggleAction('compareScroll', { title: 'Scroll both panes together', hint: 'By source line', group: 'view', enabled: () => bothShown() },
+toggleAction('compareScroll', { title: 'Scroll both document panes together', hint: 'By source line', group: 'view', enabled: () => bothShown() },
   () => state.sync, () => commands.sync());
-appAction('levelPanes', { title: 'Level the panes', hint: 'Level the two panes so they start scrolling from the same line number', group: 'view',
+appAction('levelPanes', { title: 'Level the document panes', hint: 'Level the two document panes so they start scrolling from the same line number', group: 'view',
   enabled: () => bothShown() && keepsDistance(), run: () => levelPanes() });
-appAction('split', { title: 'Split', hint: 'The file in the other pane too, at the same place, with its own cursor and scroll position; both edit it', group: 'view',
+appAction('split', { title: 'This document in the other pane too', hint: 'The file in the other document pane too, at the same place, with its own cursor and scroll position; both edit it', group: 'view',
   run: () => splitToOther() });
 appAction('commands', { title: 'Keyboard shortcuts and commands', hint: 'This list; Enter runs the selected command', group: 'view', run: () => showPalette() });
 appAction('about', { title: 'About LexPen', hint: 'Version and libraries', group: 'view', run: () => showAbout() });
@@ -339,6 +357,8 @@ appAction('goToLine', { title: 'Go to line', hint: 'A line number, or line:colum
     cm.focus();
   } });
 // Select inside brackets (brackets.js): what lies between the pair or word set at the cursor. No key.
+appAction('selectAll', { title: 'Select all', hint: 'The whole text (also Ctrl+A, the editor\'s own key)', group: 'edit', editor: true,
+  run: (_, { pane }) => pane.cm.execCommand('selectAll') });
 appAction('selectLine', { title: 'Select line', hint: 'The text of the cursor line, without its line break (a macro copies the line alone with it)', group: 'edit', editor: true,
   run: (_, { pane }) => { const cm = pane.cm, l = cm.getCursor().line; cm.setSelection({ line: l, ch: 0 }, { line: l, ch: cm.getLine(l).length }); } });
 appAction('selectInsideBrackets', { title: 'Select inside brackets', hint: 'Between the pair the highlight shows: ( ), begin ... end, a string', group: 'edit', editor: true,
@@ -539,6 +559,10 @@ const SETTING_ROWS = [
   { name: 'keepUnnamedProjects', group: 'General', sub: 'Windows', kind: 'toggle', title: 'Keep unnamed projects',
     hint: 'Windows with files but with an unnamed project ("Project n") are kept for reopening',
     hintOff: 'Windows with files for unnamed projects ("Project n") are not remembered for reopening' },
+  // WebView2's Voice typing in a document's right-click menu (docs/plans/25-PLAN-menu-structure.md 3.5; MainForm.cs).
+  { name: 'voiceTyping', group: 'General', sub: 'Right-click menu', kind: 'toggle', title: 'Voice typing',
+    hint: 'The right-click menu of a document offers Voice typing (More tools > Voice typing)',
+    hintOff: 'No Voice typing in the right-click menu of a document' },
   // The project for viewing (docs/plans/executed/PLAN-view-window.md): Explorer's View in LexPen opens files there.
   { name: 'viewProject', group: 'General', sub: 'Viewing', kind: 'project', title: 'Project for viewing',
     hint: 'View in LexPen (Explorer) opens files and folders in this project. A normal project: what you change there (panes, colours) stays for the next view' },

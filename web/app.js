@@ -4429,17 +4429,17 @@ async function projectMenuItems() {
       } }]),
     ],
   });
+  // Manage, New, Rename, Move this window to, then the projects (docs/plans/25-PLAN-menu-structure.md: Window > Projects).
   return [
-    { label: '&Manage projects...', title: 'All projects in a window: open, close, merge, rename, delete', run: () => openToolPane('projects', 'openProjects') }, '-',
-    ...list.map(projectItem), '-',
+    { label: '&Manage projects...', title: 'All projects in a window: open, close, merge, rename, delete', run: () => openToolPane('projects', 'openProjects') },
     { label: '&New project...', title: 'A new empty window in a new project', run: () => ask('New project', name => host('project', { kind: 'new', name })) },
-    '-',
     { label: '&Rename this project...', run: () => renameProject() },
     { label: '&Move this window to', move: true, sub: [
       ...list.filter(p => !p.mine).map(p => ({ label: p.display, plain: true, run: () => host('project', { kind: 'move', project: p.id }) })),
       ...(list.some(p => !p.mine) ? ['-'] : []),
       { label: 'New project...', plain: true, run: () => ask('Move this window to a new project', name => host('project', { kind: 'move', name })) },
-    ] },
+    ] }, '-',
+    ...list.map(projectItem),
   ];
 }
 

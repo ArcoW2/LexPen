@@ -76,7 +76,7 @@ function paletteEntries() {
     const id = callId([name, ...params]);
     if (seen.has(id)) return;
     seen.add(id);
-    entries.push({ name, params, group: def.group || 'format', title: actionTitle(name, params), hint: def.hint || '', keys: keysOf(name, ...params) });
+    entries.push({ name, params, group: actionGroup(name, def), title: actionTitle(name, params), hint: def.hint || '', keys: keysOf(name, ...params) });
   };
   for (const name of [...appActions.keys(), ...packActionNames()]) {
     const def = actionDef(name);
