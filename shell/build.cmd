@@ -1,5 +1,5 @@
 @echo off
-rem Builds LexPenShell.dll (docs/plans/40-PLAN-explorer-compare-two.md 3.4) into %1 with Visual Studio's C++ tools,
+rem Builds LexPenShell.dll (docs/plans/executed/PLAN-explorer-compare-two.md 3.4) into %1 with Visual Studio's C++ tools,
 rem its intermediate files in %2. Called by LexPen.csproj after each build. Without the C++ tools: a warning, no DLL.
 rem Explorer keeps a DLL it loaded open: then the old one is renamed (that is allowed), the new one takes its name.
 setlocal

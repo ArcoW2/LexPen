@@ -64,7 +64,7 @@
     <Message Importance="high" Text="LexPen version $(Version) $(GitCommit)" />
   </Target>
 
-  <!-- The Explorer extension (shell\LexPenShell.cpp, docs/plans/40-PLAN-explorer-compare-two.md): LexPenShell.dll next
+  <!-- The Explorer extension (shell\LexPenShell.cpp, docs/plans/executed/PLAN-explorer-compare-two.md): LexPenShell.dll next
        to the exe, built with Visual Studio's C++ tools (shell\build.cmd), the compare items' icons inside it; without
        the tools a warning and no DLL, and the setting explorerShell then keeps today's entries (with LexPen's own
        icon). Also into a publish. -->

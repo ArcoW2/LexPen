@@ -15,8 +15,9 @@ The stall log has it too (11:59:12, a script ran 6360 ms; 11:59:21, 5385 ms; bot
 
 Switching back to a tab no longer redoes the preview's layout: the browser lays out only the lines in view
 (blocks of lines with `content-visibility: auto`), and a tab's preview keeps its layout while another tab is
-shown. A first render runs in slices between frames with a "Rendering preview..." notice, so the app keeps
-responding: switching the preview off (or to another tab) during it stops the render.
+shown. A first render runs in slices between frames with a "Rendering preview..." notice in the preview, so the
+app keeps responding: switching the preview off (or to another tab) during it stops the render. A code file over a
+size you set does not open its preview by itself.
 
 ## 3. Details
 
@@ -51,7 +52,8 @@ part that already takes a few hundred ms. The layout has to become small. The ba
 
 ### 3.3 Blocks of lines
 
-- The code preview's `<pre class="mm-code">` holds blocks of N lines each, `<div class="mm-chunk">`, around the
+- Every code preview (not only a large one: one way of working) has its `<pre class="mm-code">` hold blocks of N
+  lines each, `<div class="mm-chunk">`, around the
   `<div data-line>` lines it has now. Every line keeps its own `data-line` div, so the outline, the scroll sync,
   previewjump and sourcemap (the users of `[data-line]`) find the same elements.
 - CSS: `.mm-chunk { content-visibility: auto; contain-intrinsic-block-size: auto <N>lh; }`. Off-screen blocks are
@@ -97,11 +99,19 @@ The proposal is both: blocks for the first show and for scrolling, the kept arti
 
 - `renderNow` for a code file builds and attaches the blocks a slice at a time (a few blocks per frame), checking
   `tab.renderId` between slices so an edit or another render stops the old one. Until the last slice: a notice at
-  the top of the preview, "Rendering preview...".
+  the top of the preview, "Rendering preview..." (in the preview only, not in the status bar).
 - Only when the build takes long enough to be seen: below [not yet decided] ms in one go nothing changes for
   small files.
 - The passes after a render (preview cursors, highlights, occurrences, the scroll bar) run once, after the last
   slice.
+
+### 3.6a A large code file: the preview only when asked for
+
+- A setting (Settings > Preview): a code file larger than it opens without its preview (editor only), whatever its
+  language would open in; the Preview switch (or Side by side) shows it when wanted. Default 2 MB, the size above
+  which the code preview is not coloured (`PREVIEW_COLOUR_LIMIT`); 0: no limit.
+- Only how such a file opens: a tab already showing its preview keeps it, and View in LexPen (the project for
+  viewing) still shows the preview, as that is what it was asked for.
 
 ### 3.7 What to check (risks)
 
@@ -129,7 +139,5 @@ To check with the large file and a small one:
 
 ### 3.9 Open questions
 
-1. Where the notice goes: in the preview (the proposal), in the status bar, or both?
-2. Large files: should the preview of a code file over some size not open by itself at all (only when asked
-   for), as you said it is often not what you came for? If so: which size, and is it a setting?
-3. Blocks for every code preview (simplest, one way of working), or only above a size?
+None: the notice in the preview (3.6), a size setting for opening without the preview (3.6a), blocks for every
+code preview (3.3).

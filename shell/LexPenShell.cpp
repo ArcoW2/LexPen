@@ -1,5 +1,5 @@
 // LexPenShell.dll: LexPen's items in Explorer's right-click menu, each shown by what is selected
-// (docs/plans/40-PLAN-explorer-compare-two.md). Explorer commands (IExplorerCommand), each a class of its own that
+// (docs/plans/executed/PLAN-explorer-compare-two.md). Explorer commands (IExplorerCommand), each a class of its own that
 // ExplorerMenu.cs registers for the current user, all in one place so they stay together:
 //   Left:      one file or folder: "Select left side to compare" (with a left side: "Select as new left side ...").
 //   CompareTo: one file or folder, a left side chosen and not this one: "Compare to <its name>".

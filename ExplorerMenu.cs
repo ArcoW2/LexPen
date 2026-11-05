@@ -25,7 +25,7 @@ static class ExplorerMenu
     // Explorer puts the entries of a kind in the order of their key names: compare, delete backups, edit, view.
     static readonly string[] Verbs = [LeftVerb, PairVerb, ToVerb, BackupsVerb, EditVerb, ViewVerb];
 
-    // The Explorer extension (LexPenShell.dll, shell\LexPenShell.cpp; docs/plans/40-PLAN-explorer-compare-two.md): every
+    // The Explorer extension (LexPenShell.dll, shell\LexPenShell.cpp; docs/plans/executed/PLAN-explorer-compare-two.md): every
     // LexPen item a command of it, each a class of its own, shown by what is selected; all under AllKind, so Explorer keeps
     // them together. In a submenu: one command, LexPen, whose items the extension gives. What they need from LexPen is in
     // ShellKey (the exe, the left side's file, which items are on). `Item`: the setting that turns it on.

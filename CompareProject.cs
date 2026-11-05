@@ -20,7 +20,7 @@ static class CompareProject
         id == SameAsViewing ? view : (id > 0 ? store.Get(id) : null) ?? store.Projects.FirstOrDefault(p => p.Name == Name);
 
     /// <summary>
-    /// A file and a folder to compare (docs/plans/40-PLAN-explorer-compare-two.md 3.2): the file against the folder's
+    /// A file and a folder to compare (docs/plans/executed/PLAN-explorer-compare-two.md 3.2): the file against the folder's
     /// file of the same name, the file keeping its side. Two files or two folders, or anything else: as given, no
     /// message. A file and a folder without that file, or with the file itself in it: no pair, and the message why.
     /// </summary>
