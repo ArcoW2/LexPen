@@ -799,6 +799,23 @@ sealed class MainForm : Form
                 app.Rulers.Set(BookmarkStore.Key(msg["path"]?.GetValue<string>(), msg["draft"]?.GetValue<string>()), msg["lines"]!.AsArray());
                 return null;
 
+            // The column definition of a CSV (ColumnStore, docs/plans/executed/PLAN-csv-columns.md 3.4): the one next to the
+            // file first ({ beside, table }), else LexPen's own ({ table }), else null.
+            case "columnsGet":
+            {
+                var path = msg["path"]?.GetValue<string>();
+                if (path is not null && ColumnStore.Beside(path) is var (beside, table)) return new JsonObject { ["beside"] = beside, ["table"] = table.DeepClone() };
+                return app.Columns.Open(BookmarkStore.Key(path, msg["draft"]?.GetValue<string>())) is JsonObject kept ? new JsonObject { ["table"] = kept } : null;
+            }
+
+            case "columnsSet":
+                app.Columns.Set(BookmarkStore.Key(msg["path"]?.GetValue<string>(), msg["draft"]?.GetValue<string>()), msg["table"] as JsonObject);
+                return null;
+
+            // Written next to the file: the path it went to.
+            case "columnsSaveBeside":
+                return ColumnStore.SaveBeside(Arg("path"), msg["table"]!.AsObject());
+
             // After a reload from disk: the bookmarks the file had, placed in its new text.
             case "bookmarksResolve":
                 return BookmarkStore.Resolve(msg["list"]!.AsArray(), Arg("text"));

@@ -624,8 +624,11 @@ function makePane(index) {
     e.preventDefault();
     zoomBy(e.deltaY < 0 ? 1 : -1);
   }, { passive: false });
-  pane.previewEl.addEventListener('click', e => onPreviewClick(pane, e));
+  pane.previewEl.addEventListener('click', e => { csvClick(pane, e); onPreviewClick(pane, e); });   // a hidden column's mark (csvview.js)
   pane.previewEl.addEventListener('dblclick', e => typeof previewToEditor === 'function' && previewToEditor(pane, e));   // previewjump.js
+  pane.previewEl.addEventListener('mousemove', e => csvHover(pane, e));   // the cell in the bottom bar (csvview.js)
+  pane.previewEl.addEventListener('mouseleave', () => pane.csvHover && csvHover(pane, {}));
+  pane.previewEl.addEventListener('contextmenu', e => csvMenu(pane, e));
   pane.previewEl.addEventListener('mousemove', e => {   // a highlight's note as tooltip (highlights.js)
     if (typeof previewNoteAt !== 'function' || !pane.hlSpots?.length) return;
     const note = previewNoteAt(pane, e.clientX, e.clientY) ?? '';
@@ -995,22 +998,29 @@ async function renderNow(tab) {
   tab.stale = false;
   tab.lines = null;
   tab.lineBlocks = null;
+  tab.csv = null;
   const doc = tab.doc, text = docText(doc), article = tab.article;
+  const csv = doc.language === 'csv';   // the column view (csvview.js)
 
   // Built in a <template> so images are not requested before their paths are fixed.
   // A code file: its language's colouring (languages.js, the editor script has the colouring engine); markdown
   // too when it has fenced code or lines you gave a language (coloured by their packs).
-  const needsEngine = doc.language || doc.ranges?.length || /^\s*(`{3,}|~{3,})\s*[\w#+.-]/m.test(text);
+  const needsEngine = (doc.language && !csv) || doc.ranges?.length || /^\s*(`{3,}|~{3,})\s*[\w#+.-]/m.test(text);
   if (needsEngine && !window.CodeMirror?.runMode) {
     await loadEditor();
     if (id !== tab.renderId) return;
   }
+  if (csv && !doc.csvDef) {   // its definition: next to the file, kept, or detected (csvview.js)
+    await csvLoad(doc, text);
+    if (id !== tab.renderId) return;
+  }
   const tpl = document.createElement('template');
-  tpl.innerHTML = doc.language
+  if (csv) tpl.content.append(csvViewElement(tab, text));
+  else tpl.innerHTML = doc.language
     ? `<pre class="mm-code" data-lang="${doc.language}">${codeHtml(text, text.length > PREVIEW_COLOUR_LIMIT ? 'text/plain' : editorMode(doc))}</pre>`
     : doc.ranges?.length ? renderMarkdownWithRanges(text, doc) : md.render(withFrontMatter(text));
   const content = tpl.content;
-  if (doc.language && hasLongLine(text)) content.firstElementChild.classList.add('mm-long-line');
+  if (doc.language && !csv && hasLongLine(text)) content.firstElementChild.classList.add('mm-long-line');
 
   const dir = doc.path ? dirOf(doc.path) : state.root;
   if (dir) {
@@ -1034,6 +1044,7 @@ async function renderNow(tab) {
     if (hasLongLine(code.textContent)) code.parentElement.classList.add('mm-long-line');
 
   article.replaceChildren(content);
+  if (tab.csv) for (const pane of panes) if (pane.active === tab) csvDraw(pane);
 
   const formulas = article.querySelectorAll('.tex');
   if (formulas.length) {
@@ -1278,7 +1289,10 @@ function relayout() {
   for (const tab of allTabs()) tab.lines = null;
   if (typeof placeFocusRing === 'function') requestAnimationFrame(placeFocusRing);   // a part moved (sidebar, panes)
 }
-addEventListener('resize', () => { for (const tab of allTabs()) tab.lines = null; });
+addEventListener('resize', () => {
+  for (const tab of allTabs()) tab.lines = null;
+  for (const pane of panes) csvDraw(pane);   // the rows in view of a CSV (csvview.js)
+});
 
 // Shows the pane's active tab (or the welcome page when it has none).
 async function showActive(pane) {
@@ -1297,6 +1311,7 @@ async function showActive(pane) {
     if (swapped) pane.previewEl.replaceChildren(tab.article);
     if (tab.mode !== 'edit' && tab.stale) render(tab);   // builds the content before the first await
     if (swapped) pane.previewEl.scrollTop = tab.previewTop;
+    csvDraw(pane);
     if (tab.mode !== 'preview') {
       await track(ensureEditor(pane));
       if (pane.active !== tab) return;
@@ -1730,6 +1745,7 @@ try {
 
 function updateStatus() {
   if (typeof tellBookmarksPanes === 'function') tellBookmarksPanes();   // their lines move with the text (bookmarkspane.js)
+  if (typeof colsDoc === 'function' && colsDoc() !== colsPane.doc) tellColumnsPane();   // another document (columnspane.js)
   const pane = panes[state.activePane], tab = pane.active, doc = tab?.doc;
   const cm = tab && pane.cm && pane.el.dataset.mode !== 'preview' ? pane.cm : null;
   let pos = '';
@@ -1746,7 +1762,8 @@ function updateStatus() {
       pos += ` (${selected.length} selected${lines > 1 ? `, ${lines} lines` : ''})`;
     }
   }
-  statusUi.pos.textContent = pos;
+  const cell = csvStatus(pane, cm);   // a CSV: the row and column (csvview.js)
+  statusUi.pos.textContent = cell ? (pos ? pos + ' - ' : '') + cell : pos;
   // The character after the cursor (charpicker.js): its code; its name in the tooltip, asked when the mouse is on it.
   const at = cm && !cm.somethingSelected() ? charAtCursor(cm) : null;
   statusUi.char.hidden = !at;
@@ -2254,16 +2271,19 @@ function sortItems(items) {
 
 // A folder's entries for the Folder pane, with their marks. Backup files (name.ext.bak) only with the setting
 // showBackupFiles; highlights next to a file (name.ext.lph, highlights.js) never: the file gets a mark instead. A file
-// with a backup next to it: a dot before its name (plan 33).
+// with a backup next to it: a dot before its name (plan 33). A CSV with its definition next to it (name.csv-metadata.json,
+// plan 29): a mark before its name; the metadata file stays listed.
 async function listItems(path) {
   const listed = await host('list', { path });
   const withHighlights = new Set(listed.filter(i => !i.dir && /\.lph$/i.test(i.name)).map(i => i.name.slice(0, -4).toLowerCase()));
   const withBackups = new Set(listed.filter(i => !i.dir && /\.bak$/i.test(i.name)).map(i => i.name.slice(0, -4).toLowerCase()));
+  const withColumns = new Set(listed.filter(i => !i.dir && /-metadata\.json$/i.test(i.name)).map(i => i.name.slice(0, -14).toLowerCase()));
   const items = listed.filter(i => i.dir || (!/\.lph$/i.test(i.name) && (setting('showBackupFiles') || !/\.bak$/i.test(i.name))));
   return [...sortItems(items), ...deletedIn(path, items)].map(item => ({
     path: item.path, name: item.name, dir: !!item.dir, gone: !!item.gone, other: !item.dir && !knownFile(item.name),
     backup: !item.dir && !item.gone && withBackups.has(item.name.toLowerCase()),
     highlights: !item.dir && withHighlights.has(item.name.toLowerCase()), git: gitStatusOf(item) || null,
+    columns: !item.dir && !item.gone && withColumns.has(item.name.toLowerCase()),
   }));
 }
 
@@ -3175,6 +3195,8 @@ function registerDockPanes() {
   registerStepPanes();
   // Bookmarks (stage 10; bookmarkspane.js): the window's (the active document) and each editor pane's own.
   registerBookmarksPanes();
+  // Columns (plan 29; columnspane.js): how the active document is read as CSV.
+  registerColumnsPane();
   // Manage theme sets (7b): LexPen's, as Manage projects (ThemeSetsForm).
   registerToolPane('themesets', 'Theme sets', 'themesets.html', 'openThemeSetsWindow', 'closeThemeSets');
   // The window's outline: in one of the window's dock areas (at the right, the first time it is docked) or floating;
@@ -4030,6 +4052,7 @@ function lineMap(pane) {
   if (tab.lines) return tab.lines;
   const base = pane.previewEl.getBoundingClientRect().top - pane.previewEl.scrollTop;
   const map = [];
+  if (tab.csv) return tab.lines = csvLineMap(tab, base);
   if (tab.doc.language) {
     // A code file is one <pre>: its lines are evenly spaced.
     const pre = tab.article.querySelector('pre');
@@ -4121,6 +4144,7 @@ function scrolledAlone(pane) {
 }
 
 function onPreviewScroll(pane) {
+  csvDraw(pane);
   markOutline(pane);
   if (pane.ignoreScroll) return pane.ignoreScroll = false;
   if (scrolledAlone(pane)) return;
@@ -4941,6 +4965,8 @@ function applySettings() {
   const changed = name => !(name in was) || was[name] !== now[name];
   if (FONT_SETTINGS.some(changed)) applyFonts();
   if (changed('wrap')) applyWrap(now.wrap);
+  if ((changed('csvMaxWidth') || changed('csvStickyHeader')) && 'csvMaxWidth' in was)
+    for (const tab of allTabs()) if (tab.doc.language === 'csv') { tab.doc.csv = null; if (paneOf(tab)?.active === tab) render(tab); else tab.stale = true; }
   if (changed('previewWrap')) document.body.toggleAttribute('data-preview-nowrap', now.previewWrap === false);
   if (changed('showBackupFiles') && 'showBackupFiles' in was) refreshTree(false);
   if (changed('tabBar')) applyTabBar(now.tabBar);

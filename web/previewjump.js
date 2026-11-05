@@ -102,7 +102,7 @@ async function previewToEditor(pane, e) {
   const tab = pane.active;
   if (!tab || e.button !== 0) return;
   const { node, offset, word } = wordAt(e.clientX, e.clientY, e.target);
-  const found = sourceRangeOf(tab.doc, tab.article, node, offset, word);
+  const found = tab.csv ? csvSourceAt(tab, e) : sourceRangeOf(tab.doc, tab.article, node, offset, word);   // a CSV cell: csvview.js
   if (!found) return;
   // The editor that takes it: this pane's (split view, or preview only: it becomes split view), or the other pane's
   // when that shows this document in the editor.

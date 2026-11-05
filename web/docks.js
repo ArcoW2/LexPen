@@ -480,7 +480,7 @@ function onPaneMoved({ pane, at }) {
 }
 
 // ---------- The actions (F1, keys.json): a pane as their value ----------
-const DOCK_PANE_TITLES = { folder: 'the Folder pane', search: 'the Search pane', chars: 'Characters', hls: 'Highlights', settings: 'Settings', projects: 'Manage projects', themesets: 'Theme sets', macros: 'Macros', bm: 'Bookmarks', messages: 'Messages', clips: 'Clipboards', step: 'Step by step', commands: 'Keyboard shortcuts and commands' };
+const DOCK_PANE_TITLES = { folder: 'the Folder pane', search: 'the Search pane', chars: 'Characters', hls: 'Highlights', settings: 'Settings', projects: 'Manage projects', themesets: 'Theme sets', macros: 'Macros', bm: 'Bookmarks', cols: 'Columns', messages: 'Messages', clips: 'Clipboards', step: 'Step by step', commands: 'Keyboard shortcuts and commands' };
 for (const [name, title, hint, run] of [
   ['dock.left', 'Dock left', 'In the dock area at the left, a tab beside the panes there', id => dockPaneAt(id, 'left')],
   ['dock.right', 'Dock right', 'In the dock area at the right, a tab beside the panes there', id => dockPaneAt(id, 'right')],
@@ -504,6 +504,7 @@ const PANELS = [
   ['&Characters', 'chars', () => runAction('insertCharacter')],
   ['&Highlights', 'hls', () => runAction('highlight.list')],
   ['&Bookmarks', 'bm', () => runAction('bookmarks.pane')],
+  ['Col&umns (CSV)', 'cols', () => runAction('csv.columns')],
   ['Step b&y step', 'step', () => showStepPane()],
   ['&Messages', 'messages', () => runAction('messages')],
   ['C&lipboards', 'clips', () => runAction('clipboards.pane')],
