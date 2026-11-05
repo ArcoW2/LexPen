@@ -30,6 +30,29 @@ public class CompareProjectTests : IDisposable
         Assert.Same(compare, CompareProject.Find(store, 999, view));    // the chosen one is gone
     }
 
+    // A file and a folder (Plan 40): the file against the folder's file of the same name, the file keeping its side.
+    [Fact]
+    public void AFileAndAFolderCompareTheFileWithTheFoldersFileOfThatName()
+    {
+        var a = Directory.CreateDirectory(Path.Combine(dir, "a")).FullName;
+        var b = Directory.CreateDirectory(Path.Combine(dir, "b")).FullName;
+        var file = Path.Combine(a, "x.sql");
+        File.WriteAllText(file, "1");
+        File.WriteAllText(Path.Combine(b, "x.sql"), "2");
+        Assert.Equal([file, Path.Combine(b, "x.sql")], CompareProject.FileInFolder([file, b]).Pair);
+        Assert.Equal([Path.Combine(b, "x.sql"), file], CompareProject.FileInFolder([b, file]).Pair);   // the folder first: left
+        // Not in the folder: no compare, and why.
+        var (none, why) = CompareProject.FileInFolder([file, dir]);
+        Assert.Null(none);
+        Assert.Equal($"{dir} has no x.sql.", why);
+        // The file's own folder: it would be compared with itself.
+        Assert.Null(CompareProject.FileInFolder([file, a]).Pair);
+        // Two files, two folders: as given.
+        Assert.Equal([a, b], CompareProject.FileInFolder([a, b]).Pair);
+        Assert.Equal([file, file], CompareProject.FileInFolder([file, file]).Pair);
+        Assert.Null(CompareProject.FileInFolder([a, b]).Message);
+    }
+
     static JsonNode Tabs(string path) =>
         new JsonObject { ["panes"] = new JsonArray(new JsonObject { ["tabs"] = new JsonArray(new JsonObject { ["path"] = path }) }) };
 

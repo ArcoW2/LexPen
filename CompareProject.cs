@@ -18,4 +18,22 @@ static class CompareProject
     /// (yet).</summary>
     public static ProjectStore.Project? Find(ProjectStore store, int id, ProjectStore.Project? view) =>
         id == SameAsViewing ? view : (id > 0 ? store.Get(id) : null) ?? store.Projects.FirstOrDefault(p => p.Name == Name);
+
+    /// <summary>
+    /// A file and a folder to compare (docs/plans/40-PLAN-explorer-compare-two.md 3.2): the file against the folder's
+    /// file of the same name, the file keeping its side. Two files or two folders, or anything else: as given, no
+    /// message. A file and a folder without that file, or with the file itself in it: no pair, and the message why.
+    /// </summary>
+    public static (string[]? Pair, string? Message) FileInFolder(IReadOnlyList<string> paths)
+    {
+        if (paths.Count != 2) return ([.. paths], null);
+        var fileFirst = File.Exists(paths[0]) && Directory.Exists(paths[1]);
+        if (!fileFirst && !(Directory.Exists(paths[0]) && File.Exists(paths[1]))) return ([.. paths], null);
+        string file = fileFirst ? paths[0] : paths[1], folder = fileFirst ? paths[1] : paths[0], name = Path.GetFileName(file);
+        var match = Path.Combine(folder, name);
+        if (!File.Exists(match)) return (null, $"{folder} has no {name}.");
+        if (string.Equals(Path.GetFullPath(match), Path.GetFullPath(file), StringComparison.OrdinalIgnoreCase))
+            return (null, $"{name} is in {folder} itself: choose another folder to compare it with.");
+        return (fileFirst ? [file, match] : [match, file], null);
+    }
 }

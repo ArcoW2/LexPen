@@ -854,7 +854,8 @@ sealed class AppHost : ApplicationContext
     }
 
     /// <summary>
-    /// --compare (Explorer's Compare to): the two paths compared, two files or two folders, in the project for comparing
+    /// --compare (Explorer's Compare to): the two paths compared, two files or two folders (a file and a folder: the file
+    /// and the folder's file of that name), in the project for comparing
     /// (docs/plans/executed/PLAN-compare-project.md; made as "Compare", or as "View" when it is the project for viewing, when
     /// there is none): in its window on this desktop when one is shown (a compare there ends first), else in its last
     /// closed window, else a new window of it. The page starts the compare. Anything else: a message saying what is
@@ -882,6 +883,14 @@ sealed class AppHost : ApplicationContext
                 return;
             }
         }
+        // A file and a folder: the file against the folder's file of that name (Plan 40), else why not.
+        var (pair, why) = CompareProject.FileInFolder(paths);
+        if (pair is null)
+        {
+            Say(why!);
+            return;
+        }
+        paths = pair;
         var files = paths.Count == 2 && paths.All(File.Exists);
         var folders = paths.Count == 2 && paths.All(Directory.Exists);
         if (!files && !folders)

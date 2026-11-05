@@ -376,7 +376,8 @@ every action with its key.
 
 - **Compare two files**: File > Compare files..., a tab's right-click (Compare with..., with the tab in the other
   pane, with the saved file), the folder pane's right-click on a file (with the file in the editor, with...), or
-  `LexPen.exe --compare old.sql new.sql`. The two files side by side in the two panes, editable as usual: lines that
+  `LexPen.exe --compare old.sql new.sql` (a file and a folder: the file against the folder's file of the same name;
+  when the folder has none, a message says so). The two files side by side in the two panes, editable as usual: lines that
   differ tinted (removed, added, changed; lines are paired by how much they look alike), the changed characters
   marked, fillers keeping both sides level (also with Wrap long lines on: a wrapped line counts as high as it is
   shown), the panes scrolling together, the differences on the scroll bars.
