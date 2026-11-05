@@ -62,6 +62,7 @@ sealed class AppHost : ApplicationContext
     public ClipboardStore Clipboards { get; } = new(DataFolder.StatePath(DataDir, "clipboards.json"));
     public BookmarkStore Bookmarks { get; } = new(DataFolder.StatePath(DataDir, "bookmarks.json"));
     public RulerStore Rulers { get; } = new(DataFolder.StatePath(DataDir, "file-rulers.json"));
+    public ColumnStore Columns { get; } = new(DataFolder.StatePath(DataDir, "file-columns.json"));
     public HighlightStore Highlights { get; } = new(DataFolder.StatePath(DataDir, "highlights.json"));
 
     // Your settings (SettingsFile): the defaults with your settings.json on top.
@@ -2009,6 +2010,7 @@ sealed class AppHost : ApplicationContext
         }
         Bookmarks.Rename(from, to);
         Rulers.Rename(from, to);
+        Columns.Rename(from, to);
         Highlights.Rename(from, to);
         foreach (var (key, language) in fileLanguages.ToList())
             if (FileRename.Renamed(key, from, to) is string renamed) { SetFileLanguage(key, null); SetFileLanguage(renamed, language); }
@@ -2564,6 +2566,7 @@ sealed class AppHost : ApplicationContext
         {
             Drafts.Delete(id);
             Rulers.Set(BookmarkStore.Key(null, id), []);
+            Columns.Set(BookmarkStore.Key(null, id), null);
         }
         if (keep.Count > 0 && LastActive is { } target)
         {

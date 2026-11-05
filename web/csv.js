@@ -159,6 +159,22 @@ function csvDetectColumn(values, name) {
   return col;
 }
 
+// A kept definition fitted to the file as it is now (3.4): its columns go to the columns that are still there by
+// their name (else by their place), a column new in the file is detected; the file's own settings stay.
+function csvFit(kept, text) {
+  const sample = text.slice(0, 64 * 1024), read = csvRead(sample, kept), names = read.names;
+  const columns = [], used = new Set();
+  for (let i = 0; i < read.columns; i++) {
+    let k = names ? kept.columns.findIndex((c, j) => !used.has(j) && c.name === names[i]) : -1;
+    if (k < 0 && i < kept.columns.length && !used.has(i) && !(names && names.includes(kept.columns[i].name) && kept.columns[i].name !== names[i])) k = i;
+    if (k >= 0) {
+      used.add(k);
+      columns.push({ ...kept.columns[k] });
+    } else columns.push(csvDetectColumn(read.rows.slice(0, 200).map(r => r.fields[i]?.text.trim() ?? ''), names?.[i] || `Column ${i + 1}`));
+  }
+  return { ...kept, columns };
+}
+
 // ---------- A value in its column's format ----------
 // A number as written in the file (its decimal and thousands signs), or null when it is not one.
 function csvNumber(s, col) {

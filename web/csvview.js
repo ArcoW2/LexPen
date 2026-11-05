@@ -3,6 +3,44 @@
 // value in its column's format, drawn per screen (only the rows in view are in the page), the header kept at the top.
 // The reading is csv.js; the definition is the document's (detected when it has none). Loaded after csv.js.
 
+// ---------- The definition (3.4) ----------
+// Where it comes from when the file opens: next to the file (a CSVW file; doc.csvBeside its path), LexPen's own
+// store, else detected (setting csvGuess; off: comma, double quotes, a header line). A kept one is fitted to the
+// columns the file has now.
+async function csvLoad(doc, text) {
+  if (text.includes('\r')) text = text.replace(/\r\n?/g, '\n');
+  let found = null;
+  try { found = doc.path || doc.draft ? await host('columnsGet', { path: doc.path, draft: doc.draft }) : null; } catch { }
+  if (doc.csvDef) return;   // set meanwhile (the pane)
+  let def = null;
+  if (found?.table) try { def = csvFit(csvwRead(found.table), text); } catch { }
+  doc.csvBeside = def && found.beside || null;
+  doc.csvDef = def ?? (setting('csvGuess') === false ? csvFit(csvDefinition(), text) : csvDetect(text));
+}
+
+// The definition as CSVW, for the store or the file next to it.
+const csvTable = doc => JSON.parse(csvwWrite(doc.csvDef, doc.path ? doc.path.replace(/^.*[\\/]/, '') : 'draft.csv'));
+
+// Apply (the pane): the preview redraws with it, and it is kept: next to the file when it came from there or was
+// saved there, else in LexPen's store a second later.
+function csvApply(doc, def) {
+  doc.csvDef = def;
+  doc.csv = null;
+  for (const tab of tabsOf(doc)) if (paneOf(tab)?.active === tab && tab.mode !== 'edit') render(tab); else tab.stale = true;
+  clearTimeout(doc.csvTimer);
+  if (doc.csvBeside && doc.path) return csvSaveBeside(doc);
+  if (doc.path || doc.draft) doc.csvTimer = setTimeout(() => host('columnsSet', { path: doc.path, draft: doc.draft, table: csvTable(doc) }).catch(() => {}), 1000);
+}
+
+// Save definition next to the file: name.csv-metadata.json (or the folder's csv-metadata.json that describes it).
+async function csvSaveBeside(doc) {
+  if (!doc?.path || !doc.csvDef) return;
+  try {
+    doc.csvBeside = await host('columnsSaveBeside', { path: doc.path, table: csvTable(doc) });
+    toast(`Definition saved: ${doc.csvBeside}`, true);
+  } catch (e) { toast(`The definition could not be saved: ${e.message ?? e}`); }
+}
+
 // The document read as CSV, kept until its text changes: { gen, text, def, read, lines (the source line each row
 // starts on), widths (per column, in characters) }.
 function csvData(doc, text) {
@@ -26,7 +64,11 @@ function csvData(doc, text) {
       const n = csvCellText(f.text, def.columns[c]).text.length;
       if (n > widths[c]) widths[c] = Math.min(max, n);
     });
-  return doc.csv = { gen, text, def, read, lines, widths };
+  def.columns.forEach((col, c) => { if (col?.width > 0 && c < widths.length) widths[c] = col.width; });   // set by hand
+  // The columns as shown: by their order (unset: their place in the file), the hidden ones left out.
+  const order = widths.map((_, c) => c).filter(c => !def.columns[c]?.hidden)
+    .sort((a, b) => (def.columns[a]?.order ?? a) - (def.columns[b]?.order ?? b) || a - b);
+  return doc.csv = { gen, text, def, read, lines, widths, order };
 }
 
 const csvName = (read, def, c) => def.columns[c]?.name || read.names?.[c] || `Column ${c + 1}`;
@@ -40,7 +82,7 @@ function csvCellText(raw, col) {
 // The view's element for the tab: the lines before the data (folded), the header and the body, whose height holds
 // every row; csvDraw fills it with the rows in view.
 function csvViewElement(tab, text) {
-  const data = csvData(tab.doc, text), { read, def, widths } = data;
+  const data = csvData(tab.doc, text), { read, def, widths, order } = data;
   const view = document.createElement('div');
   view.className = 'mm-csv';
   view.style.setProperty('--rows', read.rows.length);
@@ -58,7 +100,7 @@ function csvViewElement(tab, text) {
   }
   const head = document.createElement('div');
   head.className = 'mm-csv-head';
-  head.append(...widths.map((w, c) => csvCell(csvName(read, def, c), w, def.columns[c], c)));
+  head.append(...order.map(c => csvCell(csvName(read, def, c), widths[c], def.columns[c], c)));
   const body = document.createElement('div');
   body.className = 'mm-csv-body';
   const rows = document.createElement('div');
@@ -83,7 +125,7 @@ function csvCell(text, width, col, c) {
 function csvDraw(pane) {
   const tab = pane.active, view = tab?.csv;
   if (!view || !view.body.isConnected) return;
-  const { data: { read, def, widths, text }, body, rows } = view, count = read.rows.length;
+  const { data: { read, def, widths, order, text }, body, rows } = view, count = read.rows.length;
   if (!count) return rows.replaceChildren();
   const r = body.getBoundingClientRect(), p = pane.previewEl.getBoundingClientRect(), h = r.height / count;
   if (!h) return;
@@ -103,7 +145,7 @@ function csvDraw(pane) {
       el.classList.add('mm-csv-problem');
       el.title = 'An end quote that never comes: the row ends at its line';
     }
-    for (let c = 0; c < widths.length; c++) {
+    for (const c of order) {
       const f = row.fields[c], shown = f ? csvCellText(f.text, def.columns[c]) : { text: '', ok: true };
       const cell = csvCell(shown.text, widths[c], def.columns[c], c);
       if (!shown.ok) cell.classList.add('mm-csv-bad');
@@ -159,6 +201,13 @@ function csvHover(pane, e) {
   if (at?.row === pane.csvHover?.row && at?.col === pane.csvHover?.col) return;
   pane.csvHover = at;
   updateStatus();
+}
+
+// The right-click in the column view: its own menu.
+function csvMenu(pane, e) {
+  if (!pane.active?.csv) return;
+  e.preventDefault();
+  openPopupMenu([{ label: '&Columns...', action: 'csv.columns' }, { label: '&Save definition next to the file', action: 'csv.saveBeside' }], e.clientX, e.clientY);
 }
 
 // A double click on a cell: the editor's cursor at that character of the field (previewjump.js previewToEditor).

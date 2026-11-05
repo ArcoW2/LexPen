@@ -1,0 +1,85 @@
+<!doctype html>
+<!-- The Columns pane as a page of its own (columns-pane.js; docs/plans/29-PLAN-csv-columns.md 3.2). -->
+<html><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:">
+<title>Columns</title>
+<link rel="stylesheet" href="app.css">
+<style>
+  body { background: var(--bg-side); color: var(--fg); display: flex; flex-direction: column; height: 100vh; margin: 0; overflow: hidden;
+    font-family: var(--app-font); font-size: calc(13px * var(--ui-scale, 1)); }
+  input, select, textarea, button { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 3px; }
+  input, select { padding: 1px 4px; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+  button { padding: 2px 10px; background: var(--bg-bar); cursor: pointer; }
+  button:hover:not(:disabled) { border-color: var(--accent); }
+  button:disabled { opacity: .5; cursor: default; }
+  .cp-head { flex: none; display: flex; gap: 8px; align-items: baseline; padding: 8px 10px 6px; border-bottom: 1px solid var(--border); }
+  .cp-name { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cp-beside { flex: none; color: var(--fg-dim); }
+  .cp-empty { padding: 10px; color: var(--fg-dim); }
+  .cp-empty button { margin-top: 8px; }
+  .cp-main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .cp-file { flex: none; display: grid; grid-template-columns: auto 1fr; gap: 4px 8px; align-items: center; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  .cp-file label { color: var(--fg-dim); white-space: nowrap; }
+  .cp-file .cp-line { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .cp-file input.cp-short { width: 5ch; }
+  .cp-file input[type=number] { width: 7ch; }
+  .cp-tabs { flex: none; display: flex; gap: 2px; padding: 6px 10px 0; border-bottom: 1px solid var(--border); }
+  .cp-tabs button { border-bottom: 0; border-radius: 3px 3px 0 0; background: var(--bg-side); }
+  .cp-tabs button.cp-on { background: var(--bg); border-color: var(--accent); }
+  .cp-list { flex: 1; min-height: 0; overflow: auto; }
+  .cp-list table { border-collapse: collapse; }
+  .cp-list th { position: sticky; top: 0; z-index: 1; background: var(--bg-side); text-align: left; font-weight: 600; color: var(--fg-dim); padding: 4px 4px; white-space: nowrap; border-bottom: 1px solid var(--border); }
+  .cp-list td { padding: 2px 4px; white-space: nowrap; border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent); }
+  .cp-list tr.cp-ticked td { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+  .cp-list td.cp-n { color: var(--fg-dim); text-align: right; }
+  .cp-list td.cp-sample { max-width: 16ch; overflow: hidden; text-overflow: ellipsis; color: var(--fg-dim); font-family: var(--editor-font, Consolas, monospace); }
+  .cp-list input.cp-text { width: 12ch; }
+  .cp-list input.cp-sign { width: 3ch; text-align: center; }
+  .cp-list input.cp-num { width: 5ch; }
+  .cp-warn { color: var(--warning); cursor: help; }
+  .cp-def { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 6px 10px; gap: 4px; }
+  .cp-def textarea { flex: 1; resize: none; font-family: var(--editor-font, Consolas, monospace); font-size: calc(12px * var(--ui-scale, 1)); padding: 4px; white-space: pre; }
+  .cp-def-error { color: var(--warning); min-height: 1.3em; }
+  .cp-bar { flex: none; display: flex; gap: 6px; padding: 6px 10px; border-top: 1px solid var(--border); flex-wrap: wrap; }
+  .cp-bar .cp-gap { flex: 1; }
+  .cp-note { color: var(--fg-dim); padding: 0 10px 4px; }
+  .cp-menu { position: fixed; z-index: 10; background: var(--bg-bar); border: 1px solid var(--border); border-radius: 4px; padding: 3px 0; }
+  .cp-menu button { display: block; width: 100%; text-align: left; border: 0; background: none; padding: 3px 14px; }
+  .cp-menu button:hover { background: var(--hover); }
+</style>
+</head>
+<body>
+<div class="cp-head"><span class="cp-name"></span><span class="cp-beside"></span></div>
+<div class="cp-empty" hidden></div>
+<div class="cp-main" hidden>
+  <div class="cp-file">
+    <label for="cp-delim">Delimiter</label>
+    <div class="cp-line"><input id="cp-delim" class="cp-short" list="cp-delims" title="One or more characters; \t is a tab">
+      <datalist id="cp-delims"><option value=","><option value=";"><option value="\t"><option value="|"><option value=" "></datalist>
+      <label><input type="checkbox" id="cp-trim"> Trim spaces</label></div>
+    <label for="cp-skip">Lines before the data</label>
+    <div class="cp-line"><input type="number" id="cp-skip" min="0" title="The lines before the first data row, the header line included">
+      <label for="cp-header">Header line</label><select id="cp-header"></select></div>
+    <label for="cp-quote">Quote</label>
+    <div class="cp-line"><input id="cp-quote" class="cp-short" title="The start quote; empty: none"> <input id="cp-quote-end" class="cp-short" title="The end quote">
+      <select id="cp-escape" title="How an end quote inside the text is written">
+        <option value="double">doubled ("")</option><option value="char">escape character</option><option value="none">not escaped</option></select>
+      <input id="cp-escape-char" class="cp-short" title="The escape character"></div>
+  </div>
+  <div class="cp-tabs"><button type="button" class="cp-on" data-tab="columns">Columns</button><button type="button" data-tab="definition">Definition</button></div>
+  <div class="cp-list"><table><thead></thead><tbody></tbody></table></div>
+  <div class="cp-def" hidden><textarea spellcheck="false"></textarea><div class="cp-def-error"></div></div>
+  <div class="cp-note"></div>
+  <div class="cp-bar">
+    <button type="button" class="cp-apply" title="The preview redraws with these settings, and they are kept (Ctrl+Enter)">Apply</button>
+    <button type="button" class="cp-revert" title="Back to the kept settings">Revert</button>
+    <button type="button" class="cp-detect" title="Forget the settings and guess them again from the text">Detect</button>
+    <span class="cp-gap"></span>
+    <button type="button" class="cp-save" title="The definition as name.csv-metadata.json next to the file (CSV on the Web); Apply then writes there too">Save next to the file</button>
+  </div>
+</div>
+<script src="pane.js"></script>
+<script src="csv.js"></script>
+<script src="columns-pane.js"></script>
+</body></html>

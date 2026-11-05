@@ -628,6 +628,7 @@ function makePane(index) {
   pane.previewEl.addEventListener('dblclick', e => typeof previewToEditor === 'function' && previewToEditor(pane, e));   // previewjump.js
   pane.previewEl.addEventListener('mousemove', e => csvHover(pane, e));   // the cell in the bottom bar (csvview.js)
   pane.previewEl.addEventListener('mouseleave', () => pane.csvHover && csvHover(pane, {}));
+  pane.previewEl.addEventListener('contextmenu', e => csvMenu(pane, e));
   pane.previewEl.addEventListener('mousemove', e => {   // a highlight's note as tooltip (highlights.js)
     if (typeof previewNoteAt !== 'function' || !pane.hlSpots?.length) return;
     const note = previewNoteAt(pane, e.clientX, e.clientY) ?? '';
@@ -1007,6 +1008,10 @@ async function renderNow(tab) {
   const needsEngine = (doc.language && !csv) || doc.ranges?.length || /^\s*(`{3,}|~{3,})\s*[\w#+.-]/m.test(text);
   if (needsEngine && !window.CodeMirror?.runMode) {
     await loadEditor();
+    if (id !== tab.renderId) return;
+  }
+  if (csv && !doc.csvDef) {   // its definition: next to the file, kept, or detected (csvview.js)
+    await csvLoad(doc, text);
     if (id !== tab.renderId) return;
   }
   const tpl = document.createElement('template');
@@ -1740,6 +1745,7 @@ try {
 
 function updateStatus() {
   if (typeof tellBookmarksPanes === 'function') tellBookmarksPanes();   // their lines move with the text (bookmarkspane.js)
+  if (typeof colsDoc === 'function' && colsDoc() !== colsPane.doc) tellColumnsPane();   // another document (columnspane.js)
   const pane = panes[state.activePane], tab = pane.active, doc = tab?.doc;
   const cm = tab && pane.cm && pane.el.dataset.mode !== 'preview' ? pane.cm : null;
   let pos = '';
@@ -3186,6 +3192,8 @@ function registerDockPanes() {
   registerStepPanes();
   // Bookmarks (stage 10; bookmarkspane.js): the window's (the active document) and each editor pane's own.
   registerBookmarksPanes();
+  // Columns (plan 29; columnspane.js): how the active document is read as CSV.
+  registerColumnsPane();
   // Manage theme sets (7b): LexPen's, as Manage projects (ThemeSetsForm).
   registerToolPane('themesets', 'Theme sets', 'themesets.html', 'openThemeSetsWindow', 'closeThemeSets');
   // The window's outline: in one of the window's dock areas (at the right, the first time it is docked) or floating;

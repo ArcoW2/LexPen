@@ -112,6 +112,21 @@ public class CsvTests
     }
 
     [Fact]
+    public void AKeptDefinitionFollowsColumnsByNameAndDetectsNewOnes()
+    {
+        var setup = """
+            var kept = csvDefinition({ columns: [{ name: 'id', type: 'integer', align: 'right' }, { name: 'amount', type: 'decimal', decimal: ',', format: '0.00' }] });
+            var t = 'amount,id,note\n1,5,x\n2,6,y\n';
+            """;
+        var cols = Js(setup, "csvFit(kept, t).columns");
+        Assert.Equal("amount", cols[0].GetProperty("name").GetString());
+        Assert.Equal("0.00", cols[0].GetProperty("format").GetString());
+        Assert.Equal("integer", cols[1].GetProperty("type").GetString());
+        Assert.Equal("note", cols[2].GetProperty("name").GetString());
+        Assert.Equal("text", cols[2].GetProperty("type").GetString());
+    }
+
+    [Fact]
     public void NoHeaderWhenTheFirstRowHasNumbers()
     {
         var def = Js("var t = '1,2\\n3,4\\n';", "csvDetect(t)");
