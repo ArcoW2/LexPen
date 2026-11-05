@@ -8,7 +8,9 @@ LexPen's compare items in Explorer's right-click menu should depend on the selec
   (as now).
 - **Two files, or two folders**: one item, **Compare**, which opens the Compare project with the two left and right.
   The one-item entries are not shown then.
-- **More than two, or a file with a folder**: no compare items at all.
+- **A file and a folder**: Compare too: the file against the file of the same name in that folder; when the folder
+  has no such file, a message says so and nothing opens.
+- **More than two**: no compare items at all.
 
 Today the registry entries show the same items whatever is selected, so two files take the two steps of the
 one-item entries (docs/plans/executed/PLAN-explorer-compare.md).
@@ -17,7 +19,8 @@ one-item entries (docs/plans/executed/PLAN-explorer-compare.md).
 
 An Explorer command handler: a small DLL that Explorer loads, registered for the current user, which sees the whole
 selection and shows only the items that fit it. A choice runs LexPen as now: `--compare-left <path>` for the left
-side, `--compare <left> <path>` for Compare to, and `--compare <first> <second>` for Compare. It replaces the
+side, `--compare <left> <path>` for Compare to, and `--compare <first> <second>` for Compare (a file and a folder:
+the folder's file of the same name in the folder's place, else a message). It replaces the
 registry entries of the compare items; Edit, View and Delete .bak stay registry entries. The handler is written in
 C++, so Explorer does not load a .NET runtime.
 
@@ -43,6 +46,10 @@ item is a file or a folder. Its `GetState` hides an item that does not fit; its 
   subcommands, `EnumSubCommands`).
 - Left and right: the order Explorer gives the items (its selection order, not always the order they were clicked).
   The compare's Swap button puts them the other way round.
+- A file and a folder: the handler shows Compare without looking in the folder (opening the menu stays quick);
+  LexPen looks when it runs: `--compare <file> <folder>` compares the file with `<folder>\<file's name>` when that
+  exists, the file keeping its side; otherwise it shows "<folder> has no <name>" and opens no compare. The same
+  holds for `--compare` from the command line.
 
 ### 3.3 Building it
 
@@ -75,8 +82,10 @@ that would need, but packaging is not in this plan.
   (`LEXPEN_REGISTRY_ROOT`), next to the remaining registry entries.
 - Unit (C++ or through a small test exe): the handler's choice per selection: one file, one folder, two files, two
   folders, a file and a folder, three files; with and without a left side.
+- Unit (C#): `--compare <file> <folder>` and `--compare <folder> <file>`: the folder's file of that name, either
+  order; no such file: the message, no compare.
 - By hand in Explorer: each of these selections, the items shown, and what each runs.
 
 ## 4. Open questions
 
-1. A file and a folder selected together: no items (as above), or Compare, which then fails with a message?
+None.
