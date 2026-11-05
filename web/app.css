@@ -943,10 +943,32 @@ body { --col-guide: color-mix(in srgb, var(--col-guide-colour, var(--border)) va
 /* The header is the ruler: a column's right edge a handle; its name dragged moves it; a hidden column a thin mark. */
 .mm-csv-head .mm-csv-cell { position: relative; cursor: grab; }
 .mm-csv-head.mm-csv-moving, .mm-csv-head.mm-csv-moving .mm-csv-cell { cursor: grabbing; }
-.mm-csv-grip { position: absolute; top: 0; right: -3px; width: 6px; height: 100%; cursor: col-resize; z-index: 1; }
+.mm-csv-head .mm-csv-cell { overflow: visible; }
+.mm-csv-name { display: block; overflow: hidden; text-overflow: ellipsis; }
+.mm-csv-grip { position: absolute; top: 0; right: calc(-6px - 1px); width: 12px; height: 100%; cursor: col-resize; z-index: 1; }
 .mm-csv-grip:hover { background: color-mix(in srgb, var(--accent) 50%, transparent); }
 .mm-csv-gap { flex: none; width: 4px; background: color-mix(in srgb, var(--accent) 35%, transparent); cursor: pointer; }
 .mm-csv-gap:hover { background: var(--accent); }
+/* A column's box (csvview.js csvColumnBox): the right-click on a column, its settings at the mouse. */
+.mm-csv-box { position: fixed; z-index: 50; min-width: 250px; padding: 8px 10px; background: var(--bg-bar); color: var(--fg);
+  border: 1px solid var(--border); border-radius: 6px; box-shadow: 0 4px 16px rgb(0 0 0 / .35); font-size: 13px; }
+.mm-csv-box input, .mm-csv-box select, .mm-csv-box button { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 3px; }
+.mm-csv-box input, .mm-csv-box select { padding: 1px 4px; }
+.mm-csv-box input:focus, .mm-csv-box select:focus { outline: none; border-color: var(--accent); }
+.mm-csv-box input[type=checkbox] { vertical-align: middle; }
+.mm-csv-box button { padding: 2px 8px; background: var(--bg-side); cursor: pointer; }
+.mm-csv-box button:hover:not(:disabled) { border-color: var(--accent); }
+.mm-csv-box button:disabled { opacity: .45; cursor: default; }
+.mm-csv-box-title { font-weight: 600; margin-bottom: 6px; }
+.mm-csv-box-dim { color: var(--fg-dim); font-weight: 400; }
+.mm-csv-box-grid { display: grid; grid-template-columns: auto 1fr; gap: 4px 8px; align-items: center; }
+.mm-csv-box-grid > label { color: var(--fg-dim); }
+.mm-csv-box-grid > input { width: 100%; box-sizing: border-box; }
+.mm-csv-box-sign { width: 3.5ch; text-align: center; }
+.mm-csv-box-num { width: 6ch; }
+.mm-csv-box-actions { display: flex; gap: 4px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+.mm-csv-box-actions [data-do=more] { margin-left: auto; }
+.mm-csv-box-bar { display: flex; justify-content: flex-end; gap: 6px; margin-top: 8px; }
 /* Column info (csvview.js showColumnInfo). */
 .mm-csv-info { max-width: min(90vw, 1000px); max-height: 80vh; padding: 12px 16px; background: var(--bg-side); color: var(--fg);
   border: 1px solid var(--border); border-radius: 6px; display: flex; flex-direction: column; }

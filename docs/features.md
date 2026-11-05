@@ -381,8 +381,10 @@ every action with its key.
   Apply keeps it in LexPen (`file-columns.json`), or next to the file after Save next to the file
   (`name.csv-metadata.json`, which other tools read too; the Folder pane marks such a file); a definition from there
   is read first, also the folder's `csv-metadata.json`. In the column view the header is the ruler: drag an edge to
-  size a column (double click: to its longest value), drag a name to move it; the right-click hides, shows, sizes and
-  moves columns, opens Column info (per column its longest and shortest value, empty ones, ones that do not fit) and
+  size a column (double click: to its longest value), drag a name to move it. A right-click on a column opens a small
+  box with that column's settings (name, type, quotes, Read as, format, alignment, trim, width, shown), shown at once
+  as you change them (Esc or Cancel: back as it was), and buttons to move it left or right, fit it, hide it, Column
+  info and More...; beside the columns the right-click shows all columns again, opens Column info (per column its longest and shortest value, empty ones, ones that do not fit) and
   Write the columns in this order (the editor's text rewritten in the shown order, as one undo step). Settings >
   Preview > Columns (CSV): the widest column (40 characters), the header at the top, detecting a file's build.
 - **Preview zoom**: Ctrl+= / Ctrl+- / Ctrl+mouse wheel over a preview. The level shows at the right of the top

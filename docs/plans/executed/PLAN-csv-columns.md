@@ -215,6 +215,10 @@ Differs from the plan:
 - The Definition tab (3.2) is a plain text field, not coloured.
 - Write the columns in this order (3.6) is two items: in this order, and the shown columns only (the hidden left
   out), in place of a question.
+- The right-click on a column (asked for after the first build) opens a small box at the mouse with that column's
+  settings (name, type, quotes, Read as, format, alignment, trim, width, shown), applied at once (Esc or Cancel: as it
+  was; Close, Enter or a click outside: kept), with Move left / right, Fit, Hide, Info and More... (the view's items).
+  The menu items for one column (3.5) are those buttons. A column's edge handle reaches 6 px to both sides.
 - A hidden column's mark is a thin bar in the header and in every row; a click on either shows it.
 - The Folder pane marks a CSV with its own `name.csv-metadata.json` next to it; one described only by the folder's
   `csv-metadata.json` is read, but not marked (that would mean reading that file for every listing).

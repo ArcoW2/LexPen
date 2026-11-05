@@ -112,7 +112,9 @@ function csvViewElement(tab, text) {
     const cell = csvCell(csvName(read, def, c), widths[c], def.columns[c], c);
     const type = def.columns[c]?.type ?? 'text';
     cell.title = `${csvName(read, def, c)}\n${type === 'date' ? 'date / time' : type}, longest ${data.longest[c]} characters\nDrag the name: move; drag the edge: size (double click: to the longest)`;
-    cell.append(Object.assign(document.createElement('span'), { className: 'mm-csv-grip' }));
+    // The name cut in a box of its own, so the edge's handle can reach past the cell on both sides.
+    cell.replaceChildren(Object.assign(document.createElement('span'), { className: 'mm-csv-name', textContent: cell.textContent }),
+      Object.assign(document.createElement('span'), { className: 'mm-csv-grip' }));
     return cell;
   }));
   csvHeadEvents(tab, head);
@@ -316,27 +318,123 @@ function csvMenu(pane, e) {
   const tab = pane.active;
   if (!tab?.csv) return;
   e.preventDefault();
-  const cell = e.target.closest('.mm-csv-cell'), doc = tab.doc, c = cell ? +cell.dataset.c : null;
-  const items = [];
-  if (c !== null) {
-    const shown = doc.csv.order, at = shown.indexOf(c);
-    items.push(
-      { label: '&Hide column', run: () => csvHide(doc, c), enabled: shown.length > 1 },
-      { label: 'Size to &longest value', run: () => csvSizeToLongest(doc, c) },
-      { label: 'Move &left', run: () => csvMoveBy(doc, c, -1), enabled: at > 0 },
-      { label: 'Move &right', run: () => csvMoveBy(doc, c, 1), enabled: at < shown.length - 1 },
-      { label: 'Column &settings...', run: () => openColumnsPane(c) },
-      '-');
-  }
-  items.push(
+  const cell = e.target.closest('.mm-csv-cell');
+  if (cell) return csvColumnBox(tab.doc, +cell.dataset.c, e.clientX, e.clientY);
+  openPopupMenu(csvViewItems(tab.doc), e.clientX, e.clientY);
+}
+
+// The view's own items (the right-click beside the columns, More... in a column's box).
+function csvViewItems(doc) {
+  return [
     { label: 'Show &all columns', run: () => csvShowAll(doc), enabled: doc.csvDef.columns.some(col => col.hidden) },
     { label: 'Column &info', action: 'csv.info' },
     { label: '&Write the columns in this order...', action: 'csv.writeOrder', params: [false] },
     { label: 'Write the &shown columns in this order...', action: 'csv.writeOrder', params: [true], enabled: doc.csvDef.columns.some(col => col.hidden) },
     '-',
     { label: '&Columns...', action: 'csv.columns' },
-    { label: 'Sa&ve definition next to the file', action: 'csv.saveBeside' });
-  openPopupMenu(items, e.clientX, e.clientY);
+    { label: 'Sa&ve definition next to the file', action: 'csv.saveBeside' }];
+}
+
+// ---------- A column's box (the right-click on a column) ----------
+// A small window at the mouse with that column's settings, as the Columns pane has them; a change shows at once (a
+// typed one a moment after the last key). Below them the column's actions and More... (the view's items). Esc or
+// Cancel puts the column back as it was; Close, Enter or a click outside keeps it.
+const CSV_BOX_TYPES = [['text', 'text'], ['integer', 'integer'], ['decimal', 'decimal'], ['date', 'date / time'], ['boolean', 'boolean'], ['auto', 'auto']];
+const CSV_BOX_SIGNS = [['.', '.'], [',', ','], ["'", "'"], [' ', 'space'], ['', 'none']];
+
+function csvColumnBox(doc, c, x, y) {
+  document.querySelector('.mm-csv-box')?.remove();
+  const was = JSON.parse(JSON.stringify(doc.csvDef));
+  const box = document.createElement('div');
+  box.className = 'mm-csv-box';
+  const opts = (list, value) => list.map(([v, t]) => `<option value="${escapeHtml(v)}"${v === (value ?? '') ? ' selected' : ''}>${escapeHtml(t)}</option>`).join('');
+  const numeric = t => t === 'integer' || t === 'decimal';
+  let timer = 0;
+
+  const draw = () => {
+    const data = csvData(doc, docText(doc)), def = doc.csvDef, col = def.columns[c] ?? {}, shown = data.order, at = shown.indexOf(c);   // as applied just now
+    const readAs = numeric(col.type)
+      ? `<select data-f="decimal" title="Decimal sign">${opts(CSV_BOX_SIGNS.slice(0, 2), col.decimal ?? '.')}</select> <select data-f="group" title="Thousands sign">${opts(CSV_BOX_SIGNS, col.group ?? '')}</select>`
+      : col.type === 'date' ? `<input data-f="pattern" value="${escapeHtml(col.pattern ?? 'yyyy-MM-dd')}" title="As written in the file: yyyy yy MM M dd d HH H mm ss, 'text' as it is">`
+      : '<span class="mm-csv-box-dim">as it is</span>';
+    box.innerHTML = `<div class="mm-csv-box-title">${escapeHtml(csvName(data.read, def, c))} <span class="mm-csv-box-dim">column ${c + 1}</span></div>` +
+      '<div class="mm-csv-box-grid">' +
+      `<label>Name</label><input data-f="name" value="${escapeHtml(col.name ?? '')}" placeholder="${escapeHtml(data.read.names?.[c] ?? `Column ${c + 1}`)}">` +
+      `<label>Type</label><div><select data-f="type">${opts(CSV_BOX_TYPES, col.type ?? 'text')}</select></div>` +
+      `<label>Quotes</label><div><input class="mm-csv-box-sign" data-f="quote" value="${escapeHtml(col.quote ?? '')}" placeholder="${escapeHtml(def.quote)}" title="Start quote; empty: the file's">` +
+        ` <input class="mm-csv-box-sign" data-f="quoteEnd" value="${escapeHtml(col.quoteEnd ?? '')}" placeholder="${escapeHtml(def.quoteEnd ?? def.quote)}" title="End quote; empty: the file's"></div>` +
+      `<label>Read as</label><div>${readAs}</div>` +
+      `<label>Format</label><input data-f="format" value="${escapeHtml(col.format ?? '')}" placeholder="${numeric(col.type) ? '#,##0.00' : col.type === 'date' ? 'yyyy-MM-dd' : 'as read'}" title="How the view shows it; empty: as read">` +
+      `<label>Align</label><div><select data-f="align">${opts([['left', 'left'], ['right', 'right']], col.align ?? 'left')}</select>` +
+        ` <label><input type="checkbox" data-f="trim"${col.trim ? ' checked' : ''}> Trim</label></div>` +
+      `<label>Width</label><div><input class="mm-csv-box-num" type="number" min="1" data-f="width" value="${col.width ?? ''}" placeholder="${data.widths[c]}" title="In characters; empty: as wide as its longest value">` +
+        ` <label><input type="checkbox" data-f="shown"${col.hidden ? '' : ' checked'}${!col.hidden && shown.length < 2 ? ' disabled' : ''}> Shown</label></div>` +
+      '</div><div class="mm-csv-box-actions">' +
+      `<button type="button" data-do="left" title="Move left"${at > 0 ? '' : ' disabled'}>&lt;</button>` +
+      `<button type="button" data-do="right" title="Move right"${at >= 0 && at < shown.length - 1 ? '' : ' disabled'}>&gt;</button>` +
+      '<button type="button" data-do="fit" title="Size to its longest value">Fit</button>' +
+      `<button type="button" data-do="hide"${col.hidden || shown.length < 2 ? ' disabled' : ''}>Hide</button>` +
+      '<button type="button" data-do="info" title="Column info: every column">Info</button>' +
+      '<button type="button" data-do="more">More...</button></div>' +
+      '<div class="mm-csv-box-bar"><button type="button" data-do="close">Close</button><button type="button" data-do="cancel" title="The column as it was (Esc)">Cancel</button></div>';
+  };
+
+  // A value set: the column changed and shown at once (typing: a moment after the last key).
+  const set = (el, later) => {
+    const f = el.dataset.f;
+    const change = () => csvChange(doc, def => {
+      const col = def.columns[c];
+      if (f === 'shown') { if (el.checked) delete col.hidden; else col.hidden = true; }
+      else if (f === 'trim') { if (el.checked) col.trim = true; else delete col.trim; }
+      else if (f === 'width') { const n = parseInt(el.value, 10); if (n > 0) col.width = n; else delete col.width; }
+      else if (f === 'name' || el.value !== '' || ['type', 'align', 'decimal', 'group'].includes(f)) col[f] = el.value;
+      else delete col[f];
+      if (f === 'type') {   // its defaults: numbers and dates at the right, a decimal sign, a date pattern
+        col.align = numeric(el.value) || el.value === 'date' ? 'right' : 'left';
+        if (numeric(el.value)) { col.decimal ??= '.'; col.group ??= ''; }
+        if (el.value === 'date') col.pattern ??= 'yyyy-MM-dd';
+      }
+    });
+    clearTimeout(timer);
+    if (later) timer = setTimeout(change, 400);
+    else { change(); if (f === 'type' || f === 'shown') { draw(); box.querySelector(`[data-f="${f}"]`)?.focus(); } }
+  };
+  box.addEventListener('input', e => { if (e.target.matches('input:not([type=checkbox])')) set(e.target, true); });
+  box.addEventListener('change', e => { if (e.target.dataset.f && (e.target.tagName === 'SELECT' || e.target.type === 'checkbox')) set(e.target, false); });
+
+  const close = keep => {
+    clearTimeout(timer);
+    removeEventListener('pointerdown', outside, true);
+    if (!keep) { csvApply(doc, was); if (typeof tellColumnsPane === 'function') tellColumnsPane(); }
+    box.remove();
+  };
+  const flush = () => { const typed = box.querySelector('input:focus:not([type=checkbox])'); if (typed) { clearTimeout(timer); set(typed, false); } };
+  box.addEventListener('click', e => {
+    const what = e.target.closest('button')?.dataset.do;
+    if (!what) return;
+    flush();
+    if (what === 'close') return close(true);
+    if (what === 'cancel') return close(false);
+    if (what === 'left' || what === 'right') csvMoveBy(doc, c, what === 'left' ? -1 : 1);
+    if (what === 'fit') csvSizeToLongest(doc, c);
+    if (what === 'hide') csvHide(doc, c);
+    if (what === 'info') { close(true); return showColumnInfo(doc); }
+    if (what === 'more') { const r = e.target.getBoundingClientRect(); close(true); return openPopupMenu(csvViewItems(doc), r.left, r.bottom); }
+    draw();
+  });
+  box.addEventListener('keydown', e => {
+    e.stopPropagation();   // the box's keys, not the window's
+    if (e.key === 'Escape') { e.preventDefault(); close(false); }
+    else if (e.key === 'Enter' && !e.target.matches('button')) { e.preventDefault(); flush(); close(true); }
+  });
+  const outside = e => { if (!box.contains(e.target)) { flush(); close(true); } };
+  addEventListener('pointerdown', outside, true);
+
+  draw();
+  document.body.append(box);
+  box.style.left = Math.max(4, Math.min(x, innerWidth - box.offsetWidth - 4)) + 'px';
+  box.style.top = Math.max(4, Math.min(y, innerHeight - box.offsetHeight - 4)) + 'px';
+  box.querySelector('[data-f=type]').focus();
 }
 
 // ---------- Column info (3.8) ----------
