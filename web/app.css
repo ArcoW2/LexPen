@@ -1268,8 +1268,8 @@ li.CodeMirror-hint-active { background: var(--select); color: var(--fg); }
 .mm-cmp-filler { background: repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in srgb, var(--fg) 7%, transparent) 6px 8px),
   repeating-linear-gradient(45deg, transparent 0 6px, color-mix(in srgb, var(--fg) 7%, transparent) 6px 8px); }
 .mm-cmp-filler.mm-cmp-quiet { background: none; }
-/* Lines wrapped differently on the two sides (no text missing): stripes one way, twice as far apart. */
-.mm-cmp-filler.mm-cmp-wrap { background: repeating-linear-gradient(135deg, transparent 0 12px, color-mix(in srgb, var(--fg) 7%, transparent) 12px 14px); }
+/* Lines wrapped differently on the two sides (no text missing): stripes one way, four times as far apart. */
+.mm-cmp-filler.mm-cmp-wrap { background: repeating-linear-gradient(135deg, transparent 0 24px, color-mix(in srgb, var(--fg) 7%, transparent) 24px 26px); }
 .CodeMirror .mm-cmp-tie { box-shadow: inset 3px 0 0 var(--accent); }
 .CodeMirror .mm-cmp-mirror { background: var(--highlight-mark, var(--highlight)); }   /* the other side's selection (compare.js mirrorSelection) */
 /* A highlight underlined (setting highlightStyle): a bar along the bottom of the text, unbroken over the spans. */
