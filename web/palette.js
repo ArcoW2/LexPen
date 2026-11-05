@@ -34,8 +34,8 @@ const FIXED_KEYS = [
     ['Tab / Shift+Tab', 'In a table: next / previous cell (in the last cell: a new row). Elsewhere: indent / indent less', 'editorKey "Tab" / "Shift-Tab"'],
     ['Enter', 'At the end of a table row: a new row. On an empty last row: end the table', 'editorKey "Enter"'],
     ['Shift+Enter', 'Line break as <br> (also inside a table cell)', 'editorKey "Shift-Enter"'],
-    ['Ctrl+V', 'With the Windows clipboard: a picture or an image file becomes an image link', 'paste'],
-    ['Ctrl+Shift+V', 'Paste an image file, asking how to link it (also: drop it with Shift held)'],
+    ['Ctrl+V', 'With the Windows clipboard: a picture or an image file becomes an image link', 'paste / imageFromClipboard'],
+    ['Ctrl+Shift+V', 'Paste an image file, asking how to link it (also: drop it with Shift held)', 'pasteImage'],
     ['Ctrl+click / Alt+drag', 'Another cursor / a rectangular selection', '- / blockSelect'],
   ]],
   ['Menus', [

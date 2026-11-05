@@ -141,7 +141,8 @@ every action with its key.
   an image link. An image in the document's folder or below it is linked where it is; one elsewhere, and a pasted
   picture, is copied to a folder named after the document (`readme.md.images`). With Shift held (or Ctrl+Shift+V,
   Edit > Paste image) LexPen asks: relative path, absolute path (`D:/x/y.png`), copy to the document's folder, or
-  copy to its image folder.
+  copy to its image folder. In a macro: `imageFromClipboard` (as Ctrl+V, no question; also for a macro started from
+  the command line, after a screenshot) and `pasteImage` (as Ctrl+Shift+V, it asks).
 
 ## Finding and moving around
 
