@@ -47,7 +47,7 @@ function pdfHlChanged(doc, store = true) {
       hls.timer = setTimeout(() => pdfHlWrite(doc), 1000);
     }
   }
-  for (const tab of tabsOf(doc)) pdfHlSend(tab);
+  for (const tab of tabsOf(doc)) { pdfHlSend(tab); pdfSyncBar(tab); }   // the bar's Highlights place too
   if (typeof tellHighlightsWindow === 'function') tellHighlightsWindow();
 }
 

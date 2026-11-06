@@ -1,6 +1,6 @@
 # Plan 38: viewing a PDF file
 
-Status: built on branch plan-38, except find in a PDF (see 5. As built).
+Status: built on branch plan-38 (see 5. As built).
 
 ## 1. The enhancement
 
@@ -133,7 +133,7 @@ None.
 
 ## 5. As built
 
-Built on branch `plan-38` (2026-11-05); find in a PDF (3.3) not yet.
+Built on branch `plan-38` (2026-11-05; find in a PDF 2026-11-06).
 
 - pdf.js 6.4.299 in `web/vendor/pdfjs` (also in `vendor.ps1` and `package.json`). `web/pdf.html` / `web/pdf-pane.js`: the
   page that draws a PDF (in a frame from the panes' site); `web/pdfview.js`: the tab, its bar (the pane's bars row, as
@@ -152,9 +152,14 @@ Built on branch `plan-38` (2026-11-05); find in a PDF (3.3) not yet.
 
 Differs from the plan, or not done:
 
-- Find in a PDF (Ctrl+F on its text, 3.3): not built yet.
-- A drop on a pane and the command line (3.1) open a PDF as a file is opened; not tested on their own.
-- Where the highlights are kept is chosen in the PDF's right-click (Highlights kept), not in the Highlights pane.
+- Find in a PDF (Ctrl+F, `web/pdffind.js`): the find bar on the pages' texts (read once from the frame; the bar says
+  "Reading the PDF..." meanwhile), the matches marked on the drawn pages, F3 / Shift+F3 from the page shown; no
+  replace; the matches are filled boxes in the find colours (the setting for outlined matches is not followed).
+  Tested on `hpmor.pdf` (a copy): its texts read in about 2 s, then 1641 matches of "Hermione".
+- A drop from the Folder pane or Explorer opens a PDF (checked by the user); the command line not tested on its own.
+- Where the highlights are kept is chosen in the PDF bar (Highlights: inside the file / next to the file / in LexPen)
+  and in its right-click (Highlights kept), not in the Highlights pane.
+- A click in the PDF closes an open menu (a click in its frame does not reach the window: the frame tells it).
 - A highlight is found by its page and its place in that page's text; when the PDF changes, it is not looked up again
   by its text (as a text file's is): it may then mark other text.
 - A note changed on one of the PDF's own highlights is written with a new popup; the old one stays in the file, unused.

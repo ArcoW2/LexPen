@@ -962,6 +962,8 @@ body { --col-guide: color-mix(in srgb, var(--col-guide-colour, var(--border)) va
 .mm-pdf-page { width: 4ch; text-align: right; font: inherit; font-size: calc(12px * var(--ui-scale)); color: var(--fg);
   background: var(--bg); border: 1px solid var(--border); border-radius: 3px; padding: 1px 3px; }
 .mm-pdf-pages { font-size: calc(12px * var(--ui-scale)); color: var(--fg-dim); margin-right: 2px; }
+.mm-pdf-place-label { font-size: calc(12px * var(--ui-scale)); color: var(--fg-dim); white-space: nowrap; }
+.mm-pdf-place { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 3px; padding: 0 2px; }
 .mm-csv .mm-csv-row:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
 /* The current cell (the keys move it), and the cells with a match of the find bar. */
 .mm-csv-cell.mm-csv-cur { outline: 2px solid var(--accent); outline-offset: -2px; }

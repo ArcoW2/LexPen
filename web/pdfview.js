@@ -62,8 +62,19 @@ function pdfBar(pane) {
     '<span class="mm-fmt-sep"></span>' +
     `<button class="mm-fmt" data-pdf="prev" title="Previous page">${PDF_ICON.prev}</button>` +
     '<input class="mm-pdf-page" title="Go to page (Enter)"><span class="mm-pdf-pages"></span>' +
-    `<button class="mm-fmt" data-pdf="next" title="Next page">${PDF_ICON.next}</button>`;
+    `<button class="mm-fmt" data-pdf="next" title="Next page">${PDF_ICON.next}</button>` +
+    '<span class="mm-fmt-sep"></span>' +
+    '<label class="mm-pdf-place-label" title="Where the highlights of this PDF are kept">Highlights: <select class="mm-pdf-place">' +
+    '<option value="pdf">inside the file</option><option value="beside">next to the file</option><option value="lexpen">in LexPen</option></select></label>';
   bar.addEventListener('mousedown', e => { if (e.target.closest('button')) e.preventDefault(); });
+  // Where its highlights are kept (pdfhighlights.js); Cancel on the question puts the choice back.
+  const place = bar.querySelector('.mm-pdf-place');
+  place.addEventListener('change', async () => {
+    const tab = pane.active;
+    if (!tab?.doc.pdf) return;
+    await pdfHlPlace(tab.doc, place.value);
+    pdfSyncBar(tab);
+  });
   bar.addEventListener('click', e => { const b = e.target.closest('[data-pdf]'); if (b && pane.active?.doc.pdf) pdfCommand(pane.active, b.dataset.pdf); });
   const page = bar.querySelector('.mm-pdf-page');
   page.addEventListener('keydown', e => {
@@ -123,6 +134,11 @@ function pdfSyncBar(tab) {
   const page = bar.querySelector('.mm-pdf-page');
   if (document.activeElement !== page) page.value = s?.page ?? '';
   bar.querySelector('.mm-pdf-pages').textContent = s?.pages ? ' / ' + s.pages : '';
+  const hls = typeof pdfHlsOf === 'function' ? pdfHlsOf(tab.doc) : null, place = bar.querySelector('.mm-pdf-place');
+  if (hls) {
+    place.value = hls.place;
+    place.querySelector('[value=pdf]').disabled = !hls.changeable && hls.place !== 'pdf';
+  }
 }
 
 async function pdfCommand(tab, what) {
@@ -173,12 +189,17 @@ addEventListener('message', e => {
   }
   else if (m.kind === 'outline') pdfOutline(tab.doc, m.entries);
   // Loaded (again: the tab was moved, or shown again in its pane): the place it had, when it had one.
-  else if (m.kind === 'ready') { pdfSend(tab, { ...(tab.pdf.state ?? {}), kind: 'restore' }); pdfHlSend(tab); }
+  else if (m.kind === 'ready') { pdfSend(tab, { ...(tab.pdf.state ?? {}), kind: 'restore' }); pdfHlSend(tab); pdfFindAgain(tab); }
+  else if (m.kind === 'texts') pdfGotTexts(tab, m.texts);   // its pages' texts, for the find bar (pdffind.js)
   else if (m.kind === 'menu') pdfMenu(tab, m.x, m.y, m);
   else if (m.kind === 'selection') tab.pdf.selection = m.parts;   // for Highlight from the keys (pdfhighlights.js)
   else if (m.kind === 'annotations') pdfHlAnnotations(tab.doc, m);
   else if (m.kind === 'saved') { for (const resolve of pdfHl.saving.values()) resolve(m); }
-  else if (m.kind === 'activate') { const pane = paneOf(tab); if (pane && pane.index !== state.activePane) setActivePane(pane.index); }
+  else if (m.kind === 'activate') {   // a press in the PDF: also outside an open menu, which closes (menus.js)
+    closeMenus();
+    const pane = paneOf(tab);
+    if (pane && pane.index !== state.activePane) setActivePane(pane.index);
+  }
   else if (m.kind === 'key') document.dispatchEvent(new KeyboardEvent('keydown', { key: m.key, code: m.code, ctrlKey: m.ctrlKey,
     shiftKey: m.shiftKey, altKey: m.altKey, metaKey: m.metaKey, bubbles: true, cancelable: true }));
 });

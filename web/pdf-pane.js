@@ -112,7 +112,7 @@ async function open() {
   const container = document.getElementById('pdf-scroll'), eventBus = new EventBus(), linkService = new PDFLinkService({ eventBus });
   pdf.viewer = new PDFViewer({ container, eventBus, linkService, textLayerMode: 1 });
   linkService.setViewer(pdf.viewer);
-  eventBus.on('textlayerrendered', ({ pageNumber }) => drawHighlights(pageNumber));   // its highlights over its text
+  eventBus.on('textlayerrendered', ({ pageNumber }) => { drawHighlights(pageNumber); drawFind(pageNumber); });   // its highlights and matches over its text
   eventBus.on('pagerendered', ({ source, pageNumber }) => {
     pdf.firstPage ??= performance.now() - pdf.started;
     const canvas = source.div.querySelector('canvas');
@@ -167,6 +167,9 @@ addEventListener('message', e => {
     return drawAllHighlights();
   }
   if (m.kind === 'showHighlight') return void showHighlight(m);
+  if (m.kind === 'texts') return void tellTexts();
+  if (m.kind === 'findMarks') return findMarks(m);
+  if (m.kind === 'findShow') return void findShow(m);
   if (m.kind === 'save') return void save(m).catch(e => toWindow({ kind: 'saved', error: String(e?.message ?? e) }));
   if (m.kind === 'dest') return void (pdf.dests?.[m.i] && pdf.linkService?.goToDestination(pdf.dests[m.i]));
   if (m.kind === 'restore') return m.top === undefined ? (pdf.restoring = false, tellState()) : restore(m);
@@ -362,6 +365,73 @@ async function showHighlight({ page, from, to }) {
   const first = h.rects?.[0], scroll = document.getElementById('pdf-scroll'), pageDiv = v.getPageView(page - 1).div;
   if (first) scroll.scrollTop = pageDiv.offsetTop + first.top - scroll.clientHeight / 3;
   setTimeout(() => { h.blink = false; if (h.temp) hl.list.splice(hl.list.indexOf(h), 1); drawHighlights(page); }, 900);
+}
+
+// ---------- Find (the window's find bar) ----------
+// The window searches the pages' texts (asked once: `texts`) and sends the matches to mark ({ page, from, to }, in the
+// same offsets as the highlights) and the current one to show; a layer per drawn page, as the highlights have.
+const found = { list: [], current: null, byPage: new Map() };
+
+async function tellTexts() {
+  while (!pdf.doc) await new Promise(r => setTimeout(r, 100));   // asked before the file is read
+  const texts = [];
+  for (let n = 1; n <= pdf.doc.numPages; n++) {
+    texts.push((await pageText(n)).text);
+    if (n % 20 === 0) await new Promise(r => setTimeout(r));
+  }
+  toWindow({ kind: 'texts', texts });
+}
+
+function findMarks({ list, current, hit, now }) {
+  const root = document.documentElement.style;
+  if (hit) root.setProperty('--pdf-find', hit);
+  if (now) root.setProperty('--pdf-find-current', now);
+  found.list = list ?? [];
+  found.current = current ?? null;
+  found.byPage = new Map();
+  for (const f of found.list) (found.byPage.get(f.page) ?? found.byPage.set(f.page, []).get(f.page)).push(f);
+  for (const div of document.querySelectorAll('.pdfViewer .page')) drawFind(+div.dataset.pageNumber);
+}
+
+function drawFind(pageNumber) {
+  const pageDiv = pdf.viewer?.getPageView(pageNumber - 1)?.div, layer = layerOf(pageDiv);
+  pageDiv?.querySelector('.pdf-find-layer')?.remove();
+  const cur = found.current?.page === pageNumber ? found.current : null;
+  const mine = (found.byPage.get(pageNumber) ?? []).filter(f => !cur || f.from !== cur.from || f.to !== cur.to);
+  if (!pageDiv || !layer || (!mine.length && !cur)) return null;
+  const box = document.createElement('div');
+  box.className = 'pdf-hl-layer pdf-find-layer';
+  layer.before(box);
+  const origin = pageDiv.getBoundingClientRect();
+  let first = null;
+  for (const f of cur ? [...mine, cur] : mine) {
+    for (const q of layerRanges(layer, f.from, f.to).flatMap(r => [...r.getClientRects()]).filter(q => q.width > 0.5)) {
+      const el = document.createElement('div');
+      el.className = 'pdf-find' + (f === cur ? ' pdf-find-current' : '');
+      Object.assign(el.style, { left: q.left - origin.left + 'px', top: q.top - origin.top + 'px', width: q.width + 'px', height: q.height + 'px' });
+      box.append(el);
+      if (f === cur) first ??= q.top - origin.top;
+    }
+  }
+  return first;
+}
+
+// The current match: its page, it in view (a third down), marked as the current one.
+async function findShow({ page, from, to }) {
+  const v = pdf.viewer;
+  if (!v?.pagesCount) return;
+  const before = found.current?.page;
+  found.current = { page, from, to };
+  if (before && before !== page) drawFind(before);   // the one before: a plain match again
+  const pageDiv = v.getPageView(page - 1)?.div, scroll = document.getElementById('pdf-scroll');
+  if (!pageDiv) return;
+  if (pageDiv.offsetTop + pageDiv.offsetHeight < scroll.scrollTop || pageDiv.offsetTop > scroll.scrollTop + scroll.clientHeight) v.scrollPageIntoView({ pageNumber: page });
+  for (let k = 0; k < 40 && !layerOf(v.getPageView(page - 1)?.div)?.childElementCount; k++) await new Promise(r => setTimeout(r, 50));
+  if (found.current?.page !== page || found.current.from !== from) return;   // another one asked for meanwhile
+  const top = drawFind(page);
+  if (top == null) return;
+  const y = pageDiv.offsetTop + top;
+  if (y < scroll.scrollTop + 20 || y > scroll.scrollTop + scroll.clientHeight - 40) scroll.scrollTop = y - scroll.clientHeight / 3;
 }
 
 // ---------- The PDF's own highlight annotations ----------

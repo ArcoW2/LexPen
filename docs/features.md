@@ -406,8 +406,8 @@ every action with its key.
   (chapters and their parts) are in the Outline pane. Highlights with notes on its text (Ctrl+F8, Edit > Highlights,
   the right-click), listed in the Highlights pane by page; kept in LexPen, next to the file (`name.pdf.lph`) or inside
   the PDF as its highlight annotations (other PDF readers show them; moving them in or out asks first, and Save
-  writes the PDF, a .bak first). A PDF's own highlights are listed too; kept elsewhere they are marked as the PDF's
-  and stay as they are.
+  writes the PDF, a .bak first); the bar's Highlights list chooses where. A PDF's own highlights are listed too; kept
+  elsewhere they are marked as the PDF's and stay as they are. The find bar (Ctrl+F, F3) searches its text.
 - **Preview zoom**: Ctrl+= / Ctrl+- / Ctrl+mouse wheel over a preview. The level shows at the right of the top
   bar (click it for 100%) and is kept.
 - **Safe by default**: a Content Security Policy blocks scripts embedded in a document's raw HTML.

@@ -233,7 +233,9 @@ function closeFind(pane, focusBack) {
   clearScope(pane);   // closing the bar ends the scope
   pane.cm?.refresh();
   if (focusBack) {
-    if (findTarget(pane) === 'editor' && pane.cm) pane.cm.focus(); else pane.previewEl.focus({ preventScroll: true });
+    if (findTarget(pane) === 'editor' && pane.cm) pane.cm.focus();
+    else if (pane.active?.pdf?.frame?.isConnected) pane.active.pdf.frame.focus();   // a PDF: its frame
+    else pane.previewEl.focus({ preventScroll: true });
   }
 }
 
@@ -241,6 +243,7 @@ function closeFind(pane, focusBack) {
 function selectedText(pane) {
   let text = '';
   if (findTarget(pane) === 'editor') text = pane.cm?.getSelection() || '';
+  else if (pdfFinding(pane)) return pdfSelectedText(pane);   // the selection in its frame (pdffind.js)
   else {
     const sel = getSelection();
     if (sel.rangeCount && pane.previewEl.contains(sel.anchorNode)) text = sel.toString();
@@ -276,6 +279,7 @@ function refresh(pane, moving) {
   const where = findTarget(pane);
   syncReplaceButton(pane);
   if (csvFinding(pane)) return csvRefresh(pane, regex, where, moving);   // a CSV: by cell (csvfind.js)
+  if (pdfFinding(pane)) return pdfFindRefresh(pane, regex, moving);   // a PDF: on its pages' text (pdffind.js)
   const matches = where === 'editor' ? editorMatches(pane, regex) : previewMatches(pane, regex);
   if (where === 'editor' && pane.cm) scheduleFindLines(pane, regex);   // the gutter and the overview ruler, after this key
   mark(pane, where, regex, matches);
@@ -301,6 +305,7 @@ function findGo(pane, dir, fromOrigin) {
   if (typeof recordMacroFind === 'function') recordMacroFind(findOf(pane).query, findOf(pane), dir < 0, fromOrigin);   // macros.js
   if (bar.marked !== where + pane.active?.id) refresh(pane, false);   // another tab or mode since the marks
   if (csvFinding(pane)) return csvGo(pane, regex, where, dir, fromOrigin);   // a CSV: by cell (csvfind.js)
+  if (pdfFinding(pane)) return pdfFindGo(pane, regex, dir, fromOrigin);   // a PDF (pdffind.js)
   if (where === 'editor') return goEditor(pane, regex, dir, fromOrigin);
   goPreview(pane, regex, dir, fromOrigin);
 }
@@ -673,10 +678,11 @@ function clearMarks(pane) {
   if (pane.find) pane.find.at = pane.find.marked = null;
   CSS.highlights.delete('mm-find-cur-' + pane.index);
   csvClearFind(pane);   // a CSV's marks in the column view (csvfind.js)
+  pdfClearFind(pane);   // a PDF's in its frame (pdffind.js)
 }
 
 function refreshMarks(pane) {
-  if (csvFinding(pane)) return refresh(pane, false);   // a CSV marks by cell (csvfind.js)
+  if (csvFinding(pane) || pdfFinding(pane)) return refresh(pane, false);   // a CSV marks by cell (csvfind.js), a PDF in its frame
   const regex = findRegex(pane);
   if (pane.findOverlay) pane.cm?.removeOverlay(pane.findOverlay);
   pane.findOverlay = null;
