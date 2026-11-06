@@ -20,8 +20,8 @@ Messages, Macros, Clipboards, ...). Nothing on screen tells which, and things go
 
 Nearly every floating panel follows the focus, as the Outline does now: one for LexPen, serving the window worked in
 last that does not have that panel docked of its own, owned by that window, in its look, and handed on when that
-window closes. Only what is tied to a window stays the window's: Step by step, Settings, and Macros while a macro
-runs or records in its window. Manage projects and Theme sets stay LexPen's without following anything. Every
+window closes. Only what is tied to a window stays the window's: Step by step and Settings always; Macros while a
+macro runs or records in its window, and Search while a search runs there (held, and its bottom bar says so). Manage projects and Theme sets stay LexPen's without following anything. Every
 floating panel gets a bottom bar that says whose it is now. The active clipboard becomes per window.
 
 ## 3. Details
@@ -61,11 +61,11 @@ forms, not tested) closing the window they were opened from closes them too.
 | Highlights | follows the focus | The highlights of the document worked in. |
 | Characters | follows the focus | Inserts in the window worked in (plan 15). |
 | Folder | follows the focus | The root of the window worked in. |
-| Search | follows the focus | The search and results of the window worked in; a search started there is that window's. |
+| Search | follows the focus, held while a search runs | The search and results of the window worked in; held by its window while a search runs there (3.2). |
 | Bookmarks | follows the focus | The bookmarks of the window worked in. |
 | Messages | follows the focus | The messages of the window worked in. |
 | Clipboards | follows the focus | Shows and sets the active clipboard of the window worked in (3.4); the contents are shared. |
-| Macros | follows the focus, held while a macro runs | Plays and records in the window worked in; held by its window while a macro runs there (3.2). |
+| Macros | follows the focus, held while a macro runs or records | Plays and records in the window worked in; held by its window while a macro runs or records there (3.2). |
 | Step by step | window | The macro stepping in its window. |
 | Settings | window | Its window's layer of settings. |
 | Manage projects | LexPen, fixed | The projects are LexPen's. |
@@ -88,9 +88,11 @@ anyway.
 - In the host: the Outline's mechanism made per panel (`outlineWanted`, `ServeOutline`, `OutlineHeir`,
   `FloatingOutline` keyed by the panel's id). Highlights and Characters, forms of their own, are re-owned the same
   way (`Owner = w`).
-- **Macros held.** While a macro runs in a window (once, X times, step by step) the floating Macros panel stays with
-  that window: another window activated does not take it. When the macro ends, it goes to the window worked in last
-  that wants it. The window's page tells the host when it holds and releases it.
+- **Held by a window.** While a macro runs in a window (once, X times, step by step) or is recorded there, the
+  floating Macros panel stays with that window; while a search runs in a window (Search: in its files, in a folder),
+  the floating Search panel does. Another window activated does not take it. When the macro or recording ends, or
+  the search is done or stopped, it goes to the window worked in last that wants it. The window's page tells the
+  host when it holds and releases it. Held, its bottom bar says so at once (3.4), and again when it is let go.
 - At start: windows whose layouts each have the same panel floating get one floating window, serving the active
   window; its place is the one kept for that panel (`SavePaneWindow`, as now by its kind).
 
@@ -111,8 +113,9 @@ anyway.
     window (`BankConnect`), with the window's number when it has more (`BankConnect [2]`). A panel that follows the
     focus: *All projects - current project* (in italics), then the project of the window it serves, named the same
     way (`BankConnect`, `BankConnect [2]`): which project it serves now, and that it serves whichever window gets the
-    focus next. Macros while held: its window's project only, as a window's panel. Manage projects and Theme sets:
-    *All projects* (in italics).
+    focus next. Held (Macros, Search): *Held - playing*, *Held - recording* or *Held - searching* (in italics),
+    then its window's project named the same way: that it stays with this window, and why, until that is done.
+    Manage projects and Theme sets: *All projects* (in italics).
   - Next to it, the document: the one the panel works on now, or *All documents* (in italics) when it does not work
     on one document.
 
@@ -121,7 +124,7 @@ anyway.
   | Outline, Highlights, Characters | *All projects - current project* + the project served | the document it shows, or inserts into, now |
   | Bookmarks | *All projects - current project* + the project served | the document it works on |
   | Folder, Search, Messages, Clipboards, Macros | *All projects - current project* + the project served | *All documents* |
-  | Macros, held | its window's project | *All documents* |
+  | Macros, Search, held | *Held - playing / recording / searching* + its window's project | *All documents* |
   | Step by step | its window's project | the document it works on |
   | Settings | its window's project | *All documents* |
   | Manage projects, Theme sets | *All projects* | *All documents* |
@@ -156,8 +159,11 @@ anyway.
   - Folder: B's root shows; Search: B's results, and a search started in the floating panel searches B's root.
   - Clipboards: A chooses clipboard 3, B keeps the Windows clipboard; the floating panel shows 3 on A and the Windows
     clipboard on B; a copy in A to 3 shows as clipboard 3's text on B; paste in B pastes the Windows clipboard.
-  - Macros: a macro played X times in A, B activated: the panel stays on A, its bar A's project only; the macro done,
-    B activated: it goes to B. The same stepping and recording.
+  - Macros: a macro played X times in A, B activated: the panel stays on A, its bar *Held - playing* and A's
+    project; the macro done: the bar back to *All projects - current project*, and B activated: it goes to B. The
+    same stepping, and recording (*Held - recording*).
+  - Search: a folder search running in A, B activated: the panel stays on A, its bar *Held - searching* and A's
+    project; the search done (or stopped): the bar changes at once, and it follows the focus again.
   - Step by step and Settings floating in both windows: two of each, each in its window's look and project.
   - The bar: one window of a project: no number; two: [n]; rename the project: the bar follows.
   - Both windows' layouts with Folder floating, restart: one floating Folder, serving the active window.
@@ -165,16 +171,15 @@ anyway.
 
 ## 4. Open questions
 
-Decided (2026-11-06): with one window of a project, only the project, no number; a panel that follows the focus
-says *All projects - current project* followed by the project it serves now. Highlights follows the focus as the
-Outline does. Folder, Search, Bookmarks, Messages, Clipboards and Macros follow the focus too; Step by step stays its
-window's; Macros is held by its window while a macro runs there.
+None. Decided (2026-11-06):
 
-1. Characters: gated as the others (it skips a window whose editor pane has Characters docked of its own), or does
-   the floating picker insert in whichever window was worked in last, as now? Proposed: gated, the same rule for all.
-2. Macros while recording: held by its window as while playing? Proposed: yes, a recording is of its window.
-3. Search while a search runs in its window (a folder search can take a while): held as Macros, or does it move on,
-   the search going on in its window and its results there when the panel comes back? Proposed: it moves on.
+- With one window of a project, only the project, no number; a panel that follows the focus says *All projects -
+  current project* followed by the project it serves now.
+- Highlights follows the focus as the Outline does; Folder, Search, Bookmarks, Messages, Clipboards and Macros too;
+  Step by step and Settings stay their window's.
+- Characters is gated as the others: it skips a window whose editor pane has Characters docked of its own.
+- Macros is held by its window while a macro runs or is recorded there; Search while a search runs there. Held, the
+  bottom bar says so (*Held - ...*), updated at once when it is held and let go.
 
 ## 5. As built
 
