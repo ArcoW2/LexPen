@@ -1,4 +1,4 @@
-# PDF: shown, never edited (docs/plans/38-PLAN-pdf-view.md). A PDF is not read as text: pdf.js draws it on the preview
+# PDF: shown, never edited (docs/plans/executed/PLAN-pdf-view.md). A PDF is not read as text: pdf.js draws it on the preview
 # side (pdfview.js), in the theme's mode or as it is. The pack gives it its name, the extension (the Folder pane, File
 # types in Settings > App > Windows Explorer) and the way it opens.
 # Every part is explained in languages\_template\language.yaml.

@@ -1,6 +1,6 @@
 # Plan 38: viewing a PDF file
 
-Status: built on branch plan-38 (see 5. As built).
+Status: executed, merged into main (2026-11-06); see 5. As built.
 
 ## 1. The enhancement
 

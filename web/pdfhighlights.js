@@ -1,5 +1,5 @@
 'use strict';
-// A PDF's highlights, with notes (docs/plans/38-PLAN-pdf-view.md 3.2b). A highlight is a part of one page's text:
+// A PDF's highlights, with notes (docs/plans/executed/PLAN-pdf-view.md 3.2b). A highlight is a part of one page's text:
 // { id, page, from, to, text, note } (from / to in that page's text, as pdf-pane.js counts it). They are kept in one of
 // three places, per PDF: in LexPen (its highlights store), next to the file (name.pdf.lph), or inside the PDF as its
 // highlight annotations. The PDF's own highlight annotations (read by its frame) are always listed: `own`, with their

@@ -1,4 +1,4 @@
-// A PDF's page (pdf.html; docs/plans/38-PLAN-pdf-view.md): pdf.js draws the file; each page, once drawn, is measured
+// A PDF's page (pdf.html; docs/plans/executed/PLAN-pdf-view.md): pdf.js draws the file; each page, once drawn, is measured
 // (its overall brightness) and inverted (its hues kept) when it does not suit the mode: in dark mode a page brighter
 // than the threshold, in light mode one darker than it; a page that already suits the mode stays as it is, so a dark
 // page is never lightened in dark mode. The address says which file and how:
@@ -242,7 +242,7 @@ addEventListener('keydown', e => {
   toWindow({ kind: 'key', key, code, ctrlKey, shiftKey, altKey, metaKey });
 });
 
-// ---------- Highlights (docs/plans/38-PLAN-pdf-view.md 3.2b) ----------
+// ---------- Highlights (docs/plans/executed/PLAN-pdf-view.md 3.2b) ----------
 // A highlight is a part of one page's text: { page, from, to } in that page's text, which is its text items in order,
 // each followed by a line break when it ends a line: the text layer pdf.js lays over the page has the same, a span per
 // item and a <br> after one that ends a line, so an offset there is an offset here. The window keeps them (in LexPen,

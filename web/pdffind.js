@@ -1,5 +1,5 @@
 'use strict';
-// The find bar on a PDF (docs/plans/38-PLAN-pdf-view.md 3.3): on its text, as its frame reads it (each page's text
+// The find bar on a PDF (docs/plans/executed/PLAN-pdf-view.md 3.3): on its text, as its frame reads it (each page's text
 // items, a line break where a line ends; the offsets the highlights use). The texts are asked for once per frame
 // (`texts`; a long PDF takes a moment: the bar says so meanwhile); the matches are found here with the bar's regex and
 // sent to the frame to mark, the current one shown there. A match is [key, end, page, from, to]: key = page * 1e7 +

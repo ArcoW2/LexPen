@@ -1,5 +1,5 @@
 'use strict';
-// A PDF in a tab (docs/plans/38-PLAN-pdf-view.md): always on the preview side, read-only. The tab's preview holds a
+// A PDF in a tab (docs/plans/executed/PLAN-pdf-view.md): always on the preview side, read-only. The tab's preview holds a
 // frame with pdf.html (pdf-pane.js), where pdf.js draws the file and turns each page that does not suit the mode round;
 // its bar is the pane's, where the other files have theirs (above the editor and the preview: pane.barsEl), shown
 // while the pane's active tab is a PDF. This side builds them, tells the frame the mode, the
