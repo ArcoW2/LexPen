@@ -155,6 +155,7 @@ function renderDocks() {
   // A floating pane keeps its view out of sight.
   for (const [id, p] of dockPanes) if (m.state[id] === 'floating' && p.view.parentElement !== hold) hold.append(p.view);
   for (const p of dockPanes.values()) p.sync?.();
+  reportPanesWanted();   // the floating panels that follow the focus: which this window wants (panechannel.js)
   // The editors measured again (relayout: costly on a large file) only when the areas' shape or sizes changed.
   shape.push(m.bottom.width, setting('sidebarWidth'));
   const key = shape.join(',');

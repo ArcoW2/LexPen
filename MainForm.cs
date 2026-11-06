@@ -175,7 +175,16 @@ sealed class MainForm : Form
         var title = web.CoreWebView2?.DocumentTitle is { Length: > 0 } t ? t : "LexPen";
         Text = app.ProjectInfo(this)["display"]?.GetValue<string>() is { Length: > 0 } project ? $"{title} - {project}" : title;
         app.SettingsTitle(this);
+        app.UpdateBars();   // the floating panels' bottom bars name its document
     }
+
+    /// <summary>The name of the active document, from the page's title ("[changed mark ]name - LexPen", app.js
+    /// updateChrome); null: none.</summary>
+    public string? DocName =>
+        web.CoreWebView2?.DocumentTitle is { } t && t.EndsWith(" - LexPen") ? t[..^" - LexPen".Length].TrimStart((char)0x25CF, ' ') : null;
+
+    /// <summary>This window's active clipboard (0: the Windows clipboard, as at every start; plan 22 3.5).</summary>
+    public int ActiveClip { get; private set; }
 
     // Only what the tree shows matters: everything outside hidden folders and node_modules.
     // Edited files and a rewritten git index (stage, commit, checkout) only change the git marks.
@@ -721,18 +730,24 @@ sealed class MainForm : Form
             case "fonts":
                 return new JsonArray(Fonts.List().Select(f => (JsonNode)new JsonObject { ["name"] = f.Name, ["mono"] = f.Mono }).ToArray());
 
-            // The numbered clipboards (ClipboardStore), shared by all windows; 0 is the Windows clipboard.
+            // The numbered clipboards (ClipboardStore), their texts shared by all windows; 0 is the Windows clipboard.
+            // Which one is active is this window's own (ActiveClip).
             case "clipState":
             {
                 var state = app.Clipboards.State();
                 state["previews"]![0] = Clipboard.ContainsText() ? ClipboardStore.Preview(Clipboard.GetText()) : "";
+                state["active"] = ActiveClip;
                 return state;
             }
 
             case "clipSelect":
-                app.Clipboards.Select(msg["n"]!.GetValue<int>());
-                app.ClipboardsChanged();
+            {
+                var n = msg["n"]!.GetValue<int>();
+                ClipboardStore.Check(n);
+                ActiveClip = n;
+                app.ClipboardsChanged(this);
                 return null;
+            }
 
             case "clipSet":
                 app.Clipboards.Set(msg["n"]!.GetValue<int>(), Arg("text"), msg["column"]?.GetValue<bool>() == true);
@@ -1126,6 +1141,25 @@ sealed class MainForm : Form
             case "outlineWanted":   // the one floating outline may serve this window now, or not (plan 24 7.3)
                 app.OutlineWanted(this, msg["wants"]?.GetValue<bool>() == true);
                 return null;
+
+            // The floating panels that follow the focus (docs/plans/22-PLAN-floating-panel-scope.md 3.2): which this
+            // window wants now ({ pane: bool }), and one held here while a macro plays or records, or a search runs.
+            case "panesWanted":
+                app.PanesWanted(this, msg["wants"]!.AsObject());
+                return null;
+
+            case "paneHold":
+                app.PaneHold(this, Arg("pane"), msg["why"]?.GetValue<string>());
+                return null;
+
+            case "panelBars":   // what every floating panel's bottom bar says (the tests)
+                return app.PanelBars();
+
+#if DEBUG
+            case "testActivated":   // the tests: this window as if activated (a locked screen activates none)
+                app.WindowActivated(this);
+                return null;
+#endif
 
             case "layoutSources":   // View > Layout > Use layout of... (plan 24 3.13a)
                 return app.LayoutSources(this);

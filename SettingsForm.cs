@@ -20,6 +20,7 @@ sealed class SettingsForm : Form, IWebPost
     readonly AppHost app;
     readonly MainForm window;   // the main window this one belongs to
     readonly WebView2 web = new() { Dock = DockStyle.Fill };
+    public PanelBar Bar { get; } = new();   // whose it is now (docs/plans/22-PLAN-floating-panel-scope.md 3.4)
     bool pageReady;
     readonly List<string> queue = [];
 
@@ -37,6 +38,7 @@ sealed class SettingsForm : Form, IWebPost
         var at = owner.WindowState == FormWindowState.Normal ? owner.Bounds : owner.RestoreBounds;
         Bounds = new Rectangle(at.X + (at.Width - size.Width) / 2, at.Y + (at.Height - size.Height) / 2, size.Width, size.Height);
         Controls.Add(web);
+        Controls.Add(Bar);
         DockMoves.Report(this, () => window, "settings");   // moved over its window: the place to dock it
     }
 

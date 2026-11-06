@@ -221,6 +221,7 @@ sealed class AppHost : ApplicationContext
         themeSetsWindow = new ThemeSetsForm(this, from);
         themeSetsWindow.FormClosed += (_, _) => themeSetsWindow = null;
         themeSetsWindow.Show(from);
+        UpdateBars();   // its bottom bar (plan 22 3.4)
     }
 
     public void SaveThemeSetsWindow(int[] bounds)
@@ -693,12 +694,12 @@ sealed class AppHost : ApplicationContext
         SendToolLook();
     }
 
-    // The tool windows (character picker, highlights, Manage projects) look as the window last worked in.
+    // The tool windows look as the window they serve (Characters, Highlights: plan 22 3.2) or, LexPen's (Manage
+    // projects, Theme sets), as the window last worked in.
     void SendToolLook()
     {
-        var look = Look(LastActive);
         foreach (var tool in new IWebPost?[] { charPicker, highlightsWindow, projectsWindow, themeSetsWindow })
-            if (tool is Form f && Changed(f, "look", look))
+            if (tool is Form f && Look(tool == charPicker || tool == highlightsWindow ? ToolServes(f) : LastActive) is var look && Changed(f, "look", look))
             {
                 tool.ApplyTheme();
                 tool.Post(new JsonObject { ["event"] = "look", ["look"] = look.DeepClone() });
@@ -706,6 +707,7 @@ sealed class AppHost : ApplicationContext
         foreach (var pane in paneWindows) pane.ApplyTheme();   // their pages get the theme from their window's page
         foreach (var frame in toolFrames.Where(f => f.Kind != "settings"))   // a docked Settings: with the settings windows
             if (Look(frame.Window) is var own && Changed(frame, "look", own)) frame.Post(new JsonObject { ["event"] = "look", ["look"] = own.DeepClone() });
+        UpdateBars();   // the bottom bars of the floating panels in their windows' look
     }
 
     /// <summary>Day / night while following Windows: the other mode, until Windows changes mode.</summary>
@@ -1013,17 +1015,14 @@ sealed class AppHost : ApplicationContext
 
         windows.Add(w);
         recent.Add(w);
-        w.Activated += (_, _) =>
-        {
-            recent.Remove(w);
-            recent.Insert(0, w);
-            projects.Touch(w.Key);
-            WindowPlaceChanged(w);
-            SendToolLook();   // the tool windows look as this one now
-            if (outlineWanted.GetValueOrDefault(w)) ServeOutline(w);   // the floating outline serves it now
-        };
+        w.Activated += (_, _) => WindowActivated(w);
         // Closing while the floating outline serves it: on to the next window it may serve, else it closes with it.
-        w.FormClosing += (_, _) => { if (FloatingOutline?.Owner == w && OutlineHeir(w) is { } next) ServeOutline(next); };
+        // The same for the other panels that follow the focus (plan 22 3.2).
+        w.FormClosing += (_, _) =>
+        {
+            if (FloatingOutline?.Owner == w && OutlineHeir(w) is { } next) ServeOutline(next);
+            HandOnPanes(w);
+        };
         w.FormClosed += (_, e) => Closed(w, e.CloseReason);
         if (primary is null) SetPrimary(w);
         else w.UpdateRole();
@@ -1093,11 +1092,27 @@ sealed class AppHost : ApplicationContext
         w.UpdateRole();
     }
 
+    /// <summary>Window `w` is the one worked in now (activated; the tests of a Debug build call it as well, the
+    /// screen locked).</summary>
+    public void WindowActivated(MainForm w)
+    {
+        recent.Remove(w);
+        recent.Insert(0, w);
+        projects.Touch(w.Key);
+        WindowPlaceChanged(w);
+        ServePanes(w);   // the floating panels that follow the focus serve it now, when it wants them (plan 22)
+        SendToolLook();   // the tool windows look as this one now
+        if (outlineWanted.GetValueOrDefault(w)) ServeOutline(w);   // the floating outline serves it now
+    }
+
     void Closed(MainForm w, CloseReason reason)
     {
         windows.Remove(w);
         recent.Remove(w);
         outlineWanted.Remove(w);
+        foreach (var key in panesWanted.Keys.Where(k => k.Item1 == w).ToList()) panesWanted.Remove(key);
+        foreach (var (id, _) in paneHeld.Where(h => h.Value.Window == w).ToList()) paneHeld.Remove(id);
+        if (windows.Count > 0) SendToolLook();   // LexPen's tool windows: the next window's look at once (plan 22 3.3)
         foreach (var key in highlightsIn.Keys.Where(k => k.Item1 == w).ToList()) highlightsIn.Remove(key);
         settingsPending.Remove(w);
         highlightsActive.Remove(w);
@@ -1543,6 +1558,7 @@ sealed class AppHost : ApplicationContext
         settingsWindows[from] = settingsWindow;
         settingsWindow.FormClosed += (_, _) => { if (settingsWindows.GetValueOrDefault(from) == settingsWindow) settingsWindows.Remove(from); };
         settingsWindow.Show(from);
+        UpdateBars();   // its bottom bar (plan 22 3.4)
     }
 
     /// <summary>A message to a main window's settings page (its window or the docked one; queued until its page is
@@ -1558,11 +1574,13 @@ sealed class AppHost : ApplicationContext
     public void SettingsTitle(MainForm w) => settingsWindows.GetValueOrDefault(w)?.UpdateTitle();
 
     /// <summary>The character picker: one for the app; opened again, brought to the front at that character. The
-    /// main windows hear whether it is open (they then tell it the character after their cursor).</summary>
+    /// main windows hear whether it is open (they then tell it the character after their cursor). Opened from
+    /// another window, it serves that one now (plan 22 3.2).</summary>
     public void OpenCharPicker(MainForm from, int? code)
     {
         if (charPicker is { IsDisposed: false })
         {
+            ServeTool("chars", from);
             charPicker.Post(new JsonObject { ["event"] = "goTo", ["code"] = code });
             BringToFront(charPicker);
             return;
@@ -1575,13 +1593,14 @@ sealed class AppHost : ApplicationContext
         };
         foreach (var w in windows) w.Post(new JsonObject { ["event"] = "charPicker", ["open"] = true });
         charPicker.Show(from);
+        UpdateBars();   // its bottom bar (plan 22 3.4)
     }
 
     /// <summary>The character after the cursor of editor pane `pane` (the active one) of window `from`: the floating
-    /// picker, the window's picker docked there, and that editor pane's own.</summary>
+    /// picker (when it serves that window), the window's picker docked there, and that editor pane's own.</summary>
     public void CharPickerCursor(MainForm from, int? code, int? pane)
     {
-        charPicker?.Post(new JsonObject { ["event"] = "cursor", ["code"] = code });
+        if (charPicker is not null && ToolServes(charPicker) == from) charPicker.Post(new JsonObject { ["event"] = "cursor", ["code"] = code });
         foreach (var frame in toolFrames.Where(f => f.Kind == "chars" && f.Window == from && (f.Pane is null || f.Pane == pane)))
             frame.Post(new JsonObject { ["event"] = "cursor", ["code"] = code });
     }
@@ -1596,14 +1615,14 @@ sealed class AppHost : ApplicationContext
 
     public void CloseCharPicker() => charPicker?.Close();
 
-    /// <summary>A request of a character picker's page: its own window's (`window` null: it works for the window last
-    /// worked in), or of one docked in `window` (`pane`: an editor pane's own, inserting there). `code`: the character
-    /// to show first (init).</summary>
+    /// <summary>A request of a character picker's page: its own window's (`window` null: it works for the window it
+    /// serves, plan 22 3.2), or of one docked in `window` (`pane`: an editor pane's own, inserting there). `code`: the
+    /// character to show first (init).</summary>
     public JsonNode? CharPickerRequest(MainForm? window, JsonNode msg, int? code, int? pane = null)
     {
         var op = msg["op"]?.GetValue<string>() ?? "";
         if (CharInfo.Request(op, msg) is { Handled: true } done) return done.Result;
-        var to = window ?? LastActive;
+        var to = window ?? ToolServes(charPicker);
         switch (op)
         {
             case "init":
@@ -1657,20 +1676,23 @@ sealed class AppHost : ApplicationContext
     readonly Dictionary<(MainForm, int), JsonObject> highlightsIn = [];
     readonly Dictionary<MainForm, int> highlightsActive = [];
 
-    /// <summary>The highlights window: one for the app; opened again, brought to the front.</summary>
+    /// <summary>The highlights window: one for the app; opened again, brought to the front, serving the window it was
+    /// opened from (plan 22 3.2).</summary>
     public void OpenHighlights(MainForm from)
     {
-        if (highlightsWindow is { IsDisposed: false }) { BringToFront(highlightsWindow); return; }
+        if (highlightsWindow is { IsDisposed: false }) { ServeTool("hls", from); BringToFront(highlightsWindow); return; }
         highlightsWindow = new HighlightsForm(this, from);
         highlightsWindow.FormClosed += (_, _) => highlightsWindow = null;
         highlightsWindow.Show(from);
+        UpdateBars();   // its bottom bar (plan 22 3.4)
     }
 
     public void CloseHighlights() => highlightsWindow?.Close();
 
     /// <summary>A window tells which document's highlights an editor pane of it shows (`pane`, `active`: the active
     /// one; `none`: no document): the highlights docked beside that pane hear it, those docked in the window when it
-    /// is the active pane, the highlights window when it is the active pane of the window last worked in.</summary>
+    /// is the active pane, the highlights window when it is the active pane of the window it serves (plan 22 3.2;
+    /// not open: the window last worked in).</summary>
     public void HighlightsShown(MainForm from, JsonObject shown)
     {
         var pane = shown["pane"]?.GetValue<int>() ?? 0;
@@ -1679,7 +1701,7 @@ sealed class AppHost : ApplicationContext
         if (active) highlightsActive[from] = pane;
         foreach (var frame in toolFrames.Where(f => f.Kind == "hls" && f.Window == from && (f.Pane == pane || active && f.Pane is null)))
             frame.Post(new JsonObject { ["event"] = "shown", ["shown"] = shown.DeepClone() });
-        if (!active || from != LastActive || shown["none"] is not null) return;
+        if (!active || from != (highlightsWindow is null ? LastActive : ToolServes(highlightsWindow)) || shown["none"] is not null) return;
         HighlightsShownNow = shown;
         highlightsWindow?.Post(new JsonObject { ["event"] = "shown", ["shown"] = shown.DeepClone() });
     }
@@ -1697,8 +1719,8 @@ sealed class AppHost : ApplicationContext
         foreach (var frame in toolFrames.Where(f => f.Kind == "hls")) frame.Post(new JsonObject { ["event"] = "changed", ["path"] = path, ["draft"] = draft });
     }
 
-    /// <summary>A request of a highlights page: its own window's (`window` null: it works on the LexPen window last
-    /// worked in and its document), or of one docked in `window` (`pane`: an editor pane's own, its document; null:
+    /// <summary>A request of a highlights page: its own window's (`window` null: it works on the LexPen window it
+    /// serves and its document, plan 22 3.2), or of one docked in `window` (`pane`: an editor pane's own, its document; null:
     /// the window's active document). Esc with an empty search: back to that window (docked: to its document).</summary>
     public async Task<JsonNode?> HighlightsRequest(MainForm? window, JsonNode msg, int? pane)
     {
@@ -1707,7 +1729,7 @@ sealed class AppHost : ApplicationContext
         {
             case "init":
             {
-                var to = window ?? LastActive;
+                var to = window ?? ToolServes(highlightsWindow);
                 return new JsonObject { ["settings"] = SettingsFor(to)["values"]?.DeepClone(), ["look"] = Look(to),
                     ["shown"] = (window is null ? HighlightsShownNow : HighlightsShownIn(window, pane))?.DeepClone() };
             }
@@ -1716,11 +1738,11 @@ sealed class AppHost : ApplicationContext
             case "all":
                 return await Task.Run(AllHighlights);
 
-            // To a highlight, in its LexPen window (its own window: the one last worked in, which comes to the front).
+            // To a highlight, in its LexPen window (its own window: the one it serves, which comes to the front).
             case "go":
             case "action":
             {
-                if ((window ?? LastActive) is not MainForm w) return false;
+                if ((window ?? ToolServes(highlightsWindow)) is not MainForm w) return false;
                 var ev = new JsonObject { ["event"] = op == "go" ? "highlightGo" : "highlightAction" };
                 foreach (var (key, value) in msg.AsObject()) if (key is not ("op" or "id")) ev[key] = value?.DeepClone();
                 if (msg["hid"] is JsonNode hid) ev["id"] = hid.DeepClone();
@@ -1737,7 +1759,7 @@ sealed class AppHost : ApplicationContext
 
             case "back":
                 if (window is not null) window.Post(new JsonObject { ["event"] = "toolEscape", ["kind"] = "hls", ["pane"] = pane });
-                else if (LastActive is MainForm last) BringToFront(last);
+                else if (ToolServes(highlightsWindow) is MainForm last) BringToFront(last);
                 return true;
 
             default:
@@ -1778,6 +1800,9 @@ sealed class AppHost : ApplicationContext
     /// A pane of a window into a window of its own (its page, as in the window's frame); closed, it is back. The
     /// floating outline is one for LexPen (7.3): asked by another window it becomes that window's. "created": a new
     /// window (its page says when it is ready); "open": it was there already (the asking window sends what it shows).
+    /// A panel that follows the focus (plan 22 3.2) is one for LexPen too: asked by the window worked in it serves
+    /// that one ("open"); held by another window, or asked by one not worked in (a window opening), it stays where it
+    /// is ("elsewhere": the asking window does not send to it).
     /// </summary>
     public string FloatPane(MainForm owner, string id, string page, bool atCursor = false)
     {
@@ -1787,17 +1812,28 @@ sealed class AppHost : ApplicationContext
             BringToFront(outline);
             return "open";
         }
+        if (FollowingPanes.Contains(id) && SharedPane(id) is { } shared && shared.Owner != owner)
+        {
+            if (owner != LastActive) return "elsewhere";
+            BringToFront(shared);
+            if (paneHeld.ContainsKey(id)) return "elsewhere";
+            ServePane(id, owner, tell: false);
+            return "open";
+        }
         if (PaneWindow(owner, id) is { } open) { BringToFront(open); return "open"; }
         var pane = new PaneForm(this, owner, id, page, atCursor ? new Point(Cursor.Position.X - 60, Cursor.Position.Y - 12) : null);
         paneWindows.Add(pane);
         pane.FormClosed += (_, _) =>
         {
             paneWindows.Remove(pane);
-            // The floating outline gone: every window that used it hears it; another pane: its window.
-            var told = id == FloatingOutlineId ? windows.ToList() : [owner];
+            paneHeld.Remove(id);
+            // The floating outline gone, or a panel that follows the focus: every window that used it hears it;
+            // another pane: its window.
+            var told = id == FloatingOutlineId || FollowingPanes.Contains(id) ? windows.ToList() : [owner];
             foreach (var w in told.Where(w => !w.IsDisposed)) w.Post(new JsonObject { ["event"] = "paneClosed", ["pane"] = id });
         };
         pane.Show(owner);
+        UpdateBars();
         return "created";
     }
 
@@ -1807,12 +1843,18 @@ sealed class AppHost : ApplicationContext
     /// <summary>
     /// A floating pane back in its window (the page asked): its window closes ("closed"). The floating outline asked by
     /// the window it serves moves on to the window worked in last that it may serve ("moved"), else it closes; asked by
-    /// another window nothing happens ("none").
+    /// another window nothing happens ("none"). The same for a panel that follows the focus (plan 22 3.2).
     /// </summary>
     public string DockPane(MainForm owner, string id)
     {
         if (PaneWindow(owner, id) is not { } pane) return "none";
         if (id == FloatingOutlineId && OutlineHeir(owner) is { } next) { ServeOutline(next); return "moved"; }
+        if (FollowingPanes.Contains(id) && PaneHeir(owner, id) is { } heir)
+        {
+            paneHeld.Remove(id);   // docked in the window that held it: it holds its own now
+            ServePane(id, heir);
+            return "moved";
+        }
         pane.Close();
         return "closed";
     }
@@ -1862,6 +1904,165 @@ sealed class AppHost : ApplicationContext
         outline.SetOwner(w);
         if (was is { IsDisposed: false }) was.Post(new JsonObject { ["event"] = "outlineRelease" });
         if (tell) w.Post(new JsonObject { ["event"] = "outlineServe" });
+        UpdateBars();
+    }
+
+    // ---------- The floating panels that follow the focus (docs/plans/22-PLAN-floating-panel-scope.md 3.2) ----------
+    // As the floating outline: one floating window for LexPen of each, serving the window worked in last that wants it
+    // (its page says so, panesWanted: the panel not docked there, nor an editor pane's own beside its active
+    // document), owned by that window and in its look; handed on when that window closes, else it closes with it. The
+    // pages (folder.html, ...) float in a PaneForm; Characters and Highlights in windows of their own (the same rule,
+    // their owner is the window they serve). Held by a window (paneHold: a macro playing or recording there, a search
+    // running there), it stays with that window until let go; its bottom bar says so.
+
+    static readonly HashSet<string> FollowingPanes = ["folder", "search", "bm", "messages", "clips", "macros", "cols", "commands"];
+    readonly Dictionary<(MainForm, string), bool> panesWanted = [];
+    readonly Dictionary<string, (MainForm Window, string Why)> paneHeld = [];
+
+    PaneForm? SharedPane(string id) => paneWindows.FirstOrDefault(p => p.Id == id && !p.IsDisposed);
+
+    // The window Characters or Highlights floating serves: its owner (else the window last worked in).
+    public MainForm? ToolServes(Form? tool) => tool?.Owner is MainForm { IsDisposed: false } w ? w : LastActive;
+
+    Form? Tool(string kind) => kind switch { "chars" => charPicker, "hls" => highlightsWindow, _ => null };
+
+    bool Wants(MainForm w, string id) => !w.IsDisposed && panesWanted.GetValueOrDefault((w, id));
+
+    // The window a panel goes to when `leaving` lets it go: the one used last of those that want it.
+    MainForm? PaneHeir(MainForm leaving, string id) => recent.FirstOrDefault(w => w != leaving && Wants(w, id));
+
+    /// <summary>A window's page says which of the panels that follow the focus it wants now ({ id: bool }); the
+    /// window worked in takes the ones it wants.</summary>
+    public void PanesWanted(MainForm w, JsonObject wants)
+    {
+        foreach (var (id, v) in wants) panesWanted[(w, id)] = v?.GetValue<bool>() == true;
+        if (recent.FirstOrDefault() == w) ServePanes(w);
+    }
+
+    // The window worked in takes the panels it wants (not one held by another window).
+    void ServePanes(MainForm w)
+    {
+        foreach (var id in FollowingPanes) if (Wants(w, id) && !paneHeld.ContainsKey(id)) ServePane(id, w);
+        foreach (var kind in new[] { "chars", "hls" }) if (Wants(w, kind)) ServeTool(kind, w);
+    }
+
+    /// <summary>The floating panel `id` to window `w` (`tell`: its page hears it, paneServe; not when the page itself
+    /// asked); the window it served hears it let go (paneRelease).</summary>
+    void ServePane(string id, MainForm w, bool tell = true)
+    {
+        if (SharedPane(id) is not { } pane || pane.Owner == w || w.IsDisposed) return;
+        var was = pane.Owner as MainForm;
+        pane.SetOwner(w);
+        if (was is { IsDisposed: false }) was.Post(new JsonObject { ["event"] = "paneRelease", ["pane"] = id });
+        if (tell) w.Post(new JsonObject { ["event"] = "paneServe", ["pane"] = id });
+        UpdateBars();
+    }
+
+    // Characters or Highlights floating to window `w`: its owner, its look; what it shows from there.
+    void ServeTool(string kind, MainForm w)
+    {
+        if (Tool(kind) is not { IsDisposed: false } tool || tool.Owner == w || w.IsDisposed) return;
+        tool.Owner = w;
+        if (kind == "hls" && HighlightsShownIn(w, null) is { } shown && shown["none"] is null)
+        {
+            HighlightsShownNow = shown;
+            highlightsWindow?.Post(new JsonObject { ["event"] = "shown", ["shown"] = shown.DeepClone() });
+        }
+        w.Post(new JsonObject { ["event"] = "paneServe", ["pane"] = kind });   // Characters: it tells the character at its cursor
+        SendToolLook();
+    }
+
+    /// <summary>A window holds panel `id` (`why`: playing, recording, searching) or lets it go (null): held, it stays
+    /// with that window; let go, it goes to the window worked in when that one wants it. Only the floating one that
+    /// serves the window is held (one docked there is that window's anyway).</summary>
+    public void PaneHold(MainForm w, string id, string? why)
+    {
+        if (!FollowingPanes.Contains(id)) return;
+        if (why is { Length: > 0 })
+        {
+            if (Wants(w, id) && !paneHeld.ContainsKey(id)) ServePane(id, w);
+            if (SharedPane(id)?.Owner == w) paneHeld[id] = (w, why);
+        }
+        else if (paneHeld.TryGetValue(id, out var held) && held.Window == w)
+        {
+            paneHeld.Remove(id);
+            if (LastActive is { } last && Wants(last, id)) ServePane(id, last);
+        }
+        UpdateBars();
+    }
+
+    // A window closes: the panels that follow the focus serving it go on to the next window that wants them (its
+    // hold ends with it); else they close with it (owned windows).
+    void HandOnPanes(MainForm w)
+    {
+        foreach (var id in FollowingPanes)
+        {
+            if (SharedPane(id)?.Owner != w) continue;
+            if (paneHeld.TryGetValue(id, out var held) && held.Window == w) paneHeld.Remove(id);
+            if (PaneHeir(w, id) is { } next) ServePane(id, next);
+        }
+        foreach (var kind in new[] { "chars", "hls" })
+            if (Tool(kind)?.Owner == w && PaneHeir(w, kind) is { } next) ServeTool(kind, next);
+    }
+
+    // ---------- The bottom bar of a floating panel (plan 22 3.4) ----------
+
+    // The panels whose bar names a document: the one they work on (the active one of the window they serve).
+    static readonly HashSet<string> OnADocument = ["outline", "hls", "chars", "bm", "cols", "step"];
+
+    /// <summary>Every floating panel's bottom bar says whose it is now (a window serves another, a project renamed,
+    /// the [n] shifted, the active document, a hold, the look).</summary>
+    public void UpdateBars()
+    {
+        foreach (var p in paneWindows.Where(p => !p.IsDisposed))
+        {
+            var kind = p.Id.Split(':')[0];
+            var following = p.Id == FloatingOutlineId || FollowingPanes.Contains(p.Id);
+            ShowBar(p.Bar, p.Owner as MainForm, following ? p.Id : null, OnADocument.Contains(kind));
+        }
+        foreach (var kind in new[] { "chars", "hls" })
+            if (Tool(kind) is { IsDisposed: false } tool) ShowBar(BarOf(tool), ToolServes(tool), kind, true);
+        foreach (var f in new Form?[] { projectsWindow, themeSetsWindow })
+            if (f is { IsDisposed: false }) BarOf(f)?.Show(new("All projects", null), new("All documents", null), null, AppColours(LastActive));
+        foreach (var (w, s) in settingsWindows) if (!s.IsDisposed) ShowBar(s.Bar, w, null, false);
+    }
+
+    static PanelBar? BarOf(Form f) => f switch
+    {
+        CharPickerForm c => c.Bar, HighlightsForm h => h.Bar, ProjectsForm p => p.Bar, ThemeSetsForm t => t.Bar, _ => null,
+    };
+
+    // A bar of window `w`'s panel: `following` its id when it follows the focus (else the window's own panel).
+    void ShowBar(PanelBar? bar, MainForm? w, string? following, bool onDocument)
+    {
+        if (bar is null || w is null || w.IsDisposed) return;
+        var lead = following is null ? null
+            : paneHeld.TryGetValue(following, out var held) && held.Window == w ? $"Held - {held.Why}" : "All projects - current project";
+        var doc = !onDocument ? new PanelBar.Part("All documents", null)
+            : w.DocName is { Length: > 0 } name ? new PanelBar.Part(null, name) : new PanelBar.Part("No document", null);
+        bar.Show(new(lead, WindowName(w)), doc, w, AppColours(w));
+    }
+
+    /// <summary>A window as a panel's bar names it: its project, with its number among that project's open windows
+    /// when the project has more than one (BankConnect [2]).</summary>
+    public string WindowName(MainForm w)
+    {
+        var p = projects.ProjectOf(w.Key);
+        var name = p is null ? "" : ProjectStore.Display(p);
+        var same = windows.Where(o => !o.IsDisposed && projects.ProjectOf(o.Key) == p).ToList();
+        return same.Count > 1 ? $"{name} [{same.IndexOf(w) + 1}]" : name;
+    }
+
+    /// <summary>The texts of every floating panel's bar, for the tests (a window's page: host('panelBars')).</summary>
+    public JsonObject PanelBars()
+    {
+        var all = new JsonObject();
+        foreach (var p in paneWindows.Where(p => !p.IsDisposed)) all[p.Id] = p.Bar.Said;
+        foreach (var kind in new[] { "chars", "hls" }) if (Tool(kind) is { IsDisposed: false } t && BarOf(t) is { } b) all[kind] = b.Said;
+        foreach (var (kind, f) in new (string, Form?)[] { ("projects", projectsWindow), ("themesets", themeSetsWindow) })
+            if (f is { IsDisposed: false } && BarOf(f) is { } b) all[kind] = b.Said;
+        foreach (var (w, s) in settingsWindows) if (!s.IsDisposed) all[$"settings:{IndexOf(w)}"] = s.Bar.Said;
+        return all;
     }
 
     public void SavePaneWindow(string kind, int[] bounds)
@@ -1886,14 +2087,20 @@ sealed class AppHost : ApplicationContext
         SaveState();
     }
 
-    /// <summary>A clipboard was chosen or filled: every window shows it (bottom bar, clipboard list).</summary>
-    public void ClipboardsChanged()
+    /// <summary>A clipboard was filled: every window shows it (bottom bar, clipboard list), each with its own active
+    /// one (plan 22 3.5); one chosen (`only`): that window.</summary>
+    public void ClipboardsChanged(MainForm? only = null)
     {
         var state = Clipboards.State();
         // The Windows clipboard's start too (as clipState), for the Clipboards panes (docs/plans/24-PLAN-docking.md 12).
         try { state["previews"]![0] = Clipboard.ContainsText() ? ClipboardStore.Preview(Clipboard.GetText()) : ""; }
         catch (System.Runtime.InteropServices.ExternalException) { }   // the clipboard is busy: as it was
-        foreach (var w in windows) w.Post(new JsonObject { ["event"] = "clipboards", ["state"] = state.DeepClone() });
+        foreach (var w in windows.Where(w => only is null || w == only))
+        {
+            var own = state.DeepClone().AsObject();
+            own["active"] = w.ActiveClip;
+            w.Post(new JsonObject { ["event"] = "clipboards", ["state"] = own });
+        }
     }
 
     // ---------- Find history (FindHistory), shared by all windows ----------
@@ -2338,6 +2545,7 @@ sealed class AppHost : ApplicationContext
         projectsWindow = new ProjectsForm(this, from);
         projectsWindow.FormClosed += (_, _) => projectsWindow = null;
         projectsWindow.Show(from);
+        UpdateBars();   // its bottom bar (plan 22 3.4)
     }
 
     public void CloseProjectsWindow() => projectsWindow?.Close();
@@ -2348,7 +2556,8 @@ sealed class AppHost : ApplicationContext
         SaveState();
     }
 
-    /// <summary>A main window closes: the projects window it owns goes to another one, so it stays open.</summary>
+    /// <summary>A main window closes: the projects window it owns goes to another one, so it stays open (Characters
+    /// and Highlights: HandOnPanes, to a window that wants them).</summary>
     public void ReleaseOwned(MainForm w)
     {
         if (projectsWindow is { IsDisposed: false } pw && pw.Owner == w)

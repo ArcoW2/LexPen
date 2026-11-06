@@ -6,9 +6,10 @@ namespace LexPen;
 
 /// <summary>
 /// The character picker (docs/plans/15-PLAN-character-picker-window.md): one window for the whole app, owned by the
-/// window it was opened from, not modal, movable and resizable, its place kept (AppState.CharPicker). Its page
-/// (web\charpicker.html, charpage.js) shows the characters (CharInfo); Insert goes to the LexPen window last worked
-/// in (AppHost.LastActive) as the event insertText, and that window comes to the front, so typing goes on there.
+/// window it serves (first the one it was opened from; it follows the focus, plan 22 3.2: AppHost.ToolServes), not
+/// modal, movable and resizable, its place kept (AppState.CharPicker). Its page (web\charpicker.html, charpage.js)
+/// shows the characters (CharInfo); Insert goes to that window as the event insertText, and that window comes to the
+/// front, so typing goes on there.
 /// </summary>
 sealed class CharPickerForm : Form, IWebPost
 {
@@ -16,6 +17,7 @@ sealed class CharPickerForm : Form, IWebPost
 
     readonly AppHost app;
     readonly WebView2 web = new() { Dock = DockStyle.Fill };
+    public PanelBar Bar { get; } = new();   // whose it is now (docs/plans/22-PLAN-floating-panel-scope.md 3.4)
     bool pageReady;
     readonly List<string> queue = [];
     int? startCode;
@@ -26,7 +28,7 @@ sealed class CharPickerForm : Form, IWebPost
         startCode = code;
         Text = "Characters - LexPen";
         Icon = owner.Icon;
-        app.FollowCaption(this, () => app.LastActive);   // the caption: Windows' own or the theme's
+        app.FollowCaption(this, () => app.ToolServes(this));   // the caption: Windows' own or the theme's
         ShowInTaskbar = false;
         MinimumSize = new Size(460, 340);
         StartPosition = FormStartPosition.Manual;
@@ -38,6 +40,7 @@ sealed class CharPickerForm : Form, IWebPost
             ? new Rectangle(x, y, w, h)
             : new Rectangle(at.X + (at.Width - size.Width) / 2, at.Y + (at.Height - size.Height) / 2, size.Width, size.Height);
         Controls.Add(web);
+        Controls.Add(Bar);
         ResizeEnd += (_, _) => KeepBounds();
         FormClosing += (_, _) => KeepBounds();
         DockMoves.Report(this, () => Owner as MainForm, "chars");   // moved over its window: the place to dock it
@@ -68,17 +71,17 @@ sealed class CharPickerForm : Form, IWebPost
         };
         core.NavigationStarting += (_, n) => { if (!n.Uri.StartsWith(AppUrl)) n.Cancel = true; };
         core.NewWindowRequested += (_, n) => n.Handled = true;
-        await core.AddScriptToExecuteOnDocumentCreatedAsync(app.FirstPaintScript(app.LastActive));
+        await core.AddScriptToExecuteOnDocumentCreatedAsync(app.FirstPaintScript(app.ToolServes(this)));
         core.Navigate($"{AppUrl}charpicker.html");
     }
 
     /// <summary>The caption follows the theme, as the main windows do.</summary>
     public void ApplyTheme()
     {
-        BackColor = web.DefaultBackgroundColor = app.AppBackground(app.LastActive);
+        BackColor = web.DefaultBackgroundColor = app.AppBackground(app.ToolServes(this));
         var on = app.Mode == "dark" ? 1 : 0;
         DwmSetWindowAttribute(Handle, 20 /* DWMWA_USE_IMMERSIVE_DARK_MODE */, ref on, sizeof(int));
-        app.ApplyCaption(this, app.LastActive);
+        app.ApplyCaption(this, app.ToolServes(this));
     }
 
     [DllImport("dwmapi.dll")]

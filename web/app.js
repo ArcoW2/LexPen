@@ -1241,6 +1241,7 @@ function setActivePane(index) {
   state.activePane = index;
   if (winOutline) showOutline(panes[index]);   // the window's outline takes its document (when it has no outline of its own)
   reportOutlineWanted();   // the floating outline (7.3): this pane may have its own
+  reportPanesWanted();   // the other panels that follow the focus (plan 22; panechannel.js): the same
   placeFocusRing();   // the document's dimmed frame, while a tool pane has the focus
   if (typeof tellHighlightsWindow === 'function') tellHighlightsWindow();   // the highlights shown: its document's (highlights.js)
   tellBookmarksPanes();   // the window's Bookmarks pane: its document's (bookmarkspane.js)
@@ -3042,6 +3043,8 @@ async function runSearch() {
     .filter(g => g.matches.length);
   let truncated = false;
   if (folder) {
+    // While it runs the floating Search panel stays with this window (plan 22; panechannel.js), its bar says so.
+    holdPane('search', 'searching');
     try {
       const found = await host('search', { root: folder, pattern: source, ignoreCase: !searchOptions.case,
         extensions: knownOnly ? Object.keys(packExtensions) : null,
@@ -3051,6 +3054,8 @@ async function runSearch() {
     } catch (e) {
       if (run === searchRun) searchUi.status.textContent = e.message;
       return;
+    } finally {
+      if (run === searchRun) holdPane('search');   // a newer search lets go when it is done
     }
   }
   if (run !== searchRun) return;   // a newer search started meanwhile
@@ -3781,6 +3786,18 @@ function reportOutlineWanted() {
   outlineWantedSent = wants;
   host('outlineWanted', { wants });
 }
+// A floating panel that follows the focus (docs/plans/22-PLAN-floating-panel-scope.md 3.2; panechannel.js) serves this
+// window now, or another one. Characters and Highlights (windows of their own): floating here now (also when hidden
+// here); the picker hears the character at this window's cursor.
+events.paneServe = ({ pane: id }) => {
+  if (id === 'chars' || id === 'hls') {
+    if (dockModel().state[id] !== 'floating') setDockFloating(id, true);
+    if (id === 'chars') updateStatus();   // tells the picker the character after the cursor (charpicker.js)
+    return;
+  }
+  (paneChannels.get(id) ?? (id === 'commands' ? commandsChannel() : null))?.serve();   // palette.js: made on first use
+};
+events.paneRelease = ({ pane: id }) => paneChannels.get(id)?.release();
 events.fromPane = ({ pane: id, msg }) => {
   if (paneChannels.has(id)) return void paneChannels.get(id).receive(msg, 'float');
   if (id === FLOATING_OUTLINE && winOutline && !winOutline.docked) fromOutline(winOutline.pane, msg, 'float');

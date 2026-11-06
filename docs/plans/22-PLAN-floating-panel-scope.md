@@ -1,6 +1,6 @@
 # Plan: Whose is a floating panel
 
-Status: draft 2026-11-02, not started.
+Status: built on branch plan-22 (2026-11-06); see 5. As built.
 The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
@@ -175,4 +175,47 @@ None.
 
 ## 5. As built
 
-Not started.
+Built on branch `plan-22` (2026-11-06).
+
+- `AppHost.cs`: the panels that follow the focus (`FollowingPanes`: folder, search, bm, messages, clips, macros, cols,
+  commands) as the floating outline: one `PaneForm` for LexPen (`SharedPane`), served to the window worked in that
+  wants it (`panesWanted`, `ServePanes` on activation, `ServePane`: re-owned, `paneServe` / `paneRelease` to the
+  pages), handed on when that window closes (`HandOnPanes`, `PaneHeir`), moved on when docked in the window it
+  serves (`DockPane`: "moved"), held (`paneHold`, `paneHeld`). `FloatPane` asked by the window worked in serves it
+  ("open"); held elsewhere, or asked by a window not worked in (one opening), it stays ("elsewhere"). Characters and
+  Highlights the same way (`ServeTool`: their owner is the window they serve, `ToolServes`): the cursor, the shown
+  highlights, insert, go, init and their look come from that window, not the one last worked in. LexPen's tool
+  windows take the next window's look as a window closes. `WindowActivated` is the activation's work.
+- `PanelBar.cs`: the bottom bar, a control under each floating window's page (`PaneForm`, Characters, Highlights,
+  Manage projects, Theme sets, Settings), in the app theme's colours of the window it names; a click brings that
+  window to the front. `AppHost.UpdateBars` fills them (on serving, a hold, a title change, a project renamed or a
+  window closed, a look change, a tool window opened); `WindowName` gives the project with [n].
+- `MainForm.cs`: `ActiveClip` (the window's active clipboard; `clipState`, `clipSelect`), `DocName` (the active
+  document's name, from the page's title), the messages `panesWanted`, `paneHold`, `panelBars`.
+- `ClipboardStore.cs`: the texts only (no active number); `ClipboardsChanged` tells each window its own active one.
+- `panechannel.js`: a channel's `owner` (floating here, but serving another window: nothing sent; everything sent
+  when it comes back: `serve`, `flush`), `release`, `back` that docks at once when the floating one moved on;
+  `reportPanesWanted` (after each `renderDocks` and a change of the active editor pane), `holdPane`.
+  `app.js`: the events `paneServe` / `paneRelease`; Search held while a folder search runs. `macros.js`: Macros held
+  while a macro plays (once, X times, step by step) or records.
+- Tests: `ClipboardStoreTests` (the store keeps the texts only). In a test copy with two windows of two projects,
+  each with its own theme set (the screen was locked, so activation was done with a Debug-only host message,
+  `testActivated`, that runs the activation's work): Messages floating follows the window worked in and shows that
+  window's messages; Folder floated in B with Folder docked in A stays on B; per window active clipboards (the bottom
+  bar, the floating Clipboards panel); Highlights and Characters follow, in the served window's look, Characters
+  inserts there, Highlights skips a window with its own docked beside its editor; A closed: they go on to B in B's
+  look at once; Macros held while playing X times and while recording (its bar *Held - playing*, *Held -
+  recording*), then following again; Search held while a folder search runs (*Held - searching*); the bar with [n]
+  for two windows of a project, following a rename; the floating Outline, Settings (one per window), Manage
+  projects and Step by step bars; Messages closed by hand: every window hears it; both windows with Folder floating,
+  restarted: one floating Folder, serving the active window.
+
+Differs from the plan:
+
+- Columns and Keyboard shortcuts and commands (not in 3.1's table) follow the focus too, by the rule of 2.
+- [n] is the window's place among the open windows of its project.
+- A panel that works on a document says *No document* when the window it serves has none.
+- Search is held only while a folder search runs (the host's part); a search of the open documents does not wait.
+- Opened from another window while held, a panel comes to the front but stays held.
+- Found, not changed: `clipState` fails while the Windows clipboard is busy (as with the screen locked); an unnamed
+  project's window with no documents does not come back after LexPen is killed.

@@ -22,14 +22,26 @@ public class ClipboardStoreTests : IDisposable
     }
 
     [Fact]
-    public void TextsSurviveARestartButTheWindowsClipboardIsActiveAgain()
+    public void TextsSurviveARestart()
     {
         var store = new ClipboardStore(FilePath);
         store.Set(3, "three");
-        store.Select(3);
         var again = new ClipboardStore(FilePath);
         Assert.Equal("three", again.Get(3));
-        Assert.Equal(0, again.Active);
+    }
+
+    // Which clipboard is active is each window's own (docs/plans/22-PLAN-floating-panel-scope.md 3.5): the store has
+    // only the texts.
+    [Fact]
+    public void TheStoreKeepsTheTextsOnlyNotWhichIsActive()
+    {
+        var state = new ClipboardStore(FilePath).State();
+        Assert.False(state.ContainsKey("active"));
+        Assert.Equal(ClipboardStore.Count, state["previews"]!.AsArray().Count);
+        ClipboardStore.Check(0);
+        ClipboardStore.Check(9);
+        Assert.Throws<ArgumentOutOfRangeException>(() => ClipboardStore.Check(10));
+        Assert.Throws<ArgumentOutOfRangeException>(() => ClipboardStore.Check(-1));
     }
 
     [Fact]
@@ -38,9 +50,6 @@ public class ClipboardStoreTests : IDisposable
         var store = new ClipboardStore(FilePath);
         Assert.Throws<ArgumentException>(() => store.Set(0, "x"));
         Assert.Throws<ArgumentException>(() => store.Get(0));
-        store.Select(0);
-        Assert.Equal(0, store.Active);
-        Assert.Throws<ArgumentOutOfRangeException>(() => store.Select(10));
     }
 
     [Fact]
