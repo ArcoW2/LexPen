@@ -45,10 +45,7 @@ sealed class AskForm : Form
         layout.Controls.Add(new Label { Text = text, AutoSize = true, MaximumSize = new Size(LogicalToDeviceUnits(480), 0), Margin = new Padding(0, 0, 0, Font.Height) });
         foreach (var (value, label) in items)
         {
-            var box = new CheckBox { Text = label, Tag = value, Checked = true, AutoSize = true, FlatStyle = FlatStyle.Flat, Margin = new Padding(0, 2, 0, 2) };
-            box.FlatAppearance.BorderColor = border;
-            box.FlatAppearance.CheckedBackColor = bg;
-            box.FlatAppearance.MouseOverBackColor = Mix(bg, fg, .08);
+            var box = new Box(Mix(bg, fg, .45), accent, Mix(bg, fg, .7)) { Text = label, Tag = value, Checked = true, AutoSize = true, Margin = new Padding(0, 3, 0, 3) };
             boxes.Add(box);
             layout.Controls.Add(box);
         }
@@ -106,6 +103,64 @@ sealed class AskForm : Form
         using var form = new AskForm(app, w, near, text, items, buttons);
         form.ShowDialog(w);
         return (form.answer, form.boxes.Where(b => b.Checked).Select(b => (string)b.Tag!).ToList());
+    }
+
+    // A checkbox drawn as Settings' are (18 px, the accent colour): a rounded box in the border colour; checked, filled with the
+    // accent and a white tick. Hovered, the border gets `hover`; with the focus, a dotted line around the text.
+    sealed class Box(Color border, Color accent, Color hover) : CheckBox
+    {
+        bool over;
+
+        protected override void OnCreateControl() { SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint, true); base.OnCreateControl(); }
+
+        protected override void OnMouseEnter(EventArgs e) { over = true; Invalidate(); base.OnMouseEnter(e); }
+        protected override void OnMouseLeave(EventArgs e) { over = false; Invalidate(); base.OnMouseLeave(e); }
+
+        public override Size GetPreferredSize(Size proposed)
+        {
+            var text = TextRenderer.MeasureText(Text, Font);
+            var side = Side;
+            return new Size(side + LogicalToDeviceUnits(8) + text.Width, Math.Max(side, text.Height) + 2);
+        }
+
+        int Side => LogicalToDeviceUnits(18);   // as Settings' checkboxes (settings.css)
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            var g = e.Graphics;
+            g.Clear(Parent?.BackColor ?? BackColor);
+            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            var side = Side;
+            var r = new RectangleF(.5f, (Height - side) / 2f + .5f, side - 1, side - 1);
+            using var path = Rounded(r, LogicalToDeviceUnits(2));
+            if (Checked)
+            {
+                using var fill = new SolidBrush(accent);
+                g.FillPath(fill, path);
+                using var tick = new Pen(Color.White, Math.Max(1.5f, side / 8f)) { StartCap = System.Drawing.Drawing2D.LineCap.Round, EndCap = System.Drawing.Drawing2D.LineCap.Round, LineJoin = System.Drawing.Drawing2D.LineJoin.Round };
+                g.DrawLines(tick, [new PointF(r.X + r.Width * .24f, r.Y + r.Height * .52f), new PointF(r.X + r.Width * .43f, r.Y + r.Height * .71f), new PointF(r.X + r.Width * .77f, r.Y + r.Height * .31f)]);
+            }
+            else
+            {
+                using var pen = new Pen(over ? hover : border, LogicalToDeviceUnits(1));
+                g.DrawPath(pen, path);
+            }
+            var textRect = new Rectangle(side + LogicalToDeviceUnits(8), 0, Width - side - LogicalToDeviceUnits(8), Height);
+            TextRenderer.DrawText(g, Text, Font, textRect, ForeColor, TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.SingleLine);
+            if (Focused && ShowFocusCues) ControlPaint.DrawFocusRectangle(g, Rectangle.Inflate(textRect with { Width = TextRenderer.MeasureText(Text, Font).Width }, 2, 0));
+        }
+
+        static System.Drawing.Drawing2D.GraphicsPath Rounded(RectangleF r, float radius)
+        {
+            var path = new System.Drawing.Drawing2D.GraphicsPath();
+            var d = radius * 2;
+            path.AddArc(r.X, r.Y, d, d, 180, 90);
+            path.AddArc(r.Right - d, r.Y, d, d, 270, 90);
+            path.AddArc(r.Right - d, r.Bottom - d, d, d, 0, 90);
+            path.AddArc(r.X, r.Bottom - d, d, d, 90, 90);
+            path.CloseFigure();
+            return path;
+        }
     }
 
     [DllImport("dwmapi.dll")]
