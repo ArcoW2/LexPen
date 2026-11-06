@@ -119,6 +119,23 @@ static class LanguagePacks
                 pack.Remove("aliases");
             }
         }
+        // A file that is not text (docs/plans/40-PLAN-non-text-files.md): binary, and the bytes such a file starts with
+        // (starts, as text; within: how far into the file they may begin, 0 = at its start).
+        if (pack["binary"] is JsonNode binary && binary.GetValueKind() is not (System.Text.Json.JsonValueKind.True or System.Text.Json.JsonValueKind.False))
+        {
+            problems.Add($"{source}: \"binary\" must be true or false.");
+            pack.Remove("binary");
+        }
+        if (pack["starts"] is JsonNode starts && !(starts is JsonArray s && s.All(x => x?.GetValueKind() == System.Text.Json.JsonValueKind.String && x.GetValue<string>().Length > 0)))
+        {
+            problems.Add($"{source}: \"starts\" must be a list of texts, as ['%PDF-'].");
+            pack.Remove("starts");
+        }
+        if (pack["within"] is JsonNode within && !(within.GetValueKind() == System.Text.Json.JsonValueKind.Number && within.GetValue<long>() is >= 0 and <= MaxWithin))
+        {
+            problems.Add($"{source}: \"within\" must be a number from 0 to {MaxWithin}.");
+            pack.Remove("within");
+        }
         foreach (var part in new[] { "firstLine" })
             if (pack[part] is JsonNode p && !ValidRegex(p.ToString(), out var error))
             {
@@ -143,6 +160,40 @@ static class LanguagePacks
         pack["icons"] = icons;
         return pack;
     }
+
+    // ---------- Files that are not text ----------
+    /// <summary>How far into a file a binary pack's first bytes may begin, at most; the bytes read to find a kind.</summary>
+    public const int MaxWithin = 4096, HeadSize = MaxWithin + 64;
+
+    /// <summary>
+    /// The kind of a file that is not text (a binary pack's id), from its first bytes (<paramref name="head"/>): a
+    /// pack's starts found within its within; else a binary pack without starts that has the file's extension. Null:
+    /// none (the file is read as text, or refused).
+    /// </summary>
+    public static string? KindOf(JsonObject languages, string path, ReadOnlySpan<byte> head)
+    {
+        var packs = languages["packs"] as JsonObject ?? [];
+        foreach (var (id, node) in packs)
+        {
+            if (node?["binary"]?.GetValueKind() != System.Text.Json.JsonValueKind.True || node["starts"] is not JsonArray starts) continue;
+            var within = (int)(node["within"]?.GetValue<long>() ?? 0);
+            foreach (var start in starts)
+            {
+                var bytes = System.Text.Encoding.Latin1.GetBytes(start!.GetValue<string>());
+                var room = head[..Math.Min(head.Length, within + bytes.Length)];
+                if (room.IndexOf(bytes) >= 0) return id;
+            }
+        }
+        var ext = Path.GetExtension(path).ToLowerInvariant();
+        return languages["extensions"]?[ext]?.GetValue<string>() is string byExt && IsBinary(languages, byExt) && packs[byExt]?["starts"] is null ? byExt : null;
+    }
+
+    public static bool IsBinary(JsonObject languages, string? id) =>
+        id is not null && languages["packs"]?[id]?["binary"]?.GetValueKind() == System.Text.Json.JsonValueKind.True;
+
+    /// <summary>The binary pack an extension belongs to (a text file named .pdf: not what its name says), or null.</summary>
+    public static string? BinaryOfExtension(JsonObject languages, string path) =>
+        languages["extensions"]?[Path.GetExtension(path).ToLowerInvariant()]?.GetValue<string>() is string id && IsBinary(languages, id) ? id : null;
 
     static string Message(Exception ex) => ex is YamlException y ? $"line {y.Start.Line}, column {y.Start.Column}: {y.Message}" : ex.Message;
 

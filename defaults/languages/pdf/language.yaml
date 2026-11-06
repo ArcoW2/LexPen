@@ -2,7 +2,12 @@
 # side (pdfview.js), in the theme's mode or as it is. The pack gives it its name, the extension (the Folder pane, File
 # types in Settings > App > Windows Explorer) and the way it opens.
 # Every part is explained in languages\_template\language.yaml.
+# A file is a PDF by its first bytes (docs/plans/40-PLAN-non-text-files.md): %PDF- within its first 1024 bytes (as
+# pdf.js accepts it), whatever its name; a text file named .pdf opens as text.
 name: PDF
+binary: true
+starts: ['%PDF-']
+within: 1024
 extensions: [.pdf]
 open: preview
 fold: none

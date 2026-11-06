@@ -173,4 +173,41 @@ public class LanguagePacksTests : IDisposable
         Assert.Equal("text", o["f"]!.GetValue<string>());
         Assert.Equal(2, o["g"]!.AsArray().Count);
     }
+
+    // A file that is not text (docs/plans/40-PLAN-non-text-files.md): its kind by its first bytes, not its name.
+    [Fact]
+    public void APdfIsFoundByItsFirstBytesWhateverItsName()
+    {
+        var all = LanguagePacks.Load(Shipped, Path.Combine(dir, "none"));
+        byte[] pdf = [.. "%PDF-1.7\n"u8, 0, 0xE2, 0xE3];
+        Assert.Equal("pdf", LanguagePacks.KindOf(all, @"C:\a\book.pdf", pdf));
+        Assert.Equal("pdf", LanguagePacks.KindOf(all, @"C:\a\book.bin", pdf));
+        Assert.Equal("pdf", LanguagePacks.KindOf(all, @"C:\a\book", pdf));
+        // Within the first 1024 bytes (pdf.js accepts junk before the header), not beyond.
+        Assert.Equal("pdf", LanguagePacks.KindOf(all, "x", [.. new byte[1000], .. pdf]));
+        Assert.Null(LanguagePacks.KindOf(all, "x", [.. new byte[1100], .. pdf]));
+        // A text file named .pdf is not a PDF; it is named as one (BinaryOfExtension).
+        Assert.Null(LanguagePacks.KindOf(all, @"C:\a\notes.pdf", "just text"u8));
+        Assert.Equal("pdf", LanguagePacks.BinaryOfExtension(all, @"C:\a\notes.pdf"));
+        Assert.Null(LanguagePacks.BinaryOfExtension(all, @"C:\a\notes.txt"));
+        Assert.True(LanguagePacks.IsBinary(all, "pdf"));
+        Assert.False(LanguagePacks.IsBinary(all, "markdown"));
+    }
+
+    [Fact]
+    public void ABinaryPackIsCheckedAndOneWithoutStartsGoesByItsExtension()
+    {
+        Directory.CreateDirectory(Path.Combine(dir, "doc"));
+        File.WriteAllText(Path.Combine(dir, "doc", "language.yaml"), "name: Doc\nbinary: true\nextensions: [.doc]\n");
+        Directory.CreateDirectory(Path.Combine(dir, "bad"));
+        File.WriteAllText(Path.Combine(dir, "bad", "language.yaml"), "name: Bad\nbinary: yes please\nstarts: '%X'\nwithin: -1\n");
+        var all = LanguagePacks.Load(Path.Combine(dir, "none"), dir);
+        var problems = Problems(all);
+        Assert.Equal(3, problems.Length);
+        Assert.Contains(problems, p => p.EndsWith("\"binary\" must be true or false."));
+        Assert.Contains(problems, p => p.EndsWith("\"starts\" must be a list of texts, as ['%PDF-']."));
+        Assert.Contains(problems, p => p.EndsWith("\"within\" must be a number from 0 to 4096."));
+        Assert.Equal("doc", LanguagePacks.KindOf(all, @"C:\a\x.doc", [0xD0, 0xCF]));
+        Assert.Null(LanguagePacks.KindOf(all, @"C:\a\x.bin", [0xD0, 0xCF]));
+    }
 }
