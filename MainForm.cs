@@ -1556,7 +1556,7 @@ sealed class MainForm : Form
 
     // A file read off the UI thread. Read-only on disk: the tab opens read-only (it cannot be saved anyway). A
     // language chosen for this file before (the selector), else null: by extension. A file that is not text but a kind
-    // a pack knows by its first bytes (a PDF, docs/plans/40-PLAN-non-text-files.md): { kind }, no text, whatever its
+    // a pack knows by its first bytes (a PDF, docs/plans/executed/PLAN-non-text-files.md): { kind }, no text, whatever its
     // name. A text file named as such a kind (x.pdf): notKind, that kind, and never that kind's language.
     async Task<JsonNode?> ReadFile(string path)
     {

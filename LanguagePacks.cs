@@ -119,7 +119,7 @@ static class LanguagePacks
                 pack.Remove("aliases");
             }
         }
-        // A file that is not text (docs/plans/40-PLAN-non-text-files.md): binary, and the bytes such a file starts with
+        // A file that is not text (docs/plans/executed/PLAN-non-text-files.md): binary, and the bytes such a file starts with
         // (starts, as text; within: how far into the file they may begin, 0 = at its start).
         if (pack["binary"] is JsonNode binary && binary.GetValueKind() is not (System.Text.Json.JsonValueKind.True or System.Text.Json.JsonValueKind.False))
         {

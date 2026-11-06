@@ -498,7 +498,7 @@ function makeDoc({ path = null, draft = null, text = '', encoding = 'UTF-8' }) {
 
 async function loadDoc(path) {
   const got = await host('read', { path });
-  // Not text, a kind a pack knows by its first bytes, whatever the file's name (docs/plans/40-PLAN-non-text-files.md).
+  // Not text, a kind a pack knows by its first bytes, whatever the file's name (docs/plans/executed/PLAN-non-text-files.md).
   if (got.kind) return loadKindDoc(path, got.kind);
   const { text, encoding, readOnly, language, ranges, notKind } = got;
   const found = findDoc(path), doc = found ?? makeDoc({ path, text, encoding });

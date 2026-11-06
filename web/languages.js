@@ -39,7 +39,7 @@ const packActionNames = () => [...new Set(PACK_NAMES.flatMap(n => Object.keys(pa
 const knownFile = path => !!packExtensions[path?.match(/(\.[^.\\/]+)$/)?.[1].toLowerCase()];
 
 // The language of a file: by extension, then by a pack's first-line pattern, else plain text. Read as text, never a
-// kind that is not text (a text file named x.pdf; docs/plans/40-PLAN-non-text-files.md): that is found by its bytes.
+// kind that is not text (a text file named x.pdf; docs/plans/executed/PLAN-non-text-files.md): that is found by its bytes.
 function languageFor(path, text = '') {
   const ext = path?.match(/(\.[^.\\/]+)$/)?.[1].toLowerCase();
   if (ext && packExtensions[ext] && !packs[packExtensions[ext]]?.binary) return packExtensions[ext];

@@ -174,7 +174,7 @@ public class LanguagePacksTests : IDisposable
         Assert.Equal(2, o["g"]!.AsArray().Count);
     }
 
-    // A file that is not text (docs/plans/40-PLAN-non-text-files.md): its kind by its first bytes, not its name.
+    // A file that is not text (docs/plans/executed/PLAN-non-text-files.md): its kind by its first bytes, not its name.
     [Fact]
     public void APdfIsFoundByItsFirstBytesWhateverItsName()
     {

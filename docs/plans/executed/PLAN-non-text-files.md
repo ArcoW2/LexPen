@@ -1,6 +1,6 @@
 # Plan 40: files that are not text
 
-Status: built on branch plan-40 (see 5. As built).
+Status: executed, merged into main (2026-11-06); see 5. As built.
 
 ## 1. The problem
 
