@@ -52,7 +52,7 @@ sealed class PanelBar : Control
         void Draw(string? text, Font font, Color colour)
         {
             if (string.IsNullOrEmpty(text) || x >= Width) return;
-            var width = Math.Min(TextRenderer.MeasureText(g, text, font, Size.Empty, flags).Width, Width - x);
+            var width = Math.Min(TextRenderer.MeasureText(g, text, font, Size.Empty, flags & ~TextFormatFlags.EndEllipsis).Width, Width - x);
             TextRenderer.DrawText(g, text, font, new Rectangle(x, 1, width, Height - 1), colour, flags);
             x += width;
         }
