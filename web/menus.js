@@ -26,7 +26,9 @@ const MENUS = [
       { label: 'Recently &closed', fill: () => recentItems('closed') }, '-',
       { label: 'Fa&vourite files', fill: () => favouriteItems('files') },
       { label: 'Favo&urite folders', fill: () => favouriteItems('folders') }] }, '-',
-    ['&Save', 'save'], ['Save &as...', 'saveAs'], ['Revert to save&d', 'revertToSaved'], ['Rena&me...', 'file.rename'], '-',
+    ['&Save', 'save'], ['Save &as...', 'saveAs'], ['Revert to save&d', 'revertToSaved'],
+    { label: 'Cop&y name to Windows clipboard', fill: () => copyNameItems(), enabled: () => !!activeDoc()?.path },   // app.js, plan 37
+    ['Rena&me...', 'file.rename'], '-',
     ['Close &tab', 'closeTab'], ['Close a&ll tabs', 'closeAllTabs'], ['Reopen closed ta&b', 'reopenTab'], '-',
     { label: 'Close &window', action: 'closeWindow', key: 'Alt+F4' },   // Windows' own key: the window closes as by its X
   ]],
@@ -183,7 +185,8 @@ async function openMenuLevel(items, x, y, select, above, leftX) {
     const { html, letter } = menuLabel(it.label, it.plain);
     // An item of another language (the Format menu's submenu of the cursor line's language) works as its bar button.
     const available = () => it.language ? !!editorPane() : actionAvailable(it.action, params);
-    const enabled = isSub || it.enabled !== false && (!it.action || available());
+    // A submenu: greyed out when its own enabled() says so (File > Copy name on a draft never saved).
+    const enabled = isSub ? (typeof it.enabled === 'function' ? !!it.enabled() : it.enabled !== false) : it.enabled !== false && (!it.action || available());
     // Or the item's own: a value, or a function asked again after an item that keeps the menu open (keep).
     const checked = typeof it.checked === 'function' ? it.checked() : it.checked ?? (it.action && appActions.get(it.action)?.checked?.(params));
     // The check mark and the arrow are drawn by the style sheet (mm-checked, mm-arrow).
@@ -246,7 +249,9 @@ function chooseMenuItem(level, index) {
     for (const e of level.items) if (typeof e.item.checked === 'function') e.button.classList.toggle('mm-checked', !!e.item.checked());
     return;
   }
+  const context = menuBar.fromContext;   // a submenu of a right-click menu (app.js, copyNameFlyout): that one closes too
   closeMenus();
+  if (context) hideMenus();
   if (entry.item.run) entry.item.run();
   else runAction(entry.item.action, entry.item.params, { from: 'menu', language: entry.item.language });
 }
@@ -254,6 +259,7 @@ function chooseMenuItem(level, index) {
 function closeMenus() {
   for (const level of menuBar.levels) level.el.remove();
   menuBar.levels = [];
+  menuBar.fromContext = false;
   if (menuBar.top >= 0) menuBar.el.children[menuBar.top]?.classList.remove('mm-on');
   menuBar.top = -1;
 }
@@ -287,6 +293,7 @@ addEventListener('keydown', e => {
       return menuBar.top >= 0 && openTopMenu((menuBar.top + 1) % MENUS.length, true);
     case 'ArrowLeft':
       if (menuBar.levels.length > 1) return menuBar.levels.pop().el.remove();
+      if (menuBar.fromContext) return closeMenus();   // back to its right-click menu
       return menuBar.top >= 0 && openTopMenu((menuBar.top - 1 + MENUS.length) % MENUS.length, true);
     case 'Enter': return chooseMenuItem(level, level.index);
     case 'Escape':

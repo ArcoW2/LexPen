@@ -143,6 +143,9 @@ body[data-orient=h] .mm-orient::before { content: "Above each other"; }
 .mm-menu .mm-key { margin-left: 24px; float: right; color: var(--fg-dim); font-size: calc(12px * var(--ui-scale)); }
 
 .mm-context { position: fixed; right: auto; }   /* right-click menus, placed at the pointer */
+/* Copy name to Windows clipboard (plan 37): its items open beside it, as a menu bar's submenu. */
+.mm-context .mm-copy-name { display: flex; }
+.mm-context .mm-copy-name::after { content: "\203A"; margin-left: auto; padding-left: 24px; color: var(--fg-dim); }
 
 /* The find history under a find field (history.js). */
 .mm-history {

@@ -33,20 +33,50 @@ function applyPaneLook({ css, theme, mode }) {
 // drawn by the pane; a choice goes back as menuPick. `above`: where it ends when it does not fit below y (a button's
 // menu: above the button, not over it); `closed`: a message kind for the pane's own page once it closes.
 function paneMenu({ x, y, above, closed, items }) {
-  document.querySelector('.mm-pane-menu')?.remove();
+  document.querySelectorAll('.mm-pane-menu').forEach(m => m.remove());
   const menu = document.createElement('div');
   menu.className = 'mm-pane-menu';
-  for (const item of items) {
-    if (item === '-') { menu.append(Object.assign(document.createElement('hr'), { className: 'mm-pane-menu-sep' })); continue; }
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.textContent = (item.checked ? '\u2713 ' : '\u2003') + item.label;
-    b.onclick = () => { close(); toWindow({ kind: 'menuPick', id: item.id }); };
-    menu.append(b);
+  let subMenu = null;   // an item's submenu ({ label, sub: [items] }): beside it, on hover, click or Right
+  const closeSub = () => { subMenu?.remove(); subMenu = null; };
+  const fill = (el, list) => {
+    for (const item of list) {
+      if (item === '-') { el.append(Object.assign(document.createElement('hr'), { className: 'mm-pane-menu-sep' })); continue; }
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = (item.checked ? '\u2713 ' : '\u2003') + item.label + (item.sub ? '  \u203a' : '');
+      if (item.sub) {
+        b.onclick = b.onmouseenter = () => openSub(b, item.sub);
+        b.onkeydown = e => { if (e.key === 'ArrowRight') { e.preventDefault(); openSub(b, item.sub, true); } };
+      } else {
+        b.onclick = () => { close(); toWindow({ kind: 'menuPick', id: item.id }); };
+        if (el === menu) b.onmouseenter = closeSub;
+      }
+      el.append(b);
+    }
+  };
+  function openSub(b, list, focus) {
+    if (subMenu?.from === b) return focus && subMenu.querySelector('button')?.focus();
+    closeSub();
+    subMenu = Object.assign(document.createElement('div'), { className: 'mm-pane-menu', from: b });
+    fill(subMenu, list);
+    subMenu.onkeydown = e => { if (e.key === 'ArrowLeft') { e.preventDefault(); closeSub(); b.focus(); } };
+    document.body.append(subMenu);
+    // Right of the item, else left of the menu; a pane too narrow for either: under the item, which stays readable.
+    const r = b.getBoundingClientRect(), w = subMenu.offsetWidth;
+    const right = r.right + w <= innerWidth - 2, left = menu.offsetLeft - w >= 0;
+    subMenu.style.left = (right ? r.right : left ? menu.offsetLeft - w : Math.max(0, Math.min(r.left + 16, innerWidth - w - 2))) + 'px';
+    subMenu.style.top = Math.max(0, Math.min(right || left ? r.top - 4 : r.bottom, innerHeight - subMenu.offsetHeight - 2)) + 'px';
+    if (focus) subMenu.querySelector('button')?.focus();
   }
-  const outside = e => { if (!menu.contains(e.target)) close(); };
-  const esc = e => { if (e.key === 'Escape') { e.preventDefault(); close(); } };
+  fill(menu, items);
+  const outside = e => { if (!menu.contains(e.target) && !subMenu?.contains(e.target)) close(); };
+  const esc = e => {
+    if (e.key !== 'Escape') return;
+    e.preventDefault();
+    if (subMenu) { const from = subMenu.from; closeSub(); from.focus(); } else close();
+  };
   function close() {
+    closeSub();
     menu.remove();
     removeEventListener('pointerdown', outside, true);
     removeEventListener('keydown', esc, true);

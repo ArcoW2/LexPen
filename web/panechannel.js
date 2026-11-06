@@ -104,6 +104,13 @@ function paneChannel({ id, page, title, view, state, receive, onFloat, onDock })
     for (const el of menuEl.children) {
       if (el.tagName === 'HR') { if (items.length && items.at(-1) !== '-') items.push('-'); continue; }
       if (el.tagName !== 'BUTTON' || el.hidden) continue;
+      // An item with a submenu (menuItems: its menus.js items, as Copy name's): those items, each running its action.
+      const sub = el.menuItems?.();
+      if (sub) {
+        items.push({ label: el.textContent, sub: sub.map(s => s === '-' ? '-'
+          : (runs.push(() => runAction(s[1], s.slice(2), { from: 'menu' })), { label: s[0].replace(/&/g, ''), id: runs.length - 1 })) });
+        continue;
+      }
       runs.push(() => el.click());
       items.push({ label: el.textContent, id: runs.length - 1 });
     }

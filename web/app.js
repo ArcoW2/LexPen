@@ -696,7 +696,8 @@ function makePane(index) {
       ui.tabMenu.querySelector('[data-cmd=tabPin]').textContent = tab.pinned ? 'Unpin tab' : 'Pin tab';
       ui.tabMenu.querySelector('[data-cmd=tabReadOnly]').classList.toggle('mm-on', tab.readOnly || tab.doc.diskReadOnly);
       ui.tabMenu.querySelector('[data-cmd=tabShowInTree]').hidden = !tab.doc.path;
-      ui.tabMenu.querySelector('[data-cmd=tabCopyName]').hidden = !tab.doc.path;
+      ui.tabMenu.querySelector('.mm-copy-name').disabled = !tab.doc.path;   // a draft never saved: greyed out
+      copyNameFor = () => copyNameItems(tab.doc.path, false);
       ui.tabMenu.querySelector('[data-cmd=tabRename]').hidden = !tab.doc.path;
       ui.tabMenu.querySelector('[data-cmd=tabRenameDraft]').hidden = !tab.doc.draft;
       ui.tabMenu.querySelector('[data-cmd=tabRevert]').hidden = !canRevert(tab.doc);
@@ -2624,7 +2625,7 @@ async function fromFolder(m, from) {
       await renameFile(m.path, m.folder);
       return focusFolder();
     case 'escape':   // its menu open (docked: here, the focus still in the folder): that closes first, the focus staying
-      if (!ui.treeMenu.hidden) return hideMenus();
+      if (!ui.treeMenu.hidden) { closeMenus(); return hideMenus(); }   // with its Copy name items, when open
       return focusPane(panes[state.activePane]);
     case 'sort': keepLayout('sort', m.value); return refreshTree();
     case 'cmd': return commands[m.name]?.();
@@ -4948,7 +4949,8 @@ function openTreeMenu(row, x, y) {
     const asked = contextPath;
     if (!file && !row.up && !row.gone)
       host('hasBackups', { path: asked }).then(has => { if (contextPath === asked) all.hidden = !has; }).catch(() => {});
-    ui.treeMenu.querySelector('[data-cmd=treeCopyName]').textContent = file ? 'Copy file name' : 'Copy folder name';
+    const path = contextPath;
+    copyNameFor = () => copyNameItems(path, !file);
   });
 }
 document.addEventListener('contextmenu', e => {
@@ -4980,6 +4982,58 @@ function relativePath(path) {
 async function copyText(text) {
   await navigator.clipboard.writeText(text);
   toast('Copied ' + text, true);
+}
+
+// Copy name to Windows clipboard (plan 37, action file.copy): a part of a file's or folder's path. name: without its
+// last extension; nameExt: with it; dir: its folder (a drive or a share with its \); full: all of it; relDir and
+// relFull: as dir and full, relative to the folder pane's root (outside it: as they are; in the root itself, relDir
+// is empty). A folder as a file; a drive (D:\) is its own name.
+function pathPart(path, part, root = state.root) {
+  const full = path.length > 3 ? path.replace(/\\$/, '') : path;
+  const cut = full.lastIndexOf('\\');
+  let dir = cut < 0 ? '' : full.slice(0, cut);
+  if (/^[A-Za-z]:$/.test(dir) || /^\\\\[^\\]*$/.test(dir)) dir += '\\';   // D:\a.md -> D:\, \\server\a.md -> \\server\
+  const nameExt = full.slice(cut + 1) || full, dot = nameExt.lastIndexOf('.');
+  const base = root ? root.replace(/\\$/, '') + '\\' : null;
+  const inRoot = !!base && full.toLowerCase().startsWith(base.toLowerCase());
+  const relFull = inRoot ? full.slice(base.length) : full;
+  const relDir = inRoot ? relFull.slice(0, Math.max(0, relFull.lastIndexOf('\\'))) : dir;
+  return { name: dot > 0 ? nameExt.slice(0, dot) : nameExt, nameExt, dir, full, relDir, relFull }[part];
+}
+
+async function copyName(part, path) {
+  if (!path) return;
+  const text = pathPart(path, part);
+  if (text) return copyText(text);
+  await navigator.clipboard.writeText('');
+  toast(`Copied an empty path: ${nameOf(path)} is in the root of the folder pane`, true);
+}
+
+// Its six items, for the active document (no path) or for `path` (a file or a folder).
+function copyNameItems(path, folder) {
+  const [w, W] = folder ? ['folder', 'Folder'] : ['file', 'File'];
+  const item = (label, part) => path === undefined ? [label, 'file.copy', part] : [label, 'file.copy', part, path];
+  return [item(`&${W}name`, 'name'), item(`${W}name.&ext`, 'nameExt'), '-', item('&Path', 'dir'), item(`Path &and ${w}name.ext`, 'full'), '-',
+    item('&Relative path', 'relDir'), item(`Relative path a&nd ${w}name.ext`, 'relFull')];
+}
+
+// The Copy name item of a right-click menu (the folder pane's, a tab's): its items beside it, as a submenu of the menu
+// bar (menus.js), on hover or click. A choice there closes the right-click menu too.
+let copyNameFor = null;   // menu -> () => its items, as the menu was opened
+function copyNameFlyout(button) {
+  if (button.disabled) return;
+  const r = button.getBoundingClientRect();
+  closeMenus();
+  menuBar.fromContext = true;
+  openMenuLevel(copyNameFor(), r.right - 2, r.top - 5, false, false, button.parentElement.getBoundingClientRect().left);
+}
+for (const menu of [ui.treeMenu, ui.tabMenu]) {
+  const button = menu.querySelector('.mm-copy-name');
+  button.menuItems = () => copyNameFor();   // the floating folder pane draws them itself (panechannel.js menuThere)
+  button.addEventListener('mouseenter', () => copyNameFlyout(button));
+  button.addEventListener('click', () => copyNameFlyout(button));
+  // Another item of the menu hovered: the flyout closes.
+  menu.addEventListener('mouseover', e => { const b = e.target.closest('button'); if (b && b !== button && menuBar.fromContext) closeMenus(); });
 }
 
 // Tree filter: all files, or the known file types only (knownFile: a language pack has the extension; folders always
@@ -5330,8 +5384,6 @@ const commands = {
   tabSplit: async () => { if (menuTab) { await activate(paneOf(menuTab), menuTab); await splitToOther(); } },
   tabNextWindow: () => menuTab && moveTab(menuTab, 'next'),
   tabNewWindow: () => menuTab && moveTab(menuTab, 'new'),
-  tabCopyPath: () => menuTab?.doc.path && copyText(menuTab.doc.path),
-  tabCopyName: () => menuTab?.doc.path && copyText(nameOf(menuTab.doc.path)),   // the name and extension, no folder
   tabShowInTree: () => menuTab && showInTree(menuTab.doc.path),
   tabRename: () => menuTab && renameFile(menuTab.doc.path),
   tabRenameDraft: () => menuTab && renameDraft(menuTab.doc),
@@ -5370,9 +5422,6 @@ const commands = {
   closeSecond: () => closePane(1),
   orientV: () => state.orient === 'v' || commands.orient(),
   orientH: () => state.orient === 'h' || commands.orient(),
-  copyPath: () => copyText(contextPath),
-  copyRelativePath: () => copyText(relativePath(contextPath)),
-  treeCopyName: () => copyText(nameOf(contextPath.replace(/\\$/, '')) || contextPath),   // a drive (D:\): as it is
   treeDeleteBackup: () => deleteBackups(contextPath),
   treeDeleteBackups: () => deleteBackups(contextPath, true),
   treeDeleteColumns: () => csvDeleteBeside(contextPath),
