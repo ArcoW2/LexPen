@@ -2023,7 +2023,7 @@ sealed class AppHost : ApplicationContext
         foreach (var kind in new[] { "chars", "hls" })
             if (Tool(kind) is { IsDisposed: false } tool) ShowBar(BarOf(tool), ToolServes(tool), kind, true);
         foreach (var f in new Form?[] { projectsWindow, themeSetsWindow })
-            if (f is { IsDisposed: false }) BarOf(f)?.Show(new("All projects", null), new("All documents", null), null, AppColours(LastActive));
+            if (f is { IsDisposed: false }) BarOf(f)?.Show(new("All projects", null), new("All documents", null), null, AppColours(LastActive), Values(LastActive));
         foreach (var (w, s) in settingsWindows) if (!s.IsDisposed) ShowBar(s.Bar, w, null, false);
     }
 
@@ -2040,7 +2040,7 @@ sealed class AppHost : ApplicationContext
             : paneHeld.TryGetValue(following, out var held) && held.Window == w ? $"Held - {held.Why}" : "All projects - current project";
         var doc = !onDocument ? new PanelBar.Part("All documents", null)
             : w.DocName is { Length: > 0 } name ? new PanelBar.Part(null, name) : new PanelBar.Part("No document", null);
-        bar.Show(new(lead, WindowName(w)), doc, w, AppColours(w));
+        bar.Show(new(lead, WindowName(w)), doc, w, AppColours(w), Values(w));
     }
 
     /// <summary>A window as a panel's bar names it: its project, with its number among that project's open windows

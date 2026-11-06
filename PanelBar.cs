@@ -1,10 +1,14 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
+
 namespace LexPen;
 
 /// <summary>
 /// The bottom bar of a floating panel's window (docs/plans/22-PLAN-floating-panel-scope.md 3.4): whose it is now. At
 /// the far left the project (an italic lead first: "All projects - current project", "Held - playing", ...; or only
 /// the italic "All projects"), next to it the document (or the italic "All documents"). In the look of the window it
-/// names; a click brings that window to the front. AppHost.UpdateBars fills it.
+/// names, in the app font (settings appFont, appSize); a click brings that window to the front. Not shown when the
+/// setting panelBar is off. AppHost.UpdateBars fills it.
 /// </summary>
 sealed class PanelBar : Control
 {
@@ -21,14 +25,28 @@ sealed class PanelBar : Control
     {
         Dock = DockStyle.Bottom;
         SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint | ControlStyles.ResizeRedraw, true);
-        Font = new Font("Segoe UI", 9f);
-        Height = TextRenderer.MeasureText("Ag", Font).Height + 6;
         Cursor = Cursors.Hand;
+        SetFont("", 0);
     }
 
-    /// <summary>What it says, in the colours of window `colours` (its app theme: --bg-bar, --fg, --fg-dim, --border).</summary>
-    public void Show(Part project, Part document, MainForm? window, IReadOnlyDictionary<string, string> colours)
+    // The app font: a name ("" is Segoe UI) and a size in points (0 is 9.75 pt, the pages' 13 px).
+    void SetFont(string family, double size)
     {
+        if (family == (familyNow ?? "-") && size == sizeNow) return;
+        (familyNow, sizeNow) = (family, size);
+        Font = new Font(family is { Length: > 0 } ? family : "Segoe UI", size > 0 ? (float)size : 9.75f);
+        Height = TextRenderer.MeasureText("Ag", Font).Height + 6;
+    }
+    string? familyNow;
+    double sizeNow;
+
+    /// <summary>What it says, in the colours of window `colours` (its app theme: --bg-bar, --fg, --fg-dim, --border)
+    /// and the font of its settings `values` (appFont, appSize); shown as panelBar says.</summary>
+    public void Show(Part project, Part document, MainForm? window, IReadOnlyDictionary<string, string> colours, JsonObject values)
+    {
+        Visible = values["panelBar"]?.GetValueKind() != JsonValueKind.False;
+        SetFont(values["appFont"]?.GetValueKind() == JsonValueKind.String ? values["appFont"]!.GetValue<string>() : "",
+            values["appSize"]?.GetValueKind() == JsonValueKind.Number ? values["appSize"].Deserialize<double>() : 0);
         Color Of(string name, Color fallback) => ThemeFile.Rgb(colours.GetValueOrDefault(name) ?? "") is var (r, g, b) ? Color.FromArgb(r, g, b) : fallback;
         (this.project, this.document, Window) = (project, document, window);
         BackColor = Of("--bg-bar", SystemColors.Control);

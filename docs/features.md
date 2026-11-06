@@ -495,7 +495,8 @@ every action with its key.
   panel has a bottom bar that says whose it is: *All projects - current project* and the project it serves now (with
   [n] when that project has more windows), *Held - playing / recording / searching* and the project while held, or
   the window's project; then the document it works on, or *All documents*. Manage projects and Theme sets say *All
-  projects*. A click on the bar brings that window to the front.
+  projects*. A click on the bar brings that window to the front. The bar is in the app font; Settings > App, A bottom
+  bar on floating panels, turns the bars off.
 - **Highlights docked**: the Highlights window docks as Characters does: in a dock area it lists the active
   document's highlights, beside an editor pane's text that pane's document's (each editor pane can have one); a click
   goes to the highlight there. The Highlights window item opens it as it was last.
