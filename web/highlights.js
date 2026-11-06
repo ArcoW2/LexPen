@@ -578,22 +578,15 @@ function noteBox(value, text) {
   return new Promise(resolve => dialog.addEventListener('close', () => resolve(dialog.returnValue === 'ok' ? area.value : null), { once: true }));
 }
 
-// A question with OK and Cancel (the page's own: the viewer shows no confirm()); `ok`: the OK button's own name.
-function confirmBox(question, ok) {
-  const dialog = $('.mm-confirm-dialog'), button = dialog.querySelector('[value=ok]'), name = button.textContent;
-  dialog.querySelector('.mm-confirm-text').textContent = question;
-  if (ok) button.textContent = ok;
-  dialog.returnValue = '';
-  dialog.showModal();
-  button.focus();
-  return new Promise(resolve => dialog.addEventListener('close', () => { button.textContent = name; resolve(dialog.returnValue === 'ok'); }, { once: true }));
+// A question with OK and Cancel, in LexPen's question window (AskForm); `ok`: the OK button's own name.
+async function confirmBox(question, ok) {
+  return !!await host('confirm', { text: question, ok: ok ?? 'OK' });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   const dialog = $('.mm-note-dialog');
   dialog.querySelector('.mm-note-text').addEventListener('keydown', e => { if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); dialog.close('ok'); } });
   dialog.querySelector('.mm-note-cancel').addEventListener('click', () => dialog.close('cancel'));
-  $('.mm-confirm-dialog .mm-confirm-cancel').addEventListener('click', () => $('.mm-confirm-dialog').close('cancel'));
 });
 
 // ---------- The highlights window (HighlightsForm.cs, web/highlightsview.js) and the docked ones ----------

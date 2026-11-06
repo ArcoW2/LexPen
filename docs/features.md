@@ -735,6 +735,12 @@ every action with its key.
 - **Menus**: File, Edit, Format, View and Options in the toolbar row. Every item shows its key; Alt+letter opens a
   menu, the arrow keys move, Enter runs, Esc closes one level, an underlined letter runs its item. The focus stays
   in the editor, so a menu item works on the cursor and the selection there.
+- **Questions** come in LexPen's own window: in the app theme of the window that asks (its colours, the app font),
+  movable, with a sign for what it is (information, question, warning, error), the default button in the accent
+  (Enter), Esc for Cancel. Choices as a list of command links (a name, a note under it), radio buttons or
+  checkboxes; a long list behind Show details. A question is asked over the window it comes from (Close projects:
+  over Manage projects), else over the window last worked in. Only the file open and save dialogs, and a few
+  messages when there is no window to ask in, are Windows' own.
 
 ## Under the hood
 
