@@ -231,6 +231,7 @@ tree.addEventListener('contextmenu', e => {
   const row = e.target.closest('.mm-row');
   e.preventDefault();
   if (!row) return;
+  setCursor(row, false);   // the menu's subject: the cursor goes there, as with a click
   const has = c => row.classList.contains(c);
   toWindow({ kind: 'menu', x: e.clientX, y: e.clientY, path: row.dataset.path, dir: has('mm-dir'), base: has('mm-base'),
     up: has('mm-up'), gone: has('mm-gone'), backup: has('mm-has-backup'), columns: has('mm-has-columns') });
