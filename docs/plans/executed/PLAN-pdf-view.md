@@ -1,5 +1,7 @@
 # Plan 38: viewing a PDF file
 
+Status: executed, merged into main (2026-11-06); see 5. As built.
+
 ## 1. The enhancement
 
 LexPen opens text files. A PDF file (a manual, a spec, an export next to the markdown it came from) cannot be
@@ -128,3 +130,52 @@ one of three places, chosen per PDF, as a CSV's column settings are (plan 29).
 ## 4. Open questions
 
 None.
+
+## 5. As built
+
+Built on branch `plan-38` (2026-11-05; find in a PDF 2026-11-06).
+
+- pdf.js 6.4.299 in `web/vendor/pdfjs` (also in `vendor.ps1` and `package.json`). `web/pdf.html` / `web/pdf-pane.js`: the
+  page that draws a PDF (in a frame from the panes' site); `web/pdfview.js`: the tab, its bar (the pane's bars row, as
+  other files' bars), the right-click, the bookmarks in the outline; `web/pdfhighlights.js`: the highlights. A `pdf`
+  language pack (`.pdf`, opens as preview) gives it its name, the Folder pane's file type and the File types list.
+- The host serves a PDF to the panes' site (CORS), and `.mjs` / `.wasm` with their types; `pdfLookGet` / `pdfLookSet`
+  keep a PDF's look and the place of its highlights (`file-pdf.json`); `writePdf` writes it (`TextFile.WriteBytes`,
+  a .bak first when backups are on).
+- Measured in a test copy, the PDFs in `docs/examples`: the first page drawn in 64 to 502 ms (the 2003 pages of
+  `hpmor.pdf` and the 18.6 MB comic included); scrolling 40 screens by the wheel and the keys without a long task;
+  the Release build shows a PDF (its 2003 pages, its 129 bookmarks).
+- Highlights, tested on a copy of a PDF: made from a selection, with a note, drawn over the text; next to the file
+  (`.lph`); into the PDF (the question, Save): the file holds them as highlight annotations with their notes, read
+  back as the PDF's own; out of it again (the question, Save): gone from the file, kept in LexPen; a PDF's own
+  highlight while kept in LexPen is listed, marked and not changed.
+
+Differs from the plan, or not done:
+
+- Find in a PDF (Ctrl+F, `web/pdffind.js`): the find bar on the pages' texts (read once from the frame; the bar says
+  "Reading the PDF..." meanwhile), the matches marked on the drawn pages, F3 / Shift+F3 from the page shown; no
+  replace; the matches are filled boxes in the find colours (the setting for outlined matches is not followed).
+  Tested on `hpmor.pdf` (a copy): its texts read in about 2 s, then 1641 matches of "Hermione".
+- A drop from the Folder pane or Explorer opens a PDF (checked by the user); the command line not tested on its own.
+- Where the highlights are kept is chosen in the PDF bar (Highlights: inside the file / next to the file / in LexPen)
+  and in its right-click (Highlights kept), not in the Highlights pane.
+- A click in the PDF closes an open menu (a click in its frame does not reach the window: the frame tells it).
+- Its scroll bar is LexPen's preview strip (`previewoverview.js`), not the frame's: the frame tells its layout (each
+  page's top and height, the whole height, the view) and its scroll; the strip's drag, click and wheel are sent back.
+  Marks per page: find matches, highlights, and the chapters (the bookmarks at the first level with more than one),
+  placed by their share of the page's text once the texts are read (the find bar reads them), else at the page's top.
+  The horizontal scroll bar (zoomed in) is the frame's, in LexPen's look. Tested on `hpmor.pdf` (a copy): a drag, the
+  wheel on the PDF and on the strip, a click on the strip, a zoom (the layout told again).
+- Opened again, a PDF is where it was read last: its page, how far down it (a share of its height, so another width
+  finds the same place) and its zoom, kept for the last 100 PDFs in `file-pdf-places.json` (apart from
+  `file-pdf.json`, so a place never pushes out a PDF's look or where its highlights are kept). Tested on a copy of
+  `hpmor.pdf`: closed and opened again, and after a restart, at the same page and place.
+- A highlight is found by its page and its place in that page's text; when the PDF changes, it is not looked up again
+  by its text (as a text file's is): it may then mark other text.
+- A note changed on one of the PDF's own highlights is written with a new popup; the old one stays in the file, unused.
+- A PDF without text (its letters drawn as shapes, a scan: `Warranty Certificate.pdf`) cannot be selected, so not
+  highlighted.
+- A highlight on a page turned round (dark mode) keeps the preview's highlight colour; one of the PDF's own is part
+  of the page, so it is turned round with it.
+- Unsaved highlights of a PDF kept inside it are lost when LexPen restarts without saving (closing asks first, as
+  for a text file).

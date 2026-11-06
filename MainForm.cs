@@ -822,13 +822,36 @@ sealed class MainForm : Form
                 app.Columns.Set(BookmarkStore.Key(msg["path"]?.GetValue<string>(), msg["draft"]?.GetValue<string>()), msg["table"] as JsonObject);
                 return null;
 
-            // A PDF's look (plan 38): following the theme (nothing kept) or "original".
+            // A PDF's own settings (plan 38): its look (following the theme, or "original") and where its highlights
+            // are kept ("pdf": inside it; else LexPen's highlights store decides). Only what differs from the default is
+            // kept. readOnly: the file cannot be written (its attribute). place: where it was read last (a store of its own).
             case "pdfLookGet":
-                return new JsonObject { ["look"] = app.PdfLooks.Open(BookmarkStore.Key(Arg("path"), null))?["look"]?.GetValue<string>() ?? "theme" };
+            {
+                var path = Arg("path");
+                var kept = app.PdfLooks.Open(BookmarkStore.Key(path, null));
+                return new JsonObject
+                {
+                    ["look"] = kept?["look"]?.GetValue<string>() ?? "theme", ["highlights"] = kept?["highlights"]?.GetValue<string>(),
+                    ["readOnly"] = File.Exists(path) && File.GetAttributes(path).HasFlag(FileAttributes.ReadOnly),
+                    ["place"] = app.PdfPlaces.Open(BookmarkStore.Key(path, null)),
+                };
+            }
 
             case "pdfLookSet":
-                app.PdfLooks.Set(BookmarkStore.Key(Arg("path"), null),
-                    Arg("look") == "original" ? new JsonObject { ["look"] = "original" } : null);
+            {
+                var key = BookmarkStore.Key(Arg("path"), null);
+                if (msg["place"] is JsonObject place) { app.PdfPlaces.Set(key, place); return null; }
+                var kept = app.PdfLooks.Open(key) ?? [];
+                if (msg["look"] is not null) { if (Arg("look") == "original") kept["look"] = "original"; else kept.Remove("look"); }
+                if (msg["highlights"] is not null) { if (Arg("highlights") == "pdf") kept["highlights"] = "pdf"; else kept.Remove("highlights"); }
+                app.PdfLooks.Set(key, kept.Count > 0 ? kept : null);
+                return null;
+            }
+
+            // A PDF written with its highlight annotations (plan 38; pdf.js made the bytes): as a save, a .bak first
+            // when backups are on.
+            case "writePdf":
+                TextFile.WriteBytes(Arg("path"), Convert.FromBase64String(Arg("data")), msg["backup"]?.GetValue<bool>() == true);
                 return null;
 
             // Written next to the file: the path it went to.

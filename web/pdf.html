@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- A PDF, drawn by pdf.js (pdf-pane.js; docs/plans/38-PLAN-pdf-view.md): a page of the panes' site, a process of its own. -->
+<!-- A PDF, drawn by pdf.js (pdf-pane.js; docs/plans/executed/PLAN-pdf-view.md): a page of the panes' site, a process of its own. -->
 <html><head><meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; connect-src 'self' https://file.lexpen.example">
 <title>PDF</title>
@@ -14,6 +14,23 @@
     color: var(--pdf-fg, #ddd); font: 14px system-ui, sans-serif; text-align: center; }
   #pdf-error[hidden] { display: none; }   /* else its display above wins over hidden, and it covers the PDF */
   #pdf-scroll:focus { outline: none; }
+  /* No vertical scroll bar: LexPen's strip in the window is it. The horizontal one as LexPen's (app.css). */
+  #pdf-scroll::-webkit-scrollbar { width: 0; height: var(--pdf-sb, 20px); }
+  #pdf-scroll::-webkit-scrollbar-button { display: none; }
+  #pdf-scroll::-webkit-scrollbar-track { background: color-mix(in srgb, var(--pdf-fg, #ddd) 7%, var(--pdf-bg, #525659));
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--pdf-fg, #ddd) 22%, var(--pdf-bg, #525659)); }
+  #pdf-scroll::-webkit-scrollbar-thumb { min-width: 24px; border-radius: 3px; background: color-mix(in srgb, var(--pdf-fg, #ddd) 28%, transparent); }
+  #pdf-scroll::-webkit-scrollbar-thumb:active { background: color-mix(in srgb, var(--pdf-fg, #ddd) 40%, transparent); }
+  #pdf-scroll::-webkit-scrollbar-corner { background: transparent; }
+  /* Highlights (pdf-pane.js): a layer between a page and its text layer; the highlight look of the preview. */
+  .pdf-hl-layer { position: absolute; inset: 0; pointer-events: none; }
+  .pdf-hl { position: absolute; background: var(--pdf-hl); border-radius: 2px; }
+  .pdf-hl.pdf-hl-under { background: none; border-bottom: 2px solid var(--pdf-hl-line); }
+  .pdf-hl.pdf-hl-blink { background: rgb(255 140 0 / .6); }
+  .pdf-hl-sign { position: absolute; width: 6px; height: 6px; margin: 1px 0 0 1px; border-radius: 50%; background: var(--pdf-hl-line); }
+  /* The find bar's matches (pdf-pane.js): the window's find colours. */
+  .pdf-find { position: absolute; background: var(--pdf-find); border-radius: 2px; }
+  .pdf-find.pdf-find-current { background: var(--pdf-find-current); }
 </style>
 </head>
 <body>

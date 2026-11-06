@@ -4,7 +4,8 @@
 // cursor line, and a block for the part in view. Drag the block to scroll; a click on a mark brings it to the middle
 // of the view; a click elsewhere scrolls there (and the drag goes on from there); the wheel over it scrolls. The same
 // settings: overviewWidth and overview.<kind>. Positions come from the preview itself: a source line's block
-// (previewjump.js previewBlockAt), a highlight's or a find match's ranges. Loaded after highlights.js.
+// (previewjump.js previewBlockAt), a highlight's or a find match's ranges. A PDF scrolls in its frame: the sizes, the
+// marks and the moves are pdfview.js's (pdfScroller, pdfOverviewMarks). Loaded after highlights.js.
 
 const pvWidth = () => Math.min(40, Math.max(10, +setting('overviewWidth') || 20));
 const pvKind = kind => setting('overview.' + kind) !== false;
@@ -12,10 +13,18 @@ const pvKind = kind => setting('overview.' + kind) !== false;
 function pvLanes(width) {
   const inner = width - 1, side = Math.max(2, Math.round(inner / 5)), find = Math.max(3, Math.round(inner / 3));
   return { changes: [1, side], git: [1 + side, side], bookmarks: [1 + 2 * side, width - 1 - 2 * side],
-    highlights: [1 + 2 * side, width - 1 - 2 * side], find: [width - find, find], occurrences: [width - find, find], cursor: [1, width - 1] };
+    highlights: [1 + 2 * side, width - 1 - 2 * side], find: [width - find, find], occurrences: [width - find, find], cursor: [1, width - 1],
+    chapters: [1 + 2 * side, width - 1 - 2 * side] };
 }
 const PV_THUMB = 24;
-const PV_NAMES = { find: 'Find match', occurrences: 'Occurrence', changes: 'Unsaved change', git: 'Git change', bookmarks: 'Bookmark', highlights: 'Highlight', cursor: 'The editor\'s cursor' };
+const PV_NAMES = { find: 'Find match', occurrences: 'Occurrence', changes: 'Unsaved change', git: 'Git change', bookmarks: 'Bookmark', highlights: 'Highlight', cursor: 'The editor\'s cursor', chapters: 'Chapter' };
+
+// Where the preview scrolls: itself, or a PDF's frame (pdfview.js).
+function pvScroller(pane) {
+  if (pane.active?.doc.pdf) return pdfScroller(pane.active);
+  const el = pane.previewEl;
+  return { top: el.scrollTop, total: el.scrollHeight, client: el.clientHeight, scrollTo: y => { el.scrollTop = y; } };
+}
 
 function setupPreviewOverview(pane) {
   if (pane.pvCanvas) return;
@@ -24,8 +33,8 @@ function setupPreviewOverview(pane) {
   view.className = 'mm-overview-view mm-pv-overview-view';
   pane.previewEl.parentElement.append(canvas, view);   // in the pane's body, over the preview's right edge (placed below)
   canvas.addEventListener('mousedown', e => { e.preventDefault(); pvDown(pane, e); });
-  canvas.addEventListener('mousemove', e => { const { mark } = pvHit(pane, e); canvas.title = mark ? PV_NAMES[mark.kind] : ''; });
-  canvas.addEventListener('wheel', e => { e.preventDefault(); pane.previewEl.scrollTop += e.deltaY; }, { passive: false });
+  canvas.addEventListener('mousemove', e => { const { mark } = pvHit(pane, e); canvas.title = mark ? PV_NAMES[mark.kind] + (mark.title ? ': ' + mark.title : '') : ''; });
+  canvas.addEventListener('wheel', e => { e.preventDefault(); const s = pvScroller(pane); s.scrollTo(s.top + e.deltaY); }, { passive: false });
   pane.previewEl.addEventListener('scroll', () => placePvView(pane), { passive: true });
   new ResizeObserver(() => schedulePreviewOverview(pane)).observe(pane.previewEl);
 }
@@ -39,12 +48,12 @@ function schedulePreviewOverview(pane) {
 // whole, at least PV_THUMB px; a place is drawn where the block's middle is when that place is in the middle of the
 // view.
 function pvGeometry(pane) {
-  const el = pane.previewEl, track = Math.max(1, el.clientHeight), total = Math.max(1, el.scrollHeight), client = el.clientHeight;
+  const s = pvScroller(pane), track = Math.max(1, pane.previewEl.clientHeight), total = Math.max(1, s.total), client = s.client;
   const range = Math.max(0, total - client);
   const thumb = range ? Math.min(track, Math.max(PV_THUMB, track * client / total)) : track;
   const yOf = h => range ? Math.min(1, Math.max(0, (h - client / 2) / range)) * (track - thumb) + thumb / 2 : h / total * track;
   const scrollOf = y => range ? Math.min(1, Math.max(0, (y - thumb / 2) / Math.max(1, track - thumb))) * range : 0;
-  const blockTop = () => range ? Math.min(1, el.scrollTop / range) * (track - thumb) : 0;
+  const blockTop = () => range ? Math.min(1, pvScroller(pane).top / range) * (track - thumb) : 0;
   return { height: track, yOf, scrollOf, thumb, range, blockTop };
 }
 
@@ -52,6 +61,7 @@ function pvGeometry(pane) {
 function pvMarks(pane) {
   const tab = pane.active, el = pane.previewEl, out = [];
   if (!tab || tab.mode === 'edit') return out;
+  if (tab.doc.pdf) return pdfOverviewMarks(tab);
   const doc = tab.doc, base = el.getBoundingClientRect().top - el.scrollTop;
   const span = rect => rect && rect.height ? { top: rect.top - base, bottom: rect.bottom - base } : null;
   // A code preview in blocks of lines (codeHtml, docs/plans/executed/PLAN-large-preview.md): a line's place as its share of
@@ -102,7 +112,7 @@ function pvMarks(pane) {
 }
 
 function drawPreviewOverview(pane) {
-  const tab = pane.active, show = !!tab && tab.mode !== 'edit' && !tab.doc.pdf && !pane.el.hidden && pane.previewEl.offsetParent;   // a PDF scrolls itself
+  const tab = pane.active, show = !!tab && tab.mode !== 'edit' && (!tab.doc.pdf || !!tab.pdf?.layout) && !pane.el.hidden && pane.previewEl.offsetParent;   // a PDF: once its frame told its layout
   if (show) setupPreviewOverview(pane);
   if (!pane.pvCanvas) return;
   const canvas = pane.pvCanvas, view = pane.pvView;
@@ -118,7 +128,7 @@ function drawPreviewOverview(pane) {
   canvas.height = Math.round(g.height * ratio);
   const ctx = canvas.getContext('2d'), css = getComputedStyle(el), colour = name => css.getPropertyValue(name).trim();
   const colours = { changes: colour('--warning'), git: colour('--git-modified'), bookmarks: colour('--accent'),
-    highlights: colour('--highlight-mark') || colour('--highlight'), find: colour('--find-current'), occurrences: colour('--occurrence-box'), cursor: colour('--accent') };
+    highlights: colour('--highlight-mark') || colour('--highlight'), find: colour('--find-current'), occurrences: colour('--occurrence-box'), cursor: colour('--accent'), chapters: colour('--accent') };
   ctx.scale(ratio, ratio);
   ctx.clearRect(0, 0, width, g.height);
   pane.pvDrawn = [];
@@ -155,14 +165,14 @@ function pvHit(pane, e) {
 // The mouse down on the strip: on a mark its place to the middle of the view; on the block a drag; elsewhere the view
 // there, and the drag goes on from there.
 function pvDown(pane, e) {
-  const el = pane.previewEl, g = pvGeometry(pane), { mark, y } = pvHit(pane, e), top = g.blockTop();
+  const s = pvScroller(pane), g = pvGeometry(pane), { mark, y } = pvHit(pane, e), top = g.blockTop();
   const onBlock = g.range && y >= top && y <= top + g.thumb;
-  if (!onBlock && mark) { el.scrollTop = Math.max(0, (mark.top + mark.bottom) / 2 - el.clientHeight / 2); return; }
+  if (!onBlock && mark) { s.scrollTo(Math.max(0, (mark.top + mark.bottom) / 2 - s.client / 2)); return; }
   if (!g.range) return;
-  if (!onBlock) el.scrollTop = g.scrollOf(y);
-  const startY = e.clientY, startTop = el.scrollTop, perPx = g.range / Math.max(1, g.height - g.thumb);
+  if (!onBlock) s.scrollTo(g.scrollOf(y));
+  const startY = e.clientY, startTop = pvScroller(pane).top, perPx = g.range / Math.max(1, g.height - g.thumb);
   pane.pvView.classList.add('mm-dragging');
-  const move = ev => { el.scrollTop = Math.min(g.range, Math.max(0, startTop + (ev.clientY - startY) * perPx)); };
+  const move = ev => { s.scrollTo(Math.min(g.range, Math.max(0, startTop + (ev.clientY - startY) * perPx))); };
   const up = () => {
     removeEventListener('mousemove', move);
     removeEventListener('mouseup', up);

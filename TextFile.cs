@@ -116,9 +116,12 @@ static class TextFile
     /// <summary>Writes the file: the new text goes to a temporary file in the same folder first, which then
     /// replaces the old file in one step (a crash or a full disk half-way leaves the old file intact).
     /// <paramref name="backup"/>: the old file becomes name.ext.bak, overwriting an earlier one.</summary>
-    public static void Write(string path, string text, string encoding, bool backup)
+    public static void Write(string path, string text, string encoding, bool backup) =>
+        WriteBytes(path, Encode(text, encoding, Path.GetFileName(path)), backup);   // encoded before anything on disk changes
+
+    /// <summary>The same for bytes as they are (a PDF with its highlight annotations, plan 38).</summary>
+    public static void WriteBytes(string path, byte[] bytes, bool backup)
     {
-        var bytes = Encode(text, encoding, Path.GetFileName(path));   // before anything on disk changes
         var temp = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(path))!, $".{Path.GetFileName(path)}.{Guid.NewGuid():N}.tmp");
         File.WriteAllBytes(temp, bytes);
         try

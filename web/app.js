@@ -500,7 +500,7 @@ async function loadDoc(path) {
   if (isPdfPath(path)) {   // a PDF (pdfview.js): not read as text, pdf.js reads the file itself; never written
     const found = findDoc(path), doc = found ?? makeDoc({ path, text: '', encoding: '' });
     doc.pdf = doc.diskReadOnly = true;
-    if (!found) await loadPdfLook(doc);
+    if (!found) { await loadPdfLook(doc); pdfHlLoad(doc); }   // its look; its highlights (pdfhighlights.js)
     doc.lock = await host('lock', { path });
     unfresh(path);
     syncWatchFiles();
@@ -538,7 +538,7 @@ function makeTab(doc, mode) {
   article.className = 'mm-preview';
   const tab = {
     id: ++lastTabId, doc, article,
-    mode: mode ?? openMode(doc),
+    mode: doc.pdf ? 'preview' : mode ?? openMode(doc),   // a PDF is only its preview, whatever a session kept
     stale: true,         // the preview does not match the text
     cmDoc: null,         // linked CodeMirror Doc, see tabDoc
     previewTop: 0,
@@ -2052,7 +2052,10 @@ function draftSaveName(doc) {
 
 // Returns false when nothing was saved (dialog cancelled, or the file is edited elsewhere).
 async function saveDoc(doc, saveAs) {
-  if (doc.pdf) { toast('A PDF is only shown; LexPen does not write it.'); return false; }
+  if (doc.pdf) {   // a PDF: written only with its highlights, when they are kept inside it (pdfhighlights.js)
+    if (!doc.dirty) { toast('Nothing to save: LexPen writes a PDF only for its highlights kept inside it.', true); return true; }
+    return pdfSave(doc);
+  }
   let path = doc.path;
   const was = { path: doc.path, draft: doc.draft };   // the ruler's lines move to the new name (ruler.js)
   if (!path || saveAs) {
@@ -4767,6 +4770,7 @@ events.open = async ({ folder, files, edit }) => {
 // Edit in LexPen: the file in the editor, whatever its language opens in; a tab it has already in the preview only gets
 // the editor (in split view it has one).
 async function editFile(path, last = false) {
+  if (isPdfPath(path)) return viewFile(path, last);   // a PDF has no editor (pdfview.js): as View in LexPen
   const tab = await goToOrOpen(path, { mode: 'edit', last });
   if (tab?.mode === 'preview') {
     tab.mode = 'edit';

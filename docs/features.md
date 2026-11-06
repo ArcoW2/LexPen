@@ -397,6 +397,19 @@ every action with its key.
   columns, By row. Settings > Preview > Columns (CSV): the widest column (40 characters), the header at the top,
   alternate row colours (on; a colour of the theme or one you pick, and how much of it is mixed into the background),
   detecting a file's build.
+- **PDF**: a `.pdf` opens in a tab of its own on the preview side, read-only, drawn by pdf.js. It follows the mode:
+  a page that does not suit it (a light page in dark mode, a dark one in light mode, by its brightness against a
+  threshold, 50 %) is turned round with its colours kept, its paper the preview's background; a page that suits it
+  stays as it is. The bar above it (where other files have theirs): follow the theme / the original (kept per file),
+  the threshold, fit the width / the page, zoom (also Ctrl+mouse wheel), the page and previous / next; the right-click
+  has the same. The mouse wheel and the keys scroll it; it keeps its place when its tab is shown again. Its bookmarks
+  (chapters and their parts) are in the Outline pane. Highlights with notes on its text (Ctrl+F8, Edit > Highlights,
+  the right-click), listed in the Highlights pane by page; kept in LexPen, next to the file (`name.pdf.lph`) or inside
+  the PDF as its highlight annotations (other PDF readers show them; moving them in or out asks first, and Save
+  writes the PDF, a .bak first); the bar's Highlights list chooses where. A PDF's own highlights are listed too; kept
+  elsewhere they are marked as the PDF's and stay as they are. The find bar (Ctrl+F, F3) searches its text. Its
+  scroll bar is the preview's strip, with marks for find matches, highlights and chapters. Opened again, it is where
+  it was read last (its page, the place on it, its zoom; the last 100 PDFs).
 - **Preview zoom**: Ctrl+= / Ctrl+- / Ctrl+mouse wheel over a preview. The level shows at the right of the top
   bar (click it for 100%) and is kept.
 - **Safe by default**: a Content Security Policy blocks scripts embedded in a document's raw HTML.

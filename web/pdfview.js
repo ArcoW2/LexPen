@@ -1,5 +1,5 @@
 'use strict';
-// A PDF in a tab (docs/plans/38-PLAN-pdf-view.md): always on the preview side, read-only. The tab's preview holds a
+// A PDF in a tab (docs/plans/executed/PLAN-pdf-view.md): always on the preview side, read-only. The tab's preview holds a
 // frame with pdf.html (pdf-pane.js), where pdf.js draws the file and turns each page that does not suit the mode round;
 // its bar is the pane's, where the other files have theirs (above the editor and the preview: pane.barsEl), shown
 // while the pane's active tab is a PDF. This side builds them, tells the frame the mode, the
@@ -11,8 +11,10 @@ const pdfFrames = new Map();   // a frame's window -> its tab
 
 // Follow the theme or the original: per file (the host keeps it, as a file's language); the threshold is a setting.
 const pdfLook = doc => doc.pdfLook ?? 'theme';
+// With the rest the host keeps of the PDF (doc.pdfPrefs): where its highlights are kept, and whether it is read-only.
 async function loadPdfLook(doc) {
-  try { doc.pdfLook = (await host('pdfLookGet', { path: doc.path }))?.look ?? 'theme'; } catch { doc.pdfLook = 'theme'; }
+  try { doc.pdfPrefs = await host('pdfLookGet', { path: doc.path }) ?? {}; } catch { doc.pdfPrefs = {}; }
+  doc.pdfLook = doc.pdfPrefs.look ?? 'theme';
 }
 
 // The mode the PDF follows: the preview's (its own theme's, when it has one), from its background's lightness.
@@ -21,10 +23,11 @@ function pdfMode(tab) {
   const bg = pdfBackground(tab);
   return pdfLuminance(bg) < 0.5 ? 'dark' : 'light';
 }
-// The preview's background: its theme's --bg (the element itself is transparent), resolved to rgb().
-function pdfBackground(tab) {
+// The preview's background: its theme's --bg (the element itself is transparent), resolved to rgb(); its text colour
+// the same way (the frame's horizontal scroll bar is drawn with both).
+function pdfBackground(tab, name = '--bg') {
   const el = paneOf(tab)?.previewEl ?? document.body, probe = document.createElement('span');
-  probe.style.color = 'var(--bg)';
+  probe.style.color = `var(${name})`;
   el.append(probe);
   const rgb = getComputedStyle(probe).color;
   probe.remove();
@@ -60,8 +63,19 @@ function pdfBar(pane) {
     '<span class="mm-fmt-sep"></span>' +
     `<button class="mm-fmt" data-pdf="prev" title="Previous page">${PDF_ICON.prev}</button>` +
     '<input class="mm-pdf-page" title="Go to page (Enter)"><span class="mm-pdf-pages"></span>' +
-    `<button class="mm-fmt" data-pdf="next" title="Next page">${PDF_ICON.next}</button>`;
+    `<button class="mm-fmt" data-pdf="next" title="Next page">${PDF_ICON.next}</button>` +
+    '<span class="mm-fmt-sep"></span>' +
+    '<label class="mm-pdf-place-label" title="Where the highlights of this PDF are kept">Highlights: <select class="mm-pdf-place">' +
+    '<option value="pdf">inside the file</option><option value="beside">next to the file</option><option value="lexpen">in LexPen</option></select></label>';
   bar.addEventListener('mousedown', e => { if (e.target.closest('button')) e.preventDefault(); });
+  // Where its highlights are kept (pdfhighlights.js); Cancel on the question puts the choice back.
+  const place = bar.querySelector('.mm-pdf-place');
+  place.addEventListener('change', async () => {
+    const tab = pane.active;
+    if (!tab?.doc.pdf) return;
+    await pdfHlPlace(tab.doc, place.value);
+    pdfSyncBar(tab);
+  });
   bar.addEventListener('click', e => { const b = e.target.closest('[data-pdf]'); if (b && pane.active?.doc.pdf) pdfCommand(pane.active, b.dataset.pdf); });
   const page = bar.querySelector('.mm-pdf-page');
   page.addEventListener('keydown', e => {
@@ -91,7 +105,7 @@ function pdfViewElement(tab) {
   frame.className = 'mm-pdf-frame';
   frame.title = docName(doc);
   const q = new URLSearchParams({ file: FILE_URL + encodeURIComponent(doc.path) + '?v=' + (doc.pdfVersion ?? 0),
-    mode: pdfMode(tab), threshold: String(setting('pdfThreshold') ?? 50), bg: pdfBackground(tab) });
+    mode: pdfMode(tab), threshold: String(setting('pdfThreshold') ?? 50), bg: pdfBackground(tab), fg: pdfBackground(tab, '--fg'), sb: String(pvWidth()) });
   frame.src = PANE_ORIGIN + '/pdf.html?' + q;
   wrap.append(frame);
   tab.pdf = { wrap, frame, state: tab.pdf?.state ?? null, version: doc.pdfVersion ?? 0 };
@@ -121,6 +135,11 @@ function pdfSyncBar(tab) {
   const page = bar.querySelector('.mm-pdf-page');
   if (document.activeElement !== page) page.value = s?.page ?? '';
   bar.querySelector('.mm-pdf-pages').textContent = s?.pages ? ' / ' + s.pages : '';
+  const hls = typeof pdfHlsOf === 'function' ? pdfHlsOf(tab.doc) : null, place = bar.querySelector('.mm-pdf-place');
+  if (hls) {
+    place.value = hls.place;
+    place.querySelector('[value=pdf]').disabled = !hls.changeable && hls.place !== 'pdf';
+  }
 }
 
 async function pdfCommand(tab, what) {
@@ -138,15 +157,16 @@ async function pdfSetLook(doc, look) {
 // The mode, the threshold or the background changed (the look, a setting, the theme): every PDF told.
 function pdfTellAll() {
   for (const tab of allTabs()) if (tab.pdf?.frame.isConnected) {
-    pdfSend(tab, { kind: 'look', mode: pdfMode(tab), threshold: setting('pdfThreshold') ?? 50, bg: pdfBackground(tab) });
+    pdfSend(tab, { kind: 'look', mode: pdfMode(tab), threshold: setting('pdfThreshold') ?? 50, bg: pdfBackground(tab), fg: pdfBackground(tab, '--fg'), sb: pvWidth() });
     pdfSyncBar(tab);
   }
 }
 
 // The right-click on the PDF (its frame tells where): the look and the threshold.
-function pdfMenu(tab, x, y) {
+function pdfMenu(tab, x, y, m = {}) {
   const r = tab.pdf.frame.getBoundingClientRect(), doc = tab.doc, t = setting('pdfThreshold') ?? 50, following = pdfLook(doc) !== 'original';
   openPopupMenu([
+    ...(typeof pdfHlMenuItems === 'function' ? pdfHlMenuItems(tab, m) : []),   // its highlights (pdfhighlights.js)
     { label: 'Follow the &theme', checked: following, run: () => pdfSetLook(doc, 'theme') },
     { label: '&Original', checked: !following, run: () => pdfSetLook(doc, 'original') },
     '-',
@@ -167,12 +187,30 @@ addEventListener('message', e => {
     tab.pdf.state = m;
     pdfSyncBar(tab);
     if (m.page !== page) { const pane = paneOf(tab); if (pane?.active === tab) markOutline(pane); }   // its bookmark (app.js)
+    clearTimeout(tab.pdf.placeTimer);
+    tab.pdf.placeTimer = setTimeout(() => pdfKeepPlace(tab), 1000);
   }
   else if (m.kind === 'outline') pdfOutline(tab.doc, m.entries);
-  // Loaded (again: the tab was moved, or shown again in its pane): the place it had, when it had one.
-  else if (m.kind === 'ready') pdfSend(tab, { ...(tab.pdf.state ?? {}), kind: 'restore' });
-  else if (m.kind === 'menu') pdfMenu(tab, m.x, m.y);
-  else if (m.kind === 'activate') { const pane = paneOf(tab); if (pane && pane.index !== state.activePane) setActivePane(pane.index); }
+  // Its layout and scroll, for the pane's scroll strip (previewoverview.js).
+  else if (m.kind === 'layout') { tab.pdf.layout = m; tab.pdf.scrollTop = m.top; pdfStripChanged(tab); }
+  else if (m.kind === 'scroll') { tab.pdf.scrollTop = m.top; const pane = paneOf(tab); if (pane?.active === tab) placePvView(pane); }
+  // Loaded (again: the tab was moved, or shown again in its pane): the place it had, when it had one; opened, the place
+  // it was read last (pdfKeepPlace).
+  else if (m.kind === 'ready') {
+    pdfSend(tab, { ...(tab.pdf.state ?? tab.doc.pdfPrefs?.place ?? {}), kind: 'restore' });
+    pdfHlSend(tab);
+    pdfFindAgain(tab);
+  }
+  else if (m.kind === 'texts') pdfGotTexts(tab, m.texts);   // its pages' texts, for the find bar (pdffind.js)
+  else if (m.kind === 'menu') pdfMenu(tab, m.x, m.y, m);
+  else if (m.kind === 'selection') tab.pdf.selection = m.parts;   // for Highlight from the keys (pdfhighlights.js)
+  else if (m.kind === 'annotations') pdfHlAnnotations(tab.doc, m);
+  else if (m.kind === 'saved') { for (const resolve of pdfHl.saving.values()) resolve(m); }
+  else if (m.kind === 'activate') {   // a press in the PDF: also outside an open menu, which closes (menus.js)
+    closeMenus();
+    const pane = paneOf(tab);
+    if (pane && pane.index !== state.activePane) setActivePane(pane.index);
+  }
   else if (m.kind === 'key') document.dispatchEvent(new KeyboardEvent('keydown', { key: m.key, code: m.code, ctrlKey: m.ctrlKey,
     shiftKey: m.shiftKey, altKey: m.altKey, metaKey: m.metaKey, bubbles: true, cancelable: true }));
 });
@@ -187,6 +225,54 @@ function pdfOutline(doc, entries) {
 const pdfOutlineGo = (tab, m) => pdfSend(tab, { kind: 'dest', i: m.ch ?? 0 });
 // The line the outline marks its current entry by: the page shown (0-based).
 const pdfOutlineLine = tab => (tab.pdf?.state?.page ?? 1) - 1;
+
+// Where it is read, kept by the host for the next time it is opened (the last 100 PDFs): the page at the top of the view,
+// how far down that page (a share of its height, so another width or zoom finds the same place) and the zoom.
+function pdfKeepPlace(tab) {
+  const s = tab.pdf?.state, l = tab.pdf?.layout;
+  if (!s?.pages || !l?.tops?.length) return;
+  let i = l.tops.findLastIndex(t => t <= s.top);
+  if (i < 0) i = 0;
+  const within = Math.max(0, Math.min(1, (s.top - l.tops[i]) / Math.max(1, l.heights[i])));
+  const place = { page: i + 1, within: Math.round(within * 1e4) / 1e4, scaleValue: String(s.scaleValue ?? ''), scale: s.scale };
+  tab.doc.pdfPrefs = { ...tab.doc.pdfPrefs, place };
+  host('pdfLookSet', { path: tab.doc.path, place }).catch(() => {});
+}
+
+// ---------- The scroll strip ----------
+// The pane's scroll strip (previewoverview.js) on a PDF: the frame scrolls, so its sizes are the ones it told (layout,
+// scroll), and a move is sent to it (and shown at once).
+function pdfScroller(tab) {
+  const l = tab.pdf?.layout ?? { total: 1, client: 1 };
+  return { top: tab.pdf?.scrollTop ?? 0, total: l.total, client: l.client, scrollTo: y => {
+    tab.pdf.scrollTop = Math.max(0, Math.min(l.total - l.client, y));
+    pdfSend(tab, { kind: 'scrollTo', top: tab.pdf.scrollTop });
+    const pane = paneOf(tab);
+    if (pane) placePvView(pane);
+  } };
+}
+
+// Its marks on the strip: chapters (the bookmarks at the first level with more than one), highlights and find matches,
+// each at its page and, with the page's text known, its share of the way down the page.
+function pdfOverviewMarks(tab) {
+  const l = tab.pdf?.layout, doc = tab.doc, out = [];
+  if (!l) return out;
+  const at = (page, from) => {
+    const top = l.tops[page - 1], len = tab.pdf.texts?.[page - 1]?.length;
+    if (top == null) return null;
+    const y = top + (len && from ? from / len : 0) * l.heights[page - 1];
+    return { top: y, bottom: y };
+  };
+  if (pvKind('bookmarks') && doc.pdfOutline?.length) {
+    const level = [1, 2, 3, 4, 5, 6].find(n => doc.pdfOutline.filter(e => e.level === n).length > 1) ?? 1;
+    for (const e of doc.pdfOutline) if (e.level === level) { const s = at(e.line + 1, 0); if (s) out.push({ kind: 'chapters', ...s, title: e.text }); }
+  }
+  if (pvKind('highlights')) for (const h of pdfHlsOf(doc).list) { const s = at(h.page, h.from); if (s) out.push({ kind: 'highlights', ...s }); }
+  if (pvKind('find')) for (const f of tab.pdf.findMarks ?? []) { const s = at(f.page, f.from); if (s) out.push({ kind: 'find', ...s }); }
+  return out;
+}
+
+const pdfStripChanged = tab => { const pane = paneOf(tab); if (pane?.active === tab) schedulePreviewOverview(pane); };
 
 // The file changed on disk: drawn again (a new version, so the browser does not show the old one).
 function pdfChanged(doc) {
