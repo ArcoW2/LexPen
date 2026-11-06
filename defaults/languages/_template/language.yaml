@@ -12,6 +12,9 @@ firstLine: '^@?echo off'           # optional: a pattern for the first line, for
 open: edit                         # how a file opens: edit, split (editor and preview) or preview;
                                    # your setting per language (settings window, General > Open in) wins
 fold: indent                       # folding in the gutter: brace ({ }), indent, markdown or none
+# Only for a kind of file that is not text and that LexPen can show (the PDF pack): binary: true, and the bytes such a
+# file starts with, so a file is that kind whatever its name: starts: ['%PDF-'] (texts), within: 1024 (how far into
+# the file they may begin; 0 = at its start). Without starts it goes by the extension.
 
 # ---------- Colouring: which token type each piece of text gets ----------
 # Either a built-in editor mode (mode: javascript, xml, yaml, powershell, text/x-csharp, ...), which names the

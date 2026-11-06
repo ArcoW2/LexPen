@@ -397,7 +397,10 @@ every action with its key.
   columns, By row. Settings > Preview > Columns (CSV): the widest column (40 characters), the header at the top,
   alternate row colours (on; a colour of the theme or one you pick, and how much of it is mixed into the background),
   detecting a file's build.
-- **PDF**: a `.pdf` opens in a tab of its own on the preview side, read-only, drawn by pdf.js. It follows the mode:
+- **PDF**: a PDF opens in a tab of its own on the preview side, read-only, drawn by pdf.js. It is a PDF by what it
+  holds, not its name (a PDF named `.bin` opens as one; a text file named `.pdf` opens as text, said so); its language
+  stays PDF (dimmed in the bottom bar), and PDF cannot be chosen for a text file. A file that is neither text nor a
+  kind LexPen knows: "x is a file type LexPen does not know". It follows the mode:
   a page that does not suit it (a light page in dark mode, a dark one in light mode, by its brightness against a
   threshold, 50 %) is turned round with its colours kept, its paper the preview's background; a page that suits it
   stays as it is. The bar above it (where other files have theirs): follow the theme / the original (kept per file),

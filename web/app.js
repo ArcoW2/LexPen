@@ -497,23 +497,33 @@ function makeDoc({ path = null, draft = null, text = '', encoding = 'UTF-8' }) {
 }
 
 async function loadDoc(path) {
-  if (isPdfPath(path)) {   // a PDF (pdfview.js): not read as text, pdf.js reads the file itself; never written
-    const found = findDoc(path), doc = found ?? makeDoc({ path, text: '', encoding: '' });
-    doc.pdf = doc.diskReadOnly = true;
-    if (!found) { await loadPdfLook(doc); pdfHlLoad(doc); }   // its look; its highlights (pdfhighlights.js)
-    doc.lock = await host('lock', { path });
-    unfresh(path);
-    syncWatchFiles();
-    return doc;
-  }
-  const { text, encoding, readOnly, language, ranges } = await host('read', { path });
+  const got = await host('read', { path });
+  // Not text, a kind a pack knows by its first bytes, whatever the file's name (docs/plans/executed/PLAN-non-text-files.md).
+  if (got.kind) return loadKindDoc(path, got.kind);
+  const { text, encoding, readOnly, language, ranges, notKind } = got;
   const found = findDoc(path), doc = found ?? makeDoc({ path, text, encoding });
+  // Named as such a kind (x.pdf) but text: opened as text, said so (its language is found by its text, never that kind).
+  if (!found && notKind) toast(`${docName(doc)} is not a ${packs[notKind]?.name ?? notKind} file; opened as text.`, true);
   doc.diskReadOnly = readOnly;
   if (!found && language && packs[language]) {   // chosen for this file before (the language selector)
     doc.language = language === 'markdown' ? undefined : language;
     doc.languageChosen = true;
   }
   if (!found) doc.ranges = rangesFound(text, ranges);   // lines you gave a language, found again in the text
+  doc.lock = await host('lock', { path });
+  unfresh(path);
+  syncWatchFiles();
+  return doc;
+}
+
+// A file of a kind that is not text: a PDF (pdfview.js; not read as text, pdf.js reads the file itself; never written).
+// A pack of such a kind LexPen has no view for (yours): refused.
+async function loadKindDoc(path, kind) {
+  if (kind !== 'pdf') throw new Error(`LexPen cannot show ${packs[kind]?.name ?? kind} files.`);
+  const found = findDoc(path), doc = found ?? makeDoc({ path, text: '', encoding: '' });
+  doc.pdf = doc.diskReadOnly = true;
+  doc.language = kind;   // also when its name says otherwise (x.bin)
+  if (!found) { await loadPdfLook(doc); pdfHlLoad(doc); }   // its look; its highlights (pdfhighlights.js)
   doc.lock = await host('lock', { path });
   unfresh(path);
   syncWatchFiles();
@@ -1835,7 +1845,8 @@ function updateStatus() {
   const innerShown = inner && inner !== languageOf(doc) && packs[inner] ? packs[inner].name : null;
   statusUi.lang.textContent = doc ? languageTitle(doc) + (innerShown ? ' -> ' + innerShown : '') : '';
   statusUi.lang.title = innerShown ? `Language: ${languageTitle(doc)}, the cursor in a block of ${innerShown} (click: choose another for the file)`
-    : 'Language (click: choose another)';
+    : doc?.pdf ? `${languageTitle(doc)}: not text, so its language stays` : 'Language (click: choose another)';
+  statusUi.lang.classList.toggle('mm-fixed', !!doc?.pdf);   // a kind that is not text: dimmed (app.css), no list
   statusUi.long.hidden = !(cm && longLineIn(doc));
   statusUi.clip.textContent = 'Clip: ' + (clips.active === 0 ? 'Win' : clips.active);
   statusUi.clip.classList.toggle('mm-on', clips.active !== 0);
@@ -4770,8 +4781,9 @@ events.open = async ({ folder, files, edit }) => {
 // Edit in LexPen: the file in the editor, whatever its language opens in; a tab it has already in the preview only gets
 // the editor (in split view it has one).
 async function editFile(path, last = false) {
-  if (isPdfPath(path)) return viewFile(path, last);   // a PDF has no editor (pdfview.js): as View in LexPen
   const tab = await goToOrOpen(path, { mode: 'edit', last });
+  // A kind that is not text (a PDF) has no editor: as View in LexPen (its tab is always its preview).
+  if (tab?.doc.pdf) { if (!!tab.readOnly !== !!setting('viewReadOnly')) await setReadOnly(tab, !!setting('viewReadOnly')); return tab; }
   if (tab?.mode === 'preview') {
     tab.mode = 'edit';
     await showActive(paneOf(tab));

@@ -6,7 +6,6 @@
 // threshold and the preview's background, passes the bar's buttons on, and shows what the frame reports (its page, its
 // zoom). Loaded after app.js.
 
-const isPdfPath = path => /\.pdf$/i.test(path ?? '');
 const pdfFrames = new Map();   // a frame's window -> its tab
 
 // Follow the theme or the original: per file (the host keeps it, as a file's language); the threshold is a setting.

@@ -479,10 +479,14 @@ sealed class MainForm : Form
         if (!e.Request.Uri.StartsWith(FileUrl, StringComparison.OrdinalIgnoreCase)) return;   // the page's own files: WebFiles
         var path = Uri.UnescapeDataString(e.Request.Uri[FileUrl.Length..].Split('?', '#')[0]);
         var env = web.CoreWebView2.Environment;
-        // A PDF (plan 38): read by pdf.js in its page on the panes' site, so that site may fetch it.
-        if (Path.GetExtension(path).Equals(".pdf", StringComparison.OrdinalIgnoreCase))
+        // A PDF (plan 38): read by pdf.js in its page on the panes' site, so that site may fetch it. A PDF by its first
+        // bytes, whatever its name (plan 40).
+        bool pdf;
+        try { pdf = File.Exists(path) && LanguagePacks.KindOf(app.Languages, path, Head(path)) == "pdf"; }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { pdf = false; }
+        if (pdf || Path.GetExtension(path).Equals(".pdf", StringComparison.OrdinalIgnoreCase))
         {
-            e.Response = File.Exists(path)
+            e.Response = pdf
                 ? env.CreateWebResourceResponse(new MemoryStream(File.ReadAllBytes(path)), 200, "OK",   // not held open: it may change
                     $"Content-Type: application/pdf\r\nAccess-Control-Allow-Origin: https://{WebFiles.PaneHost}")
                 : env.CreateWebResourceResponse(null, 404, "Not Found", $"Access-Control-Allow-Origin: https://{WebFiles.PaneHost}");
@@ -1444,7 +1448,7 @@ sealed class MainForm : Form
         // A zero byte means binary, except in UTF-16 text, which starts with a byte order mark.
         var utf16 = bytes is [0xFF, 0xFE, ..] or [0xFE, 0xFF, ..];
         if (!utf16 && Array.IndexOf(bytes, (byte)0, 0, Math.Min(bytes.Length, 8000)) >= 0)
-            throw new IOException($"{Path.GetFileName(path)} is not a text file.");
+            throw new IOException($"{Path.GetFileName(path)} is a file type LexPen does not know.");
         return TextFile.Decode(bytes);
     }
 
@@ -1551,16 +1555,32 @@ sealed class MainForm : Form
         Path.GetDirectoryName(path) is string dir ? Git(dir, "rev-parse", "HEAD:./" + Path.GetFileName(path))?.Trim() : null;
 
     // A file read off the UI thread. Read-only on disk: the tab opens read-only (it cannot be saved anyway). A
-    // language chosen for this file before (the selector), else null: by extension.
+    // language chosen for this file before (the selector), else null: by extension. A file that is not text but a kind
+    // a pack knows by its first bytes (a PDF, docs/plans/executed/PLAN-non-text-files.md): { kind }, no text, whatever its
+    // name. A text file named as such a kind (x.pdf): notKind, that kind, and never that kind's language.
     async Task<JsonNode?> ReadFile(string path)
     {
+        var languages = app.Languages;
+        var kind = await Task.Run(() => LanguagePacks.KindOf(languages, path, Head(path)));
+        if (kind is not null) return new JsonObject { ["kind"] = kind };
         var (text, encoding, readOnly) = await Task.Run(() =>
         {
             var (t, e) = ReadText(path);
             return (t, e, (File.GetAttributes(path) & FileAttributes.ReadOnly) != 0);
         });
-        return new JsonObject { ["text"] = text, ["encoding"] = encoding, ["readOnly"] = readOnly, ["language"] = app.FileLanguage(path),
-            ["ranges"] = app.FileRanges(path) };
+        var language = app.FileLanguage(path);
+        if (LanguagePacks.IsBinary(languages, language)) { app.SetFileLanguage(path, null); language = null; }
+        return new JsonObject { ["text"] = text, ["encoding"] = encoding, ["readOnly"] = readOnly, ["language"] = language,
+            ["ranges"] = app.FileRanges(path), ["notKind"] = LanguagePacks.BinaryOfExtension(languages, path) };
+    }
+
+    // A file's first bytes (LanguagePacks.HeadSize at most), to find its kind; shared, as ReadText reads.
+    static byte[] Head(string path)
+    {
+        using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        var head = new byte[Math.Min(file.Length, LanguagePacks.HeadSize)];
+        file.ReadExactly(head);
+        return head;
     }
 
     // A file written off the UI thread, in the encoding it was read in; `backup`: the old file becomes name.bak. Noted

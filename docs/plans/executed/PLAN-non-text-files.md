@@ -1,5 +1,7 @@
 # Plan 40: files that are not text
 
+Status: executed, merged into main (2026-11-06); see 5. As built.
+
 ## 1. The problem
 
 A PDF is LexPen's first file that is not text (plan 38), and others may follow (Word, Excel). How LexPen treats such a
@@ -42,7 +44,10 @@ changed (the bottom bar shows it dimmed), and in a text file's language list it 
   the extension is a binary pack's (`.pdf`): also a message, "x.pdf is not a PDF file; opened as text". Its language is
   the one found for its text (not PDF).
 - Neither: "x is a file type LexPen does not know." (replaces "is not a text file").
-- `isPdfPath` stays only where a file is not opened: the Folder pane's icon and type column, File types in Settings.
+- The Folder pane, its file types and File types in Settings go by the packs' extensions, as for any language.
+- A kind is not chosen by hand ("Open as PDF"): the first bytes find every file pdf.js can show, so a choice could only
+  open files that then fail. Worth adding when a kind comes whose files cannot be told by their first bytes.
+- A file that is neither text nor a known kind gets the message only (no tab).
 
 ### 3.3 The language
 
@@ -64,8 +69,32 @@ changed (the bottom bar shows it dimmed), and in a text file's language list it 
 
 ## 4. Open questions
 
-1. Choosing a kind by hand (a binary file without a known signature, "Open as PDF"): not planned. For a PDF the
-   signature finds every file pdf.js can show, so the choice could only open files that then fail. Worth adding when a
-   kind comes whose files cannot be told by their first bytes. Agree?
-2. A file that is neither text nor known: only the message (as now), or a tab that says so (and offers to open it
-   with Windows' program for it)? Recommended: the message only.
+None.
+
+## 5. As built
+
+Built on branch `plan-40` (2026-11-06).
+
+- `LanguagePacks.cs`: a pack's `binary`, `starts` and `within` checked (a wrong one reported and left out);
+  `KindOf` (the kind from a file's first bytes, else a binary pack without `starts` by its extension), `IsBinary`,
+  `BinaryOfExtension`. The PDF pack: `binary: true`, `starts: ['%PDF-']`, `within: 1024`; the template explains them.
+- `MainForm.cs`: `read` answers `{ kind }` for such a file (only its first bytes read, so a PDF over the text size
+  limit opens too), else the text with `notKind` when its extension is a binary kind's; a kept choice of such a
+  kind's language for a text file is dropped. A file neither text nor known: "x is a file type LexPen does not know."
+  The file site serves a PDF by its first bytes too (pdf.js fetches it), not by its extension.
+- `app.js`: `loadDoc` opens by the host's answer (`loadKindDoc`: the PDF path, its language set to the kind); a text
+  file named as a kind: "x.pdf is not a PDF file; opened as text." Edit in LexPen on a kind: as View in LexPen. The
+  bottom bar's language of a kind is dimmed; a click says it stays. `languages.js`: `languageFor` never gives a binary
+  kind for text; the language list shows the kinds last, dimmed, "PDF files only"; `setLanguage` refuses them.
+- Tests: `LanguagePacksTests` (the PDF found at the start and within 1024 bytes, not beyond, whatever its name; a text
+  `.pdf`; a wrong binary pack reported; one without `starts` by its extension). In a test copy: a PDF named `.bin` and
+  one without an extension open as PDF (also by Edit in LexPen); a text `fake.pdf` opens as text with the message, its
+  kept PDF choice dropped; a random binary file gets the new message; the PDF tab's language is dimmed and the list
+  does not open; PDF is dimmed and last in a text file's list and cannot be set.
+
+Differs from the plan:
+
+- A pack may also say `binary: true` without `starts`: it then goes by the extension (for a kind whose files cannot be
+  told by their first bytes).
+- `within` may be up to 4096; the host reads that many bytes plus a little to find a kind.
+- A binary pack of yours that LexPen has no view for: its files are refused with "LexPen cannot show <name> files."

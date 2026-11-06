@@ -38,10 +38,11 @@ const packActionNames = () => [...new Set(PACK_NAMES.flatMap(n => Object.keys(pa
 // others dimmed or hidden (Known file types only).
 const knownFile = path => !!packExtensions[path?.match(/(\.[^.\\/]+)$/)?.[1].toLowerCase()];
 
-// The language of a file: by extension, then by a pack's first-line pattern, else plain text.
+// The language of a file: by extension, then by a pack's first-line pattern, else plain text. Read as text, never a
+// kind that is not text (a text file named x.pdf; docs/plans/executed/PLAN-non-text-files.md): that is found by its bytes.
 function languageFor(path, text = '') {
   const ext = path?.match(/(\.[^.\\/]+)$/)?.[1].toLowerCase();
-  if (ext && packExtensions[ext]) return packExtensions[ext];
+  if (ext && packExtensions[ext] && !packs[packExtensions[ext]]?.binary) return packExtensions[ext];
   const first = text.slice(0, 500).split(/\r?\n/, 1)[0];
   for (const name of PACK_NAMES) {
     const pattern = packs[name].firstLine;
@@ -610,7 +611,7 @@ function openMode(doc) {
 // draft in the session.
 async function setLanguage(doc, name) {
   const language = name === 'markdown' ? undefined : name;
-  if (doc.language === language || !packs[name]) return;
+  if (doc.language === language || !packs[name] || doc.pdf || packs[name].binary) return;   // a kind that is not text: neither way
   doc.language = language;
   doc.languageChosen = true;
   if (doc.path) host('setFileLanguage', { path: doc.path, language: name === languageFor(doc.path, docText(doc)) ? null : name });
@@ -625,11 +626,14 @@ async function setLanguage(doc, name) {
 function showLanguageList() {
   const doc = activeDoc();
   if (!doc) return;
+  if (doc.pdf) return toast(`${docName(doc)} is a ${languageTitle(doc)} file, not text: its language stays.`, true);
   const r = statusUi.lang.getBoundingClientRect();
-  const fileItems = PACK_NAMES.map(name => ({
-    label: packs[name].name, plain: true, key: name === languageOf(doc) ? 'current' : (packs[name].extensions ?? []).slice(0, 3).join(' '),
-    run: () => setLanguage(doc, name),
-  }));
+  // The kinds that are not text (PDF): last, dimmed; a file is one by its bytes, not by a choice.
+  const names = [...PACK_NAMES.filter(n => !packs[n].binary), ...PACK_NAMES.filter(n => packs[n].binary)];
+  const fileItems = names.map(name => packs[name].binary
+    ? { label: packs[name].name, plain: true, enabled: false, key: `${packs[name].name} files only`, title: `A file is ${packs[name].name} by what it holds, not by a choice` }
+    : { label: packs[name].name, plain: true, key: name === languageOf(doc) ? 'current' : (packs[name].extensions ?? []).slice(0, 3).join(' '),
+      run: () => setLanguage(doc, name) });
   // With lines selected in the editor: a language for those lines (3.1.2), or the file's language again.
   const pane = panes[state.activePane], cm = pane.cm && pane.el.dataset.mode !== 'preview' ? pane.cm : null;
   const sel = cm?.somethingSelected() ? cm.listSelections()[0] : null;
