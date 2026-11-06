@@ -14,8 +14,6 @@ namespace LexPen;
 sealed class SettingsForm : Form, IWebPost
 {
     const string AppUrl = "https://lexpen.example/";
-    const string KeysTemplate = "// Your own keys, on top of the defaults (F1 lists every action and key). For example:\n" +
-        "//   \"Ctrl+Shift+D\": \"bookmarkList\",\n{\n}\n";
 
     readonly AppHost app;
     readonly MainForm window;   // the main window this one belongs to
@@ -182,7 +180,7 @@ sealed class SettingsForm : Form, IWebPost
             {
                 var name = Arg("file") == "keys" ? KeysFile.Name : SettingsFile.Name;
                 var path = Path.Combine(AppHost.DataDir, name);
-                if (!File.Exists(path)) File.WriteAllText(path, name == KeysFile.Name ? KeysTemplate : "{\n}\n");
+                if (!File.Exists(path)) File.WriteAllText(path, name == KeysFile.Name ? KeysFile.Template : "{\n}\n");
                 ToWindow(new JsonObject { ["event"] = "open", ["files"] = new JsonArray(path) });
                 return null;
             }
