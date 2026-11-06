@@ -2207,6 +2207,39 @@ sealed class AppHost : ApplicationContext
     /// highlights, recent files and folders, favourites, the edit locks, the saved sessions), and every window is told
     /// (event "renamed"): its open files in it get the new path. Also the languages and line languages chosen per file. Returns the new path; a refusal, or Windows' reason, is
     /// thrown and nothing has changed.</summary>
+    /// <summary>The files that go with a file when it is deleted: its backup (.bak), its highlights (.lph) and, a
+    /// CSV, its own definition (-metadata.json); those that are there. None for a folder.</summary>
+    public static List<string> DeletedWith(string path)
+    {
+        if (Directory.Exists(path)) return [];
+        if (!File.Exists(path)) throw new InvalidOperationException($"\"{Path.GetFileName(path)}\" is not there any more.");
+        return new[] { path + ".bak", HighlightStore.BesidePath(path), ColumnStore.OwnName(path) }.Where(File.Exists).ToList();
+    }
+
+    /// <summary>The files in a folder and every folder below it (the ones it may read), for Delete's question.</summary>
+    public static int FilesIn(string folder) =>
+        Directory.EnumerateFiles(folder, "*", new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true, AttributesToSkip = 0 }).Count();
+
+    /// <summary>The folder pane's Delete...: of a file and the files that go with it (DeletedWith), those in `chosen`;
+    /// or a folder. To the Recycle Bin; gives the ones that could not go.</summary>
+    public List<string> Delete(string path, IEnumerable<string> chosen)
+    {
+        var paths = DeletedWith(path).Prepend(path).Where(p => chosen.Contains(p, StringComparer.OrdinalIgnoreCase)).ToList();   // nothing else
+        var folder = Directory.Exists(path);
+        if (folder) foreach (var w in windows) w.StopWatching(path);
+        var left = new List<string>();
+        try
+        {
+            foreach (var p in paths)
+                if (!Backups.Recycle(p) || File.Exists(p) || Directory.Exists(p)) left.Add(p);
+        }
+        finally { if (folder) foreach (var w in windows) w.ResumeWatching(); }
+        // Its highlights file gone: LexPen forgets them too.
+        var lph = HighlightStore.BesidePath(path);
+        if (!folder && paths.Contains(lph) && !left.Contains(lph)) Highlights.Delete(path);
+        return left;
+    }
+
     public string Rename(string from, string name)
     {
         if (FileRename.Refusal(from, name) is string why) throw new InvalidOperationException(why);

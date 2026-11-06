@@ -4635,6 +4635,44 @@ events.renamed = async ({ from, to }) => {
   saveSession();
 };
 
+// Delete... in the folder pane's right-click menu: asked first. A folder: with the number of files in it (below it
+// too). A file with its own files beside it (.bak, .lph, a CSV's -metadata.json): which of them, each with a box, all
+// checked. To the Recycle Bin; the folder pane and the open documents see them gone as any file deleted outside LexPen.
+async function deleteEntry(path) {
+  if (!path) return;
+  try {
+    const { files, with: beside } = await host('deleteWith', { path });
+    const name = nameOf(path);
+    const question = files === null ? `Delete ${name}? To the Recycle Bin.`
+      : files === 0 ? `Delete the empty folder ${name}? To the Recycle Bin.`
+      : `Delete the folder ${name} and ${files === 1 ? 'the 1 file' : `all ${files} files`} in it? To the Recycle Bin.`;
+    const paths = beside.length ? await askDeleteFiles(path, beside) : await confirmBox(question, 'Delete') ? [path] : [];
+    if (!paths.length) return;
+    const left = await host('delete', { path, paths });
+    if (left.length) toast(`Not deleted (in use, or no rights): ${left.map(nameOf).join(', ')}`);
+    refreshTree();
+  }
+  catch (e) { toast(e.message); }
+}
+
+// The question of Delete... for a file with files beside it: the checked ones, or [] for Cancel.
+function askDeleteFiles(path, beside) {
+  const list = $('.mm-confirm-dialog .mm-confirm-files');
+  list.replaceChildren(...[path, ...beside].map(p => {
+    const label = document.createElement('label'), box = document.createElement('input');
+    box.type = 'checkbox';
+    box.checked = true;
+    box.value = p;
+    label.append(box, ' ' + nameOf(p));
+    return label;
+  }));
+  return confirmBox(`Delete ${nameOf(path)}? The checked files go to the Recycle Bin:`, 'Delete').then(ok => {
+    const paths = ok ? [...list.querySelectorAll('input:checked')].map(b => b.value) : [];
+    list.replaceChildren();
+    return paths;
+  });
+}
+
 // Asks a name: the text, or null for Cancel / Esc.
 // `placeholder`: the hint in the empty field (a project name: a number when left empty).
 // select: the part of the value selected, [from, to] (from == to: only the caret there); default all of it.
@@ -4894,6 +4932,7 @@ function openTreeMenu(row, x, y) {
     contextKind = row.dir || row.base ? 'folders' : 'files';
     favouriteItem(ui.treeMenu, contextPath, contextKind);   // favourites.js
     ui.treeMenu.querySelector('[data-cmd=treeRename]').hidden = row.up || row.gone;
+    ui.treeMenu.querySelector('[data-cmd=treeDelete]').hidden = row.up || row.gone || row.base;
     ui.treeMenu.querySelector('[data-cmd=treeSetRoot]').hidden = contextKind !== 'folders' || samePath(contextPath, state.root);
     // The compare (compare.js): a file with the file in the editor or a picked one; a folder with a picked folder.
     const active = activeDoc()?.path, file = contextKind === 'files';
@@ -5348,6 +5387,7 @@ const commands = {
   tabFavourite: () => menuTab && toggleFavourite(menuTab.doc.path),
   treeFavourite: () => toggleFavourite(contextPath, contextKind),
   treeRename: () => renameFile(contextPath, contextKind === 'folders'),
+  treeDelete: () => deleteEntry(contextPath),
   // The folder becomes the tree's root; its subfolders that were open stay open.
   treeSetRoot: () => {
     const under = contextPath.replace(/\\$/, '').toLowerCase() + '\\';

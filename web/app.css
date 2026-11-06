@@ -1453,6 +1453,7 @@ body[data-highlight=underline] .CodeMirror .mm-hl { background: none; box-shadow
 .mm-note-text { display: block; width: min(560px, 80vw); margin: 6px 0 10px; font: inherit; color: var(--fg); background: var(--bg);
   border: 1px solid var(--border); border-radius: 4px; padding: 6px; resize: vertical; }
 .mm-confirm-text { max-width: 480px; color: var(--fg) !important; }
+.mm-confirm-files label { display: block; margin: 2px 0; color: var(--fg); }
 /* A file with highlights next to it (name.ext.lph): a small mark in the folder pane. */
 .mm-row.mm-has-highlights .mm-name::after { content: ""; display: inline-block; width: 6px; height: 6px; margin-left: 5px; border-radius: 50%;
   vertical-align: middle; background: var(--highlight); }

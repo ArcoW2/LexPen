@@ -1299,6 +1299,21 @@ sealed class MainForm : Form
             case "rename":
                 return app.Rename(Arg("path"), Arg("name"));
 
+            // The folder pane's Delete... (its page asks first): a folder's number of files, what goes with a file; then
+            // the ones chosen.
+            case "deleteWith":
+            {
+                var path = Arg("path");
+                return new JsonObject
+                {
+                    ["files"] = Directory.Exists(path) ? AppHost.FilesIn(path) : null,
+                    ["with"] = new JsonArray(AppHost.DeletedWith(path).Select(p => (JsonNode?)p).ToArray()),
+                };
+            }
+
+            case "delete":
+                return new JsonArray(app.Delete(Arg("path"), Strings(msg["paths"])).Select(p => (JsonNode?)p).ToArray());
+
             case "recent":
                 return app.Recent();
 

@@ -89,4 +89,16 @@ public class BackupsTests : IDisposable
         Assert.Equal(0, deleted);
         Assert.Single(left);
     }
+
+    // The folder pane's Delete...: a file's own files beside it go along (those that are there); a folder: none.
+    [Fact]
+    public void DeletedWithAFile()
+    {
+        var csv = Made("data.csv");
+        Made("data.csv.bak"); Made("data.csv.lph"); Made("data.csv-metadata.json"); Made("data.csv.txt"); Made(@"sub\x.md");
+        Assert.Equal(["data.csv-metadata.json", "data.csv.bak", "data.csv.lph"], Names(AppHost.DeletedWith(csv)));
+        Assert.Empty(AppHost.DeletedWith(Made("plain.md")));
+        Assert.Empty(AppHost.DeletedWith(Path.Combine(dir, "sub")));
+        Assert.Throws<InvalidOperationException>(() => AppHost.DeletedWith(Path.Combine(dir, "gone.md")));
+    }
 }
