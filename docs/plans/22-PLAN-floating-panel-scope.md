@@ -6,30 +6,31 @@ The number in the file name is the priority; rename to reorder.
 ## 1. What this is about
 
 A floating panel is either LexPen's (one for all windows: Characters, the Outline) or a window's (one per window:
-Messages, Macros, Clipboards, ...). Nothing on screen tells which, and two things go wrong:
+Messages, Macros, Clipboards, ...). Nothing on screen tells which, and things go wrong:
 
 - A panel of LexPen keeps the look (theme set, day / night) of a window that was just closed, while another LexPen
   window is still open. Seen with Characters.
+- Only the Outline really follows the window worked in. Highlights and Characters follow it half (no skipping a
+  window with its own, never handed on); Folder, Search, Bookmarks, Messages, Macros and Clipboards do not follow at
+  all: each window has a floating one of its own, so two windows mean two of them on screen.
 - The active clipboard is one for LexPen: every window's Clipboards panel reacts when a clipboard is chosen in any
   window. Each window should have its own active clipboard; the clipboards' contents stay shared.
 
 ## 2. The solution, in brief
 
-Every panel has a fixed scope of three: following the focus (one for LexPen, serving the window worked in last whose
-document has no such panel of its own, owned by that window and in its look: the Outline, Highlights, Characters),
-LexPen's (one for LexPen, working on LexPen's data: Manage projects, Theme sets) or a window's (one floating window
-per LexPen window, in its own window's look). Every floating
-panel gets a bottom bar that says whose it is: at the far left the project (its window's, or *All projects* for a
-panel of LexPen), next to it the document it works on (or *All documents* when it does not work on one). A window
-that closes passes LexPen's panels on to the next window, look included. The active clipboard becomes per window.
+Nearly every floating panel follows the focus, as the Outline does now: one for LexPen, serving the window worked in
+last that does not have that panel docked of its own, owned by that window, in its look, and handed on when that
+window closes. Only what is tied to a window stays the window's: Step by step, Settings, and Macros while a macro
+runs or records in its window. Manage projects and Theme sets stay LexPen's without following anything. Every
+floating panel gets a bottom bar that says whose it is now. The active clipboard becomes per window.
 
 ## 3. Details
 
 ### 3.0 What the code does now (AppHost.cs, read 2026-11-06)
 
-Three kinds, not two. What sets a panel apart is where its floating window is made and what it works on:
+Three kinds. What sets a panel apart is where its floating window is made and what it works on:
 
-- **Follows the focus** (one for LexPen, works on the document of the window worked in last):
+- **Follows the focus** (one for LexPen, works on the window worked in last):
   - Outline: a PaneForm, the only one of LexPen (`FloatingOutline`). It serves only a window that wants it
     (`outlineWanted`: the window's own outline not docked, its active editor pane without an outline of its own). On
     activation it is re-owned to that window (`ServeOutline` -> `SetOwner`), and on closing it moves on (`OutlineHeir`).
@@ -41,126 +42,139 @@ Three kinds, not two. What sets a panel apart is where its floating window is ma
 - **LexPen's, fixed** (one for LexPen, works on nothing of a window): Manage projects, Theme sets. Forms of their
   own; when their owner closes they are handed to the next window (`ReleaseOwned`).
 - **A window's** (one per window, works on its own window only): every other PaneForm (`PaneWindow(owner, id)`, the
-  owner fixed), and Settings (`settingsWindows[w]`).
+  owner fixed: Folder, Search, Bookmarks, Messages, Macros, Clipboards, Step by step), and Settings
+  (`settingsWindows[w]`).
 
 All three LexPen forms get the look of the window worked in last (`SendToolLook`); a PaneForm has its owner's.
 
-What this means for the plan:
-
-- The rule: a panel that works on a document follows the focus; one that works on LexPen's data is LexPen's, fixed;
-  one that works on its window's state is the window's.
-- Following the focus means three things, and only the Outline does all three today: gated (serves only a window
-  whose document has no such panel of its own), re-owned to the window it serves (so it stays above that window and
-  survives the window it was opened from), and handed on when that window closes.
-- Highlights and Characters get the Outline's behaviour: gated, re-owned, handed on. Their owner is never passed on
-  today: `ReleaseOwned` covers only Manage projects and Theme sets, so (by WinForms' owned forms, not tested) closing
-  the window they were opened from closes them too.
+Following the focus means three things, and only the Outline does all three today: gated (serves only a window that
+does not have that panel docked of its own), re-owned to the window it serves (so it stays above that window and
+survives the window it was opened from), and handed on when that window closes. The owner of Highlights and
+Characters is never passed on: `ReleaseOwned` covers only Manage projects and Theme sets, so (by WinForms' owned
+forms, not tested) closing the window they were opened from closes them too.
 
 ### 3.1 The scope of each panel
 
 | Panel | Scope | Why |
 |---|---|---|
-| Characters | LexPen, follows the focus | One picker; inserts in the window worked in last (plan 15). |
-| Outline | LexPen, follows the focus | One floating outline serving the window worked in last (plan 24, 7.3). |
-| Highlights | LexPen, follows the focus | Shows the highlights of the document worked in last. |
+| Outline | follows the focus | As now (plan 24, 7.3). |
+| Highlights | follows the focus | The highlights of the document worked in. |
+| Characters | follows the focus | Inserts in the window worked in (plan 15). |
+| Folder | follows the focus | The root of the window worked in. |
+| Search | follows the focus | The search and results of the window worked in; a search started there is that window's. |
+| Bookmarks | follows the focus | The bookmarks of the window worked in. |
+| Messages | follows the focus | The messages of the window worked in. |
+| Clipboards | follows the focus | Shows and sets the active clipboard of the window worked in (3.4); the contents are shared. |
+| Macros | follows the focus, held while a macro runs | Plays and records in the window worked in; held by its window while a macro runs there (3.2). |
+| Step by step | window | The macro stepping in its window. |
+| Settings | window | Its window's layer of settings. |
 | Manage projects | LexPen, fixed | The projects are LexPen's. |
 | Theme sets | LexPen, fixed | The sets are LexPen's. |
-| Folder | window | Its window's root. |
-| Search | window | Its window's search and results. |
-| Bookmarks | window | Its window's documents. |
-| Step by step | window | The macro running in its window. |
-| Messages | window | Its window's messages. |
-| Macros | window | Plays and records in its window. |
-| Clipboards | window | Shows and sets its window's active clipboard (3.4); the contents are shared. |
-| Settings | window | Already one per window (its window's layer). |
 
 The table is the rule for a new panel too: it gets a scope when it is added. Docked, every panel is its window's
 anyway.
 
-### 3.2 The look
+### 3.2 Following the focus
+
+- One floating window per panel for LexPen. A window's layout still says the panel floats (as the Outline's does
+  now): such a window wants it; the floating window serves the window worked in last that wants it (not one that has
+  the panel docked, nor, for the Outline and Highlights, one whose active editor pane has its own beside it).
+- Activated, a window that wants the panel takes it: the panel is re-owned to it, shows that window's content (the
+  window's page sends it, as for the Outline: `outlineServe` / `outlineRelease`), and takes its look.
+- A window that does not want it (it has its own docked): the floating one stays with the window it served.
+- The window it serves closes: on to the window used last of those that want it, at once (also its look), else it
+  closes with it.
+- Closed by hand: closed for every window (as the Outline: every window hears `paneClosed`).
+- In the host: the Outline's mechanism made per panel (`outlineWanted`, `ServeOutline`, `OutlineHeir`,
+  `FloatingOutline` keyed by the panel's id). Highlights and Characters, forms of their own, are re-owned the same
+  way (`Owner = w`).
+- **Macros held.** While a macro runs in a window (once, X times, step by step) the floating Macros panel stays with
+  that window: another window activated does not take it. When the macro ends, it goes to the window worked in last
+  that wants it. The window's page tells the host when it holds and releases it.
+- At start: windows whose layouts each have the same panel floating get one floating window, serving the active
+  window; its place is the one kept for that panel (`SavePaneWindow`, as now by its kind).
+
+### 3.3 The look
 
 - A window's panel has its window's look, always (as now).
-- A panel of LexPen has the look of the window worked in last (as now), and the window it follows can change without
-  a window being activated: when a window closes, LexPen's panels get the look of the next window (the one used last
-  of those still open) at once. Today that waits until another LexPen window is activated, which does not happen
-  when the focus goes to the floating panel itself or to another program. In the host: the closing window updates
-  the tool windows' look (SendToolLook) once it is out of the list.
-- The floating outline is moved on as now (OutlineHeir); its look follows the window it serves.
+- A panel that follows the focus has the look of the window it serves, and changes at once when it moves on (also
+  when a window closes and the focus goes to the floating panel itself or to another program).
+- Manage projects and Theme sets: the look of the window worked in last, and of the next window at once when that
+  one closes. In the host: the closing window updates the tool windows' look (SendToolLook) once it is out of the
+  list.
 
-### 3.3 The bottom bar of a floating panel
+### 3.4 The bottom bar of a floating panel
 
 - Every floating panel's window gets a thin bar at its bottom, in the panel's look, as the main window's bottom bar,
   with two parts:
-  - At the far left, the project: a window's panel its window's project, without a number when the project has one
-    window (`BankConnect`), with the window's number when it has more (`BankConnect [2]`). A panel of LexPen that
-    follows the focus (the Outline, Highlights, Characters) says *All projects - current project* (in italics),
-    then that window's project as a window's panel names it (`BankConnect`, `BankConnect [2]`): it says which project
-    it serves now, and that it serves whichever window gets the focus next. The other panels of LexPen: *All
-    projects* (in italics).
+  - At the far left, the project. A window's panel: its window's project, without a number when the project has one
+    window (`BankConnect`), with the window's number when it has more (`BankConnect [2]`). A panel that follows the
+    focus: *All projects - current project* (in italics), then the project of the window it serves, named the same
+    way (`BankConnect`, `BankConnect [2]`): which project it serves now, and that it serves whichever window gets the
+    focus next. Macros while held: its window's project only, as a window's panel. Manage projects and Theme sets:
+    *All projects* (in italics).
   - Next to it, the document: the one the panel works on now, or *All documents* (in italics) when it does not work
     on one document.
 
   | Panel | Project | Document |
   |---|---|---|
-  | Outline (floating) | *All projects - current project* + the project of the window worked in last | the document it shows now: the active one of the window worked in last |
-  | Highlights (floating) | *All projects - current project* + the project, the same way | the document whose highlights it shows now |
-  | Characters | *All projects - current project* + the project, the same way | the document it inserts into now, the same way |
+  | Outline, Highlights, Characters | *All projects - current project* + the project served | the document it shows, or inserts into, now |
+  | Bookmarks | *All projects - current project* + the project served | the document it works on |
+  | Folder, Search, Messages, Clipboards, Macros | *All projects - current project* + the project served | *All documents* |
+  | Macros, held | its window's project | *All documents* |
+  | Step by step | its window's project | the document it works on |
+  | Settings | its window's project | *All documents* |
   | Manage projects, Theme sets | *All projects* | *All documents* |
-  | Folder, Search, Messages, Macros, Clipboards, Settings | its window's project | *All documents* |
-  | Bookmarks (the window's), Step by step | its window's project | the document it works on |
 
-- The Outline, Highlights and Characters are the panels of LexPen that work on one document at a time: they follow
-  the window worked in last, so their document part changes when another window (also of another project) is
-  worked in.
 - It follows a rename of the project, a window moved to another project, the [n] shifting, the active document, and
-  (LexPen's) the window worked in last.
+  the window it serves.
 - A click on the bar brings the window it names to the front.
 - The caption stays as it is (`Clipboards - LexPen`); the bar says whose.
 - The windows of their own (Characters, Highlights, Manage projects, Theme sets, Settings) get the same bar as the
   pane windows (PaneForm), so all floating panels look alike.
 
-### 3.4 The active clipboard per window
+### 3.5 The active clipboard per window
 
 - Each window has its own active clipboard: choosing one (the menu, the bottom bar, the Clipboards panel, the keys)
   changes it for that window only. Copy, cut and paste in a window work on its active clipboard.
+- The floating Clipboards panel shows and sets the active clipboard of the window it serves.
 - The contents of clipboards 1 to 9 stay shared by all windows (one store, kept across restarts, as now): a copy to
-  clipboard 3 in one window is there in clipboard 3 of every window, and every window's Clipboards panel shows the
-  new text.
+  clipboard 3 in one window is there in clipboard 3 of every window.
 - A new window, and every window at start, begins with the Windows clipboard active (as LexPen does now).
 - In the host: ClipboardStore keeps the texts; the active number moves to the window (its page's `clips.active`,
   told by the host per window). `clipSelect` changes only the asking window; a text set tells all windows (the
   previews), the active number only to its own.
 - A macro that uses the clipboard uses its window's active one.
 
-### 3.5 Tests
+### 3.6 Tests
 
-- In-app, two windows with different theme sets:
-  - Characters floating, opened from window A, then B worked in, then B closed: Characters has A's look at once,
-    without A being clicked.
-  - Each floating panel's bottom bar: a window's panel names its project, without a number with one window of the
-    project, with [n] with two; the Outline, Highlights and Characters say *All projects - current project* and the project of
-    the window worked in (with [n] the same way), changing with the window worked in, also to a window of another
-    project.
-  - Highlights floating, opened from A; B worked in (no Highlights docked): it shows B's document and stays above
-    B; B with Highlights docked beside its editor: the floating one stays on A's document; A closed: it stays open,
-    on the next window.
-  - Rename the project: the bar follows.
-  - Clipboards: window A chooses clipboard 3, window B keeps the Windows clipboard; A's and B's Clipboards panels
-    and bottom bars show each their own; a copy in A to 3 shows in B's panel as clipboard 3's text; paste in B
-    pastes the Windows clipboard.
-  - Messages and Macros floating in both windows: two windows, each in its window's look, each with its project in
-    the bar.
+- In-app, two windows A and B with different theme sets and projects:
+  - Each panel that follows the focus, floating, opened from A; B worked in (the panel not docked in B): it shows
+    B's content, stays above B, has B's look, its bar names B's project; A worked in: back to A.
+  - The same with the panel docked in B: the floating one stays on A.
+  - A closed while the floating one serves it: it stays open, on B, in B's look at once, without B being clicked.
+  - Folder: B's root shows; Search: B's results, and a search started in the floating panel searches B's root.
+  - Clipboards: A chooses clipboard 3, B keeps the Windows clipboard; the floating panel shows 3 on A and the Windows
+    clipboard on B; a copy in A to 3 shows as clipboard 3's text on B; paste in B pastes the Windows clipboard.
+  - Macros: a macro played X times in A, B activated: the panel stays on A, its bar A's project only; the macro done,
+    B activated: it goes to B. The same stepping and recording.
+  - Step by step and Settings floating in both windows: two of each, each in its window's look and project.
+  - The bar: one window of a project: no number; two: [n]; rename the project: the bar follows.
+  - Both windows' layouts with Folder floating, restart: one floating Folder, serving the active window.
 - Unit: ClipboardStore without an active number (the texts only).
 
 ## 4. Open questions
 
-Decided (2026-11-06): with one window of a project, only the project, no number; the panels that follow the focus
-say *All projects - current project* followed by the project they serve now (3.3). Highlights follows the focus as
-the Outline does (3.0).
+Decided (2026-11-06): with one window of a project, only the project, no number; a panel that follows the focus
+says *All projects - current project* followed by the project it serves now. Highlights follows the focus as the
+Outline does. Folder, Search, Bookmarks, Messages, Clipboards and Macros follow the focus too; Step by step stays its
+window's; Macros is held by its window while a macro runs there.
 
-1. Characters: gated as the Outline and Highlights (it skips a window whose editor pane has Characters docked of its
-   own), or does the floating picker insert in whichever window was worked in last, as now? Proposed: gated, the
-   same rule for all three.
+1. Characters: gated as the others (it skips a window whose editor pane has Characters docked of its own), or does
+   the floating picker insert in whichever window was worked in last, as now? Proposed: gated, the same rule for all.
+2. Macros while recording: held by its window as while playing? Proposed: yes, a recording is of its window.
+3. Search while a search runs in its window (a folder search can take a while): held as Macros, or does it move on,
+   the search going on in its window and its results there when the panel comes back? Proposed: it moves on.
 
 ## 5. As built
 
