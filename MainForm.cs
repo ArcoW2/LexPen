@@ -824,7 +824,7 @@ sealed class MainForm : Form
 
             // A PDF's own settings (plan 38): its look (following the theme, or "original") and where its highlights
             // are kept ("pdf": inside it; else LexPen's highlights store decides). Only what differs from the default is
-            // kept. readOnly: the file cannot be written (its attribute).
+            // kept. readOnly: the file cannot be written (its attribute). place: where it was read last (a store of its own).
             case "pdfLookGet":
             {
                 var path = Arg("path");
@@ -833,12 +833,14 @@ sealed class MainForm : Form
                 {
                     ["look"] = kept?["look"]?.GetValue<string>() ?? "theme", ["highlights"] = kept?["highlights"]?.GetValue<string>(),
                     ["readOnly"] = File.Exists(path) && File.GetAttributes(path).HasFlag(FileAttributes.ReadOnly),
+                    ["place"] = app.PdfPlaces.Open(BookmarkStore.Key(path, null)),
                 };
             }
 
             case "pdfLookSet":
             {
                 var key = BookmarkStore.Key(Arg("path"), null);
+                if (msg["place"] is JsonObject place) { app.PdfPlaces.Set(key, place); return null; }
                 var kept = app.PdfLooks.Open(key) ?? [];
                 if (msg["look"] is not null) { if (Arg("look") == "original") kept["look"] = "original"; else kept.Remove("look"); }
                 if (msg["highlights"] is not null) { if (Arg("highlights") == "pdf") kept["highlights"] = "pdf"; else kept.Remove("highlights"); }

@@ -408,7 +408,8 @@ every action with its key.
   the PDF as its highlight annotations (other PDF readers show them; moving them in or out asks first, and Save
   writes the PDF, a .bak first); the bar's Highlights list chooses where. A PDF's own highlights are listed too; kept
   elsewhere they are marked as the PDF's and stay as they are. The find bar (Ctrl+F, F3) searches its text. Its
-  scroll bar is the preview's strip, with marks for find matches, highlights and chapters.
+  scroll bar is the preview's strip, with marks for find matches, highlights and chapters. Opened again, it is where
+  it was read last (its page, the place on it, its zoom; the last 100 PDFs).
 - **Preview zoom**: Ctrl+= / Ctrl+- / Ctrl+mouse wheel over a preview. The level shows at the right of the top
   bar (click it for 100%) and is kept.
 - **Safe by default**: a Content Security Policy blocks scripts embedded in a document's raw HTML.

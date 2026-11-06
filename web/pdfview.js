@@ -187,13 +187,20 @@ addEventListener('message', e => {
     tab.pdf.state = m;
     pdfSyncBar(tab);
     if (m.page !== page) { const pane = paneOf(tab); if (pane?.active === tab) markOutline(pane); }   // its bookmark (app.js)
+    clearTimeout(tab.pdf.placeTimer);
+    tab.pdf.placeTimer = setTimeout(() => pdfKeepPlace(tab), 1000);
   }
   else if (m.kind === 'outline') pdfOutline(tab.doc, m.entries);
   // Its layout and scroll, for the pane's scroll strip (previewoverview.js).
   else if (m.kind === 'layout') { tab.pdf.layout = m; tab.pdf.scrollTop = m.top; pdfStripChanged(tab); }
   else if (m.kind === 'scroll') { tab.pdf.scrollTop = m.top; const pane = paneOf(tab); if (pane?.active === tab) placePvView(pane); }
-  // Loaded (again: the tab was moved, or shown again in its pane): the place it had, when it had one.
-  else if (m.kind === 'ready') { pdfSend(tab, { ...(tab.pdf.state ?? {}), kind: 'restore' }); pdfHlSend(tab); pdfFindAgain(tab); }
+  // Loaded (again: the tab was moved, or shown again in its pane): the place it had, when it had one; opened, the place
+  // it was read last (pdfKeepPlace).
+  else if (m.kind === 'ready') {
+    pdfSend(tab, { ...(tab.pdf.state ?? tab.doc.pdfPrefs?.place ?? {}), kind: 'restore' });
+    pdfHlSend(tab);
+    pdfFindAgain(tab);
+  }
   else if (m.kind === 'texts') pdfGotTexts(tab, m.texts);   // its pages' texts, for the find bar (pdffind.js)
   else if (m.kind === 'menu') pdfMenu(tab, m.x, m.y, m);
   else if (m.kind === 'selection') tab.pdf.selection = m.parts;   // for Highlight from the keys (pdfhighlights.js)
@@ -218,6 +225,19 @@ function pdfOutline(doc, entries) {
 const pdfOutlineGo = (tab, m) => pdfSend(tab, { kind: 'dest', i: m.ch ?? 0 });
 // The line the outline marks its current entry by: the page shown (0-based).
 const pdfOutlineLine = tab => (tab.pdf?.state?.page ?? 1) - 1;
+
+// Where it is read, kept by the host for the next time it is opened (the last 100 PDFs): the page at the top of the view,
+// how far down that page (a share of its height, so another width or zoom finds the same place) and the zoom.
+function pdfKeepPlace(tab) {
+  const s = tab.pdf?.state, l = tab.pdf?.layout;
+  if (!s?.pages || !l?.tops?.length) return;
+  let i = l.tops.findLastIndex(t => t <= s.top);
+  if (i < 0) i = 0;
+  const within = Math.max(0, Math.min(1, (s.top - l.tops[i]) / Math.max(1, l.heights[i])));
+  const place = { page: i + 1, within: Math.round(within * 1e4) / 1e4, scaleValue: String(s.scaleValue ?? ''), scale: s.scale };
+  tab.doc.pdfPrefs = { ...tab.doc.pdfPrefs, place };
+  host('pdfLookSet', { path: tab.doc.path, place }).catch(() => {});
+}
 
 // ---------- The scroll strip ----------
 // The pane's scroll strip (previewoverview.js) on a PDF: the frame scrolls, so its sizes are the ones it told (layout,

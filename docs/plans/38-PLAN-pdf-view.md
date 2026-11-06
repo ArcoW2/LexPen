@@ -166,6 +166,10 @@ Differs from the plan, or not done:
   placed by their share of the page's text once the texts are read (the find bar reads them), else at the page's top.
   The horizontal scroll bar (zoomed in) is the frame's, in LexPen's look. Tested on `hpmor.pdf` (a copy): a drag, the
   wheel on the PDF and on the strip, a click on the strip, a zoom (the layout told again).
+- Opened again, a PDF is where it was read last: its page, how far down it (a share of its height, so another width
+  finds the same place) and its zoom, kept for the last 100 PDFs in `file-pdf-places.json` (apart from
+  `file-pdf.json`, so a place never pushes out a PDF's look or where its highlights are kept). Tested on a copy of
+  `hpmor.pdf`: closed and opened again, and after a restart, at the same page and place.
 - A highlight is found by its page and its place in that page's text; when the PDF changes, it is not looked up again
   by its text (as a text file's is): it may then mark other text.
 - A note changed on one of the PDF's own highlights is written with a new popup; the old one stays in the file, unused.

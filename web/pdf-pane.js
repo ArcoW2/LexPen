@@ -114,10 +114,16 @@ async function tellOutline() {
 }
 
 // The place it had (from the window, after a load): the zoom first, then the scroll, once the pages have that size.
-function restore({ scaleValue, scale, top, left }) {
+// Opened again: a page and how far down it (a share of its height) instead of the scroll.
+function restore({ scaleValue, scale, top, left, page, within }) {
   const v = pdf.viewer, c = document.getElementById('pdf-scroll');
   if (/^(page-width|page-fit|page-actual|auto)$/.test(scaleValue)) v.currentScaleValue = scaleValue; else if (scale) v.currentScale = scale;
   requestAnimationFrame(() => {
+    const div = page ? v.getPageView(Math.min(v.pagesCount, page) - 1)?.div : null;
+    if (div) {
+      const r = div.getBoundingClientRect();
+      top = r.top - c.getBoundingClientRect().top + c.scrollTop + (within ?? 0) * r.height;
+    }
     c.scrollTop = top ?? 0;
     c.scrollLeft = left ?? 0;
     pdf.restoring = false;
@@ -200,7 +206,7 @@ addEventListener('message', e => {
   if (m.kind === 'findShow') return void findShow(m);
   if (m.kind === 'save') return void save(m).catch(e => toWindow({ kind: 'saved', error: String(e?.message ?? e) }));
   if (m.kind === 'dest') return void (pdf.dests?.[m.i] && pdf.linkService?.goToDestination(pdf.dests[m.i]));
-  if (m.kind === 'restore') return m.top === undefined ? (pdf.restoring = false, tellState()) : restore(m);
+  if (m.kind === 'restore') return m.top === undefined && !m.page ? (pdf.restoring = false, tellState()) : restore(m);
   if (!v?.pagesCount) return;
   if (m.kind === 'fitWidth') v.currentScaleValue = 'page-width';
   else if (m.kind === 'fitPage') v.currentScaleValue = 'page-fit';
