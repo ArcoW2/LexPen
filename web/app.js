@@ -4770,6 +4770,7 @@ events.open = async ({ folder, files, edit }) => {
 // Edit in LexPen: the file in the editor, whatever its language opens in; a tab it has already in the preview only gets
 // the editor (in split view it has one).
 async function editFile(path, last = false) {
+  if (isPdfPath(path)) return viewFile(path, last);   // a PDF has no editor (pdfview.js): as View in LexPen
   const tab = await goToOrOpen(path, { mode: 'edit', last });
   if (tab?.mode === 'preview') {
     tab.mode = 'edit';
