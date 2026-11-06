@@ -137,7 +137,7 @@ sealed class MainForm : Form
         Controls.Add(loading);
         loading.BringToFront();
 
-        Activated += (_, _) => active = true;
+        Activated += (_, _) => { active = true; Post(new JsonObject { ["event"] = "windowActivated" }); };
         Deactivate += (_, _) => active = false;
         app.FollowCaption(this, () => this);
 
@@ -1299,20 +1299,14 @@ sealed class MainForm : Form
             case "rename":
                 return app.Rename(Arg("path"), Arg("name"));
 
-            // The folder pane's Delete... (its page asks first): a folder's number of files, what goes with a file; then
-            // the ones chosen.
-            case "deleteWith":
-            {
-                var path = Arg("path");
-                return new JsonObject
-                {
-                    ["files"] = Directory.Exists(path) ? AppHost.FilesIn(path) : null,
-                    ["with"] = new JsonArray(AppHost.DeletedWith(path).Select(p => (JsonNode?)p).ToArray()),
-                };
-            }
-
+            // The folder pane's Delete...: asked in LexPen's own window near the row right-clicked (at: a screen point),
+            // then to the Recycle Bin. Null: not deleted; else the ones that could not go.
             case "delete":
-                return new JsonArray(app.Delete(Arg("path"), Strings(msg["paths"])).Select(p => (JsonNode?)p).ToArray());
+                return DeleteAsked(Arg("path"), msg["at"] is JsonObject near ? new Point(near["x"]!.GetValue<int>(), near["y"]!.GetValue<int>()) : null);
+
+            // Where the mouse is, on the screen (a right-click's place, for a question asked after its menu: AskForm).
+            case "cursorAt":
+                return new JsonObject { ["x"] = Cursor.Position.X, ["y"] = Cursor.Position.Y };
 
             case "recent":
                 return app.Recent();
@@ -1388,6 +1382,24 @@ sealed class MainForm : Form
 
     // Shift held while dropping or pasting: how to link the images. Null: cancelled.
     // Delete a folder's backups: "here" (the folder itself), "all" (with its subfolders), or null (Cancel).
+    // Delete... of the folder pane. A folder: with the number of files in it (below it too). A file with its own files
+    // beside it (.bak, .lph, a CSV's -metadata.json): the file and each of those with a box, all checked.
+    JsonArray? DeleteAsked(string path, Point? near)
+    {
+        var with = AppHost.DeletedWith(path);
+        var name = Path.GetFileName(path.TrimEnd('\\'));
+        var files = Directory.Exists(path) ? AppHost.FilesIn(path) : (int?)null;
+        var text = with.Count > 0 ? $"Delete {name}? The checked files go to the Recycle Bin:"
+            : files is null ? $"Delete {name}? It goes to the Recycle Bin."
+            : files == 0 ? $"Delete the empty folder {name}? It goes to the Recycle Bin."
+            : $"Delete the folder {name} and {(files == 1 ? "the 1 file" : $"all {files} files")} in it? They go to the Recycle Bin.";
+        var items = with.Count > 0 ? with.Prepend(path).Select(p => (p, Path.GetFileName(p))).ToList() : [];
+        var (answer, chosen) = AskForm.Ask(app, this, near, text, items, ("delete", "Delete"), (null, "Cancel"));
+        var paths = items.Count > 0 ? chosen : [path];
+        if (answer != "delete" || paths.Count == 0) return null;
+        return new JsonArray(app.Delete(path, paths).Select(p => (JsonNode?)p).ToArray());
+    }
+
     string? AskBackups(string folder)
     {
         var here = new TaskDialogCommandLinkButton("Delete here", "The .bak files in this folder itself");

@@ -227,11 +227,21 @@ tree.addEventListener('click', e => {
   else toWindow({ kind: 'open', path: row.dataset.path, ctrlKey: e.ctrlKey, shiftKey: e.shiftKey });
 });
 
+// While its right-click menu is open, and a question asked from it (Delete...), the row right-clicked is the one
+// marked, the open document's mark hidden. Back at the next click or key here or in the window (menuDone), or when a
+// LexPen window gets the focus again (focus here; menuDone from the window: windowActivated).
+const menuSubject = on => tree.classList.toggle('mm-menu-subject', on);
+paneHandlers.menuDone = () => menuSubject(false);
+addEventListener('focus', () => menuSubject(false));
+for (const type of ['pointerdown', 'keydown'])
+  addEventListener(type, e => { if (!e.target.closest?.('.mm-pane-menu')) menuSubject(false); }, true);
+
 tree.addEventListener('contextmenu', e => {
   const row = e.target.closest('.mm-row');
   e.preventDefault();
   if (!row) return;
   setCursor(row, false);   // the menu's subject: the cursor goes there, as with a click
+  menuSubject(true);
   const has = c => row.classList.contains(c);
   toWindow({ kind: 'menu', x: e.clientX, y: e.clientY, path: row.dataset.path, dir: has('mm-dir'), base: has('mm-base'),
     up: has('mm-up'), gone: has('mm-gone'), backup: has('mm-has-backup'), columns: has('mm-has-columns') });

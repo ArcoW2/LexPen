@@ -539,7 +539,8 @@ every action with its key.
   a new extension gives its language, unless you chose one. Bookmarks, highlights (a `.lph` too), ruler lines,
   chosen languages, the recent and favourite lists and the saved windows follow; so do the folder pane's root and
   its open folders. A `.bak` stays under the old name.
-- **Delete** a file or folder: Delete... in the folder pane's right-click menu. It asks first; for a folder, with
+- **Delete** a file or folder: Delete... in the folder pane's right-click menu. It asks first, in a window of
+  LexPen's own (its theme, movable) just right of and below the row; for a folder, with
   the number of files in it (below it too). A file with its own files beside it (its `.bak`, its highlights `.lph`,
   a CSV's `-metadata.json`): the question lists the file and each of those with a box, all checked; only the
   checked ones go. To the Recycle Bin; what could not go (in use, no rights) is said. An open document of it shows as deleted, as with any file

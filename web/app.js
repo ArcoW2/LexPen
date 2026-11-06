@@ -2632,6 +2632,9 @@ async function fromFolder(m, from) {
     case 'dragEnd': return folderDragFrom(m, m.drop);
     case 'notListed': return toast(`${nameOf(m.path)} is not listed in the folder pane.`);
     case 'menu': {
+      folderMenuSubject = true;
+      contextAt = null;
+      host('cursorAt').then(at => contextAt = at).catch(() => {});   // the right-click's place (Delete... asks near it)
       if (!folderPane.floating) {
         const r = folderPane.frame.getBoundingClientRect();
         return openTreeMenu(m, r.left + m.x, r.top + m.y);
@@ -4635,42 +4638,18 @@ events.renamed = async ({ from, to }) => {
   saveSession();
 };
 
-// Delete... in the folder pane's right-click menu: asked first. A folder: with the number of files in it (below it
-// too). A file with its own files beside it (.bak, .lph, a CSV's -metadata.json): which of them, each with a box, all
-// checked. To the Recycle Bin; the folder pane and the open documents see them gone as any file deleted outside LexPen.
+// Delete... in the folder pane's right-click menu: the host asks (in LexPen's own window, near the row: contextAt) and
+// puts what was chosen in the Recycle Bin; the folder pane and the open documents see them gone as any file deleted
+// outside LexPen.
 async function deleteEntry(path) {
   if (!path) return;
   try {
-    const { files, with: beside } = await host('deleteWith', { path });
-    const name = nameOf(path);
-    const question = files === null ? `Delete ${name}? To the Recycle Bin.`
-      : files === 0 ? `Delete the empty folder ${name}? To the Recycle Bin.`
-      : `Delete the folder ${name} and ${files === 1 ? 'the 1 file' : `all ${files} files`} in it? To the Recycle Bin.`;
-    const paths = beside.length ? await askDeleteFiles(path, beside) : await confirmBox(question, 'Delete') ? [path] : [];
-    if (!paths.length) return;
-    const left = await host('delete', { path, paths });
+    const left = await host('delete', { path, at: contextAt });
+    if (!left) return;
     if (left.length) toast(`Not deleted (in use, or no rights): ${left.map(nameOf).join(', ')}`);
     refreshTree();
   }
   catch (e) { toast(e.message); }
-}
-
-// The question of Delete... for a file with files beside it: the checked ones, or [] for Cancel.
-function askDeleteFiles(path, beside) {
-  const list = $('.mm-confirm-dialog .mm-confirm-files');
-  list.replaceChildren(...[path, ...beside].map(p => {
-    const label = document.createElement('label'), box = document.createElement('input');
-    box.type = 'checkbox';
-    box.checked = true;
-    box.value = p;
-    label.append(box, nameOf(p));
-    return label;
-  }));
-  return confirmBox(`Delete ${nameOf(path)}? The checked files go to the Recycle Bin:`, 'Delete').then(ok => {
-    const paths = ok ? [...list.querySelectorAll('input:checked')].map(b => b.value) : [];
-    list.replaceChildren();
-    return paths;
-  });
 }
 
 // Asks a name: the text, or null for Cancel / Esc.
@@ -4872,6 +4851,18 @@ document.addEventListener('pointerdown', dismissNotices, true);
 // ---------- Context menus ----------
 let contextPath = null, menuTab = null, menuPane = null;
 let contextKind = 'files';   // the tree row right-clicked: a file or a folder (favourites)
+let contextAt = null;          // where it was right-clicked, on the screen (host cursorAt): Delete... asks near it
+// The folder pane marks the row right-clicked (folder-pane.js, menuSubject) until a click or key here outside a menu,
+// or this window is activated again (after a question such as Delete...'s).
+let folderMenuSubject = false;
+function folderMenuDone() {
+  if (!folderMenuSubject) return;
+  folderMenuSubject = false;
+  toFolder({ kind: 'menuDone' });
+}
+events.windowActivated = folderMenuDone;
+for (const type of ['pointerdown', 'keydown'])
+  addEventListener(type, e => { if (!e.target.closest?.('.mm-menu')) folderMenuDone(); }, true);
 
 function showMenu(menu, e, remember) {
   e.preventDefault();

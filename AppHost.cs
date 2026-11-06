@@ -579,6 +579,16 @@ sealed class AppHost : ApplicationContext
     /// it lacks). No window: the window last worked in (the tool windows follow it).</summary>
     public Dictionary<string, string> AppColours(MainForm? w) => ThemeFile.Complete(AppTheme(Values(w)), Mode == "dark" ? fallbackDark : fallbackLight);
 
+    /// <summary>The app font of window `w` (settings appFont, appSize; Segoe UI 9.75 pt, the pages' 13 px), for LexPen's
+    /// own windows (AskForm).</summary>
+    public Font AppFont(MainForm? w)
+    {
+        var values = Values(w);
+        var family = values["appFont"]?.GetValueKind() == JsonValueKind.String ? values["appFont"]!.GetValue<string>() : "";
+        var size = values["appSize"]?.GetValueKind() == JsonValueKind.Number ? values["appSize"].Deserialize<double>() : 0;
+        return new Font(family is { Length: > 0 } ? family : "Segoe UI", size > 0 ? (float)size : 9.75f);
+    }
+
     /// <summary>The app's theme background: the window before the page draws.</summary>
     public Color AppBackground(MainForm? w) =>
         ThemeFile.Rgb(AppColours(w).GetValueOrDefault("--bg") ?? "") is var (r, g, b) ? Color.FromArgb(r, g, b)
