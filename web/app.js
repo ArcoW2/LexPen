@@ -4663,7 +4663,7 @@ function askDeleteFiles(path, beside) {
     box.type = 'checkbox';
     box.checked = true;
     box.value = p;
-    label.append(box, ' ' + nameOf(p));
+    label.append(box, nameOf(p));
     return label;
   }));
   return confirmBox(`Delete ${nameOf(path)}? The checked files go to the Recycle Bin:`, 'Delete').then(ok => {
