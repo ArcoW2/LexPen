@@ -17,7 +17,8 @@ static class KeysFile
     /// <summary>Your keys.json as LexPen makes it when there is none (Settings > Keys, a macro's Key...).</summary>
     public const string Template = "// Your own keys, on top of the defaults (F1 lists every action and key). For example:\n" +
         "//   \"Ctrl+Shift+D\": \"bookmarkList\",\n" +
-        "// No key: \"Ctrl+T\": null takes a default key away (it then does nothing).\n{\n}\n";
+        "// Disable a default key (it then does nothing):\n" +
+        "//   \"Ctrl+T\": null,\n{\n}\n";
 
     static readonly JsonDocumentOptions Options = new() { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true };
 
