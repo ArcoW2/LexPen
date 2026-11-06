@@ -137,7 +137,7 @@ sealed class MainForm : Form
         Controls.Add(loading);
         loading.BringToFront();
 
-        Activated += (_, _) => active = true;
+        Activated += (_, _) => { active = true; Post(new JsonObject { ["event"] = "windowActivated" }); };
         Deactivate += (_, _) => active = false;
         app.FollowCaption(this, () => this);
 
@@ -175,7 +175,16 @@ sealed class MainForm : Form
         var title = web.CoreWebView2?.DocumentTitle is { Length: > 0 } t ? t : "LexPen";
         Text = app.ProjectInfo(this)["display"]?.GetValue<string>() is { Length: > 0 } project ? $"{title} - {project}" : title;
         app.SettingsTitle(this);
+        app.UpdateBars();   // the floating panels' bottom bars name its document
     }
+
+    /// <summary>The name of the active document, from the page's title ("[changed mark ]name - LexPen", app.js
+    /// updateChrome); null: none.</summary>
+    public string? DocName =>
+        web.CoreWebView2?.DocumentTitle is { } t && t.EndsWith(" - LexPen") ? t[..^" - LexPen".Length].TrimStart((char)0x25CF, ' ') : null;
+
+    /// <summary>This window's active clipboard (0: the Windows clipboard, as at every start; plan 22 3.5).</summary>
+    public int ActiveClip { get; private set; }
 
     // Only what the tree shows matters: everything outside hidden folders and node_modules.
     // Edited files and a rewritten git index (stage, commit, checkout) only change the git marks.
@@ -721,18 +730,24 @@ sealed class MainForm : Form
             case "fonts":
                 return new JsonArray(Fonts.List().Select(f => (JsonNode)new JsonObject { ["name"] = f.Name, ["mono"] = f.Mono }).ToArray());
 
-            // The numbered clipboards (ClipboardStore), shared by all windows; 0 is the Windows clipboard.
+            // The numbered clipboards (ClipboardStore), their texts shared by all windows; 0 is the Windows clipboard.
+            // Which one is active is this window's own (ActiveClip).
             case "clipState":
             {
                 var state = app.Clipboards.State();
                 state["previews"]![0] = Clipboard.ContainsText() ? ClipboardStore.Preview(Clipboard.GetText()) : "";
+                state["active"] = ActiveClip;
                 return state;
             }
 
             case "clipSelect":
-                app.Clipboards.Select(msg["n"]!.GetValue<int>());
-                app.ClipboardsChanged();
+            {
+                var n = msg["n"]!.GetValue<int>();
+                ClipboardStore.Check(n);
+                ActiveClip = n;
+                app.ClipboardsChanged(this);
                 return null;
+            }
 
             case "clipSet":
                 app.Clipboards.Set(msg["n"]!.GetValue<int>(), Arg("text"), msg["column"]?.GetValue<bool>() == true);
@@ -1127,6 +1142,25 @@ sealed class MainForm : Form
                 app.OutlineWanted(this, msg["wants"]?.GetValue<bool>() == true);
                 return null;
 
+            // The floating panels that follow the focus (docs/plans/executed/PLAN-floating-panel-scope.md 3.2): which this
+            // window wants now ({ pane: bool }), and one held here while a macro plays or records, or a search runs.
+            case "panesWanted":
+                app.PanesWanted(this, msg["wants"]!.AsObject());
+                return null;
+
+            case "paneHold":
+                app.PaneHold(this, Arg("pane"), msg["why"]?.GetValue<string>());
+                return null;
+
+            case "panelBars":   // what every floating panel's bottom bar says (the tests)
+                return app.PanelBars();
+
+#if DEBUG
+            case "testActivated":   // the tests: this window as if activated (a locked screen activates none)
+                app.WindowActivated(this);
+                return null;
+#endif
+
             case "layoutSources":   // View > Layout > Use layout of... (plan 24 3.13a)
                 return app.LayoutSources(this);
 
@@ -1265,6 +1299,15 @@ sealed class MainForm : Form
             case "rename":
                 return app.Rename(Arg("path"), Arg("name"));
 
+            // The folder pane's Delete...: asked in LexPen's own window near the row right-clicked (at: a screen point),
+            // then to the Recycle Bin. Null: not deleted; else the ones that could not go.
+            case "delete":
+                return DeleteAsked(Arg("path"), msg["at"] is JsonObject near ? new Point(near["x"]!.GetValue<int>(), near["y"]!.GetValue<int>()) : null);
+
+            // Where the mouse is, on the screen (a right-click's place, for a question asked after its menu: AskForm).
+            case "cursorAt":
+                return new JsonObject { ["x"] = Cursor.Position.X, ["y"] = Cursor.Position.Y };
+
             case "recent":
                 return app.Recent();
 
@@ -1339,6 +1382,24 @@ sealed class MainForm : Form
 
     // Shift held while dropping or pasting: how to link the images. Null: cancelled.
     // Delete a folder's backups: "here" (the folder itself), "all" (with its subfolders), or null (Cancel).
+    // Delete... of the folder pane. A folder: with the number of files in it (below it too). A file with its own files
+    // beside it (.bak, .lph, a CSV's -metadata.json): the file and each of those with a box, all checked.
+    JsonArray? DeleteAsked(string path, Point? near)
+    {
+        var with = AppHost.DeletedWith(path);
+        var name = Path.GetFileName(path.TrimEnd('\\'));
+        var files = Directory.Exists(path) ? AppHost.FilesIn(path) : (int?)null;
+        var text = with.Count > 0 ? $"Delete {name}? The checked files go to the Recycle Bin:"
+            : files is null ? $"Delete {name}? It goes to the Recycle Bin."
+            : files == 0 ? $"Delete the empty folder {name}? It goes to the Recycle Bin."
+            : $"Delete the folder {name} and {(files == 1 ? "the 1 file" : $"all {files} files")} in it? They go to the Recycle Bin.";
+        var items = with.Count > 0 ? with.Prepend(path).Select(p => (p, Path.GetFileName(p))).ToList() : [];
+        var (answer, chosen) = AskForm.Ask(app, this, near, text, items, ("delete", "Delete"), (null, "Cancel"));
+        var paths = items.Count > 0 ? chosen : [path];
+        if (answer != "delete" || paths.Count == 0) return null;
+        return new JsonArray(app.Delete(path, paths).Select(p => (JsonNode?)p).ToArray());
+    }
+
     string? AskBackups(string folder)
     {
         var here = new TaskDialogCommandLinkButton("Delete here", "The .bak files in this folder itself");

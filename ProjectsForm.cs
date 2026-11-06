@@ -17,6 +17,7 @@ sealed class ProjectsForm : Form, IWebPost
 
     readonly AppHost app;
     readonly WebView2 web = new() { Dock = DockStyle.Fill };
+    public PanelBar Bar { get; } = new();   // whose it is now (docs/plans/executed/PLAN-floating-panel-scope.md 3.4)
     bool pageReady;
     readonly List<string> queue = [];
 
@@ -37,6 +38,7 @@ sealed class ProjectsForm : Form, IWebPost
             ? new Rectangle(x, y, w, h)
             : new Rectangle(at.X + (at.Width - size.Width) / 2, at.Y + (at.Height - size.Height) / 2, size.Width, size.Height);
         Controls.Add(web);
+        Controls.Add(Bar);
         ResizeEnd += (_, _) => KeepBounds();
         FormClosing += (_, _) => KeepBounds();
         DockMoves.Report(this, () => Owner as MainForm, "projects");   // moved over its window: the place to dock it

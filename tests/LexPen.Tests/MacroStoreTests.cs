@@ -37,6 +37,9 @@ public class MacroStoreTests : IDisposable
     {
         var path = Path.Combine(dir, KeysFile.Name);
         Assert.Equal("Ctrl+Alt+1", KeysFile.AddMacroKey(dir, "ctrl+alt+1", "tidy")["key"]!.GetValue<string>());
+        var made = File.ReadAllText(path);   // made: the template's remarks, then the key
+        Assert.StartsWith(KeysFile.Template[..^4], made);
+        Assert.Equal("tidy", KeysFile.Merge("{}", made, path)["keys"]!["Ctrl+Alt+1"]![1]!.GetValue<string>());
         File.WriteAllText(path, "// mine\n{\n  \"Ctrl+S\": \"save\"   // no comma\n}\n");
         KeysFile.AddMacroKey(dir, "Ctrl+K, M", "collect");
         var text = File.ReadAllText(path);

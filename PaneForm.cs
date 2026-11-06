@@ -17,6 +17,7 @@ sealed class PaneForm : Form, IWebPost
     readonly AppHost app;
     MainForm owner;
     readonly WebView2 web = new() { Dock = DockStyle.Fill };
+    public PanelBar Bar { get; } = new();   // whose it is now (docs/plans/executed/PLAN-floating-panel-scope.md 3.4)
     readonly string page;
     readonly List<string> queue = [];
     bool loaded;
@@ -43,6 +44,7 @@ sealed class PaneForm : Form, IWebPost
             ? new Rectangle(x, y, w, h) : fallback;
         if (place is { } point) Location = point;
         Controls.Add(web);
+        Controls.Add(Bar);
         ResizeEnd += (_, _) => KeepBounds();
         DockMoves.Report(this, () => owner, Id);
         FormClosing += (_, _) => KeepBounds();

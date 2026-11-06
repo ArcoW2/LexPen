@@ -223,6 +223,7 @@ async function playMacro(text, { times = 1, notfound, onerror, screen = 'on', ev
   if (error) { toast(`${name} has an error, line ${error.line}: ${error.message}`); return { ok: false, reason: 'invalid', error }; }
   Object.assign(macroPlay, { running: true, stop: false, mode: screen, every, lastPaint: performance.now(), guardMark: null });
   document.body.toggleAttribute('data-macro-running', true);
+  holdPane('macros', 'playing');   // the floating Macros panel stays with this window meanwhile (plan 22; panechannel.js)
   toast(`${name} runs; Esc stops it.`, true);
   let result, runs = 0;
   try {
@@ -242,6 +243,7 @@ async function playMacro(text, { times = 1, notfound, onerror, screen = 'on', ev
     macroUndoStep();
     macroPlay.running = false;
     document.body.toggleAttribute('data-macro-running', false);
+    holdPane('macros', macroRecording.on ? 'recording' : null);
   }
   if (!result.ok) toast(`${name} stopped at line ${result.error.line ?? '?'}: ${result.error.message}`);
   else if (macroPlay.stop) toast(`${name} was stopped (Esc).`, true);
@@ -641,6 +643,7 @@ appAction('editorKey', { title: 'Editor key', hint: 'A key of the editor itself 
 function startRecording() {
   Object.assign(macroRecording, { on: true, steps: [], typed: '', lastTab: activeTab(), mouse: null, find: null, pasted: null });
   document.body.toggleAttribute('data-recording', true);
+  holdPane('macros', 'recording');   // as while playing (plan 22)
   const next = macroStore.nextRecording;
   toast(next ? `Recording, to be added to the end of ${next.name}; ${keyText('macro.record') || 'Stop recording'} stops it.`
     : `Recording a macro; ${keyText('macro.record') || 'Stop recording'} stops it.`, true);
@@ -651,6 +654,7 @@ async function stopRecording() {
   flushTyped();
   macroRecording.on = false;
   document.body.toggleAttribute('data-recording', false);
+  holdPane('macros', macroPlay.running ? 'playing' : null);
   const text = macroRecording.steps.join('\n') + (macroRecording.steps.length ? '\n' : '');
   const next = macroStore.nextRecording;
   macroStore.nextRecording = null;

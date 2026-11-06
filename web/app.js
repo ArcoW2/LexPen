@@ -1241,6 +1241,7 @@ function setActivePane(index) {
   state.activePane = index;
   if (winOutline) showOutline(panes[index]);   // the window's outline takes its document (when it has no outline of its own)
   reportOutlineWanted();   // the floating outline (7.3): this pane may have its own
+  reportPanesWanted();   // the other panels that follow the focus (plan 22; panechannel.js): the same
   placeFocusRing();   // the document's dimmed frame, while a tool pane has the focus
   if (typeof tellHighlightsWindow === 'function') tellHighlightsWindow();   // the highlights shown: its document's (highlights.js)
   tellBookmarksPanes();   // the window's Bookmarks pane: its document's (bookmarkspane.js)
@@ -2631,6 +2632,9 @@ async function fromFolder(m, from) {
     case 'dragEnd': return folderDragFrom(m, m.drop);
     case 'notListed': return toast(`${nameOf(m.path)} is not listed in the folder pane.`);
     case 'menu': {
+      folderMenuSubject = true;
+      contextAt = null;
+      host('cursorAt').then(at => contextAt = at).catch(() => {});   // the right-click's place (Delete... asks near it)
       if (!folderPane.floating) {
         const r = folderPane.frame.getBoundingClientRect();
         return openTreeMenu(m, r.left + m.x, r.top + m.y);
@@ -3042,6 +3046,8 @@ async function runSearch() {
     .filter(g => g.matches.length);
   let truncated = false;
   if (folder) {
+    // While it runs the floating Search panel stays with this window (plan 22; panechannel.js), its bar says so.
+    holdPane('search', 'searching');
     try {
       const found = await host('search', { root: folder, pattern: source, ignoreCase: !searchOptions.case,
         extensions: knownOnly ? Object.keys(packExtensions) : null,
@@ -3051,6 +3057,8 @@ async function runSearch() {
     } catch (e) {
       if (run === searchRun) searchUi.status.textContent = e.message;
       return;
+    } finally {
+      if (run === searchRun) holdPane('search');   // a newer search lets go when it is done
     }
   }
   if (run !== searchRun) return;   // a newer search started meanwhile
@@ -3781,6 +3789,18 @@ function reportOutlineWanted() {
   outlineWantedSent = wants;
   host('outlineWanted', { wants });
 }
+// A floating panel that follows the focus (docs/plans/executed/PLAN-floating-panel-scope.md 3.2; panechannel.js) serves this
+// window now, or another one. Characters and Highlights (windows of their own): floating here now (also when hidden
+// here); the picker hears the character at this window's cursor.
+events.paneServe = ({ pane: id }) => {
+  if (id === 'chars' || id === 'hls') {
+    if (dockModel().state[id] !== 'floating') setDockFloating(id, true);
+    if (id === 'chars') updateStatus();   // tells the picker the character after the cursor (charpicker.js)
+    return;
+  }
+  (paneChannels.get(id) ?? (id === 'commands' ? commandsChannel() : null))?.serve();   // palette.js: made on first use
+};
+events.paneRelease = ({ pane: id }) => paneChannels.get(id)?.release();
 events.fromPane = ({ pane: id, msg }) => {
   if (paneChannels.has(id)) return void paneChannels.get(id).receive(msg, 'float');
   if (id === FLOATING_OUTLINE && winOutline && !winOutline.docked) fromOutline(winOutline.pane, msg, 'float');
@@ -4618,6 +4638,20 @@ events.renamed = async ({ from, to }) => {
   saveSession();
 };
 
+// Delete... in the folder pane's right-click menu: the host asks (in LexPen's own window, near the row: contextAt) and
+// puts what was chosen in the Recycle Bin; the folder pane and the open documents see them gone as any file deleted
+// outside LexPen.
+async function deleteEntry(path) {
+  if (!path) return;
+  try {
+    const left = await host('delete', { path, at: contextAt });
+    if (!left) return;
+    if (left.length) toast(`Not deleted (in use, or no rights): ${left.map(nameOf).join(', ')}`);
+    refreshTree();
+  }
+  catch (e) { toast(e.message); }
+}
+
 // Asks a name: the text, or null for Cancel / Esc.
 // `placeholder`: the hint in the empty field (a project name: a number when left empty).
 // select: the part of the value selected, [from, to] (from == to: only the caret there); default all of it.
@@ -4817,6 +4851,18 @@ document.addEventListener('pointerdown', dismissNotices, true);
 // ---------- Context menus ----------
 let contextPath = null, menuTab = null, menuPane = null;
 let contextKind = 'files';   // the tree row right-clicked: a file or a folder (favourites)
+let contextAt = null;          // where it was right-clicked, on the screen (host cursorAt): Delete... asks near it
+// The folder pane marks the row right-clicked (folder-pane.js, menuSubject) until a click or key here outside a menu,
+// or this window is activated again (after a question such as Delete...'s).
+let folderMenuSubject = false;
+function folderMenuDone() {
+  if (!folderMenuSubject) return;
+  folderMenuSubject = false;
+  toFolder({ kind: 'menuDone' });
+}
+events.windowActivated = folderMenuDone;
+for (const type of ['pointerdown', 'keydown'])
+  addEventListener(type, e => { if (!e.target.closest?.('.mm-menu')) folderMenuDone(); }, true);
 
 function showMenu(menu, e, remember) {
   e.preventDefault();
@@ -4877,6 +4923,7 @@ function openTreeMenu(row, x, y) {
     contextKind = row.dir || row.base ? 'folders' : 'files';
     favouriteItem(ui.treeMenu, contextPath, contextKind);   // favourites.js
     ui.treeMenu.querySelector('[data-cmd=treeRename]').hidden = row.up || row.gone;
+    ui.treeMenu.querySelector('[data-cmd=treeDelete]').hidden = row.up || row.gone || row.base;
     ui.treeMenu.querySelector('[data-cmd=treeSetRoot]').hidden = contextKind !== 'folders' || samePath(contextPath, state.root);
     // The compare (compare.js): a file with the file in the editor or a picked one; a folder with a picked folder.
     const active = activeDoc()?.path, file = contextKind === 'files';
@@ -5331,6 +5378,7 @@ const commands = {
   tabFavourite: () => menuTab && toggleFavourite(menuTab.doc.path),
   treeFavourite: () => toggleFavourite(contextPath, contextKind),
   treeRename: () => renameFile(contextPath, contextKind === 'folders'),
+  treeDelete: () => deleteEntry(contextPath),
   // The folder becomes the tree's root; its subfolders that were open stay open.
   treeSetRoot: () => {
     const under = contextPath.replace(/\\$/, '').toLowerCase() + '\\';

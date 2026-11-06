@@ -1,7 +1,7 @@
 // LexPen keys: which key runs which action. This is the default set.
 //
 // Your own keys go in keys.json in %LOCALAPPDATA%\LexPen (create it; same layout). It overrides this
-// file key by key, so an update of LexPen does not overwrite your keys. "Ctrl+T": null takes a key away.
+// file key by key, so an update of LexPen does not overwrite your keys.
 //
 // A key:     "Ctrl+Shift+S". Modifiers Ctrl, Alt, Shift; then a letter, digit, F1-F12, ` - = [ ] \ ; ' . /,
 //            or Comma (a comma alone separates the keys of a chord), Tab Enter Esc Space Backspace Ins Del Home
@@ -9,6 +9,8 @@
 // A chord:   "Ctrl+K, K": the first key, then the second. While it waits, the bottom bar shows the first.
 // An action: its name ("save"), or its name with parameters (["heading", 2]). F1 lists every action
 //            with its name, also the ones without a key.
+// No key:    "Ctrl+T": null in your keys.json takes a default key away: it then does nothing (and the
+//            action keeps any other key it has).
 // Moves (section, go to bookmark, ...) select when Shift is added to their key, without an entry here.
 {
   // ---------- Files ----------

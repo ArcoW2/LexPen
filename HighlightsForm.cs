@@ -5,12 +5,12 @@ using Microsoft.Web.WebView2.WinForms;
 namespace LexPen;
 
 /// <summary>
-/// The highlights window (docs/plans/executed/PLAN-highlights.md, 3.5): one for the whole app, owned by the window it was
-/// opened from, not modal, movable and resizable, its place kept (AppState.HighlightsWindow). Its page
-/// (web\highlights.html, highlightsview.js) lists the highlights of the document last worked in (each LexPen window
-/// tells the host, highlightsShown) or of every file (the store), with a search; a click goes to the highlight in the
-/// LexPen window last worked in (AppHost.LastActive: the event highlightGo), which comes to the front; this window
-/// stays open where it is.
+/// The highlights window (docs/plans/executed/PLAN-highlights.md, 3.5): one for the whole app, owned by the window it
+/// serves (first the one it was opened from; it follows the focus, plan 22 3.2: AppHost.ToolServes), not modal,
+/// movable and resizable, its place kept (AppState.HighlightsWindow). Its page (web\highlights.html,
+/// highlightsview.js) lists the highlights of that window's document (each LexPen window tells the host,
+/// highlightsShown) or of every file (the store), with a search; a click goes to the highlight in that window (the
+/// event highlightGo), which comes to the front; this window stays open where it is.
 /// </summary>
 sealed class HighlightsForm : Form, IWebPost
 {
@@ -18,6 +18,7 @@ sealed class HighlightsForm : Form, IWebPost
 
     readonly AppHost app;
     readonly WebView2 web = new() { Dock = DockStyle.Fill };
+    public PanelBar Bar { get; } = new();   // whose it is now (docs/plans/executed/PLAN-floating-panel-scope.md 3.4)
     bool pageReady;
     readonly List<string> queue = [];
 
@@ -26,7 +27,7 @@ sealed class HighlightsForm : Form, IWebPost
         this.app = app;
         Text = "Highlights - LexPen";
         Icon = owner.Icon;
-        app.FollowCaption(this, () => app.LastActive);   // the caption: Windows' own or the theme's
+        app.FollowCaption(this, () => app.ToolServes(this));   // the caption: Windows' own or the theme's
         ShowInTaskbar = false;
         MinimumSize = new Size(360, 280);
         StartPosition = FormStartPosition.Manual;
@@ -38,6 +39,7 @@ sealed class HighlightsForm : Form, IWebPost
             ? new Rectangle(x, y, w, h)
             : new Rectangle(at.Right - size.Width - 40, at.Y + 80, size.Width, size.Height);
         Controls.Add(web);
+        Controls.Add(Bar);
         ResizeEnd += (_, _) => KeepBounds();
         FormClosing += (_, _) => KeepBounds();
         DockMoves.Report(this, () => Owner as MainForm, "hls");   // moved over its window: the place to dock it
@@ -68,17 +70,17 @@ sealed class HighlightsForm : Form, IWebPost
         };
         core.NavigationStarting += (_, n) => { if (!n.Uri.StartsWith(AppUrl)) n.Cancel = true; };
         core.NewWindowRequested += (_, n) => n.Handled = true;
-        await core.AddScriptToExecuteOnDocumentCreatedAsync(app.FirstPaintScript(app.LastActive));
+        await core.AddScriptToExecuteOnDocumentCreatedAsync(app.FirstPaintScript(app.ToolServes(this)));
         core.Navigate($"{AppUrl}highlights.html");
     }
 
     /// <summary>The caption follows the theme, as the main windows do.</summary>
     public void ApplyTheme()
     {
-        BackColor = web.DefaultBackgroundColor = app.AppBackground(app.LastActive);
+        BackColor = web.DefaultBackgroundColor = app.AppBackground(app.ToolServes(this));
         var on = app.Mode == "dark" ? 1 : 0;
         DwmSetWindowAttribute(Handle, 20 /* DWMWA_USE_IMMERSIVE_DARK_MODE */, ref on, sizeof(int));
-        app.ApplyCaption(this, app.LastActive);
+        app.ApplyCaption(this, app.ToolServes(this));
     }
 
     [DllImport("dwmapi.dll")]

@@ -14,6 +14,12 @@ static class KeysFile
 {
     public const string Name = "keys.json";
 
+    /// <summary>Your keys.json as LexPen makes it when there is none (Settings > Keys, a macro's Key...).</summary>
+    public const string Template = "// Your own keys, on top of the defaults (F1 lists every action and key). For example:\n" +
+        "//   \"Ctrl+Shift+D\": \"bookmarkList\",\n" +
+        "// Disable a default key (it then does nothing):\n" +
+        "//   \"Ctrl+T\": null,\n{\n}\n";
+
     static readonly JsonDocumentOptions Options = new() { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true };
 
     // Key names as LexPen spells them; the aliases on the right are accepted too.
@@ -169,7 +175,7 @@ static class KeysFile
         static string Quoted(string s) => "\"" + s.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";   // a + as it is
         var entry = $"  {Quoted(spelled)}: [\"macroRun\", {Quoted(macro)}],";
         string text;
-        if (!File.Exists(path)) text = "{\n" + entry + "\n}\n";
+        if (!File.Exists(path)) text = Template[..^2] + entry + "\n}\n";
         else
         {
             text = File.ReadAllText(path);

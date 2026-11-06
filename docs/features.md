@@ -121,9 +121,9 @@ every action with its key.
   menu** next to it holds the conversions (Alt+N). On a line of another language (a block, a fence, lines you
   set) each menu gets a submenu named after that language with its items, acting in that language; a language
   without items there (no bar) gets none.
-- **Clipboards**: next to the Windows clipboard, LexPen has clipboards 1 to 9 (shared by all windows, kept across
-  restarts). Ctrl+Shift+1 to 9 selects one, Ctrl+Shift+` the Windows clipboard; Ctrl+C, Ctrl+X and Ctrl+V then
-  work on the active one. The bottom bar shows it (Clip: Win, Clip: 3); a click there or Ctrl+Shift+C lists them
+- **Clipboards**: next to the Windows clipboard, LexPen has clipboards 1 to 9 (their texts shared by all windows,
+  kept across restarts). Ctrl+Shift+1 to 9 selects one, Ctrl+Shift+` the Windows clipboard; Ctrl+C, Ctrl+X and
+  Ctrl+V then work on the active one, which is each window's own (every window starts with the Windows clipboard). The bottom bar shows it (Clip: Win, Clip: 3); a click there or Ctrl+Shift+C lists them
   with the start of their text.
 - **Character picker** (Edit > Insert character..., Ctrl+Alt+U, or a click on the code in the bottom bar): a window
   of its own like the Windows Character Map, not in the way of the document: every character of the editor font in
@@ -487,6 +487,16 @@ every action with its key.
   Folder and Search (their tab's right-click menu, a drag) or float in a window of their own; each opens as it was
   last. Bookmarks and Step by step can also dock beside an editor pane's text, working on that pane's document (Step
   by step by default under the macro's text). None of them is modal.
+- **Floating panels follow the focus**: one floating Outline, Highlights, Characters, Folder, Search, Bookmarks,
+  Messages, Clipboards, Macros, Columns and Keyboard shortcuts for all of LexPen; it serves the window worked in
+  (not one that has that panel docked of its own, nor beside its active document), stays on top of it in its look,
+  and goes on to the next window when that one closes. Macros stays with its window while a macro plays or records
+  there, Search while a folder search runs there. Step by step and Settings are their window's own. Every floating
+  panel has a bottom bar that says whose it is: *All projects - current project* and the project it serves now (with
+  [n] when that project has more windows), *Held - playing / recording / searching* and the project while held, or
+  the window's project; then the document it works on, or *All documents*. Manage projects and Theme sets say *All
+  projects*. A click on the bar brings that window to the front. The bar is in the app font; Settings > App, A bottom
+  bar on floating panels, turns the bars off.
 - **Highlights docked**: the Highlights window docks as Characters does: in a dock area it lists the active
   document's highlights, beside an editor pane's text that pane's document's (each editor pane can have one); a click
   goes to the highlight there. The Highlights window item opens it as it was last.
@@ -529,6 +539,12 @@ every action with its key.
   a new extension gives its language, unless you chose one. Bookmarks, highlights (a `.lph` too), ruler lines,
   chosen languages, the recent and favourite lists and the saved windows follow; so do the folder pane's root and
   its open folders. A `.bak` stays under the old name.
+- **Delete** a file or folder: Delete... in the folder pane's right-click menu. It asks first, in a window of
+  LexPen's own (its theme, movable) just right of and below the row; for a folder, with
+  the number of files in it (below it too). A file with its own files beside it (its `.bak`, its highlights `.lph`,
+  a CSV's `-metadata.json`): the question lists the file and each of those with a box, all checked; only the
+  checked ones go. To the Recycle Bin; what could not go (in use, no rights) is said. An open document of it shows as deleted, as with any file
+  deleted outside LexPen.
 - **Revert to saved** (File menu, and a tab's right-click menu, shown only when the text differs from the file on
   disk): the file as it is on disk; Ctrl+Z gives your changes back.
 - **Drafts**: a new file is kept as a draft (`%LOCALAPPDATA%\LexPen\State\Drafts\editN.md`) until saved, and comes back

@@ -46,6 +46,7 @@
   "ignoreActivationClick": true, // a click on a window that is not in front only brings it to the front (it does
                                   // not move the cursor or press a button there)
   "logActivationClicks": false,  // ...each one ignored noted in View > Messages (to check it; not needed in use)
+  "panelBar": true,               // a floating panel's bottom bar: the window it serves, and the document
   "explorerCompare": false,       // Explorer's right-click menu: Select left side to compare, then Compare to <name>
   "explorerView": false,          // ...View in LexPen, on files and folders (the project for viewing, viewProject)
   "explorerEdit": false,          // ...Edit in LexPen, on files (as opening one, never in the project for viewing)
