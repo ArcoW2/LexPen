@@ -165,29 +165,24 @@ sealed class AppHost : ApplicationContext
         var forNew = ThemeSetFile.Resolve(themeSets, null, desktop);
         if (shown == forNew) return new JsonObject { ["layout"] = true };   // the set is new projects' already: only the layout
         var desktopHas = desktop is not null && themeSets.Desktops.ContainsKey(desktop);
-        var bothApp = new TaskDialogRadioButton($"The layout of this window and the theme set \"{shown}\" as the app's default");
-        var bothDesktop = new TaskDialogRadioButton($"The layout of this window and the theme set \"{shown}\" as this desktop's default");
-        var layoutOnly = new TaskDialogRadioButton("Only the layout of this window");
-        var setOnly = new TaskDialogRadioButton($"Only the theme set \"{shown}\", as the app's default");
-        var page = new TaskDialogPage
+        var choices = new List<(string, string, bool)> { ("bothApp", $"The layout of this window and the theme set \"{shown}\" as the app's default", !desktopHas) };
+        if (desktop is not null) choices.Add(("bothDesktop", $"The layout of this window and the theme set \"{shown}\" as this desktop's default", desktopHas));
+        choices.Add(("layoutOnly", "Only the layout of this window", false));
+        choices.Add(("setOnly", $"Only the theme set \"{shown}\", as the app's default", false));
+        var (answer, chosen) = AskForm.Ask(this, owner, new AskForm.Question
         {
-            Caption = "LexPen",
             Heading = "Save as default for new projects",
             Text = $"New projects get the default layout, and the default theme set (now \"{forNew}\" here)." +
                 (desktopHas ? $"\n\nThis desktop has a default set of its own, \"{themeSets.Desktops[desktop!]}\": it wins over the app's on this desktop." : ""),
-            Icon = TaskDialogIcon.Information,
-            Buttons = { TaskDialogButton.OK, TaskDialogButton.Cancel },
-            AllowCancel = true,
-        };
-        page.RadioButtons.Add(bothApp);
-        if (desktop is not null) page.RadioButtons.Add(bothDesktop);
-        page.RadioButtons.Add(layoutOnly);
-        page.RadioButtons.Add(setOnly);
-        (desktopHas ? bothDesktop : bothApp).Checked = true;
-        if (Program.ShowTask(owner, page) != TaskDialogButton.OK) return null;
-        var result = new JsonObject { ["layout"] = !setOnly.Checked };
-        if (layoutOnly.Checked) return result;
-        var onDesktop = bothDesktop.Checked;
+            Sign = AskForm.Sign.Information,
+            Choices = choices,
+            Buttons = [("ok", "OK", null), (null, "Cancel", null)],
+        });
+        if (answer != "ok") return null;
+        var choice = chosen.Single();
+        var result = new JsonObject { ["layout"] = choice != "setOnly" };
+        if (choice == "layoutOnly") return result;
+        var onDesktop = choice == "bothDesktop";
         result["set"] = new JsonObject
         {
             ["name"] = shown,
@@ -332,8 +327,12 @@ sealed class AppHost : ApplicationContext
                 if (users.Count > 0) said.Add($"the project{(users.Count == 1 ? "" : "s")} {string.Join(", ", users)} (back to the desktop's or the app's default)");
                 if (desktopsUsing > 0) said.Add(desktopsUsing == 1 ? "a desktop (no default of its own any more)" : $"{desktopsUsing} desktops (no default of their own any more)");
                 if (themeSets.App == set.Name) said.Add("the app (back to \"Default\")");
-                if (MessageBox.Show(owner, $"Delete the theme set \"{set.Name}\"?" + (said.Count > 0 ? "\n\nIt is used by " + string.Join("; ", said) + "." : ""),
-                    "LexPen", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return false;
+                if (AskForm.Answer(this, owner, new AskForm.Question
+                    {
+                        Text = $"Delete the theme set \"{set.Name}\"?" + (said.Count > 0 ? "\n\nIt is used by " + string.Join("; ", said) + "." : ""),
+                        Sign = AskForm.Sign.Question,
+                        Buttons = [("yes", "Yes", null), (null, "No", null)],
+                    }) != "yes") return false;
                 foreach (var p in projects.Projects.Where(p => themeSets.Known(p.ThemeSet) == set.Name)) p.ThemeSet = null;
                 ThemeSetFile.Delete(themeSets, set.Name);
                 SaveProjects();
@@ -1435,13 +1434,16 @@ sealed class AppHost : ApplicationContext
     {
         if (FindViewProject() is not { } p)
         {
-            MessageBox.Show(owner, "There is no project for viewing yet: the first View in LexPen makes it, named \"View\".",
-                "LexPen", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            AskForm.Tell(this, owner, AskForm.Sign.Information, "There is no project for viewing yet: the first View in LexPen makes it, named \"View\".");
             return;
         }
-        if (MessageBox.Show(owner, $"Give the project \"{ProjectStore.Display(p)}\" the view layout?\n\nOne window with one pane, no sidebar, " +
-            "outline, formatting bar or ruler, every tab in the preview. Its tabs and folder stay; its other windows close.",
-            "LexPen", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+        if (AskForm.Answer(this, owner, new AskForm.Question
+            {
+                Text = $"Give the project \"{ProjectStore.Display(p)}\" the view layout?\n\nOne window with one pane, no sidebar, " +
+                    "outline, formatting bar or ruler, every tab in the preview. Its tabs and folder stay; its other windows close.",
+                Sign = AskForm.Sign.Question,
+                Buttons = [("yes", "Yes", null), (null, "No", null)],
+            }) != "yes") return;
         var layout = ViewLayout();
         var open = windows.Where(w => projects.ProjectOf(w.Key) == p).OrderBy(w => recent.IndexOf(w)).ToList();
         if (open.Count > 0)
@@ -2624,18 +2626,13 @@ sealed class AppHost : ApplicationContext
         var (to, from) = (list[0], list.Skip(1).ToList());
         var names = from.Select(ProjectStore.Display).ToList();
         var named = names.Count == 1 ? names[0] : string.Join(", ", names[..^1]) + " and " + names[^1];
-        var merge = new TaskDialogButton("Merge");
-        var page = new TaskDialogPage
-        {
-            Caption = "LexPen",
-            Heading = $"Merge {list.Count} projects into '{ProjectStore.Display(to)}'?",
-            Text = $"Their windows move to '{ProjectStore.Display(to)}'; {named} {(names.Count == 1 ? "is" : "are")} removed.",
-            Icon = TaskDialogIcon.Information,
-            Buttons = { merge, TaskDialogButton.Cancel },
-            DefaultButton = merge,
-            AllowCancel = true,
-        };
-        if (Program.ShowTask(owner, page) != merge) return false;
+        if (AskForm.Answer(this, owner, new AskForm.Question
+            {
+                Heading = $"Merge {list.Count} projects into '{ProjectStore.Display(to)}'?",
+                Text = $"Their windows move to '{ProjectStore.Display(to)}'; {named} {(names.Count == 1 ? "is" : "are")} removed.",
+                Sign = AskForm.Sign.Information,
+                Buttons = [("merge", "Merge", null), (null, "Cancel", null)],
+            }) != "merge") return false;
         projects.Merge(to, from);
         ProjectsChanged();
         return true;
@@ -2716,75 +2713,60 @@ sealed class AppHost : ApplicationContext
 
     // The delete question: "keep" (save the documents, keep the drafts), "documents" (save the documents only),
     // "none" (save nothing), or null (Cancel). The buttons follow what is unsaved.
-    static string? DeleteQuestion(IWin32Window owner, List<Unsaved> list)
+    string? DeleteQuestion(IWin32Window owner, List<Unsaved> list)
     {
         var several = list.Count > 1;
         var word = several ? "projects" : "project";
         var documents = list.Sum(u => u.Documents.Count);
         var drafts = list.Sum(u => u.Drafts.Count);
         var (lines, details) = Describe(list, true);
-        var page = new TaskDialogPage
-        {
-            Caption = "LexPen",
-            Heading = several ? $"Delete {list.Count} projects?" : $"Delete the project '{ProjectStore.Display(list[0].Project)}'?",
-            Icon = TaskDialogIcon.Warning,
-            AllowCancel = true,
-        };
-        var answers = new Dictionary<TaskDialogButton, string>();
-        void Button(string text, string answer)
-        {
-            var b = new TaskDialogButton(text);
-            page.Buttons.Add(b);
-            answers[b] = answer;
-        }
+        var buttons = new List<(string?, string, string?)>();
+        void Button(string text, string answer) => buttons.Add((answer, text, null));
         const string Untouched = "Saved files are not touched: only the {0} (their windows and tabs) {1} deleted.";
         var untouched = string.Format(Untouched, word, several ? "are" : "is");
+        string text;
         if (documents == 0 && drafts == 0)
         {
-            page.Text = lines + "\n\n" + untouched;
+            text = lines + "\n\n" + untouched;
             Button("Delete", "none");
         }
         else if (documents == 0)
         {
-            page.Text = $"The {word} will be deleted, drafts can be kept in the current window.\n\n" + lines;
+            text = $"The {word} will be deleted, drafts can be kept in the current window.\n\n" + lines;
             Button($"Keep drafts, then delete {word}", "keep");
             Button($"Delete drafts and {word}", "none");
         }
         else
         {
-            page.Text = lines + "\n\n" + untouched;
+            text = lines + "\n\n" + untouched;
             if (drafts > 0) Button($"Save documents, keep drafts, then delete {word}", "keep");
             Button($"Save documents only, then delete {word}", "documents");
             Button("Delete without saving", "none");
         }
-        page.Buttons.Add(TaskDialogButton.Cancel);
-        page.DefaultButton = page.Buttons[0];
-        if (details.Length > 0)
-            page.Expander = new TaskDialogExpander(details) { CollapsedButtonText = "Show details", ExpandedButtonText = "Hide details" };
-        return Program.ShowTask(owner, page) is var result && answers.TryGetValue(result, out var a) ? a : null;
+        buttons.Add((null, "Cancel", null));
+        return AskForm.Answer(this, owner, new AskForm.Question
+        {
+            Heading = several ? $"Delete {list.Count} projects?" : $"Delete the project '{ProjectStore.Display(list[0].Project)}'?",
+            Text = text,
+            Sign = AskForm.Sign.Warning,
+            Buttons = buttons,
+            Details = details.Length > 0 ? details : null,
+        });
     }
 
     // The close question, only for unsaved documents (drafts stay with their windows): "save", "discard" or null.
-    static string? CloseQuestion(IWin32Window owner, List<Unsaved> list)
+    string? CloseQuestion(IWin32Window owner, List<Unsaved> list)
     {
         var word = list.Count > 1 ? "projects" : "project";
         var (lines, details) = Describe(list, false);
-        var save = new TaskDialogButton($"Save documents, then close");
-        var discard = new TaskDialogButton("Close without saving");
-        var page = new TaskDialogPage
+        return AskForm.Answer(this, owner, new AskForm.Question
         {
-            Caption = "LexPen",
             Heading = list.Count > 1 ? $"Close {list.Count} projects?" : $"Close the project '{ProjectStore.Display(list[0].Project)}'?",
             Text = lines + $"\n\nDrafts stay with the {word}.",
-            Icon = TaskDialogIcon.Warning,
-            Buttons = { save, discard, TaskDialogButton.Cancel },
-            DefaultButton = save,
-            AllowCancel = true,
-        };
-        if (details.Length > 0)
-            page.Expander = new TaskDialogExpander(details) { CollapsedButtonText = "Show details", ExpandedButtonText = "Hide details" };
-        var result = Program.ShowTask(owner, page);
-        return result == save ? "save" : result == discard ? "discard" : null;
+            Sign = AskForm.Sign.Warning,
+            Buttons = [("save", "Save documents, then close", null), ("discard", "Close without saving", null), (null, "Cancel", null)],
+            Details = details.Length > 0 ? details : null,
+        });
     }
 
     /// <summary>Manage projects > Close: closes the open windows of the projects (kept in them), after the question

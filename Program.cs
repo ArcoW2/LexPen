@@ -86,15 +86,6 @@ static class Program
         for (; raised > 0; raised--) ShowCursor(false);
     }
 
-    // A task dialog does not raise EnterThreadModal / LeaveThreadModal (the other dialogs and forms do): every one goes
-    // through here.
-    internal static TaskDialogButton ShowTask(IWin32Window owner, TaskDialogPage page)
-    {
-        ShowPointer(null, EventArgs.Empty);
-        try { return TaskDialog.ShowDialog(owner, page); }
-        finally { RestorePointer(null, EventArgs.Empty); }
-    }
-
     [DllImport("user32.dll")]
     static extern int ShowCursor(bool show);
 

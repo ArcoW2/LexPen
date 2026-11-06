@@ -1033,9 +1033,17 @@ sealed class MainForm : Form
                 BeginInvoke(() => Close());   // later, so this reply still reaches the page
                 return null;
 
+            // A yes / no question of the page; `ok`: OK / Cancel, the OK button named so.
             case "confirm":
-                return MessageBox.Show(this, Arg("text"), "LexPen",
-                    MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes;
+            {
+                var ok = msg["ok"]?.GetValue<string>();
+                return AskForm.Answer(app, this, new AskForm.Question
+                {
+                    Text = Arg("text"),
+                    Sign = AskForm.Sign.Warning,
+                    Buttons = ok is null ? [("yes", "Yes", null), (null, "No", null)] : [("yes", ok, null), (null, "Cancel", null)],
+                }) == "yes";
+            }
 
             // The preview of a Replace in the Search panel (ReplacePreviewForm): the ids of the changes to make, or null.
             case "confirmReplace":
@@ -1047,23 +1055,21 @@ sealed class MainForm : Form
 
             // Save before closing: "yes" | "no" | null (Cancel).
             case "askSave":
-                return MessageBox.Show(this, Arg("text"), "LexPen",
-                    MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question) switch
+                return AskForm.Answer(app, this, new AskForm.Question
                 {
-                    DialogResult.Yes => "yes",
-                    DialogResult.No => "no",
-                    _ => null,
-                };
+                    Text = Arg("text"),
+                    Sign = AskForm.Sign.Question,
+                    Buttons = [("yes", "Yes", null), ("no", "No", null), (null, "Cancel", null)],
+                });
 
             // Pretty print of JSON with comments: keep them, remove them, or (null) do not format.
             case "askKeepComments":
-                return MessageBox.Show(this, "This JSON has comments. Keep the comments?\n\nYes keeps them, No removes them, Cancel changes nothing.",
-                    "LexPen", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question) switch
+                return AskForm.Answer(app, this, new AskForm.Question
                 {
-                    DialogResult.Yes => "keep",
-                    DialogResult.No => "drop",
-                    _ => null,
-                };
+                    Text = "This JSON has comments. Keep the comments?\n\nYes keeps them, No removes them, Cancel changes nothing.",
+                    Sign = AskForm.Sign.Question,
+                    Buttons = [("keep", "Yes", null), ("drop", "No", null), (null, "Cancel", null)],
+                });
 
             // Settings (SettingsFile): read, change one (every window follows), the rows of the settings window.
             case "settings":
@@ -1402,42 +1408,36 @@ sealed class MainForm : Form
 
     string? AskBackups(string folder)
     {
-        var here = new TaskDialogCommandLinkButton("Delete here", "The .bak files in this folder itself");
-        var all = new TaskDialogCommandLinkButton("Delete with subfolders", "The .bak files in this folder and every folder below it");
-        var page = new TaskDialogPage
+        return AskForm.Answer(app, this, new AskForm.Question
         {
-            Caption = "LexPen",
             Heading = $"Delete the .bak files in {ExplorerMenu.NameOf(folder)}?",
             Text = "Only backups LexPen made (name.ext.bak next to name.ext). They go to the Recycle Bin.",
-            AllowCancel = true,
-        };
-        page.Buttons.Add(here);
-        page.Buttons.Add(all);
-        page.Buttons.Add(TaskDialogButton.Cancel);
-        var result = Program.ShowTask(this, page);
-        return result == here ? "here" : result == all ? "all" : null;
+            Sign = AskForm.Sign.Question,
+            Buttons =
+            [
+                ("here", "Delete here", "The .bak files in this folder itself"),
+                ("all", "Delete with subfolders", "The .bak files in this folder and every folder below it"),
+                (null, "Cancel", null),
+            ],
+        });
     }
 
     string? AskImageMode(string doc, List<string> images)
     {
-        var buttons = new (string Mode, TaskDialogCommandLinkButton Button)[]
+        return AskForm.Answer(app, this, new AskForm.Question
         {
-            ("relative", new("Relative path", "Link to the image where it is, relative to the document")),
-            ("absolute", new("Absolute path", "Link to the image where it is: " + ImageLinks.Absolute(images[0]))),
-            ("copyHere", new("Copy to the document's folder", Path.GetDirectoryName(doc))),
-            ("copyImages", new("Copy to the document's image folder", ImageLinks.ImagesFolder(doc))),
-        };
-        var page = new TaskDialogPage
-        {
-            Caption = "LexPen",
             Heading = images.Count == 1 ? $"Add {Path.GetFileName(images[0])}" : $"Add {images.Count} images",
             Text = "How should the document link to the image?",
-            AllowCancel = true,
-        };
-        foreach (var (_, button) in buttons) page.Buttons.Add(button);
-        page.Buttons.Add(TaskDialogButton.Cancel);
-        var result = Program.ShowTask(this, page);
-        return buttons.FirstOrDefault(b => b.Button == result).Mode;
+            Sign = AskForm.Sign.Question,
+            Buttons =
+            [
+                ("relative", "Relative path", "Link to the image where it is, relative to the document"),
+                ("absolute", "Absolute path", "Link to the image where it is: " + ImageLinks.Absolute(images[0])),
+                ("copyHere", "Copy to the document's folder", Path.GetDirectoryName(doc)),
+                ("copyImages", "Copy to the document's image folder", ImageLinks.ImagesFolder(doc)),
+                (null, "Cancel", null),
+            ],
+        });
     }
 
     static JsonObject Search(JsonNode msg) => FolderSearch.Search(
@@ -1459,20 +1459,13 @@ sealed class MainForm : Form
         if (drafts.Count > 0)
             text.AppendLine("Drafts changed (kept as draft unless you save them as a file):")
                 .AppendJoin("", drafts.Select(d => $"    {d}\n"));
-        var save = new TaskDialogButton("Yes");
-        var discard = new TaskDialogButton(drafts.Count > 0 ? "No (keep drafts)" : "No");
-        var page = new TaskDialogPage
+        return AskForm.Answer(app, this, new AskForm.Question
         {
-            Caption = "LexPen",
             Heading = "Save before closing?",
             Text = text.ToString().TrimEnd(),
-            Icon = TaskDialogIcon.Warning,
-            Buttons = { save, discard, TaskDialogButton.Cancel },
-            DefaultButton = save,
-            AllowCancel = true,
-        };
-        var result = Program.ShowTask(this, page);
-        return result == save ? "save" : result == discard ? "discard" : "cancel";
+            Sign = AskForm.Sign.Warning,
+            Buttons = [("save", "Yes", null), ("discard", drafts.Count > 0 ? "No (keep drafts)" : "No", null), (null, "Cancel", null)],
+        }) ?? "cancel";
     }
 
     // Each file: name, path, folder or not, and last write time (ms since 1970) for sorting.

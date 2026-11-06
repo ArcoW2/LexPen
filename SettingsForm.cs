@@ -248,18 +248,21 @@ sealed class SettingsForm : Form, IWebPost
         if (list.Any(c => c.Mode == "view")) question.Add("Open in LexPen to view: " + Some(list.Where(c => c.Mode == "view").Select(c => c.Extension)));
         if (off.Count > 0) question.Add("Take LexPen off: " + Some(off));
         if (question.Count == 0) question.Add("No extension opens in LexPen.");
-        if (MessageBox.Show(owner, "Assign these file types?\n\n" + string.Join("\n\n", question), "LexPen",
-            MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return new JsonObject { ["cancelled"] = true };
+        if (AskForm.Answer(app, owner, new AskForm.Question
+            {
+                Text = "Assign these file types?\n\n" + string.Join("\n\n", question),
+                Sign = AskForm.Sign.Question,
+                Buttons = [("yes", "Yes", null), (null, "No", null)],
+            }) != "yes") return new JsonObject { ["cancelled"] = true };
         FileTypes.Assign(exe, list, extensions.Select(e => e.Key));
         // What Windows starts now: an association it protects stays with another app; Default apps for those.
         var kept = list.Where(c => !FileTypes.OpensWith(c.Extension, exe).Ours).Select(c => c.Extension).ToList();
         if (kept.Count > 0)
         {
-            MessageBox.Show(owner, $"LexPen could not set every file type: Windows keeps another app for\n\n{Some(kept)}\n\n" +
+            AskForm.Tell(app, owner, AskForm.Sign.Information, $"LexPen could not set every file type: Windows keeps another app for\n\n{Some(kept)}\n\n" +
                 "After OK, Windows Settings opens at Apps > Default apps > LexPen. Choose LexPen there for each of these file types.\n\n" +
                 "Only LexPen is chosen there: whether a file type opens to edit or to view is what you set here, in LexPen's File types; " +
-                "Windows has no setting for it.",
-                "LexPen", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                "Windows has no setting for it.");
             System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("ms-settings:defaultapps?registeredAppUser=LexPen") { UseShellExecute = true });
         }
         return new JsonObject { ["assigned"] = list.Count, ["off"] = off.Count, ["kept"] = new JsonArray(kept.Select(k => (JsonNode?)k).ToArray()) };

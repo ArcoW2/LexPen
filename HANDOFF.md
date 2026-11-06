@@ -107,8 +107,8 @@ desktop, or a real mouse drag across windows / from Explorer is needed). Worth a
 | Dragging a tab onto another LexPen window | HTML drag data between two WebView2 controls; fallback is right-click > Move to next window |
 | Dragging a tab out of the window (new window at the drop point) | Only tested with a synthetic event |
 | Dropping files or a folder from Explorer onto a pane | Uses `postMessageWithAdditionalObjects` |
-| The close prompt dialog itself (TaskDialog: Save / Don't save / Cancel) | The flow was tested with the answer stubbed |
-| The Shift question when adding images (relative / absolute / copy here / copy to image folder) | TaskDialog in `MainForm.AskImageMode` |
+| The close prompt dialog itself (AskForm: Yes / No / Cancel) | The flow was tested with the answer stubbed |
+| The Shift question when adding images (relative / absolute / copy here / copy to image folder) | AskForm in `MainForm.AskImageMode` |
 | "Save the draft as a file first" when pasting an image into a draft | Confirm dialog |
 | Windows 10: dimmed title bar of secondary windows | Only Windows 11 was available; on Windows 10 only the toolbar dims |
 
