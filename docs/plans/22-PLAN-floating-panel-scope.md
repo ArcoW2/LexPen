@@ -78,7 +78,7 @@ anyway.
 
 - One floating window per panel for LexPen. A window's layout still says the panel floats (as the Outline's does
   now): such a window wants it; the floating window serves the window worked in last that wants it (not one that has
-  the panel docked, nor, for the Outline and Highlights, one whose active editor pane has its own beside it).
+  the panel docked, nor, for the Outline, Highlights and Characters, one whose active editor pane has its own beside it).
 - Activated, a window that wants the panel takes it: the panel is re-owned to it, shows that window's content (the
   window's page sends it, as for the Outline: `outlineServe` / `outlineRelease`), and takes its look.
 - A window that does not want it (it has its own docked): the floating one stays with the window it served.
@@ -171,15 +171,7 @@ anyway.
 
 ## 4. Open questions
 
-None. Decided (2026-11-06):
-
-- With one window of a project, only the project, no number; a panel that follows the focus says *All projects -
-  current project* followed by the project it serves now.
-- Highlights follows the focus as the Outline does; Folder, Search, Bookmarks, Messages, Clipboards and Macros too;
-  Step by step and Settings stay their window's.
-- Characters is gated as the others: it skips a window whose editor pane has Characters docked of its own.
-- Macros is held by its window while a macro runs or is recorded there; Search while a search runs there. Held, the
-  bottom bar says so (*Held - ...*), updated at once when it is held and let go.
+None.
 
 ## 5. As built
 
