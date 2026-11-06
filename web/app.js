@@ -3789,7 +3789,7 @@ function reportOutlineWanted() {
   outlineWantedSent = wants;
   host('outlineWanted', { wants });
 }
-// A floating panel that follows the focus (docs/plans/22-PLAN-floating-panel-scope.md 3.2; panechannel.js) serves this
+// A floating panel that follows the focus (docs/plans/executed/PLAN-floating-panel-scope.md 3.2; panechannel.js) serves this
 // window now, or another one. Characters and Highlights (windows of their own): floating here now (also when hidden
 // here); the picker hears the character at this window's cursor.
 events.paneServe = ({ pane: id }) => {

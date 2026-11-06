@@ -6,7 +6,7 @@ namespace LexPen;
 /// <summary>
 /// LexPen's own clipboards 1 to 9 (0 is the Windows clipboard, which this class never touches). Their texts are
 /// shared by all windows and kept across restarts in clipboards.json; which one is active is each window's own
-/// (MainForm.ActiveClip; docs/plans/22-PLAN-floating-panel-scope.md 3.5), the Windows clipboard at every start. A text copied from a
+/// (MainForm.ActiveClip; docs/plans/executed/PLAN-floating-panel-scope.md 3.5), the Windows clipboard at every start. A text copied from a
 /// block (column mode) is marked as one, so paste puts it back as a column; in the file such an entry is
 /// { "text": ..., "column": true }, any other a plain string.
 /// </summary>

@@ -30,7 +30,7 @@ public class ClipboardStoreTests : IDisposable
         Assert.Equal("three", again.Get(3));
     }
 
-    // Which clipboard is active is each window's own (docs/plans/22-PLAN-floating-panel-scope.md 3.5): the store has
+    // Which clipboard is active is each window's own (docs/plans/executed/PLAN-floating-panel-scope.md 3.5): the store has
     // only the texts.
     [Fact]
     public void TheStoreKeepsTheTextsOnlyNotWhichIsActive()

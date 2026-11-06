@@ -4,7 +4,7 @@ using System.Text.Json.Nodes;
 namespace LexPen;
 
 /// <summary>
-/// The bottom bar of a floating panel's window (docs/plans/22-PLAN-floating-panel-scope.md 3.4): whose it is now. At
+/// The bottom bar of a floating panel's window (docs/plans/executed/PLAN-floating-panel-scope.md 3.4): whose it is now. At
 /// the far left the project (an italic lead first: "All projects - current project", "Held - playing", ...; or only
 /// the italic "All projects"), next to it the document (or the italic "All documents"). In the look of the window it
 /// names, in the app font (settings appFont, appSize); a click brings that window to the front. Not shown when the

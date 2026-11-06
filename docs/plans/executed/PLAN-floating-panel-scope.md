@@ -1,6 +1,6 @@
 # Plan: Whose is a floating panel
 
-Status: built on branch plan-22 (2026-11-06); see 5. As built.
+Status: executed, merged into main (2026-11-06); see 5. As built.
 The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
@@ -212,6 +212,8 @@ Built on branch `plan-22` (2026-11-06).
 
 Differs from the plan:
 
+- The bar is in the app font (appFont, appSize) and can be turned off: Settings > App, A bottom bar on floating
+  panels (`panelBar`).
 - Columns and Keyboard shortcuts and commands (not in 3.1's table) follow the focus too, by the rule of 2.
 - [n] is the window's place among the open windows of its project.
 - A panel that works on a document says *No document* when the window it serves has none.

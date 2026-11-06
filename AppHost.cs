@@ -1917,7 +1917,7 @@ sealed class AppHost : ApplicationContext
         UpdateBars();
     }
 
-    // ---------- The floating panels that follow the focus (docs/plans/22-PLAN-floating-panel-scope.md 3.2) ----------
+    // ---------- The floating panels that follow the focus (docs/plans/executed/PLAN-floating-panel-scope.md 3.2) ----------
     // As the floating outline: one floating window for LexPen of each, serving the window worked in last that wants it
     // (its page says so, panesWanted: the panel not docked there, nor an editor pane's own beside its active
     // document), owned by that window and in its look; handed on when that window closes, else it closes with it. The

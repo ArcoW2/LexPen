@@ -1142,7 +1142,7 @@ sealed class MainForm : Form
                 app.OutlineWanted(this, msg["wants"]?.GetValue<bool>() == true);
                 return null;
 
-            // The floating panels that follow the focus (docs/plans/22-PLAN-floating-panel-scope.md 3.2): which this
+            // The floating panels that follow the focus (docs/plans/executed/PLAN-floating-panel-scope.md 3.2): which this
             // window wants now ({ pane: bool }), and one held here while a macro plays or records, or a search runs.
             case "panesWanted":
                 app.PanesWanted(this, msg["wants"]!.AsObject());

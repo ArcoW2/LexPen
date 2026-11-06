@@ -18,7 +18,7 @@ sealed class SettingsForm : Form, IWebPost
     readonly AppHost app;
     readonly MainForm window;   // the main window this one belongs to
     readonly WebView2 web = new() { Dock = DockStyle.Fill };
-    public PanelBar Bar { get; } = new();   // whose it is now (docs/plans/22-PLAN-floating-panel-scope.md 3.4)
+    public PanelBar Bar { get; } = new();   // whose it is now (docs/plans/executed/PLAN-floating-panel-scope.md 3.4)
     bool pageReady;
     readonly List<string> queue = [];
 

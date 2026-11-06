@@ -6,7 +6,7 @@
 // it moves. What its page sends goes to `receive(m, from)`; the channel itself does the common part: ready, a press
 // there closing this window's menus, a key it does not use (this window's), a choice in a menu it drew floating. The
 // Folder and Search panes use it (app.js).
-// A pane that follows the focus (docs/plans/22-PLAN-floating-panel-scope.md 3.2; FOLLOWING_PANES) floats in one window
+// A pane that follows the focus (docs/plans/executed/PLAN-floating-panel-scope.md 3.2; FOLLOWING_PANES) floats in one window
 // for LexPen, serving the window worked in that wants it (reportPanesWanted): floating here, this window may not be the
 // one it serves now (`owner` false): then nothing is sent to it, and all it shows is sent when it comes here (paneServe).
 // Loaded before app.js; nothing here runs before app.js has started.
