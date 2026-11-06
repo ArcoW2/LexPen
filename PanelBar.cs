@@ -41,6 +41,12 @@ sealed class PanelBar : Control
     /// <summary>The texts as shown, for the tests ("italic|plain || italic|plain").</summary>
     public string Said => $"{project.Italic}|{project.Plain} || {document.Italic}|{document.Plain}";
 
+    protected override void OnClick(EventArgs e)
+    {
+        base.OnClick(e);
+        if (Window is { IsDisposed: false } w) AppHost.BringToFront(w);
+    }
+
     protected override void OnPaint(PaintEventArgs e)
     {
         var g = e.Graphics;
