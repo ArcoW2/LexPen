@@ -58,15 +58,19 @@ anyway.
 
 - Every floating panel's window gets a thin bar at its bottom, in the panel's look, as the main window's bottom bar,
   with two parts:
-  - At the far left, the project: a window's panel its window's project (and, when the project has more windows, the
-    window's number: `BankConnect [2]`); a panel of LexPen *All projects* (in italics).
+  - At the far left, the project: a window's panel its window's project, without a number when the project has one
+    window (`BankConnect`), with the window's number when it has more (`BankConnect [2]`). A panel of LexPen that
+    serves the window worked in last (the Outline, Characters) says *All projects - current project* (in italics),
+    then that window's project as a window's panel names it (`BankConnect`, `BankConnect [2]`): it says which project
+    it serves now, and that it serves whichever window gets the focus next. The other panels of LexPen: *All
+    projects* (in italics).
   - Next to it, the document: the one the panel works on now, or *All documents* (in italics) when it does not work
     on one document.
 
   | Panel | Project | Document |
   |---|---|---|
-  | Outline (floating) | *All projects* | the document it shows now: the active one of the window worked in last |
-  | Characters | *All projects* | the document it inserts into now, the same way |
+  | Outline (floating) | *All projects - current project* + the project of the window worked in last | the document it shows now: the active one of the window worked in last |
+  | Characters | *All projects - current project* + the project, the same way | the document it inserts into now, the same way |
   | Highlights, Manage projects, Theme sets | *All projects* | *All documents* |
   | Folder, Search, Messages, Macros, Clipboards, Settings | its window's project | *All documents* |
   | Bookmarks (the window's), Step by step | its window's project | the document it works on |
@@ -98,8 +102,10 @@ anyway.
 - In-app, two windows with different theme sets:
   - Characters floating, opened from window A, then B worked in, then B closed: Characters has A's look at once,
     without A being clicked.
-  - Each floating panel's bottom bar: a window's panel names its project (and [n] with two windows of one project);
-    Characters and the Outline say `All windows - now: ...`, changing with the window worked in.
+  - Each floating panel's bottom bar: a window's panel names its project, without a number with one window of the
+    project, with [n] with two; Characters and the Outline say *All projects - current project* and the project of
+    the window worked in (with [n] the same way), changing with the window worked in, also to a window of another
+    project.
   - Rename the project: the bar follows.
   - Clipboards: window A chooses clipboard 3, window B keeps the Windows clipboard; A's and B's Clipboards panels
     and bottom bars show each their own; a copy in A to 3 shows in B's panel as clipboard 3's text; paste in B
@@ -110,8 +116,8 @@ anyway.
 
 ## 4. Open questions
 
-1. A window's panel whose project has one window: only the project (`BankConnect`), as proposed, or always with the
-   window's number?
+None. Decided (2026-11-06): with one window of a project, only the project, no number; the Outline and Characters
+say *All projects - current project* followed by the project they serve now (3.3).
 
 ## 5. As built
 
