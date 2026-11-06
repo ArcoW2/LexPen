@@ -2623,7 +2623,9 @@ async function fromFolder(m, from) {
     case 'rename':
       await renameFile(m.path, m.folder);
       return focusFolder();
-    case 'escape': return focusPane(panes[state.activePane]);
+    case 'escape':   // its menu open (docked: here, the focus still in the folder): that closes first, the focus staying
+      if (!ui.treeMenu.hidden) return hideMenus();
+      return focusPane(panes[state.activePane]);
     case 'sort': keepLayout('sort', m.value); return refreshTree();
     case 'cmd': return commands[m.name]?.();
     case 'drag': draggedPathIsImage = IMAGE_FILE.test(m.path); return;
