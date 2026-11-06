@@ -46,8 +46,12 @@ function pdfFindColours(tab) {
   return { hit, now };
 }
 
-const pdfSendMarks = (tab, matches, current) => pdfSend(tab, { kind: 'findMarks', ...pdfFindColours(tab),
-  list: matches.map(m => ({ page: m[2], from: m[3], to: m[4] })), current: current ? { page: current[2], from: current[3], to: current[4] } : null });
+// Also kept for the pane's scroll strip (pdfview.js pdfOverviewMarks).
+function pdfSendMarks(tab, matches, current) {
+  tab.pdf.findMarks = matches.map(m => ({ page: m[2], from: m[3], to: m[4] }));
+  pdfSend(tab, { kind: 'findMarks', ...pdfFindColours(tab), list: tab.pdf.findMarks, current: current ? { page: current[2], from: current[3], to: current[4] } : null });
+  pdfStripChanged(tab);
+}
 
 // find.js refresh: counted and marked, and (typing) to the first match from where the search started.
 function pdfFindRefresh(pane, regex, moving) {
@@ -80,7 +84,10 @@ function pdfFindGo(pane, regex, dir, fromOrigin) {
 // find.js clearMarks: the frame's marks go too.
 function pdfClearFind(pane) {
   const tab = pane.active;
-  if (tab?.doc.pdf && tab.pdf?.frame?.isConnected) pdfSend(tab, { kind: 'findMarks', list: [], current: null });
+  if (!tab?.doc.pdf || !tab.pdf?.frame?.isConnected) return;
+  tab.pdf.findMarks = null;
+  pdfSend(tab, { kind: 'findMarks', list: [], current: null });
+  pdfStripChanged(tab);
 }
 
 // A one-line selection in the PDF fills the search when the bar opens (find.js selectedText).

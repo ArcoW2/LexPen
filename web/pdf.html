@@ -14,6 +14,14 @@
     color: var(--pdf-fg, #ddd); font: 14px system-ui, sans-serif; text-align: center; }
   #pdf-error[hidden] { display: none; }   /* else its display above wins over hidden, and it covers the PDF */
   #pdf-scroll:focus { outline: none; }
+  /* No vertical scroll bar: LexPen's strip in the window is it. The horizontal one as LexPen's (app.css). */
+  #pdf-scroll::-webkit-scrollbar { width: 0; height: var(--pdf-sb, 20px); }
+  #pdf-scroll::-webkit-scrollbar-button { display: none; }
+  #pdf-scroll::-webkit-scrollbar-track { background: color-mix(in srgb, var(--pdf-fg, #ddd) 7%, var(--pdf-bg, #525659));
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--pdf-fg, #ddd) 22%, var(--pdf-bg, #525659)); }
+  #pdf-scroll::-webkit-scrollbar-thumb { min-width: 24px; border-radius: 3px; background: color-mix(in srgb, var(--pdf-fg, #ddd) 28%, transparent); }
+  #pdf-scroll::-webkit-scrollbar-thumb:active { background: color-mix(in srgb, var(--pdf-fg, #ddd) 40%, transparent); }
+  #pdf-scroll::-webkit-scrollbar-corner { background: transparent; }
   /* Highlights (pdf-pane.js): a layer between a page and its text layer; the highlight look of the preview. */
   .pdf-hl-layer { position: absolute; inset: 0; pointer-events: none; }
   .pdf-hl { position: absolute; background: var(--pdf-hl); border-radius: 2px; }

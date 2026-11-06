@@ -2,7 +2,9 @@
 // (its overall brightness) and inverted (its hues kept) when it does not suit the mode: in dark mode a page brighter
 // than the threshold, in light mode one darker than it; a page that already suits the mode stays as it is, so a dark
 // page is never lightened in dark mode. The address says which file and how:
-// ?file=<url>&mode=dark|light|original&threshold=<0-100>&bg=<the preview's background>
+// ?file=<url>&mode=dark|light|original&threshold=<0-100>&bg=<the preview's background>&fg=<its text colour>&sb=<the
+// scroll bars' width>. The vertical scroll bar is LexPen's strip in the window (previewoverview.js), from the layout
+// and the scroll told here; the horizontal one looks as LexPen's.
 import * as pdfjsLib from './vendor/pdfjs/pdf.min.mjs';
 
 globalThis.pdfjsLib = pdfjsLib;   // the viewer finds the library there
@@ -47,11 +49,13 @@ function look(pageNumber) {
 const lookAll = () => { for (const n of pdf.light.keys()) look(n); };
 
 // The mode, the threshold and the preview's background: from the address at first, later from the window (`look`).
-function setLook(mode, threshold, bg) {
+function setLook(mode, threshold, bg, fg, sb) {
   pdf.mode = mode || 'original';
   pdf.threshold = Number.isFinite(+threshold) ? +threshold : 50;
   const root = document.documentElement.style;
   if (bg) root.setProperty('--pdf-bg', bg);
+  if (fg) root.setProperty('--pdf-fg', fg);
+  if (sb) root.setProperty('--pdf-sb', sb + 'px');
   // How far a page is turned round: so that its paper becomes the preview's background (dark mode: white paper turns
   // that dark; light mode: black paper turns that light), not pure black or white.
   const l = bg ? luminance(bg) : null;
@@ -68,6 +72,21 @@ function tellState() {
   if (v?.pagesCount && !pdf.restoring) toWindow({ kind: 'state', page: v.currentPageNumber, pages: v.pagesCount, scale: v.currentScale,
     scaleValue: v.currentScaleValue, top: c.scrollTop, left: c.scrollLeft });
 }
+// Where its pages are (their tops and heights in the scroll area), how high it all is and how much is in view: for the
+// window's scroll strip; again when that changes (a zoom, the room, the pages' real sizes read).
+function tellLayout() {
+  const c = document.getElementById('pdf-scroll'), v = pdf.viewer;
+  if (!v?.pagesCount) return;
+  const base = c.getBoundingClientRect().top - c.scrollTop, tops = [], heights = [];
+  for (let i = 0; i < v.pagesCount; i++) {
+    const r = v.getPageView(i).div.getBoundingClientRect();
+    tops.push(Math.round(r.top - base));
+    heights.push(Math.round(r.height));
+  }
+  toWindow({ kind: 'layout', tops, heights, total: c.scrollHeight, client: c.clientHeight, top: c.scrollTop });
+}
+const laterLayout = () => { clearTimeout(pdf.layoutTimer); pdf.layoutTimer = setTimeout(tellLayout, 50); };
+
 // Its bookmarks (the PDF's outline, chapters and their parts) for the Outline pane: each with its level and the page
 // its place is on; a click there comes back as `dest` (its number in this list) and goes to its place on that page.
 async function tellOutline() {
@@ -108,7 +127,7 @@ function restore({ scaleValue, scale, top, left }) {
 
 async function open() {
   const file = here.searchParams.get('file');
-  setLook(here.searchParams.get('mode'), here.searchParams.get('threshold') ?? 50, here.searchParams.get('bg'));
+  setLook(here.searchParams.get('mode'), here.searchParams.get('threshold') ?? 50, here.searchParams.get('bg'), here.searchParams.get('fg'), here.searchParams.get('sb'));
   const container = document.getElementById('pdf-scroll'), eventBus = new EventBus(), linkService = new PDFLinkService({ eventBus });
   pdf.viewer = new PDFViewer({ container, eventBus, linkService, textLayerMode: 1 });
   linkService.setViewer(pdf.viewer);
@@ -122,15 +141,23 @@ async function open() {
   eventBus.on('pagesinit', () => {
     pdf.viewer.currentScaleValue = 'page-width';
     toWindow({ kind: 'ready', pages: pdf.viewer.pagesCount });
+    laterLayout();
   });
+  eventBus.on('pagesloaded', laterLayout);
   // Fit to the width or the page: fitted again when its room changes (the outline opened, the pane resized).
   new ResizeObserver(() => {
     const v = pdf.viewer;
     if (v?.pagesCount && /^(page-width|page-fit|auto)$/.test(v.currentScaleValue)) v.currentScaleValue = v.currentScaleValue;
+    laterLayout();
   }).observe(document.getElementById('pdf-scroll'));
-  document.getElementById('pdf-scroll').addEventListener('scroll', () => { clearTimeout(pdf.scrollTimer); pdf.scrollTimer = setTimeout(tellState, 200); });
+  // The scroll: to the window's strip at once (a frame at a time), the state a moment later.
+  document.getElementById('pdf-scroll').addEventListener('scroll', () => {
+    clearTimeout(pdf.scrollTimer);
+    pdf.scrollTimer = setTimeout(tellState, 200);
+    if (!pdf.scrollFrame) pdf.scrollFrame = requestAnimationFrame(() => { pdf.scrollFrame = 0; toWindow({ kind: 'scroll', top: document.getElementById('pdf-scroll').scrollTop }); });
+  });
   eventBus.on('pagechanging', tellState);
-  eventBus.on('scalechanging', tellState);
+  eventBus.on('scalechanging', () => { tellState(); laterLayout(); });
   try {
     pdf.doc = await pdfjsLib.getDocument({
       url: file, isEvalSupported: false,
@@ -158,7 +185,8 @@ function zoom(dir) {
 addEventListener('message', e => {
   if (e.origin !== 'https://lexpen.example' || !e.data?.toPdf) return;
   const m = e.data.toPdf, v = pdf.viewer;
-  if (m.kind === 'look') return setLook(m.mode, m.threshold, m.bg);
+  if (m.kind === 'look') return setLook(m.mode, m.threshold, m.bg, m.fg, m.sb);
+  if (m.kind === 'scrollTo') return void (document.getElementById('pdf-scroll').scrollTop = m.top);
   if (m.kind === 'highlights') {   // the ones to draw, in the preview's highlight look
     hl.list = m.list;
     hl.underline = !!m.underline;
