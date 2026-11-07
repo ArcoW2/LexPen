@@ -1308,6 +1308,12 @@ function afterPaneChange() {
   refreshTabs();
   updateChrome();
   saveSession();
+  // A pane hidden or closed (its button's menu, the divider's) with the focus in it: the focus fell to the page, and the
+  // Ctrl tap and the keys had no part to act on. To the pane that shows; after the menu has closed.
+  setTimeout(() => {
+    const el = document.activeElement, pane = panes[state.activePane];
+    if ((el === document.body || panes.some(p => p.el.contains(el) && !p.el.offsetParent)) && pane?.active && pane.el.offsetParent) focusPane(pane);
+  });
 }
 
 // The pane items of a menu, each only where it applies.
@@ -2020,6 +2026,12 @@ async function closeTab(tab, force, bulk) {
     }
   }
   await showAll();
+  // The focus was in the closed tab's editor or preview and fell to the page (the Ctrl tap and the keys then had no
+  // part to act on): to what the pane shows now, else to the other pane's document.
+  if (document.activeElement === document.body) {
+    const to = pane.active ? pane : panes.find(p => p.active && p.el.offsetParent);
+    if (to) focusPane(to);
+  }
   saveSession();
   return true;
 }
