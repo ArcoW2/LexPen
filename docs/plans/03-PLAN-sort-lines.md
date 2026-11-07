@@ -49,8 +49,13 @@ into the Sort tab, or delete one); from the Sort tab a sort is applied, saved un
 - Sort keys (your answer 2026-11-07): a list, each key a **From** column, a **To** column and A to Z or Z to A. The
   key's text is the line from From up to and including To (counted as the ruler counts, tabs expanded); To empty: to
   the end of the line. The first key decides, each next one breaks the ties of the ones before it. "Add a key" adds a
-  key after the last (its From one past the last key's To), each key can be removed and moved up or down. One key to
-  start with: From 1, To empty (the whole line).
+  key after the last (its From one past the last key's To); each key can be removed.
+- The keys' order is their order in the list, not their place in the line (your answer 2026-11-07): a key is dragged
+  in the list to another place (also Alt+Up / Alt+Down on the key with the focus), and a key's columns are free: the
+  second key may lie before the first in the line, or partly in it (overlapping columns are read for each key). The
+  preview and the column lines follow at once; each key's lines carry its number (1, 2, ...) so the order shows in
+  the editor too.
+- One key to start with: From 1, To empty (the whole line).
 - In a block (your answer 2026-11-07): the keys work within the block. The first key's From starts at the block's
   first column, To empty means the block's right edge; any column of the block can be chosen, a column outside it is
   not accepted (the field says why).
@@ -109,7 +114,7 @@ the top of the Sort tab: **By columns** (the default for such a file) or **As te
 
 - By columns: a list of sort keys, each a column (by its name from the header, else its number) and ascending or
   descending; the first key decides, the next ones break ties. "Add a column" adds a key, each key can be removed and
-  moved up or down. One key to start with: the column of the cursor (the column view: its current cell's column).
+  dragged to another place in the list (Alt+Up / Alt+Down too), as the text keys. One key to start with: the column of the cursor (the column view: its current cell's column).
 - Compared by the column's type from the definition: integer and decimal by value (`csvNumber`, with the column's
   decimal sign and grouping), date / time as a date (`csvDate`, with its pattern), boolean false before true, text
   and auto as text with the options of 3.2 (ignore case, numbers by value). An empty field sorts last in either
@@ -141,7 +146,8 @@ whitespace; empty lines; the last line without a break; undo is one step; the pr
 matches what Apply does.
 
 In-app, keys: one key From / To; To empty to the line's end; two and three keys (each next one breaks ties), each
-its own direction; a key added, removed, moved; the column lines at each From and To, the edited key's in the
+its own direction; a key added and removed; a key dragged to another place in the list (and Alt+Up / Alt+Down), the
+order following; a second key before the first in the line and one partly overlapping it, each read for itself; the column lines at each From and To, the edited key's in the
 accent, moving with the fields and gone after closing; in a block: the first key at the block's first column by
 default, another column of the block chosen, a column outside the block not accepted.
 
@@ -183,3 +189,5 @@ Open:
    block has to be changed), or counted from the block's first column (so a stored sort fits any block)? Proposal:
    from the block's first column when it was saved on a block, else from the line's start; stored with it.
 8. Each text key its own direction (as the columns' keys, proposed above), or one direction for the whole sort?
+9. Dragging the keys: in the window's list (as above). Also the column lines in the editor, to set a key's From and
+   To with the mouse? Proposal: not in this plan (the fields and the list first).
