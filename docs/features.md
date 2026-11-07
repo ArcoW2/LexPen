@@ -41,7 +41,8 @@ every action with its key.
   not fit their type after the ones that do), records moving whole, the header staying on top. Stored sorts (the
   Stored sorts tab: Select, Delete...; Save, Save as... on the Sort tab) are kept in `sorts.json`, for any file;
   the sort as it is now is kept a moment after each change (not in the list) and LexPen opens with it again, with the
-  name of the stored sort it came from (shown at the bottom; Save stores it there); a stored sort is only written by
+  name of the stored sort it came from (shown at the bottom, in italics when changed; Save stores it there; New
+  starts a sort from the start); a stored sort is only written by
   Save or Save as. The actions `edit.sort`, `edit.sortAsc` and `edit.sortDesc` sort at
   once, with a stored sort's name as their parameter (keys.json, a macro) or without one (the whole line, a CSV its
   first column); sortAsc / sortDesc turn every key ascending / descending.

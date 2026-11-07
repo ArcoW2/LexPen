@@ -533,11 +533,22 @@ async function fromSortPane(m) {
       if (!await sortApply(sortTarget(), s)) return;
       return sortSend();
     }
+    case 'new': return sortNew();
     case 'save': return sortSave(sortUi.name);
     case 'saveAs': return sortSaveAs();
     case 'select': return sortSelectStored();
     case 'deleteStored': return sortDeleteStored();
   }
+}
+
+// New: a sort from the start (one key, the options as at first), no stored sort's name; a CSV by its first column.
+function sortNew() {
+  sortUi.spec = sortDefault();
+  if (sortIsCsv(activeDoc())) sortUi.spec.kind = 'columns';
+  Object.assign(sortUi, { name: null, changed: false, focusKey: 0 });
+  sortRemember();
+  sortSend('grip');
+  sortRedrawRuler();
 }
 
 // Save: under the name it was selected as. Save as: a name asked; one that exists asks whether to replace it.

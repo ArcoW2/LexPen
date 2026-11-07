@@ -38,7 +38,8 @@ paneHandlers.sortPreview = ({ preview, problem, target, name, changed }) => {
 paneHandlers.focus = () => document.querySelector('.sp-body [data-f]:not([type=radio]), .sp-list')?.focus();
 
 // The stored sort this one came from, at the bottom (not in the tab: a narrow panel cuts it there).
-const nameLine = () => sp.st.name ? `${esc(sp.st.name)}${sp.st.changed ? ' <span class="sp-dim">(changed)</span>' : ''}` : '';
+// Changed since: the name in italics.
+const nameLine = () => sp.st.name ? (sp.st.changed ? `<i>${esc(sp.st.name)}</i> <span class="sp-dim">(changed)</span>` : esc(sp.st.name)) : '';
 
 const docLine = () => sp.st.doc ? `${esc(sp.st.doc)} <span class="sp-dim">${esc(sp.st.target)}</span>` : '<span class="sp-dim">No document</span>';
 
@@ -86,7 +87,7 @@ function draw() {
     (spec.dups ? `<div class="sp-sub">${check('dupsWhole', `By the whole ${unit}`, 'Else by the keys')}${check('dupsTrim', 'Ignore leading and trailing whitespace')}</div>` : '') +
     check('empty', `Remove empty ${unit}s`, 'Whitespace only counts as empty') + '</div>' +
     `<div class="sp-problem"${st.problem ? '' : ' hidden'}>${esc(st.problem ?? '')}</div><pre class="sp-preview">${st.problem ? '' : st.preview}</pre>` +
-    `<div class="sp-bar"><span class="sp-name" title="The stored sort this one came from: Save stores it there">${nameLine()}</span><span class="sp-btns"><button type="button" data-do="apply" class="sp-main"${st.problem ? ' disabled' : ''} title="Enter">Apply</button>` +
+    `<div class="sp-bar"><span class="sp-name" title="The stored sort this one came from: Save stores it there">${nameLine()}</span><span class="sp-btns"><button type="button" data-do="new" title="A sort from the start">New</button><button type="button" data-do="apply" class="sp-main"${st.problem ? ' disabled' : ''} title="Enter">Apply</button>` +
     `<button type="button" data-do="save"${st.name && st.changed ? '' : ' disabled'} title="${st.name ? `Under its name: ${esc(st.name)}` : 'Under its name (select a stored sort first)'}">Save</button>` +
     '<button type="button" data-do="saveAs">Save as...</button></span></div>';
 }
