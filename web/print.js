@@ -531,19 +531,9 @@ async function layout() {
     const here = [...page.querySelectorAll('table')].find(t => t.dataset.ref === ref || t.dataset.splitFrom === ref);
     here?.classList.add('pp-continues');
   });
-  // The marks of those tables, at their middle.
-  previewer.chunker.hooks.afterPageLayout.register(page => {
-    for (const t of page.querySelectorAll('table.pp-continues, table.pp-continued')) {
-      // In the page's box, not in its content: that is laid out in columns, and a mark below its bottom would go into
-      // a next column off the page. The table's margin on that side is none (CSS), so its edge is where the rows end.
-      const box = page.querySelector('.pagedjs_pagebox');
-      let left = t.offsetWidth / 2 - 24, top = 0;
-      for (let el = t; el && el !== box; el = el.offsetParent) { left += el.offsetLeft; top += el.offsetTop; }
-      const mark = (cls, y) => box.insertAdjacentHTML('beforeend', `<div class="pp-mark ${cls}" style="left: ${left}px; top: ${y}px"></div>`);
-      if (t.classList.contains('pp-continued')) mark('pp-mark-up', top - 9);
-      if (t.classList.contains('pp-continues')) mark('pp-mark-down', top + t.offsetHeight + 3);
-    }
-  });
+  // Their marks: a page's once the next one is begun (paged.js may still move rows off a page after it is laid out,
+  // as when a note at its foot needs room), the last one's at the end.
+  previewer.chunker.hooks.beforePageLayout.register(page => { if (page.element?.previousElementSibling) placeTableMarks(page.element.previousElementSibling); });
   const tpl = document.createElement('template');
   tpl.innerHTML = html;
   let flow;
@@ -552,6 +542,9 @@ async function layout() {
   finally { pp.laying = false; clearInterval(progress); }
   if (pp.again) return;   // stopped for a newer layout
   pp.pages = flow.total;
+  // Once more now every page is final (a row split over two pages still changed after the next one was begun).
+  for (const el of pagesEl.querySelectorAll('.pagedjs_page .pp-mark')) el.remove();
+  for (const page of pagesEl.querySelectorAll('.pagedjs_page')) { delete page.dataset.marked; placeTableMarks(page); }
   placeSideNotes();
   laidOutNow();
 }
@@ -929,6 +922,24 @@ const MARKDOWN_TEXT_CSS = `
 .pp-text[data-lang="markdown"] .cm-tag, .pp-text[data-lang="markdown"] .cm-bracket { color: var(--hl-keyword); }
 .pp-text[data-lang="markdown"] .cm-attribute { color: var(--hl-attr); }
 .pp-text[data-lang="markdown"] .cm-string { color: var(--hl-string); }`;
+
+// The marks of a page's tables that go on over pages, at their middle: a V under a part that goes on, a ^ above a part
+// that continues one. In the page's box, not in its content: that is laid out in columns, and a mark below its bottom
+// would go into a next column off the page. The table's margin on that side is none (CSS): its edge is where its rows
+// end.
+function placeTableMarks(page) {
+  if (page.dataset.marked != null) return;
+  page.dataset.marked = '';
+  const box = page.querySelector('.pagedjs_pagebox');
+  if (!box) return;
+  for (const t of page.querySelectorAll('table.pp-continues, table.pp-continued')) {
+    let left = t.offsetWidth / 2 - 24, top = 0;
+    for (let el = t; el && el !== box; el = el.offsetParent) { left += el.offsetLeft; top += el.offsetTop; }
+    const mark = (cls, y) => box.insertAdjacentHTML('beforeend', `<div class="pp-mark ${cls}" style="left: ${left}px; top: ${y}px"></div>`);
+    if (t.classList.contains('pp-continued')) mark('pp-mark-up', top - 9);
+    if (t.classList.contains('pp-continues')) mark('pp-mark-down', top + t.offsetHeight + 3);
+  }
+}
 
 // Notes in a margin: each at the height of its line (a PDF's: of its highlight's last line on the page image); one that
 // would cover the one above goes below it.
