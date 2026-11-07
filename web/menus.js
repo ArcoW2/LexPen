@@ -38,6 +38,7 @@ const MENUS = [
     { label: 'C&lipboards', fill: async () => [...await clipboardItems(), '-', ['&Manage clipboards...', 'clipboards.pane']] }, '-',
     { label: '&Insert', sub: [['&Character...', 'insertCharacter'], '-', ['&Link...', 'link'], ['&Image...', 'imageFromFile']] },
     ['Complete wor&d', 'complete'], ['Insert / &overwrite', 'overwrite.toggle'], '-',
+    ['&Sort...', 'edit.sortWindow'],
     { label: 'Li&nes', sub: [['&Duplicate', 'duplicateLines'], ['Move &up', 'moveLinesUp'], ['Move do&wn', 'moveLinesDown'],
       ['De&lete', 'deleteLines'], ['&Join', 'joinLines'], '-', ['&Indent', 'indentMore'], ['&Outdent', 'indentLess']] },
     { label: 'H&elpers', sub: [['&Add tab stop', 'tabAdd'], ['&Remove tab stop', 'tabRemove'], ['&Clear tab stops', 'tabClear'], '-',

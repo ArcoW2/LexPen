@@ -828,6 +828,24 @@ sealed class MainForm : Form
                 app.Rulers.Set(BookmarkStore.Key(msg["path"]?.GetValue<string>(), msg["draft"]?.GetValue<string>()), msg["lines"]!.AsArray());
                 return null;
 
+            // The stored sorts (SortStore, sort.js): the list and the last sort used; one by name; save, delete, last.
+            case "sorts":
+                return new JsonObject { ["list"] = app.Sorts.List(), ["last"] = app.Sorts.Last };
+
+            case "sortGet":
+                return app.Sorts.Get(Arg("name"));
+
+            case "sortSave":
+                app.Sorts.Save(Arg("name"), msg["sort"]!);
+                return null;
+
+            case "sortDelete":
+                return app.Sorts.Delete(Arg("name"));
+
+            case "sortLast":
+                app.Sorts.SetLast(msg["sort"]!);
+                return null;
+
             // The column definition of a CSV (ColumnStore, docs/plans/executed/PLAN-csv-columns.md 3.4): the one next to the
             // file first ({ beside, table }), else LexPen's own ({ table }), else null.
             case "columnsGet":

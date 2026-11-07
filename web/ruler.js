@@ -42,7 +42,8 @@ const mixedColour = t => t.colour.startsWith('var(')
   ? `color-mix(in srgb, ${t.colour} var(${isTabStop(t) ? '--col-tab-mix' : '--col-helper-mix'}), var(--bg))` : t.colour;
 const percent = (name, fallback) => { const v = setting(name); return (Number.isFinite(v) ? Math.min(100, Math.max(0, v)) : fallback) + '%'; };
 
-const rulerShown = () => setting('ruler') === true;
+// Also while the sort window is open (sort.js): its keys' lines and numbers are on the ruler.
+const rulerShown = () => setting('ruler') === true || (typeof sortRulerWanted === 'function' && sortRulerWanted());
 const rulerDrawable = () => (virtual.mono ??= editorMonospaced());
 const docTabs = doc => doc ? (doc.mmTabs ??= []) : [];
 const isTabStop = t => t.kind !== 'helper';
@@ -240,7 +241,10 @@ function paintRuler(pane) {
   const upTo = Math.ceil((g.span.right - g.x0) / g.cw) + 1, at = c => g.x0 + c * g.cw - g.span.left;
   pane.guideLayer.innerHTML = guideCols(upTo).map(c => `<div class="mm-colguide" style="left:${at(c)}px"></div>`).join('') +
     lines.filter(t => !isTabStop(t)).map(t => `<div class="mm-colhelper" style="left:${at(t.col - 1)}px;background:${mixedColour(t)}"></div>`).join('');
-  pane.tabLayer.innerHTML = lines.filter(isTabStop).map(t => `<div class="mm-coltab" style="left:${at(t.col - 1)}px;background:${mixedColour(t)}"></div>`).join('');
+  pane.tabLayer.innerHTML = lines.filter(isTabStop).map(t => `<div class="mm-coltab" style="left:${at(t.col - 1)}px;background:${mixedColour(t)}"></div>`).join('') +
+    // The sort window's keys (sort.js): a line at each From and To in the key's colour.
+    sortMarksOf(pane).flatMap(m => (m.side === 'one' ? [m.col, m.end] : [m.col]).map(c =>
+      `<div class="mm-sortline${m.strong ? ' mm-strong' : ''}" style="left:${at(c)}px;background:${m.colour}"></div>`)).join('');
   if (!pane.rulerEl.hidden) paintScale(pane, g, upTo);
 }
 
@@ -253,7 +257,7 @@ function paintScale(pane, g, upTo) {
   left.style.width = Math.max(0, (g ? g.span.left : cm.getGutterElement().getBoundingClientRect().right) - w.left) + 'px';
   pane.rulerEl.querySelector('.mm-ruler-clear').hidden = !lines.length;
   scale.classList.toggle('mm-ruler-off', !g);
-  for (const el of scale.querySelectorAll('.mm-ruler-tab')) el.remove();
+  for (const el of scale.querySelectorAll('.mm-ruler-tab, .mm-ruler-sortnum')) el.remove();
   const dpr = devicePixelRatio || 1, width = scale.clientWidth, height = scale.clientHeight;
   canvas.width = Math.round(width * dpr);
   canvas.height = Math.round(height * dpr);
@@ -291,7 +295,22 @@ function paintScale(pane, g, upTo) {
     el.title = `${helper ? 'Helper line' : 'Tab stop'} at column ${t.col}: click to remove, drag to move`;
     scale.append(el);
   }
+  // The sort window's keys: each key's number on its colour, just right of its From line and just left of its To
+  // line (a narrow key: once, between them).
+  for (const m of sortMarksOf(pane)) {
+    const el = document.createElement('div');
+    el.className = 'mm-ruler-sortnum' + (m.strong ? ' mm-strong' : '') + ' mm-' + m.side;
+    el.textContent = m.num;
+    el.style.left = (m.side === 'one' ? (at(m.col) + at(m.end)) / 2 : at(m.col) + (m.side === 'from' ? 1 : -1)) + 'px';
+    el.style.background = m.colour;
+    el.style.color = sortTextOn(m.colour);
+    el.title = `Sort key ${m.num}`;
+    scale.append(el);
+  }
 }
+
+// The sort window's marks for this editor pane, when it is open (sort.js).
+const sortMarksOf = pane => typeof sortMarks === 'function' ? sortMarks(pane) : [];
 
 // ---------- The mouse on the ruler ----------
 // On a line or a tab stop's handle (right of it): that line. A helper line has no handle: a few pixels either side.

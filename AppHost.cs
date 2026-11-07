@@ -68,6 +68,8 @@ sealed class AppHost : ApplicationContext
     /// <summary>Where each PDF was read (its page, the way down it, its zoom): the last 100 PDFs, apart from their looks.</summary>
     public ColumnStore PdfPlaces { get; } = new(DataFolder.StatePath(DataDir, "file-pdf-places.json"));
     public HighlightStore Highlights { get; } = new(DataFolder.StatePath(DataDir, "highlights.json"));
+    /// <summary>The stored sorts (plan 3, sort.js): yours, so at the top of the data folder.</summary>
+    public SortStore Sorts { get; } = new(Path.Combine(DataDir, SortStore.FileName));
 
     // Your settings (SettingsFile): the defaults with your settings.json on top.
     JsonObject settings = SettingsFile.Load(DataDir);
