@@ -1119,6 +1119,12 @@ sealed class MainForm : Form
                 app.SettingsWindowPost(this, new JsonObject { ["event"] = "fileTypes" });
                 return null;
 
+            // A setting shown in this window's settings (the Sort panel's slow preview: its setting).
+            case "openSetting":
+                app.OpenSettings(this);
+                app.SettingsWindowPost(this, new JsonObject { ["event"] = "showSetting", ["name"] = Arg("name") });
+                return null;
+
             // Save as default: what to save (asks when the theme set is part of it); the Undo of the set part.
             case "saveAsDefault":
                 return app.SaveAsDefault(this, this);

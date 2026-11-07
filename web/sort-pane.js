@@ -41,7 +41,8 @@ paneHandlers.sortPreview = ({ preview, problem, target, name, changed, slow, all
 paneHandlers.focus = () => document.querySelector('.sp-body [data-f]:not([type=radio]), .sp-list')?.focus();
 
 // A slow preview: how long it took, and the setting that makes it quicker.
-const slowLine = () => sp.st.slow ? `The preview took ${(sp.st.slow / 1000).toFixed(1)} s. Settings > Editor > Sort: ${sp.st.all ? 'fewer lines than All' : 'fewer lines'} make it quicker.` : '';
+// A click on it opens that setting.
+const slowLine = () => sp.st.slow ? `The preview took ${(sp.st.slow / 1000).toFixed(1)} s. Settings > Editor > Sort: ${sp.st.all ? 'fewer lines than All' : 'fewer lines'} make it quicker (click to change).` : '';
 
 // The stored sort this one came from, at the bottom (not in the tab: a narrow panel cuts it there).
 // Changed since: the name in italics.
@@ -92,7 +93,7 @@ function draw() {
     check('dups', 'Remove duplicates', 'The first one stays') +
     (spec.dups ? `<div class="sp-sub">${check('dupsWhole', `By the whole ${unit}`, 'Else by the keys')}${check('dupsTrim', 'Ignore leading and trailing whitespace')}</div>` : '') +
     check('empty', `Remove empty ${unit}s`, 'Whitespace only counts as empty') + '</div>' +
-    `<div class="sp-problem"${st.problem ? '' : ' hidden'}>${esc(st.problem ?? '')}</div><div class="sp-slow"${st.slow ? '' : ' hidden'}>${esc(slowLine())}</div><pre class="sp-preview">${st.problem ? '' : st.preview}</pre>` +
+    `<div class="sp-problem"${st.problem ? '' : ' hidden'}>${esc(st.problem ?? '')}</div><div class="sp-slow" data-do="openSetting" role="button" tabindex="0" title="Open this setting"${st.slow ? '' : ' hidden'}>${esc(slowLine())}</div><pre class="sp-preview">${st.problem ? '' : st.preview}</pre>` +
     `<div class="sp-bar"><span class="sp-name" title="The stored sort this one came from: Save stores it there">${nameLine()}</span><span class="sp-btns">` +
     `<button type="button" data-do="apply" class="sp-main"${st.problem ? ' disabled' : ''} title="Enter">Apply</button>` +
     MANAGE.map(m => m === '-' ? '' : `<button type="button" class="sp-full" data-do="${m.id}"${m.on(st) ? '' : ' disabled'} title="${esc(m.title(st))}">${m.label}</button>`).join('') +
@@ -146,7 +147,7 @@ document.addEventListener('click', e => {
   if (page) return toWindow({ kind: 'page', page: page.dataset.page });
   const item = e.target.closest('.sp-stored');
   if (item) return toWindow({ kind: 'storedAt', i: +item.dataset.i });
-  const b = e.target.closest('button[data-do]');
+  const b = e.target.closest('button[data-do], .sp-slow');
   if (!b) return;
   toWindow({ kind: b.dataset.do, k: b.dataset.k === undefined ? null : +b.dataset.k });
 });
@@ -164,7 +165,8 @@ document.addEventListener('keydown', e => {
     if (e.key === 'Delete') return toWindow({ kind: 'deleteStored' });
     return toWindow({ kind: 'storedAt', i: Math.max(0, Math.min(st.list.length - 1, (st.storedAt ?? 0) + (e.key === 'ArrowUp' ? -1 : 1))) });
   }
-  if (e.key === 'Enter' && st.page === 'sort' && !e.ctrlKey && !e.altKey && !e.target.matches('button, select')) { stop(); toWindow({ kind: 'apply' }); }
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('.sp-slow')) { stop(); return toWindow({ kind: 'openSetting' }); }
+  if (e.key === 'Enter' && st.page === 'sort' && !e.ctrlKey && !e.altKey && !e.target.matches('button, select, .sp-slow')) { stop(); toWindow({ kind: 'apply' }); }
 }, true);
 
 // A key dragged by its grip to another place in the list.

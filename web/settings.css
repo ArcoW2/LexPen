@@ -48,6 +48,9 @@
 .st-screen button { padding: 1px 8px; border: 0; background: none; color: var(--accent); font-size: inherit; }
 .st-screen button:hover { text-decoration: underline; }
 .st-row:focus-within { background: var(--hover); }
+/* Asked for from elsewhere (showSetting): it flashes a few times. */
+.st-row.st-flash { animation: st-flash .4s ease-in-out 3; }
+@keyframes st-flash { 50% { background: color-mix(in srgb, var(--accent) 25%, transparent); border-left-color: var(--accent); } }
 .st-text { flex: 1; min-width: 0; }
 .st-title { font-weight: 600; }
 .st-hint { margin-top: 2px; color: var(--fg-dim); font-size: calc(12px * var(--ui-scale)); }

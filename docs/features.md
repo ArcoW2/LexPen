@@ -36,7 +36,7 @@ every action with its key.
   aAbBcC, ABCabc or abcABC, stated for A to Z), numbers by value (`file2` before `file10`; a decimal sign, default
   `.`, and characters to ignore, default comma and space), remove duplicates (by the keys or the whole line,
   ignoring leading and trailing whitespace if asked), remove empty lines. A preview shows the first lines (Settings > Editor > Sort: 100 by default, or All; a preview
-  that takes long says so, with that setting) as they
+  that takes 2 seconds or longer says so, with that setting, a click on it opening the setting; the 2 seconds are a setting too) as they
   would come out, sorting only those; Apply sorts. A CSV sorts By columns (the default; its key columns marked in the column view) or As
   text: per key a column, compared by its type (numbers by value, dates as dates, empty fields last, values that do
   not fit their type after the ones that do), records moving whole, the header staying on top. Stored sorts (the

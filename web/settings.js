@@ -259,7 +259,30 @@ function build() {
     ui.tabs.append(b);
   }
   showTab(tab);
+  if (showWanted) showSetting(showWanted);
 }
+
+// One setting asked for (the Sort panel's slow preview): its tab, the search emptied, the row in view with the
+// focus, flashing a few times. Before the rows exist: once they do.
+let showWanted = null, settingShown = false;   // settingShown: the start leaves the focus on it, not on the search
+function showSetting(name) {
+  const def = settings?.defs?.find(d => d.name === name);
+  showWanted = def && rows.length ? null : name;
+  if (showWanted) return;
+  ui.search.value = '';
+  layerShown = null;
+  showTab(def.group);
+  const r = rows.find(x => x.def.name === name);
+  if (!r) return;
+  r.el.scrollIntoView({ block: 'center' });
+  r.control.focus?.focus();
+  settingShown = true;
+  r.el.classList.remove('st-flash');
+  void r.el.offsetWidth;
+  r.el.classList.add('st-flash');
+  setTimeout(() => r.el.classList.remove('st-flash'), 1300);
+}
+events.showSetting = ({ name }) => showSetting(name);
 
 function showTab(group) {
   tab = group;
@@ -721,5 +744,5 @@ layoutBar.querySelector('[data-layout="reset"]').addEventListener('click', () =>
   await usableFonts().catch(() => []);
   buildLegend();
   build();
-  ui.search.focus();
+  if (!settingShown) ui.search.focus();
 })();

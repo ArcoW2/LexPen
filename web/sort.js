@@ -374,14 +374,16 @@ const sortEsc = s => escapeHtml(String(s ?? ''));
 // The first lines of the result, the keys' parts in their colours (a CSV: the header line above its records).
 // sortPreviewLines: 0 is all of it.
 const sortPreviewLimit = () => Number.isInteger(setting('sortPreviewLines')) && setting('sortPreviewLines') >= 0 ? setting('sortPreviewLines') : 100;
-// A preview that takes longer than this (ms) says so, with the setting that makes it quicker.
-const SORT_SLOW_MS = 300;
+// sortPreviewWarn: a preview that takes this many seconds or longer says so, with the setting that makes it quicker
+// (0: never).
+const sortSlowMs = () => (Number.isFinite(setting('sortPreviewWarn')) && setting('sortPreviewWarn') >= 0 ? setting('sortPreviewWarn') : 2) * 1000;
 
-// The preview sorted and drawn, timed: { r, preview, slow } (slow: the ms it took when over SORT_SLOW_MS, else 0).
+// The preview sorted and drawn, timed: { r, preview, slow } (slow: the ms it took when at sortSlowMs or over, else 0).
 function sortPreviewOf(t, spec) {
   const start = performance.now(), r = sortResult(t, spec, sortPreviewLimit()), preview = r.problem ? '' : sortPreviewHtml(r, t);
   const ms = performance.now() - start;
-  return { r, preview, slow: ms > SORT_SLOW_MS ? Math.round(ms) : 0 };
+  const warn = sortSlowMs();
+  return { r, preview, slow: warn > 0 && ms >= warn ? Math.round(ms) : 0 };
 }
 
 // The preview: the first lines sorted (sortPreviewLimit), the keys' columns in their colours; a note when cut.
@@ -557,6 +559,7 @@ async function fromSortPane(m) {
     }
     case 'new': return sortNew();
     case 'revert': return sortRevert();
+    case 'openSetting': return host('openSetting', { name: 'sortPreviewLines' });
     case 'save': return sortSave(sortUi.name);
     case 'saveAs': return sortSaveAs();
     case 'select': return sortSelectStored();
