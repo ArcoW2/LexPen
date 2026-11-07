@@ -27,6 +27,8 @@
 .pp-row select, .pp-row input[type=text], .pp-row input[type=number] { font: inherit; color: var(--fg); background: var(--bg);
   border: 1px solid var(--border); border-radius: 4px; padding: 2px 4px; min-width: 0; }
 .pp-row select { flex: 1; }
+.pp-sample { width: 90px; overflow: hidden; white-space: nowrap; color: var(--fg-dim); }   /* the chosen font (as settings.css's .st-sample) */
+.pp-sample + select { width: 0; }
 .pp-row input[type=number] { width: 4.5em; }
 .pp-row input.pp-wide { flex: 1; }
 .pp-row label.pp-check { display: inline-flex; align-items: center; gap: 4px; color: var(--fg); min-width: 0; }

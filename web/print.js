@@ -56,6 +56,26 @@ const opt = (key, value) => pp.opt[key] === value ? ' selected' : '';
 const num = (key, min, max, step = 1) => `<input type="number" data-k="${key}" min="${min}" max="${max}" step="${step}" value="${pp.opt[key]}">`;
 const check = (key, label, title = '') => `<label class="pp-check" title="${escapeHtml(title)}"><input type="checkbox" data-k="${key}"${pp.opt[key] ? ' checked' : ''}>${label}</label>`;
 const text = (key, placeholder) => `<input type="text" class="pp-wide" data-k="${key}" value="${escapeHtml(pp.opt[key])}" placeholder="${escapeHtml(placeholder)}" spellcheck="false">`;
+// A font, as the settings window's: the default (the app's font of that kind) first, then the installed fonts, the
+// monospaced ones first for text and code; a sample beside it in the chosen font. A font that is not installed (in
+// a stored set from another machine) is shown as it is.
+function fontList(key, standard, monoFirst) {
+  const now = pp.opt[key] ?? '', fonts = pp.fonts ?? [];
+  const option = name => `<option value="${escapeHtml(name)}"${now === name ? ' selected' : ''}>${escapeHtml(name)}</option>`;
+  const groups = (monoFirst ? [true, false] : [false, true]).map(mono =>
+    `<optgroup label="${mono ? 'Monospaced' : 'Not monospaced'}">${fonts.filter(f => f.mono === mono).map(f => option(f.name)).join('')}</optgroup>`).join('');
+  const missing = now && !fonts.some(f => f.name === now) ? option(now) : '';
+  return `<span class="pp-sample" style="font-family: ${escapeHtml(cssString(now || standard))}, ${monoFirst ? 'monospace' : 'sans-serif'}">AaBb 0O 1lI</span>` +
+    `<select data-k="${key}" title="${escapeHtml(now || `Default (${standard})`)}"><option value=""${now ? '' : ' selected'}>Default (${escapeHtml(standard)})</option>${missing}${groups}</select>`;
+}
+// The installed fonts, without those the page cannot use by name (as fontlist.js: some weight variants, as "Cascadia
+// Code SemiLight", would fall back to another font).
+function fontUsable(name) {
+  const ctx = (fontUsable.canvas ??= document.createElement('canvas')).getContext('2d');
+  const width = font => { ctx.font = font; return ctx.measureText('mmmmmmmmmmlli 0O1W').width; };
+  const quoted = `"${name.replace(/["\\]/g, '')}"`;
+  return ['monospace', 'serif'].some(base => width(`20px ${quoted}, ${base}`) !== width(`20px ${base}`));
+}
 
 function drawPanel() {
   const s = pp.source, o = pp.opt, info = pp.info, papers = info?.papers?.length ? info.papers : PAPERS;
@@ -90,11 +110,11 @@ function drawPanel() {
     <div class="pp-row"><label>Intensity (%)</label>${num('frameIntensity', 5, 100, 5)}</div>`;
   html += `<div class="pp-row"><label>Header, footer</label>${check('headName', 'File name')}${check('headPages', 'Page x of y')}${check('headDate', 'Date')}</div>`;
 
-  if (kind === 'text' || kind === 'table') html += `<h3>Text</h3><div class="pp-row"><label>Font</label>${text('textFont', s.editorFont)}</div>
+  if (kind === 'text' || kind === 'table') html += `<h3>Text</h3><div class="pp-row"><label>Font</label>${fontList('textFont', s.editorFont, true)}</div>
     <div class="pp-row"><label>Size (pt)</label>${num('textSize', 4, 40, 0.5)}${kind === 'text' ? check('lineNumbers', 'Line numbers') : ''}</div>`;
-  if (kind === 'rendered') html += `<h3>Text</h3><div class="pp-row"><label>Font</label>${text('bodyFont', s.appFont)}</div>
+  if (kind === 'rendered') html += `<h3>Text</h3><div class="pp-row"><label>Font</label>${fontList('bodyFont', s.appFont, false)}</div>
     <div class="pp-row"><label>Size (pt)</label>${num('bodySize', 4, 40, 0.5)}</div>
-    <div class="pp-row"><label>Code font</label>${text('codeFont', s.editorFont)}</div>
+    <div class="pp-row"><label>Code font</label>${fontList('codeFont', s.editorFont, true)}</div>
     <div class="pp-row"><label>Code size (pt)</label>${num('codeSize', 4, 40, 0.5)}</div>`;
   if (kind === 'pdf' || kind === 'rendered') html += `<div class="pp-row"><label>${kind === 'pdf' ? 'Pages' : 'Images'} at</label><select data-k="zoom">
     <option value="auto"${opt('zoom', 'auto')}>Auto (own size, smaller when needed)</option><option value="width"${opt('zoom', 'width')}>Fit to width</option>
@@ -969,6 +989,7 @@ if (last?.settings) {
   pp.changed = !!last.changed;
 }
 if (pp.source.selection) pp.what = 'selection';
+pp.fonts = (await host('fonts').catch(() => [])).filter(f => fontUsable(f.name));
 await checkPrinter();
 drawPanel();
 drawStored();

@@ -129,6 +129,8 @@ sealed class PrintForm : Form
                 return Printing.Info(Arg(msg, "name"));
             case "themeVars":
                 return app.ThemeVars(Arg(msg, "theme"));
+            case "fonts":   // as MainForm's: the font lists
+                return new JsonArray(Fonts.List().Select(f => (JsonNode)new JsonObject { ["name"] = f.Name, ["mono"] = f.Mono }).ToArray());
             case "printerDialog":
                 return Printing.Dialog(Handle, Arg(msg, "printer"), msg["devmode"]?.GetValue<string>(), msg["options"]!.AsObject());
 
