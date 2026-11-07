@@ -32,7 +32,7 @@
 .pp-row input[type=number] { width: 4.5em; }
 .pp-row input.pp-wide { flex: 1; }
 .pp-row label.pp-check { display: inline-flex; align-items: center; gap: 4px; color: var(--fg); min-width: 0; }
-.pp-pair { display: inline-flex; gap: 4px; }   /* Page x and its "of y", close together */
+.pp-row input.pp-hf { flex: 1; width: 0; }   /* the header's and footer's left, middle and right */
 .pp-hint { color: var(--fg-dim); font-size: .92em; margin: 2px 0 4px; }
 .pp-sides { display: grid; grid-template-columns: repeat(4, auto); gap: 4px 6px; align-items: center; margin-left: 7.5em; }
 .pp-sides span { color: var(--fg-dim); font-size: .92em; }

@@ -136,6 +136,8 @@ sealed class PrintForm : Form
                     // The date as Windows writes it (the header's and footer's date when no format is given).
                     ["datePattern"] = System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.ShortDatePattern,
                     ["culture"] = System.Globalization.CultureInfo.CurrentCulture.Name,
+                    // The file's date (last written), for the header's and footer's $M; none for a new document.
+                    ["fileDate"] = source["path"]?.GetValue<string>() is { } file && File.Exists(file) ? File.GetLastWriteTime(file).ToString("o") : null,
                     ["source"] = source.DeepClone(), ["printers"] = Printing.Printers(),
                     ["stored"] = new JsonObject { ["list"] = app.Prints.List(), ["last"] = app.Prints.Last },
                 };
