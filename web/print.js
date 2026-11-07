@@ -957,6 +957,7 @@ document.addEventListener('click', e => {
     for (const t of document.querySelectorAll('[data-tab]')) t.classList.toggle('pp-on', t === tab);
     $('.pp-print-panel').hidden = tab.dataset.tab !== 'print';
     $('.pp-stored-panel').hidden = tab.dataset.tab !== 'stored';
+    $('.pp-manage').hidden = tab.dataset.tab !== 'print';   // Save, Save as..., Revert, New: the Print tab's
   }
 });
 document.addEventListener('keydown', e => {

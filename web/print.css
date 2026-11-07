@@ -43,6 +43,7 @@
 .pp-name.pp-changed { font-style: italic; }
 .pp-buttons { display: flex; gap: 6px; flex-wrap: wrap; }
 .pp-buttons button { padding: 4px 10px; }
+.pp-manage[hidden] { display: none; }
 .pp-primary { background: var(--accent); color: var(--accent-fg, #fff); border-color: var(--accent); }
 .pp-primary:hover { background: color-mix(in srgb, var(--accent) 85%, var(--fg)); }
 
