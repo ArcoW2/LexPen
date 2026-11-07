@@ -43,7 +43,8 @@
   .sp-body > .sp-bar { flex-wrap: wrap; align-items: center; }
   .sp-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
   .sp-name:empty { display: none; }
-  .sp-btns { display: flex; gap: 6px; margin-left: auto; }
+  .sp-btns { display: flex; gap: 6px; margin-left: auto; flex: none; }
+  .sp-bar.sp-compact .sp-full, .sp-bar:not(.sp-compact) .sp-manage { display: none; }
   .sp-main { border-color: var(--accent); }
   .sp-list { flex: 1; min-height: 4em; overflow: auto; border: 1px solid var(--border); border-radius: 3px; background: var(--bg); }
   .sp-list:focus { outline: none; border-color: var(--accent); }

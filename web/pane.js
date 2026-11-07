@@ -30,7 +30,8 @@ function applyPaneLook({ css, theme, mode }) {
 }
 
 // Floating, the window's page cannot draw here: a menu it sends ({ x, y, items: [{ label, checked, id } | '-'] }) is
-// drawn by the pane; a choice goes back as menuPick. `above`: where it ends when it does not fit below y (a button's
+// drawn by the pane; a choice goes back as menuPick. The pane's own menus (sort-pane.js) give an item `run` (done
+// here instead) and `disabled`. `above`: where it ends when it does not fit below y (a button's
 // menu: above the button, not over it); `closed`: a message kind for the pane's own page once it closes.
 // It takes the keys (Up / Down, Home / End, Enter, Right / Left for a submenu, Esc), the focus going back where it was
 // after. Its item marked is the one with the focus, set by the pointer moving over it or the keys; none as it opens
@@ -48,13 +49,14 @@ function paneMenu({ x, y, above, closed, items }) {
       if (item === '-') { el.append(Object.assign(document.createElement('hr'), { className: 'mm-pane-menu-sep' })); continue; }
       const b = document.createElement('button');
       b.type = 'button';
+      b.disabled = !!item.disabled;
       b.textContent = (item.checked ? '\u2713 ' : '\u2003') + item.label + (item.sub ? '  \u203a' : '');
       if (item.sub) {
         b.onclick = () => openSub(b, item.sub);
         b.onmousemove = () => { b.focus(); openSub(b, item.sub); };
         b.onkeydown = e => { if (e.key === 'ArrowRight') { e.preventDefault(); openSub(b, item.sub, true); } };
       } else {
-        b.onclick = () => { close(); toWindow({ kind: 'menuPick', id: item.id }); };
+        b.onclick = () => { close(); if (item.run) item.run(); else toWindow({ kind: 'menuPick', id: item.id }); };
         b.onmousemove = () => { b.focus(); if (el === menu) closeSub(); };
       }
       el.append(b);
@@ -89,7 +91,7 @@ function paneMenu({ x, y, above, closed, items }) {
   menu.addEventListener('focusout', focusGone);
   const keys = e => {
     const level = subMenu?.contains(document.activeElement) ? subMenu : menu;
-    const list = [...level.querySelectorAll('button')], at = list.indexOf(document.activeElement);
+    const list = [...level.querySelectorAll('button:not(:disabled)')], at = list.indexOf(document.activeElement);
     const to = { ArrowDown: (at + 1) % list.length, ArrowUp: at < 0 ? list.length - 1 : (at - 1 + list.length) % list.length, Home: 0, End: list.length - 1 }[e.key];
     if (to !== undefined) { e.preventDefault(); return list[to]?.focus(); }
     if (e.key !== 'Escape') return;

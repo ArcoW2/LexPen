@@ -146,7 +146,8 @@ function csvSortColumn(key, read) {
 
 // A CSV's records sorted by columns: only the records that the lines [fromLine, toLine] touch (all: null). Gives
 // { start, end, text } (offsets in text: the part replaced) or { problem }.
-function sortCsvRecords(text, def, spec, fromLine = null, toLine = null) {
+// limit: only the first so many records (the preview); cut says some were left out.
+function sortCsvRecords(text, def, spec, fromLine = null, toLine = null, limit = 0) {
   const read = csvRead(text, def), cmp = sortComparer(spec);
   const cols = spec.columns.map(k => csvSortColumn(k, read));
   if (cols.some(c => c < 0)) return { problem: `Column ${spec.columns[cols.findIndex(c => c < 0)].name ?? spec.columns[cols.findIndex(c => c < 0)].index + 1} is not in this file.` };
@@ -163,6 +164,8 @@ function sortCsvRecords(text, def, spec, fromLine = null, toLine = null) {
     while (last + 1 < read.rows.length && lineAt[last + 1][0] <= toLine) last++;
   }
   if (last < first) return { problem: 'The file has no records.' };
+  const cut = limit > 0 && last - first + 1 > limit;
+  if (cut) last = first + limit - 1;
   const start = read.rows[first].start, end = read.rows[last + 1]?.start ?? text.length;
   const segs = [], items = [];
   for (let i = first; i <= last; i++) {
@@ -179,7 +182,7 @@ function sortCsvRecords(text, def, spec, fromLine = null, toLine = null) {
     const c = x.ok && !x.text ? (x.v > y.v ? 1 : x.v < y.v ? -1 : 0) : cmp(x.s, y.s);
     return desc ? -c : c;
   });
-  return { start, end, text: order.map(i => segs[i]).join('\n') + (text.slice(start, end).endsWith('\n') ? '\n' : '') };
+  return { start, end, text: order.map(i => segs[i]).join('\n') + (text.slice(start, end).endsWith('\n') ? '\n' : ''), cut };
 }
 
 // ---------- What is sorted ----------
@@ -212,23 +215,25 @@ function widenSelection(t) {
 const sortIsCsv = doc => doc?.language === 'csv' && !!doc.csvDef;
 
 // The sort applied to the target: { from, to (offsets), text } to put in, or { problem }.
-function sortResult(t, spec) {
+// limit: only the first so many lines or records (the preview, sortPreviewLines); cut: some were left out.
+function sortResult(t, spec, limit = 0) {
   if (spec.kind === 'columns') {
     if (!sortIsCsv(t.doc)) return { problem: 'This file has no columns: sort it as text.' };
     const text = docText(t.doc).replace(/\r\n?/g, '\n');
-    const r = sortCsvRecords(text, t.doc.csvDef, spec, t.kind === 'lines' && !t.all ? t.from : null, t.kind === 'lines' && !t.all ? t.to : null);
-    return r.problem ? r : { from: r.start, to: r.end, text: r.text };
+    const r = sortCsvRecords(text, t.doc.csvDef, spec, t.kind === 'lines' && !t.all ? t.from : null, t.kind === 'lines' && !t.all ? t.to : null, limit);
+    return r.problem ? r : { from: r.start, to: r.end, text: r.text, cut: r.cut };
   }
   const problem = sortKeysProblem(spec, t);
   if (problem) return { problem };
   const cd = t.cd, stops = t.cm ? stopsOf(t.cm) : { tab: 4, indent: 2, useTabs: false };
   if (!cd) return { problem: 'Show the file in its editor to sort it as text.' };
-  const top = t.kind === 'block' ? t.top : t.from, bottom = t.kind === 'block' ? t.bottom : t.to;
+  const top = t.kind === 'block' ? t.top : t.from, all = t.kind === 'block' ? t.bottom : t.to;
+  const cut = limit > 0 && all - top + 1 > limit, bottom = cut ? top + limit - 1 : all;
   const lines = [];
   for (let l = top; l <= bottom; l++) lines.push(cd.getLine(l));
   const out = sortTextLines(lines, spec, stops, t.kind === 'block' ? { left: t.left, right: t.right } : null);
   return { from: cd.indexFromPos(CodeMirror.Pos(top, 0)), to: cd.indexFromPos(CodeMirror.Pos(bottom, cd.getLine(bottom).length)),
-    text: out.join('\n'), lines: out, top };
+    text: out.join('\n'), lines: out, top, cut };
 }
 
 // A key's From / To that does not fit: why, or null.
@@ -367,16 +372,23 @@ function sortDescription(spec) {
 const sortEsc = s => escapeHtml(String(s ?? ''));
 
 // The first lines of the result, the keys' parts in their colours (a CSV: the header line above its records).
+const sortPreviewLimit = () => Number.isInteger(setting('sortPreviewLines')) && setting('sortPreviewLines') > 0 ? setting('sortPreviewLines') : 100;
+
+// The preview: the first lines sorted (sortPreviewLimit), the keys' columns in their colours; a note when cut.
 function sortPreviewHtml(r, t) {
-  const spec = sortUi.spec, max = 60;
+  const note = r.cut ? `\n<span class="sp-dim">(the first ${sortPreviewLimit()} ${sortUi.spec.kind === 'columns' ? 'records' : 'lines'} only; Apply sorts all)</span>` : '';
+  return sortPreviewBody(r, t) + note;
+}
+function sortPreviewBody(r, t) {
+  const spec = sortUi.spec;
   if (spec.kind === 'columns') {
     const read = csvRead(docText(t.doc).replace(/\r\n?/g, '\n'), t.doc.csvDef);
     const head = read.pre.map(p => `<span class="sp-dim">${sortEsc(p.text)}</span>`);
-    return [...head, ...r.text.split('\n').slice(0, max).map(sortEsc)].join('\n');
+    return [...head, ...r.text.split('\n').map(sortEsc)].join('\n');
   }
   const stops = t.cm ? stopsOf(t.cm) : { tab: 4, indent: 2, useTabs: false };
   const base = t.kind === 'block' ? t.left : 0;
-  return r.lines.slice(0, max).map(line => {
+  return r.lines.map(line => {
     const vis = visualText(line, stops), colours = new Array(vis.length).fill(null);
     spec.keys.forEach((k, i) => {
       const a = base + k.from - 1, z = k.to === null ? (t.kind === 'block' ? t.right : vis.length) : base + k.to;
@@ -422,7 +434,7 @@ function sortState(focusAt = null) {
     names = Array.from({ length: read.columns }, (_, c) => csvName(read, doc.csvDef, c));
     cols = spec.columns.map(k => csvSortColumn(k, read));
   }
-  const r = sortResult(t, spec);
+  const r = sortResult(t, spec, sortPreviewLimit());
   sortMarkCsvHeads();
   return { kind: 'sort', doc: docName(doc), target: sortTargetText(t), csv, page: sortUi.page, spec, names, cols,
     colours: sortList().map((_, i) => ({ bg: sortColour(i), fg: sortTextOn(sortColour(i)) })),
@@ -441,7 +453,7 @@ function tellSortPane() {
   clearTimeout(sortUi.timer);
   sortUi.timer = setTimeout(() => {
     if (activeDoc() !== sortUi.doc || sortUi.page !== 'sort') return sortSend();
-    const t = sortUi.target = sortTarget(), r = sortResult(t, sortUi.spec);
+    const t = sortUi.target = sortTarget(), r = sortResult(t, sortUi.spec, sortPreviewLimit());
     sortChannel.send({ kind: 'sortPreview', preview: r.problem ? '' : sortPreviewHtml(r, t), problem: r.problem ?? null,
       target: sortTargetText(t), name: sortUi.name, changed: sortUi.changed });
     sortMarkCsvHeads();
@@ -534,6 +546,7 @@ async function fromSortPane(m) {
       return sortSend();
     }
     case 'new': return sortNew();
+    case 'revert': return sortRevert();
     case 'save': return sortSave(sortUi.name);
     case 'saveAs': return sortSaveAs();
     case 'select': return sortSelectStored();
@@ -546,6 +559,20 @@ function sortNew() {
   sortUi.spec = sortDefault();
   if (sortIsCsv(activeDoc())) sortUi.spec.kind = 'columns';
   Object.assign(sortUi, { name: null, changed: false, focusKey: 0 });
+  sortRemember();
+  sortSend('grip');
+  sortRedrawRuler();
+}
+
+// Revert: the stored sort it came from, as stored (the changes since gone).
+async function sortRevert() {
+  if (!sortUi.name) return;
+  await sortStoredList();
+  const e = sortUi.list.find(x => x.name.toLowerCase() === sortUi.name.toLowerCase());
+  if (!e) return toast(`The stored sort "${sortUi.name}" is not there any more.`);
+  sortUi.spec = sortFill(sortCopy(e.sort));
+  if (sortUi.spec.kind === 'columns' && !sortIsCsv(activeDoc())) sortUi.spec.kind = 'text';
+  Object.assign(sortUi, { changed: false, focusKey: 0 });
   sortRemember();
   sortSend('grip');
   sortRedrawRuler();

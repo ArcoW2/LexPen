@@ -243,7 +243,13 @@ None.
   is kept beside it as `sorts.json.damaged` before the first save over it.
 - **Delete on a key row** removes the key when the focus is on its grip, its direction or its x, not in its From / To
   field (there Delete edits the number).
-- **The preview** sorts the whole target on each change (a moment after the last one), not only the first lines.
+- **The preview** sorts only the first lines of the target (records in a CSV), Settings > Editor > Sort
+  (`sortPreviewLines`, 100 by default; your answer after the build, 2026-11-07: the whole target was slow on a large
+  file), with a note when there are more; Apply sorts all of it.
+- **The buttons** (your answers after the build, 2026-11-07): Apply, Save, Save as..., Revert (back to the stored sort
+  it came from), New (a sort from the start); when they do not fit the panel's width: Apply and Manage, a menu with
+  Save, Save as..., Revert and New. Save and Revert only for a stored sort that was changed; its name then in
+  italics.
 - **A CSV selection** is widened in the editor; the column view does not mark the records.
 - **Case order** (your answer after the build, 2026-11-07): with Ignore case off, four orders instead of B before b
   / b before B: **AaBbCc**, **aAbBcC** (paired per letter, the collator's `caseFirst`), **ABCabc**, **abcABC** (each

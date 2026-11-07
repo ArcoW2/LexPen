@@ -693,6 +693,9 @@ const SETTING_ROWS = [
     keywords: JUMP_KEYWORDS,
     hint: 'A line jumped to comes no closer than this many lines to the top or bottom of the view (fewer on a low view); in the preview the lines of the text shown there' },
 
+  { name: 'sortPreviewLines', group: 'Editor', sub: 'Sort', kind: 'choice', title: 'Sort preview: the first',
+    hint: 'The preview in the Sort panel sorts only this many lines (records in a CSV) from the start of what is sorted, so it stays quick on a large file; Apply sorts all of it',
+    options: () => [50, 100, 200, 500, 1000].map(n => [n, n + ' lines']) },
   { name: 'locateCursor', group: 'Editor view', sub: 'Locate the cursor', kind: 'toggle', title: 'A short tap on Ctrl shows where the cursor is',
     hint: 'A short tap on Ctrl: rings shrink onto every cursor, in the colour of the find box; a cursor out of view gets a marker at that edge with its line number (also View > Locate the cursor)',
     hintOff: 'A tap on Ctrl does nothing; View > Locate the cursor still shows where the cursor is' },

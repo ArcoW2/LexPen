@@ -25,9 +25,10 @@ paneHandlers.sortPreview = ({ preview, problem, target, name, changed }) => {
   if (!sp.st) return;
   Object.assign(sp.st, { preview, problem, target, name, changed });
   $s('.sp-doc').innerHTML = docLine();
-  const n = $s('.sp-name'), save = $s('[data-do=save]');
+  const n = $s('.sp-name');
   if (n) n.innerHTML = nameLine();
-  if (save) save.disabled = !(name && changed);
+  for (const m of MANAGE) { const b = m !== '-' && $s(`[data-do=${m.id}]`); if (b) b.disabled = !m.on(sp.st); }
+  fitBar();
   const p = $s('.sp-problem'), pre = $s('.sp-preview'), apply = $s('[data-do=apply]');
   if (p) { p.hidden = !problem; p.textContent = problem ?? ''; }
   if (pre) pre.innerHTML = problem ? '' : preview;   // built by the window, its texts escaped
@@ -87,10 +88,36 @@ function draw() {
     (spec.dups ? `<div class="sp-sub">${check('dupsWhole', `By the whole ${unit}`, 'Else by the keys')}${check('dupsTrim', 'Ignore leading and trailing whitespace')}</div>` : '') +
     check('empty', `Remove empty ${unit}s`, 'Whitespace only counts as empty') + '</div>' +
     `<div class="sp-problem"${st.problem ? '' : ' hidden'}>${esc(st.problem ?? '')}</div><pre class="sp-preview">${st.problem ? '' : st.preview}</pre>` +
-    `<div class="sp-bar"><span class="sp-name" title="The stored sort this one came from: Save stores it there">${nameLine()}</span><span class="sp-btns"><button type="button" data-do="new" title="A sort from the start">New</button><button type="button" data-do="apply" class="sp-main"${st.problem ? ' disabled' : ''} title="Enter">Apply</button>` +
-    `<button type="button" data-do="save"${st.name && st.changed ? '' : ' disabled'} title="${st.name ? `Under its name: ${esc(st.name)}` : 'Under its name (select a stored sort first)'}">Save</button>` +
-    '<button type="button" data-do="saveAs">Save as...</button></span></div>';
+    `<div class="sp-bar"><span class="sp-name" title="The stored sort this one came from: Save stores it there">${nameLine()}</span><span class="sp-btns">` +
+    `<button type="button" data-do="apply" class="sp-main"${st.problem ? ' disabled' : ''} title="Enter">Apply</button>` +
+    MANAGE.map(m => m === '-' ? '' : `<button type="button" class="sp-full" data-do="${m.id}"${m.on(st) ? '' : ' disabled'} title="${esc(m.title(st))}">${m.label}</button>`).join('') +
+    '<button type="button" class="sp-manage" data-manage title="Save, Save as..., Revert, New">Manage \u25be</button></span></div>';
+  fitBar();
 }
+
+// The buttons beside Apply; in a narrow panel they go into Manage's menu (fitBar).
+const MANAGE = [
+  { id: 'save', label: 'Save', on: st => !!(st.name && st.changed), title: st => st.name ? `Under its name: ${st.name}` : 'Under its name (select a stored sort first)' },
+  { id: 'saveAs', label: 'Save as...', on: () => true, title: () => 'Under a new name' },
+  '-',
+  { id: 'revert', label: 'Revert', on: st => !!(st.name && st.changed), title: st => st.name ? `Back to the stored sort ${st.name}` : 'Back to the stored sort (select one first)' },
+  { id: 'new', label: 'New', on: () => true, title: () => 'A sort from the start' },
+];
+// All the buttons when they fit on the panel's width, else Apply and Manage.
+function fitBar() {
+  const bar = $s('.sp-body > .sp-bar'), btns = bar?.querySelector('.sp-btns');
+  if (!btns || !btns.querySelector('.sp-manage')) return;
+  bar.classList.remove('sp-compact');
+  bar.classList.toggle('sp-compact', btns.offsetWidth > bar.clientWidth);
+}
+new ResizeObserver(() => fitBar()).observe(document.body);
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-manage]');
+  if (!b) return;
+  const r = b.getBoundingClientRect();
+  paneMenu({ x: r.left, y: r.bottom, above: r.top, items: MANAGE.map(m => m === '-' ? m
+    : { label: m.label, disabled: !m.on(sp.st), run: () => toWindow({ kind: m.id }) }) });
+});
 
 // ---------- What is done here ----------
 document.addEventListener('input', e => {

@@ -35,14 +35,15 @@ every action with its key.
   and its number on the ruler (shown while the panel is) in that colour. Ignore case (on; off: the order AaBbCc,
   aAbBcC, ABCabc or abcABC, stated for A to Z), numbers by value (`file2` before `file10`; a decimal sign, default
   `.`, and characters to ignore, default comma and space), remove duplicates (by the keys or the whole line,
-  ignoring leading and trailing whitespace if asked), remove empty lines. A preview shows the first lines as they
-  would come out; Apply sorts. A CSV sorts By columns (the default; its key columns marked in the column view) or As
+  ignoring leading and trailing whitespace if asked), remove empty lines. A preview shows the first lines (Settings > Editor > Sort: 100 by default) as they
+  would come out, sorting only those; Apply sorts. A CSV sorts By columns (the default; its key columns marked in the column view) or As
   text: per key a column, compared by its type (numbers by value, dates as dates, empty fields last, values that do
   not fit their type after the ones that do), records moving whole, the header staying on top. Stored sorts (the
   Stored sorts tab: Select, Delete...; Save, Save as... on the Sort tab) are kept in `sorts.json`, for any file;
   the sort as it is now is kept a moment after each change (not in the list) and LexPen opens with it again, with the
-  name of the stored sort it came from (shown at the bottom, in italics when changed; Save stores it there; New
-  starts a sort from the start); a stored sort is only written by
+  name of the stored sort it came from (shown at the bottom, in italics when changed; Save stores it there, Revert
+  goes back to it; New starts a sort from the start; in a narrow panel Save, Save as..., Revert and New are under
+  Manage); a stored sort is only written by
   Save or Save as. The actions `edit.sort`, `edit.sortAsc` and `edit.sortDesc` sort at
   once, with a stored sort's name as their parameter (keys.json, a macro) or without one (the whole line, a CSV its
   first column); sortAsc / sortDesc turn every key ascending / descending.
