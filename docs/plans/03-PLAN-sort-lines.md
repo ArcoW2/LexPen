@@ -30,6 +30,9 @@ header stays on top and a record moves whole, also one with a line break in a qu
 
 - A selection: only the selected lines; a selection that starts or ends inside a line takes that line whole (a line
   is the unit). The lines outside it do not move.
+- Opening the window, such a selection is widened to the whole lines in the editor itself (from the start of its
+  first line to the end of its last), so you see exactly what will be sorted (your answer 2026-11-07). A selection
+  that ends at the very start of a line does not take that line. Cancel leaves the widened selection as it is.
 - A block (column mode): only the block's part of each line is sorted; each row's block text is a key and moves to
   its new row, the text left and right of the block stays where it is. A row shorter than the block's start gets
   spaces up to it when a piece lands there; a piece that ends at the line's end is not padded with trailing spaces.
@@ -80,7 +83,8 @@ columns** (the default for such a file) or **As text** (3.1 to 3.3 as for any fi
 - Remove duplicates: a record whose key columns are equal to an earlier one's (or, with "whole record", all its
   fields) goes; the first one stays.
 - A selection: only the records it touches are sorted among themselves (a record is the unit, as a line is in 3.1);
-  nothing selected: all records.
+  opening the window widens the selection to those whole records, as 3.1 does to lines (in the column view: the rows
+  marked). Nothing selected: all records.
 - The column line of 3.3 is not drawn (the keys are columns, not a position); in the column view the key columns'
   headers are marked instead while the window is open.
 - The preview shows the first records of the result as the file has them (the text), the header line above them.
@@ -98,6 +102,9 @@ decimal comma), date with its pattern, boolean and text columns; empty fields la
 its type; a quoted field with a line break moves with its record; the header and skipped lines stay on top; the
 records' text unchanged; duplicates by the key columns and by the whole record; a selection of records; As text on
 the same file sorts lines; undo is one step.
+
+In-app: a selection starting and ending inside lines is widened to the whole lines as the window opens (one ending
+at a line's start does not take that line), and stays so after Cancel; a CSV selection widened to whole records.
 
 In-app: each option on a selection, on a block (only the block part moves, the rest of each line stays; short rows),
 and on the whole file; natural sort; ignore case on and off; duplicates with and without case and whitespace; empty
