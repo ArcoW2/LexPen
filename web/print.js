@@ -322,6 +322,7 @@ async function useStored(s, edit) {
   drawStored();
   changed(false);
   schedule();
+  showTab('print');   // chosen: its settings shown
 }
 const selectedStored = () => pp.stored.list[pp.storedAt];
 $('.pp-stored').addEventListener('click', e => { const i = e.target.closest('.pp-item')?.dataset.i; if (i != null) storedAt(+i); });
@@ -1182,13 +1183,14 @@ document.addEventListener('click', e => {
   if (b && !b.disabled) ({ print: () => act('print'), pdf: () => act('pdf'), cancel: () => host('close'), save, saveAs, revert, new: fresh, printerDialog,
     selectStored: () => useStored(selectedStored()), deleteStored: () => deleteStored(selectedStored()) })[b.dataset.do]?.();
   const tab = e.target.closest('[data-tab]');
-  if (tab) {
-    for (const t of document.querySelectorAll('[data-tab]')) t.classList.toggle('pp-on', t === tab);
-    $('.pp-print-panel').hidden = tab.dataset.tab !== 'print';
-    $('.pp-stored-panel').hidden = tab.dataset.tab !== 'stored';
-    $('.pp-manage').hidden = tab.dataset.tab !== 'print';   // Save, Save as..., Revert, New: the Print tab's
-  }
+  if (tab) showTab(tab.dataset.tab);
 });
+function showTab(name) {
+  for (const t of document.querySelectorAll('[data-tab]')) t.classList.toggle('pp-on', t.dataset.tab === name);
+  $('.pp-print-panel').hidden = name !== 'print';
+  $('.pp-stored-panel').hidden = name !== 'stored';
+  $('.pp-manage').hidden = name !== 'print';   // Save, Save as..., Revert, New: the Print tab's
+}
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && !$('.pp-ask').open && !document.querySelector('.pp-menu')) { e.preventDefault(); host('close'); }
   if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); act('print'); }
