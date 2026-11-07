@@ -39,6 +39,11 @@
   .sp-preview { flex: 1; min-height: 4em; margin: 0; padding: 4px 6px; overflow: auto; background: var(--bg); border: 1px solid var(--border);
     border-radius: 3px; font: var(--editor-size)/var(--editor-line) var(--editor-font); white-space: pre; }
   .sp-bar { display: flex; justify-content: flex-end; gap: 6px; }
+  /* The stored sort's name left of the buttons; above them when both do not fit. */
+  .sp-body > .sp-bar { flex-wrap: wrap; align-items: center; }
+  .sp-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+  .sp-name:empty { display: none; }
+  .sp-btns { display: flex; gap: 6px; margin-left: auto; }
   .sp-main { border-color: var(--accent); }
   .sp-list { flex: 1; min-height: 4em; overflow: auto; border: 1px solid var(--border); border-radius: 3px; background: var(--bg); }
   .sp-list:focus { outline: none; border-color: var(--accent); }
@@ -50,7 +55,7 @@
 </style>
 </head><body>
 <div class="sp-head"><div class="sp-doc"></div>
-  <div class="sp-tabs"><button type="button" data-page="sort"></button><button type="button" data-page="stored">Stored sorts</button></div></div>
+  <div class="sp-tabs"><button type="button" data-page="sort">Sort</button><button type="button" data-page="stored">Stored sorts</button></div></div>
 <div class="sp-body"></div>
 <script src="pane.js"></script>
 <script src="sort-pane.js"></script>

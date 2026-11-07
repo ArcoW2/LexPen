@@ -6,7 +6,8 @@ namespace LexPen;
 /// <summary>
 /// The stored sorts (docs/plans/executed/PLAN-sort-lines.md 3.4), for all of LexPen, in sorts.json at the top of the data
 /// folder (they are yours, as favourites.json): { sorts: { name: sort }, last: sort }. A sort is the page's (sort.js)
-/// as it is: As text or By columns, its keys, its options. `last`: the sort the window opens with. A name is unique, not
+/// as it is: As text or By columns, its keys, its options. `last`: what the panel opens with, kept by the page a moment
+/// after each change ({ sort, name, changed }: the sort, the stored sort it came from, changed since; never in the list). A name is unique, not
 /// case sensitive: saving under a name that differs only in case replaces that one. A file that cannot be read counts
 /// as no stored sorts; before the first save over it, it is kept beside it as sorts.json.damaged.
 /// </summary>

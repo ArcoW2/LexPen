@@ -378,6 +378,11 @@ body[data-dock-bottom=open] .mm-main > .mm-dock-split[data-side=bottom] { displa
 .mm-dock-gsplit[hidden] { display: none; }
 /* A group rolled up: as high as its tabs. */
 .mm-dock-group.mm-rolled { flex: 0 0 auto; }
+/* Shown from Window > Panels: the group flashes a few times (docks.js flashPanel). */
+.mm-dock-group.mm-flash::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 5;
+  border: 2px solid var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); opacity: 0;
+  animation: mm-flash .4s ease-in-out 3; }
+@keyframes mm-flash { 50% { opacity: 1; } }
 .mm-dock-group.mm-rolled .mm-dock-views { display: none; }
 .mm-dock-roll { align-self: center; padding: 2px 4px; color: var(--fg-dim); margin-bottom: 3px; }
 .mm-dock-roll:hover { color: var(--fg); }

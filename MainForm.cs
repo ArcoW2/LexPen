@@ -1162,6 +1162,10 @@ sealed class MainForm : Form
                 app.CloseToolWindow(this, Arg("kind"));
                 return null;
 
+            case "flashToolWindow":
+                app.FlashToolWindow(this, Arg("kind"));
+                return null;
+
             case "outlineWanted":   // the one floating outline may serve this window now, or not (plan 24 7.3)
                 app.OutlineWanted(this, msg["wants"]?.GetValue<bool>() == true);
                 return null;

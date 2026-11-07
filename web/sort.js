@@ -394,13 +394,20 @@ function sortPreviewHtml(r, t) {
   }).join('\n');
 }
 
-const sortTabText = () => `Sort${sortUi.name ? `: ${sortUi.name}${sortUi.changed ? ' (changed)' : ''}` : ''}`;
+// The sort as it is now kept as the last one (sorts.json `last`, not in the list), with the stored sort it came from
+// and whether it was changed since, a moment after each change: LexPen opens with it again, and Save still stores it
+// under that name. A stored sort itself is only written by Save or Save as.
+function sortRemember() {
+  clearTimeout(sortUi.rememberTimer);
+  sortUi.rememberTimer = setTimeout(() => host('sortLast', { sort: { sort: sortCopy(sortUi.spec), name: sortUi.name, changed: sortUi.changed } })
+    .catch(() => {}), 300);
+}
 
 // Everything the page shows. focusAt: where its focus goes ('grip' of the focused key, 'list'); else the field it was in.
 function sortState(focusAt = null) {
   const doc = activeDoc();
   sortUi.spec ??= sortDefault();
-  if (!doc) return { kind: 'sort', doc: null, tab: sortTabText(), page: sortUi.page, spec: sortUi.spec, list: [], colours: [] };
+  if (!doc) return { kind: 'sort', doc: null, page: sortUi.page, spec: sortUi.spec, list: [], colours: [] };
   const csv = sortIsCsv(doc);
   if (doc !== sortUi.doc) {   // another document: a CSV by its columns first, any other as text
     sortUi.doc = doc;
@@ -419,7 +426,7 @@ function sortState(focusAt = null) {
   sortMarkCsvHeads();
   return { kind: 'sort', doc: docName(doc), target: sortTargetText(t), csv, page: sortUi.page, spec, names, cols,
     colours: sortList().map((_, i) => ({ bg: sortColour(i), fg: sortTextOn(sortColour(i)) })),
-    name: sortUi.name, changed: sortUi.changed, focusKey: sortUi.focusKey, tab: sortTabText(),
+    name: sortUi.name, changed: sortUi.changed, focusKey: sortUi.focusKey,
     problem: r.problem ?? null, preview: r.problem ? '' : sortPreviewHtml(r, t),
     list: sortUi.list.map(e => ({ name: e.name, desc: sortDescription(sortFill(e.sort)), off: e.sort?.kind === 'columns' && !csv })),
     storedAt: sortUi.storedAt, focusAt };
@@ -436,7 +443,7 @@ function tellSortPane() {
     if (activeDoc() !== sortUi.doc || sortUi.page !== 'sort') return sortSend();
     const t = sortUi.target = sortTarget(), r = sortResult(t, sortUi.spec);
     sortChannel.send({ kind: 'sortPreview', preview: r.problem ? '' : sortPreviewHtml(r, t), problem: r.problem ?? null,
-      target: sortTargetText(t), tab: sortTabText() });
+      target: sortTargetText(t), name: sortUi.name, changed: sortUi.changed });
     sortMarkCsvHeads();
     for (const pane of panes) if (pane.cm) drawRuler(pane);
   }, 150);
@@ -460,6 +467,7 @@ async function openSortPane() {
 // A change made in the panel: kept, marked as changed; drawn again (sent: true), else only the preview follows.
 function sortChanged(send = true, focusAt = null) {
   sortUi.changed = true;
+  sortRemember();
   if (send) sortSend(focusAt);
   else tellSortPane();
   for (const pane of panes) if (pane.cm) drawRuler(pane);
@@ -523,7 +531,6 @@ async function fromSortPane(m) {
     case 'apply': {
       const s = sortCopy(spec);
       if (!await sortApply(sortTarget(), s)) return;
-      host('sortLast', { sort: s }).catch(() => {});
       return sortSend();
     }
     case 'save': return sortSave(sortUi.name);
@@ -539,6 +546,7 @@ async function sortSave(name) {
   await host('sortSave', { name, sort: sortCopy(sortUi.spec) });
   await sortStoredList();
   Object.assign(sortUi, { name, changed: false });
+  sortRemember();
   sortSend();
   toast(`Sort "${name}" stored.`, true);
 }
@@ -558,6 +566,7 @@ function sortSelectStored() {
   if (!e || (e.sort?.kind === 'columns' && !sortIsCsv(activeDoc()))) return;
   sortUi.spec = sortFill(sortCopy(e.sort));
   Object.assign(sortUi, { name: e.name, changed: false, focusKey: 0, page: 'sort' });
+  sortRemember();
   sortSend();
   sortRedrawRuler();
 }
@@ -567,7 +576,7 @@ async function sortDeleteStored() {
   if (!e || !await confirmBox(`Delete the stored sort "${e.name}"?`, 'Delete')) return;
   await host('sortDelete', { name: e.name });
   await sortStoredList();
-  if (sortUi.name?.toLowerCase() === e.name.toLowerCase()) sortUi.name = null;
+  if (sortUi.name?.toLowerCase() === e.name.toLowerCase()) { sortUi.name = null; sortRemember(); }
   sortSend('list');
 }
 
@@ -585,6 +594,12 @@ function registerSortPane() {
     sync: () => { if (dockShown(dockModel(), 'sort') && !sortChannel.frame) sortChannel.send(sortState()); setTimeout(sortRedrawRuler); },
     channel: { get floating() { return sortChannel.floating; }, float: opts => sortChannel.float(opts),
       back: () => { sortUi.back = true; sortChannel.back(); } } });
-  // The sort it opens with: the last one applied; the stored sorts.
-  host('sorts').then(s => { sortUi.list = s?.list ?? []; if (s?.last) sortUi.spec = sortFill(s.last); }).catch(() => {});
+  // The sort it opens with: the last one (with the name of the stored sort it came from; an older file has the sort
+  // alone); the stored sorts.
+  host('sorts').then(s => {
+    sortUi.list = s?.list ?? [];
+    const last = s?.last;
+    if (last?.sort) Object.assign(sortUi, { spec: sortFill(last.sort), name: last.name ?? null, changed: !!last.changed });
+    else if (last) sortUi.spec = sortFill(last);
+  }).catch(() => {});
 }

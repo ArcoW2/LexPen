@@ -1890,6 +1890,25 @@ sealed class AppHost : ApplicationContext
     /// <summary>A floating pane's window closed, as by hand (the pane stays floating, or its page decides).</summary>
     public void CloseToolWindow(MainForm w, string kind) { foreach (var (_, f) in ToolWindows(w).Where(t => t.Kind == kind).ToList()) f.Close(); }
 
+    // A floating panel shown from Window > Panels: its title bar and taskbar button flash a few times, so it is seen
+    // where it opened.
+    public void FlashToolWindow(MainForm w, string kind)
+    {
+        foreach (var (_, f) in ToolWindows(w).Where(t => t.Kind == kind))
+        {
+            var info = new FLASHWINFO { cbSize = (uint)Marshal.SizeOf<FLASHWINFO>(), hwnd = f.Handle, dwFlags = FLASHW_ALL, uCount = 3 };
+            FlashWindowEx(ref info);
+        }
+    }
+
+    const uint FLASHW_ALL = 3;
+
+    [StructLayout(LayoutKind.Sequential)]
+    struct FLASHWINFO { public uint cbSize; public IntPtr hwnd; public uint dwFlags; public uint uCount; public uint dwTimeout; }
+
+    [DllImport("user32.dll")]
+    static extern bool FlashWindowEx(ref FLASHWINFO info);
+
     // ---------- The one floating outline for LexPen (docs/plans/executed/PLAN-docking.md 3.9, stage 7.3) ----------
     // It serves the windows with no outline in their dock areas, of those the document worked in last: each window's
     // page says whether it may serve it now (outlineWanted: its own outline not docked, its active editor pane without

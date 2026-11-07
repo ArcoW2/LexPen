@@ -21,11 +21,13 @@ paneHandlers.sort = st => {
   again?.focus();
 };
 
-paneHandlers.sortPreview = ({ preview, problem, target, tab }) => {
+paneHandlers.sortPreview = ({ preview, problem, target, name, changed }) => {
   if (!sp.st) return;
-  Object.assign(sp.st, { preview, problem, target });
+  Object.assign(sp.st, { preview, problem, target, name, changed });
   $s('.sp-doc').innerHTML = docLine();
-  $s('[data-page=sort]').textContent = tab;
+  const n = $s('.sp-name'), save = $s('[data-do=save]');
+  if (n) n.innerHTML = nameLine();
+  if (save) save.disabled = !(name && changed);
   const p = $s('.sp-problem'), pre = $s('.sp-preview'), apply = $s('[data-do=apply]');
   if (p) { p.hidden = !problem; p.textContent = problem ?? ''; }
   if (pre) pre.innerHTML = problem ? '' : preview;   // built by the window, its texts escaped
@@ -35,12 +37,14 @@ paneHandlers.sortPreview = ({ preview, problem, target, tab }) => {
 // Edit > Sort...: the focus on the first field (the first key's).
 paneHandlers.focus = () => document.querySelector('.sp-body [data-f]:not([type=radio]), .sp-list')?.focus();
 
+// The stored sort this one came from, at the bottom (not in the tab: a narrow panel cuts it there).
+const nameLine = () => sp.st.name ? `${esc(sp.st.name)}${sp.st.changed ? ' <span class="sp-dim">(changed)</span>' : ''}` : '';
+
 const docLine = () => sp.st.doc ? `${esc(sp.st.doc)} <span class="sp-dim">${esc(sp.st.target)}</span>` : '<span class="sp-dim">No document</span>';
 
 function draw() {
   const st = sp.st, spec = st.spec;
   $s('.sp-doc').innerHTML = docLine();
-  $s('[data-page=sort]').textContent = st.tab;
   for (const b of document.querySelectorAll('.sp-tabs button')) b.classList.toggle('sp-on', b.dataset.page === st.page);
   const body = $s('.sp-body');
   if (!st.doc) { body.innerHTML = '<div class="sp-empty">No document to sort.</div>'; return; }
@@ -82,9 +86,9 @@ function draw() {
     (spec.dups ? `<div class="sp-sub">${check('dupsWhole', `By the whole ${unit}`, 'Else by the keys')}${check('dupsTrim', 'Ignore leading and trailing whitespace')}</div>` : '') +
     check('empty', `Remove empty ${unit}s`, 'Whitespace only counts as empty') + '</div>' +
     `<div class="sp-problem"${st.problem ? '' : ' hidden'}>${esc(st.problem ?? '')}</div><pre class="sp-preview">${st.problem ? '' : st.preview}</pre>` +
-    `<div class="sp-bar"><button type="button" data-do="apply" class="sp-main"${st.problem ? ' disabled' : ''} title="Enter">Apply</button>` +
+    `<div class="sp-bar"><span class="sp-name" title="The stored sort this one came from: Save stores it there">${nameLine()}</span><span class="sp-btns"><button type="button" data-do="apply" class="sp-main"${st.problem ? ' disabled' : ''} title="Enter">Apply</button>` +
     `<button type="button" data-do="save"${st.name && st.changed ? '' : ' disabled'} title="${st.name ? `Under its name: ${esc(st.name)}` : 'Under its name (select a stored sort first)'}">Save</button>` +
-    '<button type="button" data-do="saveAs">Save as...</button></div>';
+    '<button type="button" data-do="saveAs">Save as...</button></span></div>';
 }
 
 // ---------- What is done here ----------

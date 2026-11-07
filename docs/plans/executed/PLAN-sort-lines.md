@@ -232,8 +232,13 @@ None.
   editor (the selection, a block, another document) a moment after each change; Apply sorts and the panel stays; there
   is no Cancel (Esc goes back to the document, as in the other panels). The ruler shows the keys while the panel is
   shown (docked in front, or floating), also with View > Ruler off.
-- **The last sort used** is kept in `sorts.json` beside the stored sorts (`last`), not as a setting: a sort is a
-  structure, not a value the settings window could show.
+- **The last sort** is kept in `sorts.json` beside the stored sorts (`last`), not as a setting: a sort is a
+  structure, not a value the settings window could show. It is the sort as it is now, kept a moment after each change
+  (your answer after the build, 2026-11-07; first it was only kept by Apply), with the name of the stored sort it came
+  from and whether it was changed since: LexPen opens with it, and Save stores it under that name again. It is not in
+  the list; a stored sort is only written by Save or Save as.
+- **The stored sort's name** is at the bottom, not in the tab (a narrow panel cuts it there): left of the buttons, or
+  above them when both do not fit.
 - **sorts.json** is at the top of the data folder (your own work, as favourites.json), by `SortStore`; a damaged file
   is kept beside it as `sorts.json.damaged` before the first save over it.
 - **Delete on a key row** removes the key when the focus is on its grip, its direction or its x, not in its From / To

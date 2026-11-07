@@ -40,7 +40,9 @@ every action with its key.
   text: per key a column, compared by its type (numbers by value, dates as dates, empty fields last, values that do
   not fit their type after the ones that do), records moving whole, the header staying on top. Stored sorts (the
   Stored sorts tab: Select, Delete...; Save, Save as... on the Sort tab) are kept in `sorts.json`, for any file;
-  the panel opens with the sort applied last. The actions `edit.sort`, `edit.sortAsc` and `edit.sortDesc` sort at
+  the sort as it is now is kept a moment after each change (not in the list) and LexPen opens with it again, with the
+  name of the stored sort it came from (shown at the bottom; Save stores it there); a stored sort is only written by
+  Save or Save as. The actions `edit.sort`, `edit.sortAsc` and `edit.sortDesc` sort at
   once, with a stored sort's name as their parameter (keys.json, a macro) or without one (the whole line, a CSV its
   first column); sortAsc / sortDesc turn every key ascending / descending.
 - **Multiple cursors**: Ctrl+Alt+click adds a cursor (held and dragged, it follows the mouse until you let go); on a
@@ -494,7 +496,8 @@ every action with its key.
   LexPen window's title bar, its text and the line around the window, active and not active (Windows 11).
 - **Preview place**: per editor pane the preview at the right of the text, at its left, above or below it (View >
   Preview place, or a right-click on the line between text and preview); kept with the window's layout.
-- **View > Panels**: every panel with a check when it is shown; choosing one shows it as it was last or hides it;
+- **View > Panels**: every panel with a check when it is shown; choosing one shows it as it was last (it flashes a few times where it opened: docked its group, floating its
+  window's title bar) or hides it;
   the dock areas open or closed; Reset docking. View > Document panels: Editor and Preview.
 - **Dock tab bars**: tabs that do not fit wrap over several rows or scroll in one row (setting dockTabBar); a tab
   dragged onto a head goes between the tabs where it is let go; the setting dockTabIntensity sets the contrast of the
