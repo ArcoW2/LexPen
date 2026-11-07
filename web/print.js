@@ -191,7 +191,7 @@ function drawPanel() {
   html += `<div class="pp-row"><label>Date format</label><input type="text" class="pp-wide" data-k="dateFormat" value="${escapeHtml(o.dateFormat)}"` +
     ` placeholder="${escapeHtml(pp.datePattern)}" spellcheck="false" title="${DATE_HELP}"></div>
     <div class="pp-hint">${Object.entries(HF_CODES).map(([c, what]) => `<b>$${c.toUpperCase()}</b> ${escapeHtml(what.replace(/ \(.*\)/, ''))}`).join(', ')}.
-    **<b>bold</b>**, *<i>italic</i>*. With $T every page is laid out before printing.</div>`;
+    **<b>bold</b>**, *<i>italic</i>*.<br>With $T all pages are laid out before printing.</div>`;
 
   if (kind === 'text' || kind === 'table') html += `<h3>Text</h3><div class="pp-row"><label>Font</label>${fontList('textFont', s.editorFont, true)}</div>
     <div class="pp-row"><label>Size (pt)</label>${num('textSize', 4, 40, 0.5)}</div>` + (kind === 'text' ? `<div class="pp-row"><label>Line numbers</label><select data-k="lineNumbers">
