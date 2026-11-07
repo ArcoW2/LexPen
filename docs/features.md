@@ -451,8 +451,8 @@ every action with its key.
   auto, fit to width / height / page, a percentage); the whole document, the selected lines or pages (typed, or
   clicked in the preview). Paper, orientation, margins (each side its own), a frame, a header and footer (file
   name, page x of y, date), fonts and sizes, the colours (the theme as on screen, another theme, black and white,
-  greyscale; a dark page is warned about), the highlights (shaded, underlined, wavy, a box, bold) and their notes (a
-  number in the text; the notes in the left or right margin, at the bottom of the page, or at the end). Print sends
+  greyscale; a dark page is warned about), the highlights (shaded, underlined, dotted, wavy, a box, bold; their colour and intensity) and their notes (a
+  number in the text; the notes in the left or right margin, at the bottom of the page, or at the end; their size). Print sends
   it to the printer (its copies, two-sided and colour; Printer settings... opens the printer's own dialog, in step
   with these options both ways); Save as PDF writes the same pages to a file. The settings come back the next time,
   and can be stored by name, with templates, as the Sort's (Stored settings).

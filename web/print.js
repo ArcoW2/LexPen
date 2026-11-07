@@ -33,7 +33,7 @@ const DEFAULTS = {
   view: null, margins: [15, 15, 15, 15], marginsEach: false, frame: false, frameWidth: 0.5, frameIntensity: 60,
   zoom: 'auto', zoomPercent: 100, textFont: '', textSize: 9, lineNumbers: true,
   bodyFont: '', bodySize: 11, codeFont: '', codeSize: 9,
-  colours: 'current', highlights: 'shaded', notes: 'end', notesWidth: 45,
+  colours: 'current', highlights: 'shaded', hlColour: '', hlIntensity: 100, notes: 'end', notesWidth: 45, notesSize: 8,
   headName: true, headPages: true, headDate: false,
 };
 const PAPERS = [{ name: 'A3', w: 297, h: 420 }, { name: 'A4', w: 210, h: 297 }, { name: 'A5', w: 148, h: 210 },
@@ -106,11 +106,20 @@ function drawPanel() {
 
   html += `<h3>Highlights and notes</h3><div class="pp-row"><label>Highlights</label><select data-k="highlights">
     <option value="off"${opt('highlights', 'off')}>Off</option><option value="shaded"${opt('highlights', 'shaded')}>Shaded</option>
-    <option value="underline"${opt('highlights', 'underline')}>Underlined</option><option value="wavy"${opt('highlights', 'wavy')}>Wavy underline</option>
-    <option value="box"${opt('highlights', 'box')}>In a box</option><option value="bold"${opt('highlights', 'bold')}>Bold</option></select></div>
-    <div class="pp-row"><label>Notes</label><select data-k="notes"><option value="off"${opt('notes', 'off')}>Off</option>
+    <option value="underline"${opt('highlights', 'underline')}>Underlined</option><option value="dotted"${opt('highlights', 'dotted')}>Dotted underline</option><option value="wavy"${opt('highlights', 'wavy')}>Wavy underline</option>
+    <option value="box"${opt('highlights', 'box')}>In a box</option><option value="bold"${opt('highlights', 'bold')}>Bold</option></select></div>`;
+  // Their colour: the highlight's of the colours chosen above, another theme colour, or a picked one; and its
+  // intensity (as the app's highlightIntensity): 100 the colour, less towards the paper, more towards the text.
+  if (o.highlights !== 'off' && o.highlights !== 'bold' && o.colours !== 'bw') html += `<div class="pp-row"><label>Colour</label><select data-k="hlColour">
+    <option value=""${opt('hlColour', '')}>Highlight</option><option value="accent"${opt('hlColour', 'accent')}>Accent</option>
+    <option value="find-current"${opt('hlColour', 'find-current')}>Found</option><option value="fg"${opt('hlColour', 'fg')}>Text</option>
+    ${o.hlColour.startsWith('#') ? `<option value="${escapeHtml(o.hlColour)}" selected>Picked colour</option>` : ''}</select>
+    <input type="color" data-k="hlColour" value="${resolvedHex(hlBase())}" title="Pick a colour"></div>
+    <div class="pp-row"><label>Intensity (%)</label>${num('hlIntensity', 10, 200, 10)}<span class="pp-hint">less: towards the paper, more: towards the text</span></div>`;
+  html += `<div class="pp-row"><label>Notes</label><select data-k="notes"><option value="off"${opt('notes', 'off')}>Off</option>
     <option value="left"${opt('notes', 'left')}>In the left margin</option><option value="right"${opt('notes', 'right')}>In the right margin</option>
     <option value="foot"${opt('notes', 'foot')}>At the bottom of the page</option><option value="end"${opt('notes', 'end')}>At the end</option></select></div>`;
+  if (o.notes !== 'off') html += `<div class="pp-row"><label>Size (pt)</label>${num('notesSize', 5, 20, 0.5)}</div>`;
   if (o.notes === 'left' || o.notes === 'right') html += `<div class="pp-row"><label>Margin width (mm)</label>${num('notesWidth', 15, 120)}</div>`;
   if (!(s.notes?.length)) html += '<div class="pp-hint">This document has no notes.</div>';
   panel.innerHTML = html;
@@ -138,7 +147,7 @@ async function setFrom(el, typing) {
     if (k === 'marginsEach' && !v) o.margins = [o.margins[0], o.margins[0], o.margins[0], o.margins[0]];
   }
   changed();
-  if (!typing && el.matches('select, input[type=checkbox]')) drawPanel();
+  if (!typing && el.matches('select, input[type=checkbox], input[type=color]')) drawPanel();
   schedule(typing ? 400 : 0);
 }
 
@@ -407,7 +416,7 @@ async function layoutPdf() {
 .pp-sheet-head { top: ${Math.max(2, m[0] / 2 - 2)}mm; }
 .pp-sheet-foot { bottom: ${Math.max(2, m[2] / 2 - 2)}mm; justify-content: center; }
 .pp-sheet .pp-pdfpage { height: 100%; }
-.pp-sheet-notes { font: 9pt/1.4 ${cssString(s.appFont)}, sans-serif; }
+.pp-sheet-notes { font: ${o.notesSize}pt/1.4 ${cssString(s.appFont)}, sans-serif; }
 .pp-sheet-notes ol { margin: 0; }
 .pp-sheet-notes li::marker { color: var(--accent, #c00); font-weight: 700; }
 ${pdfCss()}`;
@@ -477,10 +486,11 @@ function pageCss() {
   const box = (where, content) => `@${where} { content: ${content}; font: 8pt ${font(s.appFont)}; color: var(--fg-dim, #666); }`;
   const name = s.title + (pp.what === 'selection' ? ' (selection)' : '');
   const font = (f, rest = 'sans-serif') => `${cssString(f)}, ${rest}`;
-  const hl = o.colours === 'bw' ? '#9a9a9a' : s.hlColour || 'var(--highlight)';
+  const hl = hlCss();
   const hlLook = {
     shaded: `background: color-mix(in srgb, ${hl} 55%, transparent);`,
     underline: `background: none; text-decoration: underline 1.5px ${hl}; text-underline-offset: 2px;`,
+    dotted: `background: none; text-decoration: underline dotted 2px ${hl}; text-decoration-skip-ink: none; text-underline-offset: 2px;`,
     wavy: `background: none; text-decoration: underline wavy 1px ${hl}; text-decoration-skip-ink: none; text-underline-offset: 2px;`,
     box: `background: none; outline: 1px solid ${hl}; outline-offset: 0;`,
     bold: 'background: none; font-weight: 700;',
@@ -518,13 +528,13 @@ ${o.frame ? `.pagedjs_area { outline: ${o.frameWidth}pt solid color-mix(in srgb,
 .pp-tablebox th, .pp-tablebox td { border: 0.5pt solid color-mix(in srgb, currentColor 35%, transparent); padding: 0.5mm 1.5mm; text-align: left; vertical-align: top; }
 mark.pp-hl { color: inherit; padding: 0; ${hlLook} }
 .pp-mk { font-size: 65%; line-height: 0; vertical-align: super; font-weight: 700; color: var(--accent, #c00); padding-left: 1px; }
-.pp-note { font: 8pt/1.3 ${font(s.appFont)}; color: var(--fg, #000); white-space: normal; font-weight: normal; font-style: normal; text-decoration: none; }
+.pp-note { font: ${o.notesSize}pt/1.3 ${font(s.appFont)}; color: var(--fg, #000); white-space: normal; font-weight: normal; font-style: normal; text-decoration: none; }
 .pp-note > b { color: var(--accent, #c00); }
 .pp-note.pp-sidenote { position: absolute; width: ${o.notesWidth}mm; ${o.notes === 'left' ? `left: -${side}mm;` : `right: -${side}mm;`} text-align: left; }
 .pp-note.pp-foot { float: footnote; footnote-display: block; border: 0 !important; padding: 0 !important; }   /* the area has the line */
 .pp-note.pp-foot::footnote-call { content: none; }
 .pp-note.pp-foot::footnote-marker { content: none; }
-.pp-endnotes { margin-top: 6mm; border-top: 0.5pt solid color-mix(in srgb, currentColor 40%, transparent); font: 9pt/1.4 ${font(s.appFont)}; }
+.pp-endnotes { margin-top: 6mm; border-top: 0.5pt solid color-mix(in srgb, currentColor 40%, transparent); font: ${o.notesSize}pt/1.4 ${font(s.appFont)}; }
 .pp-endnotes h4 { margin: 2mm 0; }
 .pp-endnotes li::marker { color: var(--accent, #c00); font-weight: 700; }
 .pp-bw, .pp-bw * { color: #000 !important; border-color: #000 !important; }
@@ -551,7 +561,7 @@ function pdfCss() {
 .pp-pdfimg { flex: 1; min-width: 0; min-height: 0; display: flex; justify-content: center; align-items: flex-start; }
 .pp-pdfimg img { display: block; ${pdfZoom} }
 .pp-bw .pp-pdfimg img { filter: grayscale(1); }
-.pp-pdfnotes { flex: none; font: 8pt/1.3 ${font}; position: relative; }
+.pp-pdfnotes { flex: none; font: ${o.notesSize}pt/1.3 ${font}; position: relative; }
 .pp-pdfpage:not(.pp-notes-foot) .pp-pdfnotes p { position: absolute; left: 0; right: 0; }
 .pp-pdfpage:not(.pp-notes-foot) .pp-pdfnotes { width: ${o.notesWidth}mm; }
 .pp-pdfnotes p { margin: 0 0 1.5mm; }
@@ -614,6 +624,8 @@ async function applyColours() {
   for (const name of [...style].filter(n => n.startsWith('--'))) style.removeProperty(name);
   for (const [n, v] of Object.entries(vars ?? {})) style.setProperty(n, v);
   pagesEl.style.filter = o.colours === 'grey' ? 'grayscale(1)' : '';
+  const pick = panel.querySelector('input[type=color][data-k=hlColour]');   // drawn before these colours were set
+  if (pick) pick.value = resolvedHex(hlBase());
   const dark = o.colours !== 'bw' && luminance(vars?.['--bg']) < 0.35;
   if (dark) {
     const b = Object.assign(document.createElement('button'), { type: 'button', textContent: 'Black and white' });
@@ -674,7 +686,7 @@ async function pdfHtml() {
       pp.pdfPages.push({ w: base.width * 96 / 72, ratio: base.height / base.width, hls: mine });
     }
   }
-  const look = o.highlights + '|' + resolvedColour(s.hlColour) + '|' + o.colours + '|' + o.notes;
+  const look = o.highlights + '|' + resolvedColour(hlCss()) + '|' + o.colours + '|' + o.notes;
   if (pp.pdfLook !== look) {
     for (const p of pp.pdfImages.values()) URL.revokeObjectURL(p.url);
     pp.pdfImages.clear();
@@ -703,7 +715,7 @@ async function pdfDraw(n, scale) {
   ctx.fillStyle = '#fff';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   await page.render({ canvasContext: ctx, viewport }).promise;
-  const colour = resolvedColour(o.colours === 'bw' ? '#9a9a9a' : pp.source.hlColour);
+  const colour = resolvedColour(hlCss());
   for (const h of pp.pdfPages[n - 1].hls) {
     const rects = h.rects.map(r => ({ x: r.x * canvas.width, y: r.y * canvas.height, w: r.w * canvas.width, h: r.h * canvas.height }));
     if (o.highlights !== 'off') drawPdfHighlight(ctx, rects, colour, o.highlights, scale);
@@ -757,6 +769,9 @@ function drawPdfHighlight(ctx, rects, colour, look, scale) {
     } else if (look === 'underline') {
       ctx.fillStyle = colour;
       ctx.fillRect(r.x, r.y + r.h - scale, r.w, scale);
+    } else if (look === 'dotted') {
+      ctx.fillStyle = colour;
+      for (let x = 0; x < r.w; x += scale * 2.5) ctx.fillRect(r.x + x, r.y + r.h - scale * 1.2, scale * 1.2, scale * 1.2);
     } else if (look === 'wavy') {
       ctx.strokeStyle = colour;
       ctx.lineWidth = scale * 0.7;
@@ -772,6 +787,22 @@ function drawPdfHighlight(ctx, rects, colour, look, scale) {
   ctx.restore();
 }
 
+// The highlights' colour: black and white a grey; else the one chosen (none: the app's preview highlight colour) in
+// the colours chosen, at its intensity (towards the paper below 100, towards the text above).
+function hlBase() {
+  const c = pp.opt.hlColour;
+  return pp.opt.colours === 'bw' ? '#9a9a9a' : c.startsWith('#') ? c : c ? `var(--${c})` : pp.source.hlColour || 'var(--highlight)';
+}
+function hlCss() {
+  const base = hlBase(), p = Math.max(10, Math.min(200, pp.opt.hlIntensity || 100));
+  return p === 100 ? base : p < 100 ? `color-mix(in srgb, ${base} ${p}%, var(--bg, #fff))` : `color-mix(in srgb, ${base} ${200 - p}%, var(--fg, #000))`;
+}
+// A colour as #rrggbb (for the colour picker).
+function resolvedHex(css) {
+  const m = resolvedColour(css).match(/[\d.]+/g)?.map(Number) ?? [0, 0, 0];
+  const rgb = /^color\(srgb/.test(resolvedColour(css)) ? m.slice(0, 3).map(x => x * 255) : m.slice(0, 3);
+  return '#' + rgb.map(x => Math.round(x).toString(16).padStart(2, '0')).join('');
+}
 // A CSS colour (a var() of the theme too) as the browser resolves it on the pages.
 function resolvedColour(css) {
   const probe = document.createElement('span');
