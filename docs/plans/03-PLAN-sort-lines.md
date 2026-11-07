@@ -81,8 +81,14 @@ into the Sort tab, or delete one); from the Sort tab a sort is applied, saved un
   rest of the page's drawing, but the keys go to the window while it is open.
 - Two tabs: **Sort** (the sort at hand: its keys and options, the preview, the buttons) and **Stored sorts** (3.4).
 - The column lines: while the window is open, a vertical line in the editor at each key's From and To, as the
-  ruler's helper lines are drawn (ruler.js); the key being edited in the accent, the others dimmer; they move as the
-  fields change and go when the window closes.
+  ruler's helper lines are drawn (ruler.js); they move as the fields change and go when the window closes.
+- Each key its own colour (your answer 2026-11-07): its two lines are drawn in it, and its row in the window shows it
+  (a mark in that colour before the key's number), so a line and its key are matched at a glance. The colours are
+  the theme's named ones the ruler's tab stops offer (ruler.js TAB_COLOURS: the accent, green, purple, red, brown,
+  orange, the find box), so they follow the theme in day and night; in that order by the key's place in the list, so
+  a key dragged elsewhere takes the colour of its new place (the colour says the order). More keys than colours:
+  they start again from the first, the number tells them apart. The key with the focus has its lines at full
+  strength, the others lighter.
 - The preview: a read-only field at the bottom of the Sort tab, in the editor's font, with the first lines of the
   result (as many as fit), the keys' parts marked; it follows every change at once. A large file: the preview sorts
   only what it needs to know the first lines (the sort itself runs on Apply).
@@ -128,7 +134,7 @@ the top of the Sort tab: **By columns** (the default for such a file) or **As te
   opening the window widens the selection to those whole records, as 3.1 does to lines (in the column view: the rows
   marked). Nothing selected: all records.
 - The column lines of 3.3 are not drawn (the keys are columns, not positions); in the column view the key columns'
-  headers are marked instead while the window is open.
+  headers are marked instead while the window is open, each in its key's colour (3.3), with the key's number.
 - The preview shows the first records of the result as the file has them (the text), the header line above them.
 - Apply: one undo step on the text; the column view, when shown, follows as for any change of the text.
 
@@ -147,8 +153,10 @@ matches what Apply does.
 
 In-app, keys: one key From / To; To empty to the line's end; two and three keys (each next one breaks ties), each
 its own direction; a key added and removed; a key dragged to another place in the list (and Alt+Up / Alt+Down), the
-order following; a second key before the first in the line and one partly overlapping it, each read for itself; the column lines at each From and To, the edited key's in the
-accent, moving with the fields and gone after closing; in a block: the first key at the block's first column by
+order following; a second key before the first in the line and one partly overlapping it, each read for itself; the column lines at each From and To, each key's in its own colour, the same colour in its
+row, the focused key's at full strength; a key dragged takes the colour of its new place; more keys than colours;
+the lines moving with the fields and gone after closing; in the column view the key columns' headers in their keys'
+colours; in a block: the first key at the block's first column by
 default, another column of the block chosen, a column outside the block not accepted.
 
 In-app, selection: one starting and ending inside lines is widened to the whole lines as the window opens (one ending
