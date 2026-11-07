@@ -40,7 +40,8 @@ Language Server Protocol is not part of this plan.
 - **SQL Anywhere**: the asa pack's outline already finds `create [or replace] procedure | function | view | event |
   domain` and `create or replace trigger`; the sql pack's also `table` and `package`. A definition the patterns do not
   match is not found until the pattern is extended. A region named `proc_name` is not a definition (its group has no
-  mark).
+  mark), nor is an `alter procedure` (used for other things than the definition, as to encrypt it; the patterns do not
+  match it).
 - **Large folders**: the index is built file by file, in the background; F12 before it is done looks in what is
   indexed so far and says so. [not yet measured: how long a large folder takes]
 - **Later, not in this plan**: a full level through the Language Server Protocol (a server per language, installed
@@ -57,6 +58,4 @@ Language Server Protocol is not part of this plan.
 
 ## 4. Open questions
 
-1. Should `alter procedure` (and `alter function`, ...) count as a definition too, for code that changes procedures
-   with ALTER instead of CREATE OR REPLACE? It would need the asa pack's outline pattern extended, and an ALTER would
-   then also show in the outline.
+None.
