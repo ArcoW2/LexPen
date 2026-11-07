@@ -878,7 +878,7 @@ async function ensureEditor(pane) {
   });
   pane.cm.on('gutterContextMenu', (cm, line, gutter, e) => {   // View > Gutter, at the mouse
     e.preventDefault();
-    openPopupMenu(GUTTER_ITEMS, e.clientX, e.clientY);
+    openContextMenu(GUTTER_ITEMS, e.clientX, e.clientY);
   });
   // Bookmarks move with the text; a removed line can put two on one line: draw them again. The change
   // and git markers follow the text too.
@@ -3867,7 +3867,7 @@ function fromOutline(pane, m, from) {
         return toFloating({ kind: 'menu', x: m.x, y: m.y, items: items.map((i, n) => i === '-' ? '-' : { label: i.label, checked: !!i.checked, id: n }) });
       }
       const r = (from === 'win' ? winOutlineFrame : pane.outlineFrame).getBoundingClientRect();
-      return openPopupMenu(items.map(i => i === '-' ? '-' : { ...i, plain: true }), r.left + m.x, r.top + m.y);
+      return openContextMenu(items.map(i => i === '-' ? '-' : { ...i, plain: true }), r.left + m.x, r.top + m.y);
     }
     case 'menuPick': return winOutline?.runs?.[m.id]?.();
     case 'enter':   // placed as a find; the focus stays in the outline
@@ -4119,7 +4119,7 @@ function applyPreviewPlace() {
 // The splitter's right-click: the places for its own editor pane.
 function previewPlaceMenu(e, pane) {
   e.preventDefault();
-  openPopupMenu(PREVIEW_PLACES.map(([place, title]) => ({ label: title, checked: previewPlace(pane) === place, plain: true,
+  openContextMenu(PREVIEW_PLACES.map(([place, title]) => ({ label: title, checked: previewPlace(pane) === place, plain: true,
     run: () => setPreviewPlace(pane, place) })), e.clientX, e.clientY);
 }
 
@@ -4887,7 +4887,7 @@ function showMenu(menu, e, remember, keys = true) {
 }
 function hideMenus() {
   const had = document.activeElement?.closest?.('.mm-context');
-  ui.treeMenu.hidden = ui.tabMenu.hidden = ui.stripMenu.hidden = ui.paneMenu.hidden = ui.dividerMenu.hidden = true;
+  for (const menu of document.querySelectorAll('.mm-context')) menu.hidden = true;   // the folder compare's too (compare.js)
   if (had) contextMenuDone();
 }
 // Closed: the focus back where it was, unless its item put it elsewhere (Rename...'s field).
@@ -4898,7 +4898,6 @@ function contextMenuDone() {
   if (from === folderPane.frame) focusFolder();
   else from?.focus?.({ preventScroll: true });
 }
-const contextMenus = [ui.treeMenu, ui.tabMenu, ui.stripMenu, ui.dividerMenu];
 function markMenuItem(menu, button, byMouse) {
   const old = menu.querySelector('button.mm-sel');
   if (old === button) return;
@@ -4909,7 +4908,8 @@ function markMenuItem(menu, button, byMouse) {
   if (button?.classList.contains('mm-copy-name')) copyNameFlyout(button);
   else if (menuBar.fromContext) closeMenus();
 }
-for (const menu of contextMenus) {
+// Its pointer and focus handling, for each right-click menu of this page (the folder compare's: compare.js).
+function contextMenuBehaviour(menu) {
   menu.addEventListener('mousemove', e => {
     const b = e.target.closest('button');
     if (b) markMenuItem(menu, b.disabled ? null : b, true);
@@ -4925,9 +4925,10 @@ for (const menu of contextMenus) {
     folderMenuDone();
   }));
 }
+for (const menu of [ui.treeMenu, ui.tabMenu, ui.stripMenu, ui.dividerMenu]) contextMenuBehaviour(menu);
 addEventListener('keydown', e => {
-  const menu = contextMenus.find(m => !m.hidden);
-  if (!menu || e.defaultPrevented || !menu.contains(document.activeElement) || ['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) return;
+  const menu = document.activeElement?.closest?.('.mm-context');
+  if (!menu || menu.hidden || e.defaultPrevented || ['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) return;
   e.preventDefault();
   e.stopPropagation();
   const items = [...menu.querySelectorAll('button')].filter(b => b.offsetParent && !b.disabled);
@@ -5022,7 +5023,7 @@ function openTreeMenu(row, x, y, keys = true) {
   }, keys);
 }
 document.addEventListener('contextmenu', e => {
-  if (!e.target.closest('.mm-tabs, .mm-divider')) hideMenus();   // those open their own menu
+  if (!e.target.closest('.mm-tabs, .mm-divider, .mm-fcmp')) hideMenus();   // those open their own menu
 });
 
 // The backups LexPen made (plan 33, Backups.cs): a file's own (no question), or a folder's after the question (here,

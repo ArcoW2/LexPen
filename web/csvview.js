@@ -411,7 +411,7 @@ function csvMenu(pane, e) {
   e.preventDefault();
   const cell = e.target.closest('.mm-csv-cell');
   if (cell) return csvColumnBox(tab.doc, +cell.dataset.c, e.clientX, e.clientY, cell.getBoundingClientRect());
-  openPopupMenu(csvViewItems(tab.doc), e.clientX, e.clientY);
+  openContextMenu(csvViewItems(tab.doc), e.clientX, e.clientY);
 }
 
 // The view's own items (the right-click beside the columns, More... in a column's box).

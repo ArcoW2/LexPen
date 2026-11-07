@@ -190,7 +190,7 @@ function dockTab(id, inStrip, active = false) {
   b.addEventListener('pointerdown', e => dragDockTab(e, id, click));
   b.addEventListener('contextmenu', e => {
     e.preventDefault();
-    openPopupMenu(dockPaneMenu(id), e.clientX, e.clientY);
+    openContextMenu(dockPaneMenu(id), e.clientX, e.clientY);
   });
   return b;
 }

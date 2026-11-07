@@ -103,6 +103,7 @@ body[data-recording] .mm-record-stop { display: inline-flex; }
 .mm-menutitle.mm-on { background: var(--active); color: var(--accent); }
 .mm-menu.mm-dropdown { position: fixed; right: auto; top: 0; min-width: 240px; max-height: 80vh; overflow-y: auto; }
 .mm-dropdown button { display: flex; align-items: baseline; gap: 4px; }
+.mm-dropdown button:hover { background: none; }   /* marked by the pointer moving or the keys (menus.js), not :hover */
 .mm-dropdown button.mm-sel:not(:disabled) { background: var(--hover); }
 .mm-dropdown .mm-mark { flex: none; width: 1.2em; }
 .mm-dropdown .mm-checked .mm-mark::before { content: "\2713"; }

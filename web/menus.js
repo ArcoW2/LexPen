@@ -200,7 +200,9 @@ async function openMenuLevel(items, x, y, select, above, leftX) {
     const entry = { item: it, button, letter, enabled, isSub };
     level.items.push(entry);
     button.addEventListener('mousedown', e => e.preventDefault());
-    button.addEventListener('mouseenter', () => selectMenuItem(level, level.items.indexOf(entry), true));
+    // The pointer moving over it, not mouseenter: the page keeps the pointer's last place over a menu, so a menu opened
+    // elsewhere would get the item now at that place (and :hover marks nothing in a menu, app.css).
+    button.addEventListener('mousemove', () => { const i = level.items.indexOf(entry); if (level.index !== i) selectMenuItem(level, i, true); });
     button.addEventListener('click', () => chooseMenuItem(level, level.items.indexOf(entry)));
     el.append(button);
   }
@@ -262,6 +264,10 @@ function closeMenus() {
   menuBar.fromContext = false;
   if (menuBar.top >= 0) menuBar.el.children[menuBar.top]?.classList.remove('mm-on');
   menuBar.top = -1;
+  // A right-click menu's (openContextMenu): the focus back where it was, unless it went elsewhere meanwhile.
+  const from = menuBar.focusFrom;
+  menuBar.focusFrom = null;
+  if (from && document.activeElement === document.body) from.focus?.({ preventScroll: true });
 }
 
 // Keys: Alt+letter opens a menu; in an open menu the menu takes every key (before keys.js and the editor).
@@ -312,10 +318,27 @@ addEventListener('mousedown', e => {
 addEventListener('blur', closeMenus);
 
 // A menu of its own, not from the menu bar: above x, y (the bottom bar).
-function openPopupMenu(items, x, y) {
+function openPopupMenu(items, x, y, select = true) {
   closeMenus();
   hideMenus();
-  openMenuLevel(items, x, y, true, true);
+  openMenuLevel(items, x, y, select, true);
+}
+
+// A right-click menu (a dock tab's, the gutter's, the outline's, ...), as openPopupMenu, but no item marked as it opens
+// and it takes the focus, out of a pane's frame too, so the keys go to it; the focus back where it was after. The
+// focus gone elsewhere (another pane, docked or floating; another program) closes it, the focus staying there.
+function openContextMenu(items, x, y) {
+  openPopupMenu(items, x, y, false);
+  const el = menuBar.levels[0]?.el;
+  if (!el) return;
+  menuBar.focusFrom = document.activeElement;
+  el.tabIndex = -1;
+  el.focus({ preventScroll: true });
+  el.addEventListener('focusout', () => setTimeout(() => {
+    if (menuBar.levels[0]?.el !== el || document.hasFocus() && el.contains(document.activeElement)) return;
+    menuBar.focusFrom = null;
+    closeMenus();
+  }));
 }
 
 // A menu of its own below an element (a bar's Convert button).

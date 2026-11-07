@@ -363,7 +363,7 @@ function openRulerPanel(p, x, y) {
   ];
   const choose = colour => { p.colour = colour; };
   const isOther = () => p.colour !== null && !TAB_COLOURS.some(([c]) => c === p.colour);
-  openPopupMenu([
+  openContextMenu([
     ...actions, '-',
     { label: 'Clear column guid&es', enabled: guideCols(0).length > 0, run: () => { for (const n of ['columnGuideStart', 'columnGuideStep', 'columnGuideExtra']) setSetting(n, 0); } },
     { label: 'Clear &all tab stops', enabled: lines.some(isTabStop), run: () => clearLines(doc, 'tab') },
