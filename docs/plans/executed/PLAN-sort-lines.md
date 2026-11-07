@@ -249,6 +249,12 @@ None.
   2 seconds or longer (`sortPreviewWarn`, Settings > Editor > Sort; Never, 1 to 10 seconds) shows a line above it with
   the time it took and the setting; a click (or Enter) on it opens Settings at that setting (host `openSetting`, the
   settings page's `showSetting`: its tab, the row in view with the focus, flashing).
+- **Highlights go along** (your report after the build, 2026-11-07: after a sort and its undo a note lost its place
+  and its mark): the sort replaces its text in one go, which took the highlights' marks with it. Now each highlight in
+  the sorted text moves to where its text went (a line, a CSV record, a block part), on Apply and on its Undo and Redo
+  (an editor's beforeChange of origin undo / redo that is exactly a sort kept in the document, `sortMoves`, the last
+  20). One spanning parts that no longer follow each other keeps the part it starts in; one whose text was removed (a
+  duplicate) goes as with any deleted text.
 - **Templates** (your answers after the build, 2026-11-07): a stored sort can be pinned as a template (`templates`
   in sorts.json, kept through Save, Rename and replacing under its name); the templates come first in the list, a
   divider, then the others, each part by name. Right-click a regular one: Select (also a double-click, Enter),

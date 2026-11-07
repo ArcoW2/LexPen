@@ -903,6 +903,7 @@ async function ensureEditor(pane) {
   pane.cm.on('scroll', () => onEditorScroll(pane));
   pane.cm.on('paste', (cm, e) => onEditorPaste(pane, e));
   pane.cm.on('change', (cm, change) => electricReformat(cm, change));   // a closing word typed: its column (format.js)
+  pane.cm.on('beforeChange', (cm, change) => { if (typeof sortBeforeChange === 'function') sortBeforeChange(pane, change); });   // Undo / Redo of a sort: its highlights along (sort.js)
   setupColumn(pane);   // column mode and blocks (column.js); its paste handler comes after the picture one
   setupVirtual(pane);   // the cursor past the end of the line (virtual.js); its keys before column mode's
   setupCursors(pane);   // multiple cursors (cursors.js); its keys before virtual.js's

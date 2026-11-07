@@ -101,7 +101,7 @@ function sortOrder(items, spec, count, compare) {
 
 // Lines sorted as text. box: a block ({ left, right }, visual columns from 0): only each line's part in it moves, the
 // keys counted from its left edge. Gives the new lines (fewer when lines were removed; a block keeps the count, the
-// removed parts emptied at the bottom).
+// removed parts emptied at the bottom). The result's order: which line (a block: which line's part) each one is.
 function sortTextLines(lines, spec, stops, box = null) {
   const cmp = sortComparer(spec), keys = spec.keys;
   const items = lines.map(text => {
@@ -111,9 +111,9 @@ function sortTextLines(lines, spec, stops, box = null) {
     return { text, piece, keys: ks, dup: spec.dupsWhole ? part : ks.join('\u0001'), empty: !part.trim() };
   });
   const order = sortOrder(items, spec, keys.length, (k, a, b) => { const c = cmp(a.keys[k], b.keys[k]); return keys[k].desc ? -c : c; });
-  if (!box) return order.map(i => items[i].text);
+  if (!box) return Object.assign(order.map(i => items[i].text), { order });
   const pieces = order.map(i => items[i].piece), width = box.right - box.left;
-  return lines.map((text, r) => {
+  return Object.assign(lines.map((text, r) => {
     const p = pieces[r] ?? '', toCh = textCh(text, box.right, stops), rest = text.slice(toCh);
     let before = text.slice(0, textCh(text, box.left, stops));
     const short = box.left - textColumn(text, text.length, stops);   // the line ends before the block
@@ -121,7 +121,7 @@ function sortTextLines(lines, spec, stops, box = null) {
     // A piece with text after it is filled up to the block's width (the rest stays in its column); at the line's
     // end it is not.
     return before + (rest ? p + ' '.repeat(Math.max(0, width - visualText(p, stops).length)) : p) + rest;
-  });
+  }), { order });
 }
 
 // A CSV field's value for its column's type: { empty } or { ok, v, s }.
@@ -182,7 +182,10 @@ function sortCsvRecords(text, def, spec, fromLine = null, toLine = null, limit =
     const c = x.ok && !x.text ? (x.v > y.v ? 1 : x.v < y.v ? -1 : 0) : cmp(x.s, y.s);
     return desc ? -c : c;
   });
-  return { start, end, text: order.map(i => segs[i]).join('\n') + (text.slice(start, end).endsWith('\n') ? '\n' : ''), cut };
+  // Where each record went (sortMovePlaces): its old place [a, b) and its new start n.
+  let n = start;
+  const pieces = order.map(i => { const a = read.rows[first + i].start, p = { a, b: a + segs[i].length, n }; n += segs[i].length + 1; return p; });
+  return { start, end, text: order.map(i => segs[i]).join('\n') + (text.slice(start, end).endsWith('\n') ? '\n' : ''), cut, pieces };
 }
 
 // ---------- What is sorted ----------
@@ -221,7 +224,7 @@ function sortResult(t, spec, limit = 0) {
     if (!sortIsCsv(t.doc)) return { problem: 'This file has no columns: sort it as text.' };
     const text = docText(t.doc).replace(/\r\n?/g, '\n');
     const r = sortCsvRecords(text, t.doc.csvDef, spec, t.kind === 'lines' && !t.all ? t.from : null, t.kind === 'lines' && !t.all ? t.to : null, limit);
-    return r.problem ? r : { from: r.start, to: r.end, text: r.text, cut: r.cut };
+    return r.problem ? r : { from: r.start, to: r.end, text: r.text, cut: r.cut, pieces: r.pieces };
   }
   const problem = sortKeysProblem(spec, t);
   if (problem) return { problem };
@@ -232,9 +235,89 @@ function sortResult(t, spec, limit = 0) {
   const lines = [];
   for (let l = top; l <= bottom; l++) lines.push(cd.getLine(l));
   const out = sortTextLines(lines, spec, stops, t.kind === 'block' ? { left: t.left, right: t.right } : null);
-  return { from: cd.indexFromPos(CodeMirror.Pos(top, 0)), to: cd.indexFromPos(CodeMirror.Pos(bottom, cd.getLine(bottom).length)),
-    text: out.join('\n'), lines: out, top, cut };
+  const from = cd.indexFromPos(CodeMirror.Pos(top, 0));
+  return { from, to: cd.indexFromPos(CodeMirror.Pos(bottom, cd.getLine(bottom).length)),
+    text: out.join('\n'), lines: out, top, cut, pieces: () => sortTextPieces(lines, out, from, stops, t.kind === 'block' ? t : null) };
 }
+
+// Where each part of the text went (for the highlights, sortCarry): [{ a, b, n }], old offsets [a, b) now at n. A line
+// moves whole; in a block each line keeps its text left and right of the block (moved by what the block part became)
+// and the block part comes from the line in the order.
+function sortTextPieces(lines, out, from, stops, box) {
+  const pieces = [];
+  const starts = [];
+  for (let i = 0, at = from; i < lines.length; i++) { starts.push(at); at += lines[i].length + 1; }
+  let n = from;
+  out.forEach((line, r) => {
+    if (!box) {
+      const o = out.order[r];
+      pieces.push({ a: starts[o], b: starts[o] + lines[o].length, n });
+    } else {
+      const text = lines[r], left = textCh(text, box.left, stops), right = textCh(text, box.right, stops), rest = text.length - right;
+      pieces.push({ a: starts[r], b: starts[r] + left, n });
+      pieces.push({ a: starts[r] + right, b: starts[r] + text.length, n: n + line.length - rest });
+      const o = out.order[r];
+      if (o !== undefined) {
+        const src = lines[o], pa = textCh(src, box.left, stops), pb = textCh(src, box.right, stops);
+        const short = box.left - textColumn(text, text.length, stops);
+        pieces.push({ a: starts[o] + pa, b: starts[o] + pb, n: n + left + (short > 0 && pb > pa ? short : 0) });
+      }
+    }
+    n += line.length + 1;
+  });
+  return pieces;
+}
+
+// ---------- The highlights go along ----------
+// A sort replaces its text in one go, which takes the highlights' marks with it. So the highlights in it are moved to
+// where their text went (pieces), before the change (their marks cleared, else the undo would bring back the old ones
+// too) and placed after it. One that spans parts that no longer follow each other keeps the part it starts in (or,
+// starting before the sorted text, the part before it); one whose text went (a duplicate removed) goes as when its
+// text is deleted. Undo and Redo of a sort move them back and forth the same way (sortBeforeChange).
+function sortCarry(doc, lo, hi, newLen, pieces) {
+  if (typeof placedHls !== 'function' || !doc.hls?.loaded) return () => {};
+  const text = docText(doc), delta = newLen - (hi - lo), moved = [];
+  const pieceOf = o => pieces.find(p => p.a <= o && o < p.b);
+  const at = o => { const p = pieceOf(o); return p ? p.n + o - p.a : null; };
+  const atEnd = o => { const p = pieces.find(q => q.a < o && o <= q.b); return p ? p.n + o - p.a : null; };
+  for (const h of placedHls(doc)) {
+    const r = hlRange(doc, h);
+    if (!r) continue;
+    const ha = hlOffset(text, r.from), hb = hlOffset(text, r.to);
+    if (hb <= lo || ha >= hi) continue;
+    let a = ha < lo ? ha : at(ha), b = hb > hi ? hb + delta : atEnd(hb);
+    if (a !== null && (b === null || b - a !== hb - ha)) {
+      const p = ha < lo ? null : pieceOf(ha);
+      b = p ? p.n + Math.min(hb, p.b) - p.a : lo;
+    }
+    clearHlMarks(h);
+    if (a !== null && b > a) moved.push({ h, a, b });
+  }
+  return () => {
+    if (!moved.length) return;
+    const now = docText(doc);
+    for (const { h, a, b } of moved) Object.assign(h, { from: hlPlace(now, a), to: hlPlace(now, b), markKey: null });
+    changedHighlights(doc);
+  };
+}
+
+// The sorts done in a document, to carry its highlights on Undo and Redo: { lo, oldText, newText, pieces } (the last
+// few).
+const SORT_MOVES_KEPT = 20;
+function sortBeforeChange(pane, change) {
+  const doc = pane.active?.doc;
+  if (!doc?.sortMoves?.length || (change.origin !== 'undo' && change.origin !== 'redo')) return;
+  const cd = pane.cm.getDoc(), a = cd.indexFromPos(change.from), b = cd.indexFromPos(change.to), text = change.text.join('\n');
+  for (const m of doc.sortMoves) {
+    if (a !== m.lo) continue;
+    let done = null;
+    if (b === m.lo + m.newText.length && text === m.oldText)   // undone: back where they were
+      done = sortCarry(doc, a, b, m.oldText.length, m.pieces.map(p => ({ a: p.n, b: p.n + p.b - p.a, n: p.a })));
+    else if (b === m.lo + m.oldText.length && text === m.newText) done = sortCarry(doc, a, b, m.newText.length, m.pieces);
+    if (done) { queueMicrotask(done); return; }
+  }
+}
+
 
 // A key's From / To that does not fit: why, or null.
 function sortKeysProblem(spec, t) {
@@ -259,7 +342,12 @@ async function sortApply(t, spec) {
   }
   const from = cd.posFromIndex(r.from), to = cd.posFromIndex(r.to);
   if (cd.getRange(from, to) === r.text) { toast('Already in this order.', true); return true; }
+  const pieces = typeof r.pieces === 'function' ? r.pieces() : r.pieces, old = cd.getRange(from, to);
+  const done = sortCarry(t.doc, r.from, r.to, r.text.length, pieces);
   cd.replaceRange(r.text, from, to, '+sort');
+  done();
+  (t.doc.sortMoves ??= []).unshift({ lo: r.from, oldText: old, newText: r.text, pieces });
+  t.doc.sortMoves.length = Math.min(t.doc.sortMoves.length, SORT_MOVES_KEPT);
   if (t.kind === 'block' && t.cm) setBlock(t.cm, { line: t.top, col: t.left }, { line: t.bottom, col: t.right });
   else if (!t.all) cd.setSelection(from, cd.posFromIndex(r.from + r.text.length));
   return true;
