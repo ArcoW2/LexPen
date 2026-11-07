@@ -25,13 +25,13 @@ a line under the table that says how many.
 | 1 | ART-1001 | WH-2 | A-01-1 | 37 | Row 1 of the long table |
 | 2 | ART-1002 | WH-3 | A-02-2 | 74 | Row 2 of the long table |
 | 3 | ART-1003 | WH-4 | A-03-3 | 111 | Row 3 of the long table |
-| 4 | ART-1004 | Warehouse-1 | A-04-4 | 148 | Row 4 of the long table |
+| 4 | ART-1004 | WH-1 | A-04-4 | 148 | Row 4 of the long table |
 | 5 | ART-1005 | WH-2 | A-05-5 | 185 | Row 5 of the long table |
 | 6 | ART-1006 | WH-3 | A-06-6 | 222 | Row 6 of the long table |
 | 7 | ART-1007 | WH-4 | A-07-0 | 259 | Row 7 of the long table |
 | 8 | ART-1008 | WH-1 | A-08-1 | 296 | Row 8 of the long table |
 | 9 | ART-1009 | WH-2 | A-09-2 | 333 | Row 9 of the long table |
-| 10 | ART-1010 | WH-3 | A-10-3 | 370 | Row 10 of the long table |
+| 10 | ART-1010 | Warehouse-3<br>With an extra line<br>and another one<br>and the final line of this cell| A-10-3 | 370 | Row 10 of the long table |
 | 11 | ART-1011 | WH-4 | A-11-4 | 407 | Row 11 of the long table |
 | 12 | ART-1012 | WH-1 | A-12-5 | 444 | Row 12 of the long table |
 | 13 | ART-1013 | WH-2 | A-13-6 | 481 | Row 13 of the long table |

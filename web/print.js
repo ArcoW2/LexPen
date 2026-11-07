@@ -505,7 +505,7 @@ async function layout() {
   pagesEl.replaceChildren();
   // At its own size while paged.js measures: a zoom meanwhile (fit, on a scroll bar appearing) would break the pages.
   pp.laying = true;
-  zoomEl.style.zoom = 1;
+  setScale(1);
   previewer = new PagedModule.Previewer();
   const id = ++pp.layoutId;
   previewer.chunker.hooks.afterPageLayout.register(() => { if (pp.layoutId !== id) throw new Error('stopped for a newer layout'); });
@@ -531,16 +531,17 @@ async function layout() {
     const here = [...page.querySelectorAll('table')].find(t => t.dataset.ref === ref || t.dataset.splitFrom === ref);
     here?.classList.add('pp-continues');
   });
-  // The marks beside those tables, just outside them (in the page's room, which does not cut them off).
+  // The marks of those tables, at their middle.
   previewer.chunker.hooks.afterPageLayout.register(page => {
-    const box = page.querySelector('.pagedjs_page_content');
-    if (!box) return;
-    const z = box.getBoundingClientRect().width / box.offsetWidth || 1, at = box.getBoundingClientRect();
     for (const t of page.querySelectorAll('table.pp-continues, table.pp-continued')) {
-      const r = t.getBoundingClientRect(), left = (r.left + r.width / 2 - at.left) / z - 24;
-      const mark = (cls, top) => box.insertAdjacentHTML('beforeend', `<div class="pp-mark ${cls}" style="left: ${left}px; top: ${top}px"></div>`);
-      if (t.classList.contains('pp-continued')) mark('pp-mark-up', (r.top - at.top) / z - 9);
-      if (t.classList.contains('pp-continues')) mark('pp-mark-down', (r.bottom - at.top) / z + 3);
+      // In the page's box, not in its content: that is laid out in columns, and a mark below its bottom would go into
+      // a next column off the page. The table's margin on that side is none (CSS), so its edge is where the rows end.
+      const box = page.querySelector('.pagedjs_pagebox');
+      let left = t.offsetWidth / 2 - 24, top = 0;
+      for (let el = t; el && el !== box; el = el.offsetParent) { left += el.offsetLeft; top += el.offsetTop; }
+      const mark = (cls, y) => box.insertAdjacentHTML('beforeend', `<div class="pp-mark ${cls}" style="left: ${left}px; top: ${y}px"></div>`);
+      if (t.classList.contains('pp-continued')) mark('pp-mark-up', top - 9);
+      if (t.classList.contains('pp-continues')) mark('pp-mark-down', top + t.offsetHeight + 3);
     }
   });
   const tpl = document.createElement('template');
@@ -570,7 +571,7 @@ async function layoutPdf() {
   previewer?.polisher?.destroy?.();
   previewer?.chunker?.destroy?.();
   previewer = null;
-  zoomEl.style.zoom = 1;
+  setScale(1);
   pagesEl.innerHTML = `<div class="pp-sheets pp-doc pp-hl-${o.highlights}${o.colours === 'bw' ? ' pp-bw' : ''}">${boxes.map((b, i) => sheetHtml(b, i + 1)).join('')}</div>`;
   if (o.notes === 'end') addEndNotes(pagesEl.querySelector('.pp-sheets'), s.notes ?? []);
   pp.pages = sheets().length;
@@ -863,8 +864,10 @@ function contentCss() {
 .pp-cut { font-style: italic; color: var(--fg-dim, #666); margin-top: 0.3em; }
 /* A table over pages: a wide V under the part that goes on, a wide ^ above the part that continues it (placed by
    layout(): a table's own ::before / ::after are not drawn). */
-.pp-mark { position: absolute; width: 48px !important; height: 6px !important;   /* paged.js makes its page content's divs full height */
+.pp-mark { position: absolute; z-index: 1; width: 48px !important; height: 6px !important;   /* paged.js makes its page content's divs full height */
    background: var(--fg-dim, #888); -webkit-mask: center / 48px 6px no-repeat; mask: center / 48px 6px no-repeat; }
+table.pp-continues { margin-bottom: 0 !important; }
+table.pp-continued { margin-top: 0 !important; }
 .pp-mark-down { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 6'%3E%3Cpath d='M1 1 24 5 47 1' fill='none' stroke='black' stroke-width='1.3'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 6'%3E%3Cpath d='M1 1 24 5 47 1' fill='none' stroke='black' stroke-width='1.3'/%3E%3C/svg%3E"); }
 .pp-mark-up { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 6'%3E%3Cpath d='M1 5 24 1 47 5' fill='none' stroke='black' stroke-width='1.3'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 6'%3E%3Cpath d='M1 5 24 1 47 5' fill='none' stroke='black' stroke-width='1.3'/%3E%3C/svg%3E"); }
 .pp-tablebox table { border-collapse: collapse; font: ${o.textSize}pt/1.3 ${font(o.textFont || s.editorFont, 'monospace')}; }
@@ -1164,8 +1167,23 @@ function fit() {
   if (!page || pp.laying) return;
   const how = $('.pp-fit').value, w = page.offsetWidth, h = page.offsetHeight;
   const room = { w: scrollEl.clientWidth - 40, h: scrollEl.clientHeight - 40 };
-  zoomEl.style.zoom = how === '100' ? 1 : how === 'width' ? room.w / w : Math.min(room.w / w, room.h / h);
+  setScale(how === '100' ? 1 : how === 'width' ? room.w / w : Math.min(room.w / w, room.h / h));
 }
+// The pages at a size: scaled (a transform: their text wraps as on paper; a CSS zoom would wrap it a little
+// differently, rows would grow and the last one move off its page), in a box as large as they show for the scroll bars.
+let scale = 1;
+function setScale(s) {
+  scale = s;
+  pagesEl.style.transform = s === 1 ? '' : `scale(${s})`;
+  sizeZoom();
+}
+function sizeZoom() {
+  const scaled = scale !== 1;
+  pagesEl.style.margin = scaled ? '0' : '0 auto';
+  Object.assign(zoomEl.style, { minWidth: scaled ? '0' : '', margin: scaled ? '0 auto' : '',
+    width: scaled ? pagesEl.offsetWidth * scale + 'px' : '', height: scaled ? pagesEl.offsetHeight * scale + 'px' : '' });
+}
+new ResizeObserver(sizeZoom).observe(pagesEl);
 $('.pp-fit').addEventListener('change', fit);
 new ResizeObserver(() => fit()).observe(scrollEl);
 
