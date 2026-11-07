@@ -1,6 +1,6 @@
 # Plan: Printing and Save as PDF, with a preview
 
-Status: draft 2026-11-07, questions answered 2026-11-07; not started.
+Status: draft 2026-11-07, revised with the answers 2026-11-07; not started.
 The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
@@ -48,8 +48,7 @@ a file. A PDF document prints its own pages, with its highlights and notes drawn
   - in a margin beside the text, left or right, with a width of its own; each note at the height of its line;
   - at the bottom of the page where its highlight is, as footnotes;
   - at the end of the document, as a list.
-- Notes are listed by their marker number; a highlight without a note gets no number (unless the marker setting says
-  every highlight).
+- Notes are listed by their marker number (which highlights get one: section 4).
 - The same for a PDF: its highlights drawn on the page images where they sit on screen, the notes placed as above
   (a margin beside a PDF page shrinks the page to make room).
 
@@ -142,22 +141,6 @@ As the Sort panel's stored sorts (docs/plans/executed/PLAN-sort-lines.md):
 - By hand: a real printer (paper, duplex, colour) and the look of the preview.
 
 ## 4. Open questions
-
-Answered 2026-11-07:
-
-1. PDF: both. Save as PDF for any document, and an opened PDF can be printed; also Print... on a file in the Folder
-   pane (3.1).
-2. Notes: selectable, in a left or right margin with a width of its own, at the bottom of the page, or at the end; a
-   marker in the text; the highlight marked as chosen (shaded, underline, wavy underline, ...) (3.2).
-3. Always a window of its own (3.6).
-4. Colours selectable: a theme, black and white, greyscale; a warning for a dark theme (3.4).
-5. All kinds of 3.1 in the first build, images included, with a zoom (Auto, Fit to width / height / page) also for
-   PDF. Opening image files as documents: a plan of its own.
-6. A frame: optional, with its intensity (3.3).
-7. Ctrl+Shift+P and File > Print...; the font and size for text; stored settings with templates as the Sort's, in a
-   tab of their own (3.5).
-
-Still open:
 
 1. The marker in the text: a number for every highlight, or only for those with a note?
 2. The shared store: one class for both `sorts.json` and `prints.json` (SortStore made general), acceptable as part
