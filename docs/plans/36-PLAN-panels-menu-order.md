@@ -23,8 +23,8 @@ subject. No submenus: Panels is a submenu already, and plan 25 allows one level 
 | Group | Panels, in this order |
 |---|---|
 | Files and finding | Folder, Search, Bookmarks |
-| The document | Outline, Highlights, Columns (CSV), Sort |
-| Editing | Characters, Clipboards |
+| The document | Outline, Highlights, Columns (CSV) |
+| Editing | Characters, Clipboards, Sort |
 | Macros | Macros, Step by step |
 | LexPen | Settings, Keyboard shortcuts and commands, Messages, Theme sets, Manage projects |
 | (as now) | Dock area at the left / right / bottom |
@@ -35,6 +35,7 @@ subject. No submenus: Panels is a submenu already, and plan 25 allows one level 
 - The mnemonics stay as they are where they are still unique in the menu; only a clash is changed.
 - Each group starts with a dimmed heading (its name from the table), not clickable and skipped by the arrow keys.
 - Manage projects is in both places: in the LexPen group here, and in Window > Projects (plan 25).
+- Sort is in Editing, as its menu item is under Edit.
 - Messages stays with LexPen: it can report on anything, not only the document worked in.
 - Toolbar and keys are not touched: only `PANELS` in docks.js (its order, plus the headings) changes.
 
@@ -55,3 +56,4 @@ subject. No submenus: Panels is a submenu already, and plan 25 allows one level 
 1. A dimmed heading per group, not separators only.
 2. Manage projects: both, in the LexPen group and in Window > Projects.
 3. Messages: with LexPen; it can report on anything.
+4. Sort: in Editing, next to its menu item under Edit.
