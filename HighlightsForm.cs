@@ -63,6 +63,7 @@ sealed class HighlightsForm : Form, IWebPost
 #endif
         core.Settings.IsZoomControlEnabled = false;
         WebFiles.Serve(core);
+        core.ContextMenuRequested += (_, m) => WebFiles.BrowserMenu(m);   // only on a text field or a selection
         core.WebMessageReceived += (_, m) =>
         {
             var json = m.WebMessageAsJson;

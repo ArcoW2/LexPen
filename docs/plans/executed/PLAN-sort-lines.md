@@ -251,10 +251,18 @@ None.
   settings page's `showSetting`: its tab, the row in view with the focus, flashing).
 - **Highlights go along** (your report after the build, 2026-11-07: after a sort and its undo a note lost its place
   and its mark): the sort replaces its text in one go, which took the highlights' marks with it. Now each highlight in
-  the sorted text moves to where its text went (a line, a CSV record, a block part), on Apply and on its Undo and Redo
-  (an editor's beforeChange of origin undo / redo that is exactly a sort kept in the document, `sortMoves`, the last
-  20). One spanning parts that no longer follow each other keeps the part it starts in; one whose text was removed (a
-  duplicate) goes as with any deleted text.
+  the sorted text moves to where its text went (a line, a CSV record, a block part). One that crosses the edge of what
+  is sorted (the selected lines, a block's side) or spans parts that no longer follow each other is split (your
+  answer, 2026-11-07): a highlight per part, each with its note, a line break at a part's end left out; parts that
+  still follow each other stay one. Undo puts back exactly what was there before (the one highlight whole again),
+  Redo the parts (an editor's beforeChange of origin undo / redo that is exactly a sort kept in the document,
+  `sortMoves`, the last 20; a highlight removed meanwhile stays removed). One whose text was removed (a duplicate)
+  goes as with any deleted text.
+- **The preview**: a double-click on a line puts the cursor on that line in the editor, where its text is now (a
+  block: the line its part comes from).
+- **Revert** goes back to the stored sort it is, or to the template a new sort started from (Use as new; the bottom
+  says "New from template" and its name); not an undo of Apply. Off for a sort from neither (New) and while
+  unchanged.
 - **Templates** (your answers after the build, 2026-11-07): a stored sort can be pinned as a template (`templates`
   in sorts.json, kept through Save, Rename and replacing under its name); the templates come first in the list, a
   divider, then the others, each part by name. Right-click a regular one: Select (also a double-click, Enter),

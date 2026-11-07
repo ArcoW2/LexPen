@@ -35,7 +35,7 @@ every action with its key.
   and its number on the ruler (shown while the panel is) in that colour. Ignore case (on; off: the order AaBbCc,
   aAbBcC, ABCabc or abcABC, stated for A to Z), numbers by value (`file2` before `file10`; a decimal sign, default
   `.`, and characters to ignore, default comma and space), remove duplicates (by the keys or the whole line,
-  ignoring leading and trailing whitespace if asked), remove empty lines. A preview shows the first lines (Settings > Editor > Sort: 100 by default, or All; a preview
+  ignoring leading and trailing whitespace if asked), remove empty lines. A preview (a double-click on a line: the cursor there in the editor) shows the first lines (Settings > Editor > Sort: 100 by default, or All; a preview
   that takes 2 seconds or longer says so, with that setting, a click on it opening the setting; the 2 seconds are a setting too) as they
   would come out, sorting only those; Apply sorts. A CSV sorts By columns (the default; its key columns marked in the column view) or As
   text: per key a column, compared by its type (numbers by value, dates as dates, empty fields last, values that do
@@ -47,7 +47,7 @@ every action with its key.
   template; a template: Use as new, Rename..., Edit, Unpin as template. A name another one has is refused;
   the sort as it is now is kept a moment after each change (not in the list) and LexPen opens with it again, with the
   name of the stored sort it came from (shown at the bottom, in italics when changed; Save stores it there, Revert
-  goes back to it; New starts a sort from the start; in a narrow panel Save, Save as..., Revert and New are under
+  goes back to it or to the template a new sort started from, not an undo; New starts a sort from the start; in a narrow panel Save, Save as..., Revert and New are under
   Manage); a stored sort is only written by
   Save or Save as. The actions `edit.sort`, `edit.sortAsc` and `edit.sortDesc` sort at
   once, with a stored sort's name as their parameter (keys.json, a macro) or without one (the whole line, a CSV its
@@ -443,6 +443,9 @@ every action with its key.
   bar (click it for 100%) and is kept.
 - **Safe by default**: a Content Security Policy blocks scripts embedded in a document's raw HTML.
 - **No printing**: there is no print command (also not in the right-click menu of the page).
+- **No browser menu**: where LexPen has no right-click menu of its own, there is none; the browser's (Cut, Copy,
+  Paste) only on a text field or a selection. The editor's and the preview's keep their Highlight items, panels never
+  show them.
 
 ## Compare
 

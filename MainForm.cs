@@ -407,7 +407,8 @@ sealed class MainForm : Form
             }).ToArray();
             BeginInvoke(() => OnMessage(json, files));
         };
-        // Printing is not a LexPen feature: the browser's right-click menu loses its Print item.
+        // The browser's right-click menu: in a document pane's editor and preview with LexPen's items (Highlight, ...),
+        // elsewhere only on a text field or a selection (WebFiles.BrowserMenu); never with Print, not a LexPen feature.
         core.ContextMenuRequested += async (_, m) =>
         {
             foreach (var item in m.MenuItems.Where(i => i.Name == "print").ToList()) m.MenuItems.Remove(item);
@@ -424,10 +425,13 @@ sealed class MainForm : Form
             var deferral = m.GetDeferral();
             try
             {
-                bool inDocument;
-                try { inDocument = await core.ExecuteScriptAsync("typeof contextInDocument === 'function' && contextInDocument()") == "true"; }
-                catch (Exception ex) when (ex is InvalidOperationException or COMException) { inDocument = false; }
+                // A panel docked here is a frame of its own: never the document (the page's last right-click was elsewhere).
+                bool inDocument = false;
+                if (m.ContextMenuTarget.FrameUri == m.ContextMenuTarget.PageUri)
+                    try { inDocument = await core.ExecuteScriptAsync("typeof contextInDocument === 'function' && contextInDocument()") == "true"; }
+                    catch (Exception ex) when (ex is InvalidOperationException or COMException) { inDocument = false; }
                 if (inDocument) AddDocumentItems(m);
+                else WebFiles.BrowserMenu(m);
                 File.WriteAllLines(Path.Combine(Path.GetTempPath(), "lexpen-ctx.txt"), Dump(m.MenuItems, ""));   // TEMP
                 static IEnumerable<string> Dump(IList<CoreWebView2ContextMenuItem> items, string indent) => items.SelectMany(i => new[] { $"{indent}{i.Name} | {i.Label} | {i.Kind}" }.Concat(i.Kind == CoreWebView2ContextMenuItemKind.Submenu ? Dump(i.Children, indent + "  ") : []));   // TEMP
             }

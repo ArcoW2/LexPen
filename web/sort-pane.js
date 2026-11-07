@@ -21,9 +21,9 @@ paneHandlers.sort = st => {
   again?.focus();
 };
 
-paneHandlers.sortPreview = ({ preview, problem, target, name, changed, slow, all }) => {
+paneHandlers.sortPreview = ({ preview, problem, target, name, origin, changed, slow, all }) => {
   if (!sp.st) return;
-  Object.assign(sp.st, { preview, problem, target, name, changed, slow, all });
+  Object.assign(sp.st, { preview, problem, target, name, origin, changed, slow, all });
   const w = $s('.sp-slow');
   if (w) { w.hidden = !slow; w.textContent = slowLine(); }
   $s('.sp-doc').innerHTML = docLine();
@@ -45,8 +45,12 @@ paneHandlers.focus = () => document.querySelector('.sp-body [data-f]:not([type=r
 const slowLine = () => sp.st.slow ? `The preview took ${(sp.st.slow / 1000).toFixed(1)} s. Settings > Editor > Sort: ${sp.st.all ? 'fewer lines than All' : 'fewer lines'} make it quicker (click to change).` : '';
 
 // The stored sort this one came from, at the bottom (not in the tab: a narrow panel cuts it there).
-// Changed since: the name in italics.
-const nameLine = () => sp.st.name ? (sp.st.changed ? `<i>${esc(sp.st.name)}</i> <span class="sp-dim">(changed)</span>` : esc(sp.st.name)) : '';
+// Changed since: the name in italics. A new sort from a template: that template's name (Revert goes back to it).
+const nameLine = () => {
+  const { name, origin, changed } = sp.st, shown = name ?? origin;
+  if (!shown) return '';
+  return (name ? '' : '<span class="sp-dim">New from template</span> ') + (changed ? `<i>${esc(shown)}</i> <span class="sp-dim">(changed)</span>` : esc(shown));
+};
 
 const docLine = () => sp.st.doc ? `${esc(sp.st.doc)} <span class="sp-dim">${esc(sp.st.target)}</span>` : '<span class="sp-dim">No document</span>';
 
@@ -109,7 +113,8 @@ const MANAGE = [
   { id: 'save', label: 'Save', on: st => !!(st.name && st.changed), title: st => st.name ? `Under its name: ${st.name}` : 'Under its name (select a stored sort first)' },
   { id: 'saveAs', label: 'Save as...', on: () => true, title: () => 'Under a new name' },
   '-',
-  { id: 'revert', label: 'Revert', on: st => !!(st.name && st.changed), title: st => st.name ? `Back to the stored sort ${st.name}` : 'Back to the stored sort (select one first)' },
+  { id: 'revert', label: 'Revert', on: st => !!((st.name || st.origin) && st.changed),
+    title: st => st.name ? `Back to the stored sort ${st.name} (not an undo: the text stays)` : st.origin ? `Back to the template ${st.origin} (not an undo: the text stays)` : 'Back to the stored sort or template it came from (none here)' },
   { id: 'new', label: 'New', on: () => true, title: () => 'A sort from the start' },
 ];
 // All the buttons when they fit on the panel's width, else Apply and Manage.
@@ -153,6 +158,10 @@ document.addEventListener('click', e => {
   const b = e.target.closest('button[data-do], .sp-slow');
   if (!b) return;
   toWindow({ kind: b.dataset.do, k: b.dataset.k === undefined ? null : +b.dataset.k });
+});
+document.addEventListener('dblclick', e => {
+  const line = e.target.closest('.sp-preview [data-l]');
+  if (line) toWindow({ kind: 'gotoLine', line: +line.dataset.l });
 });
 document.addEventListener('dblclick', e => { const item = e.target.closest('.sp-stored'); if (item) toWindow({ kind: 'select', i: +item.dataset.i }); });
 

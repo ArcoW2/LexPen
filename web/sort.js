@@ -269,40 +269,72 @@ function sortTextPieces(lines, out, from, stops, box) {
 }
 
 // ---------- The highlights go along ----------
-// A sort replaces its text in one go, which takes the highlights' marks with it. So the highlights in it are moved to
-// where their text went (pieces), before the change (their marks cleared, else the undo would bring back the old ones
-// too) and placed after it. One that spans parts that no longer follow each other keeps the part it starts in (or,
-// starting before the sorted text, the part before it); one whose text went (a duplicate removed) goes as when its
-// text is deleted. Undo and Redo of a sort move them back and forth the same way (sortBeforeChange).
+// A sort replaces its text in one go, which takes the highlights' marks with it. So each highlight in it goes where its
+// text went (pieces: a line, a CSV record, a block part): its marks cleared before the change (else an undo would
+// bring the old ones back too), placed after it. One that crosses the edge of what is sorted (the selected lines, a
+// block's side) or spans parts that no longer follow each other is split: a highlight per part, each with its note;
+// parts that still follow each other stay one. One whose text went (a duplicate removed) goes as with deleted text.
+// Gives what was done ([{ h, ha, hb, parts: [{ h, a, b }] }]), so Undo and Redo put back exactly what was there.
 function sortCarry(doc, lo, hi, newLen, pieces) {
-  if (typeof placedHls !== 'function' || !doc.hls?.loaded) return () => {};
-  const text = docText(doc), delta = newLen - (hi - lo), moved = [];
-  const pieceOf = o => pieces.find(p => p.a <= o && o < p.b);
-  const at = o => { const p = pieceOf(o); return p ? p.n + o - p.a : null; };
-  const atEnd = o => { const p = pieces.find(q => q.a < o && o <= q.b); return p ? p.n + o - p.a : null; };
+  if (typeof placedHls !== 'function' || !doc.hls?.loaded) return () => [];
+  const text = docText(doc), delta = newLen - (hi - lo), carried = [];
   for (const h of placedHls(doc)) {
     const r = hlRange(doc, h);
     if (!r) continue;
     const ha = hlOffset(text, r.from), hb = hlOffset(text, r.to);
     if (hb <= lo || ha >= hi) continue;
-    let a = ha < lo ? ha : at(ha), b = hb > hi ? hb + delta : atEnd(hb);
-    if (a !== null && (b === null || b - a !== hb - ha)) {
-      const p = ha < lo ? null : pieceOf(ha);
-      b = p ? p.n + Math.min(hb, p.b) - p.a : lo;
+    // Its parts, old [oa, ob) to new [a, b), in the old order; then those that still follow each other joined.
+    const parts = [];
+    if (ha < lo) parts.push({ oa: ha, ob: lo, a: ha, b: lo });
+    for (const p of pieces) {
+      const oa = Math.max(p.a, ha), ob = Math.min(p.b, hb);
+      if (ob > oa) parts.push({ oa, ob, a: p.n + oa - p.a, b: p.n + ob - p.a });
+    }
+    if (hb > hi) parts.push({ oa: hi, ob: hb, a: hi + delta, b: hb + delta });
+    parts.sort((x, y) => x.oa - y.oa);
+    const joined = [];
+    for (const q of parts) {
+      const last = joined[joined.length - 1];
+      if (last && q.oa - last.ob === q.a - last.b && q.a >= last.b) Object.assign(last, { ob: q.ob, b: q.b });
+      else joined.push({ ...q });
     }
     clearHlMarks(h);
-    if (a !== null && b > a) moved.push({ h, a, b });
+    carried.push({ h, ha, hb, parts: joined.map(({ a, b }) => ({ a, b })) });
   }
   return () => {
-    if (!moved.length) return;
-    const now = docText(doc);
-    for (const { h, a, b } of moved) Object.assign(h, { from: hlPlace(now, a), to: hlPlace(now, b), markKey: null });
-    changedHighlights(doc);
+    const now = docText(doc), list = hlsOf(doc).list;
+    // A part that starts or ends at a line break leaves it out (a highlight split at the edge of the sorted lines).
+    for (const c of carried) {
+      for (const q of c.parts) { while (q.b > q.a && now[q.b - 1] === '\n') q.b--; while (q.a < q.b && now[q.a] === '\n') q.a++; }
+      c.parts = c.parts.filter(q => q.b > q.a);
+    }
+    for (const c of carried) c.parts.forEach((q, i) => {
+      if (i === 0) { Object.assign(c.h, { from: hlPlace(now, q.a), to: hlPlace(now, q.b), markKey: null }); q.h = c.h; }
+      else { q.h = describe(now, q.a, q.b, { id: ++hl.id, note: c.h.note, state: c.h.state ?? '' }); list.push(q.h); }
+    });
+    if (carried.length) changedHighlights(doc);
+    return carried.filter(c => c.parts.length);
   };
 }
 
-// The sorts done in a document, to carry its highlights on Undo and Redo: { lo, oldText, newText, pieces } (the last
-// few).
+// Undo / Redo of a sort: the highlights as they were before it (each whole again) or after it (its parts); one taken
+// away meanwhile (none of its parts left) stays away. Marks cleared before the change, placed after it.
+function sortPutBack(doc, carried, undo) {
+  const list = hlsOf(doc).list, live = carried.filter(c => c.parts.some(q => list.includes(q.h)));
+  for (const c of live) for (const q of c.parts) clearHlMarks(q.h);
+  return () => {
+    const now = docText(doc);
+    for (const c of live) {
+      for (const q of c.parts) { const i = list.indexOf(q.h); if (i >= 0) list.splice(i, 1); }
+      const back = undo ? [{ h: c.h, a: c.ha, b: c.hb }] : c.parts;
+      for (const q of back) { Object.assign(q.h, { from: hlPlace(now, q.a), to: hlPlace(now, q.b), markKey: null }); list.push(q.h); }
+    }
+    if (live.length) changedHighlights(doc);
+  };
+}
+
+// The sorts done in a document, to put its highlights back on Undo and Redo: { lo, oldText, newText, carried } (the
+// last few).
 const SORT_MOVES_KEPT = 20;
 function sortBeforeChange(pane, change) {
   const doc = pane.active?.doc;
@@ -310,14 +342,10 @@ function sortBeforeChange(pane, change) {
   const cd = pane.cm.getDoc(), a = cd.indexFromPos(change.from), b = cd.indexFromPos(change.to), text = change.text.join('\n');
   for (const m of doc.sortMoves) {
     if (a !== m.lo) continue;
-    let done = null;
-    if (b === m.lo + m.newText.length && text === m.oldText)   // undone: back where they were
-      done = sortCarry(doc, a, b, m.oldText.length, m.pieces.map(p => ({ a: p.n, b: p.n + p.b - p.a, n: p.a })));
-    else if (b === m.lo + m.oldText.length && text === m.newText) done = sortCarry(doc, a, b, m.newText.length, m.pieces);
-    if (done) { queueMicrotask(done); return; }
+    const undo = b === m.lo + m.newText.length && text === m.oldText, redo = b === m.lo + m.oldText.length && text === m.newText;
+    if (undo || redo) return queueMicrotask(sortPutBack(doc, m.carried, undo));
   }
 }
-
 
 // A key's From / To that does not fit: why, or null.
 function sortKeysProblem(spec, t) {
@@ -345,8 +373,8 @@ async function sortApply(t, spec) {
   const pieces = typeof r.pieces === 'function' ? r.pieces() : r.pieces, old = cd.getRange(from, to);
   const done = sortCarry(t.doc, r.from, r.to, r.text.length, pieces);
   cd.replaceRange(r.text, from, to, '+sort');
-  done();
-  (t.doc.sortMoves ??= []).unshift({ lo: r.from, oldText: old, newText: r.text, pieces });
+  const carried = done();
+  (t.doc.sortMoves ??= []).unshift({ lo: r.from, oldText: old, newText: r.text, carried });
   t.doc.sortMoves.length = Math.min(t.doc.sortMoves.length, SORT_MOVES_KEPT);
   if (t.kind === 'block' && t.cm) setBlock(t.cm, { line: t.top, col: t.left }, { line: t.bottom, col: t.right });
   else if (!t.all) cd.setSelection(from, cd.posFromIndex(r.from + r.text.length));
@@ -387,7 +415,9 @@ appAction('edit.sortDesc', { title: 'Sort descending', hint: 'As Sort, every key
 // editor, and the preview with it. While it is shown, the ruler shows a text sort's keys. The page shows what is sent
 // here (sortState) and tells what is done there (fromSortPane).
 let sortChannel = null, sortView = null;
-const sortUi = { spec: null, doc: null, name: null, changed: false, focusKey: 0, page: 'sort', list: [], storedAt: 0, timer: 0, target: null };
+// name: the stored sort it is (Save stores there); origin: the template a new sort started from (Revert goes back to it,
+// Save does not change it).
+const sortUi = { spec: null, doc: null, name: null, origin: null, changed: false, focusKey: 0, page: 'sort', list: [], storedAt: 0, timer: 0, target: null };
 const sortShown = () => !!sortChannel && (sortChannel.floating || !!sortView?.offsetParent);
 const sortRulerWanted = () => sortShown() && sortUi.spec?.kind === 'text';
 const sortList = () => sortUi.spec.kind === 'columns' ? sortUi.spec.columns : sortUi.spec.keys;
@@ -479,16 +509,19 @@ function sortPreviewHtml(r, t) {
   const note = r.cut ? `\n<span class="sp-dim">(the first ${sortPreviewLimit()} ${sortUi.spec.kind === 'columns' ? 'records' : 'lines'} only; Apply sorts all)</span>` : '';
   return sortPreviewBody(r, t) + note;
 }
+// Each line says where its text is in the editor now (data-l: a double-click there puts the cursor on it).
 function sortPreviewBody(r, t) {
-  const spec = sortUi.spec;
+  const spec = sortUi.spec, at = (l, html) => `<span data-l="${l}">${html}</span>`;
   if (spec.kind === 'columns') {
-    const read = csvRead(docText(t.doc).replace(/\r\n?/g, '\n'), t.doc.csvDef);
-    const head = read.pre.map(p => `<span class="sp-dim">${sortEsc(p.text)}</span>`);
-    return [...head, ...r.text.split('\n').map(sortEsc)].join('\n');
+    const text = docText(t.doc).replace(/\r\n?/g, '\n'), read = csvRead(text, t.doc.csvDef);
+    const head = read.pre.map((p, i) => at(i, `<span class="sp-dim">${sortEsc(p.text)}</span>`));
+    const lines = [];
+    for (const p of r.pieces ?? []) text.slice(p.a, p.b).split('\n').forEach((s, j) => lines.push(at(hlPlace(text, p.a)[0] + j, sortEsc(s))));
+    return [...head, ...lines].join('\n');
   }
   const stops = t.cm ? stopsOf(t.cm) : { tab: 4, indent: 2, useTabs: false };
   const base = t.kind === 'block' ? t.left : 0;
-  return r.lines.map(line => {
+  return r.lines.map((line, ri) => {
     const vis = visualText(line, stops), colours = new Array(vis.length).fill(null);
     spec.keys.forEach((k, i) => {
       const a = base + k.from - 1, z = k.to === null ? (t.kind === 'block' ? t.right : vis.length) : base + k.to;
@@ -502,7 +535,7 @@ function sortPreviewBody(r, t) {
       out += colours[c] ? `<span style="background:color-mix(in srgb, ${colours[c]} 30%, transparent)">${s}</span>` : s;
       c = e;
     }
-    return out;
+    return at(r.top + (r.lines.order[ri] ?? ri), out);   // a block: the line its part comes from
   }).join('\n');
 }
 
@@ -511,7 +544,7 @@ function sortPreviewBody(r, t) {
 // under that name. A stored sort itself is only written by Save or Save as.
 function sortRemember() {
   clearTimeout(sortUi.rememberTimer);
-  sortUi.rememberTimer = setTimeout(() => host('sortLast', { sort: { sort: sortCopy(sortUi.spec), name: sortUi.name, changed: sortUi.changed } })
+  sortUi.rememberTimer = setTimeout(() => host('sortLast', { sort: { sort: sortCopy(sortUi.spec), name: sortUi.name, origin: sortUi.origin, changed: sortUi.changed } })
     .catch(() => {}), 300);
 }
 
@@ -538,7 +571,7 @@ function sortState(focusAt = null) {
   sortMarkCsvHeads();
   return { kind: 'sort', doc: docName(doc), target: sortTargetText(t), csv, page: sortUi.page, spec, names, cols,
     colours: sortList().map((_, i) => ({ bg: sortColour(i), fg: sortTextOn(sortColour(i)) })),
-    name: sortUi.name, changed: sortUi.changed, focusKey: sortUi.focusKey,
+    name: sortUi.name, origin: sortUi.origin, changed: sortUi.changed, focusKey: sortUi.focusKey,
     problem: r.problem ?? null, preview, slow, all: sortPreviewLimit() === 0,
     list: sortUi.list.map(e => ({ name: e.name, desc: sortDescription(sortFill(e.sort)), off: e.sort?.kind === 'columns' && !csv, template: !!e.template })),
     storedAt: sortUi.storedAt, focusAt };
@@ -555,7 +588,7 @@ function tellSortPane() {
     if (activeDoc() !== sortUi.doc || sortUi.page !== 'sort') return sortSend();
     const t = sortUi.target = sortTarget(), { r, preview, slow } = sortPreviewOf(t, sortUi.spec);
     sortChannel.send({ kind: 'sortPreview', preview, slow, all: sortPreviewLimit() === 0, problem: r.problem ?? null,
-      target: sortTargetText(t), name: sortUi.name, changed: sortUi.changed });
+      target: sortTargetText(t), name: sortUi.name, origin: sortUi.origin, changed: sortUi.changed });
     sortMarkCsvHeads();
     for (const pane of panes) if (pane.cm) drawRuler(pane);
   }, 150);
@@ -650,6 +683,7 @@ async function fromSortPane(m) {
     }
     case 'new': return sortNew();
     case 'revert': return sortRevert();
+    case 'gotoLine': return sortGotoLine(m.line);
     case 'openSetting': return host('openSetting', { name: 'sortPreviewLines' });
     case 'save': return sortSave(sortUi.name);
     case 'saveAs': return sortSaveAs();
@@ -662,18 +696,30 @@ async function fromSortPane(m) {
 function sortNew() {
   sortUi.spec = sortDefault();
   if (sortIsCsv(activeDoc())) sortUi.spec.kind = 'columns';
-  Object.assign(sortUi, { name: null, changed: false, focusKey: 0 });
+  Object.assign(sortUi, { name: null, origin: null, changed: false, focusKey: 0 });
   sortRemember();
   sortSend('grip');
   sortRedrawRuler();
 }
 
-// Revert: the stored sort it came from, as stored (the changes since gone).
+// A double-click on a line of the preview: the cursor on that line in the editor (where its text is now).
+async function sortGotoLine(line) {
+  const doc = sortUi.target?.doc, pane = editorPane();
+  if (!doc || pane?.active?.doc !== doc || !Number.isInteger(line)) return;
+  if (pane.active.mode === 'preview' || !pane.cm) await setMode('split');
+  goToLine(pane, line, true, true);
+  pane.cm?.setCursor(CodeMirror.Pos(line, 0));
+  focusPane(pane);
+}
+
+// Revert: the stored sort it is, or the template it started from, as stored (the changes since gone). Not an undo of
+// Apply: the text stays as it is.
 async function sortRevert() {
-  if (!sortUi.name) return;
+  const from = sortUi.name ?? sortUi.origin;
+  if (!from) return;
   await sortStoredList();
-  const e = sortUi.list.find(x => x.name.toLowerCase() === sortUi.name.toLowerCase());
-  if (!e) return toast(`The stored sort "${sortUi.name}" is not there any more.`);
+  const e = sortUi.list.find(x => x.name.toLowerCase() === from.toLowerCase());
+  if (!e) return toast(`The stored sort "${from}" is not there any more.`);
   sortUi.spec = sortFill(sortCopy(e.sort));
   if (sortUi.spec.kind === 'columns' && !sortIsCsv(activeDoc())) sortUi.spec.kind = 'text';
   Object.assign(sortUi, { changed: false, focusKey: 0 });
@@ -687,7 +733,7 @@ async function sortSave(name) {
   if (!name) return;
   await host('sortSave', { name, sort: sortCopy(sortUi.spec) });
   await sortStoredList();
-  Object.assign(sortUi, { name, changed: false });
+  Object.assign(sortUi, { name, origin: null, changed: false });
   sortRemember();
   sortSend();
   toast(`Sort "${name}" stored.`, true);
@@ -711,7 +757,8 @@ function sortSelectStored(i, edit = false) {
   if (!e || (e.sort?.kind === 'columns' && !sortIsCsv(activeDoc()))) return;
   sortUi.storedAt = i;
   sortUi.spec = sortFill(sortCopy(e.sort));
-  Object.assign(sortUi, { name: e.template && !edit ? null : e.name, changed: false, focusKey: 0, page: 'sort' });
+  const asNew = e.template && !edit;
+  Object.assign(sortUi, { name: asNew ? null : e.name, origin: asNew ? e.name : null, changed: false, focusKey: 0, page: 'sort' });
   sortRemember();
   sortSend();
   sortRedrawRuler();
@@ -727,6 +774,7 @@ async function sortRenameStored(i) {
   const other = sortUi.list.find(x => x !== e && x.name.toLowerCase() === name.toLowerCase());
   if (other || !await host('sortRename', { from: e.name, to: name })) return toast(`A stored sort "${other?.name ?? name}" exists: choose another name.`);
   if (sortUi.name?.toLowerCase() === e.name.toLowerCase()) { sortUi.name = name; sortRemember(); }
+  if (sortUi.origin?.toLowerCase() === e.name.toLowerCase()) { sortUi.origin = name; sortRemember(); }
   await sortStoredList();
   sortUi.storedAt = Math.max(0, sortUi.list.findIndex(x => x.name === name));
   sortSend('list');
@@ -748,6 +796,7 @@ async function sortDeleteStored() {
   await host('sortDelete', { name: e.name });
   await sortStoredList();
   if (sortUi.name?.toLowerCase() === e.name.toLowerCase()) { sortUi.name = null; sortRemember(); }
+  if (sortUi.origin?.toLowerCase() === e.name.toLowerCase()) { sortUi.origin = null; sortRemember(); }
   sortSend('list');
 }
 
@@ -770,7 +819,7 @@ function registerSortPane() {
   host('sorts').then(s => {
     sortUi.list = s?.list ?? [];
     const last = s?.last;
-    if (last?.sort) Object.assign(sortUi, { spec: sortFill(last.sort), name: last.name ?? null, changed: !!last.changed });
+    if (last?.sort) Object.assign(sortUi, { spec: sortFill(last.sort), name: last.name ?? null, origin: last.origin ?? null, changed: !!last.changed });
     else if (last) sortUi.spec = sortFill(last);
   }).catch(() => {});
 }
