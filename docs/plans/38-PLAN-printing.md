@@ -72,8 +72,7 @@ options. A PDF document prints its own pages, with its highlights and notes draw
   are set relative to it), code blocks follow the code size (the preview's fixed size for code is made relative on
   the print page). No zoom: a zoom would scale the height as well and leave the width unused. The images in it keep
   their own zoom (below).
-- **Zoom** (PDF pages, and images on their own or in Markdown / HTML): Auto (the document's own size, shrunk only when it does not fit), Fit to width,
-  Fit to height, Fit to page, or a percentage.
+- **Zoom** (PDF pages, and images on their own or in Markdown / HTML): Auto (the document's own size, shrunk only when it does not fit), Fit to width, Fit to height, Fit to page, or a percentage.
 - **Colours**: as 3.4.
 - **Highlights and notes**: as 3.2.
 - **Header and footer**: the file name, the page number "x of y", the date; each on or off.
@@ -97,8 +96,8 @@ As the Sort panel's stored sorts (docs/plans/executed/PLAN-sort-lines.md):
   cannot be given again; Save as... over a set warns, over a template refuses (use Edit).
 - Printer and paper are part of a set. A set whose printer is not installed: the default printer, with a line saying
   so.
-- Stored in `prints.json` in the data folder, the same form as `sorts.json`; SortStore's logic (list, templates,
-  rename, the last one) is shared rather than copied.
+- Stored in `prints.json` in the data folder by a store of its own (PrintStore), in the same form as `sorts.json`
+  and working as SortStore does (list, templates, rename, the last one); SortStore stays as it is.
 
 ### 3.6 The Print window and its preview
 
@@ -153,7 +152,7 @@ As the Sort panel's stored sorts (docs/plans/executed/PLAN-sort-lines.md):
 ### 3.9 Tests
 
 - Unit (C#): the stored print settings (save, list with templates first, rename refusing a taken name, the last one
-  kept apart), shared with the Sort's store tests where the logic is shared; the printer list read without failing
+  kept apart), as SortStore's tests do for the sorts; the printer list read without failing
   when there is none.
 - In the test copy by script: the page count changes with the margins, the font size and the zoom; the highlight
   marks, markers and notes appear only with their option and in the chosen place; the dark-theme warning; Save as PDF
@@ -164,5 +163,4 @@ As the Sort panel's stored sorts (docs/plans/executed/PLAN-sort-lines.md):
 
 ## 4. Open questions
 
-1. The shared store: one class for both `sorts.json` and `prints.json` (SortStore made general), acceptable as part
-   of this plan?
+None.
