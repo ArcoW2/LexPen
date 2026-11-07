@@ -451,7 +451,8 @@ every action with its key.
   auto, fit to width / height / page, a percentage); the whole document, the selected lines or pages (typed, or
   clicked in the preview). Paper, orientation, margins (each side its own), a frame, a header and a footer (each a text at
   the left, in the middle and at the right, with codes: $F the file name, $A with its path, $P the page, $T the
-  number of pages, $D the print date, $M the file date, in a date format of your own; without $T a page range prints
+  number of pages, $D the print date, $M the file date, in a date format of your own; **bold** and *italic*; without
+  $T a page range prints
   without waiting for the rest), fonts and sizes, the colours (the theme as on screen, another theme, black and white,
   greyscale; a dark page is warned about), the highlights (shaded, underlined, dotted, wavy, a box, bold; their colour and intensity) and their notes (a
   number in the text; the notes in the left or right margin, at the bottom of the page, or at the end; their size). Print sends

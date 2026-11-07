@@ -74,8 +74,9 @@ const HF_CODES = {
   f: 'the file name', a: 'the file with its path', p: 'the page', t: 'the number of pages (every page is laid out before printing)',
   d: 'the print date', m: 'the file date', $: 'a $',
 };
-const HF_HELP = Object.entries(HF_CODES).map(([c, what]) => `$${c.toUpperCase()} ${what}`).join(', ');
+const HF_HELP = Object.entries(HF_CODES).map(([c, what]) => `$${c.toUpperCase()} ${what}`).join(', ') + '; **bold**, *italic*, \\* an asterisk';
 const HF_KEYS = ['headLeft', 'headCenter', 'headRight', 'footLeft', 'footCenter', 'footRight'];
+const HF_BOXES = HF_KEYS.map((key, i) => [key, (i < 3 ? 'top' : 'bottom') + '-' + ['left', 'center', 'right'][i % 3]]);
 // A text in its pieces: { text } as it is, { code } for a code ($ and a letter of HF_CODES; another $ is text).
 function hfParts(text) {
   const parts = [];
@@ -91,6 +92,15 @@ function hfValue(code) {
   const s = pp.source;
   return code === 'f' ? s.title : code === 'a' ? s.path ?? s.title : code === 'd' ? dateText(pp.opt.dateFormat)
     : code === 'm' ? (pp.fileDate ? dateText(pp.opt.dateFormat, pp.fileDate) : '') : '';
+}
+// A text as HTML: the codes filled in (page `n`; null: the page and the total as paged.js counts them, .pp-pg and
+// .pp-pgs), then markdown's **bold** and *italic*; \* is an asterisk.
+function hfHtml(key, n) {
+  const star = t => escapeHtml(t).replace(/\*/g, '&#42;');
+  const html = hfParts(pp.opt[key]).map(p => p.text != null ? escapeHtml(p.text).replace(/\\\*/g, '&#42;')
+    : p.code === 'p' ? (n == null ? '<span class="pp-pg"></span>' : n)
+    : p.code === 't' ? (n == null ? '<span class="pp-pgs"></span>' : '<span class="pp-total"></span>') : star(hfValue(p.code))).join('');
+  return html.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\*(.+?)\*/g, '<i>$1</i>');
 }
 // The total is in a header or footer: every page is laid out before any is printed.
 const usesTotal = () => HF_KEYS.some(k => hfParts(pp.opt[k]).some(p => p.code === 't'));
@@ -181,7 +191,7 @@ function drawPanel() {
   html += `<div class="pp-row"><label>Date format</label><input type="text" class="pp-wide" data-k="dateFormat" value="${escapeHtml(o.dateFormat)}"` +
     ` placeholder="${escapeHtml(pp.datePattern)}" spellcheck="false" title="${DATE_HELP}"></div>
     <div class="pp-hint">${Object.entries(HF_CODES).map(([c, what]) => `<b>$${c.toUpperCase()}</b> ${escapeHtml(what.replace(/ \(.*\)/, ''))}`).join(', ')}.
-    With $T every page is laid out before printing.</div>`;
+    **<b>bold</b>**, *<i>italic</i>*. With $T every page is laid out before printing.</div>`;
 
   if (kind === 'text' || kind === 'table') html += `<h3>Text</h3><div class="pp-row"><label>Font</label>${fontList('textFont', s.editorFont, true)}</div>
     <div class="pp-row"><label>Size (pt)</label>${num('textSize', 4, 40, 0.5)}</div>` + (kind === 'text' ? `<div class="pp-row"><label>Line numbers</label><select data-k="lineNumbers">
@@ -561,9 +571,7 @@ ${more}`;
 }
 // A sheet: its header, `body` in the area, its footer with page `n` of the total (filled in when it is known).
 function sheetHtml(body, n) {
-  const o = pp.opt;
-  const text = key => hfParts(o[key]).map(p => p.text != null ? escapeHtml(p.text) : p.code === 'p' ? n : p.code === 't' ? '<span class="pp-total"></span>' : escapeHtml(hfValue(p.code))).join('');
-  const line = w => `<span>${text(w + 'Left')}</span><span>${text(w + 'Center')}</span><span>${text(w + 'Right')}</span>`;
+  const line = w => `<span>${hfHtml(w + 'Left', n)}</span><span>${hfHtml(w + 'Center', n)}</span><span>${hfHtml(w + 'Right', n)}</span>`;
   return `<div class="pp-sheet"><div class="pp-sheet-head">${line('head')}</div><div class="pp-sheet-area">${body}</div><div class="pp-sheet-foot">${line('foot')}</div></div>`;
 }
 // The notes at the end, after the sheets in `list`, on as many sheets as they need.
@@ -674,6 +682,8 @@ async function contentHtml() {
   tpl.innerHTML = `<div class="pp-doc pp-hl-${o.highlights} pp-notes-${o.notes}${lineNumbers() === 'off' ? ' pp-no-ln' : ''}${o.colours === 'bw' ? ' pp-bw' : ''}">${body}</div>`;
   const root = tpl.content.firstElementChild;
   if (kind !== 'pdf') dressContent(root);
+  // The header's and footer's texts, first: paged.js takes them into each page's margin boxes (pageCss).
+  root.insertAdjacentHTML('afterbegin', HF_BOXES.filter(([key]) => o[key]).map(([key, at]) => `<div class="pp-run-${at}">${hfHtml(key, null)}</div>`).join(''));
   if (o.notes === 'end' && notes.length)
     root.insertAdjacentHTML('beforeend', `<section class="pp-endnotes"><h4>Notes</h4><ol>${notes.map(n => `<li value="${n.n}">${escapeHtml(n.note)}</li>`).join('')}</ol></section>`);
   return tpl.innerHTML;
@@ -700,10 +710,8 @@ function pageCss() {
   const sideNotes = (o.notes === 'left' || o.notes === 'right') && viewOf() !== 'pdf';
   if (sideNotes) m[o.notes === 'left' ? 3 : 1] += side;
   const box = (where, content) => `@${where} { content: ${content}; font: 8pt ${cssString(s.appFont)}, sans-serif; color: var(--fg-dim, #666); }`;
-  // A text as a margin box's content: its pieces as strings, the page and the total as paged.js counts them.
-  const content = key => hfParts(o[key]).map(p => p.text != null ? cssString(p.text) : p.code === 'p' ? 'counter(page)' : p.code === 't' ? 'counter(pages)' : cssString(hfValue(p.code))).join(' ');
-  const boxes = [['head', 'top'], ['foot', 'bottom']].flatMap(([w, at]) => [['Left', 'left'], ['Center', 'center'], ['Right', 'right']]
-    .filter(([k]) => o[w + k]).map(([k, side]) => box(`${at}-${side}`, content(w + k))));
+  // A text in a margin box: its HTML (bold, italic) as a running element at the start of the content (contentHtml).
+  const boxes = HF_BOXES.filter(([key]) => o[key]).map(([key, at]) => box(at, `element(pp-${at})`));
   return `
 @page {
   size: ${w}mm ${h}mm; margin: ${m.map(v => v + 'mm').join(' ')};
@@ -711,6 +719,9 @@ function pageCss() {
   @footnote { border-top: 0.5pt solid color-mix(in srgb, currentColor 40%, transparent); padding-top: 1.5mm; margin-top: 2mm; }
 }
 .pagedjs_page { background: var(--bg, #fff); color: var(--fg, #000); --pp-ch: ${h - m[0] - m[2]}mm; }
+${HF_BOXES.map(([, at]) => `.pp-run-${at} { position: running(pp-${at}); }`).join('\n')}
+.pp-pg::after { content: counter(page); }
+.pp-pgs::after { content: counter(pages); }
 ${o.frame ? `.pagedjs_area { outline: ${o.frameWidth}pt solid color-mix(in srgb, var(--fg, #000) ${o.frameIntensity}%, transparent); outline-offset: 1.5mm; }` : ''}
 ${contentCss()}`;
 }
