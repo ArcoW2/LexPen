@@ -33,7 +33,8 @@ header stays on top and a record moves whole, also one with a line break in a qu
 - Opening the window, such a selection is widened to the whole lines in the editor itself (from the start of its
   first line to the end of its last), so you see exactly what will be sorted (your answer 2026-11-07). A selection
   that ends at the very start of a line does not take that line. Cancel leaves the widened selection as it is.
-- A block (column mode): only the block's part of each line is sorted; each row's block text is a key and moves to
+- A block (column mode): only the block's part of each line is sorted; each row's block text (from the From column
+  on, 3.2) is a key and the row's whole block text moves to
   its new row, the text left and right of the block stays where it is. A row shorter than the block's start gets
   spaces up to it when a piece lands there; a piece that ends at the line's end is not padded with trailing spaces.
 - Nothing selected: the whole file.
@@ -51,7 +52,10 @@ header stays on top and a record moves whole, also one with a line break in a qu
   equal letters.
 - Numbers by value ("natural" sort: `file2` before `file10`; a line that is a number sorts by its value).
 - From column: the key is the line from that column on (counted as the ruler counts, tabs expanded); 1 is the whole
-  line. With a block the column is the block's left edge and the field shows it, not editable.
+  line. With a block it works within the block (your answer 2026-11-07): it starts at the block's first column and
+  can be set to any column of the block (from its left edge to its right edge); the key is then the block's text from
+  that column to the block's right edge, and still the whole block part of the row moves. The column line (3.3) shows
+  it in the block.
 - Remove duplicates: the first one stays, the rest of the order is kept; it follows Ignore case, and a switch
   "ignore leading and trailing whitespace".
 - Remove empty lines (whitespace only counts as empty).
@@ -114,7 +118,8 @@ In-app: each option on a selection, on a block (only the block part moves, the r
 and on the whole file; natural sort; ignore case on and off, and off with B before b and b before B, each A to Z and Z to A (Z to A turns
 it round); duplicates with and without case and whitespace; empty
 lines; from a column; the last line without a break; undo is one step; the column line shown, moving with the field
-and gone after closing; the preview follows each option and matches what Apply does.
+and gone after closing; From column inside a block (its first column by default, another one of the block chosen:
+the key from there, the block part moving whole, a column outside the block not accepted); the preview follows each option and matches what Apply does.
 
 ## 4. Questions
 
