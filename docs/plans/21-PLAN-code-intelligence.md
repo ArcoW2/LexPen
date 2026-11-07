@@ -10,8 +10,9 @@ Go to definition, find all references, rename a symbol, errors while typing: Vis
 
 ## 2. The solution, in brief
 
-The simple level, without a language server: "Go to definition" looks up the word at the cursor in the definitions
-of the open files and of the folder in the Folder pane, its subfolders included. A definition is an outline entry of
+The simple level, without a language server: "Go to definition" looks up the name at the cursor, without its owner
+(schema), in the definitions of the open files and of the folder in the Folder pane, its subfolders included; an
+owner only orders the list of what is found. A definition is an outline entry of
 a group the language pack marks as one (procedures, functions, classes; not regions or TODOs). "Find references" is
 a whole-word search in those files. A line `call
 proc_name` thus finds `create or replace procedure proc_name` wherever it is in the folder. A full level through the
@@ -29,12 +30,21 @@ Language Server Protocol is not part of this plan.
 - **Index**: the definitions of every file of the folder whose language marks any, built in the background when the
   folder is shown and refreshed when a file changes (the folder watcher). The open files count as they are in the
   editor, saved or not.
-- **Go to definition** (F12): the word at the cursor (with an owner or schema before it, `dba.proc_name`, the part
-  the cursor is on) against the names in the index. One match opens the file at its line; more give a list (file,
-  line, the definition's line) to pick from.
-- **Names**: compared as the language compares them: SQL without regard to case, an owner or schema prefix and
-  quotes left off (`"dba"."proc_name"`, `dba.proc_name` and `proc_name` are the same name); case-sensitive languages
-  (C#, JavaScript) as written.
+- **Go to definition** (F12): the name at the cursor against the names in the index. One match opens the file at
+  its line; more give a list (file, line, the definition's line) to pick from.
+- **The name at the cursor**: the word at the cursor, extended over the separator and quotes the pack names (SQL:
+  `.`, `"` and `[ ]`), so the cursor anywhere in `"dba"."proc_name"` or `dba.proc_name` reads the whole qualified
+  name. Only F12 reads it so: the editor's words (double-click, Ctrl+Left / Right, whole-word search) stay as they are,
+  the dot a separator. Quotes off, split at the separator: the last part is the name, what is before it the owner
+  (schema, namespace). A definition in the index is split the same way.
+- **Names and owners**: names are compared without the owner, as the language compares them (SQL without regard to
+  case; C#, JavaScript as written). An owner never leaves a definition out: a `create procedure` without one is in the
+  owner of the connection that runs it, so `proc_name` at the cursor finds both `create procedure proc_name` and
+  `create procedure dba.proc_name`, and `dba.proc_name` at the cursor finds them both too. The owner only orders the
+  list: the same owner as at the cursor first, then those without one, then other owners.
+- **Per language**: the pack says how its names are written: the separator, the quote characters, whether case
+  counts (a setting next to its outline; defaults\languages\README.md describes it). A pack without it: plain words,
+  compared as written.
 - **Find references** (Shift+F12): Find in files for the word, whole word, in the same files; the results in the
   Find results panel as any search in files.
 - **SQL Anywhere**: the asa pack's outline already finds `create [or replace] procedure | function | view | event |
@@ -50,10 +60,12 @@ Language Server Protocol is not part of this plan.
 
 ### 3.1 Tests
 
-- Unit: name comparison (case, owner prefix, quotes per language); the index of a folder with nested subfolders; only
+- Unit: the name read at the cursor (on the owner, on the name, in quotes); name comparison (case, owner, quotes per
+  language); a definition without an owner and one with an owner both found, in the list's order; the index of a folder with nested subfolders; only
   entries of a marked group are definitions (a region of the same name is not found); a pack without marks gives none.
 - In-app: F12 on `proc_name` in `call proc_name` opens the file in a subfolder at its `create or replace procedure`;
-  two candidates give a list; F12 on `dba.proc_name` finds the same; an unsaved new definition in an open file is
+  two candidates give a list; F12 on `dba.proc_name` (the cursor on `dba` or on `proc_name`) finds the same, and a
+  `create procedure dba.proc_name` is found from a plain `call proc_name`; an unsaved new definition in an open file is
   found; Shift+F12 lists the calls.
 
 ## 4. Open questions
