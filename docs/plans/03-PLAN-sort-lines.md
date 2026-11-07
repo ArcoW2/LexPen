@@ -53,7 +53,10 @@ sort's name.
   A (your answer: each key its own direction). The
   key's text is the line from From up to and including To (counted as the ruler counts, tabs expanded); To empty: to
   the end of the line. The first key decides, each next one breaks the ties of the ones before it. "Add a key" adds a
-  key after the last (its From one past the last key's To); each key can be removed.
+  key after the last (its From one past the last key's To).
+- A key row is deleted (your answer 2026-11-07) with the delete button (x) at the end of its row, or Delete on the
+  row with the focus; the keys after it move up and take their new place's number and colour, the preview and the
+  ruler follow. The last key left cannot be deleted (its button greyed out): a sort has at least one key.
 - A key's To is never before its From (your answer 2026-11-07): a To before From is not accepted (the field says
   why); To equal to From is a key of one column. The From line is drawn at the left edge of column From, the To line
   at the right edge of column To, so the To line is always right of the From line.
@@ -134,7 +137,7 @@ A file with a column definition (docs/plans/executed/PLAN-csv-columns.md: the co
 the top of the Sort tab: **By columns** (the default for such a file) or **As text** (3.1 to 3.3 as for any file).
 
 - By columns: a list of sort keys, each a column (by its name from the header, else its number) and ascending or
-  descending; the first key decides, the next ones break ties. "Add a column" adds a key, each key can be removed and
+  descending; the first key decides, the next ones break ties. "Add a column" adds a key, each key row can be deleted as a text key's (3.2) and
   dragged to another place in the list (Alt+Up / Alt+Down too), as the text keys (your answer 2026-11-07: dragging
   in both lists is part of this plan). One key to start with: the first column, as for text (3.2).
 - Compared by the column's type from the definition: integer and decimal by value (`csvNumber`, with the column's
@@ -179,7 +182,8 @@ whitespace; empty lines; the last line without a break; undo is one step; the pr
 matches what Apply does.
 
 In-app, keys: one key From / To; To empty to the line's end; two and three keys (each next one breaks ties), each
-its own direction; a key added and removed; a key dragged to another place in the list (and Alt+Up / Alt+Down), the
+its own direction; a key added; a key row deleted with its button and with Delete (the ones after it renumbered and
+recoloured), the last key not deletable; a key dragged to another place in the list (and Alt+Up / Alt+Down), the
 order following; a second key before the first in the line and one partly overlapping it, each read for itself; a To before its From not accepted, To equal to From a one-column key; the column lines at
 each From and To, each key's in its own colour, the same colour in its row; each key's number in the ruler on its
 colour with a readable text colour (day and night), right of the From line and left of the To line (once for a narrow key, From side only for To empty); the
@@ -196,7 +200,8 @@ message and change nothing; each on a key in keys.json and in a macro; undo one 
 In-app, selection: one starting and ending inside lines is widened to the whole lines as the window opens (one ending
 at a line's start does not take that line), and stays so after Cancel; a CSV selection widened to whole records.
 
-In-app, a column file: one key ascending and descending; two keys (the second breaks ties); integer, decimal (with a
+In-app, a column file: one key ascending and descending; two keys (the second breaks ties); a key row deleted, the
+last one not; integer, decimal (with a
 decimal comma), date with its pattern, boolean and text columns; empty fields last both ways; a field that is not
 its type; a quoted field with a line break moves with its record; the header and skipped lines stay on top; the
 records' text unchanged; duplicates by the key columns and by the whole record; a selection of records; As text on
