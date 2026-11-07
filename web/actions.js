@@ -256,8 +256,8 @@ toggleAction('wrap', { title: 'Wrap long lines', hint: 'In the editor (code bloc
   () => setting('wrap'), () => setWrap(!setting('wrap')));
 appAction('messages', { title: 'Messages...', hint: 'What showed at the bottom of this window since it opened, with the time and the document (also a click on a message)', group: 'view',
   run: () => showMessages() });
-appAction('locateCursor', { title: 'Locate the cursor', hint: 'Rings shrink onto every cursor, in both panes when two show; a cursor out of view gets a marker at that edge (also a short tap on Ctrl)', group: 'view',
-  enabled: () => !!editorPane(), run: () => locateCursor(editorPane({ from: 'menu' })) });
+appAction('locateCursor', { title: 'Locate the cursor', hint: 'Rings shrink onto every cursor, in the editor and in the preview, in both panes when two show; a cursor out of view gets a marker at that edge (also a short tap on Ctrl)', group: 'view',
+  enabled: () => !!(editorPane() ?? panes[state.activePane])?.active, run: () => locateCursor(editorPane({ from: 'menu' }) ?? panes[state.activePane]) });
 toggleAction('overviewMark', { title: 'Scroll bar marks', hint: 'Show or hide this kind of mark on the editor\'s scroll bar', group: 'view',
   variants: [['find'], ['occurrences'], ['changes'], ['git'], ['bookmarks'], ['highlights'], ['compare']],
   variantTitles: { find: 'Scroll bar marks: find matches', occurrences: 'Scroll bar marks: occurrences', changes: 'Scroll bar marks: unsaved changes', git: 'Scroll bar marks: git changes', bookmarks: 'Scroll bar marks: bookmarks', highlights: 'Scroll bar marks: highlights', compare: 'Scroll bar marks: compare differences' } },

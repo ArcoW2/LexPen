@@ -272,7 +272,8 @@ every action with its key.
   own. Back in the window puts it at the pane it shows; closing it just closes it. A language without an outline
   (JSON, for example) greys out the pane's button and hides its outline; a floating one stays open, empty.
 - **Locate the cursor**: a short tap on Ctrl alone shows rings, in the find box's colour, shrinking onto every cursor,
-  in both panes when two show (side by side, a compare); a cursor out of view gets a marker at that edge (top: higher, bottom: lower) with its line number, several in one
+  in the editor and in the preview (its own cursor; not in a PDF), in both panes when two show (side by side, a
+  compare); a cursor out of view gets a marker at that edge (top: higher, bottom: lower) with its line number, several in one
   direction one marker with the count. A double tap scrolls to the cursor first (setting, off by default). Also View >
   Locate the cursor; settings in Editor view > Locate the cursor (on / off, the longest tap).
 - **Ctrl+Tab / Ctrl+Shift+Tab**: the next / previous tab in tab bar order; after the last tab of a pane on to the first
