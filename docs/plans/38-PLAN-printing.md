@@ -43,12 +43,13 @@ a file. A PDF document prints its own pages, with its highlights and notes drawn
 ### 3.2 Highlights and notes
 
 - **Highlights**: off, or on, marked as chosen: a shaded background (the highlight colour, lighter), an underline, a
-  wavy underline, a box, or bold. Each highlight gets a marker in the text (a small number) so its note can be found.
+  wavy underline, a box, or bold. A highlight with a note gets a marker in the text (a small number) so its note can be found; one without a note
+  gets none.
 - **Notes**: off, or placed:
   - in a margin beside the text, left or right, with a width of its own; each note at the height of its line;
   - at the bottom of the page where its highlight is, as footnotes;
   - at the end of the document, as a list.
-- Notes are listed by their marker number (which highlights get one: section 4).
+- Notes are listed by their marker number.
 - The same for a PDF: its highlights drawn on the page images where they sit on screen, the notes placed as above
   (a margin beside a PDF page shrinks the page to make room).
 
@@ -147,6 +148,5 @@ As the Sort panel's stored sorts (docs/plans/executed/PLAN-sort-lines.md):
 
 ## 4. Open questions
 
-1. The marker in the text: a number for every highlight, or only for those with a note?
-2. The shared store: one class for both `sorts.json` and `prints.json` (SortStore made general), acceptable as part
+1. The shared store: one class for both `sorts.json` and `prints.json` (SortStore made general), acceptable as part
    of this plan?
