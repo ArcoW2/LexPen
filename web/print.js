@@ -46,8 +46,8 @@ const pp = {
 };
 
 // The view a document prints as: rendered markdown or its text, a CSV's table or its text; a PDF its pages.
-const views = () => pp.source.kind === 'markdown' ? [['rendered', 'Rendered'], ['text', 'Text']]
-  : pp.source.kind === 'csv' ? [['table', 'Table'], ['text', 'Text']] : [];
+const views = () => pp.source.kind === 'markdown' ? [['rendered', 'Rendered (as the preview)'], ['text', 'Text (as the editor)']]
+  : pp.source.kind === 'csv' ? [['table', 'Table (as the preview)'], ['text', 'Text (as the editor)']] : [];
 const viewOf = () => pp.source.kind === 'pdf' ? 'pdf' : views().some(([v]) => v === pp.opt.view) ? pp.opt.view : views()[0]?.[0] ?? 'text';
 
 // ---------- The Print tab ----------
@@ -94,12 +94,12 @@ function drawPanel() {
   if (info?.colour) html += `<div class="pp-row"><label>Printer colour</label><select data-k="colourPrint"><option value="true"${o.colourPrint ? ' selected' : ''}>Colour</option><option value="false"${o.colourPrint ? '' : ' selected'}>Black and white</option></select></div>`;
 
   html += '<h3>What</h3>';
+  if (views().length) html += `<div class="pp-row"><label>As</label><select data-k="view">${views().map(([v, l]) => `<option value="${v}"${kind === v ? ' selected' : ''}>${l}</option>`).join('')}</select></div>`;
   html += `<div class="pp-row"><label>Print</label><select data-w="what"><option value="all"${pp.what === 'all' ? ' selected' : ''}>The whole document</option>` +
     (s.selection ? `<option value="selection"${pp.what === 'selection' ? ' selected' : ''}>The selected lines</option>` : '') +
     `<option value="pages"${pp.what === 'pages' ? ' selected' : ''}>Pages</option></select></div>`;
   if (pp.what === 'pages') html += `<div class="pp-row"><label>Pages</label><input type="text" class="pp-wide" data-w="ranges" value="${escapeHtml(pp.ranges)}" placeholder="1-3, 5" spellcheck="false"></div>
     <div class="pp-hint">Or click the pages in the preview.</div>`;
-  if (views().length) html += `<div class="pp-row"><label>As</label><select data-k="view">${views().map(([v, l]) => `<option value="${v}"${kind === v ? ' selected' : ''}>${l}</option>`).join('')}</select></div>`;
 
   html += '<h3>Layout</h3>';
   const margin = i => `<input type="number" data-m="${i}" min="0" max="100" step="0.5" value="${o.margins[i]}">`;
@@ -990,10 +990,13 @@ if (last?.settings) {
   pp.changed = !!last.changed;
 }
 if (pp.source.selection) pp.what = 'selection';
-pp.fonts = (await host('fonts').catch(() => [])).filter(f => fontUsable(f.name));
+// As the document showed where Print was chosen: the editor's text, or the preview's rendering (a CSV: its table).
+if (pp.source.from && views().length) pp.opt.view = pp.source.from === 'text' ? 'text' : views()[0][0];
 await checkPrinter();
 drawPanel();
 drawStored();
 drawName();
 schedule();
 $('.pp-scroll').focus();
+// The font lists after the rest: checking which fonts the page can use takes a moment.
+host('fonts').then(fonts => { pp.fonts = fonts.filter(f => fontUsable(f.name)); drawPanel(); }).catch(() => {});

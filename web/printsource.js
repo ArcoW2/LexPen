@@ -15,7 +15,10 @@ async function printDoc(doc, pane) {
   const cm = pane?.cm && pane.active?.doc === doc && pane.el.dataset.mode !== 'preview' ? pane.cm : null;
   const sel = cm && cm.somethingSelected() ? cm.listSelections()[0] : null;
   const lines = sel ? [Math.min(sel.anchor.line, sel.head.line), Math.max(sel.anchor.line, sel.head.line)] : null;
-  await host('print', { source: await printSource(doc, lines) });
+  // Printed from the editor: the text (coloured as there); from the preview: as rendered (split: the part with focus).
+  const mode = pane?.active?.doc === doc ? pane.el.dataset.mode : null;
+  const from = mode === 'edit' ? 'text' : mode === 'preview' ? 'rendered' : mode ? (pane.previewEl.contains(document.activeElement) ? 'rendered' : 'text') : null;
+  await host('print', { source: { ...await printSource(doc, lines), from } });
 }
 
 async function printPath(path) {
