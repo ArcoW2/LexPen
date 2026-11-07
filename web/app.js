@@ -4584,7 +4584,7 @@ async function projectMenuItems() {
       } }]),
     ],
   });
-  // Manage, New, Rename, Move this window to, then the projects (docs/plans/25-PLAN-menu-structure.md: Window > Projects).
+  // Manage, New, Rename, Move this window to, then the projects (docs/plans/executed/PLAN-menu-structure.md: Window > Projects).
   return [
     { label: '&Manage projects...', title: 'All projects in a window: open, close, merge, rename, delete', run: () => openToolPane('projects', 'openProjects') },
     { label: '&New project...', title: 'A new empty window in a new project', run: () => ask('New project', name => host('project', { kind: 'new', name })) },

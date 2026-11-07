@@ -8,7 +8,7 @@
 const PASS = Symbol('pass');   // returned by an action that does not apply here: the key keeps its own meaning
 
 // F1 shows the actions in these groups, in this order.
-// F1's groups are the menus (docs/plans/25-PLAN-menu-structure.md 3.6), then the setting toggles.
+// F1's groups are the menus (docs/plans/executed/PLAN-menu-structure.md 3.6), then the setting toggles.
 const ACTION_GROUPS = [['file', 'File'], ['edit', 'Edit'], ['select', 'Select'], ['find', 'Find'], ['go', 'Go'], ['format', 'Format'],
   ['view', 'View'], ['window', 'Window'], ['tools', 'Tools'], ['options', 'Options'], ['settings', 'Settings']];
 // An action's F1 group: the menu it is in (the first, its submenus included; not the ones filled when they open), else
@@ -571,7 +571,7 @@ const SETTING_ROWS = [
   { name: 'keepUnnamedProjects', group: 'General', sub: 'Windows', kind: 'toggle', title: 'Keep unnamed projects',
     hint: 'Windows with files but with an unnamed project ("Project n") are kept for reopening',
     hintOff: 'Windows with files for unnamed projects ("Project n") are not remembered for reopening' },
-  // WebView2's Voice typing in a document's right-click menu (docs/plans/25-PLAN-menu-structure.md 3.5; MainForm.cs).
+  // WebView2's Voice typing in a document's right-click menu (docs/plans/executed/PLAN-menu-structure.md 3.5; MainForm.cs).
   { name: 'voiceTyping', group: 'General', sub: 'Right-click menu', kind: 'toggle', title: 'Voice typing',
     hint: 'The right-click menu of a document offers Voice typing (More tools > Voice typing)',
     hintOff: 'No Voice typing in the right-click menu of a document' },

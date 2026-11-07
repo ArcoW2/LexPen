@@ -1,6 +1,6 @@
 # Plan: A menu structure that follows the features
 
-Status: proposal, not built; the questions answered 2026-11-02. Asked for on 2026-10-31, after plan 24 (docking) was complete:
+Status: executed (2026-11-07); see 5. As built. The action bar (3.7) moved to plan 39 (a ribbon). Asked for on 2026-10-31, after plan 24 (docking) was complete:
 "due to adding features, a bit disorienting. Make a good menu structure ... first the structure of the features, pure
 logically (by feature and/or by visibility and/or by UX flow), then the proposed menu. Later on we will have a bar with
 all actions (with icons) too ... In that document you can make a proposal for such a bar. Every action that is needed
@@ -304,7 +304,7 @@ file, edit, select, find, go, format, view, window, tools, options (and settings
 
 ### 3.7 A bar with all actions (proposal)
 
-The action bar gets a plan of its own; this section is its starting point. It is an optional row of icon buttons
+The action bar gets a plan of its own: docs/plans/39-PLAN-ribbon.md. This section was its starting point. It is an optional row of icon buttons
 under the menu bar, for the actions each user wants at hand: every user has other favourites, so the user edits it.
 It may even replace the menu bar, for a user who wants that (a setting). The top bar stays as it is. It is a second view on the same actions (each button runs an action, its tooltip shows the title and the
 key, as the menus do); it can be shown or hidden (View, and its own right-click).
@@ -357,7 +357,16 @@ A first proposal for its shipped content, left to right, in groups (to be settle
 
 None.
 
-## 5. Resolved during execution
+## 5. As built
 
-| Topic | As built |
-|---|---|
+- **The menus (3.4)**: as proposed, the ten menus on the bar, Projects inside Window, Help in Options. Added during
+  later work: Edit > Sort..., File > Copy name to Windows clipboard, Edit > Highlights > Move all highlights to where
+  the setting says; Window > Panels in groups (plan 36).
+- **The keys**: F2 / Shift+F2 / Ctrl+F2 for the bookmarks, Ctrl+F4 Close tab, Alt+F4 Close window.
+- **The right-click (3.5)**: the highlight items in one Highlight submenu; Voice typing (and More tools) only with the
+  setting.
+- **The F1 groups (3.6)**: not by changing each action's `group`, but taken from the menus themselves (actions.js
+  `actionGroup`: the menu an action sits in, else a mapping of the old group), so F1 and the menus cannot drift apart.
+- **Not built, and dropped**: Edit > Insert > Emoticon... (with an emoticon group in Characters, which needs a name
+  source of its own); the test that walks every menu (3.8). The menus are as wanted; neither is planned further.
+- **The action bar (3.7)**: not part of this plan any more; plan 39 (a ribbon).
