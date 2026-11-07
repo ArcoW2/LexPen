@@ -8,7 +8,9 @@ namespace LexPen;
 /// screen), else in the middle of its window. A sign (information, question, warning, error), a heading, a text,
 /// optional checkboxes (all checked) or choices (one checked), buttons, an optional "Show details". A button with a
 /// note is a command link (one under the other, its note under its name); the others are in a row at the right. The
-/// default button has the accent (Enter); one without a value is Cancel (Esc, as closing it).
+/// default button has the accent (Enter); one without a value is Cancel (Esc, as closing it). Each button has a key, as
+/// in Windows' boxes (Yes: Y, No: N, Cancel: C; no Alt needed): the first letter of its name, else its first one not
+/// taken by a button before it.
 /// </summary>
 sealed class AskForm : Form
 {
@@ -99,7 +101,7 @@ sealed class AskForm : Form
             var button = note is null
                 ? new Button
                 {
-                    Text = label, UseMnemonic = false, AutoSize = true, FlatStyle = FlatStyle.Flat, UseVisualStyleBackColor = false,
+                    Text = label, AutoSize = true, FlatStyle = FlatStyle.Flat, UseVisualStyleBackColor = false,
                     BackColor = main ? accent : bar, ForeColor = main ? Color.White : fg,
                     MinimumSize = new Size(LogicalToDeviceUnits(80), 0), Padding = new Padding(8, 2, 8, 2), Margin = new Padding(8, 0, 0, 0),
                 }
@@ -117,11 +119,13 @@ sealed class AskForm : Form
             if (value is null) CancelButton = button;
             return button;
         }
-        foreach (var (value, label, note) in q.Buttons.Where(b => b.Note is not null))
+        var taken = new HashSet<char>();
+        var buttons = q.Buttons.Select(b => (b.Value, Text: Keyed(b.Text, taken), b.Note)).ToList();   // their keys in their order
+        foreach (var (value, label, note) in buttons.Where(b => b.Note is not null))
             layout.Controls.Add(Make(value, label, note));
         // The other buttons at the right, in their order.
         var row = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.RightToLeft, Anchor = AnchorStyles.Right, Margin = new Padding(0, 10, 0, 0), WrapContents = false };
-        foreach (var (value, label, _) in q.Buttons.Where(b => b.Note is null).Reverse())
+        foreach (var (value, label, _) in buttons.Where(b => b.Note is null).Reverse())
             row.Controls.Add(Make(value, label, null));
         if (q.Details is not null)
         {
@@ -155,6 +159,14 @@ sealed class AskForm : Form
             app.ApplyCaption(this, w, true);
         };
         app.FollowCaption(this, () => w);
+    }
+
+    // A button's name with its key marked (&), an & of the name itself kept as one (&&).
+    static string Keyed(string label, HashSet<char> taken)
+    {
+        var at = Enumerable.Range(0, label.Length).FirstOrDefault(i => char.IsLetterOrDigit(label[i]) && taken.Add(char.ToUpperInvariant(label[i])), -1);
+        var text = label.Replace("&", "&&");
+        return at < 0 ? text : text.Insert(at + label[..at].Count(c => c == '&'), "&");
     }
 
     static StockIconId? SignIcon(Sign sign) => sign switch
@@ -303,7 +315,7 @@ sealed class AskForm : Form
         public Link(string label, string note, Color nameColour, Color noteColour, Color frame, Color hoverBack)
         {
             (this.label, this.note, this.nameColour, this.noteColour, this.frame, this.hoverBack) = (label, note, nameColour, noteColour, frame, hoverBack);
-            Text = label + "\n" + note;
+            Text = label + "\n" + note.Replace("&", "&&");   // label: with its key (&)
             SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer, true);
         }
 
@@ -327,7 +339,9 @@ sealed class AskForm : Form
             using (var pen = new Pen(frame, LogicalToDeviceUnits(1))) g.DrawRectangle(pen, 0, 0, Width - 1, Height - 1);
             var font = big ?? Font;
             var flags = TextFormatFlags.Left | TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix;
-            TextRenderer.DrawText(g, label, font, new Rectangle(Pad, Pad, Width - 2 * Pad, font.Height), nameColour, flags);
+            // Its key underlined, as Windows shows them (once Alt is pressed, unless Windows always shows them).
+            TextRenderer.DrawText(g, label, font, new Rectangle(Pad, Pad, Width - 2 * Pad, font.Height), nameColour,
+                flags & ~TextFormatFlags.NoPrefix | (ShowKeyboardCues ? 0 : TextFormatFlags.HidePrefix));
             TextRenderer.DrawText(g, note, Font, new Rectangle(Pad, Pad + font.Height + LogicalToDeviceUnits(2), Width - 2 * Pad, Font.Height), noteColour, flags);
             if (Focused && ShowFocusCues) ControlPaint.DrawFocusRectangle(g, Rectangle.Inflate(ClientRectangle, -3, -3));
         }
