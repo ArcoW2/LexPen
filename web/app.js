@@ -4915,6 +4915,15 @@ for (const menu of contextMenus) {
     if (b) markMenuItem(menu, b.disabled ? null : b, true);
   });
   menu.addEventListener('mouseleave', () => { if (!menuBar.fromContext) markMenuItem(menu, null); });
+  // The focus gone elsewhere (another pane, docked or floating; another program): it closes, the focus staying there.
+  // Once the focus has settled: Esc in Copy name's items, a click on an item, keep it in the menu or close it anyway.
+  menu.addEventListener('focusout', () => setTimeout(() => {
+    if (menu.hidden || document.hasFocus() && menu.contains(document.activeElement)) return;
+    contextFrom = null;
+    if (menuBar.fromContext) closeMenus();
+    hideMenus();
+    folderMenuDone();
+  }));
 }
 addEventListener('keydown', e => {
   const menu = contextMenus.find(m => !m.hidden);

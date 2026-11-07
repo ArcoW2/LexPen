@@ -66,6 +66,7 @@ function paneMenu({ x, y, above, closed, items }) {
     subMenu = Object.assign(document.createElement('div'), { className: 'mm-pane-menu', from: b });
     fill(subMenu, list);
     subMenu.onkeydown = e => { if (e.key === 'ArrowLeft') { e.preventDefault(); closeSub(); b.focus(); } };
+    subMenu.addEventListener('focusout', focusGone);
     document.body.append(subMenu);
     // Right of the item, else left of the menu; a pane too narrow for either: under the item, which stays readable.
     const r = b.getBoundingClientRect(), w = subMenu.offsetWidth;
@@ -77,6 +78,15 @@ function paneMenu({ x, y, above, closed, items }) {
   fill(menu, items);
   const outside = e => { if (!menu.contains(e.target) && !subMenu?.contains(e.target)) close(); };
   menu.onmouseleave = () => { if (!subMenu) menu.focus(); };
+  // The focus gone elsewhere (the window, another pane, another program): it closes, the focus staying there. Once
+  // the focus has settled: Esc or Left in the submenu puts it back in the menu.
+  function focusGone() {
+    setTimeout(() => {
+      const inside = document.activeElement && (menu.contains(document.activeElement) || subMenu?.contains(document.activeElement));
+      if (menu.isConnected && (!document.hasFocus() || !inside)) close(false);
+    });
+  }
+  menu.addEventListener('focusout', focusGone);
   const keys = e => {
     const level = subMenu?.contains(document.activeElement) ? subMenu : menu;
     const list = [...level.querySelectorAll('button')], at = list.indexOf(document.activeElement);
@@ -86,12 +96,12 @@ function paneMenu({ x, y, above, closed, items }) {
     e.preventDefault();
     if (subMenu) { const from = subMenu.from; closeSub(); from.focus(); } else close();
   };
-  function close() {
+  function close(restore = true) {
     closeSub();
     menu.remove();
     removeEventListener('pointerdown', outside, true);
     removeEventListener('keydown', keys, true);
-    if (document.activeElement === document.body) from?.focus?.();
+    if (restore && document.activeElement === document.body) from?.focus?.();
     if (closed) paneHandlers[closed]?.({ kind: closed });
   }
   addEventListener('pointerdown', outside, true);
