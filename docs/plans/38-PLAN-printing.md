@@ -1,6 +1,6 @@
 # Plan: Printing and Save as PDF, with a preview
 
-Status: draft 2026-11-07, revised with the answers 2026-11-07; not started.
+Status: draft 2026-11-07, revised 2026-11-07; not started.
 The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
@@ -61,7 +61,12 @@ a file. A PDF document prints its own pages, with its highlights and notes drawn
 - **Frame**: off, or a line around the text area, with its width and intensity.
 - **Text**: the font and size on paper (text and code; the editor's own font and zoom do not count), line numbers on
   or off.
-- **Zoom** (PDF pages and images): Auto (the document's own size, shrunk only when it does not fit), Fit to width,
+- **Rendered Markdown and HTML**: a font and size of their own for the body text, and a font and size for code. The
+  text flows to the paper's width and on to the next page; headings, lists and footnotes follow the body size (they
+  are set relative to it), code blocks follow the code size (the preview's fixed size for code is made relative on
+  the print page). No zoom: a zoom would scale the height as well and leave the width unused. The images in it keep
+  their own zoom (below).
+- **Zoom** (PDF pages, and images on their own or in Markdown / HTML): Auto (the document's own size, shrunk only when it does not fit), Fit to width,
   Fit to height, Fit to page, or a percentage.
 - **Colours**: as 3.4.
 - **Highlights and notes**: as 3.2.
