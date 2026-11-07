@@ -509,8 +509,8 @@ every action with its key.
 - **Preview place**: per editor pane the preview at the right of the text, at its left, above or below it (View >
   Preview place, or a right-click on the line between text and preview); kept with the window's layout.
 - **View > Panels**: every panel with a check when it is shown; choosing one shows it as it was last (it flashes a few times where it opened: docked its group, floating its
-  window's title bar) or hides it;
-  the dock areas open or closed; Reset docking. View > Document panels: Editor and Preview.
+  window's title bar) or hides it. The panels in groups under a dimmed heading: Files and finding, The document,
+  Editing, Macros, LexPen; then the dock areas open or closed; Reset docking. View > Document panels: Editor and Preview.
 - **Dock tab bars**: tabs that do not fit wrap over several rows or scroll in one row (setting dockTabBar); a tab
   dragged onto a head goes between the tabs where it is let go; the setting dockTabIntensity sets the contrast of the
   tab bars' colours.
