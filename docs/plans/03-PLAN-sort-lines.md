@@ -3,7 +3,8 @@
 Status: draft 2026-10-21; worked out 2026-11-07 with your answers (4): ignore case by default, one window with all
 options, Edit > Sort (not in Convert); a selection sorts only itself, a block only its own part; the sort columns
 shown in the editor; a live preview; Apply sorts. A column file (CSV) sorts by its columns too. Several sort keys
-(From / To); sorts stored by name, on a tab of their own. Not started. From the list "what UltraEdit or Visual
+(From / To), each its own direction and colour, dragged to reorder; sorts stored by name, on a tab of their own, and
+used by name from a key or a macro. Not started. From the list "what UltraEdit or Visual
 Studio has and LexPen does not".
 The number in the file name is the priority; rename to reorder.
 
@@ -26,6 +27,8 @@ header stays on top and a record moves whole, also one with a line break in a qu
 
 A sort can be stored under a name: the window has a tab Sort (the sort at hand) and a tab Stored sorts (select one
 into the Sort tab, or delete one); from the Sort tab a sort is applied, saved under its name or saved as a new one.
+The actions `edit.sort`, `edit.sortAsc` and `edit.sortDesc` sort at once, without the window, optionally by a stored
+sort's name.
 
 ## 3. Details
 
@@ -46,7 +49,8 @@ into the Sort tab, or delete one); from the Sort tab a sort is applied, saved un
 
 ### 3.2 The sort keys and options
 
-- Sort keys (your answer 2026-11-07): a list, each key a **From** column, a **To** column and A to Z or Z to A. The
+- Sort keys (your answer 2026-11-07): a list, each key a **From** column, a **To** column and its own A to Z or Z to
+  A (your answer: each key its own direction). The
   key's text is the line from From up to and including To (counted as the ruler counts, tabs expanded); To empty: to
   the end of the line. The first key decides, each next one breaks the ties of the ones before it. "Add a key" adds a
   key after the last (its From one past the last key's To); each key can be removed.
@@ -55,10 +59,11 @@ into the Sort tab, or delete one); from the Sort tab a sort is applied, saved un
   second key may lie before the first in the line, or partly in it (overlapping columns are read for each key). The
   preview and the column lines follow at once; each key's lines carry its number (1, 2, ...) so the order shows in
   the editor too.
-- One key to start with: From 1, To empty (the whole line).
-- In a block (your answer 2026-11-07): the keys work within the block. The first key's From starts at the block's
-  first column, To empty means the block's right edge; any column of the block can be chosen, a column outside it is
-  not accepted (the field says why).
+- One key to start with: From 1, To empty (the whole line): the first column, the same every time, not the cursor's
+  (your answer 2026-11-07).
+- In a block (your answers 2026-11-07): the keys work within the block and count from its first column (From 1 is
+  the block's first column), To empty means the block's right edge; any column of the block can be chosen, one past
+  its right edge is not accepted (the field says why). So a sort fits any block, stored ones too (3.4).
 - Order: by the user's language (`Intl.Collator`, so `a`, `B`, `c` sort as words, not by code).
 - Ignore case: on by default (your answer); off, `B` and `b` are different, and a choice shows which comes first:
   **B before b** or **b before B** (your answer 2026-11-07). The choice is stated for A to Z and is marked so: Z to A
@@ -71,8 +76,7 @@ into the Sort tab, or delete one); from the Sort tab a sort is applied, saved un
   goes; the first one stays, the rest of the order is kept; it follows Ignore case, and a switch "ignore leading and
   trailing whitespace".
 - Remove empty lines (whitespace only counts as empty).
-- The last sort used is the one the window opens with (a setting), except the keys' columns in a block, which start
-  from the block.
+- The window opens with the last sort used (a setting); the very first time with one key, From 1.
 
 ### 3.3 The window
 
@@ -102,7 +106,8 @@ into the Sort tab, or delete one); from the Sort tab a sort is applied, saved un
 - A sort stored under a name holds what the Sort tab holds: As text or By columns, the keys, the options; not what
   is sorted (the selection, the file).
 - Kept for all of LexPen (every window and project), in the data folder as the other lists are (a file of its own,
-  `sorts.json`); a name is unique, not case sensitive.
+  `sorts.json`); a name is unique, not case sensitive. Not per file: one stored sort serves any file it fits (for
+  example always on the first column) (your answer 2026-11-07).
 - The Stored sorts tab: a list of the names, each with a short line of what it does ("Text: 1-10 A to Z, 12- Z to A",
   "Columns: Name A to Z, Date Z to A"). **Select** (also Enter and a double click) brings it into the Sort tab and
   shows that tab; **Delete** asks first, then removes it. A By columns sort is greyed out for a file without a column
@@ -110,8 +115,9 @@ into the Sort tab, or delete one); from the Sort tab a sort is applied, saved un
 - A By columns sort stores each key's column by its name from the header and by its number: on a file with that name
   the name decides, else the number; a key that fits no column of the file is shown as such and Apply waits until it
   is changed or removed.
-- A text sort's columns are stored as they are; in a block, a stored key outside the block is shown as such and Apply
-  waits until it is changed or removed (see question 7).
+- A text sort's columns count from the start of what is sorted (your answer 2026-11-07): the line's start, or in a
+  block the block's first column. So a sort saved on a block fits another block; a key past a block's right edge is
+  shown as such and Apply waits until it is changed or removed.
 
 ### 3.5 A column file (CSV)
 
@@ -120,7 +126,8 @@ the top of the Sort tab: **By columns** (the default for such a file) or **As te
 
 - By columns: a list of sort keys, each a column (by its name from the header, else its number) and ascending or
   descending; the first key decides, the next ones break ties. "Add a column" adds a key, each key can be removed and
-  dragged to another place in the list (Alt+Up / Alt+Down too), as the text keys. One key to start with: the column of the cursor (the column view: its current cell's column).
+  dragged to another place in the list (Alt+Up / Alt+Down too), as the text keys (your answer 2026-11-07: dragging
+  in both lists is part of this plan). One key to start with: the first column, as for text (3.2).
 - Compared by the column's type from the definition: integer and decimal by value (`csvNumber`, with the column's
   decimal sign and grouping), date / time as a date (`csvDate`, with its pattern), boolean false before true, text
   and auto as text with the options of 3.2 (ignore case, numbers by value). An empty field sorts last in either
@@ -140,8 +147,19 @@ the top of the Sort tab: **By columns** (the default for such a file) or **As te
 
 ### 3.6 Menu and actions
 
-- Edit > Sort... (your answer: under Edit, not in Convert); the action `edit.sort` opens the window, so it can be on a
-  key and in F1.
+- Edit > Sort... (your answer: under Edit, not in Convert) opens the window; its action is `edit.sortWindow`, so it
+  can be on a key and in F1.
+- Sorting at once, without the window (your answer 2026-11-07), each with an optional name of a stored sort as its
+  parameter (on a key in keys.json, in a macro):
+  - `edit.sort` with a name: that stored sort as it is stored (each key its own direction). Without a name: the same
+    as `edit.sortAsc` without one.
+  - `edit.sortAsc` with a name: that stored sort's keys and options, but every key ascending, whatever the stored
+    sort says. Without a name: one key, the whole line (a column file: its first column), the default options.
+  - `edit.sortDesc`: as `edit.sortAsc`, every key descending.
+- They sort what the window would (3.1): the selection widened to whole lines (a column file: records), a block's
+  part, else the whole file; one undo step. A name that is not stored, or a By columns sort on a file without a
+  column definition: a message (toast), nothing sorted.
+- F1 lists the four actions; the three that sort run there without a name.
 
 ### 3.7 Tests
 
@@ -156,8 +174,13 @@ its own direction; a key added and removed; a key dragged to another place in th
 order following; a second key before the first in the line and one partly overlapping it, each read for itself; the column lines at each From and To, each key's in its own colour, the same colour in its
 row, the focused key's at full strength; a key dragged takes the colour of its new place; more keys than colours;
 the lines moving with the fields and gone after closing; in the column view the key columns' headers in their keys'
-colours; in a block: the first key at the block's first column by
-default, another column of the block chosen, a column outside the block not accepted.
+colours; in a block: the keys counted from the block's first column (From 1 there by default), another column of the
+block chosen, one past its right edge not accepted.
+
+In-app, actions: `edit.sort`, `edit.sortAsc` and `edit.sortDesc` without a name on lines, a block and a column file
+(its first column); with a stored sort's name: `edit.sort` as stored (mixed directions), `edit.sortAsc` all
+ascending and `edit.sortDesc` all descending; a name that is not stored and a By columns sort on a plain file give a
+message and change nothing; each on a key in keys.json and in a macro; undo one step each.
 
 In-app, selection: one starting and ending inside lines is widened to the whole lines as the window opens (one ending
 at a line's start does not take that line), and stays so after Cancel; a CSV selection widened to whole records.
@@ -171,7 +194,8 @@ the same file sorts lines; undo is one step.
 In-app, stored sorts: Save as a new name, then in another window (and after a restart) it is listed; Select brings
 its keys and options into the Sort tab; changed and Save keeps the name; Save as an existing name asks first; Delete
 asks, then it is gone; a By columns sort greyed out for a file without columns; one applied to a file whose header
-has the names in another order sorts by the names; a key that fits no column or lies outside the block shown, Apply
+has the names in another order sorts by the names; a text sort saved on one block applied to another block (counted
+from that block's first column); a key that fits no column or lies past the block's right edge shown, Apply
 waiting.
 
 Unit: the key text of a line by From / To with tabs; the order of two keys with ties; `sorts.json` read and written
@@ -179,23 +203,15 @@ Unit: the key text of a line by From / To with tabs; the order of two keys with 
 
 ## 4. Questions
 
-Answered 2026-11-07:
+Answered, each worked into the text above:
 
-1. Default case: ignore case.
-2. A window with all options at once: yes.
-3. The menu: Edit > Sort, not in Convert.
+1. Default case: ignore case (3.2). 2. One window with all options (3.3). 3. Edit > Sort, not in Convert (3.6).
+4. `edit.sort`, `edit.sortAsc`, `edit.sortDesc` with an optional stored sort's name (3.6). 5. The first key starts at
+the first column (3.2). 6. Stored sorts not per file (3.4). 7. A text sort counts from the block's first column
+(3.2, 3.4). 8. Each key its own direction (3.2). 9. Dragging the keys in the window's lists is part of this plan,
+for text and for columns (3.2, 3.5); dragging the column lines in the editor is not.
 
 Open:
 
-4. Quick actions besides the window: also `edit.sortAsc`, `edit.sortDesc`, `edit.removeDuplicates` that sort at
-   once with the window's last options (for a key or a macro, no window)? Or only the window? (With stored sorts an
-   alternative: an action that applies a stored sort by its name, for a key or a macro.)
-5. The first key without a block: From 1 (the whole line), or the cursor's column when the window opens?
-6. A column file: should the sort keys be kept per file (with its column definition)? Stored sorts now cover
-   repeating a sort; proposal: not per file, the window opens with the last sort used.
-7. A stored text sort used on a block: its columns as stored (counted from the line's start, so a key outside the
-   block has to be changed), or counted from the block's first column (so a stored sort fits any block)? Proposal:
-   from the block's first column when it was saved on a block, else from the line's start; stored with it.
-8. Each text key its own direction (as the columns' keys, proposed above), or one direction for the whole sort?
-9. Dragging the keys: in the window's list (as above). Also the column lines in the editor, to set a key's From and
-   To with the mouse? Proposal: not in this plan (the fields and the list first).
+10. A key's colour: by its place in the list (a key dragged first takes the first colour, so the colour says the
+    order; as 3.3 has it now), or kept by the key when it is dragged (so you can follow it while reordering)?
