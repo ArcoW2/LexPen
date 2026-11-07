@@ -40,7 +40,11 @@ every action with its key.
   would come out, sorting only those; Apply sorts. A CSV sorts By columns (the default; its key columns marked in the column view) or As
   text: per key a column, compared by its type (numbers by value, dates as dates, empty fields last, values that do
   not fit their type after the ones that do), records moving whole, the header staying on top. Stored sorts (the
-  Stored sorts tab: Select, Delete...; Save, Save as... on the Sort tab) are kept in `sorts.json`, for any file;
+  Stored sorts tab: Select, Delete...; Save, Save as... on the Sort tab; Save as over an existing one warns first)
+  are kept in `sorts.json`, for any file. Templates: stored sorts pinned as one (right-click: Pin as template / Unpin
+  as template), first in the list above a divider; a double-click or Use as new starts a new sort from it (Save cannot
+  change it), only its Edit works on the template itself. Right-click a regular one: Select, Rename..., Pin as
+  template; a template: Use as new, Rename..., Edit, Unpin as template. A name another one has is refused;
   the sort as it is now is kept a moment after each change (not in the list) and LexPen opens with it again, with the
   name of the stored sort it came from (shown at the bottom, in italics when changed; Save stores it there, Revert
   goes back to it; New starts a sort from the start; in a narrow panel Save, Save as..., Revert and New are under

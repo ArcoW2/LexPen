@@ -452,7 +452,7 @@ function sortState(focusAt = null) {
     colours: sortList().map((_, i) => ({ bg: sortColour(i), fg: sortTextOn(sortColour(i)) })),
     name: sortUi.name, changed: sortUi.changed, focusKey: sortUi.focusKey,
     problem: r.problem ?? null, preview, slow, all: sortPreviewLimit() === 0,
-    list: sortUi.list.map(e => ({ name: e.name, desc: sortDescription(sortFill(e.sort)), off: e.sort?.kind === 'columns' && !csv })),
+    list: sortUi.list.map(e => ({ name: e.name, desc: sortDescription(sortFill(e.sort)), off: e.sort?.kind === 'columns' && !csv, template: !!e.template })),
     storedAt: sortUi.storedAt, focusAt };
 }
 
@@ -551,7 +551,10 @@ async function fromSortPane(m) {
       sortUi.page = m.page;
       if (m.page === 'stored') await sortStoredList();
       return sortSend(m.page === 'stored' ? 'list' : null);
-    case 'storedAt': sortUi.storedAt = m.i; return sortSend('list');
+    case 'storedAt': sortUi.storedAt = m.i; return m.quiet ? undefined : sortSend('list');   // quiet: the page marked it itself
+    case 'renameStored': return sortRenameStored(m.i ?? sortUi.storedAt);
+    case 'pinStored': return sortPinStored(m.i ?? sortUi.storedAt, !!m.on);
+    case 'editStored': return sortSelectStored(m.i ?? sortUi.storedAt, true);
     case 'apply': {
       const s = sortCopy(spec);
       if (!await sortApply(sortTarget(), s)) return;
@@ -562,7 +565,7 @@ async function fromSortPane(m) {
     case 'openSetting': return host('openSetting', { name: 'sortPreviewLines' });
     case 'save': return sortSave(sortUi.name);
     case 'saveAs': return sortSaveAs();
-    case 'select': return sortSelectStored();
+    case 'select': return sortSelectStored(m.i ?? sortUi.storedAt);
     case 'deleteStored': return sortDeleteStored();
   }
 }
@@ -608,18 +611,47 @@ async function sortSaveAs() {
   sortChannel.focus();
   if (!name) return;
   const same = sortUi.list.find(e => e.name.toLowerCase() === name.toLowerCase());
-  if (same && !await confirmBox(`A stored sort "${same.name}" exists. Replace it?`, 'Replace')) return;
+  if (same?.template) return toast(`"${same.name}" is a template: change it with Edit (right-click it on the Stored sorts tab).`);
+  if (same && !await confirmBox(`A stored sort "${same.name}" exists. Save as overwrites it.`, 'Overwrite')) return;
   await sortSave(name);
 }
 
-function sortSelectStored() {
-  const e = sortUi.list[sortUi.storedAt];
+// Select (double-click, Enter): a regular one to work on, Save storing it there again; a template is used as new (as
+// New, with it as the start: no name, so Save cannot change it). edit: a template to work on (its Edit), as Select.
+function sortSelectStored(i, edit = false) {
+  const e = sortUi.list[i];
   if (!e || (e.sort?.kind === 'columns' && !sortIsCsv(activeDoc()))) return;
+  sortUi.storedAt = i;
   sortUi.spec = sortFill(sortCopy(e.sort));
-  Object.assign(sortUi, { name: e.name, changed: false, focusKey: 0, page: 'sort' });
+  Object.assign(sortUi, { name: e.template && !edit ? null : e.name, changed: false, focusKey: 0, page: 'sort' });
   sortRemember();
   sortSend();
   sortRedrawRuler();
+}
+
+// Rename...: a name no other stored sort has (its own in another case is fine).
+async function sortRenameStored(i) {
+  const e = sortUi.list[i];
+  if (!e) return;
+  const name = await askName(`Rename the ${e.template ? 'template' : 'stored sort'} "${e.name}" to`, e.name, 'A name');
+  sortChannel.focus();
+  if (!name || name === e.name) return;
+  const other = sortUi.list.find(x => x !== e && x.name.toLowerCase() === name.toLowerCase());
+  if (other || !await host('sortRename', { from: e.name, to: name })) return toast(`A stored sort "${other?.name ?? name}" exists: choose another name.`);
+  if (sortUi.name?.toLowerCase() === e.name.toLowerCase()) { sortUi.name = name; sortRemember(); }
+  await sortStoredList();
+  sortUi.storedAt = Math.max(0, sortUi.list.findIndex(x => x.name === name));
+  sortSend('list');
+}
+
+// Pin as template / Unpin as template: the list puts the templates first.
+async function sortPinStored(i, on) {
+  const e = sortUi.list[i];
+  if (!e) return;
+  await host('sortTemplate', { name: e.name, on });
+  await sortStoredList();
+  sortUi.storedAt = Math.max(0, sortUi.list.findIndex(x => x.name === e.name));
+  sortSend('list');
 }
 
 async function sortDeleteStored() {

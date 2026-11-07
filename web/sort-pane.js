@@ -57,12 +57,15 @@ function draw() {
   const body = $s('.sp-body');
   if (!st.doc) { body.innerHTML = '<div class="sp-empty">No document to sort.</div>'; return; }
   if (st.page === 'stored') {
-    const items = st.list.map((e, i) => `<div class="sp-stored${i === st.storedAt ? ' sp-sel' : ''}${e.off ? ' sp-off' : ''}" data-i="${i}"` +
-      `${e.off ? ' title="Sorts by columns: for a file with columns (CSV)"' : ''}><b>${esc(e.name)}</b><span class="sp-dim">${esc(e.desc)}</span></div>`).join('')
+    // The templates first, a divider, the others (the window's list is in that order).
+    const items = st.list.map((e, i) => (i > 0 && st.list[i - 1].template && !e.template ? '<div class="sp-divider"></div>' : '') +
+      `<div class="sp-stored${i === st.storedAt ? ' sp-sel' : ''}${e.off ? ' sp-off' : ''}" data-i="${i}"` +
+      ` title="${e.off ? 'Sorts by columns: for a file with columns (CSV). ' : ''}Right-click for more"><b>${esc(e.name)}${e.template ? ' <span class="sp-dim">(template)</span>' : ''}</b>` +
+      `<span class="sp-dim">${esc(e.desc)}</span></div>`).join('')
       || '<div class="sp-dim sp-none">No stored sorts yet: Save as... on the Sort tab stores one.</div>';
     const sel = st.list[st.storedAt];
     body.innerHTML = `<div class="sp-list" tabindex="0">${items}</div>` +
-      `<div class="sp-bar"><button type="button" data-do="select"${sel && !sel.off ? '' : ' disabled'}>Select</button>` +
+      `<div class="sp-bar"><button type="button" data-do="select"${sel && !sel.off ? '' : ' disabled'}>${sel?.template ? 'Use as new' : 'Select'}</button>` +
       `<button type="button" data-do="deleteStored"${sel ? '' : ' disabled'}>Delete...</button></div>`;
     return;
   }
@@ -151,7 +154,32 @@ document.addEventListener('click', e => {
   if (!b) return;
   toWindow({ kind: b.dataset.do, k: b.dataset.k === undefined ? null : +b.dataset.k });
 });
-document.addEventListener('dblclick', e => { if (e.target.closest('.sp-stored')) toWindow({ kind: 'select' }); });
+document.addEventListener('dblclick', e => { const item = e.target.closest('.sp-stored'); if (item) toWindow({ kind: 'select', i: +item.dataset.i }); });
+
+// A stored sort's right-click menu (also the menu key, Shift+F10): a regular one Select, Rename..., Pin as template; a
+// template Use as new, Rename..., Edit, Unpin as template.
+function storedMenu(i, x, y) {
+  const st = sp.st, e = st.list[i];
+  if (!e) return;
+  // Marked here, the window told without drawing the page again (that would take the focus from the menu).
+  st.storedAt = i;
+  for (const el of document.querySelectorAll('.sp-stored')) el.classList.toggle('sp-sel', +el.dataset.i === i);
+  toWindow({ kind: 'storedAt', i, quiet: true });
+  const select = $s('[data-do=select]');
+  if (select) { select.textContent = e.template ? 'Use as new' : 'Select'; select.disabled = !!e.off; }
+  const go = (kind, more = {}) => () => toWindow({ kind, i, ...more });
+  paneMenu({ x, y, items: e.template
+    ? [{ label: 'Use as new', disabled: e.off, run: go('select') }, '-', { label: 'Rename...', run: go('renameStored') },
+      { label: 'Edit', disabled: e.off, run: go('editStored') }, { label: 'Unpin as template', run: go('pinStored', { on: false }) }]
+    : [{ label: 'Select', disabled: e.off, run: go('select') }, '-', { label: 'Rename...', run: go('renameStored') },
+      { label: 'Pin as template', run: go('pinStored', { on: true }) }] });
+}
+document.addEventListener('contextmenu', e => {
+  const item = e.target.closest('.sp-stored');
+  if (!item) return;
+  e.preventDefault();
+  storedMenu(+item.dataset.i, e.clientX, e.clientY);
+});
 document.addEventListener('keydown', e => {
   const row = e.target.closest?.('.sp-key'), k = row ? +row.dataset.k : -1, st = sp.st;
   if (!st) return;
@@ -159,9 +187,14 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { stop(); return toWindow({ kind: 'escape' }); }
   if (row && e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) { stop(); return toWindow({ kind: 'move', from: k, to: k + (e.key === 'ArrowUp' ? -1 : 1) }); }
   if (row && e.key === 'Delete' && e.target.matches('.sp-grip, select, button')) { stop(); return toWindow({ kind: 'del', k }); }
+  if (e.target.closest('.sp-list') && st.list.length && (e.key === 'ContextMenu' || e.key === 'F10' && e.shiftKey)) {
+    stop();
+    const r = $s(`.sp-stored[data-i="${st.storedAt}"]`)?.getBoundingClientRect();
+    return r && storedMenu(st.storedAt, r.left + 16, r.bottom);
+  }
   if (e.target.closest('.sp-list') && st.list.length && ['ArrowUp', 'ArrowDown', 'Enter', 'Delete'].includes(e.key)) {
     stop();
-    if (e.key === 'Enter') return toWindow({ kind: 'select' });
+    if (e.key === 'Enter') return toWindow({ kind: 'select', i: st.storedAt });
     if (e.key === 'Delete') return toWindow({ kind: 'deleteStored' });
     return toWindow({ kind: 'storedAt', i: Math.max(0, Math.min(st.list.length - 1, (st.storedAt ?? 0) + (e.key === 'ArrowUp' ? -1 : 1))) });
   }

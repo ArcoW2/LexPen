@@ -63,6 +63,42 @@ public class SortStoreTests : IDisposable
     }
 
     [Fact]
+    public void TemplatesComeFirstAndStayTemplates()
+    {
+        var store = new SortStore(FilePath);
+        store.Save("a", Sort(1));
+        store.Save("z", Sort(2));
+        Assert.True(store.SetTemplate("Z", true));
+        store.Save("Z", Sort(5));   // replaced under its name: still a template
+        var again = new SortStore(FilePath);
+        Assert.Equal(["Z", "a"], again.List().Select(e => (string)e!["name"]!));
+        Assert.True((bool)again.List()[0]!["template"]!);
+        Assert.False((bool)again.List()[1]!["template"]!);
+        Assert.True(again.SetTemplate("z", false));
+        Assert.Equal(["a", "Z"], again.List().Select(e => (string)e!["name"]!));
+        Assert.False(again.SetTemplate("none", true));
+    }
+
+    [Fact]
+    public void RenameKeepsTheSortAndRefusesATakenName()
+    {
+        var store = new SortStore(FilePath);
+        store.Save("a", Sort(1));
+        store.Save("b", Sort(2));
+        store.SetTemplate("a", true);
+        Assert.False(store.Rename("a", "B"));
+        Assert.False(store.Rename("none", "c"));
+        Assert.True(store.Rename("a", "c"));
+        Assert.True(store.Rename("c", "C"));   // its own name in another case
+        var again = new SortStore(FilePath);
+        Assert.Equal(["C", "b"], again.List().Select(e => (string)e!["name"]!));
+        Assert.Equal(1, From(again.Get("c")));
+        Assert.True((bool)again.List()[0]!["template"]!);
+        Assert.True(again.Delete("C"));
+        Assert.False(again.SetTemplate("C", true));
+    }
+
+    [Fact]
     public void NoFileIsNoSorts()
     {
         var store = new SortStore(FilePath);

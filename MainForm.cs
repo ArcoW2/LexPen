@@ -842,6 +842,12 @@ sealed class MainForm : Form
             case "sortDelete":
                 return app.Sorts.Delete(Arg("name"));
 
+            case "sortRename":
+                return app.Sorts.Rename(Arg("from"), Arg("to"));
+
+            case "sortTemplate":
+                return app.Sorts.SetTemplate(Arg("name"), msg["on"]?.GetValue<bool>() == true);
+
             case "sortLast":
                 app.Sorts.SetLast(msg["sort"]!);
                 return null;

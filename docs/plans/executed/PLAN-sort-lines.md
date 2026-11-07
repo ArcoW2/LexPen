@@ -249,6 +249,14 @@ None.
   2 seconds or longer (`sortPreviewWarn`, Settings > Editor > Sort; Never, 1 to 10 seconds) shows a line above it with
   the time it took and the setting; a click (or Enter) on it opens Settings at that setting (host `openSetting`, the
   settings page's `showSetting`: its tab, the row in view with the focus, flashing).
+- **Templates** (your answers after the build, 2026-11-07): a stored sort can be pinned as a template (`templates`
+  in sorts.json, kept through Save, Rename and replacing under its name); the templates come first in the list, a
+  divider, then the others, each part by name. Right-click a regular one: Select (also a double-click, Enter),
+  Rename..., Pin as template; a template: Use as new (also a double-click, Enter: as New, with the template as its
+  start; no name, so Save cannot change it), Rename..., Edit (works on the template, Save stores it there), Unpin as
+  template. Also the menu key or Shift+F10 in the list. Rename to a name another stored sort has is refused (a
+  change of case of its own name is fine). Save as over a regular one warns that it overwrites it; over a template it
+  is refused (a template changes by its Edit only). Delete... stays a button (and the Delete key), not in the menu.
 - **The buttons** (your answers after the build, 2026-11-07): Apply, Save, Save as..., Revert (back to the stored sort
   it came from), New (a sort from the start); when they do not fit the panel's width: Apply and Manage, a menu with
   Save, Save as..., Revert and New. Save and Revert only for a stored sort that was changed; its name then in
