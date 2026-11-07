@@ -199,5 +199,12 @@ None.
   pages printed to a PDF (the same call as Save as PDF) with the preview's page count and size, and a page range;
   the stored settings (save, change, revert, templates, rename, new); Print... from the Folder pane without a tab;
   Esc; a running layout stopped by a change.
+- **Added after the first build (asked for while trying it)**: the fonts as lists with a sample; the view to print
+  (As) for every text, the default where Print... was chosen (editor: text, preview: rendered), a code file's
+  rendering as markdown made after the window opened; Text colour (language colouring or mono); line numbers every
+  line, every 10 lines or off; the highlights' colour, intensity and a dotted underline; the notes' size; the header
+  and footer as three texts each (left, middle, right) with codes ($F $A $P $T $D $M $$), **bold** and *italic*, a
+  date format of their own and a distance from the edge; a page range printed without waiting for the rest unless
+  $T is used; Monochrome shown in greys; the stored settings' list and buttons as the Sort's.
 - **Not tested**: printing on a real printer, either path, and the printer's own dialog (Printer settings...): both
   need a person at the printer (3.9, by hand).
