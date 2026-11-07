@@ -29,6 +29,7 @@ sealed class PrintForm : Form
         this.app = app;
         this.owner = owner;
         this.source = source;
+        Fonts.Warm();
         Text = $"Print {source["title"]?.GetValue<string>()} - LexPen";
         Icon = owner.Icon;
         app.FollowCaption(this, () => owner);
@@ -112,6 +113,16 @@ sealed class PrintForm : Form
         if (!IsDisposed) web.CoreWebView2.PostWebMessageAsJson(reply.ToJsonString());
     }
 
+    /// <summary>A text's rendering as markdown, made by the main window after this one opened (printsource.js: it
+    /// takes a moment for a large file): kept with the source (init gives it) and told to the page.</summary>
+    public void Rendered(JsonNode msg)
+    {
+        if (source["views"] is JsonObject views) views["rendered"] = msg["rendered"]?.DeepClone();
+        if (source["selection"]?["views"] is JsonObject part) part["rendered"] = msg["selection"]?.DeepClone();
+        if (!IsDisposed && web.CoreWebView2 is { } core)
+            core.PostWebMessageAsJson(new JsonObject { ["event"] = "rendered", ["rendered"] = msg["rendered"]?.DeepClone(), ["selection"] = msg["selection"]?.DeepClone() }.ToJsonString());
+    }
+
     string Arg(JsonNode msg, string name) => msg[name]?.GetValue<string>() ?? "";
 
     async Task<JsonNode?> Answer(JsonNode msg)
@@ -129,7 +140,8 @@ sealed class PrintForm : Form
                 return Printing.Info(Arg(msg, "name"));
             case "themeVars":
                 return app.ThemeVars(Arg(msg, "theme"));
-            case "fonts":   // as MainForm's: the font lists
+            case "fonts":   // as MainForm's: the font lists; null while they are being built (Fonts.Warm)
+                if (!Fonts.Ready) return null;
                 return new JsonArray(Fonts.List().Select(f => (JsonNode)new JsonObject { ["name"] = f.Name, ["mono"] = f.Mono }).ToArray());
             case "printerDialog":
                 return Printing.Dialog(Handle, Arg(msg, "printer"), msg["devmode"]?.GetValue<string>(), msg["options"]!.AsObject());

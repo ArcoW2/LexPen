@@ -19,6 +19,14 @@ function host(op, args) {
   });
 }
 chrome.webview.addEventListener('message', e => {
+  // A text's rendering as markdown, made by the main window after this one opened (PrintForm.Rendered).
+  if (e.data.event === 'rendered') {
+    if (!pp.source) return;   // init has it
+    pp.source.views.rendered = e.data.rendered;
+    if (pp.source.selection) pp.source.selection.views.rendered = e.data.selection;
+    if (viewOf() === 'rendered') schedule();
+    return;
+  }
   if (e.data.event) return;
   const { id, result, error } = e.data;
   const call = pending.get(id);
@@ -50,7 +58,7 @@ const pp = {
 const lineNumbers = () => pp.opt.lineNumbers === true ? 'all' : pp.opt.lineNumbers === false ? 'off' : pp.opt.lineNumbers;
 const views = () => pp.source.kind === 'markdown' ? [['rendered', 'Rendered (as the preview)'], ['text', 'Text (as the editor)']]
   : pp.source.kind === 'csv' ? [['table', 'Table (as the preview)'], ['text', 'Text (as the editor)']]
-  : pp.source.views?.rendered != null ? [['text', 'Text (as the editor)'], ['rendered', 'Rendered as markdown']] : [];
+  : pp.source.renderLater || pp.source.views?.rendered != null ? [['text', 'Text (as the editor)'], ['rendered', 'Rendered as markdown']] : [];
 const viewOf = () => pp.source.kind === 'pdf' ? 'pdf' : views().some(([v]) => v === pp.opt.view) ? pp.opt.view : views()[0]?.[0] ?? 'text';
 
 // ---------- The Print tab ----------
@@ -94,7 +102,7 @@ function drawPanel() {
     <div class="pp-row"><label>Copies</label>${num('copies', 1, 999)}</div>`;
   if (info?.duplex) html += `<div class="pp-row"><label>Two-sided</label><select data-k="duplex"><option value="one"${opt('duplex', 'one')}>One-sided</option>
     <option value="long"${opt('duplex', 'long')}>Two-sided, long edge</option><option value="short"${opt('duplex', 'short')}>Two-sided, short edge</option></select></div>`;
-  if (info?.colour) html += `<div class="pp-row"><label>Printer colour</label><select data-k="colourPrint"><option value="true"${o.colourPrint ? ' selected' : ''}>Colour</option><option value="false"${o.colourPrint ? '' : ' selected'}>Black and white</option></select></div>`;
+  if (info?.colour) html += `<div class="pp-row"><label>Printer colour</label><select data-k="colourPrint"><option value="true"${o.colourPrint ? ' selected' : ''}>Colour</option><option value="false"${o.colourPrint ? '' : ' selected'}>Monochrome (all in greys, images too)</option></select></div>`;
 
   html += '<h3>What</h3>';
   if (views().length) html += `<div class="pp-row"><label>As</label><select data-k="view">${views().map(([v, l]) => `<option value="${v}"${kind === v ? ' selected' : ''}>${l}</option>`).join('')}</select></div>`;
@@ -399,6 +407,9 @@ async function layout() {
   $('.pp-count').textContent = 'Laying out pages...';
   await applyColours();
   if (viewOf() === 'pdf') return layoutPdf();
+  if (viewOf() === 'text') return layoutText();
+  if (viewOf() === 'rendered' && pp.source.views.rendered == null) { $('.pp-count').textContent = 'Rendering as markdown...'; return; }   // laid out when it comes
+  sheetStyle(null, null);   // the sheets' page rules are not paged.js's
   const html = await contentHtml();
   previewer?.polisher?.destroy?.();
   previewer?.chunker?.destroy?.();
@@ -412,7 +423,7 @@ async function layout() {
   const tpl = document.createElement('template');
   tpl.innerHTML = html;
   let flow;
-  const progress = setInterval(() => { $('.pp-count').textContent = `Laying out page ${pagesEl.querySelectorAll('.pagedjs_page').length + 1}...`; }, 500);
+  const progress = setInterval(() => { $('.pp-count').textContent = `Laying out page ${pagesEl.querySelectorAll('.pagedjs_page').length + 1}...`; pickedPages(); }, 500);
   try { flow = await previewer.preview(tpl.content, [{ [new URL('print-pages.css', location.href).href]: pageCss() }], pagesEl); }
   finally { pp.laying = false; clearInterval(progress); }
   if (pp.again) return;   // stopped for a newer layout
@@ -430,12 +441,30 @@ function laidOutNow() {
 // paper, the margins, the header and footer and the frame as paged.js makes them for a text, the page in its room;
 // then the notes at the end, on as many sheets as they need.
 async function layoutPdf() {
-  const o = pp.opt, s = pp.source, [w, h] = paper(), m = o.margins;
+  const o = pp.opt, s = pp.source;
   const boxes = await pdfHtml();
+  sheetStyle(o.margins, pdfCss());
+  previewer?.polisher?.destroy?.();
+  previewer?.chunker?.destroy?.();
+  previewer = null;
+  zoomEl.style.zoom = 1;
+  pagesEl.innerHTML = `<div class="pp-sheets pp-doc pp-hl-${o.highlights}${o.colours === 'bw' ? ' pp-bw' : ''}">${boxes.map((b, i) => sheetHtml(b, i + 1)).join('')}</div>`;
+  if (o.notes === 'end') addEndNotes(pagesEl.querySelector('.pp-sheets'), s.notes ?? []);
+  pp.pages = sheets().length;
+  for (const t of pagesEl.querySelectorAll('.pp-total')) t.textContent = pp.pages;
+  placeSideNotes();
+  watchPdfPages();
+  laidOutNow();
+}
+
+// The sheets' own stylesheet (a PDF's, a text's): the paper, the margins `m` (top, right, bottom, left), the header
+// and footer, the frame; `more` after it. Laid out by paged.js the document does without it.
+function sheetStyle(m, more) {
+  const o = pp.opt, s = pp.source, [w, h] = paper();
   let style = document.getElementById('pp-sheet-css');
   if (!style) { style = Object.assign(document.createElement('style'), { id: 'pp-sheet-css' }); document.head.append(style); }
   const font = `8pt ${cssString(s.appFont)}, sans-serif`;
-  style.textContent = `
+  style.textContent = more == null ? '' : `
 @page { size: ${w}mm ${h}mm; margin: 0; }
 .pp-sheets { display: flex; flex-direction: column; align-items: center; gap: 16px; }
 .pp-sheet { position: relative; width: ${w}mm; height: ${h}mm; background: var(--bg, #fff); color: var(--fg, #000); overflow: hidden; break-after: page; }
@@ -449,34 +478,105 @@ async function layoutPdf() {
 .pp-sheet-notes { font: ${o.notesSize}pt/1.4 ${cssString(s.appFont)}, sans-serif; }
 .pp-sheet-notes ol { margin: 0; }
 .pp-sheet-notes li::marker { color: var(--accent, #c00); font-weight: 700; }
-${pdfCss()}`;
+${more}`;
+}
+// A sheet: its header, `body` in the area, its footer with page `n` of the total (filled in when it is known).
+function sheetHtml(body, n) {
+  const o = pp.opt, s = pp.source, name = s.title + (pp.what === 'selection' ? ' (selection)' : '');
+  return `<div class="pp-sheet"><div class="pp-sheet-head"><span>${o.headName ? escapeHtml(name) : ''}</span><span>${o.headDate ? escapeHtml(s.date) : ''}</span></div>` +
+    `<div class="pp-sheet-area">${body}</div><div class="pp-sheet-foot">${o.headPages ? `<span>Page ${n} of <span class="pp-total"></span></span>` : ''}</div></div>`;
+}
+// The notes at the end, after the sheets in `list`, on as many sheets as they need.
+function addEndNotes(list, notes) {
+  if (!notes.length) return;
+  const newSheet = first => {
+    list.insertAdjacentHTML('beforeend', sheetHtml(`<div class="pp-sheet-notes">${first ? '<h4>Notes</h4>' : ''}<ol></ol></div>`, list.children.length + 1));
+    const area = list.lastElementChild.querySelector('.pp-sheet-area');
+    return { area, ol: area.querySelector('ol') };
+  };
+  let at = newSheet(true);
+  for (const n of notes) {
+    const li = Object.assign(document.createElement('li'), { value: n.n, textContent: n.note });
+    at.ol.append(li);
+    if (at.area.scrollHeight > at.area.clientHeight && at.ol.children.length > 1) { at = newSheet(false); at.ol.append(li); }
+  }
+}
+
+// A text in lines: its sheets laid out here, a sheet at a time, so the first shows at once and the rest follow
+// (paged.js reads the whole document before its first page: seconds for a large file, again on every change). Each
+// sheet takes the lines that fit, with their notes at its foot or beside them; a newer layout stops this one between
+// sheets. A line taller than a sheet stays on its own (cut off at the bottom).
+async function layoutText() {
+  const o = pp.opt, s = pp.source, part = pp.what === 'selection' && s.selection ? s.selection : s, id = pp.layoutId;
+  const m = [...o.margins], side = o.notes === 'left' || o.notes === 'right';
+  if (side) m[o.notes === 'left' ? 3 : 1] += o.notesWidth + 4;
+  sheetStyle(m, `${contentCss()}
+.pp-sheet { contain: strict; }
+.pp-sheet-area { display: flex; flex-direction: column; }
+.pp-sheet-area > .pp-text { flex: none; }
+.pp-sheet-fn { margin-top: auto; padding-top: 1.5mm; border-top: 0.5pt solid color-mix(in srgb, currentColor 40%, transparent); }
+.pp-sheet-fn:empty { display: none; }
+.pp-sheet-fn .pp-note { display: block; }`);
   previewer?.polisher?.destroy?.();
   previewer?.chunker?.destroy?.();
   previewer = null;
-  const name = s.title + (pp.what === 'selection' ? ' (selection)' : '');
-  const sheet = (body, n) => `<div class="pp-sheet"><div class="pp-sheet-head"><span>${o.headName ? escapeHtml(name) : ''}</span><span>${o.headDate ? escapeHtml(s.date) : ''}</span></div>` +
-    `<div class="pp-sheet-area">${body}</div><div class="pp-sheet-foot">${o.headPages ? `<span>Page ${n} of <span class="pp-total"></span></span>` : ''}</div></div>`;
-  zoomEl.style.zoom = 1;
-  pagesEl.innerHTML = `<div class="pp-sheets pp-doc pp-hl-${o.highlights}${o.colours === 'bw' ? ' pp-bw' : ''}">${boxes.map((b, i) => sheet(b, i + 1)).join('')}</div>`;
-  const notes = s.notes ?? [];
-  if (o.notes === 'end' && notes.length) {
-    const list = pagesEl.querySelector('.pp-sheets');
-    const newSheet = first => {
-      list.insertAdjacentHTML('beforeend', sheet(`<div class="pp-sheet-notes">${first ? '<h4>Notes</h4>' : ''}<ol></ol></div>`, list.children.length + 1));
-      const area = list.lastElementChild.querySelector('.pp-sheet-area');
-      return { area, ol: area.querySelector('ol') };
-    };
-    let at = newSheet(true);
-    for (const n of notes) {
-      const li = Object.assign(document.createElement('li'), { value: n.n, textContent: n.note });
-      at.ol.append(li);
-      if (at.area.scrollHeight > at.area.clientHeight && at.ol.children.length > 1) { at = newSheet(false); at.ol.append(li); }
+  // The lines' HTML, cut at the line starts: parsed a batch at a time as the sheets need them.
+  const html = part.views.text, open = html.slice(0, html.indexOf('>') + 1), cut = html.slice(open.length, -'</pre>'.length).split('<div class="pp-line">');
+  const lines = cut.filter(Boolean).map(l => '<div class="pp-line">' + l);
+  pagesEl.innerHTML = `<div class="pp-sheets pp-doc pp-hl-${o.highlights} pp-notes-${o.notes}${lineNumbers() === 'off' ? ' pp-no-ln' : ''}${o.colours === 'bw' ? ' pp-bw' : ''}"></div>`;
+  const list = pagesEl.firstElementChild;
+  let next = 0, batch = [];
+  const take = () => {
+    if (!batch.length && next < lines.length) {
+      const tpl = document.createElement('template');
+      tpl.innerHTML = lines.slice(next, next += 400).join('');
+      dressContent(tpl.content);
+      batch = [...tpl.content.children];
     }
+    return batch.shift();
+  };
+  let sheet = null, pre = null, fn = null, area = null, shown = false, yielded = performance.now();
+  const picked = pp.what === 'pages' ? new Set(rangeNumbers(pp.ranges)) : new Set();
+  const newSheet = () => {
+    list.insertAdjacentHTML('beforeend', sheetHtml(`${open}</pre><div class="pp-sheet-fn"></div>`, list.children.length + 1));
+    sheet = list.lastElementChild;
+    sheet.classList.toggle('pp-picked', picked.has(list.children.length));   // the pages picked, marked as they come
+    area = sheet.querySelector('.pp-sheet-area');
+    pre = area.firstElementChild;
+    fn = area.lastElementChild;
+  };
+  // A line on the sheet; its notes at the sheet's foot (they go along when the line goes to the next sheet).
+  const put = line => {
+    pre.append(line);
+    if (o.notes === 'foot') fn.append(...(line.footNotes ??= [...line.querySelectorAll('.pp-note.pp-foot')]));
+  };
+  newSheet();
+  for (let line = take(); line; line = take()) {
+    put(line);
+    if (area.scrollHeight > area.clientHeight + 1 && pre.children.length > 1) {
+      line.remove();
+      newSheet();
+      put(line);
+      if (!shown) { shown = true; fit(); }
+      $('.pp-count').textContent = `Laying out page ${list.children.length}...`;
+      if (performance.now() - yielded > 30) {
+        await new Promise(r => setTimeout(r));
+        if (pp.layoutId !== id) return;
+        yielded = performance.now();
+      }
+    }
+  }
+  const notes = part.notes ?? s.notes ?? [];
+  if (o.notes === 'end' && notes.length) {
+    // Under the text when they fit there, else on sheets of their own.
+    const end = Object.assign(document.createElement('div'), { className: 'pp-sheet-notes pp-endnotes' });
+    end.innerHTML = `<h4>Notes</h4><ol>${notes.map(n => `<li value="${n.n}">${escapeHtml(n.note)}</li>`).join('')}</ol>`;
+    pre.after(end);
+    if (area.scrollHeight > area.clientHeight + 1) { end.remove(); addEndNotes(list, notes); }
   }
   pp.pages = sheets().length;
   for (const t of pagesEl.querySelectorAll('.pp-total')) t.textContent = pp.pages;
   placeSideNotes();
-  watchPdfPages();
   laidOutNow();
 }
 
@@ -493,29 +593,50 @@ async function contentHtml() {
   const tpl = document.createElement('template');
   tpl.innerHTML = `<div class="pp-doc pp-hl-${o.highlights} pp-notes-${o.notes}${lineNumbers() === 'off' ? ' pp-no-ln' : ''}${o.colours === 'bw' ? ' pp-bw' : ''}">${body}</div>`;
   const root = tpl.content.firstElementChild;
-  if (lineNumbers() === 'ten') for (const n of root.querySelectorAll('.pp-ln')) if (+n.textContent % 10) n.classList.add('pp-ln-skip');
-  if (o.highlights === 'off') for (const m of root.querySelectorAll('mark.pp-hl')) m.replaceWith(...m.childNodes);
-  if (kind !== 'pdf') {
-    for (const n of root.querySelectorAll('.pp-note')) {
-      if (o.notes === 'off' || o.notes === 'end') { n.remove(); continue; }
-      n.classList.add(o.notes === 'foot' ? 'pp-foot' : 'pp-sidenote');
-      n.prepend(Object.assign(document.createElement('b'), { textContent: n.dataset.n + ' ' }));
-    }
-    if (o.notes === 'off') for (const m of root.querySelectorAll('.pp-mk')) m.remove();
-  }
+  if (kind !== 'pdf') dressContent(root);
   if (o.notes === 'end' && notes.length)
     root.insertAdjacentHTML('beforeend', `<section class="pp-endnotes"><h4>Notes</h4><ol>${notes.map(n => `<li value="${n.n}">${escapeHtml(n.note)}</li>`).join('')}</ol></section>`);
   return tpl.innerHTML;
 }
 
+// The view's HTML as the options say: the line numbers shown, the highlights marked or not, the notes beside the
+// text, at the foot or left out (the end's are added after it), the markers with them.
+function dressContent(root) {
+  const o = pp.opt;
+  if (lineNumbers() === 'ten') for (const n of root.querySelectorAll('.pp-ln')) if (+n.textContent % 10) n.classList.add('pp-ln-skip');
+  if (o.highlights === 'off') for (const m of root.querySelectorAll('mark.pp-hl')) m.replaceWith(...m.childNodes);
+  for (const n of root.querySelectorAll('.pp-note')) {
+    if (o.notes === 'off' || o.notes === 'end') { n.remove(); continue; }
+    n.classList.add(o.notes === 'foot' ? 'pp-foot' : 'pp-sidenote');
+    n.prepend(Object.assign(document.createElement('b'), { textContent: n.dataset.n + ' ' }));
+  }
+  if (o.notes === 'off') for (const m of root.querySelectorAll('.pp-mk')) m.remove();
+}
+
 // The stylesheet paged.js lays out with: the paper, its margins (and the notes' margin), the header and footer, the
-// frame, the fonts and the highlights' look.
+// frame; then the content's (contentCss).
 function pageCss() {
   const o = pp.opt, s = pp.source, [w, h] = paper(), m = [...o.margins], side = o.notesWidth + 4;
   const sideNotes = (o.notes === 'left' || o.notes === 'right') && viewOf() !== 'pdf';
   if (sideNotes) m[o.notes === 'left' ? 3 : 1] += side;
-  const box = (where, content) => `@${where} { content: ${content}; font: 8pt ${font(s.appFont)}; color: var(--fg-dim, #666); }`;
+  const box = (where, content) => `@${where} { content: ${content}; font: 8pt ${cssString(s.appFont)}, sans-serif; color: var(--fg-dim, #666); }`;
   const name = s.title + (pp.what === 'selection' ? ' (selection)' : '');
+  return `
+@page {
+  size: ${w}mm ${h}mm; margin: ${m.map(v => v + 'mm').join(' ')};
+  ${o.headName ? box('top-left', cssString(name)) : ''}
+  ${o.headDate ? box('top-right', cssString(s.date)) : ''}
+  ${o.headPages ? box('bottom-center', '"Page " counter(page) " of " counter(pages)') : ''}
+  @footnote { border-top: 0.5pt solid color-mix(in srgb, currentColor 40%, transparent); padding-top: 1.5mm; margin-top: 2mm; }
+}
+.pagedjs_page { background: var(--bg, #fff); color: var(--fg, #000); --pp-ch: ${h - m[0] - m[2]}mm; }
+${o.frame ? `.pagedjs_area { outline: ${o.frameWidth}pt solid color-mix(in srgb, var(--fg, #000) ${o.frameIntensity}%, transparent); outline-offset: 1.5mm; }` : ''}
+${contentCss()}`;
+}
+// The content's look on the pages (paged.js's and the sheets'): the fonts, the line numbers, the highlights, the notes,
+// the colours.
+function contentCss() {
+  const o = pp.opt, s = pp.source, side = o.notesWidth + 4;
   const font = (f, rest = 'sans-serif') => `${cssString(f)}, ${rest}`;
   const hl = hlCss();
   const hlLook = {
@@ -527,7 +648,6 @@ function pageCss() {
     bold: 'background: none; font-weight: 700;',
     off: 'background: none;',
   }[o.highlights] ?? '';
-  const ch = h - m[0] - m[2];
   const zoom = {
     auto: 'max-width: 100%; max-height: var(--pp-ch); width: auto; height: auto;',
     width: 'width: 100%; height: auto; max-height: var(--pp-ch); object-fit: contain;',
@@ -536,15 +656,6 @@ function pageCss() {
     percent: `zoom: ${o.zoomPercent / 100}; max-width: 100%; max-height: var(--pp-ch);`,
   }[o.zoom];
   return `
-@page {
-  size: ${w}mm ${h}mm; margin: ${m.map(v => v + 'mm').join(' ')};
-  ${o.headName ? box('top-left', cssString(name)) : ''}
-  ${o.headDate ? box('top-right', cssString(s.date)) : ''}
-  ${o.headPages ? box('bottom-center', '"Page " counter(page) " of " counter(pages)') : ''}
-  @footnote { border-top: 0.5pt solid color-mix(in srgb, currentColor 40%, transparent); padding-top: 1.5mm; margin-top: 2mm; }
-}
-.pagedjs_page { background: var(--bg, #fff); color: var(--fg, #000); --pp-ch: ${ch}mm; }
-${o.frame ? `.pagedjs_area { outline: ${o.frameWidth}pt solid color-mix(in srgb, var(--fg, #000) ${o.frameIntensity}%, transparent); outline-offset: 1.5mm; }` : ''}
 .pp-doc { position: relative; }
 .pp-text { position: relative; margin: 0; font: ${o.textSize}pt/1.3 ${font(o.textFont || s.editorFont, 'monospace')}; white-space: pre-wrap; overflow-wrap: anywhere; tab-size: ${pp.values.tabSize || 4}; }
 .pp-line { display: flex; }
@@ -629,7 +740,7 @@ function placeSideNotes() {
       below = top + p.offsetHeight + 2;
     }
   }
-  for (const page of pagesEl.querySelectorAll('.pagedjs_page')) {
+  for (const page of pagesEl.querySelectorAll('.pagedjs_page, .pp-sheet')) {
     let bottom = -Infinity;
     for (const n of [...page.querySelectorAll('.pp-note.pp-sidenote')].sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top)) {
       const r = n.getBoundingClientRect();
@@ -656,7 +767,8 @@ async function applyColours() {
   const style = pagesEl.style;
   for (const name of [...style].filter(n => n.startsWith('--'))) style.removeProperty(name);
   for (const [n, v] of Object.entries(vars ?? {})) style.setProperty(n, v);
-  pagesEl.style.filter = o.colours === 'grey' ? 'grayscale(1)' : '';
+  // Greyscale, or a printer printing in monochrome: the pages as they will come out.
+  pagesEl.style.filter = o.colours === 'grey' || (pp.info?.colour && !o.colourPrint) ? 'grayscale(1)' : '';
   const pick = panel.querySelector('input[type=color][data-k=hlColour]');   // drawn before these colours were set
   if (pick) pick.value = resolvedHex(hlBase());
   const dark = o.colours !== 'bw' && luminance(vars?.['--bg']) < 0.35;
@@ -1012,4 +1124,10 @@ drawName();
 schedule();
 $('.pp-scroll').focus();
 // The font lists after the rest: checking which fonts the page can use takes a moment.
-host('fonts').then(fonts => { pp.fonts = fonts.filter(f => fontUsable(f.name)); drawPanel(); }).catch(() => {});
+// The host builds them meanwhile (null until then): asked again a little later, the pages are not kept waiting.
+(async () => {
+  let fonts;
+  while (!(fonts = await host('fonts').catch(() => []))) await new Promise(r => setTimeout(r, 500));
+  pp.fonts = fonts.filter(f => fontUsable(f.name));
+  drawPanel();
+})();

@@ -18,8 +18,19 @@ async function printDoc(doc, pane) {
   // Printed from the editor: the text (coloured as there); from the preview: as rendered (split: the part with focus).
   const mode = pane?.active?.doc === doc ? pane.el.dataset.mode : null;
   const from = mode === 'edit' ? 'text' : mode === 'preview' ? 'rendered' : mode ? (pane.previewEl.contains(document.activeElement) ? 'rendered' : 'text') : null;
-  await host('print', { source: { ...await printSource(doc, lines), from } });
+  await printOpen({ ...await printSource(doc, lines), from });
 }
+
+// The Print window (modal: the host answers when it closes), then the text's rendering as markdown when it waits for
+// that (printLater): the window shows the text meanwhile.
+async function printOpen(source) {
+  const later = printLater;
+  printLater = null;
+  const shown = host('print', { source });
+  if (later) await host('printRendered', await later()).catch(() => null);
+  await shown;
+}
+let printLater = null;
 
 async function printPath(path) {
   const open = findDoc(path);
@@ -27,7 +38,7 @@ async function printPath(path) {
   const got = await host('read', { path });
   const doc = got.kind ? { path, pdf: got.kind === 'pdf', text: '' } : { path, text: got.text, language: codeLang(path, got.text), ranges: [] };
   if (got.kind && got.kind !== 'pdf') return toast(`${nameOf(path)} cannot be printed.`, true);
-  await host('print', { source: await printSource(doc, null) });
+  await printOpen(await printSource(doc, null));
 }
 
 // { title, path, date, kind, views: { text, rendered?, table? }, selection: views or null, notes: [{ n, note }],
@@ -48,25 +59,29 @@ async function printSource(doc, lines) {
   const text = docText(doc).replace(/\r\n?/g, '\n'), lang = doc.language ?? 'markdown';
   const hls = await printHighlights(doc, text);
   const kind = doc.language === 'csv' ? 'csv' : !doc.language ? 'markdown' : 'text';   // as the preview shows it
-  const build = async (from, to, firstLine) => {
-    const part = text.slice(from, to);
-    const mine = hls.filter(h => h.b > from && h.a < to).map(h => ({ ...h, a: Math.max(h.a, from) - from, b: Math.min(h.b, to) - from }));
-    const views = { text: printTextHtml(part, doc, mine, firstLine) };
+  const piece = (from, to) => ({ part: text.slice(from, to), mine: hls.filter(h => h.b > from && h.a < to).map(h => ({ ...h, a: Math.max(h.a, from) - from, b: Math.min(h.b, to) - from })) });
+  const rendered = async (from, to) => {
+    const { part, mine } = piece(from, to);
     printNotes = new Map(mine.filter(h => h.n).map(h => [h.n, h.note]));
-    // Any text can also be rendered (markdown's own view; code, plain text, HTML through the markdown renderer).
-    if (kind !== 'csv') views.rendered = await printRenderedHtml(part, doc, mine);
+    return printRenderedHtml(part, doc, mine);
+  };
+  const build = async (from, to, firstLine) => {
+    const { part, mine } = piece(from, to);
+    const views = { text: printTextHtml(part, doc, mine, firstLine) };
+    if (kind === 'markdown') views.rendered = await rendered(from, to);
     if (kind === 'csv') views.table = printTableHtml(part, doc, mine);
     return { views, notes: mine.filter(h => h.n).map(h => ({ n: h.n, note: h.note })) };
   };
+  const starts = lines && lineStartsOf(text);
+  const sel = lines && [starts[lines[0]] ?? 0, lines[1] + 1 < starts.length ? starts[lines[1] + 1] - 1 : text.length];
   const all = await build(0, text.length, 1);
-  let selection = null;
-  if (lines) {
-    const starts = lineStartsOf(text), from = starts[lines[0]] ?? 0, to = lines[1] + 1 < starts.length ? starts[lines[1] + 1] - 1 : text.length;
-    selection = await build(from, to, lines[0] + 1);
-  }
+  const selection = sel ? await build(sel[0], sel[1], lines[0] + 1) : null;
+  // Any other text can be rendered too (code, plain text, HTML through the markdown renderer): made after the window
+  // opened (printOpen), so a large file does not wait for it.
+  if (kind === 'text') printLater = async () => ({ rendered: await rendered(0, text.length), selection: sel ? await rendered(sel[0], sel[1]) : null });
   const used = new Set([lang]);
   for (const html of [all.views.text, all.views.rendered ?? '']) for (const m of html.matchAll(/cm-in-([\w-]+)/g)) used.add(m[1]);
-  return { ...source, kind, lang, views: all.views, notes: all.notes, selection, themes: await printThemes([...used]) };
+  return { ...source, kind, lang, views: all.views, notes: all.notes, selection, renderLater: kind === 'text', themes: await printThemes([...used]) };
 }
 
 // The document's highlights as offsets in its text, in order, numbered: { a, b, note, n } (n: its number when it has
@@ -91,7 +106,7 @@ async function printHighlights(doc, text) {
 // A highlight's end: its number and its note (the window places, moves or drops the note).
 const printNoteHtml = h => h.n ? `<sup class="pp-mk">${h.n}</sup><span class="pp-note" data-n="${h.n}">${escapeHtml(h.note)}</span>` : '';
 
-// The text in lines, each with its number, coloured as the editor colours it (above previewColourMaxSize: plain), the
+// The text in lines, each with its number, coloured as the editor colours it (whatever its size), the
 // highlights marked per line and a note after its highlight's last piece.
 function printTextHtml(text, doc, hls, firstLine) {
   const mode = editorMode(doc);   // coloured whatever its size (the preview's previewColourMaxSize is not for paper)

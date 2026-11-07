@@ -171,10 +171,14 @@ None.
   stylesheet made from the options (@page size and margins, margin boxes for the header and footer, `float:
   footnote` for notes at the bottom of the page). A PDF is laid out without it, a sheet per page: it is pages
   already, and paged.js took minutes for a long one. Its pages are drawn when they come in view (150 dpi), and at
-  300 dpi before printing; the page size is read from the first page and corrected per page as it is drawn.
-- **Large documents (3.6)**: paged.js shows the first pages at once and keeps adding; the count line shows how far it
-  is. A change of an option stops a layout that is running and starts again. A text of 123,013 lines took about 2.5
-  minutes for its first 2,200 pages (measured in the test copy); a PDF of 2,003 pages opened in 4 seconds.
+  300 dpi before printing; the page size is read from the first page and corrected per page as it is drawn. A text
+  in lines (the Text view) is laid out without it too, a sheet at a time (layoutText): paged.js reads the whole
+  document before its first page, seconds for a large file and again on every change.
+- **Large documents (3.6)**: the first page shows at once and the others follow; the count line says which page is
+  being laid out. A change of an option ends a running layout at its next page (paged.js's own stop() only pauses)
+  and starts again from page 1. A text of 140,174 lines (7 MB): page 1 about 5.4 s after Print..., the window open
+  after 3.3 s (measured in the test copy); a PDF of 2,003 pages opened in 4 seconds. Rendering a code file as
+  markdown is made after the window opened, so it does not hold up the text.
 - **What it prints (3.1)**: the main window makes it (printsource.js): the text in lines with the editor's colouring
   (runMode), markdown rendered as the preview renders it (renderNow's image, alert, formula and diagram steps are
   now shared helpers in app.js: fixPreviewContent, renderMathAndDiagrams), a CSV as a table from its definition; a

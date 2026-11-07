@@ -82,6 +82,8 @@ sealed class MainForm : Form
         Font = new Font("Segoe UI", 11f),
     };
 
+    // The Print window open now (modal), for the page's later rendering of its text ("printRendered").
+    PrintForm? printing;
     // Messages for the page wait here until it has asked for "init".
     bool pageReady;
     readonly List<string> queue = [];
@@ -1075,7 +1077,15 @@ sealed class MainForm : Form
             case "print":
             {
                 using var print = new PrintForm(app, this, msg["source"]!);
-                print.ShowDialog(this);
+                printing = print;
+                try { print.ShowDialog(this); }
+                finally { printing = null; }
+                return null;
+            }
+            // A text's rendering for the Print window open now (printsource.js), made after it opened.
+            case "printRendered":
+            {
+                printing?.Rendered(msg);
                 return null;
             }
 
