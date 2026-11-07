@@ -96,8 +96,9 @@ sort's name.
   2026-11-07): the colours go by the key's place in the list, so a key dragged elsewhere takes the colour of its new
   place. More keys than colours: they start again from the first, the number tells them apart. The key with the
   focus has its lines at full strength, the others lighter.
-- The key's number in the ruler (your answer 2026-11-07): each key's number (its row in the list) is written in the
-  ruler in the key's colour, hugging its lines: just right of the From line and just left of the To line, so the
+- The key's number in the ruler (your answers 2026-11-07): each key's number (its row in the list) is written in the
+  ruler as a small label with the key's colour as its background and a text colour that contrasts with it (white or
+  black, whichever reads best on that colour in the current theme), hugging its lines: just right of the From line and just left of the To line, so the
   number sits inside the key's columns at both ends. A key of one or two columns, where the two would collide, shows
   the number once, between its lines. While the window is open the ruler is shown (View > Ruler off: shown for the
   window, hidden again when it closes). A key's To empty (to the line's end): only the From side's number.
@@ -180,8 +181,8 @@ matches what Apply does.
 In-app, keys: one key From / To; To empty to the line's end; two and three keys (each next one breaks ties), each
 its own direction; a key added and removed; a key dragged to another place in the list (and Alt+Up / Alt+Down), the
 order following; a second key before the first in the line and one partly overlapping it, each read for itself; a To before its From not accepted, To equal to From a one-column key; the column lines at
-each From and To, each key's in its own colour, the same colour in its row; each key's number in the ruler in its
-colour, right of the From line and left of the To line (once for a narrow key, From side only for To empty); the
+each From and To, each key's in its own colour, the same colour in its row; each key's number in the ruler on its
+colour with a readable text colour (day and night), right of the From line and left of the To line (once for a narrow key, From side only for To empty); the
 ruler shown while the window is open with View > Ruler off, hidden again after; the focused key's at full strength; a key dragged takes the colour of its new place; more keys than colours;
 the lines moving with the fields and gone after closing; in the column view the key columns' headers in their keys'
 colours; in a block: the keys counted from the block's first column (From 1 there by default), another column of the
