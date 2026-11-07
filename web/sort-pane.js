@@ -21,9 +21,11 @@ paneHandlers.sort = st => {
   again?.focus();
 };
 
-paneHandlers.sortPreview = ({ preview, problem, target, name, changed }) => {
+paneHandlers.sortPreview = ({ preview, problem, target, name, changed, slow, all }) => {
   if (!sp.st) return;
-  Object.assign(sp.st, { preview, problem, target, name, changed });
+  Object.assign(sp.st, { preview, problem, target, name, changed, slow, all });
+  const w = $s('.sp-slow');
+  if (w) { w.hidden = !slow; w.textContent = slowLine(); }
   $s('.sp-doc').innerHTML = docLine();
   const n = $s('.sp-name');
   if (n) n.innerHTML = nameLine();
@@ -37,6 +39,9 @@ paneHandlers.sortPreview = ({ preview, problem, target, name, changed }) => {
 
 // Edit > Sort...: the focus on the first field (the first key's).
 paneHandlers.focus = () => document.querySelector('.sp-body [data-f]:not([type=radio]), .sp-list')?.focus();
+
+// A slow preview: how long it took, and the setting that makes it quicker.
+const slowLine = () => sp.st.slow ? `The preview took ${(sp.st.slow / 1000).toFixed(1)} s. Settings > Editor > Sort: ${sp.st.all ? 'fewer lines than All' : 'fewer lines'} make it quicker.` : '';
 
 // The stored sort this one came from, at the bottom (not in the tab: a narrow panel cuts it there).
 // Changed since: the name in italics.
@@ -87,7 +92,7 @@ function draw() {
     check('dups', 'Remove duplicates', 'The first one stays') +
     (spec.dups ? `<div class="sp-sub">${check('dupsWhole', `By the whole ${unit}`, 'Else by the keys')}${check('dupsTrim', 'Ignore leading and trailing whitespace')}</div>` : '') +
     check('empty', `Remove empty ${unit}s`, 'Whitespace only counts as empty') + '</div>' +
-    `<div class="sp-problem"${st.problem ? '' : ' hidden'}>${esc(st.problem ?? '')}</div><pre class="sp-preview">${st.problem ? '' : st.preview}</pre>` +
+    `<div class="sp-problem"${st.problem ? '' : ' hidden'}>${esc(st.problem ?? '')}</div><div class="sp-slow"${st.slow ? '' : ' hidden'}>${esc(slowLine())}</div><pre class="sp-preview">${st.problem ? '' : st.preview}</pre>` +
     `<div class="sp-bar"><span class="sp-name" title="The stored sort this one came from: Save stores it there">${nameLine()}</span><span class="sp-btns">` +
     `<button type="button" data-do="apply" class="sp-main"${st.problem ? ' disabled' : ''} title="Enter">Apply</button>` +
     MANAGE.map(m => m === '-' ? '' : `<button type="button" class="sp-full" data-do="${m.id}"${m.on(st) ? '' : ' disabled'} title="${esc(m.title(st))}">${m.label}</button>`).join('') +

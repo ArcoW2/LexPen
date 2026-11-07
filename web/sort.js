@@ -372,7 +372,17 @@ function sortDescription(spec) {
 const sortEsc = s => escapeHtml(String(s ?? ''));
 
 // The first lines of the result, the keys' parts in their colours (a CSV: the header line above its records).
-const sortPreviewLimit = () => Number.isInteger(setting('sortPreviewLines')) && setting('sortPreviewLines') > 0 ? setting('sortPreviewLines') : 100;
+// sortPreviewLines: 0 is all of it.
+const sortPreviewLimit = () => Number.isInteger(setting('sortPreviewLines')) && setting('sortPreviewLines') >= 0 ? setting('sortPreviewLines') : 100;
+// A preview that takes longer than this (ms) says so, with the setting that makes it quicker.
+const SORT_SLOW_MS = 300;
+
+// The preview sorted and drawn, timed: { r, preview, slow } (slow: the ms it took when over SORT_SLOW_MS, else 0).
+function sortPreviewOf(t, spec) {
+  const start = performance.now(), r = sortResult(t, spec, sortPreviewLimit()), preview = r.problem ? '' : sortPreviewHtml(r, t);
+  const ms = performance.now() - start;
+  return { r, preview, slow: ms > SORT_SLOW_MS ? Math.round(ms) : 0 };
+}
 
 // The preview: the first lines sorted (sortPreviewLimit), the keys' columns in their colours; a note when cut.
 function sortPreviewHtml(r, t) {
@@ -434,12 +444,12 @@ function sortState(focusAt = null) {
     names = Array.from({ length: read.columns }, (_, c) => csvName(read, doc.csvDef, c));
     cols = spec.columns.map(k => csvSortColumn(k, read));
   }
-  const r = sortResult(t, spec, sortPreviewLimit());
+  const { r, preview, slow } = sortPreviewOf(t, spec);
   sortMarkCsvHeads();
   return { kind: 'sort', doc: docName(doc), target: sortTargetText(t), csv, page: sortUi.page, spec, names, cols,
     colours: sortList().map((_, i) => ({ bg: sortColour(i), fg: sortTextOn(sortColour(i)) })),
     name: sortUi.name, changed: sortUi.changed, focusKey: sortUi.focusKey,
-    problem: r.problem ?? null, preview: r.problem ? '' : sortPreviewHtml(r, t),
+    problem: r.problem ?? null, preview, slow, all: sortPreviewLimit() === 0,
     list: sortUi.list.map(e => ({ name: e.name, desc: sortDescription(sortFill(e.sort)), off: e.sort?.kind === 'columns' && !csv })),
     storedAt: sortUi.storedAt, focusAt };
 }
@@ -453,8 +463,8 @@ function tellSortPane() {
   clearTimeout(sortUi.timer);
   sortUi.timer = setTimeout(() => {
     if (activeDoc() !== sortUi.doc || sortUi.page !== 'sort') return sortSend();
-    const t = sortUi.target = sortTarget(), r = sortResult(t, sortUi.spec, sortPreviewLimit());
-    sortChannel.send({ kind: 'sortPreview', preview: r.problem ? '' : sortPreviewHtml(r, t), problem: r.problem ?? null,
+    const t = sortUi.target = sortTarget(), { r, preview, slow } = sortPreviewOf(t, sortUi.spec);
+    sortChannel.send({ kind: 'sortPreview', preview, slow, all: sortPreviewLimit() === 0, problem: r.problem ?? null,
       target: sortTargetText(t), name: sortUi.name, changed: sortUi.changed });
     sortMarkCsvHeads();
     for (const pane of panes) if (pane.cm) drawRuler(pane);

@@ -5262,6 +5262,7 @@ function applySettings() {
     if (typeof repaintGuides === 'function') repaintGuides();
   }
   if (RULER_SETTINGS.some(changed) && typeof applyRuler === 'function') applyRuler();   // ruler.js
+  if (changed('sortPreviewLines') && 'sortPreviewLines' in was && typeof sortSend === 'function') sortSend();   // sort.js
   if (['highlightStyle', 'highlightColour', 'highlightIntensity'].some(changed)) applyHighlight();
   if (changed('inlineCodeIntensity')) applyInlineCode();
   if (['previewHighlightStyle', 'previewHighlightColour', 'previewHighlightIntensity'].some(changed) && typeof applyPreviewHighlight === 'function') applyPreviewHighlight();

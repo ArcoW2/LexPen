@@ -245,7 +245,8 @@ None.
   field (there Delete edits the number).
 - **The preview** sorts only the first lines of the target (records in a CSV), Settings > Editor > Sort
   (`sortPreviewLines`, 100 by default; your answer after the build, 2026-11-07: the whole target was slow on a large
-  file), with a note when there are more; Apply sorts all of it.
+  file), with a note when there are more; Apply sorts all of it. The setting also has All. A preview that takes
+  longer than 300 ms (SORT_SLOW_MS, a chosen limit) shows a line above it with the time it took and the setting.
 - **The buttons** (your answers after the build, 2026-11-07): Apply, Save, Save as..., Revert (back to the stored sort
   it came from), New (a sort from the start); when they do not fit the panel's width: Apply and Manage, a menu with
   Save, Save as..., Revert and New. Save and Revert only for a stored sort that was changed; its name then in
