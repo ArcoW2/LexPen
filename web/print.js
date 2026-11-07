@@ -172,12 +172,31 @@ async function refreshStored() {
   pp.stored = await host('printList');
   drawStored();
 }
+// As the Sort panel's stored sorts: a list (a click selects, a double-click or Enter uses it), each with a line of
+// what it is, and Select (a template: Use as new) and Delete... under it.
 function drawStored() {
   const list = pp.stored.list, box = $('.pp-stored');
-  if (!list.length) { box.innerHTML = '<div class="pp-empty">No stored settings yet: Save as... stores these.</div>'; return; }
-  const item = (s, i) => `<div class="pp-item${s.template ? ' pp-template' : ''}${s.name === pp.name ? ' pp-sel' : ''}" data-i="${i}" title="${s.template ? 'A template: double-click to use it as new' : 'Double-click to use it'}">${escapeHtml(s.name)}</div>`;
+  if (pp.storedAt == null || pp.storedAt >= list.length) pp.storedAt = Math.max(0, list.findIndex(s => s.name === (pp.name ?? pp.origin)));
   const templates = list.filter(s => s.template).length;
-  box.innerHTML = list.map((s, i) => (i === templates && templates ? '<div class="pp-divider"></div>' : '') + item(s, i)).join('');
+  const item = (s, i) => `<div class="pp-item${i === pp.storedAt ? ' pp-sel' : ''}" data-i="${i}" title="Right-click for more">` +
+    `<b>${escapeHtml(s.name)}${s.template ? ' <span class="pp-dim">(template)</span>' : ''}</b><span class="pp-dim">${escapeHtml(storedDescription(s.settings))}</span></div>`;
+  const items = list.map((s, i) => (i === templates && templates ? '<div class="pp-divider"></div>' : '') + item(s, i)).join('')
+    || '<div class="pp-empty">No stored settings yet: Save as... stores these.</div>';
+  const sel = list[pp.storedAt];
+  box.innerHTML = `<div class="pp-list" tabindex="0">${items}</div>` +
+    `<div class="pp-bar"><button type="button" data-do="selectStored"${sel ? '' : ' disabled'}>${sel?.template ? 'Use as new' : 'Select'}</button>` +
+    `<button type="button" data-do="deleteStored"${sel ? '' : ' disabled'}>Delete...</button></div>`;
+}
+// A short line of what a stored set is: the paper, the printer, the colours.
+function storedDescription(o) {
+  const colours = o.colours === 'bw' ? 'black and white' : o.colours === 'grey' ? 'greyscale'
+    : o.colours?.startsWith('theme:') ? (pp.source.themes.list.find(t => 'theme:' + t.id === o.colours)?.name ?? o.colours.slice(6)) : 'colours as on screen';
+  return `${o.paper ?? DEFAULTS.paper} ${o.landscape ? 'landscape' : 'portrait'}, ${o.printer || 'the default printer'}, ${colours}`;
+}
+function storedAt(i) {
+  pp.storedAt = Math.max(0, Math.min(pp.stored.list.length - 1, i));
+  drawStored();
+  $('.pp-list').focus();
 }
 async function useStored(s, edit) {
   pp.opt = { ...DEFAULTS, ...s.settings, margins: [...(s.settings.margins ?? DEFAULTS.margins)] };
@@ -188,15 +207,34 @@ async function useStored(s, edit) {
   changed(false);
   schedule();
 }
+const selectedStored = () => pp.stored.list[pp.storedAt];
+$('.pp-stored').addEventListener('click', e => { const i = e.target.closest('.pp-item')?.dataset.i; if (i != null) storedAt(+i); });
 $('.pp-stored').addEventListener('dblclick', e => { const i = e.target.closest('.pp-item')?.dataset.i; if (i != null) useStored(pp.stored.list[i]); });
+// Its right-click menu (also the menu key, Shift+F10), as a stored sort's.
+function storedMenu(i, x, y) {
+  storedAt(i);
+  const s = pp.stored.list[i];
+  menu(x, y, s.template
+    ? [['Use as new', () => useStored(s)], '-', ['Rename...', () => renameStored(s)], ['Edit', () => useStored(s, true)], ['Unpin as template', () => pinStored(s, false)]]
+    : [['Select', () => useStored(s)], '-', ['Rename...', () => renameStored(s)], ['Pin as template', () => pinStored(s, true)]]);
+}
 $('.pp-stored').addEventListener('contextmenu', e => {
   const el = e.target.closest('.pp-item');
   e.preventDefault();
-  if (!el) return;
-  const s = pp.stored.list[el.dataset.i];
-  menu(e.clientX, e.clientY, s.template
-    ? [['Use as new', () => useStored(s)], '-', ['Rename...', () => renameStored(s)], ['Edit', () => useStored(s, true)], ['Unpin as template', () => pinStored(s, false)], '-', ['Delete', () => deleteStored(s)]]
-    : [['Select', () => useStored(s)], '-', ['Rename...', () => renameStored(s)], ['Pin as template', () => pinStored(s, true)], '-', ['Delete', () => deleteStored(s)]]);
+  if (el) storedMenu(+el.dataset.i, e.clientX, e.clientY);
+});
+$('.pp-stored').addEventListener('keydown', e => {
+  if (!e.target.closest('.pp-list') || !pp.stored.list.length) return;
+  if (e.key === 'ContextMenu' || e.key === 'F10' && e.shiftKey) {
+    e.preventDefault();
+    const r = $(`.pp-item[data-i="${pp.storedAt}"]`)?.getBoundingClientRect();
+    return r && storedMenu(pp.storedAt, r.left + 16, r.bottom);
+  }
+  if (!['ArrowUp', 'ArrowDown', 'Enter', 'Delete'].includes(e.key) || e.ctrlKey) return;
+  e.preventDefault();
+  if (e.key === 'Enter') return useStored(selectedStored());
+  if (e.key === 'Delete') return deleteStored(selectedStored());
+  storedAt(pp.storedAt + (e.key === 'ArrowUp' ? -1 : 1));
 });
 async function renameStored(s) {
   const to = await ask('New name', s.name);
@@ -861,7 +899,8 @@ async function printerDialog() {
 
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-do]');
-  if (b && !b.disabled) ({ print: () => act('print'), pdf: () => act('pdf'), cancel: () => host('close'), save, saveAs, revert, new: fresh, printerDialog })[b.dataset.do]?.();
+  if (b && !b.disabled) ({ print: () => act('print'), pdf: () => act('pdf'), cancel: () => host('close'), save, saveAs, revert, new: fresh, printerDialog,
+    selectStored: () => useStored(selectedStored()), deleteStored: () => deleteStored(selectedStored()) })[b.dataset.do]?.();
   const tab = e.target.closest('[data-tab]');
   if (tab) {
     for (const t of document.querySelectorAll('[data-tab]')) t.classList.toggle('pp-on', t === tab);
