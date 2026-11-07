@@ -24,16 +24,55 @@ function list(path) {
 }
 paneHandlers.listed = m => { asked.get(m.id)?.(m.items ?? []); asked.delete(m.id); };
 
-// The head: the folder's name, the sort, the filter.
+// The head: the folder's name, the sort, the filters, the sizes shown.
+const headEl = document.querySelector('.mm-tree-head');
+let head = {};
 paneHandlers.head = m => {
+  head = m;
   titleEl.textContent = titleEl.title = m.title;
   sortEl.value = m.sort;
   document.body.toggleAttribute('data-sort-desc', !!m.desc);
   document.body.dataset.tree = m.known ? 'known' : 'all';
+  document.body.toggleAttribute('data-sizes', !!m.size);
   document.querySelector('.mm-known-only').classList.toggle('mm-on', !!m.known);
+  document.querySelector('.mm-hidden-files').classList.toggle('mm-on', !!m.hidden);
+  document.querySelector('.mm-file-sizes').classList.toggle('mm-on', !!m.size);
+  fitHead();
 };
 sortEl.addEventListener('change', () => toWindow({ kind: 'sort', value: sortEl.value }));
 for (const b of document.querySelectorAll('.mm-tree-head [data-cmd]')) b.addEventListener('click', () => toWindow({ kind: 'cmd', name: b.dataset.cmd }));
+
+// The sort, the direction and the toggles when they fit beside the folder's name; else View, a menu with the same.
+function fitHead() {
+  headEl.classList.remove('mm-compact');
+  headEl.classList.toggle('mm-compact', headEl.scrollWidth > headEl.clientWidth);
+}
+new ResizeObserver(fitHead).observe(headEl);
+const cmd = name => () => toWindow({ kind: 'cmd', name });
+document.querySelector('.mm-tree-view').addEventListener('click', e => {
+  const r = e.currentTarget.getBoundingClientRect();
+  const order = [['Modified', 'modified'], ['Name', 'name'], ['Extension', 'extension'], ['Size', 'size']];
+  paneMenu({ x: r.left, y: r.bottom + 2, items: [
+    { header: 'Filter' },
+    { label: 'Known files', checked: head.known, run: cmd('knownOnly') },
+    { label: 'Hidden folders / files', checked: head.hidden, run: cmd('hiddenFiles') },
+    { header: 'View' },
+    { label: 'Size', checked: head.size, run: cmd('fileSizes') },
+    { header: 'Order' },
+    ...order.map(([label, value]) => ({ label, checked: head.sort === value, run: () => toWindow({ kind: 'sort', value }) })),
+    '-',
+    { label: 'Up', checked: !head.desc, run: () => head.desc && cmd('sortDir')() },
+    { label: 'Down', checked: !!head.desc, run: () => !head.desc && cmd('sortDir')() },
+  ] });
+});
+
+// A file's size as the Explorer shows it: bytes, then KB, MB, GB.
+function sizeText(n) {
+  const units = ['bytes', 'KB', 'MB', 'GB', 'TB'];
+  let i = 0;
+  while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
+  return (i === 0 || n >= 10 ? Math.round(n) : n.toFixed(1)) + ' ' + units[i];
+}
 
 // The window's folder: { root, parent (null at a drive's root), open: the folders to open, top, cursor }.
 let building = Promise.resolve();
@@ -107,6 +146,7 @@ async function fill(container, path, depth) {
       row.append(Object.assign(document.createElement('span'), { className: 'mm-columns-mark', title: `Has a CSV definition (${item.name}-metadata.json)` }));
     }
     row.append(name);
+    if (item.size != null) row.append(Object.assign(document.createElement('span'), { className: 'mm-size', textContent: sizeText(item.size) }));   // shown with View > Size
     if (item.highlights) {
       row.classList.add('mm-has-highlights');
       row.title += '\nHas highlights next to it (' + item.name + '.lph)';

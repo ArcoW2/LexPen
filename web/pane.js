@@ -47,6 +47,7 @@ function paneMenu({ x, y, above, closed, items }) {
   const fill = (el, list) => {
     for (const item of list) {
       if (item === '-') { el.append(Object.assign(document.createElement('hr'), { className: 'mm-pane-menu-sep' })); continue; }
+      if (item.header) { el.append(Object.assign(document.createElement('div'), { className: 'mm-pane-menu-head', textContent: item.header })); continue; }   // a section's name: not an item
       const b = document.createElement('button');
       b.type = 'button';
       b.disabled = !!item.disabled;

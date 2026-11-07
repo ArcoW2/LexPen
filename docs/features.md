@@ -542,12 +542,15 @@ every action with its key.
   Groups stacked at a side have a roll-up button (as high as their tabs; shown again, rolled down).
   Ctrl+Shift+B opens and closes the left area; View: Dock area left / right / bottom. Kept per window, floating
   panes too (they float again when the window opens).
-- **Folder pane** (Ctrl+Shift+E): browse all files in a folder, sorted by name or modified time. The `..` row
+- **Folder pane** (Ctrl+Shift+E): browse all files in a folder, sorted by modified time, name, extension or size, up or down (folders first). The `..` row
   (Alt+Up, Backspace) goes up a folder; F2 renames the file or folder. Ctrl+Shift+E (or a click) gives it the keyboard: arrows, Home/End,
   PgUp/PgDn, Enter (Shift+Enter: new tab, Ctrl+Enter: other pane, Ctrl+Shift+Enter: new tab there), Esc back to
-  the document (hidden files, dot folders and `node_modules` are skipped), with git status markers (modified,
+  the document (hidden files, dot folders and `node_modules` are skipped; **Hidden** shows the hidden and dot ones,
+  `node_modules` still not), with git status markers (modified,
   added, untracked, deleted, renamed, conflict) when the folder is in a repository. File types no language pack
-  knows are dimmed; the **Known** button in the sidebar header hides them (folders stay).
+  knows are dimmed; the **Known** button in the sidebar header hides them (folders stay). **Size** shows each file's
+  size after its name. In a narrow pane these are in **View**, a menu: Filter (Known files, Hidden folders / files),
+  View (Size), Order (Modified, Name, Extension, Size; Up, Down).
   Right-click a file or folder to copy its absolute path, or its path relative to the open folder. Right-click >
   Float the folder pane in a window of its own: the same tree in a window of its own (another monitor too), titled
   with its folder (also from its tab's right-click menu); Back in the window (its right-click menu) or closing it puts

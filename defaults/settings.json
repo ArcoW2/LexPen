@@ -196,8 +196,10 @@
     "previewPlace2": "right",     // "bottom" (below) of the text; previewPlace2: the second editor pane's
     "searchScope": "file",        // the sidebar search: "file", "open" (the open files) or "folder"
     "tree": "all",                // the folder pane: "all" files, or "known" (the file types the language packs know)
-    "sort": "name",               // the folder pane: by "name" or "modified"
+    "sort": "name",               // the folder pane: by "name", "modified", "extension" or "size"
     "sortDesc": false,            // the folder pane: descending
+    "treeHidden": false,          // the folder pane: also the hidden files and folders, and those starting with a dot
+    "treeSize": false,            // the folder pane: each file's size after its name
     "formatBar": true,            // the bar with bold, headings, lists, ... above the editor
     "ruler": false,               // the ruler above the editor: columns, the cursor's column, guides; a click on it
                                   // sets a tab stop (Tab goes there, Shift+Tab back) or a helper line (only shows),

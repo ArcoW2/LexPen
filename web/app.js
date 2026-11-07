@@ -2337,11 +2337,20 @@ let treeOpen = [], treeTop = 0;
 // Files that changed while the window was not active (lower case), highlighted until opened.
 const freshPaths = new Set();
 
-// Folders first, then files; each by name or by modified time.
+// Folders first, then files; each by name, modified time, extension or size (folders have none: by name).
+function treeSort() {
+  return ['name', 'modified', 'extension', 'size'].includes(setting('sort')) ? setting('sort') : 'name';
+}
 function sortItems(items) {
   const desc = setting('sortDesc') ? -1 : 1;
   const byName = (a, b) => { const x = a.name.toLowerCase(), y = b.name.toLowerCase(); return x < y ? -1 : x > y ? 1 : 0; };
-  const key = setting('sort') === 'modified' ? (a, b) => a.modified - b.modified || byName(a, b) : byName;
+  const ext = i => { const at = i.name.lastIndexOf('.'); return at > 0 ? i.name.slice(at + 1).toLowerCase() : ''; };
+  const key = {
+    name: byName,
+    modified: (a, b) => a.modified - b.modified || byName(a, b),
+    extension: (a, b) => (a.dir ? 0 : ext(a) < ext(b) ? -1 : ext(a) > ext(b) ? 1 : 0) || byName(a, b),
+    size: (a, b) => (a.dir ? 0 : (a.size ?? 0) - (b.size ?? 0)) || byName(a, b),
+  }[treeSort()];
   return items.sort((a, b) => b.dir - a.dir || desc * key(a, b));
 }
 
@@ -2350,7 +2359,7 @@ function sortItems(items) {
 // with a backup next to it: a dot before its name (plan 33). A CSV with its definition next to it (name.csv-metadata.json,
 // plan 29): a mark before its name, the metadata file not listed; one whose CSV is not there is listed.
 async function listItems(path) {
-  const listed = await host('list', { path });
+  const listed = await host('list', { path, hidden: !!setting('treeHidden') });
   const withHighlights = new Set(listed.filter(i => !i.dir && /\.lph$/i.test(i.name)).map(i => i.name.slice(0, -4).toLowerCase()));
   const withBackups = new Set(listed.filter(i => !i.dir && /\.bak$/i.test(i.name)).map(i => i.name.slice(0, -4).toLowerCase()));
   const withColumns = new Set(listed.filter(i => !i.dir && /-metadata\.json$/i.test(i.name)).map(i => i.name.slice(0, -14).toLowerCase()));
@@ -2358,7 +2367,7 @@ async function listItems(path) {
   const besideItsCsv = i => /-metadata\.json$/i.test(i.name) && names.has(i.name.slice(0, -14).toLowerCase());
   const items = listed.filter(i => i.dir || (!/\.lph$/i.test(i.name) && !besideItsCsv(i) && (setting('showBackupFiles') || !/\.bak$/i.test(i.name))));
   return [...sortItems(items), ...deletedIn(path, items)].map(item => ({
-    path: item.path, name: item.name, dir: !!item.dir, gone: !!item.gone, other: !item.dir && !knownFile(item.name),
+    path: item.path, name: item.name, dir: !!item.dir, gone: !!item.gone, other: !item.dir && !knownFile(item.name), size: item.size,
     backup: !item.dir && !item.gone && withBackups.has(item.name.toLowerCase()),
     highlights: !item.dir && withHighlights.has(item.name.toLowerCase()), git: gitStatusOf(item) || null,
     columns: !item.dir && !item.gone && withColumns.has(item.name.toLowerCase()),
@@ -2586,10 +2595,14 @@ function showSort() {
   sendFolderHead();
 }
 
-// The Folder pane's head: the folder's name, the sort, the filter of known file types.
+// The Folder pane's head: the folder's name, the sort, the filters (known file types, hidden ones), the sizes shown.
+function folderHead() {
+  return { kind: 'head', title: state.root ? nameOf(state.root) || state.root : 'No folder open',
+    sort: treeSort(), desc: !!setting('sortDesc'), known: document.body.dataset.tree === 'known',
+    hidden: !!setting('treeHidden'), size: !!setting('treeSize') };
+}
 function sendFolderHead() {
-  toFolder({ kind: 'head', title: state.root ? nameOf(state.root) || state.root : 'No folder open',
-    sort: setting('sort') === 'modified' ? 'modified' : 'name', desc: !!setting('sortDesc'), known: document.body.dataset.tree === 'known' });
+  toFolder(folderHead());
 }
 
 // ---------- The Folder pane's page (docs/plans/executed/PLAN-docking.md 3.3, 3.5) ----------
@@ -2603,8 +2616,7 @@ const toFolder = msg => folderPane.send(msg);
 function folderPaneState() {
   const name = state.root ? nameOf(state.root) || state.root : '';
   return new Map([['look', paneLook()], ['title', { kind: 'title', text: `Folder: ${name}` }],
-    ['head', { kind: 'head', title: name || 'No folder open', sort: setting('sort') === 'modified' ? 'modified' : 'name',
-      desc: !!setting('sortDesc'), known: document.body.dataset.tree === 'known' }],
+    ['head', folderHead()],
     ...(state.root ? [['root', { kind: 'root', root: state.root, parent: parentOf(state.root), open: treeOpen, top: treeTop, cursor: null }]] : []),
     ['marks', { kind: 'marks', active: activeTab()?.doc.path ?? null, fresh: [...freshPaths] }]]);
 }
@@ -2629,7 +2641,7 @@ async function fromFolder(m, from) {
     case 'escape':   // its menu open (docked: here, the focus still in the folder): that closes first, the focus staying
       if (!ui.treeMenu.hidden) { closeMenus(); return hideMenus(); }   // with its Copy name items, when open
       return focusPane(panes[state.activePane]);
-    case 'sort': keepLayout('sort', m.value); return refreshTree();
+    case 'sort': keepLayout('sort', m.value); sendFolderHead(); return refreshTree();   // the head: its View menu's check
     case 'cmd': return commands[m.name]?.();
     case 'drag': draggedPathIsImage = IMAGE_FILE.test(m.path); return;
     case 'dragStart': return startFolderDrag(m.path);
@@ -5311,6 +5323,8 @@ function applySettings() {
   if (changed('docks')) renderDocks();
   if (changed('searchScope') && ['file', 'open', 'folder'].includes(now.searchScope)) searchUi.scope.value = now.searchScope;
   if (changed('sort') || changed('sortDesc')) { showSort(); if ('sort' in was) refreshTree(); }
+  if (changed('treeHidden') && 'treeHidden' in was) { sendFolderHead(); refreshTree(); }
+  if (changed('treeSize')) sendFolderHead();
   if (changed('orient') || changed('ratio')) {
     state.orient = now.orient === 'h' ? 'h' : 'v';
     state.ratio = +now.ratio || 50;
@@ -5426,6 +5440,8 @@ const commands = {
   sidebar: () => setSidebar(document.body.dataset.sidebar === 'off'),
   refresh: refreshTree,
   knownOnly: () => setKnownOnly(document.body.dataset.tree !== 'known'),
+  hiddenFiles() { keepLayout('treeHidden', !setting('treeHidden')); sendFolderHead(); refreshTree(); },
+  fileSizes() { keepLayout('treeSize', !setting('treeSize')); sendFolderHead(); },
   lineBreaks: () => setSetting('lineBreaks', !setting('lineBreaks')),
   sortDir() {
     keepLayout('sortDesc', !setting('sortDesc'));

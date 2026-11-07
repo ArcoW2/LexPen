@@ -9,12 +9,19 @@
 <body class="mm-folder-page">
 <div class="mm-tree-head">
   <span class="mm-tree-title">No folder open</span>
-  <select class="mm-sort" title="Sort by">
-    <option value="name">Name</option>
-    <option value="modified">Modified</option>
-  </select>
-  <button data-cmd="sortDir" class="mm-sort-dir" title="Ascending / descending"></button>
-  <button data-cmd="knownOnly" class="mm-known-only" title="Show known file types only (the extensions of the language packs)">Known</button>
+  <span class="mm-tree-wide">
+    <select class="mm-sort" title="Sort by">
+      <option value="modified">Modified</option>
+      <option value="name">Name</option>
+      <option value="extension">Extension</option>
+      <option value="size">Size</option>
+    </select>
+    <button data-cmd="sortDir" class="mm-sort-dir" title="Ascending / descending"></button>
+    <button data-cmd="knownOnly" class="mm-known-only mm-tree-toggle" title="Show known file types only (the extensions of the language packs)">Known</button>
+    <button data-cmd="hiddenFiles" class="mm-hidden-files mm-tree-toggle" title="Also the hidden files and folders, and those starting with a dot">Hidden</button>
+    <button data-cmd="fileSizes" class="mm-file-sizes mm-tree-toggle" title="Each file's size after its name">Size</button>
+  </span>
+  <button class="mm-tree-view" title="Filter, view and order">View &#9662;</button>
   <button data-cmd="refresh" title="Refresh">&#10227;</button>
 </div>
 <div class="mm-tree" tabindex="0"></div>

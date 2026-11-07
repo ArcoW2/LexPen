@@ -979,7 +979,7 @@ sealed class MainForm : Form
             }
 
             case "list":
-                return List(Arg("path"));
+                return List(Arg("path"), msg["hidden"]?.GetValue<bool>() == true);
 
             // Macros (MacroStore, plan 17): the named ones, one's text, written, renamed, deleted, its file (to edit it in a
             // tab), and a key for one added to your keys.json.
@@ -1504,22 +1504,27 @@ sealed class MainForm : Form
         }) ?? "cancel";
     }
 
-    // Each file: name, path, folder or not, and last write time (ms since 1970) for sorting.
-    // Hidden/dot folders, node_modules and hidden files are skipped.
-    static JsonArray List(string path)
+    // Each file: name, path, folder or not, last write time (ms since 1970) and, for a file, its size, for sorting.
+    // Hidden/dot folders, node_modules and hidden files are skipped; with `hidden` (the Folder pane's Hidden folders /
+    // files) the hidden and dot ones are listed too, node_modules still not.
+    static JsonArray List(string path, bool hidden)
     {
         var dir = new DirectoryInfo(path);
         var folders = dir.EnumerateDirectories()
-            .Where(d => !d.Name.StartsWith('.') && d.Name != "node_modules" && !d.Attributes.HasFlag(FileAttributes.Hidden));
-        var files = dir.EnumerateFiles().Where(f => !f.Attributes.HasFlag(FileAttributes.Hidden));
+            .Where(d => d.Name != "node_modules" && (hidden || !d.Name.StartsWith('.') && !d.Attributes.HasFlag(FileAttributes.Hidden)));
+        var files = dir.EnumerateFiles().Where(f => hidden || !f.Attributes.HasFlag(FileAttributes.Hidden));
 
         var result = new JsonArray();
         foreach (var item in folders.Cast<FileSystemInfo>().Concat(files))
-            result.Add(new JsonObject
+        {
+            var entry = new JsonObject
             {
                 ["name"] = item.Name, ["path"] = item.FullName, ["dir"] = item is DirectoryInfo,
                 ["modified"] = new DateTimeOffset(item.LastWriteTimeUtc).ToUnixTimeMilliseconds(),
-            });
+            };
+            if (item is FileInfo file) entry["size"] = file.Length;
+            result.Add(entry);
+        }
         return result;
     }
 
