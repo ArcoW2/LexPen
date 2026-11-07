@@ -566,7 +566,12 @@ every action with its key.
   deletes them all (Delete *.bak files: in the folder itself or with its subfolders). Only backups with their file
   next to them; to the Recycle Bin. Explorer's right-click menu can have the same (Options > Settings, Windows
   Explorer: Delete .bak file, Delete all .bak files), without a question.
-- **Copy file name**: the folder pane's right-click on a file or folder copies its name, as a tab's does.
+- **Copy name to Windows clipboard**: File > Copy name to Windows clipboard (the active document), and the same
+  item in a tab's right-click menu and in the folder pane's (that file or folder): Filename (without its
+  extension), Filename.ext, Path (its folder; a drive or share with its `\`), Path and filename.ext, Relative path,
+  Relative path and filename.ext (relative to the folder pane's root; outside it, as they are). On a folder it says
+  Foldername. Greyed out on a draft never saved. Each is the action `file.copy` with its part (`name`, `nameExt`,
+  `dir`, `full`, `relDir`, `relFull`), so a key in keys.json and macros can use it.
 - **Code files**: JSON, YAML, PowerShell and C# (`.json`, `.yaml`, `.yml`, `.ps1`, `.psm1`, `.psd1`, `.cs`) are
   shown and edited with syntax highlighting. Other text files open as plain text; binary files and files over
   10 MB are refused.

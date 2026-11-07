@@ -240,8 +240,7 @@ function smallMenu(x, y, items) {
   document.body.append(menu);
   menu.style.left = Math.max(0, Math.min(x, innerWidth - menu.offsetWidth - 2)) + 'px';
   menu.style.top = Math.max(0, Math.min(y, innerHeight - menu.offsetHeight - 2)) + 'px';
-  const away = ev => { if (!menu.contains(ev.target)) { menu.remove(); removeEventListener('pointerdown', away, true); } };
-  addEventListener('pointerdown', away, true);
+  menuKeys(menu, () => menu.remove());   // menukeys.js
 }
 
 // ---------- The tabs and the buttons ----------

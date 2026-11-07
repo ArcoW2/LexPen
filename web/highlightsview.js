@@ -171,6 +171,7 @@ view.list.addEventListener('contextmenu', e => {
   view.menu.hidden = false;
   view.menu.style.left = Math.min(e.clientX, innerWidth - view.menu.offsetWidth - 4) + 'px';
   view.menu.style.top = Math.min(e.clientY, innerHeight - view.menu.offsetHeight - 4) + 'px';
+  menuKeys(view.menu, () => view.menu.hidden = true);   // menukeys.js
 });
 view.menu.addEventListener('click', async e => {
   const act = e.target.closest('button')?.dataset.act, item = view.menuItem;

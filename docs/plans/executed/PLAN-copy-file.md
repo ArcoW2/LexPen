@@ -1,5 +1,7 @@
 # Plan 37: Copy file, one submenu
 
+Status: executed (2026-11-06); see 5. As built.
+
 ## 1. The enhancement
 
 The folder pane's right-click menu has three loose items: Copy file name, Copy path, Copy relative path. They
@@ -74,3 +76,20 @@ The menu of a folder changes the 'file' into 'folder'; 'Filename' becomes 'Folde
 ## 4. Open questions
 
 none
+
+## 5. As built
+
+- `file.copy` in actions.js (parameters: the part, an optional path), on `pathPart` and `copyName` in app.js;
+  `copyNameItems(path, folder)` gives the six items (Foldername ... for a folder).
+- File menu: the submenu after Revert to saved, filled when it opens; greyed out on a draft never saved (menus.js: a
+  submenu with its own `enabled()`).
+- The folder pane's and a tab's right-click menus: one item, Copy name to Windows clipboard, whose items open beside
+  it as a menu bar submenu (hover or click; Left or Esc back). A choice closes the right-click menu too.
+- The tab menu's Copy full name and Copy file name went as well: the submenu has both (Path and filename.ext,
+  Filename.ext).
+- The floating folder pane draws the submenu itself (pane.js paneMenu: submenus beside their item, or under it when
+  the pane is too narrow for either side; Right opens, Left and Esc close).
+- In the root of the folder pane, Relative path is empty: the toast says so.
+- Checked in a test copy: the six parts for the cases of 3.5 (in-app script); the File menu, the greyed-out draft,
+  a tab's menu, the docked and the floating folder pane's menus, each copying the right text (the clipboard write
+  recorded in the page: the test window had no focus, which the browser needs for a real clipboard write).

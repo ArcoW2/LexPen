@@ -26,7 +26,9 @@ const MENUS = [
       { label: 'Recently &closed', fill: () => recentItems('closed') }, '-',
       { label: 'Fa&vourite files', fill: () => favouriteItems('files') },
       { label: 'Favo&urite folders', fill: () => favouriteItems('folders') }] }, '-',
-    ['&Save', 'save'], ['Save &as...', 'saveAs'], ['Revert to save&d', 'revertToSaved'], ['Rena&me...', 'file.rename'], '-',
+    ['&Save', 'save'], ['Save &as...', 'saveAs'], ['Revert to save&d', 'revertToSaved'],
+    { label: 'Cop&y name to Windows clipboard', fill: () => copyNameItems(), enabled: () => !!activeDoc()?.path },   // app.js, plan 37
+    ['Rena&me...', 'file.rename'], '-',
     ['Close &tab', 'closeTab'], ['Close a&ll tabs', 'closeAllTabs'], ['Reopen closed ta&b', 'reopenTab'], '-',
     { label: 'Close &window', action: 'closeWindow', key: 'Alt+F4' },   // Windows' own key: the window closes as by its X
   ]],
@@ -183,7 +185,8 @@ async function openMenuLevel(items, x, y, select, above, leftX) {
     const { html, letter } = menuLabel(it.label, it.plain);
     // An item of another language (the Format menu's submenu of the cursor line's language) works as its bar button.
     const available = () => it.language ? !!editorPane() : actionAvailable(it.action, params);
-    const enabled = isSub || it.enabled !== false && (!it.action || available());
+    // A submenu: greyed out when its own enabled() says so (File > Copy name on a draft never saved).
+    const enabled = isSub ? (typeof it.enabled === 'function' ? !!it.enabled() : it.enabled !== false) : it.enabled !== false && (!it.action || available());
     // Or the item's own: a value, or a function asked again after an item that keeps the menu open (keep).
     const checked = typeof it.checked === 'function' ? it.checked() : it.checked ?? (it.action && appActions.get(it.action)?.checked?.(params));
     // The check mark and the arrow are drawn by the style sheet (mm-checked, mm-arrow).
@@ -197,7 +200,9 @@ async function openMenuLevel(items, x, y, select, above, leftX) {
     const entry = { item: it, button, letter, enabled, isSub };
     level.items.push(entry);
     button.addEventListener('mousedown', e => e.preventDefault());
-    button.addEventListener('mouseenter', () => selectMenuItem(level, level.items.indexOf(entry), true));
+    // The pointer moving over it, not mouseenter: the page keeps the pointer's last place over a menu, so a menu opened
+    // elsewhere would get the item now at that place (and :hover marks nothing in a menu, app.css).
+    button.addEventListener('mousemove', () => { const i = level.items.indexOf(entry); if (level.index !== i) selectMenuItem(level, i, true); });
     button.addEventListener('click', () => chooseMenuItem(level, level.items.indexOf(entry)));
     el.append(button);
   }
@@ -246,7 +251,9 @@ function chooseMenuItem(level, index) {
     for (const e of level.items) if (typeof e.item.checked === 'function') e.button.classList.toggle('mm-checked', !!e.item.checked());
     return;
   }
+  const context = menuBar.fromContext;   // a submenu of a right-click menu (app.js, copyNameFlyout): that one closes too
   closeMenus();
+  if (context) hideMenus();
   if (entry.item.run) entry.item.run();
   else runAction(entry.item.action, entry.item.params, { from: 'menu', language: entry.item.language });
 }
@@ -254,8 +261,13 @@ function chooseMenuItem(level, index) {
 function closeMenus() {
   for (const level of menuBar.levels) level.el.remove();
   menuBar.levels = [];
+  menuBar.fromContext = false;
   if (menuBar.top >= 0) menuBar.el.children[menuBar.top]?.classList.remove('mm-on');
   menuBar.top = -1;
+  // A right-click menu's (openContextMenu): the focus back where it was, unless it went elsewhere meanwhile.
+  const from = menuBar.focusFrom;
+  menuBar.focusFrom = null;
+  if (from && document.activeElement === document.body) from.focus?.({ preventScroll: true });
 }
 
 // Keys: Alt+letter opens a menu; in an open menu the menu takes every key (before keys.js and the editor).
@@ -287,6 +299,7 @@ addEventListener('keydown', e => {
       return menuBar.top >= 0 && openTopMenu((menuBar.top + 1) % MENUS.length, true);
     case 'ArrowLeft':
       if (menuBar.levels.length > 1) return menuBar.levels.pop().el.remove();
+      if (menuBar.fromContext) return closeMenus();   // back to its right-click menu
       return menuBar.top >= 0 && openTopMenu((menuBar.top - 1 + MENUS.length) % MENUS.length, true);
     case 'Enter': return chooseMenuItem(level, level.index);
     case 'Escape':
@@ -305,10 +318,27 @@ addEventListener('mousedown', e => {
 addEventListener('blur', closeMenus);
 
 // A menu of its own, not from the menu bar: above x, y (the bottom bar).
-function openPopupMenu(items, x, y) {
+function openPopupMenu(items, x, y, select = true) {
   closeMenus();
   hideMenus();
-  openMenuLevel(items, x, y, true, true);
+  openMenuLevel(items, x, y, select, true);
+}
+
+// A right-click menu (a dock tab's, the gutter's, the outline's, ...), as openPopupMenu, but no item marked as it opens
+// and it takes the focus, out of a pane's frame too, so the keys go to it; the focus back where it was after. The
+// focus gone elsewhere (another pane, docked or floating; another program) closes it, the focus staying there.
+function openContextMenu(items, x, y) {
+  openPopupMenu(items, x, y, false);
+  const el = menuBar.levels[0]?.el;
+  if (!el) return;
+  menuBar.focusFrom = document.activeElement;
+  el.tabIndex = -1;
+  el.focus({ preventScroll: true });
+  el.addEventListener('focusout', () => setTimeout(() => {
+    if (menuBar.levels[0]?.el !== el || document.hasFocus() && el.contains(document.activeElement)) return;
+    menuBar.focusFrom = null;
+    closeMenus();
+  }));
 }
 
 // A menu of its own below an element (a bar's Convert button).

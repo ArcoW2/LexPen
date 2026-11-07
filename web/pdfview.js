@@ -164,7 +164,7 @@ function pdfTellAll() {
 // The right-click on the PDF (its frame tells where): the look and the threshold.
 function pdfMenu(tab, x, y, m = {}) {
   const r = tab.pdf.frame.getBoundingClientRect(), doc = tab.doc, t = setting('pdfThreshold') ?? 50, following = pdfLook(doc) !== 'original';
-  openPopupMenu([
+  openContextMenu([
     ...(typeof pdfHlMenuItems === 'function' ? pdfHlMenuItems(tab, m) : []),   // its highlights (pdfhighlights.js)
     { label: 'Follow the &theme', checked: following, run: () => pdfSetLook(doc, 'theme') },
     { label: '&Original', checked: !following, run: () => pdfSetLook(doc, 'original') },

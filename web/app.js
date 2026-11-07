@@ -696,7 +696,8 @@ function makePane(index) {
       ui.tabMenu.querySelector('[data-cmd=tabPin]').textContent = tab.pinned ? 'Unpin tab' : 'Pin tab';
       ui.tabMenu.querySelector('[data-cmd=tabReadOnly]').classList.toggle('mm-on', tab.readOnly || tab.doc.diskReadOnly);
       ui.tabMenu.querySelector('[data-cmd=tabShowInTree]').hidden = !tab.doc.path;
-      ui.tabMenu.querySelector('[data-cmd=tabCopyName]').hidden = !tab.doc.path;
+      ui.tabMenu.querySelector('.mm-copy-name').disabled = !tab.doc.path;   // a draft never saved: greyed out
+      copyNameFor = () => copyNameItems(tab.doc.path, false);
       ui.tabMenu.querySelector('[data-cmd=tabRename]').hidden = !tab.doc.path;
       ui.tabMenu.querySelector('[data-cmd=tabRenameDraft]').hidden = !tab.doc.draft;
       ui.tabMenu.querySelector('[data-cmd=tabRevert]').hidden = !canRevert(tab.doc);
@@ -877,7 +878,7 @@ async function ensureEditor(pane) {
   });
   pane.cm.on('gutterContextMenu', (cm, line, gutter, e) => {   // View > Gutter, at the mouse
     e.preventDefault();
-    openPopupMenu(GUTTER_ITEMS, e.clientX, e.clientY);
+    openContextMenu(GUTTER_ITEMS, e.clientX, e.clientY);
   });
   // Bookmarks move with the text; a removed line can put two on one line: draw them again. The change
   // and git markers follow the text too.
@@ -2624,7 +2625,7 @@ async function fromFolder(m, from) {
       await renameFile(m.path, m.folder);
       return focusFolder();
     case 'escape':   // its menu open (docked: here, the focus still in the folder): that closes first, the focus staying
-      if (!ui.treeMenu.hidden) return hideMenus();
+      if (!ui.treeMenu.hidden) { closeMenus(); return hideMenus(); }   // with its Copy name items, when open
       return focusPane(panes[state.activePane]);
     case 'sort': keepLayout('sort', m.value); return refreshTree();
     case 'cmd': return commands[m.name]?.();
@@ -2642,7 +2643,7 @@ async function fromFolder(m, from) {
         return openTreeMenu(m, r.left + m.x, r.top + m.y);
       }
       // Floating: the menu is drawn by its page, its items as the window's menu has them now.
-      openTreeMenu(m, 0, 0);
+      openTreeMenu(m, 0, 0, false);
       ui.treeMenu.hidden = true;
       if (m.dir || m.base) await host('hasBackups', { path: m.path }).then(has => { ui.treeMenu.querySelector('[data-cmd=treeDeleteBackups]').hidden = !has || m.up || m.gone; }).catch(() => {});
       return folderPane.menuThere(ui.treeMenu, m.x, m.y);
@@ -3866,7 +3867,7 @@ function fromOutline(pane, m, from) {
         return toFloating({ kind: 'menu', x: m.x, y: m.y, items: items.map((i, n) => i === '-' ? '-' : { label: i.label, checked: !!i.checked, id: n }) });
       }
       const r = (from === 'win' ? winOutlineFrame : pane.outlineFrame).getBoundingClientRect();
-      return openPopupMenu(items.map(i => i === '-' ? '-' : { ...i, plain: true }), r.left + m.x, r.top + m.y);
+      return openContextMenu(items.map(i => i === '-' ? '-' : { ...i, plain: true }), r.left + m.x, r.top + m.y);
     }
     case 'menuPick': return winOutline?.runs?.[m.id]?.();
     case 'enter':   // placed as a find; the focus stays in the outline
@@ -4118,7 +4119,7 @@ function applyPreviewPlace() {
 // The splitter's right-click: the places for its own editor pane.
 function previewPlaceMenu(e, pane) {
   e.preventDefault();
-  openPopupMenu(PREVIEW_PLACES.map(([place, title]) => ({ label: title, checked: previewPlace(pane) === place, plain: true,
+  openContextMenu(PREVIEW_PLACES.map(([place, title]) => ({ label: title, checked: previewPlace(pane) === place, plain: true,
     run: () => setPreviewPlace(pane, place) })), e.clientX, e.clientY);
 }
 
@@ -4866,16 +4867,85 @@ events.windowActivated = folderMenuDone;
 for (const type of ['pointerdown', 'keydown'])
   addEventListener(type, e => { if (!e.target.closest?.('.mm-menu')) folderMenuDone(); }, true);
 
-function showMenu(menu, e, remember) {
+// A right-click menu takes the keys while it is open (Up / Down, Home / End, Enter, Right on Copy name, Esc), the
+// focus going back where it was after (`keys` false: a menu drawn by the floating pane, this one only filled). Its
+// item marked is the one the pointer moves over, or the keys go to; none as it opens. Not :hover: the page keeps the
+// pointer's last place over a menu, so a menu opened elsewhere showed the item that is now at that place.
+let contextFrom = null;   // what had the focus as the menu opened
+function showMenu(menu, e, remember, keys = true) {
   e.preventDefault();
   hideMenus();
   remember();
   menu.hidden = false;
   menu.style.left = Math.min(e.clientX, innerWidth - menu.offsetWidth - 4) + 'px';
   menu.style.top = Math.min(e.clientY, innerHeight - menu.offsetHeight - 4) + 'px';
+  menu.querySelector('button.mm-sel')?.classList.remove('mm-sel');
+  if (!keys) return;
+  contextFrom = document.activeElement;
+  menu.tabIndex = -1;
+  menu.focus({ preventScroll: true });
 }
-const hideMenus = () => ui.treeMenu.hidden = ui.tabMenu.hidden = ui.stripMenu.hidden =
-  ui.paneMenu.hidden = ui.dividerMenu.hidden = true;
+function hideMenus() {
+  const had = document.activeElement?.closest?.('.mm-context');
+  for (const menu of document.querySelectorAll('.mm-context')) menu.hidden = true;   // the folder compare's too (compare.js)
+  if (had) contextMenuDone();
+}
+// Closed: the focus back where it was, unless its item put it elsewhere (Rename...'s field).
+function contextMenuDone() {
+  const from = contextFrom;
+  contextFrom = null;
+  if (document.activeElement !== document.body && !document.activeElement?.closest('.mm-context')) return;
+  if (from === folderPane.frame) focusFolder();
+  else from?.focus?.({ preventScroll: true });
+}
+function markMenuItem(menu, button, byMouse) {
+  const old = menu.querySelector('button.mm-sel');
+  if (old === button) return;
+  old?.classList.remove('mm-sel');
+  button?.classList.add('mm-sel');
+  // By the pointer: Copy name's items open beside it; another item closes them.
+  if (!byMouse) return;
+  if (button?.classList.contains('mm-copy-name')) copyNameFlyout(button);
+  else if (menuBar.fromContext) closeMenus();
+}
+// Its pointer and focus handling, for each right-click menu of this page (the folder compare's: compare.js).
+function contextMenuBehaviour(menu) {
+  menu.addEventListener('mousemove', e => {
+    const b = e.target.closest('button');
+    if (b) markMenuItem(menu, b.disabled ? null : b, true);
+  });
+  menu.addEventListener('mouseleave', () => { if (!menuBar.fromContext) markMenuItem(menu, null); });
+  // The focus gone elsewhere (another pane, docked or floating; another program): it closes, the focus staying there.
+  // Once the focus has settled: Esc in Copy name's items, a click on an item, keep it in the menu or close it anyway.
+  menu.addEventListener('focusout', () => setTimeout(() => {
+    if (menu.hidden || document.hasFocus() && menu.contains(document.activeElement)) return;
+    contextFrom = null;
+    if (menuBar.fromContext) closeMenus();
+    hideMenus();
+    folderMenuDone();
+  }));
+}
+for (const menu of [ui.treeMenu, ui.tabMenu, ui.stripMenu, ui.dividerMenu]) contextMenuBehaviour(menu);
+addEventListener('keydown', e => {
+  const menu = document.activeElement?.closest?.('.mm-context');
+  if (!menu || menu.hidden || e.defaultPrevented || ['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const items = [...menu.querySelectorAll('button')].filter(b => b.offsetParent && !b.disabled);
+  const at = items.indexOf(menu.querySelector('button.mm-sel')), sel = items[at];
+  switch (e.key) {
+    case 'ArrowDown': return markMenuItem(menu, items[(at + 1) % items.length]);
+    case 'ArrowUp': return markMenuItem(menu, items[at < 0 ? items.length - 1 : (at - 1 + items.length) % items.length]);
+    case 'Home': return markMenuItem(menu, items[0]);
+    case 'End': return markMenuItem(menu, items.at(-1));
+    case 'ArrowRight': case 'Enter': case ' ':
+      if (sel?.classList.contains('mm-copy-name')) return copyNameFlyout(sel, true);
+      if (!sel || e.key === 'ArrowRight') return;
+      sel.click();
+      return contextMenuDone();
+    case 'Escape': return hideMenus();
+  }
+}, true);
 
 // Right-click on a tree row: copy its path, absolute or relative to the open folder.
 // The click that brings a window that was not in front back (setting ignoreActivationClick): it only brings the
@@ -4919,7 +4989,7 @@ for (const type of ['mousedown', 'mouseup', 'pointerup', 'click', 'dblclick', 'a
 
 // The right-click menu of a row in the Folder pane's page (`row`: its path and kind, as its page sends them), at x, y
 // in this page.
-function openTreeMenu(row, x, y) {
+function openTreeMenu(row, x, y, keys = true) {
   showMenu(ui.treeMenu, { clientX: x, clientY: y, preventDefault() {} }, () => {
     contextPath = row.path;
     contextKind = row.dir || row.base ? 'folders' : 'files';
@@ -4948,11 +5018,12 @@ function openTreeMenu(row, x, y) {
     const asked = contextPath;
     if (!file && !row.up && !row.gone)
       host('hasBackups', { path: asked }).then(has => { if (contextPath === asked) all.hidden = !has; }).catch(() => {});
-    ui.treeMenu.querySelector('[data-cmd=treeCopyName]').textContent = file ? 'Copy file name' : 'Copy folder name';
-  });
+    const path = contextPath;
+    copyNameFor = () => copyNameItems(path, !file);
+  }, keys);
 }
 document.addEventListener('contextmenu', e => {
-  if (!e.target.closest('.mm-tabs, .mm-divider')) hideMenus();   // those open their own menu
+  if (!e.target.closest('.mm-tabs, .mm-divider, .mm-fcmp')) hideMenus();   // those open their own menu
 });
 
 // The backups LexPen made (plan 33, Backups.cs): a file's own (no question), or a folder's after the question (here,
@@ -4980,6 +5051,56 @@ function relativePath(path) {
 async function copyText(text) {
   await navigator.clipboard.writeText(text);
   toast('Copied ' + text, true);
+}
+
+// Copy name to Windows clipboard (plan 37, action file.copy): a part of a file's or folder's path. name: without its
+// last extension; nameExt: with it; dir: its folder (a drive or a share with its \); full: all of it; relDir and
+// relFull: as dir and full, relative to the folder pane's root (outside it: as they are; in the root itself, relDir
+// is empty). A folder as a file; a drive (D:\) is its own name.
+function pathPart(path, part, root = state.root) {
+  const full = path.length > 3 ? path.replace(/\\$/, '') : path;
+  const cut = full.lastIndexOf('\\');
+  let dir = cut < 0 ? '' : full.slice(0, cut);
+  if (/^[A-Za-z]:$/.test(dir) || /^\\\\[^\\]*$/.test(dir)) dir += '\\';   // D:\a.md -> D:\, \\server\a.md -> \\server\
+  const nameExt = full.slice(cut + 1) || full, dot = nameExt.lastIndexOf('.');
+  const base = root ? root.replace(/\\$/, '') + '\\' : null;
+  const inRoot = !!base && full.toLowerCase().startsWith(base.toLowerCase());
+  const relFull = inRoot ? full.slice(base.length) : full;
+  const relDir = inRoot ? relFull.slice(0, Math.max(0, relFull.lastIndexOf('\\'))) : dir;
+  return { name: dot > 0 ? nameExt.slice(0, dot) : nameExt, nameExt, dir, full, relDir, relFull }[part];
+}
+
+async function copyName(part, path) {
+  if (!path) return;
+  const text = pathPart(path, part);
+  if (text) return copyText(text);
+  await navigator.clipboard.writeText('');
+  toast(`Copied an empty path: ${nameOf(path)} is in the root of the folder pane`, true);
+}
+
+// Its six items, for the active document (no path) or for `path` (a file or a folder).
+function copyNameItems(path, folder) {
+  const [w, W] = folder ? ['folder', 'Folder'] : ['file', 'File'];
+  const item = (label, part) => path === undefined ? [label, 'file.copy', part] : [label, 'file.copy', part, path];
+  return [item(`&${W}name`, 'name'), item(`${W}name.&ext`, 'nameExt'), '-', item('&Path', 'dir'), item(`Path &and ${w}name.ext`, 'full'), '-',
+    item('&Relative path', 'relDir'), item(`Relative path a&nd ${w}name.ext`, 'relFull')];
+}
+
+// The Copy name item of a right-click menu (the folder pane's, a tab's): its items beside it, as a submenu of the menu
+// bar (menus.js), on hover or click. A choice there closes the right-click menu too.
+let copyNameFor = null;   // menu -> () => its items, as the menu was opened
+// By the pointer (markMenuItem) or the keys (`select`: its first item marked, the keys there).
+function copyNameFlyout(button, select = false) {
+  if (button.disabled) return;
+  const r = button.getBoundingClientRect();
+  closeMenus();
+  menuBar.fromContext = true;
+  openMenuLevel(copyNameFor(), r.right - 2, r.top - 5, select, false, button.parentElement.getBoundingClientRect().left);
+}
+for (const menu of [ui.treeMenu, ui.tabMenu]) {
+  const button = menu.querySelector('.mm-copy-name');
+  button.menuItems = () => copyNameFor();   // the floating folder pane draws them itself (panechannel.js menuThere)
+  button.addEventListener('click', () => copyNameFlyout(button));
 }
 
 // Tree filter: all files, or the known file types only (knownFile: a language pack has the extension; folders always
@@ -5330,8 +5451,6 @@ const commands = {
   tabSplit: async () => { if (menuTab) { await activate(paneOf(menuTab), menuTab); await splitToOther(); } },
   tabNextWindow: () => menuTab && moveTab(menuTab, 'next'),
   tabNewWindow: () => menuTab && moveTab(menuTab, 'new'),
-  tabCopyPath: () => menuTab?.doc.path && copyText(menuTab.doc.path),
-  tabCopyName: () => menuTab?.doc.path && copyText(nameOf(menuTab.doc.path)),   // the name and extension, no folder
   tabShowInTree: () => menuTab && showInTree(menuTab.doc.path),
   tabRename: () => menuTab && renameFile(menuTab.doc.path),
   tabRenameDraft: () => menuTab && renameDraft(menuTab.doc),
@@ -5370,9 +5489,6 @@ const commands = {
   closeSecond: () => closePane(1),
   orientV: () => state.orient === 'v' || commands.orient(),
   orientH: () => state.orient === 'h' || commands.orient(),
-  copyPath: () => copyText(contextPath),
-  copyRelativePath: () => copyText(relativePath(contextPath)),
-  treeCopyName: () => copyText(nameOf(contextPath.replace(/\\$/, '')) || contextPath),   // a drive (D:\): as it is
   treeDeleteBackup: () => deleteBackups(contextPath),
   treeDeleteBackups: () => deleteBackups(contextPath, true),
   treeDeleteColumns: () => csvDeleteBeside(contextPath),

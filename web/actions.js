@@ -157,6 +157,13 @@ appAction('revertToSaved', { title: 'Revert to saved', hint: 'The file as it is 
   enabled: () => canRevert(activeDoc()), run: () => revertDoc(activeDoc()) });
 appAction('file.rename', { title: 'Rename...', hint: "Rename this tab's file on disk; its tabs follow, also in other windows (in the folder pane: F2 on a file or folder)", group: 'files',
   enabled: () => !!activeDoc()?.path, run: () => renameFile(activeDoc().path) });
+// Copy name to Windows clipboard (plan 37, app.js pathPart): a part of the active document's path, or of the path given
+// (the folder pane's and a tab's menus).
+appAction('file.copy', { title: 'Copy name to Windows clipboard', hint: "A part of the file's name: Filename, Filename.ext, Path, Path and filename.ext, or the last two relative to the folder pane's root", group: 'files',
+  variants: [['name'], ['nameExt'], ['dir'], ['full'], ['relDir'], ['relFull']],
+  variantTitles: { name: 'Copy name: Filename', nameExt: 'Copy name: Filename.ext', dir: 'Copy name: Path', full: 'Copy name: Path and filename.ext',
+    relDir: 'Copy name: Relative path', relFull: 'Copy name: Relative path and filename.ext' },
+  enabled: ([, path]) => !!(path ?? activeDoc()?.path), run: ([part, path]) => copyName(part, path ?? activeDoc()?.path) });
 appAction('draft.rename', { title: 'Rename draft...', hint: 'A name for this draft (a new document not saved as a file yet), shown in its tab and offered by Save as; with an extension a language knows (.sql): that language', group: 'files',
   enabled: () => !!activeDoc()?.draft, run: () => renameDraft(activeDoc()) });
 appAction('closeTab', { title: 'Close tab', hint: 'Asks about unsaved changes', group: 'files', run: () => commands.closeTab() });

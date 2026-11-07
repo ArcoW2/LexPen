@@ -908,14 +908,12 @@ function buildFolderCompare() {
   // The right-click menu: compare (a file), refresh. Check all contents is a button above the list (it is about every
   // file, not the one clicked).
   el.addEventListener('contextmenu', e => {
-    e.preventDefault();
     const row = e.target.closest('.mm-fcmp-row');
-    if (row) fcmp.cursor = row.dataset.rel;
     const menu = $('.mm-fcmp-menu');
-    menu.querySelector('[data-fcmp-do=compare]').hidden = !row || row.classList.contains('mm-dir') || ['<', '>'].includes(row.dataset.state);
-    menu.hidden = false;
-    menu.style.left = Math.min(e.clientX, innerWidth - menu.offsetWidth - 4) + 'px';
-    menu.style.top = Math.min(e.clientY, innerHeight - menu.offsetHeight - 4) + 'px';
+    showMenu(menu, e, () => {   // app.js: as the window's other right-click menus, the keys too
+      if (row) fcmp.cursor = row.dataset.rel;
+      menu.querySelector('[data-fcmp-do=compare]').hidden = !row || row.classList.contains('mm-dir') || ['<', '>'].includes(row.dataset.state);
+    });
   });
 }
 
@@ -926,6 +924,7 @@ document.addEventListener('DOMContentLoaded', () => {
   menu.hidden = true;
   menu.innerHTML = '<button data-fcmp-do="compare">Compare</button><button data-fcmp-do="refresh">Refresh</button>';
   document.body.append(menu);
+  contextMenuBehaviour(menu);
   menu.addEventListener('click', e => {
     const what = e.target.closest('[data-fcmp-do]')?.dataset.fcmpDo;
     menu.hidden = true;

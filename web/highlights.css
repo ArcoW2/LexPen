@@ -32,4 +32,5 @@
   border: 1px solid var(--border); border-radius: 6px; box-shadow: 0 4px 14px rgba(0, 0, 0, .25); }
 .hv-menu[hidden] { display: none; }
 .hv-menu button { text-align: left; border: 0; background: none; }
-.hv-menu button:hover { background: var(--hover); }
+.hv-menu button:focus { background: var(--hover); outline: none; }   /* marked: the focus (menukeys.js), not :hover */
+.hv-menu:focus { outline: none; }
