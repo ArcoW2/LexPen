@@ -53,7 +53,8 @@ async function printSource(doc, lines) {
     const mine = hls.filter(h => h.b > from && h.a < to).map(h => ({ ...h, a: Math.max(h.a, from) - from, b: Math.min(h.b, to) - from }));
     const views = { text: printTextHtml(part, doc, mine, firstLine) };
     printNotes = new Map(mine.filter(h => h.n).map(h => [h.n, h.note]));
-    if (kind === 'markdown') views.rendered = await printRenderedHtml(part, doc, mine);
+    // Any text can also be rendered (markdown's own view; code, plain text, HTML through the markdown renderer).
+    if (kind !== 'csv') views.rendered = await printRenderedHtml(part, doc, mine);
     if (kind === 'csv') views.table = printTableHtml(part, doc, mine);
     return { views, notes: mine.filter(h => h.n).map(h => ({ n: h.n, note: h.note })) };
   };
@@ -93,7 +94,7 @@ const printNoteHtml = h => h.n ? `<sup class="pp-mk">${h.n}</sup><span class="pp
 // The text in lines, each with its number, coloured as the editor colours it (above previewColourMaxSize: plain), the
 // highlights marked per line and a note after its highlight's last piece.
 function printTextHtml(text, doc, hls, firstLine) {
-  const mode = previewColoured(text) ? editorMode(doc) : 'text/plain';
+  const mode = editorMode(doc);   // coloured whatever its size (the preview's previewColourMaxSize is not for paper)
   const lines = [[]];
   let at = 0;
   CodeMirror.runMode(text, mode, (token, style) => {

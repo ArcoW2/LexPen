@@ -33,7 +33,7 @@ const DEFAULTS = {
   view: null, margins: [15, 15, 15, 15], marginsEach: false, frame: false, frameWidth: 0.5, frameIntensity: 60,
   zoom: 'auto', zoomPercent: 100, textFont: '', textSize: 9, lineNumbers: true,
   bodyFont: '', bodySize: 11, codeFont: '', codeSize: 9,
-  colours: 'current', highlights: 'shaded', hlColour: '', hlIntensity: 100, notes: 'end', notesWidth: 45, notesSize: 8,
+  colours: 'current', syntax: true, highlights: 'shaded', hlColour: '', hlIntensity: 100, notes: 'end', notesWidth: 45, notesSize: 8,
   headName: true, headPages: true, headDate: false,
 };
 const PAPERS = [{ name: 'A3', w: 297, h: 420 }, { name: 'A4', w: 210, h: 297 }, { name: 'A5', w: 148, h: 210 },
@@ -47,7 +47,8 @@ const pp = {
 
 // The view a document prints as: rendered markdown or its text, a CSV's table or its text; a PDF its pages.
 const views = () => pp.source.kind === 'markdown' ? [['rendered', 'Rendered (as the preview)'], ['text', 'Text (as the editor)']]
-  : pp.source.kind === 'csv' ? [['table', 'Table (as the preview)'], ['text', 'Text (as the editor)']] : [];
+  : pp.source.kind === 'csv' ? [['table', 'Table (as the preview)'], ['text', 'Text (as the editor)']]
+  : pp.source.views?.rendered != null ? [['text', 'Text (as the editor)'], ['rendered', 'Rendered as markdown']] : [];
 const viewOf = () => pp.source.kind === 'pdf' ? 'pdf' : views().some(([v]) => v === pp.opt.view) ? pp.opt.view : views()[0]?.[0] ?? 'text';
 
 // ---------- The Print tab ----------
@@ -123,6 +124,8 @@ function drawPanel() {
 
   html += `<h3>Colours</h3><div class="pp-row"><label>Colours</label><select data-k="colours"><option value="current"${opt('colours', 'current')}>The theme as on screen</option>
     ${themes}<option value="bw"${opt('colours', 'bw')}>Black and white</option><option value="grey"${opt('colours', 'grey')}>Greyscale</option></select></div>`;
+  if (kind !== 'pdf' && kind !== 'table') html += `<div class="pp-row"><label>Text colour</label><select data-k="syntax">
+    <option value="true"${o.syntax ? ' selected' : ''}>By the language (as the editor)</option><option value="false"${o.syntax ? '' : ' selected'}>The text colour</option></select></div>`;
 
   html += `<h3>Highlights and notes</h3><div class="pp-row"><label>Highlights</label><select data-k="highlights">
     <option value="off"${opt('highlights', 'off')}>Off</option><option value="shaded"${opt('highlights', 'shaded')}>Shaded</option>
@@ -135,7 +138,7 @@ function drawPanel() {
     <option value="find-current"${opt('hlColour', 'find-current')}>Found</option><option value="fg"${opt('hlColour', 'fg')}>Text</option>
     ${o.hlColour.startsWith('#') ? `<option value="${escapeHtml(o.hlColour)}" selected>Picked colour</option>` : ''}</select>
     <input type="color" data-k="hlColour" value="${resolvedHex(hlBase())}" title="Pick a colour"></div>
-    <div class="pp-row"><label>Intensity (%)</label>${num('hlIntensity', 10, 200, 10)}<span class="pp-hint">less: towards the paper, more: towards the text</span></div>`;
+    <div class="pp-row"><label>Intensity (%)</label>${num('hlIntensity', 10, 200, 10)}</div>`;
   html += `<div class="pp-row"><label>Notes</label><select data-k="notes"><option value="off"${opt('notes', 'off')}>Off</option>
     <option value="left"${opt('notes', 'left')}>In the left margin</option><option value="right"${opt('notes', 'right')}>In the right margin</option>
     <option value="foot"${opt('notes', 'foot')}>At the bottom of the page</option><option value="end"${opt('notes', 'end')}>At the end</option></select></div>`;
@@ -378,8 +381,9 @@ let scheduleTimer = 0;
 function schedule(delay = 0) {
   clearTimeout(scheduleTimer);
   scheduleTimer = setTimeout(() => {
-    if (pp.running) { pp.again = true; previewer?.chunker?.stop?.(); return; }
-    pp.running = layout().catch(e => { $('.pp-count').textContent = 'The pages could not be laid out: ' + e.message; })
+    // A layout running is stopped at its next page (layout: paged.js's own stop() only pauses it) and starts again.
+    if (pp.running) { pp.again = true; pp.layoutId++; return; }
+    pp.running = layout().catch(e => { if (!pp.again) $('.pp-count').textContent = 'The pages could not be laid out: ' + e.message; })
       .finally(() => { pp.running = null; if (pp.again) { pp.again = false; schedule(); } });
   }, delay);
 }
@@ -399,10 +403,12 @@ async function layout() {
   pp.laying = true;
   zoomEl.style.zoom = 1;
   previewer = new PagedModule.Previewer();
+  const id = ++pp.layoutId;
+  previewer.chunker.hooks.afterPageLayout.register(() => { if (pp.layoutId !== id) throw new Error('stopped for a newer layout'); });
   const tpl = document.createElement('template');
   tpl.innerHTML = html;
   let flow;
-  const progress = setInterval(() => { $('.pp-count').textContent = `Laying out pages... ${pagesEl.querySelectorAll('.pagedjs_page').length}`; }, 500);
+  const progress = setInterval(() => { $('.pp-count').textContent = `Laying out page ${pagesEl.querySelectorAll('.pagedjs_page').length + 1}...`; }, 500);
   try { flow = await previewer.preview(tpl.content, [{ [new URL('print-pages.css', location.href).href]: pageCss() }], pagesEl); }
   finally { pp.laying = false; clearInterval(progress); }
   if (pp.again) return;   // stopped for a newer layout
@@ -547,6 +553,7 @@ ${o.frame ? `.pagedjs_area { outline: ${o.frameWidth}pt solid color-mix(in srgb,
 .pp-tablebox table { border-collapse: collapse; font: ${o.textSize}pt/1.3 ${font(o.textFont || s.editorFont, 'monospace')}; }
 .pp-tablebox th, .pp-tablebox td { border: 0.5pt solid color-mix(in srgb, currentColor 35%, transparent); padding: 0.5mm 1.5mm; text-align: left; vertical-align: top; }
 mark.pp-hl { color: inherit; padding: 0; ${hlLook} }
+${o.syntax ? '' : '.pp-text .pp-lt, .pp-text [class*="cm-"], .pp-rendered pre [class*="cm-"], .pp-rendered pre [class*="hljs-"] { color: inherit !important; }'}
 .pp-mk { font-size: 65%; line-height: 0; vertical-align: super; font-weight: 700; color: var(--accent, #c00); padding-left: 1px; }
 .pp-note { font: ${o.notesSize}pt/1.3 ${font(s.appFont)}; color: var(--fg, #000); white-space: normal; font-weight: normal; font-style: normal; text-decoration: none; }
 .pp-note > b { color: var(--accent, #c00); }
