@@ -378,6 +378,11 @@ body[data-dock-bottom=open] .mm-main > .mm-dock-split[data-side=bottom] { displa
 .mm-dock-gsplit[hidden] { display: none; }
 /* A group rolled up: as high as its tabs. */
 .mm-dock-group.mm-rolled { flex: 0 0 auto; }
+/* Shown from Window > Panels: the group flashes a few times (docks.js flashPanel). */
+.mm-dock-group.mm-flash::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 5;
+  border: 2px solid var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); opacity: 0;
+  animation: mm-flash .4s ease-in-out 3; }
+@keyframes mm-flash { 50% { opacity: 1; } }
 .mm-dock-group.mm-rolled .mm-dock-views { display: none; }
 .mm-dock-roll { align-self: center; padding: 2px 4px; color: var(--fg-dim); margin-bottom: 3px; }
 .mm-dock-roll:hover { color: var(--fg); }
@@ -872,6 +877,17 @@ body { --col-guide: color-mix(in srgb, var(--col-guide-colour, var(--border)) va
 .mm-colguide { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--col-guide); }
 .mm-colhelper { position: absolute; top: 0; bottom: 0; width: 1px; }
 .mm-coltab { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; opacity: .85; }
+/* The Sort panel's keys (sort.js): a line at each From and To, the focused key's at full strength; its number on the
+   ruler on its colour, right of the From line, left of the To line. */
+/* A sort key's line in the editor (sortLineIntensity: --sort-line-mix); the key worked on at that intensity, the
+   others fainter. */
+.mm-sortline { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; opacity: calc(var(--sort-line-mix, 60%) * .45); }
+.mm-sortline.mm-strong { opacity: var(--sort-line-mix, 60%); }
+.mm-ruler-sortnum { position: absolute; top: 1px; padding: 0 3px; border-radius: 3px; font: 600 10px/13px var(--app-font, sans-serif);
+  pointer-events: none; opacity: .7; }
+.mm-ruler-sortnum.mm-strong { opacity: 1; }
+.mm-ruler-sortnum.mm-to { transform: translateX(-100%); }
+.mm-ruler-sortnum.mm-one { transform: translateX(-50%); }
 /* Locate the cursor (locate.js): rings shrinking onto each cursor, a marker at the edge for one out of view. */
 .mm-locate { position: fixed; z-index: 50; overflow: hidden; pointer-events: none; }
 .mm-locate-ring { position: absolute; width: 160px; height: 160px; margin: -80px 0 0 -80px; box-sizing: border-box;
@@ -1019,6 +1035,11 @@ body { --col-guide: color-mix(in srgb, var(--col-guide-colour, var(--border)) va
 .mm-csv-box-actions { display: flex; gap: 4px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
 .mm-csv-box-actions [data-do=more] { margin-left: auto; }
 .mm-csv-box-bar { display: flex; justify-content: flex-end; gap: 6px; margin-top: 8px; }
+
+/* A CSV's key columns in the column view while the Sort panel is shown: underlined in the key's colour, its number. */
+.mm-csv-cell.mm-sort-head { box-shadow: inset 0 -3px 0 var(--sort-colour); }
+.mm-csv-cell.mm-sort-head::before { content: attr(data-sort-num); position: absolute; top: 0; right: 0; padding: 0 3px; border-radius: 3px;
+  background: var(--sort-colour); color: var(--sort-text); font-weight: 600; font-size: .75em; line-height: 1.3; pointer-events: none; }
 /* Column info (csvview.js showColumnInfo). */
 .mm-csv-info { max-width: min(90vw, 1000px); max-height: 80vh; padding: 12px 16px; background: var(--bg-side); color: var(--fg);
   border: 1px solid var(--border); border-radius: 6px; display: flex; flex-direction: column; }
@@ -1098,6 +1119,9 @@ body[data-occ-mark=outline] ::highlight(mm-occ-0), body[data-occ-mark=outline] :
 /* Selected text over an occurrence: the selection shows (it is drawn behind the text; occurrences.js marks the
    selection mm-occ-sel while occurrences are marked). The preview's selection is drawn over highlights by itself. */
 .CodeMirror .cm-mm-occ-hit.mm-occ-sel, .CodeMirror .mm-occ-first-bg.mm-occ-sel { background: none; color: inherit; }
+/* Selected text in a highlight: the average of the highlight's and the selection's colours (underlined highlights keep
+   no background, so the selection shows as it is). */
+.CodeMirror .mm-hl.mm-occ-sel { background: color-mix(in srgb, var(--highlight-mark, var(--highlight)) 50%, var(--select)); }
 /* The gutter (gutter.occurrences): the line numbers of lines with an occurrence in its colour; the line of the first
    one marked as the first occurrence is (occurrences.first). Before Find's line number rules: those win on one line. */
 .CodeMirror .mm-occ-line .CodeMirror-linenumber { background: var(--occurrence-hit); }

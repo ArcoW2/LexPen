@@ -26,6 +26,34 @@ every action with its key.
   between the lines becomes one space). Moving with the keys starts move mode, an arrow up and down in the gutter of
   every line being moved: Up / Down move the lines on, PgUp / PgDn a page, Esc stops (as does any other key or a click). Delete and Join have no
   key; give them one in your keys.json.
+- **Sort** (Edit > Sort...: the Sort panel, docked or floating as the other panels, View > Panels): sorts the selected
+  lines (a selection that starts or ends inside a line takes that line whole; Edit > Sort... widens it so it shows),
+  a block's part of its lines only (the rest of each line stays), else the whole file; one undo step. Sort keys, each
+  a From and To column (To empty: to the line's end; in a block counted from the block's first column) and its own A
+  to Z or Z to A; the first decides, the next ones break ties; dragged in the list (or Alt+Up / Alt+Down) to change
+  their order, x or Delete removes one (never the last). Each key has a colour by its place: its lines in the editor
+  and its number on the ruler (shown while the panel is) in that colour; the lines at Settings > Editor > Sort > Sort
+  key lines: intensity (60% by default, so the first key's line stands apart from the cursor), shown only while the
+  panel has the focus. From and To take digits only. Ignore case (on; off: the order AaBbCc,
+  aAbBcC, ABCabc or abcABC, stated for A to Z), numbers by value (`file2` before `file10`; a decimal sign, default
+  `.`, and characters to ignore, default comma and space), remove duplicates (by the keys or the whole line,
+  ignoring leading and trailing whitespace if asked), remove empty lines. A preview (a double-click on a line: the cursor there in the editor) shows the first lines (Settings > Editor > Sort: 100 by default, or All; a preview
+  that takes 2 seconds or longer says so, with that setting, a click on it opening the setting; the 2 seconds are a setting too) as they
+  would come out, sorting only those; Apply sorts. A CSV sorts By columns (the default; its key columns marked in the column view) or As
+  text: per key a column, compared by its type (numbers by value, dates as dates, empty fields last, values that do
+  not fit their type after the ones that do), records moving whole, the header staying on top. Stored sorts (the
+  Stored sorts tab: Select, Delete...; Save, Save as... on the Sort tab; Save as over an existing one warns first)
+  are kept in `sorts.json`, for any file. Templates: stored sorts pinned as one (right-click: Pin as template / Unpin
+  as template), first in the list above a divider; a double-click or Use as new starts a new sort from it (Save cannot
+  change it), only its Edit works on the template itself. Right-click a regular one: Select, Rename..., Pin as
+  template; a template: Use as new, Rename..., Edit, Unpin as template. A name another one has is refused;
+  the sort as it is now is kept a moment after each change (not in the list) and LexPen opens with it again, with the
+  name of the stored sort it came from (shown at the bottom, in italics when changed; Save stores it there, Revert
+  goes back to it or to the template a new sort started from, not an undo; New starts a sort from the start; in a narrow panel Save, Save as..., Revert and New are under
+  Manage); a stored sort is only written by
+  Save or Save as. The actions `edit.sort`, `edit.sortAsc` and `edit.sortDesc` sort at
+  once, with a stored sort's name as their parameter (keys.json, a macro) or without one (the whole line, a CSV its
+  first column); sortAsc / sortDesc turn every key ascending / descending.
 - **Multiple cursors**: Ctrl+Alt+click adds a cursor (held and dragged, it follows the mouse until you let go); on a
   cursor or inside a selection it removes that one, never the last. Ctrl+Alt+double-click selects the find match
   there (find bar open), else the word: Ctrl+F the text, then Ctrl+Alt+double-click the matches you want. With the
@@ -417,6 +445,9 @@ every action with its key.
   bar (click it for 100%) and is kept.
 - **Safe by default**: a Content Security Policy blocks scripts embedded in a document's raw HTML.
 - **No printing**: there is no print command (also not in the right-click menu of the page).
+- **No browser menu**: where LexPen has no right-click menu of its own, there is none; the browser's (Cut, Copy,
+  Paste) only on a text field or a selection. The editor's and the preview's keep their Highlight items, panels never
+  show them.
 
 ## Compare
 
@@ -477,7 +508,8 @@ every action with its key.
   LexPen window's title bar, its text and the line around the window, active and not active (Windows 11).
 - **Preview place**: per editor pane the preview at the right of the text, at its left, above or below it (View >
   Preview place, or a right-click on the line between text and preview); kept with the window's layout.
-- **View > Panels**: every panel with a check when it is shown; choosing one shows it as it was last or hides it;
+- **View > Panels**: every panel with a check when it is shown; choosing one shows it as it was last (it flashes a few times where it opened: docked its group, floating its
+  window's title bar) or hides it;
   the dock areas open or closed; Reset docking. View > Document panels: Editor and Preview.
 - **Dock tab bars**: tabs that do not fit wrap over several rows or scroll in one row (setting dockTabBar); a tab
   dragged onto a head goes between the tabs where it is let go; the setting dockTabIntensity sets the contrast of the
@@ -718,7 +750,8 @@ every action with its key.
 - **Settings window** (Options > Settings): a tab per group (General, Files, Editor, Preview, Tabs, Find, App, Keys,
   Languages; Ctrl+Tab / Ctrl+PgDn between them; a tab's rows are made when it is first shown); a search shows the
   matches of the tab shown; the tabs with a match stand out (while typing, a tab without one moves to the first
-  tab with one); a change
+  tab with one); closed and opened again (its window or docked) it has the same search, tab and place in the list;
+  a change
   applies at once in every LexPen window, Reset goes back to the default. Your `settings.json` in
   `%LOCALAPPDATA%\LexPen` holds only what you changed (the defaults with a comment each: `defaults\settings.json`);
   edit it by hand or copy it to another PC, a change in it applies at once. Problems in it show in the window.

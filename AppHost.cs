@@ -68,6 +68,8 @@ sealed class AppHost : ApplicationContext
     /// <summary>Where each PDF was read (its page, the way down it, its zoom): the last 100 PDFs, apart from their looks.</summary>
     public ColumnStore PdfPlaces { get; } = new(DataFolder.StatePath(DataDir, "file-pdf-places.json"));
     public HighlightStore Highlights { get; } = new(DataFolder.StatePath(DataDir, "highlights.json"));
+    /// <summary>The stored sorts (plan 3, sort.js): yours, so at the top of the data folder.</summary>
+    public SortStore Sorts { get; } = new(Path.Combine(DataDir, SortStore.FileName));
 
     // Your settings (SettingsFile): the defaults with your settings.json on top.
     JsonObject settings = SettingsFile.Load(DataDir);
@@ -1888,6 +1890,25 @@ sealed class AppHost : ApplicationContext
     /// <summary>A floating pane's window closed, as by hand (the pane stays floating, or its page decides).</summary>
     public void CloseToolWindow(MainForm w, string kind) { foreach (var (_, f) in ToolWindows(w).Where(t => t.Kind == kind).ToList()) f.Close(); }
 
+    // A floating panel shown from Window > Panels: its title bar and taskbar button flash a few times, so it is seen
+    // where it opened.
+    public void FlashToolWindow(MainForm w, string kind)
+    {
+        foreach (var (_, f) in ToolWindows(w).Where(t => t.Kind == kind))
+        {
+            var info = new FLASHWINFO { cbSize = (uint)Marshal.SizeOf<FLASHWINFO>(), hwnd = f.Handle, dwFlags = FLASHW_ALL, uCount = 3 };
+            FlashWindowEx(ref info);
+        }
+    }
+
+    const uint FLASHW_ALL = 3;
+
+    [StructLayout(LayoutKind.Sequential)]
+    struct FLASHWINFO { public uint cbSize; public IntPtr hwnd; public uint dwFlags; public uint uCount; public uint dwTimeout; }
+
+    [DllImport("user32.dll")]
+    static extern bool FlashWindowEx(ref FLASHWINFO info);
+
     // ---------- The one floating outline for LexPen (docs/plans/executed/PLAN-docking.md 3.9, stage 7.3) ----------
     // It serves the windows with no outline in their dock areas, of those the document worked in last: each window's
     // page says whether it may serve it now (outlineWanted: its own outline not docked, its active editor pane without
@@ -1927,7 +1948,7 @@ sealed class AppHost : ApplicationContext
     // their owner is the window they serve). Held by a window (paneHold: a macro playing or recording there, a search
     // running there), it stays with that window until let go; its bottom bar says so.
 
-    static readonly HashSet<string> FollowingPanes = ["folder", "search", "bm", "messages", "clips", "macros", "cols", "commands"];
+    static readonly HashSet<string> FollowingPanes = ["folder", "search", "bm", "messages", "clips", "macros", "cols", "sort", "commands"];
     readonly Dictionary<(MainForm, string), bool> panesWanted = [];
     readonly Dictionary<string, (MainForm Window, string Why)> paneHeld = [];
 
@@ -2020,7 +2041,7 @@ sealed class AppHost : ApplicationContext
     // ---------- The bottom bar of a floating panel (plan 22 3.4) ----------
 
     // The panels whose bar names a document: the one they work on (the active one of the window they serve).
-    static readonly HashSet<string> OnADocument = ["outline", "hls", "chars", "bm", "cols", "step"];
+    static readonly HashSet<string> OnADocument = ["outline", "hls", "chars", "bm", "cols", "sort", "step"];
 
     /// <summary>Every floating panel's bottom bar says whose it is now (a window serves another, a project renamed,
     /// the [n] shifted, the active document, a hold, the look).</summary>

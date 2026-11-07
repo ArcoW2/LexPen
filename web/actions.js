@@ -693,6 +693,14 @@ const SETTING_ROWS = [
     keywords: JUMP_KEYWORDS,
     hint: 'A line jumped to comes no closer than this many lines to the top or bottom of the view (fewer on a low view); in the preview the lines of the text shown there' },
 
+  { name: 'sortPreviewLines', group: 'Editor', sub: 'Sort', kind: 'choice', title: 'Sort preview: the first',
+    hint: 'The preview in the Sort panel sorts only this many lines (records in a CSV) from the start of what is sorted, so it stays quick on a large file; Apply sorts all of it',
+    options: () => [...[50, 100, 200, 500, 1000].map(n => [n, n + ' lines']), [0, 'All (slow on a large file)']] },
+  { name: 'sortLineIntensity', group: 'Editor', sub: 'Sort', kind: 'range', range: [10, 100, 5], unit: '%',
+    title: 'Sort key lines: intensity', hint: 'Intensity of the lines in the editor that show the sort keys while the Sort panel is shown: lower makes them fainter, so they stand apart from the cursor; the key worked on at this intensity, the others fainter' },
+  { name: 'sortPreviewWarn', group: 'Editor', sub: 'Sort', kind: 'choice', title: 'Warn when the sort preview takes',
+    hint: 'A preview that takes this long or longer shows a line above it with the time it took and the setting above',
+    options: () => [[0, 'Never'], ...[1, 2, 3, 5, 10].map(n => [n, n + (n === 1 ? ' second' : ' seconds') + ' or longer'])] },
   { name: 'locateCursor', group: 'Editor view', sub: 'Locate the cursor', kind: 'toggle', title: 'A short tap on Ctrl shows where the cursor is',
     hint: 'A short tap on Ctrl: rings shrink onto every cursor, in the colour of the find box; a cursor out of view gets a marker at that edge with its line number (also View > Locate the cursor)',
     hintOff: 'A tap on Ctrl does nothing; View > Locate the cursor still shows where the cursor is' },
@@ -936,7 +944,7 @@ const formatRows = () => PACK_NAMES.filter(name => packs[name].format?.style).fl
 const THEME_SET_NAMES = new Set(['themeLight', 'themeDark', 'editorThemeLight', 'editorThemeDark', 'previewThemeLight',
   'previewThemeDark', 'sneakTheme', 'highlightColour', 'highlightIntensity', 'previewHighlightColour', 'previewHighlightIntensity',
   'inlineCodeIntensity', 'indentGuideColour', 'indentGuideIntensity', 'indentGuideCursorColour', 'indentGuideCursorIntensity',
-  'columnGuideColour', 'columnGuideIntensity', 'helperLineIntensity', 'tabStopIntensity', 'csvStripeColour', 'csvStripeIntensity']);
+  'columnGuideColour', 'columnGuideIntensity', 'helperLineIntensity', 'tabStopIntensity', 'sortLineIntensity', 'csvStripeColour', 'csvStripeIntensity']);
 
 function settingDefs() {
   // In the order of the groups (a stable sort keeps the rows' own order within a group).

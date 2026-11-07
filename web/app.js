@@ -903,6 +903,7 @@ async function ensureEditor(pane) {
   pane.cm.on('scroll', () => onEditorScroll(pane));
   pane.cm.on('paste', (cm, e) => onEditorPaste(pane, e));
   pane.cm.on('change', (cm, change) => electricReformat(cm, change));   // a closing word typed: its column (format.js)
+  pane.cm.on('beforeChange', (cm, change) => { if (typeof sortBeforeChange === 'function') sortBeforeChange(pane, change); });   // Undo / Redo of a sort: its highlights along (sort.js)
   setupColumn(pane);   // column mode and blocks (column.js); its paste handler comes after the picture one
   setupVirtual(pane);   // the cursor past the end of the line (virtual.js); its keys before column mode's
   setupCursors(pane);   // multiple cursors (cursors.js); its keys before virtual.js's
@@ -1809,6 +1810,7 @@ try {
 function updateStatus() {
   if (typeof tellBookmarksPanes === 'function') tellBookmarksPanes();   // their lines move with the text (bookmarkspane.js)
   if (typeof colsDoc === 'function' && colsDoc() !== colsPane.doc) tellColumnsPane();   // another document (columnspane.js)
+  if (typeof tellSortPane === 'function') tellSortPane();   // what is sorted follows the selection (sort.js)
   const pane = panes[state.activePane], tab = pane.active, doc = tab?.doc;
   const cm = tab && pane.cm && pane.el.dataset.mode !== 'preview' ? pane.cm : null;
   let pos = '';
@@ -3280,6 +3282,8 @@ function registerDockPanes() {
   registerBookmarksPanes();
   // Columns (plan 29; columnspane.js): how the active document is read as CSV.
   registerColumnsPane();
+  // Sort (plan 3; sort.js): the sort at hand and the stored sorts, for the active document.
+  registerSortPane();
   // Manage theme sets (7b): LexPen's, as Manage projects (ThemeSetsForm).
   registerToolPane('themesets', 'Theme sets', 'themesets.html', 'openThemeSetsWindow', 'closeThemeSets');
   // The window's outline: in one of the window's dock areas (at the right, the first time it is docked) or floating;
@@ -4963,8 +4967,9 @@ addEventListener('focus', () => { activation.back = performance.now(); });
 addEventListener('keydown', () => { activation.away = false; activation.until = 0; }, true);   // back by the keys (Alt+Tab): not a click
 // A floating pane window of this window (PaneForm.cs) got the focus, or lost it to this window: going there and back is
 // not coming back from elsewhere, so the click back here acts. It lost the focus to another program: that is away.
-events.paneWindowFocus = ({ active, toOwner }) => {
+events.paneWindowFocus = ({ id, active, toOwner }) => {
   activation.away = !active && !toOwner;
+  if (id === 'sort' && typeof sortFocused === 'function') sortFocused(active);   // its key lines (sort.js)
   paneWindowActive = active;   // the document's dimmed frame and steady cursor while it has the focus (placeFocusRing)
   placeFocusRing();
 };
@@ -5259,6 +5264,7 @@ function applySettings() {
     if (typeof repaintGuides === 'function') repaintGuides();
   }
   if (RULER_SETTINGS.some(changed) && typeof applyRuler === 'function') applyRuler();   // ruler.js
+  if (['sortPreviewLines', 'sortPreviewWarn'].some(n => changed(n) && n in was) && typeof sortSend === 'function') sortSend();   // sort.js
   if (['highlightStyle', 'highlightColour', 'highlightIntensity'].some(changed)) applyHighlight();
   if (changed('inlineCodeIntensity')) applyInlineCode();
   if (['previewHighlightStyle', 'previewHighlightColour', 'previewHighlightIntensity'].some(changed) && typeof applyPreviewHighlight === 'function') applyPreviewHighlight();

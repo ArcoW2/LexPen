@@ -1,12 +1,13 @@
 # Plan: Sort lines, remove duplicates
 
-Status: draft 2026-10-21; worked out 2026-11-07 with your answers (4): ignore case by default, one window with all
+Status: executed (2026-11-07); see 5. As built. The window became a panel (your request during the build).
+
+History: draft 2026-10-21; worked out 2026-11-07 with your answers (4): ignore case by default, one window with all
 options, Edit > Sort (not in Convert); a selection sorts only itself, a block only its own part; the sort columns
 shown in the editor; a live preview; Apply sorts. A column file (CSV) sorts by its columns too. Several sort keys
 (From / To), each its own direction and colour, dragged to reorder; sorts stored by name, on a tab of their own, and
-used by name from a key or a macro. Not started. From the list "what UltraEdit or Visual
-Studio has and LexPen does not".
-The number in the file name is the priority; rename to reorder.
+used by name from a key or a macro. From the list "what UltraEdit or Visual Studio has and
+LexPen does not".
 
 ## 1. What this is about
 
@@ -220,3 +221,79 @@ Unit: the key text of a line by From / To with tabs; the order of two keys with 
 ## 4. Open questions
 
 None.
+
+## 5. As built
+
+- **A panel, not a window** (your request during the build, 2026-11-07): the Sort panel (`sort.html`,
+  `sort-pane.js`; the window's side `sort.js`) docks in the window's dock areas (at the right the first time) or
+  floats, as the other panels; View > Panels lists it (So&rt), and it follows the window worked in as the Columns
+  panel does (AppHost FollowingPanes, OnADocument: its floating bar names the document). Edit > Sort... shows it,
+  widens the selection and puts the focus on the first field. Because it stays open: what it sorts follows the
+  editor (the selection, a block, another document) a moment after each change; Apply sorts and the panel stays; there
+  is no Cancel (Esc goes back to the document, as in the other panels). The ruler shows the keys while the panel is
+  shown (docked in front, or floating), also with View > Ruler off.
+- **The last sort** is kept in `sorts.json` beside the stored sorts (`last`), not as a setting: a sort is a
+  structure, not a value the settings window could show. It is the sort as it is now, kept a moment after each change
+  (your answer after the build, 2026-11-07; first it was only kept by Apply), with the name of the stored sort it came
+  from and whether it was changed since: LexPen opens with it, and Save stores it under that name again. It is not in
+  the list; a stored sort is only written by Save or Save as.
+- **The stored sort's name** is at the bottom, not in the tab (a narrow panel cuts it there): left of the buttons, or
+  above them when both do not fit.
+- **sorts.json** is at the top of the data folder (your own work, as favourites.json), by `SortStore`; a damaged file
+  is kept beside it as `sorts.json.damaged` before the first save over it.
+- **Delete on a key row** removes the key when the focus is on its grip, its direction or its x, not in its From / To
+  field (there Delete edits the number).
+- **The preview** sorts only the first lines of the target (records in a CSV), Settings > Editor > Sort
+  (`sortPreviewLines`, 100 by default; your answer after the build, 2026-11-07: the whole target was slow on a large
+  file), with a note when there are more; Apply sorts all of it. The setting also has All. A preview that takes
+  2 seconds or longer (`sortPreviewWarn`, Settings > Editor > Sort; Never, 1 to 10 seconds) shows a line above it with
+  the time it took and the setting; a click (or Enter) on it opens Settings at that setting (host `openSetting`, the
+  settings page's `showSetting`: its tab, the row in view with the focus, flashing).
+- **Highlights go along** (your report after the build, 2026-11-07: after a sort and its undo a note lost its place
+  and its mark): the sort replaces its text in one go, which took the highlights' marks with it. Now each highlight in
+  the sorted text moves to where its text went (a line, a CSV record, a block part). One that crosses the edge of what
+  is sorted (the selected lines, a block's side) or spans parts that no longer follow each other is split (your
+  answer, 2026-11-07): a highlight per part, each with its note, a line break at a part's end left out; parts that
+  still follow each other stay one. Undo puts back exactly what was there before (the one highlight whole again),
+  Redo the parts (an editor's beforeChange of origin undo / redo that is exactly a sort kept in the document,
+  `sortMoves`, the last 20; a highlight removed meanwhile stays removed). One whose text was removed (a duplicate)
+  goes as with any deleted text.
+- **The key lines' intensity** (your request after the build, 2026-11-07: the first key's line had the cursor's
+  colour): Settings > Editor > Sort > Sort key lines: intensity (`sortLineIntensity`, 10 to 100%, 60 by default, part
+  of a theme set as the other intensities); the key worked on at that intensity, the others at less than half. The
+  lines and the ruler's key numbers show only while the panel has the focus (your request, 2026-11-07); the ruler
+  itself stays while the panel is shown, so the text does not move. Docked: the panel's page says when it gets and
+  loses the focus; floating: its window (PaneForm's WM_ACTIVATE, paneWindowFocus with the pane's id).
+- **From / To take digits only** (your request, 2026-11-07): another character typed is refused, one pasted is left
+  out.
+- **The preview**: a double-click on a line puts the cursor on that line in the editor, where its text is now (a
+  block: the line its part comes from).
+- **Revert** goes back to the stored sort it is, or to the template a new sort started from (Use as new; the bottom
+  says "New from template" and its name); not an undo of Apply. Off for a sort from neither (New) and while
+  unchanged.
+- **Templates** (your answers after the build, 2026-11-07): a stored sort can be pinned as a template (`templates`
+  in sorts.json, kept through Save, Rename and replacing under its name); the templates come first in the list, a
+  divider, then the others, each part by name. Right-click a regular one: Select (also a double-click, Enter),
+  Rename..., Pin as template; a template: Use as new (also a double-click, Enter: as New, with the template as its
+  start; no name, so Save cannot change it), Rename..., Edit (works on the template, Save stores it there), Unpin as
+  template. Also the menu key or Shift+F10 in the list. Rename to a name another stored sort has is refused (a
+  change of case of its own name is fine). Save as over a regular one warns that it overwrites it; over a template it
+  is refused (a template changes by its Edit only). Delete... stays a button (and the Delete key), not in the menu.
+- **The buttons** (your answers after the build, 2026-11-07): Apply, Save, Save as..., Revert (back to the stored sort
+  it came from), New (a sort from the start); when they do not fit the panel's width: Apply and Manage, a menu with
+  Save, Save as..., Revert and New. Save and Revert only for a stored sort that was changed; its name then in
+  italics.
+- **A CSV selection** is widened in the editor; the column view does not mark the records.
+- **Case order** (your answer after the build, 2026-11-07): with Ignore case off, four orders instead of B before b
+  / b before B: **AaBbCc**, **aAbBcC** (paired per letter, the collator's `caseFirst`), **ABCabc**, **abcABC** (each
+  case as a group: compared position by position, a capital against a small letter by its case alone). Stated for A
+  to Z; Z to A turns it round. A stored sort with the old choice gets AaBbCc or aAbBcC.
+- **Numbers by value** (your answer after the build, 2026-11-07) has a decimal sign (default `.`) and characters to
+  ignore (default comma and space, so `1,234.5` and `12 000` are numbers); a point that is neither makes the key no
+  number. It applies to a key that is a number as a whole; digits inside text still sort naturally.
+- **Tests**: the store by unit tests (`SortStoreTests`); the sort itself (text, keys, case, numbers, duplicates, empty
+  lines, blocks with short rows, CSV by type with empty and invalid fields, quoted line breaks, the header) and the
+  panel (open on a partial selection, keys typed, moved, deleted, the ruler marks, the target following the editor,
+  Apply and one undo, floating, hidden, a CSV By columns, stored sorts saved, listed, selected with the keys, the
+  actions by name) in the test copy by script. There is no JavaScript unit test project, so the plan's unit tests of
+  the key text and the order are among those scripted checks.

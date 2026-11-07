@@ -506,6 +506,7 @@ const PANELS = [
   ['&Highlights', 'hls', () => runAction('highlight.list')],
   ['&Bookmarks', 'bm', () => runAction('bookmarks.pane')],
   ['Col&umns (CSV)', 'cols', () => runAction('csv.columns')],
+  ['So&rt', 'sort', () => runAction('edit.sortWindow')],
   ['Step b&y step', 'step', () => showStepPane()],
   ['&Messages', 'messages', () => runAction('messages')],
   ['C&lipboards', 'clips', () => runAction('clipboards.pane')],
@@ -528,11 +529,25 @@ function dockInFront(id) {
 function panelShown(kind, open) {
   return panelIds(kind).some(id => dockInFront(id) || dockModel().state[id] === 'floating' && open.includes(panelHost(id)));
 }
-function togglePanel(kind, run, open) {
-  if (!panelShown(kind, open)) return run();
+async function togglePanel(kind, run, open) {
+  if (!panelShown(kind, open)) { await run(); return setTimeout(() => flashPanel(kind), 400); }
   for (const id of panelIds(kind)) {
     if (dockInFront(id)) hideDockPane(id);
     else if (dockModel().state[id] === 'floating' && open.includes(panelHost(id))) host('closeToolWindow', { kind: panelHost(id) });
+  }
+}
+// A panel shown from Window > Panels flashes a few times where it opened: docked, its group; floating, its window
+// (the host flashes its title bar).
+async function flashPanel(kind) {
+  const open = await host('toolWindowsOpen').catch(() => []);
+  for (const id of panelIds(kind)) {
+    if (dockInFront(id)) {
+      const group = dockPanes.get(id).view.closest('.mm-dock-group');
+      group?.classList.remove('mm-flash');
+      void group?.offsetWidth;   // the animation again when it was still running
+      group?.classList.add('mm-flash');
+      setTimeout(() => group?.classList.remove('mm-flash'), 1300);
+    } else if (dockModel().state[id] === 'floating' && open.includes(panelHost(id))) host('flashToolWindow', { kind: panelHost(id) }).catch(() => {});
   }
 }
 // Step by step has no action of its own (a step by step shows it): the window's as it was, else the active editor pane's.

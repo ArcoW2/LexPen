@@ -146,7 +146,7 @@ function paneChannel({ id, page, title, view, state, receive, onFloat, onDock })
 
 // The panes that follow the focus (plan 22 3.2; AppHost.FollowingPanes): the window's ones (an editor pane's own,
 // bm:0, ..., stay this window's), and Characters and Highlights (windows of their own; their channel in app.js).
-const FOLLOWING_PANES = ['folder', 'search', 'bm', 'messages', 'clips', 'macros', 'cols', 'commands', 'chars', 'hls'];
+const FOLLOWING_PANES = ['folder', 'search', 'bm', 'messages', 'clips', 'macros', 'cols', 'sort', 'commands', 'chars', 'hls'];
 let panesWantedSent = '';
 
 // Which of them this window wants now, told to the host when it changes: one not docked here (hidden, or floating),

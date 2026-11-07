@@ -363,12 +363,13 @@ function occFirst(pane) {
 
 // The selection over an occurrence stays visible: while occurrences are marked, each selection gets a mark of its own
 // (mm-occ-sel), and app.css takes the occurrence's background off there, so the selection drawn behind the text shows.
+// The same over a highlight (while the document has highlights): there app.css mixes the two colours.
 // (CodeMirror's styleSelectedText would do this, but its add-on is not in the editor bundle.)
 function occMarkSelection(pane) {
   const cm = pane.cm;
   for (const m of pane.occSelMarks ?? []) m.clear();
   pane.occSelMarks = [];
-  if (!cm || !pane.occEditor?.length) return;
+  if (!cm || !(pane.occEditor?.length || pane.active?.doc?.hls?.list?.length)) return;
   cm.operation(() => {
     for (const r of cm.listSelections()) if (!r.empty()) pane.occSelMarks.push(cm.markText(r.from(), r.to(), { className: 'mm-occ-sel' }));
   });

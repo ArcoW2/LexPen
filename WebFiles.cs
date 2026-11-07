@@ -67,6 +67,18 @@ static class WebFiles
 
     /// <summary>Makes a WebView2 serve the page at https://lexpen.example/, and the panes' frames at
     /// https://lexpen-panes.example/ (the same files).</summary>
+    /// <summary>
+    /// The browser's own right-click menu (Back, Refresh, Save as, More tools, ...) is not LexPen's: it shows only on a
+    /// text field or a selection (Cut, Copy, Paste), never with Print. Where LexPen has a menu of its own, the page opens
+    /// that one and the browser's does not come. False: none shown.
+    /// </summary>
+    public static bool BrowserMenu(CoreWebView2ContextMenuRequestedEventArgs m)
+    {
+        if (!m.ContextMenuTarget.IsEditable && !m.ContextMenuTarget.HasSelection) { m.Handled = true; return false; }
+        foreach (var item in m.MenuItems.Where(i => i.Name == "print").ToList()) m.MenuItems.Remove(item);
+        return true;
+    }
+
     public static void Serve(CoreWebView2 core)
     {
         if (ProjectWeb is not null)

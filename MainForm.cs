@@ -407,7 +407,8 @@ sealed class MainForm : Form
             }).ToArray();
             BeginInvoke(() => OnMessage(json, files));
         };
-        // Printing is not a LexPen feature: the browser's right-click menu loses its Print item.
+        // The browser's right-click menu: in a document pane's editor and preview with LexPen's items (Highlight, ...),
+        // elsewhere only on a text field or a selection (WebFiles.BrowserMenu); never with Print, not a LexPen feature.
         core.ContextMenuRequested += async (_, m) =>
         {
             foreach (var item in m.MenuItems.Where(i => i.Name == "print").ToList()) m.MenuItems.Remove(item);
@@ -424,10 +425,13 @@ sealed class MainForm : Form
             var deferral = m.GetDeferral();
             try
             {
-                bool inDocument;
-                try { inDocument = await core.ExecuteScriptAsync("typeof contextInDocument === 'function' && contextInDocument()") == "true"; }
-                catch (Exception ex) when (ex is InvalidOperationException or COMException) { inDocument = false; }
+                // A panel docked here is a frame of its own: never the document (the page's last right-click was elsewhere).
+                bool inDocument = false;
+                if (m.ContextMenuTarget.FrameUri == m.ContextMenuTarget.PageUri)
+                    try { inDocument = await core.ExecuteScriptAsync("typeof contextInDocument === 'function' && contextInDocument()") == "true"; }
+                    catch (Exception ex) when (ex is InvalidOperationException or COMException) { inDocument = false; }
                 if (inDocument) AddDocumentItems(m);
+                else WebFiles.BrowserMenu(m);
                 File.WriteAllLines(Path.Combine(Path.GetTempPath(), "lexpen-ctx.txt"), Dump(m.MenuItems, ""));   // TEMP
                 static IEnumerable<string> Dump(IList<CoreWebView2ContextMenuItem> items, string indent) => items.SelectMany(i => new[] { $"{indent}{i.Name} | {i.Label} | {i.Kind}" }.Concat(i.Kind == CoreWebView2ContextMenuItemKind.Submenu ? Dump(i.Children, indent + "  ") : []));   // TEMP
             }
@@ -828,6 +832,30 @@ sealed class MainForm : Form
                 app.Rulers.Set(BookmarkStore.Key(msg["path"]?.GetValue<string>(), msg["draft"]?.GetValue<string>()), msg["lines"]!.AsArray());
                 return null;
 
+            // The stored sorts (SortStore, sort.js): the list and the last sort used; one by name; save, delete, last.
+            case "sorts":
+                return new JsonObject { ["list"] = app.Sorts.List(), ["last"] = app.Sorts.Last };
+
+            case "sortGet":
+                return app.Sorts.Get(Arg("name"));
+
+            case "sortSave":
+                app.Sorts.Save(Arg("name"), msg["sort"]!);
+                return null;
+
+            case "sortDelete":
+                return app.Sorts.Delete(Arg("name"));
+
+            case "sortRename":
+                return app.Sorts.Rename(Arg("from"), Arg("to"));
+
+            case "sortTemplate":
+                return app.Sorts.SetTemplate(Arg("name"), msg["on"]?.GetValue<bool>() == true);
+
+            case "sortLast":
+                app.Sorts.SetLast(msg["sort"]!);
+                return null;
+
             // The column definition of a CSV (ColumnStore, docs/plans/executed/PLAN-csv-columns.md 3.4): the one next to the
             // file first ({ beside, table }), else LexPen's own ({ table }), else null.
             case "columnsGet":
@@ -1101,6 +1129,12 @@ sealed class MainForm : Form
                 app.SettingsWindowPost(this, new JsonObject { ["event"] = "fileTypes" });
                 return null;
 
+            // A setting shown in this window's settings (the Sort panel's slow preview: its setting).
+            case "openSetting":
+                app.OpenSettings(this);
+                app.SettingsWindowPost(this, new JsonObject { ["event"] = "showSetting", ["name"] = Arg("name") });
+                return null;
+
             // Save as default: what to save (asks when the theme set is part of it); the Undo of the set part.
             case "saveAsDefault":
                 return app.SaveAsDefault(this, this);
@@ -1142,6 +1176,10 @@ sealed class MainForm : Form
 
             case "closeToolWindow":
                 app.CloseToolWindow(this, Arg("kind"));
+                return null;
+
+            case "flashToolWindow":
+                app.FlashToolWindow(this, Arg("kind"));
                 return null;
 
             case "outlineWanted":   // the one floating outline may serve this window now, or not (plan 24 7.3)

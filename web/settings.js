@@ -259,7 +259,31 @@ function build() {
     ui.tabs.append(b);
   }
   showTab(tab);
+  if (showWanted) showSetting(showWanted);
 }
+
+// One setting asked for (the Sort panel's slow preview): its tab, the search emptied, the row in view with the
+// focus, flashing a few times. Before the rows exist: once they do.
+let showWanted = null, settingShown = false;   // settingShown: the start leaves the focus on it, not on the search
+function showSetting(name) {
+  const def = settings?.defs?.find(d => d.name === name);
+  showWanted = def && rows.length ? null : name;
+  if (showWanted) return;
+  ui.search.value = '';
+  try { localStorage.settingsSearch = ''; } catch { /* per window only */ }
+  layerShown = null;
+  showTab(def.group);
+  const r = rows.find(x => x.def.name === name);
+  if (!r) return;
+  r.el.scrollIntoView({ block: 'center' });
+  r.control.focus?.focus();
+  settingShown = true;
+  r.el.classList.remove('st-flash');
+  void r.el.offsetWidth;
+  r.el.classList.add('st-flash');
+  setTimeout(() => r.el.classList.remove('st-flash'), 1300);
+}
+events.showSetting = ({ name }) => showSetting(name);
 
 function showTab(group) {
   tab = group;
@@ -537,6 +561,7 @@ function filter(typing = false) {
   const found = new Set(rows.filter(matches).map(r => r.def.group));
   if (typing && (words.length || layerShown) && !found.has(tab) && found.size) {
     tab = groupsOf().find(g => found.has(g));
+    try { localStorage.settingsTab = tab; } catch { /* per window only */ }
     for (const b of ui.tabs.children) b.classList.toggle('st-on', b.dataset.group === tab);
   }
   let shown = 0;
@@ -553,7 +578,25 @@ function filter(typing = false) {
   const total = rows.filter(matches).length;
   ui.count.textContent = !narrowed ? '' : total === shown ? `${shown} found` : `${shown} here, ${total} in all tabs`;
 }
-ui.search.addEventListener('input', () => filter(true));
+ui.search.addEventListener('input', () => {
+  try { localStorage.settingsSearch = ui.search.value; } catch { /* per window only */ }
+  filter(true);
+});
+
+// Closed and opened again (its window or docked): the search, the tab (settingsTab) and the place in the list as they
+// were. The place is kept a moment after scrolling, with its tab.
+ui.list.addEventListener('scroll', () => {
+  clearTimeout(ui.scrollTimer);
+  ui.scrollTimer = setTimeout(() => { try { localStorage.settingsScroll = JSON.stringify({ tab, top: ui.list.scrollTop }); } catch { /* per window only */ } }, 200);
+});
+function restoreView() {
+  try {
+    const search = localStorage.settingsSearch ?? '';
+    if (search) { ui.search.value = search; filter(); }
+    const at = JSON.parse(localStorage.settingsScroll ?? 'null');
+    if (at?.tab === tab && Number.isFinite(at.top)) ui.list.scrollTop = at.top;
+  } catch { /* no storage, or not readable: the start */ }
+}
 
 // ---------- Keys ----------
 const visibleRows = () => rows.filter(r => !r.el.hidden);
@@ -569,6 +612,7 @@ addEventListener('keydown', e => {
     e.preventDefault();
     if (ui.search.value) {
       ui.search.value = '';
+      try { localStorage.settingsSearch = ''; } catch { /* per window only */ }
       filter();
       ui.search.focus();
     } else host('close');
@@ -721,5 +765,5 @@ layoutBar.querySelector('[data-layout="reset"]').addEventListener('click', () =>
   await usableFonts().catch(() => []);
   buildLegend();
   build();
-  ui.search.focus();
+  if (!settingShown) { restoreView(); ui.search.focus(); }
 })();
