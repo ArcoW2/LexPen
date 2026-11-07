@@ -56,7 +56,8 @@
   .sp-stored { display: flex; flex-direction: column; padding: 3px 6px; cursor: pointer; }
   .sp-stored.sp-sel { background: var(--select); }
   .sp-stored.sp-off { opacity: .5; }
-  .sp-divider { border-top: 1px solid var(--border); margin: 3px 6px; }
+  /* Between the templates and the others: the colour of an unfocused pane's outline (app.css .mm-doc-ring). */
+  .sp-divider { border-top: 2px solid color-mix(in srgb, var(--pane-active) 40%, transparent); margin: 6px 6px; }
   .sp-none { padding: 8px; }
   .sp-empty { padding: 12px 8px; color: var(--fg-dim); }
 </style>
