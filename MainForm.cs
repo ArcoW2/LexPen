@@ -412,7 +412,7 @@ sealed class MainForm : Form
         core.ContextMenuRequested += async (_, m) =>
         {
             foreach (var item in m.MenuItems.Where(i => i.Name == "print").ToList()) m.MenuItems.Remove(item);
-            // Voice typing only with the setting (docs/plans/25-PLAN-menu-structure.md 3.5). WebView2 gives it no name of
+            // Voice typing only with the setting (docs/plans/executed/PLAN-menu-structure.md 3.5). WebView2 gives it no name of
             // its own: the command in More tools named "other" (Share is "share"); its label is in Windows' language.
             // More tools left empty goes too.
             if (!app.VoiceTyping && m.MenuItems.FirstOrDefault(i => i.Name == "moreTools") is { } more)
@@ -438,7 +438,7 @@ sealed class MainForm : Form
         void AddDocumentItems(CoreWebView2ContextMenuRequestedEventArgs m)
         {
             // Highlights (docs/plans/executed/PLAN-highlights.md): in the editor and the preview, on the selection or the cursor;
-            // one submenu (docs/plans/25-PLAN-menu-structure.md 3.5).
+            // one submenu (docs/plans/executed/PLAN-menu-structure.md 3.5).
             var env = core.Environment;
             m.MenuItems.Add(env.CreateContextMenuItem("", null, CoreWebView2ContextMenuItemKind.Separator));
             var highlight = env.CreateContextMenuItem("Highlight", null, CoreWebView2ContextMenuItemKind.Submenu);

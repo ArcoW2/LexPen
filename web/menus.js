@@ -15,7 +15,7 @@ const GUTTER_ITEMS = [{ label: '&Line numbers', sub: [['&None', 'lineNumbers.set
   ['&Relative to the cursor', 'lineNumberCount.set', 'relative']] }, ['&Bookmarks', 'gutterColumn.toggle', 'bookmarks'],
   ['&Change markers (not saved)', 'gutterColumn.toggle', 'changes'], ['&Git markers (since the last commit)', 'gutterColumn.toggle', 'git'],
   ['&Fold markers', 'gutterColumn.toggle', 'folds'], ['&Highlights (a strip at the edge)', 'gutterColumn.toggle', 'highlights'], ['&Occurrences (their line numbers)', 'gutterColumn.toggle', 'occurrences']];
-// The menus follow the features (docs/plans/25-PLAN-menu-structure.md): each menu one subject, in the order of the
+// The menus follow the features (docs/plans/executed/PLAN-menu-structure.md): each menu one subject, in the order of the
 // work (File, Edit, Select, Find, Go, Format, View, Window, Tools, Options); F1 groups the actions the same way.
 const MENUS = [
   ['&File', [
@@ -363,7 +363,7 @@ async function formatMenuItems() {
   const doc = activeDoc(), lang = languageOf(doc) ?? 'plaintext';
   const icon = { toggleComment: 'comment', blockComment: 'blockcomment' };   // as on the bars
   const items = [...COMMENT_ITEMS.map(([label, action]) => ({ label, action, icon: packs.plaintext?.icons?.[icon[action]] })), '-', ...barMenuItems(lang, null)];
-  // Convert (no menu of its own: docs/plans/25-PLAN-menu-structure.md) and the file's language, after the language's own.
+  // Convert (no menu of its own: docs/plans/executed/PLAN-menu-structure.md) and the file's language, after the language's own.
   return [...withInner(lang, items, inner => barMenuItems(inner, inner)), '-', { label: 'Con&vert', fill: () => convertMenuItems() },
     ['Lan&guage...', 'chooseLanguage']];
 }
