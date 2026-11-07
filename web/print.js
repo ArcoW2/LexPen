@@ -284,8 +284,10 @@ function drawName() {
 }
 const storedNamed = name => pp.stored.list.find(s => s.name.toLowerCase() === name.toLowerCase());
 
-async function refreshStored() {
+// The list again; `keep`: the set of that name stays selected (where it went: a template comes first).
+async function refreshStored(keep) {
   pp.stored = await host('printList');
+  if (keep != null) pp.storedAt = Math.max(0, pp.stored.list.findIndex(x => x.name === keep));
   drawStored();
 }
 // As the Sort panel's stored sorts: a list (a click selects, a double-click or Enter uses it), each with a line of
@@ -360,10 +362,10 @@ async function renameStored(s) {
   await host('printRename', { from: s.name, to });
   if (pp.name === s.name) pp.name = to;
   if (pp.origin === s.name) pp.origin = to;
-  await refreshStored();
+  await refreshStored(to);
   drawName();
 }
-async function pinStored(s, on) { await host('printTemplate', { name: s.name, on }); await refreshStored(); }
+async function pinStored(s, on) { await host('printTemplate', { name: s.name, on }); await refreshStored(s.name); }
 async function deleteStored(s) {
   if (!await host('confirm', { text: `Delete the stored settings "${s.name}"?`, ok: 'Delete' })) return;
   await host('printDelete', { name: s.name });
