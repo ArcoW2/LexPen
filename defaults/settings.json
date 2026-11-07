@@ -77,6 +77,7 @@
   "revealOutOfView": "keep",      // ... not on screen: "keep" (revealLines from the edge it comes in at) or "center"
   "revealLines": 5,               // a line jumped to no closer than this to the top or bottom of the view
   "sortPreviewLines": 100,        // the Sort panel's preview sorts only the first so many lines (records in a CSV); 0: all
+  "sortLineIntensity": 60,        // %: the Sort panel's key lines in the editor (the key worked on; the others fainter)
   "sortPreviewWarn": 2,           // s: a Sort preview that takes this long or longer says so (0: never)
   "jumpLines": 10,                // a cursor move of more lines than this, without typing, is a jump: the place it left
                                   // is kept for Position back (a found item always)

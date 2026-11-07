@@ -879,8 +879,10 @@ body { --col-guide: color-mix(in srgb, var(--col-guide-colour, var(--border)) va
 .mm-coltab { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; opacity: .85; }
 /* The Sort panel's keys (sort.js): a line at each From and To, the focused key's at full strength; its number on the
    ruler on its colour, right of the From line, left of the To line. */
-.mm-sortline { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; opacity: .45; }
-.mm-sortline.mm-strong { opacity: 1; }
+/* A sort key's line in the editor (sortLineIntensity: --sort-line-mix); the key worked on at that intensity, the
+   others fainter. */
+.mm-sortline { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; opacity: calc(var(--sort-line-mix, 60%) * .45); }
+.mm-sortline.mm-strong { opacity: var(--sort-line-mix, 60%); }
 .mm-ruler-sortnum { position: absolute; top: 1px; padding: 0 3px; border-radius: 3px; font: 600 10px/13px var(--app-font, sans-serif);
   pointer-events: none; opacity: .7; }
 .mm-ruler-sortnum.mm-strong { opacity: 1; }

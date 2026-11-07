@@ -22,7 +22,7 @@ static class ThemeSetFile
         "previewThemeLight", "previewThemeDark", "sneakTheme", "highlightColour", "highlightIntensity",
         "previewHighlightColour", "previewHighlightIntensity", "inlineCodeIntensity", "indentGuideColour",
         "indentGuideIntensity", "indentGuideCursorColour", "indentGuideCursorIntensity", "columnGuideColour",
-        "columnGuideIntensity", "helperLineIntensity", "tabStopIntensity", "csvStripeColour", "csvStripeIntensity"];
+        "columnGuideIntensity", "helperLineIntensity", "tabStopIntensity", "sortLineIntensity", "csvStripeColour", "csvStripeIntensity"];
 
     public sealed class Set
     {

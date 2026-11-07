@@ -258,6 +258,9 @@ None.
   Redo the parts (an editor's beforeChange of origin undo / redo that is exactly a sort kept in the document,
   `sortMoves`, the last 20; a highlight removed meanwhile stays removed). One whose text was removed (a duplicate)
   goes as with any deleted text.
+- **The key lines' intensity** (your request after the build, 2026-11-07: the first key's line had the cursor's
+  colour): Settings > Editor > Sort > Sort key lines: intensity (`sortLineIntensity`, 10 to 100%, 60 by default, part
+  of a theme set as the other intensities); the key worked on at that intensity, the others at less than half.
 - **The preview**: a double-click on a line puts the cursor on that line in the editor, where its text is now (a
   block: the line its part comes from).
 - **Revert** goes back to the stored sort it is, or to the template a new sort started from (Use as new; the bottom

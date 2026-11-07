@@ -32,7 +32,8 @@ every action with its key.
   a From and To column (To empty: to the line's end; in a block counted from the block's first column) and its own A
   to Z or Z to A; the first decides, the next ones break ties; dragged in the list (or Alt+Up / Alt+Down) to change
   their order, x or Delete removes one (never the last). Each key has a colour by its place: its lines in the editor
-  and its number on the ruler (shown while the panel is) in that colour. Ignore case (on; off: the order AaBbCc,
+  and its number on the ruler (shown while the panel is) in that colour; the lines at Settings > Editor > Sort > Sort
+  key lines: intensity (60% by default, so the first key's line stands apart from the cursor). Ignore case (on; off: the order AaBbCc,
   aAbBcC, ABCabc or abcABC, stated for A to Z), numbers by value (`file2` before `file10`; a decimal sign, default
   `.`, and characters to ignore, default comma and space), remove duplicates (by the keys or the whole line,
   ignoring leading and trailing whitespace if asked), remove empty lines. A preview (a double-click on a line: the cursor there in the editor) shows the first lines (Settings > Editor > Sort: 100 by default, or All; a preview

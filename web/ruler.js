@@ -29,7 +29,7 @@ const TAB_COLOURS = [[TAB_DEFAULT, '&Orange (a found text)'], ['var(--find-box)'
   ['var(--tip)', '&Green'], ['var(--important)', '&Purple'], ['var(--caution)', '&Red'], ['var(--warning)', 'Bro&wn']];
 const LINE_DEFAULT = { tab: TAB_DEFAULT, helper: HELPER_DEFAULT };
 const RULER_SETTINGS = ['ruler', 'columnGuideStart', 'columnGuideStep', 'columnGuideExtra', 'columnGuideColour', 'columnGuideIntensity',
-  'helperLineIntensity', 'tabStopIntensity'];
+  'helperLineIntensity', 'tabStopIntensity', 'sortLineIntensity'];
 // The colours a colour setting offers (kind colour: columnGuideColour, indentGuideColour, indentGuideCursorColour):
 // a theme colour's name (it follows the theme), or a colour picked in the settings window (#rrggbb, as picked).
 const GUIDE_COLOURS = [['border', 'The border colour'], ['hl-comment', 'The comment colour'], ['find-current', 'Orange (a found text)'],
@@ -215,6 +215,7 @@ function applyRuler() {
   document.body.style.setProperty('--col-guide-mix', percent('columnGuideIntensity', 40));
   document.body.style.setProperty('--col-helper-mix', percent('helperLineIntensity', 20));
   document.body.style.setProperty('--col-tab-mix', percent('tabStopIntensity', 50));
+  document.body.style.setProperty('--sort-line-mix', percent('sortLineIntensity', 60));   // the Sort panel's key lines
   for (const pane of panes) if (pane.cm) {
     const shown = rulerShown();
     if (pane.rulerEl.hidden === shown) {

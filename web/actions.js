@@ -696,6 +696,8 @@ const SETTING_ROWS = [
   { name: 'sortPreviewLines', group: 'Editor', sub: 'Sort', kind: 'choice', title: 'Sort preview: the first',
     hint: 'The preview in the Sort panel sorts only this many lines (records in a CSV) from the start of what is sorted, so it stays quick on a large file; Apply sorts all of it',
     options: () => [...[50, 100, 200, 500, 1000].map(n => [n, n + ' lines']), [0, 'All (slow on a large file)']] },
+  { name: 'sortLineIntensity', group: 'Editor', sub: 'Sort', kind: 'range', range: [10, 100, 5], unit: '%',
+    title: 'Sort key lines: intensity', hint: 'Intensity of the lines in the editor that show the sort keys while the Sort panel is shown: lower makes them fainter, so they stand apart from the cursor; the key worked on at this intensity, the others fainter' },
   { name: 'sortPreviewWarn', group: 'Editor', sub: 'Sort', kind: 'choice', title: 'Warn when the sort preview takes',
     hint: 'A preview that takes this long or longer shows a line above it with the time it took and the setting above',
     options: () => [[0, 'Never'], ...[1, 2, 3, 5, 10].map(n => [n, n + (n === 1 ? ' second' : ' seconds') + ' or longer'])] },
@@ -942,7 +944,7 @@ const formatRows = () => PACK_NAMES.filter(name => packs[name].format?.style).fl
 const THEME_SET_NAMES = new Set(['themeLight', 'themeDark', 'editorThemeLight', 'editorThemeDark', 'previewThemeLight',
   'previewThemeDark', 'sneakTheme', 'highlightColour', 'highlightIntensity', 'previewHighlightColour', 'previewHighlightIntensity',
   'inlineCodeIntensity', 'indentGuideColour', 'indentGuideIntensity', 'indentGuideCursorColour', 'indentGuideCursorIntensity',
-  'columnGuideColour', 'columnGuideIntensity', 'helperLineIntensity', 'tabStopIntensity', 'csvStripeColour', 'csvStripeIntensity']);
+  'columnGuideColour', 'columnGuideIntensity', 'helperLineIntensity', 'tabStopIntensity', 'sortLineIntensity', 'csvStripeColour', 'csvStripeIntensity']);
 
 function settingDefs() {
   // In the order of the groups (a stable sort keeps the rows' own order within a group).
