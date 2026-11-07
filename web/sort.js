@@ -16,7 +16,8 @@ const SORT_NUMBER = /^\s*[+-]?(\d+\.?\d*|\.\d+)\s*$/;
 const SORT_CASE_ORDERS = ['AaBbCc', 'aAbBcC', 'ABCabc', 'abcABC'];
 
 // A sort: As text (keys: From / To, 1-based, To null: to the end) or By columns (columns: a header name and a
-// 0-based index); each key its own direction; the options for all keys.
+// 0-based index); each key its own direction and trim (its text compared without leading and trailing spaces); the
+// options for all keys.
 const sortDefault = () => ({ kind: 'text', keys: [{ from: 1, to: null, desc: false }], columns: [{ name: null, index: 0, desc: false }],
   ignoreCase: true, caseOrder: 'AaBbCc', numeric: false, decimal: '.', numIgnore: ', ', dups: false, dupsWhole: false, dupsTrim: false, empty: false });
 const sortCopy = spec => JSON.parse(JSON.stringify(spec));
@@ -107,7 +108,7 @@ function sortTextLines(lines, spec, stops, box = null) {
   const items = lines.map(text => {
     const vis = visualText(text, stops), part = box ? vis.slice(box.left, box.right) : vis;
     const piece = box ? text.slice(textCh(text, box.left, stops), textCh(text, box.right, stops)) : text;
-    const ks = keys.map(k => part.slice(k.from - 1, k.to ?? undefined));
+    const ks = keys.map(k => { const s = part.slice(k.from - 1, k.to ?? undefined); return k.trim ? s.trim() : s; });
     return { text, piece, keys: ks, dup: spec.dupsWhole ? part : ks.join('\u0001'), empty: !part.trim() };
   });
   const order = sortOrder(items, spec, keys.length, (k, a, b) => { const c = cmp(a.keys[k], b.keys[k]); return keys[k].desc ? -c : c; });
@@ -172,8 +173,9 @@ function sortCsvRecords(text, def, spec, fromLine = null, toLine = null, limit =
     const r = read.rows[i], seg = text.slice(r.start, read.rows[i + 1]?.start ?? text.length).replace(/\n$/, '');
     segs.push(seg);
     const fields = r.fields.map(f => f.text);
-    items.push({ values: cols.map(c => csvSortValue(fields[c] ?? '', def.columns[c])),
-      dup: spec.dupsWhole ? fields.join('\u0001') : cols.map(c => fields[c] ?? '').join('\u0001'), empty: fields.every(f => !f.trim()) });
+    const field = j => { const s = fields[cols[j]] ?? ''; return spec.columns[j].trim ? s.trim() : s; };   // a key's field, trimmed when asked
+    items.push({ values: cols.map((c, j) => csvSortValue(field(j), def.columns[c])),
+      dup: spec.dupsWhole ? fields.join('\u0001') : cols.map((c, j) => field(j)).join('\u0001'), empty: fields.every(f => !f.trim()) });
   }
   const order = sortOrder(items, spec, cols.length, (k, a, b) => {
     const x = a.values[k], y = b.values[k], desc = spec.columns[k].desc;
@@ -489,7 +491,7 @@ function sortTargetText(t) {
 
 // A short line of what a sort does (the stored sorts' list).
 function sortDescription(spec) {
-  const dir = k => k.desc ? 'Z to A' : 'A to Z';
+  const dir = k => (k.desc ? 'Z to A' : 'A to Z') + (k.trim ? ', trimmed' : '');
   if (spec.kind === 'columns') return 'Columns: ' + spec.columns.map(k => `${k.name ?? `column ${k.index + 1}`} ${dir(k)}`).join(', ');
   return 'Text: ' + spec.keys.map(k => `${k.from}-${k.to ?? ''} ${dir(k)}`).join(', ');
 }
@@ -644,6 +646,7 @@ async function fromSortPane(m) {
       if (f === 'decimal' || f === 'numIgnore') { spec[f] = String(value); return sortChanged(false); }
       if (f === 'kind') { spec.kind = value; sortUi.focusKey = 0; sortChanged(); return sortRedrawRuler(); }
       if (f === 'desc') list[k].desc = !!value;
+      else if (f === 'trim') list[k].trim = !!value;
       else if (f === 'caseOrder') spec.caseOrder = value;
       else if (f === 'column') {
         const read = csvRead(docText(activeDoc()).replace(/\r\n?/g, '\n'), activeDoc().csvDef), c = +value;

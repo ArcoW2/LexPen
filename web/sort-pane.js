@@ -79,12 +79,13 @@ function draw() {
   const dir = (key, i) => `<select data-f="desc" data-k="${i}" title="Direction"><option value=""${key.desc ? '' : ' selected'}>A to Z</option><option value="1"${key.desc ? ' selected' : ''}>Z to A</option></select>`;
   const mark = i => `<span class="sp-grip" draggable="true" tabindex="0" data-k="${i}" title="Drag to change the order (also Alt+Up / Alt+Down); Delete removes the key">${GRIP}</span>` +
     `<span class="sp-num" style="background:${st.colours[i].bg};color:${st.colours[i].fg}">${i + 1}</span>`;
+  const trim = (key, i) => `<label class="sp-trim" title="Compare this key without its leading and trailing spaces"><input type="checkbox" data-f="trim" data-k="${i}"${key.trim ? ' checked' : ''}>Trim</label>`;
   const del = i => `<button type="button" class="sp-del" data-do="del" data-k="${i}" title="Delete this key"${one ? ' disabled' : ''}>x</button>`;
   const rows = list.map((key, i) => `<div class="sp-key${i === st.focusKey ? ' sp-focus' : ''}" data-k="${i}">${mark(i)}` + (columns
     ? `<select data-f="column" data-k="${i}">` + (st.cols[i] < 0 ? `<option value="" selected>${esc(key.name ?? `Column ${key.index + 1}`)} (not in this file)</option>` : '') +
       st.names.map((n, j) => `<option value="${j}"${j === st.cols[i] ? ' selected' : ''}>${esc(n)}</option>`).join('') + '</select>'
     : `<label>From <input class="sp-col" inputmode="numeric" data-f="from" data-k="${i}" value="${Number.isFinite(key.from) ? key.from : ''}"></label>` +
-      `<label>To <input class="sp-col" inputmode="numeric" data-f="to" data-k="${i}" value="${key.to ?? ''}" placeholder="end"></label>`) + dir(key, i) + del(i) + '</div>').join('');
+      `<label>To <input class="sp-col" inputmode="numeric" data-f="to" data-k="${i}" value="${key.to ?? ''}" placeholder="end"></label>`) + `<span class="sp-order">${dir(key, i)}${trim(key, i)}</span>` + del(i) + '</div>').join('');
   const firstDesc = list[0]?.desc;
   const caseChoice = spec.ignoreCase ? '' : '<div class="sp-sub">' + ['AaBbCc', 'aAbBcC', 'ABCabc', 'abcABC'].map(o =>
     `<label title="Stated for A to Z; Z to A turns it round"><input type="radio" name="sp-case" data-f="caseOrder" value="${o}"${spec.caseOrder === o ? ' checked' : ''}> ${o}` +
@@ -106,6 +107,7 @@ function draw() {
     MANAGE.map(m => m === '-' ? '' : `<button type="button" class="sp-full" data-do="${m.id}"${m.on(st) ? '' : ' disabled'} title="${esc(m.title(st))}">${m.label}</button>`).join('') +
     '<button type="button" class="sp-manage" data-manage title="Save, Save as..., Revert, New">Manage \u25be</button></span></div>';
   fitBar();
+  fitKeys();
 }
 
 // The buttons beside Apply; in a narrow panel they go into Manage's menu (fitBar).
@@ -124,7 +126,14 @@ function fitBar() {
   bar.classList.remove('sp-compact');
   bar.classList.toggle('sp-compact', btns.offsetWidth > bar.clientWidth);
 }
-new ResizeObserver(() => fitBar()).observe(document.body);
+// A key row with room: its direction and Trim side by side; else Trim under the direction (a narrow panel).
+function fitKeys() {
+  const keys = $s('.sp-keys');
+  if (!keys) return;
+  keys.classList.remove('sp-narrow');
+  keys.classList.toggle('sp-narrow', [...keys.querySelectorAll('.sp-key')].some(r => r.scrollWidth > r.clientWidth));
+}
+new ResizeObserver(() => { fitBar(); fitKeys(); }).observe(document.body);
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-manage]');
   if (!b) return;
