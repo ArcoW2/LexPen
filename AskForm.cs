@@ -10,7 +10,7 @@ namespace LexPen;
 /// note is a command link (one under the other, its note under its name); the others are in a row at the right. The
 /// default button has the accent (Enter); one without a value is Cancel (Esc, as closing it). Each button has a key, as
 /// in Windows' boxes (Yes: Y, No: N, Cancel: C; no Alt needed): the first letter of its name, else its first one not
-/// taken by a button before it.
+/// taken by a button before it. Always underlined, not only once Alt is pressed.
 /// </summary>
 sealed class AskForm : Form
 {
@@ -98,8 +98,8 @@ sealed class AskForm : Form
             var main = value is not null && value == defaultValue;
             // A command link: its name in the accent, its note under it, as wide as the text; the default one framed in
             // the accent. The others: the default one filled with the accent.
-            var button = note is null
-                ? new Button
+            Button button = note is null
+                ? new KeyButton
                 {
                     Text = label, AutoSize = true, FlatStyle = FlatStyle.Flat, UseVisualStyleBackColor = false,
                     BackColor = main ? accent : bar, ForeColor = main ? Color.White : fg,
@@ -219,6 +219,12 @@ sealed class AskForm : Form
     public static void Tell(AppHost app, IWin32Window? owner, Sign sign, string text) =>
         Ask(app, owner, new Question { Sign = sign, Text = text, Buttons = [("ok", "OK", null)] });
 
+    // A button with its key always underlined: Windows hides them until Alt is pressed.
+    sealed class KeyButton : Button
+    {
+        protected override bool ShowKeyboardCues => true;
+    }
+
     // A checkbox drawn as Settings' are (18 px, the accent colour): a rounded box in the border colour; checked, filled with the
     // accent and a white tick. Hovered, the border gets `hover`; with the focus, a dotted line around the text.
     sealed class Box(Color border, Color accent, Color hover) : CheckBox
@@ -332,6 +338,8 @@ sealed class AskForm : Form
         protected override void OnMouseEnter(EventArgs e) { over = true; Invalidate(); base.OnMouseEnter(e); }
         protected override void OnMouseLeave(EventArgs e) { over = false; Invalidate(); base.OnMouseLeave(e); }
 
+        protected override bool ShowKeyboardCues => true;   // as KeyButton
+
         protected override void OnPaint(PaintEventArgs e)
         {
             var g = e.Graphics;
@@ -339,9 +347,8 @@ sealed class AskForm : Form
             using (var pen = new Pen(frame, LogicalToDeviceUnits(1))) g.DrawRectangle(pen, 0, 0, Width - 1, Height - 1);
             var font = big ?? Font;
             var flags = TextFormatFlags.Left | TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix;
-            // Its key underlined, as Windows shows them (once Alt is pressed, unless Windows always shows them).
-            TextRenderer.DrawText(g, label, font, new Rectangle(Pad, Pad, Width - 2 * Pad, font.Height), nameColour,
-                flags & ~TextFormatFlags.NoPrefix | (ShowKeyboardCues ? 0 : TextFormatFlags.HidePrefix));
+            // Its key underlined.
+            TextRenderer.DrawText(g, label, font, new Rectangle(Pad, Pad, Width - 2 * Pad, font.Height), nameColour, flags & ~TextFormatFlags.NoPrefix);
             TextRenderer.DrawText(g, note, Font, new Rectangle(Pad, Pad + font.Height + LogicalToDeviceUnits(2), Width - 2 * Pad, Font.Height), noteColour, flags);
             if (Focused && ShowFocusCues) ControlPaint.DrawFocusRectangle(g, Rectangle.Inflate(ClientRectangle, -3, -3));
         }
