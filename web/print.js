@@ -42,7 +42,7 @@ const DEFAULTS = {
   zoom: 'auto', zoomPercent: 100, textFont: '', textSize: 9, lineNumbers: 'all',
   bodyFont: '', bodySize: 11, codeFont: '', codeSize: 9,
   colours: 'current', syntax: true, highlights: 'shaded', hlColour: '', hlIntensity: 100, notes: 'end', notesWidth: 45, notesSize: 8,
-  headName: true, headPages: true, headDate: false,
+  headName: true, headPage: false, headTotal: false, headDate: false, footName: false, footPage: true, footTotal: true, footDate: false,
 };
 const PAPERS = [{ name: 'A3', w: 297, h: 420 }, { name: 'A4', w: 210, h: 297 }, { name: 'A5', w: 148, h: 210 },
   { name: 'Letter', w: 215.9, h: 279.4 }, { name: 'Legal', w: 215.9, h: 355.6 }];
@@ -54,6 +54,11 @@ const pp = {
 };
 
 // The view a document prints as: rendered markdown or its text, a CSV's table or its text; a PDF its pages.
+// Settings stored before the header and footer had their own lines: "Page x of y" (headPages) was the footer's.
+function upgraded(o) {
+  if ('headPages' in o) { o.footPage = o.footTotal = o.headPages; delete o.headPages; }
+  return o;
+}
 // Line numbers: every line, every 10 lines, or off (a stored set from before: true or false).
 const lineNumbers = () => pp.opt.lineNumbers === true ? 'all' : pp.opt.lineNumbers === false ? 'off' : pp.opt.lineNumbers;
 const views = () => pp.source.kind === 'markdown' ? [['rendered', 'Rendered (as the preview)'], ['text', 'Text (as the editor)']]
@@ -119,7 +124,10 @@ function drawPanel() {
   html += `<div class="pp-row"><label>Frame</label>${check('frame', 'A line around the text')}</div>`;
   if (o.frame) html += `<div class="pp-row"><label>Frame width (pt)</label>${num('frameWidth', 0.1, 5, 0.1)}</div>
     <div class="pp-row"><label>Intensity (%)</label>${num('frameIntensity', 5, 100, 5)}</div>`;
-  html += `<div class="pp-row"><label>Header, footer</label>${check('headName', 'File name')}${check('headPages', 'Page x of y')}${check('headDate', 'Date')}</div>`;
+  // What the header and footer say (the name at the left, the page in the middle, the date at the right). The total
+  // is known only when every page is laid out: printing some pages waits for that.
+  for (const [w, label] of [['head', 'Header'], ['foot', 'Footer']]) html += `<div class="pp-row"><label>${label}</label>${check(w + 'Name', 'File name')}<span class="pp-pair">${check(w + 'Page', 'Page x')}` +
+    check(w + 'Total', 'of y', 'Printing some pages waits until all are laid out').replace('<input', o[w + 'Page'] ? '<input' : '<input disabled') + `</span>${check(w + 'Date', 'Date')}</div>`;
 
   if (kind === 'text' || kind === 'table') html += `<h3>Text</h3><div class="pp-row"><label>Font</label>${fontList('textFont', s.editorFont, true)}</div>
     <div class="pp-row"><label>Size (pt)</label>${num('textSize', 4, 40, 0.5)}</div>` + (kind === 'text' ? `<div class="pp-row"><label>Line numbers</label><select data-k="lineNumbers">
@@ -243,7 +251,7 @@ function storedAt(i) {
   $('.pp-list').focus();
 }
 async function useStored(s, edit) {
-  pp.opt = { ...DEFAULTS, ...s.settings, margins: [...(s.settings.margins ?? DEFAULTS.margins)] };
+  pp.opt = upgraded({ ...DEFAULTS, ...s.settings, margins: [...(s.settings.margins ?? DEFAULTS.margins)] });
   if (s.template && !edit) { pp.name = null; pp.origin = s.name; } else { pp.name = s.name; pp.origin = null; }
   await checkPrinter();
   drawPanel();
@@ -395,9 +403,21 @@ function schedule(delay = 0) {
   scheduleTimer = setTimeout(() => {
     // A layout running is stopped at its next page (layout: paged.js's own stop() only pauses it) and starts again.
     if (pp.running) { pp.again = true; pp.layoutId++; return; }
-    pp.running = layout().catch(e => { if (!pp.again) $('.pp-count').textContent = 'The pages could not be laid out: ' + e.message; })
+    pp.running = layout().catch(e => { if (!pp.again && !pp.cut) $('.pp-count').textContent = 'The pages could not be laid out: ' + e.message; })
       .finally(() => { pp.running = null; if (pp.again) { pp.again = false; schedule(); } });
   }, delay);
+}
+// Laid out up to page `n` (it is done when the next one is begun, or the layout is): a layout still running is stopped
+// there. True when it was cut short.
+async function laidUpTo(n) {
+  while (pp.running && sheets().length <= n && !pp.again) await new Promise(r => setTimeout(r, 50));
+  if (!pp.running || pp.again) { await laidOut(); return false; }
+  pp.cut = true;
+  pp.layoutId++;
+  await pp.running;
+  pp.cut = false;
+  $('.pp-count').textContent = `${sheets().length} pages so far`;
+  return true;
 }
 const laidOut = async () => { while (pp.running || pp.again) await (pp.running ?? new Promise(r => setTimeout(r, 50))); };
 
@@ -471,9 +491,11 @@ function sheetStyle(m, more) {
 .pp-sheet:last-child { break-after: auto; }
 .pp-sheet-area { position: absolute; top: ${m[0]}mm; right: ${m[1]}mm; bottom: ${m[2]}mm; left: ${m[3]}mm; --pp-ch: ${h - m[0] - m[2]}mm;
   ${o.frame ? `outline: ${o.frameWidth}pt solid color-mix(in srgb, var(--fg, #000) ${o.frameIntensity}%, transparent); outline-offset: 1.5mm;` : ''} }
-.pp-sheet-head, .pp-sheet-foot { position: absolute; left: ${m[3]}mm; right: ${m[1]}mm; display: flex; justify-content: space-between; font: ${font}; color: var(--fg-dim, #666); }
+.pp-sheet-head, .pp-sheet-foot { position: absolute; left: ${m[3]}mm; right: ${m[1]}mm; display: grid; grid-template-columns: 1fr auto 1fr; gap: 3mm; font: ${font}; color: var(--fg-dim, #666); }
+.pp-sheet-head > :last-child, .pp-sheet-foot > :last-child { text-align: right; }
 .pp-sheet-head { top: ${Math.max(2, m[0] / 2 - 2)}mm; }
-.pp-sheet-foot { bottom: ${Math.max(2, m[2] / 2 - 2)}mm; justify-content: center; }
+.pp-sheet-foot { bottom: ${Math.max(2, m[2] / 2 - 2)}mm; }
+.pp-sheet.pp-skip { display: none; }
 .pp-sheet .pp-pdfpage { height: 100%; }
 .pp-sheet-notes { font: ${o.notesSize}pt/1.4 ${cssString(s.appFont)}, sans-serif; }
 .pp-sheet-notes ol { margin: 0; }
@@ -483,8 +505,9 @@ ${more}`;
 // A sheet: its header, `body` in the area, its footer with page `n` of the total (filled in when it is known).
 function sheetHtml(body, n) {
   const o = pp.opt, s = pp.source, name = s.title + (pp.what === 'selection' ? ' (selection)' : '');
-  return `<div class="pp-sheet"><div class="pp-sheet-head"><span>${o.headName ? escapeHtml(name) : ''}</span><span>${o.headDate ? escapeHtml(s.date) : ''}</span></div>` +
-    `<div class="pp-sheet-area">${body}</div><div class="pp-sheet-foot">${o.headPages ? `<span>Page ${n} of <span class="pp-total"></span></span>` : ''}</div></div>`;
+  const line = w => `<span>${o[w + 'Name'] ? escapeHtml(name) : ''}</span><span>${o[w + 'Page'] ? `Page ${n}${o[w + 'Total'] ? ' of <span class="pp-total"></span>' : ''}` : ''}</span>` +
+    `<span>${o[w + 'Date'] ? escapeHtml(s.date) : ''}</span>`;
+  return `<div class="pp-sheet"><div class="pp-sheet-head">${line('head')}</div><div class="pp-sheet-area">${body}</div><div class="pp-sheet-foot">${line('foot')}</div></div>`;
 }
 // The notes at the end, after the sheets in `list`, on as many sheets as they need.
 function addEndNotes(list, notes) {
@@ -624,9 +647,9 @@ function pageCss() {
   return `
 @page {
   size: ${w}mm ${h}mm; margin: ${m.map(v => v + 'mm').join(' ')};
-  ${o.headName ? box('top-left', cssString(name)) : ''}
-  ${o.headDate ? box('top-right', cssString(s.date)) : ''}
-  ${o.headPages ? box('bottom-center', '"Page " counter(page) " of " counter(pages)') : ''}
+  ${[['head', 'top'], ['foot', 'bottom']].map(([w, at]) => (o[w + 'Name'] ? box(at + '-left', cssString(name)) : '') +
+    (o[w + 'Page'] ? box(at + '-center', '"Page " counter(page)' + (o[w + 'Total'] ? ' " of " counter(pages)' : '')) : '') +
+    (o[w + 'Date'] ? box(at + '-right', cssString(s.date)) : '')).join(' ')}
   @footnote { border-top: 0.5pt solid color-mix(in srgb, currentColor 40%, transparent); padding-top: 1.5mm; margin-top: 2mm; }
 }
 .pagedjs_page { background: var(--bg, #fff); color: var(--fg, #000); --pp-ch: ${h - m[0] - m[2]}mm; }
@@ -895,7 +918,7 @@ function watchPdfPages() {
 // Before printing: every page (or every page printed) at the printer's resolution, its image ready.
 async function printReady() {
   if (viewOf() !== 'pdf') return;
-  const imgs = [...pagesEl.querySelectorAll('img[data-page]')];
+  const imgs = [...pagesEl.querySelectorAll('.pp-sheet:not(.pp-skip) img[data-page]')];   // the pages printed
   for (const [i, img] of imgs.entries()) {
     $('.pp-count').textContent = `Drawing page ${i + 1} of ${imgs.length} for print...`;
     await pdfDraw(+img.dataset.page, PRINT_SCALE);
@@ -1006,7 +1029,7 @@ pagesEl.addEventListener('click', e => {
 
 // ---------- Print, Save as PDF ----------
 const printOptions = () => ({ paper: pp.opt.paper, landscape: pp.opt.landscape, copies: pp.opt.copies, duplex: pp.opt.duplex, colour: pp.opt.colourPrint });
-const pageArgs = () => { const [width, height] = paper(); return { width, height, ranges: pp.what === 'pages' ? rangeNumbers(pp.ranges).join(',') : '' }; };
+const pageArgs = () => { const [width, height] = paper(); return { width, height, ranges: pp.printing ?? (pp.what === 'pages' ? rangeNumbers(pp.ranges).join(',') : '') }; };
 let busy = false;
 async function act(what) {
   if (busy) return;
@@ -1014,10 +1037,18 @@ async function act(what) {
   const buttons = [...document.querySelectorAll('.pp-foot button')];
   buttons.forEach(b => b.dataset.was = b.disabled);
   buttons.forEach(b => b.disabled = true);
+  const wanted = pp.what === 'pages' ? rangeNumbers(pp.ranges) : null;
+  let cut = false;
   try {
-    await laidOut();
+    if (wanted && !wanted.length) throw new Error('No pages chosen: type them (1-3, 5) or click them in the preview.');
+    // Some pages, without the total in the header or footer: the layout stops after the last of them.
+    if (wanted && !(pp.opt.headPage && pp.opt.headTotal) && !(pp.opt.footPage && pp.opt.footTotal)) cut = await laidUpTo(Math.max(...wanted));
+    else await laidOut();
+    // The sheets made here (text, PDF) not wanted are left out: printing does not go through them all.
+    const own = wanted && !pagesEl.querySelector('.pagedjs_page');
+    if (own) sheets().forEach((p, i) => p.classList.toggle('pp-skip', !wanted.includes(i + 1)));
+    pp.printing = own ? '' : null;   // pageArgs: no ranges, the others are not there
     await printReady();
-    if (pp.what === 'pages' && !rangeNumbers(pp.ranges).length) throw new Error('No pages chosen: type them (1-3, 5) or click them in the preview.');
     if (what === 'pdf') {
       const name = pp.source.title.replace(/\.[^.]*$/, '') + '.pdf';
       if (!await host('savePdf', { name, ...pageArgs() })) return;
@@ -1049,6 +1080,10 @@ async function act(what) {
     $('.pp-count').textContent = `${pp.pages} page${pp.pages === 1 ? '' : 's'}`;
     await host('confirm', { text: e.message, ok: 'OK' });
   } finally {
+    // Not printed after all (cancelled, failed): every page back, and a layout cut short laid out again.
+    pp.printing = null;
+    for (const p of pagesEl.querySelectorAll('.pp-skip')) p.classList.remove('pp-skip');
+    if (cut) schedule();
     busy = false;
     buttons.forEach(b => b.disabled = b.dataset.was === 'true');
     drawName();
@@ -1109,7 +1144,7 @@ applyLook(init.look, pp.values);
 document.title = `Print ${pp.source.title} - LexPen`;
 const last = init.stored.last;
 if (last?.settings) {
-  pp.opt = { ...DEFAULTS, ...last.settings, margins: [...(last.settings.margins ?? DEFAULTS.margins)] };
+  pp.opt = upgraded({ ...DEFAULTS, ...last.settings, margins: [...(last.settings.margins ?? DEFAULTS.margins)] });
   pp.name = last.name && storedNamed(last.name) ? last.name : null;
   pp.origin = last.origin && storedNamed(last.origin) ? last.origin : null;
   pp.changed = !!last.changed;

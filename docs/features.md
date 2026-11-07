@@ -449,8 +449,8 @@ every action with its key.
   a window with the pages as they will come out and the options beside them. Text and code in lines (coloured, line
   numbers), markdown rendered or as text, a CSV as its table or as text, a PDF's own pages (its images at a zoom:
   auto, fit to width / height / page, a percentage); the whole document, the selected lines or pages (typed, or
-  clicked in the preview). Paper, orientation, margins (each side its own), a frame, a header and footer (file
-  name, page x of y, date), fonts and sizes, the colours (the theme as on screen, another theme, black and white,
+  clicked in the preview). Paper, orientation, margins (each side its own), a frame, a header and a footer (each: file
+  name, page x, of y, date; without "of y" a page range prints without waiting for the rest), fonts and sizes, the colours (the theme as on screen, another theme, black and white,
   greyscale; a dark page is warned about), the highlights (shaded, underlined, dotted, wavy, a box, bold; their colour and intensity) and their notes (a
   number in the text; the notes in the left or right margin, at the bottom of the page, or at the end; their size). Print sends
   it to the printer (its copies, two-sided and colour; Printer settings... opens the printer's own dialog, in step

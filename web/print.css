@@ -16,7 +16,7 @@
 .pp-pages .pagedjs_page.pp-picked, .pp-pages .pp-sheet.pp-picked { outline: 3px solid var(--accent); }
 
 /* The options. */
-.pp-side { flex: none; width: calc(340px * var(--ui-scale, 1)); display: flex; flex-direction: column; border-left: 1px solid var(--border); background: var(--bg-side); }
+.pp-side { flex: none; width: calc(420px * var(--ui-scale, 1)); display: flex; flex-direction: column; border-left: 1px solid var(--border); background: var(--bg-side); }
 .pp-tabs { display: flex; border-bottom: 1px solid var(--border); }
 .pp-tabs button { flex: 1; border: 0; border-radius: 0; padding: 7px 4px; background: none; color: var(--fg-dim); }
 .pp-tabs button.pp-on { color: var(--fg); box-shadow: inset 0 -2px var(--accent); font-weight: 600; }
@@ -32,6 +32,7 @@
 .pp-row input[type=number] { width: 4.5em; }
 .pp-row input.pp-wide { flex: 1; }
 .pp-row label.pp-check { display: inline-flex; align-items: center; gap: 4px; color: var(--fg); min-width: 0; }
+.pp-pair { display: inline-flex; gap: 4px; }   /* Page x and its "of y", close together */
 .pp-hint { color: var(--fg-dim); font-size: .92em; margin: 2px 0 4px; }
 .pp-sides { display: grid; grid-template-columns: repeat(4, auto); gap: 4px 6px; align-items: center; margin-left: 7.5em; }
 .pp-sides span { color: var(--fg-dim); font-size: .92em; }
