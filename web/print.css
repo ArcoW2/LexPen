@@ -10,7 +10,8 @@
 .pp-viewbar { display: flex; align-items: center; gap: 12px; padding: 6px 12px; background: var(--bg-bar); border-bottom: 1px solid var(--border); }
 .pp-count { color: var(--fg-dim); }
 .pp-scroll { flex: 1; overflow: auto; outline: none; background: color-mix(in srgb, var(--fg) 18%, var(--bg)); }
-.pp-zoom { padding: 16px; width: max-content; min-width: calc(100% - 32px); }
+.pp-zoom { padding: 16px; width: max-content; min-width: calc(100% - 32px); box-sizing: content-box; }
+.pp-pages { width: max-content; transform-origin: 0 0; }   /* scaled by print.js (setScale) */
 .pp-pages .pagedjs_pages { display: flex; flex-direction: column; align-items: center; gap: 16px; }
 .pp-pages .pagedjs_page, .pp-pages .pp-sheet { box-shadow: 0 1px 6px rgb(0 0 0 / .35); }   /* its paper: the document's colours (print.js) */
 .pp-pages .pagedjs_page.pp-picked, .pp-pages .pp-sheet.pp-picked { outline: 3px solid var(--accent); }
@@ -79,7 +80,8 @@
   .pp-body { display: block; height: auto; overflow: visible; background: none; }
   .pp-side, .pp-viewbar, .pp-ask { display: none !important; }
   .pp-view, .pp-scroll { display: block; overflow: visible; background: none; }
-  .pp-zoom { zoom: 1 !important; padding: 0; width: auto; }
+  .pp-zoom { padding: 0; width: auto !important; height: auto !important; margin: 0 !important; }
+  .pp-pages { transform: none !important; margin: 0 !important; }
   .pp-pages .pagedjs_pages { display: block; gap: 0; }
   .pp-pages .pagedjs_page, .pp-pages .pp-sheet { box-shadow: none; outline: none !important; }
   .pp-pages .pp-sheets { display: block; gap: 0; }

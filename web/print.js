@@ -505,10 +505,45 @@ async function layout() {
   pagesEl.replaceChildren();
   // At its own size while paged.js measures: a zoom meanwhile (fit, on a scroll bar appearing) would break the pages.
   pp.laying = true;
-  zoomEl.style.zoom = 1;
+  setScale(1);
   previewer = new PagedModule.Previewer();
   const id = ++pp.layoutId;
   previewer.chunker.hooks.afterPageLayout.register(() => { if (pp.layoutId !== id) throw new Error('stopped for a newer layout'); });
+  // A table going on onto the next page gets its header row there too, before the page is filled (paged.js copies
+  // only the table around the rows it continues with).
+  previewer.chunker.hooks.renderNode.register((node, source) => {
+    const table = node.nodeType === 1 && node.closest('table[data-split-from]');
+    const whole = table && !table.querySelector(':scope > colgroup, :scope > thead') && source?.closest?.('table');
+    if (!whole) return;
+    // Its columns and its header row, as the table has them (the copies without paged.js's references).
+    for (const part of [whole.querySelector(':scope > thead'), whole.querySelector(':scope > colgroup')].filter(Boolean)) {
+      const copy = part.cloneNode(true);
+      for (const el of [copy, ...copy.querySelectorAll('[data-ref]')]) el.removeAttribute('data-ref');
+      table.prepend(copy);
+    }
+    table.classList.add('pp-continued');   // the ^ above it: it goes on from the page before
+  });
+  // A table that goes on onto the next page: the V under it.
+  previewer.chunker.hooks.afterPageLayout.register((page, _, breakToken) => {
+    const at = breakToken?.node, from = at && (at.nodeType === 1 ? at : at.parentElement)?.closest('table');
+    const ref = from?.dataset.ref;
+    if (!ref) return;
+    const here = [...page.querySelectorAll('table')].find(t => t.dataset.ref === ref || t.dataset.splitFrom === ref);
+    here?.classList.add('pp-continues');
+  });
+  // The marks of those tables, at their middle.
+  previewer.chunker.hooks.afterPageLayout.register(page => {
+    for (const t of page.querySelectorAll('table.pp-continues, table.pp-continued')) {
+      // In the page's box, not in its content: that is laid out in columns, and a mark below its bottom would go into
+      // a next column off the page. The table's margin on that side is none (CSS), so its edge is where the rows end.
+      const box = page.querySelector('.pagedjs_pagebox');
+      let left = t.offsetWidth / 2 - 24, top = 0;
+      for (let el = t; el && el !== box; el = el.offsetParent) { left += el.offsetLeft; top += el.offsetTop; }
+      const mark = (cls, y) => box.insertAdjacentHTML('beforeend', `<div class="pp-mark ${cls}" style="left: ${left}px; top: ${y}px"></div>`);
+      if (t.classList.contains('pp-continued')) mark('pp-mark-up', top - 9);
+      if (t.classList.contains('pp-continues')) mark('pp-mark-down', top + t.offsetHeight + 3);
+    }
+  });
   const tpl = document.createElement('template');
   tpl.innerHTML = html;
   let flow;
@@ -536,7 +571,7 @@ async function layoutPdf() {
   previewer?.polisher?.destroy?.();
   previewer?.chunker?.destroy?.();
   previewer = null;
-  zoomEl.style.zoom = 1;
+  setScale(1);
   pagesEl.innerHTML = `<div class="pp-sheets pp-doc pp-hl-${o.highlights}${o.colours === 'bw' ? ' pp-bw' : ''}">${boxes.map((b, i) => sheetHtml(b, i + 1)).join('')}</div>`;
   if (o.notes === 'end') addEndNotes(pagesEl.querySelector('.pp-sheets'), s.notes ?? []);
   pp.pages = sheets().length;
@@ -687,11 +722,66 @@ async function contentHtml() {
   tpl.innerHTML = `<div class="pp-doc pp-hl-${o.highlights} pp-notes-${o.notes}${lineNumbers() === 'off' ? ' pp-no-ln' : ''}${o.colours === 'bw' ? ' pp-bw' : ''}">${body}</div>`;
   const root = tpl.content.firstElementChild;
   if (kind !== 'pdf') dressContent(root);
+  if (kind === 'rendered' || kind === 'table') { fitTables(root, kind === 'rendered' ? o.bodySize : o.textSize); tpl.content.append(root); }
   // The header's and footer's texts, first: paged.js takes them into each page's margin boxes (pageCss).
   root.insertAdjacentHTML('afterbegin', HF_BOXES.filter(([key]) => o[key]).map(([key, at]) => `<div class="pp-run-${at}">${hfHtml(key, null)}</div>`).join(''));
   if (o.notes === 'end' && notes.length)
     root.insertAdjacentHTML('beforeend', `<section class="pp-endnotes"><h4>Notes</h4><ol>${notes.map(n => `<li value="${n.n}">${escapeHtml(n.note)}</li>`).join('')}</ol></section>`);
   return tpl.innerHTML;
+}
+
+// Tables wider than the page's text: their text smaller, to half the font's size (`size`, pt) at the least; still too
+// wide, the columns that do not fit are left out, and a line under the table says how many. Measured here at the
+// text's width with the pages' stylesheet (`root` is moved into the page for it: the caller puts it back).
+function fitTables(root, size) {
+  const tables = [...root.querySelectorAll('table')];
+  if (!tables.length) return;
+  const o = pp.opt, [w] = paper(), m = [...o.margins];
+  if (o.notes === 'left' || o.notes === 'right') m[o.notes === 'left' ? 3 : 1] += o.notesWidth + 4;
+  const style = Object.assign(document.createElement('style'), { textContent: contentCss() });
+  const box = Object.assign(document.createElement('div'), { className: 'pp-measure' });
+  box.style.cssText = `position: fixed; left: -100000px; top: 0; width: ${w - m[1] - m[3]}mm; visibility: hidden;`;
+  document.head.append(style);
+  box.append(root);
+  document.body.append(box);
+  try {
+    const room = box.getBoundingClientRect().width - 4;   // the collapsed borders' outer halves
+    // A table's narrowest (its cells at their longest word): what it takes on a page, where it cannot wrap further.
+    // On paged.js's pages a cell comes out up to a pixel wider than here: one per column more.
+    const narrowest = table => { table.style.width = 'min-content'; const w = table.getBoundingClientRect().width; table.style.width = ''; return w + (table.rows[0]?.cells.length ?? 0); };
+    const shrink = table => {
+      for (let f = 0.95; f >= 0.5 - 1e-9 && narrowest(table) > room; f -= 0.05) table.style.fontSize = `${(size * Math.max(f, 0.5)).toFixed(2)}pt`;
+      if (narrowest(table) <= room) return;
+      // Still too wide at half the size: the columns from the first that does not fit are left out.
+      const cells = [...(table.rows[0]?.cells ?? [])];
+      table.style.width = 'min-content';
+      const left = table.getBoundingClientRect().left;
+      let fit = Math.max(1, cells.filter(c => c.getBoundingClientRect().right - left <= room).length);
+      table.style.width = '';
+      for (const row of table.rows) while (row.cells.length > fit) row.cells[fit].remove();
+      // The rest lay out a little differently without them: one less while it is still too wide.
+      while (fit > 1 && narrowest(table) > room) { fit--; for (const row of table.rows) row.cells[fit]?.remove(); }
+      table.insertAdjacentHTML('afterend', `<p class="pp-cut">Table is too wide to fully render; the last ${cells.length - fit} of ${cells.length} columns are missing.</p>`);
+    };
+    // Its columns as wide as the whole table lays them out, fixed: a table over several pages has the same columns on
+    // each (paged.js lays each page's part out on its own; the hook in layout() gives a part the columns).
+    const fixColumns = table => {
+      const row = [...table.rows].reduce((a, b) => (b.cells.length > (a?.cells.length ?? 0) ? b : a), null);
+      if (!row) return;
+      const widths = [...row.cells].map(c => Math.ceil(c.getBoundingClientRect().width));
+      table.querySelector(':scope > colgroup')?.remove();
+      table.insertAdjacentHTML('afterbegin', `<colgroup>${widths.map(w => `<col style="width: ${w}px">`).join('')}</colgroup>`);
+      table.style.tableLayout = 'fixed';
+      table.style.width = widths.reduce((a, b) => a + b, 0) + 'px';
+    };
+    for (const table of tables) {
+      if (narrowest(table) > room) shrink(table);
+      fixColumns(table);
+    }
+  } finally {
+    box.remove();
+    style.remove();
+  }
 }
 
 // The view's HTML as the options say: the line numbers shown, the highlights marked or not, the notes beside the
@@ -767,6 +857,19 @@ function contentCss() {
 .pp-rendered pre, .pp-rendered code, .pp-rendered pre code, .pp-rendered pre.mm-code { font-family: ${font(o.codeFont || s.editorFont, 'monospace')}; font-size: ${o.codeSize}pt; }
 .pp-rendered pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 .pp-rendered img { ${zoom} }
+/* A table as wide as its columns (the preview's scrolls inside a box: on paper that cuts it off); its cells' room
+   grows and shrinks with its text (fitTables makes a wide one smaller). */
+.pp-rendered table { display: table; width: auto; max-width: none; overflow: visible; }
+.pp-rendered th, .pp-rendered td { padding: 0.4em 0.9em; overflow-wrap: normal; }   /* words whole: a table too wide is made smaller */
+.pp-cut { font-style: italic; color: var(--fg-dim, #666); margin-top: 0.3em; }
+/* A table over pages: a wide V under the part that goes on, a wide ^ above the part that continues it (placed by
+   layout(): a table's own ::before / ::after are not drawn). */
+.pp-mark { position: absolute; z-index: 1; width: 48px !important; height: 6px !important;   /* paged.js makes its page content's divs full height */
+   background: var(--fg-dim, #888); -webkit-mask: center / 48px 6px no-repeat; mask: center / 48px 6px no-repeat; }
+table.pp-continues { margin-bottom: 0 !important; }
+table.pp-continued { margin-top: 0 !important; }
+.pp-mark-down { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 6'%3E%3Cpath d='M1 1 24 5 47 1' fill='none' stroke='black' stroke-width='1.3'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 6'%3E%3Cpath d='M1 1 24 5 47 1' fill='none' stroke='black' stroke-width='1.3'/%3E%3C/svg%3E"); }
+.pp-mark-up { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 6'%3E%3Cpath d='M1 5 24 1 47 5' fill='none' stroke='black' stroke-width='1.3'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 6'%3E%3Cpath d='M1 5 24 1 47 5' fill='none' stroke='black' stroke-width='1.3'/%3E%3C/svg%3E"); }
 .pp-tablebox table { border-collapse: collapse; font: ${o.textSize}pt/1.3 ${font(o.textFont || s.editorFont, 'monospace')}; }
 .pp-tablebox th, .pp-tablebox td { border: 0.5pt solid color-mix(in srgb, currentColor 35%, transparent); padding: 0.5mm 1.5mm; text-align: left; vertical-align: top; }
 mark.pp-hl { color: inherit; padding: 0; ${hlLook} }
@@ -1064,8 +1167,23 @@ function fit() {
   if (!page || pp.laying) return;
   const how = $('.pp-fit').value, w = page.offsetWidth, h = page.offsetHeight;
   const room = { w: scrollEl.clientWidth - 40, h: scrollEl.clientHeight - 40 };
-  zoomEl.style.zoom = how === '100' ? 1 : how === 'width' ? room.w / w : Math.min(room.w / w, room.h / h);
+  setScale(how === '100' ? 1 : how === 'width' ? room.w / w : Math.min(room.w / w, room.h / h));
 }
+// The pages at a size: scaled (a transform: their text wraps as on paper; a CSS zoom would wrap it a little
+// differently, rows would grow and the last one move off its page), in a box as large as they show for the scroll bars.
+let scale = 1;
+function setScale(s) {
+  scale = s;
+  pagesEl.style.transform = s === 1 ? '' : `scale(${s})`;
+  sizeZoom();
+}
+function sizeZoom() {
+  const scaled = scale !== 1;
+  pagesEl.style.margin = scaled ? '0' : '0 auto';
+  Object.assign(zoomEl.style, { minWidth: scaled ? '0' : '', margin: scaled ? '0 auto' : '',
+    width: scaled ? pagesEl.offsetWidth * scale + 'px' : '', height: scaled ? pagesEl.offsetHeight * scale + 'px' : '' });
+}
+new ResizeObserver(sizeZoom).observe(pagesEl);
 $('.pp-fit').addEventListener('change', fit);
 new ResizeObserver(() => fit()).observe(scrollEl);
 
