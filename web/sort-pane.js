@@ -79,12 +79,13 @@ function draw() {
   const dir = (key, i) => `<select data-f="desc" data-k="${i}" title="Direction"><option value=""${key.desc ? '' : ' selected'}>A to Z</option><option value="1"${key.desc ? ' selected' : ''}>Z to A</option></select>`;
   const mark = i => `<span class="sp-grip" draggable="true" tabindex="0" data-k="${i}" title="Drag to change the order (also Alt+Up / Alt+Down); Delete removes the key">${GRIP}</span>` +
     `<span class="sp-num" style="background:${st.colours[i].bg};color:${st.colours[i].fg}">${i + 1}</span>`;
+  const trim = (key, i) => `<label class="sp-trim" title="Compare this key without its leading and trailing spaces"><input type="checkbox" data-f="trim" data-k="${i}"${key.trim ? ' checked' : ''}>Trim</label>`;
   const del = i => `<button type="button" class="sp-del" data-do="del" data-k="${i}" title="Delete this key"${one ? ' disabled' : ''}>x</button>`;
   const rows = list.map((key, i) => `<div class="sp-key${i === st.focusKey ? ' sp-focus' : ''}" data-k="${i}">${mark(i)}` + (columns
     ? `<select data-f="column" data-k="${i}">` + (st.cols[i] < 0 ? `<option value="" selected>${esc(key.name ?? `Column ${key.index + 1}`)} (not in this file)</option>` : '') +
       st.names.map((n, j) => `<option value="${j}"${j === st.cols[i] ? ' selected' : ''}>${esc(n)}</option>`).join('') + '</select>'
     : `<label>From <input class="sp-col" inputmode="numeric" data-f="from" data-k="${i}" value="${Number.isFinite(key.from) ? key.from : ''}"></label>` +
-      `<label>To <input class="sp-col" inputmode="numeric" data-f="to" data-k="${i}" value="${key.to ?? ''}" placeholder="end"></label>`) + dir(key, i) + del(i) + '</div>').join('');
+      `<label>To <input class="sp-col" inputmode="numeric" data-f="to" data-k="${i}" value="${key.to ?? ''}" placeholder="end"></label>`) + dir(key, i) + trim(key, i) + del(i) + '</div>').join('');
   const firstDesc = list[0]?.desc;
   const caseChoice = spec.ignoreCase ? '' : '<div class="sp-sub">' + ['AaBbCc', 'aAbBcC', 'ABCabc', 'abcABC'].map(o =>
     `<label title="Stated for A to Z; Z to A turns it round"><input type="radio" name="sp-case" data-f="caseOrder" value="${o}"${spec.caseOrder === o ? ' checked' : ''}> ${o}` +

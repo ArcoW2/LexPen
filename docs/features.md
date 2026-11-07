@@ -29,8 +29,8 @@ every action with its key.
 - **Sort** (Edit > Sort...: the Sort panel, docked or floating as the other panels, View > Panels): sorts the selected
   lines (a selection that starts or ends inside a line takes that line whole; Edit > Sort... widens it so it shows),
   a block's part of its lines only (the rest of each line stays), else the whole file; one undo step. Sort keys, each
-  a From and To column (To empty: to the line's end; in a block counted from the block's first column) and its own A
-  to Z or Z to A; the first decides, the next ones break ties; dragged in the list (or Alt+Up / Alt+Down) to change
+  a From and To column (To empty: to the line's end; in a block counted from the block's first column), its own A
+  to Z or Z to A and its own Trim (compared without leading and trailing spaces; the text itself stays as it is); the first decides, the next ones break ties; dragged in the list (or Alt+Up / Alt+Down) to change
   their order, x or Delete removes one (never the last). Each key has a colour by its place: its lines in the editor
   and its number on the ruler (shown while the panel is) in that colour; the lines at Settings > Editor > Sort > Sort
   key lines: intensity (60% by default, so the first key's line stands apart from the cursor), shown only while the

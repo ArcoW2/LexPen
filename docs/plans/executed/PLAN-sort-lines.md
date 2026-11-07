@@ -264,6 +264,9 @@ None.
   lines and the ruler's key numbers show only while the panel has the focus (your request, 2026-11-07); the ruler
   itself stays while the panel is shown, so the text does not move. Docked: the panel's page says when it gets and
   loses the focus; floating: its window (PaneForm's WM_ACTIVATE, paneWindowFocus with the pane's id).
+- **Trim per key** (your request, 2026-11-07): each key row, text and columns alike, has Trim: its text or field is
+  compared without leading and trailing spaces (duplicates by the keys too); the lines and fields themselves are not
+  changed.
 - **From / To take digits only** (your request, 2026-11-07): another character typed is refused, one pasted is left
   out.
 - **The preview**: a double-click on a line puts the cursor on that line in the editor, where its text is now (a
