@@ -43,8 +43,12 @@ header stays on top and a record moves whole, also one with a line break in a qu
 ### 3.2 The options
 
 - Order: A to Z or Z to A, by the user's language (`Intl.Collator`, so `a`, `B`, `c` sort as words, not by code).
-- Ignore case: on by default (your answer); off, `B` and `b` are different keys (upper case first, as the collator
-  orders them).
+- Ignore case: on by default (your answer); off, `B` and `b` are different keys, and a choice shows which comes
+  first: **B before b** or **b before B** (your answer 2026-11-07). The choice is stated for A to Z and is marked so:
+  Z to A turns the whole order round, so B before b gives b before B there. The choice's text says what the order
+  becomes with the current direction (A to Z: "B b", Z to A: "b B"), and the preview shows it. `Intl.Collator` with
+  `caseFirst: 'upper'` or `'lower'`; the letters still sort as words (`a`, `B`, `b`, `c`), case only decides between
+  equal letters.
 - Numbers by value ("natural" sort: `file2` before `file10`; a line that is a number sorts by its value).
 - From column: the key is the line from that column on (counted as the ruler counts, tabs expanded); 1 is the whole
   line. With a block the column is the block's left edge and the field shows it, not editable.
@@ -107,7 +111,8 @@ In-app: a selection starting and ending inside lines is widened to the whole lin
 at a line's start does not take that line), and stays so after Cancel; a CSV selection widened to whole records.
 
 In-app: each option on a selection, on a block (only the block part moves, the rest of each line stays; short rows),
-and on the whole file; natural sort; ignore case on and off; duplicates with and without case and whitespace; empty
+and on the whole file; natural sort; ignore case on and off, and off with B before b and b before B, each A to Z and Z to A (Z to A turns
+it round); duplicates with and without case and whitespace; empty
 lines; from a column; the last line without a break; undo is one step; the column line shown, moving with the field
 and gone after closing; the preview follows each option and matches what Apply does.
 
