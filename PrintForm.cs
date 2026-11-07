@@ -133,6 +133,9 @@ sealed class PrintForm : Form
                 return new JsonObject
                 {
                     ["settings"] = app.SettingsFor(owner)["values"]?.DeepClone(), ["look"] = app.Look(owner),
+                    // The date as Windows writes it (the header's and footer's date when no format is given).
+                    ["datePattern"] = System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.ShortDatePattern,
+                    ["culture"] = System.Globalization.CultureInfo.CurrentCulture.Name,
                     ["source"] = source.DeepClone(), ["printers"] = Printing.Printers(),
                     ["stored"] = new JsonObject { ["list"] = app.Prints.List(), ["last"] = app.Prints.Last },
                 };

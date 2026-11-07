@@ -42,7 +42,7 @@ const DEFAULTS = {
   zoom: 'auto', zoomPercent: 100, textFont: '', textSize: 9, lineNumbers: 'all',
   bodyFont: '', bodySize: 11, codeFont: '', codeSize: 9,
   colours: 'current', syntax: true, highlights: 'shaded', hlColour: '', hlIntensity: 100, notes: 'end', notesWidth: 45, notesSize: 8,
-  headName: true, headPage: false, headTotal: false, headDate: false, footName: false, footPage: true, footTotal: true, footDate: false,
+  headName: true, headPage: false, headTotal: false, headDate: false, footName: false, footPage: true, footTotal: true, footDate: false, headDateFormat: '', footDateFormat: '',
 };
 const PAPERS = [{ name: 'A3', w: 297, h: 420 }, { name: 'A4', w: 210, h: 297 }, { name: 'A5', w: 148, h: 210 },
   { name: 'Letter', w: 215.9, h: 279.4 }, { name: 'Legal', w: 215.9, h: 355.6 }];
@@ -54,6 +54,18 @@ const pp = {
 };
 
 // The view a document prints as: rendered markdown or its text, a CSV's table or its text; a PDF its pages.
+// Today in a date format as Windows writes them (d M y: day, month, year; dd MM: two digits; ddd dddd MMM MMMM:
+// the names, short and long; yy yyyy; text in quotes as it is). Empty: the Windows short date.
+const DATE_HELP = "d, dd: day; ddd, dddd: day name; M, MM: month; MMM, MMMM: month name; yy, yyyy: year; text in single quotes as it is. Empty: as Windows writes the date";
+function dateText(format) {
+  const now = new Date(), name = opts => new Intl.DateTimeFormat(pp.culture || undefined, opts).format(now);
+  const two = n => String(n).padStart(2, '0');
+  const parts = { dddd: () => name({ weekday: 'long' }), ddd: () => name({ weekday: 'short' }), dd: () => two(now.getDate()), d: () => String(now.getDate()),
+    MMMM: () => name({ month: 'long' }), MMM: () => name({ month: 'short' }), MM: () => two(now.getMonth() + 1), M: () => String(now.getMonth() + 1),
+    yyyy: () => String(now.getFullYear()), yy: () => two(now.getFullYear() % 100) };
+  return (format || pp.datePattern || 'd-M-yyyy').replace(/dddd|ddd|dd|d|MMMM|MMM|MM|M|yyyy|yy|'[^']*'/g, t => t[0] === "'" ? t.slice(1, -1) : parts[t]());
+}
+
 // Settings stored before the header and footer had their own lines: "Page x of y" (headPages) was the footer's.
 function upgraded(o) {
   if ('headPages' in o) { o.footPage = o.footTotal = o.headPages; delete o.headPages; }
@@ -127,7 +139,9 @@ function drawPanel() {
   // What the header and footer say (the name at the left, the page in the middle, the date at the right). The total
   // is known only when every page is laid out: printing some pages waits for that.
   for (const [w, label] of [['head', 'Header'], ['foot', 'Footer']]) html += `<div class="pp-row"><label>${label}</label>${check(w + 'Name', 'File name')}<span class="pp-pair">${check(w + 'Page', 'Page x')}` +
-    check(w + 'Total', 'of y', 'Printing some pages waits until all are laid out').replace('<input', o[w + 'Page'] ? '<input' : '<input disabled') + `</span>${check(w + 'Date', 'Date')}</div>`;
+    check(w + 'Total', 'of y', 'Printing some pages waits until all are laid out').replace('<input', o[w + 'Page'] ? '<input' : '<input disabled') + `</span></div>` +
+    `<div class="pp-row"><span class="pp-label"></span>${check(w + 'Date', 'Date')}<input type="text" class="pp-wide" data-k="${w}DateFormat" value="${escapeHtml(o[w + 'DateFormat'])}"` +
+    ` placeholder="${escapeHtml(pp.datePattern)}" spellcheck="false"${o[w + 'Date'] ? '' : ' disabled'} title="${DATE_HELP}"></div>`;
 
   if (kind === 'text' || kind === 'table') html += `<h3>Text</h3><div class="pp-row"><label>Font</label>${fontList('textFont', s.editorFont, true)}</div>
     <div class="pp-row"><label>Size (pt)</label>${num('textSize', 4, 40, 0.5)}</div>` + (kind === 'text' ? `<div class="pp-row"><label>Line numbers</label><select data-k="lineNumbers">
@@ -506,7 +520,7 @@ ${more}`;
 function sheetHtml(body, n) {
   const o = pp.opt, s = pp.source, name = s.title + (pp.what === 'selection' ? ' (selection)' : '');
   const line = w => `<span>${o[w + 'Name'] ? escapeHtml(name) : ''}</span><span>${o[w + 'Page'] ? `Page ${n}${o[w + 'Total'] ? ' of <span class="pp-total"></span>' : ''}` : ''}</span>` +
-    `<span>${o[w + 'Date'] ? escapeHtml(s.date) : ''}</span>`;
+    `<span>${o[w + 'Date'] ? escapeHtml(dateText(o[w + 'DateFormat'])) : ''}</span>`;
   return `<div class="pp-sheet"><div class="pp-sheet-head">${line('head')}</div><div class="pp-sheet-area">${body}</div><div class="pp-sheet-foot">${line('foot')}</div></div>`;
 }
 // The notes at the end, after the sheets in `list`, on as many sheets as they need.
@@ -649,7 +663,7 @@ function pageCss() {
   size: ${w}mm ${h}mm; margin: ${m.map(v => v + 'mm').join(' ')};
   ${[['head', 'top'], ['foot', 'bottom']].map(([w, at]) => (o[w + 'Name'] ? box(at + '-left', cssString(name)) : '') +
     (o[w + 'Page'] ? box(at + '-center', '"Page " counter(page)' + (o[w + 'Total'] ? ' " of " counter(pages)' : '')) : '') +
-    (o[w + 'Date'] ? box(at + '-right', cssString(s.date)) : '')).join(' ')}
+    (o[w + 'Date'] ? box(at + '-right', cssString(dateText(o[w + 'DateFormat']))) : '')).join(' ')}
   @footnote { border-top: 0.5pt solid color-mix(in srgb, currentColor 40%, transparent); padding-top: 1.5mm; margin-top: 2mm; }
 }
 .pagedjs_page { background: var(--bg, #fff); color: var(--fg, #000); --pp-ch: ${h - m[0] - m[2]}mm; }
@@ -1140,6 +1154,8 @@ pp.values = init.settings ?? {};
 pp.look = init.look;
 pp.printers = init.printers;
 pp.stored = init.stored;
+pp.datePattern = init.datePattern;
+pp.culture = init.culture;
 applyLook(init.look, pp.values);
 document.title = `Print ${pp.source.title} - LexPen`;
 const last = init.stored.last;
