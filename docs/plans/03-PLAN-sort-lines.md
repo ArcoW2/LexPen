@@ -54,11 +54,14 @@ sort's name.
   key's text is the line from From up to and including To (counted as the ruler counts, tabs expanded); To empty: to
   the end of the line. The first key decides, each next one breaks the ties of the ones before it. "Add a key" adds a
   key after the last (its From one past the last key's To); each key can be removed.
+- A key's To is never before its From (your answer 2026-11-07): a To before From is not accepted (the field says
+  why); To equal to From is a key of one column. The From line is drawn at the left edge of column From, the To line
+  at the right edge of column To, so the To line is always right of the From line.
 - The keys' order is their order in the list, not their place in the line (your answer 2026-11-07): a key is dragged
   in the list to another place (also Alt+Up / Alt+Down on the key with the focus), and a key's columns are free: the
   second key may lie before the first in the line, or partly in it (overlapping columns are read for each key). The
-  preview and the column lines follow at once; each key's lines carry its number (1, 2, ...) so the order shows in
-  the editor too.
+  preview and the column lines follow at once; each key's number (1, 2, ...) shows in the ruler (3.3), so the order
+  shows in the editor too.
 - One key to start with: From 1, To empty (the whole line): the first column, the same every time, not the cursor's
   (your answer 2026-11-07).
 - In a block (your answers 2026-11-07): the keys work within the block and count from its first column (From 1 is
@@ -89,10 +92,15 @@ sort's name.
 - Each key its own colour (your answer 2026-11-07): its two lines are drawn in it, and its row in the window shows it
   (a mark in that colour before the key's number), so a line and its key are matched at a glance. The colours are
   the theme's named ones the ruler's tab stops offer (ruler.js TAB_COLOURS: the accent, green, purple, red, brown,
-  orange, the find box), so they follow the theme in day and night; in that order by the key's place in the list, so
-  a key dragged elsewhere takes the colour of its new place (the colour says the order). More keys than colours:
-  they start again from the first, the number tells them apart. The key with the focus has its lines at full
-  strength, the others lighter.
+  orange, the find box), so they follow the theme in day and night. The colour says the order (your answer
+  2026-11-07): the colours go by the key's place in the list, so a key dragged elsewhere takes the colour of its new
+  place. More keys than colours: they start again from the first, the number tells them apart. The key with the
+  focus has its lines at full strength, the others lighter.
+- The key's number in the ruler (your answer 2026-11-07): each key's number (its row in the list) is written in the
+  ruler in the key's colour, hugging its lines: just right of the From line and just left of the To line, so the
+  number sits inside the key's columns at both ends. A key of one or two columns, where the two would collide, shows
+  the number once, between its lines. While the window is open the ruler is shown (View > Ruler off: shown for the
+  window, hidden again when it closes). A key's To empty (to the line's end): only the From side's number.
 - The preview: a read-only field at the bottom of the Sort tab, in the editor's font, with the first lines of the
   result (as many as fit), the keys' parts marked; it follows every change at once. A large file: the preview sorts
   only what it needs to know the first lines (the sort itself runs on Apply).
@@ -171,8 +179,10 @@ matches what Apply does.
 
 In-app, keys: one key From / To; To empty to the line's end; two and three keys (each next one breaks ties), each
 its own direction; a key added and removed; a key dragged to another place in the list (and Alt+Up / Alt+Down), the
-order following; a second key before the first in the line and one partly overlapping it, each read for itself; the column lines at each From and To, each key's in its own colour, the same colour in its
-row, the focused key's at full strength; a key dragged takes the colour of its new place; more keys than colours;
+order following; a second key before the first in the line and one partly overlapping it, each read for itself; a To before its From not accepted, To equal to From a one-column key; the column lines at
+each From and To, each key's in its own colour, the same colour in its row; each key's number in the ruler in its
+colour, right of the From line and left of the To line (once for a narrow key, From side only for To empty); the
+ruler shown while the window is open with View > Ruler off, hidden again after; the focused key's at full strength; a key dragged takes the colour of its new place; more keys than colours;
 the lines moving with the fields and gone after closing; in the column view the key columns' headers in their keys'
 colours; in a block: the keys counted from the block's first column (From 1 there by default), another column of the
 block chosen, one past its right edge not accepted.
@@ -201,17 +211,6 @@ waiting.
 Unit: the key text of a line by From / To with tabs; the order of two keys with ties; `sorts.json` read and written
 (a damaged file read as no stored sorts, not lost on the next save).
 
-## 4. Questions
+## 4. Open questions
 
-Answered, each worked into the text above:
-
-1. Default case: ignore case (3.2). 2. One window with all options (3.3). 3. Edit > Sort, not in Convert (3.6).
-4. `edit.sort`, `edit.sortAsc`, `edit.sortDesc` with an optional stored sort's name (3.6). 5. The first key starts at
-the first column (3.2). 6. Stored sorts not per file (3.4). 7. A text sort counts from the block's first column
-(3.2, 3.4). 8. Each key its own direction (3.2). 9. Dragging the keys in the window's lists is part of this plan,
-for text and for columns (3.2, 3.5); dragging the column lines in the editor is not.
-
-Open:
-
-10. A key's colour: by its place in the list (a key dragged first takes the first colour, so the colour says the
-    order; as 3.3 has it now), or kept by the key when it is dragged (so you can follow it while reordering)?
+None.
