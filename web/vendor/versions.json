@@ -13,5 +13,6 @@
   "markdown-it-task-lists": "2.1.1",
   "markdown-it-texmath": "1.0.0",
   "mermaid": "11.17.2",
+  "pagedjs": "0.4.3",
   "pdfjs-dist": "6.4.299"
 }

@@ -153,6 +153,10 @@ appAction('openFile', { title: 'Open file...', hint: 'One or more files, in tabs
 appAction('openFolder', { title: 'Open folder...', hint: 'In the folder pane', group: 'files', run: () => commands.openFolder() });
 appAction('save', { title: 'Save', hint: 'The file of the active tab', group: 'files', run: () => commands.save() });
 appAction('saveAs', { title: 'Save as...', hint: 'Under another name; an ANSI file becomes UTF-8', group: 'files', run: () => commands.saveAs() });
+// Print (docs/plans/executed/PLAN-printing.md): the Print window on the active document, its selected lines when there are;
+// printsource.js, loaded on the first print.
+appAction('print', { title: 'Print...', hint: 'The document on paper or as a PDF: a preview of its pages, with its highlights and notes or without, the settings kept as stored ones', group: 'files',
+  enabled: () => !!activeDoc(), run: async () => { await loadScript('printsource.js'); await printDoc(activeDoc(), panes[state.activePane]); } });
 appAction('revertToSaved', { title: 'Revert to saved', hint: 'The file as it is on disk; Ctrl+Z gives your changes back', group: 'files',
   enabled: () => canRevert(activeDoc()), run: () => revertDoc(activeDoc()) });
 appAction('file.rename', { title: 'Rename...', hint: "Rename this tab's file on disk; its tabs follow, also in other windows (in the folder pane: F2 on a file or folder)", group: 'files',

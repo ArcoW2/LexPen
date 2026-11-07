@@ -1,0 +1,75 @@
+/* The Print window (print.html, print.js): app.css's theme colours for the options, the pages at the left on a grey
+   desk. On paper only the pages remain (@media print). The pages' own look (paper, margins, the document's colours)
+   is made by print.js as the stylesheet it gives paged.js. */
+.pp-body { margin: 0; height: 100vh; display: flex; flex-direction: row; background: var(--bg); color: var(--fg); overflow: hidden;
+  font: calc(13px * var(--ui-scale, 1)) var(--app-font, "Segoe UI", system-ui, sans-serif); }
+.pp-gap { flex: 1; }
+
+/* The pages. */
+.pp-view { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.pp-viewbar { display: flex; align-items: center; gap: 12px; padding: 6px 12px; background: var(--bg-bar); border-bottom: 1px solid var(--border); }
+.pp-count { color: var(--fg-dim); }
+.pp-scroll { flex: 1; overflow: auto; outline: none; background: color-mix(in srgb, var(--fg) 18%, var(--bg)); }
+.pp-zoom { padding: 16px; width: max-content; min-width: calc(100% - 32px); }
+.pp-pages .pagedjs_pages { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.pp-pages .pagedjs_page, .pp-pages .pp-sheet { box-shadow: 0 1px 6px rgb(0 0 0 / .35); }   /* its paper: the document's colours (print.js) */
+.pp-pages .pagedjs_page.pp-picked, .pp-pages .pp-sheet.pp-picked { outline: 3px solid var(--accent); }
+
+/* The options. */
+.pp-side { flex: none; width: calc(340px * var(--ui-scale, 1)); display: flex; flex-direction: column; border-left: 1px solid var(--border); background: var(--bg-side); }
+.pp-tabs { display: flex; border-bottom: 1px solid var(--border); }
+.pp-tabs button { flex: 1; border: 0; border-radius: 0; padding: 7px 4px; background: none; color: var(--fg-dim); }
+.pp-tabs button.pp-on { color: var(--fg); box-shadow: inset 0 -2px var(--accent); font-weight: 600; }
+.pp-panel { flex: 1; min-height: 0; overflow: auto; padding: 4px 12px 12px; }
+.pp-panel h3 { margin: 12px 0 4px; font-size: calc(11px * var(--ui-scale, 1)); letter-spacing: .04em; text-transform: uppercase; color: var(--fg-dim); }
+.pp-row { display: flex; align-items: center; gap: 8px; margin: 4px 0; flex-wrap: wrap; }
+.pp-row > label:first-child, .pp-row > .pp-label { min-width: 7.5em; color: var(--fg-dim); }
+.pp-row select, .pp-row input[type=text], .pp-row input[type=number] { font: inherit; color: var(--fg); background: var(--bg);
+  border: 1px solid var(--border); border-radius: 4px; padding: 2px 4px; min-width: 0; }
+.pp-row select { flex: 1; }
+.pp-row input[type=number] { width: 4.5em; }
+.pp-row input.pp-wide { flex: 1; }
+.pp-row label.pp-check { display: inline-flex; align-items: center; gap: 4px; color: var(--fg); min-width: 0; }
+.pp-hint { color: var(--fg-dim); font-size: .92em; margin: 2px 0 4px; }
+.pp-sides { display: grid; grid-template-columns: repeat(4, auto); gap: 4px 6px; align-items: center; margin-left: 7.5em; }
+.pp-sides span { color: var(--fg-dim); font-size: .92em; }
+
+.pp-foot { border-top: 1px solid var(--border); padding: 8px 12px; display: flex; flex-direction: column; gap: 6px; }
+.pp-warn { color: var(--caution, #c80); }
+.pp-warn button { margin-left: 6px; }
+.pp-name { color: var(--fg-dim); min-height: 1.2em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pp-name.pp-changed { font-style: italic; }
+.pp-buttons { display: flex; gap: 6px; flex-wrap: wrap; }
+.pp-buttons button { padding: 4px 10px; }
+.pp-primary { background: var(--accent); color: var(--accent-fg, #fff); border-color: var(--accent); }
+.pp-primary:hover { background: color-mix(in srgb, var(--accent) 85%, var(--fg)); }
+
+/* The stored settings: templates first, a divider, then the others (as the Sort panel's). */
+.pp-stored { outline: none; margin-top: 8px; }
+.pp-item { padding: 4px 8px; border-radius: 4px; cursor: default; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pp-item:hover { background: var(--hover); }
+.pp-item.pp-sel { background: var(--active); }
+.pp-item.pp-template::before { content: "T  "; color: var(--accent); font-weight: 700; }
+.pp-divider { border-top: 2px solid color-mix(in srgb, var(--pane-active, var(--border)) 40%, transparent); margin: 6px; }
+.pp-empty { color: var(--fg-dim); padding: 8px; }
+.pp-menu { position: fixed; z-index: 10; display: flex; flex-direction: column; min-width: 160px; padding: 4px 0;
+  background: var(--bg-bar); border: 1px solid var(--border); border-radius: 6px; box-shadow: 0 4px 14px rgb(0 0 0 / .3); }
+.pp-menu button { border: 0; background: none; border-radius: 0; text-align: left; padding: 4px 12px; white-space: nowrap; }
+.pp-menu button:hover, .pp-menu button:focus { background: var(--hover); outline: none; }
+.pp-menu hr { border: 0; border-top: 1px solid var(--border); margin: 4px 0; }
+
+.pp-ask { background: var(--bg-bar); color: var(--fg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; min-width: 320px; }
+.pp-ask::backdrop { background: rgb(0 0 0 / .3); }
+.pp-ask form { display: flex; flex-direction: column; gap: 8px; }
+.pp-ask-input { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 4px 6px; }
+
+/* On paper: the pages only, as they are, one per sheet. */
+@media print {
+  .pp-body { display: block; height: auto; overflow: visible; background: none; }
+  .pp-side, .pp-viewbar, .pp-ask { display: none !important; }
+  .pp-view, .pp-scroll { display: block; overflow: visible; background: none; }
+  .pp-zoom { zoom: 1 !important; padding: 0; width: auto; }
+  .pp-pages .pagedjs_pages { display: block; gap: 0; }
+  .pp-pages .pagedjs_page, .pp-pages .pp-sheet { box-shadow: none; outline: none !important; }
+  .pp-pages .pp-sheets { display: block; gap: 0; }
+}

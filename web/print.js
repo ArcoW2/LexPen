@@ -1,0 +1,907 @@
+// The Print window (print.html; PrintForm hosts it, modal to its window), docs/plans/executed/PLAN-printing.md. At the left
+// the pages as they will come out, laid out by paged.js from the document's view the window made (printsource.js) and
+// a stylesheet made here from the options; at the right the options (Print) and the stored settings. What shows is
+// what prints: Save as PDF prints this page to a file, Print to the printer (as page images with the printer's own
+// settings when the set has them, PrintForm). Esc closes it, Ctrl+Enter prints.
+
+const $ = s => document.querySelector(s);
+const escapeHtml = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const cssString = s => '"' + String(s ?? '').replace(/["\\]/g, '\\$&').replace(/[\r\n]+/g, ' ') + '"';
+const FILE_URL = 'https://file.lexpen.example/';
+
+// ---------- Host bridge (as replace.js) ----------
+const pending = new Map();
+let lastId = 0;
+function host(op, args) {
+  return new Promise((resolve, reject) => {
+    pending.set(++lastId, { resolve, reject });
+    chrome.webview.postMessage({ ...args, id: lastId, op });
+  });
+}
+chrome.webview.addEventListener('message', e => {
+  if (e.data.event) return;
+  const { id, result, error } = e.data;
+  const call = pending.get(id);
+  pending.delete(id);
+  error ? call.reject(new Error(error)) : call.resolve(result);
+});
+
+// ---------- The options ----------
+// A set of print settings, as stored (PrintStore). What to print (all, the selection, pages) is not part of it.
+const DEFAULTS = {
+  printer: null, devmode: null, paper: 'A4', paperW: 210, paperH: 297, landscape: false, copies: 1, duplex: 'one', colourPrint: true,
+  view: null, margins: [15, 15, 15, 15], marginsEach: false, frame: false, frameWidth: 0.5, frameIntensity: 60,
+  zoom: 'auto', zoomPercent: 100, textFont: '', textSize: 9, lineNumbers: true,
+  bodyFont: '', bodySize: 11, codeFont: '', codeSize: 9,
+  colours: 'current', highlights: 'shaded', notes: 'end', notesWidth: 45,
+  headName: true, headPages: true, headDate: false,
+};
+const PAPERS = [{ name: 'A3', w: 297, h: 420 }, { name: 'A4', w: 210, h: 297 }, { name: 'A5', w: 148, h: 210 },
+  { name: 'Letter', w: 215.9, h: 279.4 }, { name: 'Legal', w: 215.9, h: 355.6 }];
+
+const pp = {
+  source: null, values: {}, look: null, printers: { list: [], default: null }, info: null, opt: { ...DEFAULTS },
+  what: 'all', ranges: '', stored: { list: [], last: null }, name: null, origin: null, changed: false,
+  themeVars: new Map(), layoutId: 0, running: null, again: false, pages: 0, pdf: null, pdfPages: null, pdfLook: null, pdfImages: new Map(), lastTimer: 0,
+};
+
+// The view a document prints as: rendered markdown or its text, a CSV's table or its text; a PDF its pages.
+const views = () => pp.source.kind === 'markdown' ? [['rendered', 'Rendered'], ['text', 'Text']]
+  : pp.source.kind === 'csv' ? [['table', 'Table'], ['text', 'Text']] : [];
+const viewOf = () => pp.source.kind === 'pdf' ? 'pdf' : views().some(([v]) => v === pp.opt.view) ? pp.opt.view : views()[0]?.[0] ?? 'text';
+
+// ---------- The Print tab ----------
+const panel = $('.pp-print-panel');
+const opt = (key, value) => pp.opt[key] === value ? ' selected' : '';
+const num = (key, min, max, step = 1) => `<input type="number" data-k="${key}" min="${min}" max="${max}" step="${step}" value="${pp.opt[key]}">`;
+const check = (key, label, title = '') => `<label class="pp-check" title="${escapeHtml(title)}"><input type="checkbox" data-k="${key}"${pp.opt[key] ? ' checked' : ''}>${label}</label>`;
+const text = (key, placeholder) => `<input type="text" class="pp-wide" data-k="${key}" value="${escapeHtml(pp.opt[key])}" placeholder="${escapeHtml(placeholder)}" spellcheck="false">`;
+
+function drawPanel() {
+  const s = pp.source, o = pp.opt, info = pp.info, papers = info?.papers?.length ? info.papers : PAPERS;
+  const printers = pp.printers.list.map(n => `<option value="${escapeHtml(n)}"${opt('printer', n)}>${escapeHtml(n)}</option>`).join('');
+  const themes = (s.themes?.list ?? []).map(t => `<option value="theme:${escapeHtml(t.id)}"${opt('colours', 'theme:' + t.id)}>${escapeHtml(t.name)}</option>`).join('');
+  const kind = viewOf();
+  let html = '<h3>Printer</h3>' + (pp.printers.list.length
+    ? `<div class="pp-row"><label>Printer</label><select data-k="printer">${printers}</select></div>
+       <div class="pp-row"><span class="pp-label"></span><button type="button" data-do="printerDialog" title="The printer's own settings: paper bin, intensity, quality, ...; kept with these settings">Printer settings...</button></div>`
+    : '<div class="pp-hint">No printer is installed: Save as PDF only.</div>');
+  html += `<div class="pp-row"><label>Paper</label><select data-k="paper">${papers.map(p => `<option value="${escapeHtml(p.name)}"${opt('paper', p.name)}>${escapeHtml(p.name)}</option>`).join('')}</select></div>
+    <div class="pp-row"><label>Orientation</label><select data-k="landscape"><option value="false"${o.landscape ? '' : ' selected'}>Portrait</option><option value="true"${o.landscape ? ' selected' : ''}>Landscape</option></select></div>
+    <div class="pp-row"><label>Copies</label>${num('copies', 1, 999)}</div>`;
+  if (info?.duplex) html += `<div class="pp-row"><label>Two-sided</label><select data-k="duplex"><option value="one"${opt('duplex', 'one')}>One-sided</option>
+    <option value="long"${opt('duplex', 'long')}>Two-sided, long edge</option><option value="short"${opt('duplex', 'short')}>Two-sided, short edge</option></select></div>`;
+  if (info?.colour) html += `<div class="pp-row"><label>Printer colour</label><select data-k="colourPrint"><option value="true"${o.colourPrint ? ' selected' : ''}>Colour</option><option value="false"${o.colourPrint ? '' : ' selected'}>Black and white</option></select></div>`;
+
+  html += '<h3>What</h3>';
+  html += `<div class="pp-row"><label>Print</label><select data-w="what"><option value="all"${pp.what === 'all' ? ' selected' : ''}>The whole document</option>` +
+    (s.selection ? `<option value="selection"${pp.what === 'selection' ? ' selected' : ''}>The selected lines</option>` : '') +
+    `<option value="pages"${pp.what === 'pages' ? ' selected' : ''}>Pages</option></select></div>`;
+  if (pp.what === 'pages') html += `<div class="pp-row"><label>Pages</label><input type="text" class="pp-wide" data-w="ranges" value="${escapeHtml(pp.ranges)}" placeholder="1-3, 5" spellcheck="false"></div>
+    <div class="pp-hint">Or click the pages in the preview.</div>`;
+  if (views().length) html += `<div class="pp-row"><label>As</label><select data-k="view">${views().map(([v, l]) => `<option value="${v}"${kind === v ? ' selected' : ''}>${l}</option>`).join('')}</select></div>`;
+
+  html += '<h3>Layout</h3>';
+  const margin = i => `<input type="number" data-m="${i}" min="0" max="100" step="0.5" value="${o.margins[i]}">`;
+  html += `<div class="pp-row"><label>Margins (mm)</label>${o.marginsEach ? '' : margin(0)}${check('marginsEach', 'Each side its own')}</div>`;
+  if (o.marginsEach) html += `<div class="pp-sides">${['Top', 'Right', 'Bottom', 'Left'].map(l => `<span>${l}</span>`).join('')}${[0, 1, 2, 3].map(margin).join('')}</div>`;
+  html += `<div class="pp-row"><label>Frame</label>${check('frame', 'A line around the text')}</div>`;
+  if (o.frame) html += `<div class="pp-row"><label>Frame width (pt)</label>${num('frameWidth', 0.1, 5, 0.1)}</div>
+    <div class="pp-row"><label>Intensity (%)</label>${num('frameIntensity', 5, 100, 5)}</div>`;
+  html += `<div class="pp-row"><label>Header, footer</label>${check('headName', 'File name')}${check('headPages', 'Page x of y')}${check('headDate', 'Date')}</div>`;
+
+  if (kind === 'text' || kind === 'table') html += `<h3>Text</h3><div class="pp-row"><label>Font</label>${text('textFont', s.editorFont)}</div>
+    <div class="pp-row"><label>Size (pt)</label>${num('textSize', 4, 40, 0.5)}${kind === 'text' ? check('lineNumbers', 'Line numbers') : ''}</div>`;
+  if (kind === 'rendered') html += `<h3>Text</h3><div class="pp-row"><label>Font</label>${text('bodyFont', s.appFont)}</div>
+    <div class="pp-row"><label>Size (pt)</label>${num('bodySize', 4, 40, 0.5)}</div>
+    <div class="pp-row"><label>Code font</label>${text('codeFont', s.editorFont)}</div>
+    <div class="pp-row"><label>Code size (pt)</label>${num('codeSize', 4, 40, 0.5)}</div>`;
+  if (kind === 'pdf' || kind === 'rendered') html += `<div class="pp-row"><label>${kind === 'pdf' ? 'Pages' : 'Images'} at</label><select data-k="zoom">
+    <option value="auto"${opt('zoom', 'auto')}>Auto (own size, smaller when needed)</option><option value="width"${opt('zoom', 'width')}>Fit to width</option>
+    <option value="height"${opt('zoom', 'height')}>Fit to height</option><option value="page"${opt('zoom', 'page')}>Fit to page</option>
+    <option value="percent"${opt('zoom', 'percent')}>Percentage</option></select>${o.zoom === 'percent' ? num('zoomPercent', 5, 400, 5) + '%' : ''}</div>`;
+
+  html += `<h3>Colours</h3><div class="pp-row"><label>Colours</label><select data-k="colours"><option value="current"${opt('colours', 'current')}>The theme as on screen</option>
+    ${themes}<option value="bw"${opt('colours', 'bw')}>Black and white</option><option value="grey"${opt('colours', 'grey')}>Greyscale</option></select></div>`;
+
+  html += `<h3>Highlights and notes</h3><div class="pp-row"><label>Highlights</label><select data-k="highlights">
+    <option value="off"${opt('highlights', 'off')}>Off</option><option value="shaded"${opt('highlights', 'shaded')}>Shaded</option>
+    <option value="underline"${opt('highlights', 'underline')}>Underlined</option><option value="wavy"${opt('highlights', 'wavy')}>Wavy underline</option>
+    <option value="box"${opt('highlights', 'box')}>In a box</option><option value="bold"${opt('highlights', 'bold')}>Bold</option></select></div>
+    <div class="pp-row"><label>Notes</label><select data-k="notes"><option value="off"${opt('notes', 'off')}>Off</option>
+    <option value="left"${opt('notes', 'left')}>In the left margin</option><option value="right"${opt('notes', 'right')}>In the right margin</option>
+    <option value="foot"${opt('notes', 'foot')}>At the bottom of the page</option><option value="end"${opt('notes', 'end')}>At the end</option></select></div>`;
+  if (o.notes === 'left' || o.notes === 'right') html += `<div class="pp-row"><label>Margin width (mm)</label>${num('notesWidth', 15, 120)}</div>`;
+  if (!(s.notes?.length)) html += '<div class="pp-hint">This document has no notes.</div>';
+  panel.innerHTML = html;
+}
+
+// An option changed: kept, the pages laid out again (a moment later while typing).
+panel.addEventListener('change', e => setFrom(e.target));
+panel.addEventListener('input', e => { if (e.target.matches('input[type=number], input[type=text]')) setFrom(e.target, true); });
+async function setFrom(el, typing) {
+  const o = pp.opt;
+  if (el.dataset.w === 'what') { pp.what = el.value; drawPanel(); pickedPages(); return schedule(); }
+  if (el.dataset.w === 'ranges') { pp.ranges = el.value; return pickedPages(); }
+  if (el.dataset.m !== undefined) {
+    const v = Math.max(0, Math.min(100, Number(el.value) || 0));
+    if (o.marginsEach) o.margins[+el.dataset.m] = v; else o.margins = [v, v, v, v];
+  } else {
+    const k = el.dataset.k;
+    if (!k) return;
+    let v = el.type === 'checkbox' ? el.checked : el.type === 'number' ? Number(el.value) : el.value;
+    if (el.type === 'number' && !Number.isFinite(v)) return;
+    if (v === 'true' || v === 'false') v = v === 'true';
+    o[k] = v;
+    if (k === 'printer') { o.devmode = null; await loadPrinter(); }   // printer settings belong to their printer
+    if (k === 'paper') { const p = (pp.info?.papers?.length ? pp.info.papers : PAPERS).find(q => q.name === v); if (p) { o.paperW = p.w; o.paperH = p.h; } }
+    if (k === 'marginsEach' && !v) o.margins = [o.margins[0], o.margins[0], o.margins[0], o.margins[0]];
+  }
+  changed();
+  if (!typing && el.matches('select, input[type=checkbox]')) drawPanel();
+  schedule(typing ? 400 : 0);
+}
+
+// The printer chosen: its papers and what it can; a paper it does not have becomes its own.
+async function loadPrinter() {
+  pp.info = pp.opt.printer ? await host('printerInfo', { name: pp.opt.printer }).catch(() => null) : null;
+  const papers = pp.info?.papers?.length ? pp.info.papers : PAPERS;
+  if (!papers.some(p => p.name === pp.opt.paper)) {
+    const p = papers.find(q => q.name === pp.info?.paper) ?? papers.find(q => q.name === 'A4') ?? papers[0];
+    Object.assign(pp.opt, { paper: p.name, paperW: p.w, paperH: p.h });
+  }
+}
+
+// ---------- Stored settings (as the Sort panel's) ----------
+function changed(on = true) {
+  pp.changed = on;
+  drawName();
+  clearTimeout(pp.lastTimer);
+  pp.lastTimer = setTimeout(() => host('printLast', { last: { settings: pp.opt, name: pp.name, origin: pp.origin, changed: pp.changed } }), 300);
+}
+function drawName() {
+  const el = $('.pp-name');
+  el.textContent = pp.name ? `Stored settings: ${pp.name}` : pp.origin ? `New from template ${pp.origin}` : 'Not stored';
+  el.classList.toggle('pp-changed', !!(pp.changed && (pp.name || pp.origin)));
+  $('[data-do=save]').disabled = !(pp.name && pp.changed);
+  $('[data-do=revert]').disabled = !((pp.name || pp.origin) && pp.changed);
+}
+const storedNamed = name => pp.stored.list.find(s => s.name.toLowerCase() === name.toLowerCase());
+
+async function refreshStored() {
+  pp.stored = await host('printList');
+  drawStored();
+}
+function drawStored() {
+  const list = pp.stored.list, box = $('.pp-stored');
+  if (!list.length) { box.innerHTML = '<div class="pp-empty">No stored settings yet: Save as... stores these.</div>'; return; }
+  const item = (s, i) => `<div class="pp-item${s.template ? ' pp-template' : ''}${s.name === pp.name ? ' pp-sel' : ''}" data-i="${i}" title="${s.template ? 'A template: double-click to use it as new' : 'Double-click to use it'}">${escapeHtml(s.name)}</div>`;
+  const templates = list.filter(s => s.template).length;
+  box.innerHTML = list.map((s, i) => (i === templates && templates ? '<div class="pp-divider"></div>' : '') + item(s, i)).join('');
+}
+async function useStored(s, edit) {
+  pp.opt = { ...DEFAULTS, ...s.settings, margins: [...(s.settings.margins ?? DEFAULTS.margins)] };
+  if (s.template && !edit) { pp.name = null; pp.origin = s.name; } else { pp.name = s.name; pp.origin = null; }
+  await checkPrinter();
+  drawPanel();
+  drawStored();
+  changed(false);
+  schedule();
+}
+$('.pp-stored').addEventListener('dblclick', e => { const i = e.target.closest('.pp-item')?.dataset.i; if (i != null) useStored(pp.stored.list[i]); });
+$('.pp-stored').addEventListener('contextmenu', e => {
+  const el = e.target.closest('.pp-item');
+  e.preventDefault();
+  if (!el) return;
+  const s = pp.stored.list[el.dataset.i];
+  menu(e.clientX, e.clientY, s.template
+    ? [['Use as new', () => useStored(s)], '-', ['Rename...', () => renameStored(s)], ['Edit', () => useStored(s, true)], ['Unpin as template', () => pinStored(s, false)], '-', ['Delete', () => deleteStored(s)]]
+    : [['Select', () => useStored(s)], '-', ['Rename...', () => renameStored(s)], ['Pin as template', () => pinStored(s, true)], '-', ['Delete', () => deleteStored(s)]]);
+});
+async function renameStored(s) {
+  const to = await ask('New name', s.name);
+  if (!to || to === s.name) return;
+  if (storedNamed(to) && storedNamed(to) !== s) return host('confirm', { text: `There are stored settings named "${to}" already.`, ok: 'OK' });
+  await host('printRename', { from: s.name, to });
+  if (pp.name === s.name) pp.name = to;
+  if (pp.origin === s.name) pp.origin = to;
+  await refreshStored();
+  drawName();
+}
+async function pinStored(s, on) { await host('printTemplate', { name: s.name, on }); await refreshStored(); }
+async function deleteStored(s) {
+  if (!await host('confirm', { text: `Delete the stored settings "${s.name}"?`, ok: 'Delete' })) return;
+  await host('printDelete', { name: s.name });
+  if (pp.name === s.name) pp.name = null;
+  if (pp.origin === s.name) pp.origin = null;
+  await refreshStored();
+  changed(pp.changed);
+}
+async function save() {
+  if (!pp.name) return saveAs();
+  await host('printSave', { name: pp.name, settings: pp.opt });
+  await refreshStored();
+  changed(false);
+}
+async function saveAs() {
+  const name = await ask('Store these settings as', pp.name ?? '');
+  if (!name) return;
+  const there = storedNamed(name);
+  if (there?.template) return host('confirm', { text: `"${there.name}" is a template: change it with Edit (right-click it in Stored settings).`, ok: 'OK' });
+  if (there && !await host('confirm', { text: `Stored settings "${there.name}" exist already. Overwrite them?`, ok: 'Overwrite' })) return;
+  await host('printSave', { name, settings: pp.opt });
+  pp.name = name;
+  pp.origin = null;
+  await refreshStored();
+  changed(false);
+}
+async function revert() {
+  const s = storedNamed(pp.name ?? pp.origin ?? '');
+  if (s) await useStored(s, !!pp.name);
+}
+async function fresh() {
+  pp.opt = { ...DEFAULTS, margins: [...DEFAULTS.margins] };
+  pp.name = pp.origin = null;
+  await checkPrinter();
+  drawPanel();
+  drawStored();
+  changed(false);
+  schedule();
+}
+
+// The set's printer when it is installed, else the default one (said so).
+async function checkPrinter() {
+  const list = pp.printers.list, want = pp.opt.printer;
+  const warn = $('.pp-warn');
+  if (want && !list.includes(want)) {
+    pp.opt.printer = pp.printers.default ?? list[0] ?? null;
+    pp.opt.devmode = null;
+    showWarn(`The printer "${want}" is not installed: ${pp.opt.printer ? `"${pp.opt.printer}" is used.` : 'Save as PDF only.'}`);
+  } else if (!want) pp.opt.printer = pp.printers.default ?? list[0] ?? null;
+  else if (warn.dataset.kind === 'printer') showWarn('');
+  await loadPrinter();
+}
+
+// ---------- Small menus and the name question ----------
+function menu(x, y, items) {
+  document.querySelector('.pp-menu')?.remove();
+  const m = Object.assign(document.createElement('div'), { className: 'pp-menu' });
+  for (const it of items) {
+    if (it === '-') { m.append(document.createElement('hr')); continue; }
+    const b = Object.assign(document.createElement('button'), { type: 'button', textContent: it[0] });
+    b.onclick = () => { m.remove(); it[1](); };
+    m.append(b);
+  }
+  document.body.append(m);
+  m.style.left = Math.min(x, innerWidth - m.offsetWidth - 4) + 'px';
+  m.style.top = Math.min(y, innerHeight - m.offsetHeight - 4) + 'px';
+  m.querySelector('button')?.focus();
+  const away = ev => { if (!m.contains(ev.target)) { m.remove(); removeEventListener('pointerdown', away, true); } };
+  addEventListener('pointerdown', away, true);
+  m.addEventListener('keydown', ev => {
+    const list = [...m.querySelectorAll('button')], at = list.indexOf(document.activeElement);
+    if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); m.remove(); }
+    if (ev.key === 'ArrowDown') { ev.preventDefault(); list[(at + 1) % list.length].focus(); }
+    if (ev.key === 'ArrowUp') { ev.preventDefault(); list[(at - 1 + list.length) % list.length].focus(); }
+  });
+}
+function ask(label, value) {
+  const d = $('.pp-ask'), input = $('.pp-ask-input');
+  $('.pp-ask-label').textContent = label;
+  input.value = value;
+  d.showModal();
+  input.select();
+  return new Promise(resolve => d.addEventListener('close', () => resolve(d.returnValue === 'ok' ? input.value.trim() : null), { once: true }));
+}
+function showWarn(textOf, kind = 'printer', button) {
+  const warn = $('.pp-warn');
+  warn.hidden = !textOf;
+  warn.dataset.kind = kind;
+  warn.textContent = textOf;
+  if (button) warn.append(button);
+}
+
+// ---------- The pages ----------
+const pagesEl = $('.pp-pages'), zoomEl = $('.pp-zoom'), scrollEl = $('.pp-scroll');
+const paper = () => pp.opt.landscape ? [pp.opt.paperH, pp.opt.paperW] : [pp.opt.paperW, pp.opt.paperH];
+
+// Laid out again with the options as they are then: a layout running now is stopped first (a long document takes
+// minutes; its pages so far are dropped).
+let scheduleTimer = 0;
+function schedule(delay = 0) {
+  clearTimeout(scheduleTimer);
+  scheduleTimer = setTimeout(() => {
+    if (pp.running) { pp.again = true; previewer?.chunker?.stop?.(); return; }
+    pp.running = layout().catch(e => { $('.pp-count').textContent = 'The pages could not be laid out: ' + e.message; })
+      .finally(() => { pp.running = null; if (pp.again) { pp.again = false; schedule(); } });
+  }, delay);
+}
+const laidOut = async () => { while (pp.running || pp.again) await (pp.running ?? new Promise(r => setTimeout(r, 50))); };
+
+let previewer = null;
+const sheets = () => [...pagesEl.querySelectorAll('.pagedjs_page, .pp-sheet')];
+async function layout() {
+  $('.pp-count').textContent = 'Laying out pages...';
+  await applyColours();
+  if (viewOf() === 'pdf') return layoutPdf();
+  const html = await contentHtml();
+  previewer?.polisher?.destroy?.();
+  previewer?.chunker?.destroy?.();
+  pagesEl.replaceChildren();
+  // At its own size while paged.js measures: a zoom meanwhile (fit, on a scroll bar appearing) would break the pages.
+  pp.laying = true;
+  zoomEl.style.zoom = 1;
+  previewer = new PagedModule.Previewer();
+  const tpl = document.createElement('template');
+  tpl.innerHTML = html;
+  let flow;
+  const progress = setInterval(() => { $('.pp-count').textContent = `Laying out pages... ${pagesEl.querySelectorAll('.pagedjs_page').length}`; }, 500);
+  try { flow = await previewer.preview(tpl.content, [{ [new URL('print-pages.css', location.href).href]: pageCss() }], pagesEl); }
+  finally { pp.laying = false; clearInterval(progress); }
+  if (pp.again) return;   // stopped for a newer layout
+  pp.pages = flow.total;
+  placeSideNotes();
+  laidOutNow();
+}
+function laidOutNow() {
+  $('.pp-count').textContent = `${pp.pages} page${pp.pages === 1 ? '' : 's'}`;
+  fit();
+  pickedPages();
+}
+
+// A PDF: a sheet per page, laid out here (it is pages already; paged.js would take minutes for a long one): the
+// paper, the margins, the header and footer and the frame as paged.js makes them for a text, the page in its room;
+// then the notes at the end, on as many sheets as they need.
+async function layoutPdf() {
+  const o = pp.opt, s = pp.source, [w, h] = paper(), m = o.margins;
+  const boxes = await pdfHtml();
+  let style = document.getElementById('pp-sheet-css');
+  if (!style) { style = Object.assign(document.createElement('style'), { id: 'pp-sheet-css' }); document.head.append(style); }
+  const font = `8pt ${cssString(s.appFont)}, sans-serif`;
+  style.textContent = `
+@page { size: ${w}mm ${h}mm; margin: 0; }
+.pp-sheets { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.pp-sheet { position: relative; width: ${w}mm; height: ${h}mm; background: var(--bg, #fff); color: var(--fg, #000); overflow: hidden; break-after: page; }
+.pp-sheet:last-child { break-after: auto; }
+.pp-sheet-area { position: absolute; top: ${m[0]}mm; right: ${m[1]}mm; bottom: ${m[2]}mm; left: ${m[3]}mm; --pp-ch: ${h - m[0] - m[2]}mm;
+  ${o.frame ? `outline: ${o.frameWidth}pt solid color-mix(in srgb, var(--fg, #000) ${o.frameIntensity}%, transparent); outline-offset: 1.5mm;` : ''} }
+.pp-sheet-head, .pp-sheet-foot { position: absolute; left: ${m[3]}mm; right: ${m[1]}mm; display: flex; justify-content: space-between; font: ${font}; color: var(--fg-dim, #666); }
+.pp-sheet-head { top: ${Math.max(2, m[0] / 2 - 2)}mm; }
+.pp-sheet-foot { bottom: ${Math.max(2, m[2] / 2 - 2)}mm; justify-content: center; }
+.pp-sheet .pp-pdfpage { height: 100%; }
+.pp-sheet-notes { font: 9pt/1.4 ${cssString(s.appFont)}, sans-serif; }
+.pp-sheet-notes ol { margin: 0; }
+.pp-sheet-notes li::marker { color: var(--accent, #c00); font-weight: 700; }
+${pdfCss()}`;
+  previewer?.polisher?.destroy?.();
+  previewer?.chunker?.destroy?.();
+  previewer = null;
+  const name = s.title + (pp.what === 'selection' ? ' (selection)' : '');
+  const sheet = (body, n) => `<div class="pp-sheet"><div class="pp-sheet-head"><span>${o.headName ? escapeHtml(name) : ''}</span><span>${o.headDate ? escapeHtml(s.date) : ''}</span></div>` +
+    `<div class="pp-sheet-area">${body}</div><div class="pp-sheet-foot">${o.headPages ? `<span>Page ${n} of <span class="pp-total"></span></span>` : ''}</div></div>`;
+  zoomEl.style.zoom = 1;
+  pagesEl.innerHTML = `<div class="pp-sheets pp-doc pp-hl-${o.highlights}${o.colours === 'bw' ? ' pp-bw' : ''}">${boxes.map((b, i) => sheet(b, i + 1)).join('')}</div>`;
+  const notes = s.notes ?? [];
+  if (o.notes === 'end' && notes.length) {
+    const list = pagesEl.querySelector('.pp-sheets');
+    const newSheet = first => {
+      list.insertAdjacentHTML('beforeend', sheet(`<div class="pp-sheet-notes">${first ? '<h4>Notes</h4>' : ''}<ol></ol></div>`, list.children.length + 1));
+      const area = list.lastElementChild.querySelector('.pp-sheet-area');
+      return { area, ol: area.querySelector('ol') };
+    };
+    let at = newSheet(true);
+    for (const n of notes) {
+      const li = Object.assign(document.createElement('li'), { value: n.n, textContent: n.note });
+      at.ol.append(li);
+      if (at.area.scrollHeight > at.area.clientHeight && at.ol.children.length > 1) { at = newSheet(false); at.ol.append(li); }
+    }
+  }
+  pp.pages = sheets().length;
+  for (const t of pagesEl.querySelectorAll('.pp-total')) t.textContent = pp.pages;
+  placeSideNotes();
+  watchPdfPages();
+  laidOutNow();
+}
+
+// The document's view as HTML: its notes placed (or not), its highlights' look by class.
+async function contentHtml() {
+  const s = pp.source, o = pp.opt, kind = viewOf();
+  const part = pp.what === 'selection' && s.selection ? s.selection : s;
+  const notes = (part.notes ?? s.notes ?? []);
+  let body;
+  if (kind === 'pdf') body = await pdfHtml();
+  else if (kind === 'rendered') body = `<article class="mm-preview pp-rendered">${part.views.rendered}</article>`;
+  else if (kind === 'table') body = `<div class="pp-tablebox">${part.views.table}</div>`;
+  else body = part.views.text;
+  const tpl = document.createElement('template');
+  tpl.innerHTML = `<div class="pp-doc pp-hl-${o.highlights} pp-notes-${o.notes}${o.lineNumbers ? '' : ' pp-no-ln'}${o.colours === 'bw' ? ' pp-bw' : ''}">${body}</div>`;
+  const root = tpl.content.firstElementChild;
+  if (o.highlights === 'off') for (const m of root.querySelectorAll('mark.pp-hl')) m.replaceWith(...m.childNodes);
+  if (kind !== 'pdf') {
+    for (const n of root.querySelectorAll('.pp-note')) {
+      if (o.notes === 'off' || o.notes === 'end') { n.remove(); continue; }
+      n.classList.add(o.notes === 'foot' ? 'pp-foot' : 'pp-sidenote');
+      n.prepend(Object.assign(document.createElement('b'), { textContent: n.dataset.n + ' ' }));
+    }
+    if (o.notes === 'off') for (const m of root.querySelectorAll('.pp-mk')) m.remove();
+  }
+  if (o.notes === 'end' && notes.length)
+    root.insertAdjacentHTML('beforeend', `<section class="pp-endnotes"><h4>Notes</h4><ol>${notes.map(n => `<li value="${n.n}">${escapeHtml(n.note)}</li>`).join('')}</ol></section>`);
+  return tpl.innerHTML;
+}
+
+// The stylesheet paged.js lays out with: the paper, its margins (and the notes' margin), the header and footer, the
+// frame, the fonts and the highlights' look.
+function pageCss() {
+  const o = pp.opt, s = pp.source, [w, h] = paper(), m = [...o.margins], side = o.notesWidth + 4;
+  const sideNotes = (o.notes === 'left' || o.notes === 'right') && viewOf() !== 'pdf';
+  if (sideNotes) m[o.notes === 'left' ? 3 : 1] += side;
+  const box = (where, content) => `@${where} { content: ${content}; font: 8pt ${font(s.appFont)}; color: var(--fg-dim, #666); }`;
+  const name = s.title + (pp.what === 'selection' ? ' (selection)' : '');
+  const font = (f, rest = 'sans-serif') => `${cssString(f)}, ${rest}`;
+  const hl = o.colours === 'bw' ? '#9a9a9a' : s.hlColour || 'var(--highlight)';
+  const hlLook = {
+    shaded: `background: color-mix(in srgb, ${hl} 55%, transparent);`,
+    underline: `background: none; text-decoration: underline 1.5px ${hl}; text-underline-offset: 2px;`,
+    wavy: `background: none; text-decoration: underline wavy 1px ${hl}; text-decoration-skip-ink: none; text-underline-offset: 2px;`,
+    box: `background: none; outline: 1px solid ${hl}; outline-offset: 0;`,
+    bold: 'background: none; font-weight: 700;',
+    off: 'background: none;',
+  }[o.highlights] ?? '';
+  const ch = h - m[0] - m[2];
+  const zoom = {
+    auto: 'max-width: 100%; max-height: var(--pp-ch); width: auto; height: auto;',
+    width: 'width: 100%; height: auto; max-height: var(--pp-ch); object-fit: contain;',
+    height: 'height: calc(var(--pp-ch) - 4mm); width: auto; max-width: 100%; object-fit: contain;',
+    page: 'width: 100%; height: calc(var(--pp-ch) - 4mm); object-fit: contain;',
+    percent: `zoom: ${o.zoomPercent / 100}; max-width: 100%; max-height: var(--pp-ch);`,
+  }[o.zoom];
+  return `
+@page {
+  size: ${w}mm ${h}mm; margin: ${m.map(v => v + 'mm').join(' ')};
+  ${o.headName ? box('top-left', cssString(name)) : ''}
+  ${o.headDate ? box('top-right', cssString(s.date)) : ''}
+  ${o.headPages ? box('bottom-center', '"Page " counter(page) " of " counter(pages)') : ''}
+  @footnote { border-top: 0.5pt solid color-mix(in srgb, currentColor 40%, transparent); padding-top: 1.5mm; margin-top: 2mm; }
+}
+.pagedjs_page { background: var(--bg, #fff); color: var(--fg, #000); --pp-ch: ${ch}mm; }
+${o.frame ? `.pagedjs_area { outline: ${o.frameWidth}pt solid color-mix(in srgb, var(--fg, #000) ${o.frameIntensity}%, transparent); outline-offset: 1.5mm; }` : ''}
+.pp-doc { position: relative; }
+.pp-text { position: relative; font: ${o.textSize}pt/1.3 ${font(o.textFont || s.editorFont, 'monospace')}; white-space: pre-wrap; overflow-wrap: anywhere; tab-size: ${pp.values.tabSize || 4}; }
+.pp-line { display: flex; }
+.pp-ln { flex: none; min-width: ${String(9999).length}ch; padding-right: 1.5ch; text-align: right; color: var(--fg-dim, #888); }
+.pp-no-ln .pp-ln { display: none; }
+.pp-lt { flex: 1; min-width: 0; }
+.pp-rendered { position: relative; padding: 0 !important; zoom: 1 !important; font: ${o.bodySize}pt/1.5 ${font(o.bodyFont || s.appFont)}; color: var(--fg, #000); }
+.pp-rendered pre, .pp-rendered code, .pp-rendered pre code, .pp-rendered pre.mm-code { font-family: ${font(o.codeFont || s.editorFont, 'monospace')}; font-size: ${o.codeSize}pt; }
+.pp-rendered pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.pp-rendered img { ${zoom} }
+.pp-tablebox table { border-collapse: collapse; font: ${o.textSize}pt/1.3 ${font(o.textFont || s.editorFont, 'monospace')}; }
+.pp-tablebox th, .pp-tablebox td { border: 0.5pt solid color-mix(in srgb, currentColor 35%, transparent); padding: 0.5mm 1.5mm; text-align: left; vertical-align: top; }
+mark.pp-hl { color: inherit; padding: 0; ${hlLook} }
+.pp-mk { font-size: 65%; line-height: 0; vertical-align: super; font-weight: 700; color: var(--accent, #c00); padding-left: 1px; }
+.pp-note { font: 8pt/1.3 ${font(s.appFont)}; color: var(--fg, #000); white-space: normal; font-weight: normal; font-style: normal; text-decoration: none; }
+.pp-note > b { color: var(--accent, #c00); }
+.pp-note.pp-sidenote { position: absolute; width: ${o.notesWidth}mm; ${o.notes === 'left' ? `left: -${side}mm;` : `right: -${side}mm;`} text-align: left; }
+.pp-note.pp-foot { float: footnote; footnote-display: block; border: 0 !important; padding: 0 !important; }   /* the area has the line */
+.pp-note.pp-foot::footnote-call { content: none; }
+.pp-note.pp-foot::footnote-marker { content: none; }
+.pp-endnotes { margin-top: 6mm; border-top: 0.5pt solid color-mix(in srgb, currentColor 40%, transparent); font: 9pt/1.4 ${font(s.appFont)}; }
+.pp-endnotes h4 { margin: 2mm 0; }
+.pp-endnotes li::marker { color: var(--accent, #c00); font-weight: 700; }
+.pp-bw, .pp-bw * { color: #000 !important; border-color: #000 !important; }
+.pp-bw :not(mark) { background: transparent !important; }
+${pp.themeCss ?? ''}
+${MARKDOWN_TEXT_CSS}`;
+}
+
+// A PDF's pages in their room (layoutPdf): the page as large as the zoom says, its notes beside or under it.
+function pdfCss() {
+  const o = pp.opt, s = pp.source, font = `${cssString(s.appFont)}, sans-serif`;
+  // Its page in its box (the page's room less its notes): --pp-w is its own width.
+  const pdfZoom = {
+    auto: 'width: var(--pp-w); max-width: 100%; max-height: 100%; object-fit: contain;',
+    width: 'width: 100%; max-height: 100%; object-fit: contain;',
+    height: 'height: 100%; max-width: 100%; object-fit: contain;',
+    page: 'width: 100%; height: 100%; object-fit: contain; object-position: top;',
+    percent: `width: calc(var(--pp-w) * ${o.zoomPercent / 100}); max-width: 100%; max-height: 100%; object-fit: contain;`,
+  }[o.zoom];
+  return `.pp-pdfpage { height: calc(var(--pp-ch) - 1mm); display: flex; gap: 3mm; break-after: page; overflow: hidden; }
+.pp-pdfpage:last-of-type { break-after: auto; }
+.pp-pdfpage.pp-notes-left { flex-direction: row-reverse; }
+.pp-pdfpage.pp-notes-foot { flex-direction: column; }
+.pp-pdfimg { flex: 1; min-width: 0; min-height: 0; display: flex; justify-content: center; align-items: flex-start; }
+.pp-pdfimg img { display: block; ${pdfZoom} }
+.pp-bw .pp-pdfimg img { filter: grayscale(1); }
+.pp-pdfnotes { flex: none; font: 8pt/1.3 ${font}; position: relative; }
+.pp-pdfpage:not(.pp-notes-foot) .pp-pdfnotes p { position: absolute; left: 0; right: 0; }
+.pp-pdfpage:not(.pp-notes-foot) .pp-pdfnotes { width: ${o.notesWidth}mm; }
+.pp-pdfnotes p { margin: 0 0 1.5mm; }
+.pp-pdfnotes b { color: var(--accent, #c00); }`;
+}
+
+// Markdown printed as text: the editor's own colours (app.css, scoped to the editor there).
+const MARKDOWN_TEXT_CSS = `
+.pp-text[data-lang="markdown"] .cm-header { color: var(--accent); font-weight: 700; }
+.pp-text[data-lang="markdown"] .cm-strong { font-weight: 700; }
+.pp-text[data-lang="markdown"] .cm-em { font-style: italic; }
+.pp-text[data-lang="markdown"] .cm-strikethrough { text-decoration: line-through; }
+.pp-text[data-lang="markdown"] .cm-link { color: var(--hl-title); }
+.pp-text[data-lang="markdown"] .cm-url { color: var(--hl-string); }
+.pp-text[data-lang="markdown"] .cm-comment { color: var(--hl-attr); }
+.pp-text[data-lang="markdown"] .cm-quote { color: var(--hl-comment); font-style: italic; }
+.pp-text[data-lang="markdown"] .cm-hr { color: var(--fg-dim); }
+.pp-text[data-lang="markdown"] .cm-tag, .pp-text[data-lang="markdown"] .cm-bracket { color: var(--hl-keyword); }
+.pp-text[data-lang="markdown"] .cm-attribute { color: var(--hl-attr); }
+.pp-text[data-lang="markdown"] .cm-string { color: var(--hl-string); }`;
+
+// Notes in a margin: each at the height of its line (a PDF's: of its highlight's last line on the page image); one that
+// would cover the one above goes below it.
+function placeSideNotes() {
+  for (const box of pagesEl.querySelectorAll('.pp-pdfpage:not(.pp-notes-foot)')) {
+    const img = box.querySelector('img'), notes = box.querySelector('.pp-pdfnotes');
+    if (!img || !notes) continue;
+    let below = 0;
+    for (const p of notes.querySelectorAll('p')) {
+      const top = Math.max(below, img.offsetTop + img.offsetHeight * Number(p.dataset.y) - notes.offsetTop);
+      p.style.top = top + 'px';
+      below = top + p.offsetHeight + 2;
+    }
+  }
+  for (const page of pagesEl.querySelectorAll('.pagedjs_page')) {
+    let bottom = -Infinity;
+    for (const n of [...page.querySelectorAll('.pp-note.pp-sidenote')].sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top)) {
+      const r = n.getBoundingClientRect();
+      if (r.top < bottom + 2) n.style.transform = `translateY(${bottom + 2 - r.top}px)`;
+      bottom = Math.max(bottom, r.top + r.height + Math.max(0, bottom + 2 - r.top));
+    }
+  }
+}
+
+// ---------- Colours ----------
+// The document's colours on the pages: the theme as on screen (the editor's for text, the preview's for rendered),
+// another theme, black and white, or greyscale; a dark page is said, with a way out.
+async function applyColours() {
+  const o = pp.opt, s = pp.source, kind = viewOf(), current = kind === 'rendered' ? s.themes.current.rendered : s.themes.current.text;
+  let vars = current.vars, css = current.css;
+  if (o.colours.startsWith('theme:')) {
+    const id = o.colours.slice(6);
+    if (!pp.themeVars.has(id)) pp.themeVars.set(id, await host('themeVars', { theme: id }).catch(() => null));
+    vars = pp.themeVars.get(id) ?? vars;
+    css = s.themes.css[id] ?? css;
+  }
+  if (o.colours === 'bw') vars = { ...vars, '--bg': '#ffffff', '--fg': '#000000', '--fg-dim': '#555555', '--accent': '#000000' };
+  pp.themeCss = css;
+  const style = pagesEl.style;
+  for (const name of [...style].filter(n => n.startsWith('--'))) style.removeProperty(name);
+  for (const [n, v] of Object.entries(vars ?? {})) style.setProperty(n, v);
+  pagesEl.style.filter = o.colours === 'grey' ? 'grayscale(1)' : '';
+  const dark = o.colours !== 'bw' && luminance(vars?.['--bg']) < 0.35;
+  if (dark) {
+    const b = Object.assign(document.createElement('button'), { type: 'button', textContent: 'Black and white' });
+    b.onclick = () => { pp.opt.colours = 'bw'; changed(); drawPanel(); schedule(); };
+    showWarn('A dark theme prints a dark page: a lot of ink.', 'dark', b);
+  } else if ($('.pp-warn').dataset.kind === 'dark') showWarn('');
+}
+function luminance(colour) {
+  const probe = document.createElement('span');
+  probe.style.color = colour ?? '#fff';
+  document.body.append(probe);
+  const m = getComputedStyle(probe).color.match(/[\d.]+/g)?.map(Number) ?? [255, 255, 255];
+  probe.remove();
+  const [r, g, b] = m.map(c => { c /= 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+// ---------- A PDF ----------
+// Each page an image, drawn with its highlights in the chosen look (a number at the end of each one with a note); its
+// notes beside it, under it, or at the end. The boxes are laid out first (each page's size is known without drawing
+// it); a page is drawn when it comes in view, at the preview's resolution, and all of them at the printer's before
+// printing (printReady), so a long PDF opens at once.
+const PREVIEW_SCALE = 150 / 72, PRINT_SCALE = 300 / 72;   // 150 and 300 dpi
+let pdfjs = null;
+async function loadPdfjs() {
+  pdfjs ??= await import('./vendor/pdfjs/pdf.min.mjs');
+  pdfjs.GlobalWorkerOptions.workerSrc = new URL('vendor/pdfjs/pdf.worker.min.mjs', location.href).href;
+  return pdfjs;
+}
+async function pdfHtml() {
+  const s = pp.source, o = pp.opt;
+  await loadPdfjs();
+  const asset = p => new URL(p, location.href).href;
+  pp.pdf ??= await pdfjs.getDocument({ url: FILE_URL + encodeURIComponent(s.pdf.path), isEvalSupported: false,
+    cMapUrl: asset('vendor/pdfjs/cmaps/'), cMapPacked: true, standardFontDataUrl: asset('vendor/pdfjs/standard_fonts/'),
+    wasmUrl: asset('vendor/pdfjs/wasm/'), iccUrl: asset('vendor/pdfjs/iccs/') }).promise;
+  // The pages' sizes (the first page's for all: reading every page takes long in a long PDF; a page drawn gets its
+  // own), and where each highlight's last line is (for its number and its note in a margin): once.
+  if (!pp.pdfPages) {
+    pp.pdfPages = [];
+    const first = (await pp.pdf.getPage(1)).getViewport({ scale: 1 });
+    for (let n = 1; n <= pp.pdf.numPages; n++) {
+      const mine = (s.pdf.highlights ?? []).filter(h => h.page === n).map(h => ({ ...h, rects: [] }));
+      if (!mine.length) { pp.pdfPages.push({ w: first.width * 96 / 72, ratio: first.height / first.width, hls: mine }); continue; }
+      const page = await pp.pdf.getPage(n), base = page.getViewport({ scale: 1 });
+      const content = await page.getTextContent();
+      let at = 0;
+      for (const it of content.items) {
+        if (it.str === undefined) continue;
+        const t = pdfjs.Util.transform(base.transform, it.transform), height = Math.hypot(t[2], t[3]);
+        for (const h of mine) {
+          const a = Math.max(h.from, at), b = Math.min(h.to, at + it.str.length);
+          if (b > a && it.str.length) h.rects.push({ x: (t[4] + it.width * (a - at) / it.str.length) / base.width, y: (t[5] - height) / base.height,
+            w: it.width * (b - a) / it.str.length / base.width, h: height * 1.15 / base.height });
+        }
+        at += it.str.length + (it.hasEOL ? 1 : 0);
+      }
+      pp.pdfPages.push({ w: base.width * 96 / 72, ratio: base.height / base.width, hls: mine });
+    }
+  }
+  const look = o.highlights + '|' + resolvedColour(s.hlColour) + '|' + o.colours + '|' + o.notes;
+  if (pp.pdfLook !== look) {
+    for (const p of pp.pdfImages.values()) URL.revokeObjectURL(p.url);
+    pp.pdfImages.clear();
+    pp.pdfLook = look;
+  }
+  const notesHere = o.notes === 'left' || o.notes === 'right' || o.notes === 'foot';
+  return pp.pdfPages.map((p, i) => {
+    const notes = p.hls.filter(h => h.n), drawn = pp.pdfImages.get(i + 1);
+    const side = notesHere && notes.length ? `<div class="pp-pdfnotes">${notes.map(h => `<p data-y="${h.rects.at(-1)?.y ?? 0}"><b>${h.n}</b> ${escapeHtml(h.note)}</p>`).join('')}</div>` : '';
+    return `<div class="pp-pdfpage pp-notes-${o.notes}" style="--pp-w: ${p.w}px"><div class="pp-pdfimg"><img data-page="${i + 1}" style="aspect-ratio: 1 / ${p.ratio}"${drawn ? ` src="${drawn.url}"` : ''} alt=""></div>${side}</div>`;
+  });
+}
+
+// One page drawn at a scale, with its highlights; kept (a finer one replaces a coarser one).
+async function pdfDraw(n, scale) {
+  const had = pp.pdfImages.get(n);
+  if (had && had.scale >= scale) return had.url;
+  const o = pp.opt, page = await pp.pdf.getPage(n), viewport = page.getViewport({ scale }), info = pp.pdfPages[n - 1];
+  if (Math.abs(info.ratio - viewport.height / viewport.width) > 0.001) {
+    info.ratio = viewport.height / viewport.width;
+    info.w = viewport.width / scale * 96 / 72;
+    for (const img of pagesEl.querySelectorAll(`img[data-page="${n}"]`)) { img.style.aspectRatio = `1 / ${info.ratio}`; img.closest('.pp-pdfpage').style.setProperty('--pp-w', info.w + 'px'); }
+  }
+  const canvas = Object.assign(document.createElement('canvas'), { width: Math.ceil(viewport.width), height: Math.ceil(viewport.height) });
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  await page.render({ canvasContext: ctx, viewport }).promise;
+  const colour = resolvedColour(o.colours === 'bw' ? '#9a9a9a' : pp.source.hlColour);
+  for (const h of pp.pdfPages[n - 1].hls) {
+    const rects = h.rects.map(r => ({ x: r.x * canvas.width, y: r.y * canvas.height, w: r.w * canvas.width, h: r.h * canvas.height }));
+    if (o.highlights !== 'off') drawPdfHighlight(ctx, rects, colour, o.highlights, scale);
+    const last = rects.at(-1);
+    if (h.n && last && o.notes !== 'off') {
+      ctx.fillStyle = '#c00000';
+      ctx.font = `bold ${Math.round(last.h * 0.55)}px sans-serif`;
+      ctx.fillText(String(h.n), last.x + last.w + scale, last.y + last.h * 0.45);
+    }
+  }
+  const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+  if (had) URL.revokeObjectURL(had.url);
+  const url = URL.createObjectURL(blob);
+  pp.pdfImages.set(n, { url, scale });
+  for (const img of pagesEl.querySelectorAll(`img[data-page="${n}"]`)) img.src = url;
+  return url;
+}
+
+// The pages in view (and near it) drawn as they come, one at a time.
+let pdfQueue = Promise.resolve(), pdfWatch = null;
+function watchPdfPages() {
+  pdfWatch?.disconnect();
+  pdfWatch = new IntersectionObserver(entries => {
+    for (const e of entries) if (e.isIntersecting) {
+      const n = +e.target.dataset.page, look = pp.pdfLook;
+      pdfQueue = pdfQueue.then(() => look === pp.pdfLook && !pp.pdfImages.has(n) ? pdfDraw(n, PREVIEW_SCALE) : null).catch(() => null);
+    }
+  }, { root: scrollEl, rootMargin: '100% 0px' });
+  for (const img of pagesEl.querySelectorAll('img[data-page]')) pdfWatch.observe(img);
+}
+
+// Before printing: every page (or every page printed) at the printer's resolution, its image ready.
+async function printReady() {
+  if (viewOf() !== 'pdf') return;
+  const imgs = [...pagesEl.querySelectorAll('img[data-page]')];
+  for (const [i, img] of imgs.entries()) {
+    $('.pp-count').textContent = `Drawing page ${i + 1} of ${imgs.length} for print...`;
+    await pdfDraw(+img.dataset.page, PRINT_SCALE);
+    await img.decode().catch(() => null);
+  }
+}
+
+function drawPdfHighlight(ctx, rects, colour, look, scale) {
+  ctx.save();
+  for (const r of rects) {
+    if (look === 'shaded' || look === 'bold') {
+      ctx.globalCompositeOperation = 'multiply';
+      ctx.globalAlpha = 0.55;
+      ctx.fillStyle = colour;
+      ctx.fillRect(r.x, r.y, r.w, r.h);
+    } else if (look === 'underline') {
+      ctx.fillStyle = colour;
+      ctx.fillRect(r.x, r.y + r.h - scale, r.w, scale);
+    } else if (look === 'wavy') {
+      ctx.strokeStyle = colour;
+      ctx.lineWidth = scale * 0.7;
+      ctx.beginPath();
+      for (let x = 0; x <= r.w; x += scale) ctx.lineTo(r.x + x, r.y + r.h - scale + Math.sin(x / (1.5 * scale)) * scale);
+      ctx.stroke();
+    } else if (look === 'box') {
+      ctx.strokeStyle = colour;
+      ctx.lineWidth = scale * 0.7;
+      ctx.strokeRect(r.x, r.y, r.w, r.h);
+    }
+  }
+  ctx.restore();
+}
+
+// A CSS colour (a var() of the theme too) as the browser resolves it on the pages.
+function resolvedColour(css) {
+  const probe = document.createElement('span');
+  probe.style.color = css || 'var(--highlight)';
+  pagesEl.append(probe);
+  const c = getComputedStyle(probe).color;
+  probe.remove();
+  return c;
+}
+
+// ---------- The preview's size, pages picked ----------
+function fit() {
+  const page = sheets()[0];
+  if (!page || pp.laying) return;
+  const how = $('.pp-fit').value, w = page.offsetWidth, h = page.offsetHeight;
+  const room = { w: scrollEl.clientWidth - 40, h: scrollEl.clientHeight - 40 };
+  zoomEl.style.zoom = how === '100' ? 1 : how === 'width' ? room.w / w : Math.min(room.w / w, room.h / h);
+}
+$('.pp-fit').addEventListener('change', fit);
+new ResizeObserver(() => fit()).observe(scrollEl);
+
+// The page range as numbers ("1-3, 5"); the pages in it marked in the preview.
+function rangeNumbers(ranges) {
+  const out = new Set();
+  for (const part of ranges.split(/[,;\s]+/).filter(Boolean)) {
+    const m = part.match(/^(\d+)(?:-(\d+))?$/);
+    if (!m) continue;
+    for (let i = +m[1]; i <= +(m[2] ?? m[1]) && i <= 9999; i++) out.add(i);
+  }
+  return [...out].sort((a, b) => a - b);
+}
+function rangeText(numbers) {
+  const parts = [];
+  for (let i = 0; i < numbers.length; i++) {
+    let j = i;
+    while (j + 1 < numbers.length && numbers[j + 1] === numbers[j] + 1) j++;
+    parts.push(j > i ? `${numbers[i]}-${numbers[j]}` : String(numbers[i]));
+    i = j;
+  }
+  return parts.join(', ');
+}
+function pickedPages() {
+  const picked = pp.what === 'pages' ? new Set(rangeNumbers(pp.ranges)) : new Set();
+  sheets().forEach((p, i) => p.classList.toggle('pp-picked', picked.has(i + 1)));
+}
+pagesEl.addEventListener('click', e => {
+  const page = e.target.closest('.pagedjs_page, .pp-sheet');
+  if (!page || pp.what !== 'pages') return;
+  const n = sheets().indexOf(page) + 1, set = new Set(rangeNumbers(pp.ranges));
+  if (set.has(n)) set.delete(n); else set.add(n);
+  pp.ranges = rangeText([...set].sort((a, b) => a - b));
+  const input = panel.querySelector('[data-w=ranges]');
+  if (input) input.value = pp.ranges;
+  pickedPages();
+});
+
+// ---------- Print, Save as PDF ----------
+const printOptions = () => ({ paper: pp.opt.paper, landscape: pp.opt.landscape, copies: pp.opt.copies, duplex: pp.opt.duplex, colour: pp.opt.colourPrint });
+const pageArgs = () => { const [width, height] = paper(); return { width, height, ranges: pp.what === 'pages' ? rangeNumbers(pp.ranges).join(',') : '' }; };
+let busy = false;
+async function act(what) {
+  if (busy) return;
+  busy = true;
+  const buttons = [...document.querySelectorAll('.pp-foot button')];
+  buttons.forEach(b => b.dataset.was = b.disabled);
+  buttons.forEach(b => b.disabled = true);
+  try {
+    await laidOut();
+    await printReady();
+    if (pp.what === 'pages' && !rangeNumbers(pp.ranges).length) throw new Error('No pages chosen: type them (1-3, 5) or click them in the preview.');
+    if (what === 'pdf') {
+      const name = pp.source.title.replace(/\.[^.]*$/, '') + '.pdf';
+      if (!await host('savePdf', { name, ...pageArgs() })) return;
+    } else if (pp.opt.devmode) {
+      // The printer's own settings: the pages as images, printed with them.
+      $('.pp-count').textContent = 'Preparing the pages...';
+      const url = await host('tempPdf', pageArgs());
+      const doc = await (await loadPdfjs()).getDocument({ url, isEvalSupported: false }).promise;
+      for (let n = 1; n <= doc.numPages; n++) {
+        $('.pp-count').textContent = `Preparing page ${n} of ${doc.numPages}...`;
+        const page = await doc.getPage(n), viewport = page.getViewport({ scale: PRINT_SCALE });
+        const canvas = Object.assign(document.createElement('canvas'), { width: Math.ceil(viewport.width), height: Math.ceil(viewport.height) });
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        await page.render({ canvasContext: ctx, viewport }).promise;
+        const data = canvas.toDataURL('image/png').split(',')[1];
+        await host('pageImage', { n, data });
+      }
+      $('.pp-count').textContent = 'Printing...';
+      await host('printImages', { printer: pp.opt.printer, devmode: pp.opt.devmode, options: printOptions() });
+    } else {
+      if (!pp.opt.printer) throw new Error('No printer is installed.');
+      $('.pp-count').textContent = 'Printing...';
+      await host('print', { ...pageArgs(), printer: pp.opt.printer, options: printOptions() });
+    }
+    await host('close');
+  } catch (e) {
+    $('.pp-count').textContent = `${pp.pages} page${pp.pages === 1 ? '' : 's'}`;
+    await host('confirm', { text: e.message, ok: 'OK' });
+  } finally {
+    busy = false;
+    buttons.forEach(b => b.disabled = b.dataset.was === 'true');
+    drawName();
+  }
+}
+
+// The printer's own dialog: what is set there comes back into the options; its DEVMODE is kept with them.
+async function printerDialog() {
+  if (!pp.opt.printer) return;
+  const got = await host('printerDialog', { printer: pp.opt.printer, devmode: pp.opt.devmode, options: printOptions() });
+  if (!got) return;
+  const o = pp.opt, b = got.options;
+  o.devmode = got.devmode;
+  o.landscape = b.landscape;
+  o.copies = b.copies;
+  o.duplex = b.duplex;
+  o.colourPrint = b.colour;
+  const p = (pp.info?.papers ?? []).find(q => q.name === b.paper);
+  if (p) Object.assign(o, { paper: p.name, paperW: p.w, paperH: p.h });
+  changed();
+  drawPanel();
+  schedule();
+}
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-do]');
+  if (b && !b.disabled) ({ print: () => act('print'), pdf: () => act('pdf'), cancel: () => host('close'), save, saveAs, revert, new: fresh, printerDialog })[b.dataset.do]?.();
+  const tab = e.target.closest('[data-tab]');
+  if (tab) {
+    for (const t of document.querySelectorAll('[data-tab]')) t.classList.toggle('pp-on', t === tab);
+    $('.pp-print-panel').hidden = tab.dataset.tab !== 'print';
+    $('.pp-stored-panel').hidden = tab.dataset.tab !== 'stored';
+  }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !$('.pp-ask').open && !document.querySelector('.pp-menu')) { e.preventDefault(); host('close'); }
+  if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); act('print'); }
+});
+
+// ---------- Start ----------
+function applyLook(look, values) {
+  const root = document.documentElement;
+  root.dataset.theme = look.mode;
+  for (const [name, value] of Object.entries(look.app.vars)) root.style.setProperty(name, value);
+  root.style.setProperty('--app-font', values.appFont ? `"${values.appFont.replace(/["\\]/g, '')}", "Segoe UI", system-ui, sans-serif` : '"Segoe UI", system-ui, sans-serif');
+  root.style.setProperty('--ui-scale', values.appSize ? values.appSize * 96 / 72 / 13 : 1);
+}
+
+const init = await host('init');
+pp.source = init.source;
+pp.values = init.settings ?? {};
+pp.look = init.look;
+pp.printers = init.printers;
+pp.stored = init.stored;
+applyLook(init.look, pp.values);
+document.title = `Print ${pp.source.title} - LexPen`;
+const last = init.stored.last;
+if (last?.settings) {
+  pp.opt = { ...DEFAULTS, ...last.settings, margins: [...(last.settings.margins ?? DEFAULTS.margins)] };
+  pp.name = last.name && storedNamed(last.name) ? last.name : null;
+  pp.origin = last.origin && storedNamed(last.origin) ? last.origin : null;
+  pp.changed = !!last.changed;
+}
+if (pp.source.selection) pp.what = 'selection';
+await checkPrinter();
+drawPanel();
+drawStored();
+drawName();
+schedule();
+$('.pp-scroll').focus();

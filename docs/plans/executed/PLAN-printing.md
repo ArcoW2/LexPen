@@ -1,6 +1,6 @@
 # Plan: Printing and Save as PDF, with a preview
 
-Status: draft 2026-11-07, revised 2026-11-07; not started.
+Status: executed (2026-11-07); see 5. As built.
 The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
@@ -164,3 +164,36 @@ As the Sort panel's stored sorts (docs/plans/executed/PLAN-sort-lines.md):
 ## 4. Open questions
 
 None.
+
+## 5. As built
+
+- **Pages**: paged.js 0.4.3 (vendored, MIT) lays the document's view out in pages in the Print window, from a
+  stylesheet made from the options (@page size and margins, margin boxes for the header and footer, `float:
+  footnote` for notes at the bottom of the page). A PDF is laid out without it, a sheet per page: it is pages
+  already, and paged.js took minutes for a long one. Its pages are drawn when they come in view (150 dpi), and at
+  300 dpi before printing; the page size is read from the first page and corrected per page as it is drawn.
+- **Large documents (3.6)**: paged.js shows the first pages at once and keeps adding; the count line shows how far it
+  is. A change of an option stops a layout that is running and starts again. A text of 123,013 lines took about 2.5
+  minutes for its first 2,200 pages (measured in the test copy); a PDF of 2,003 pages opened in 4 seconds.
+- **What it prints (3.1)**: the main window makes it (printsource.js): the text in lines with the editor's colouring
+  (runMode), markdown rendered as the preview renders it (renderNow's image, alert, formula and diagram steps are
+  now shared helpers in app.js: fixPreviewContent, renderMathAndDiagrams), a CSV as a table from its definition; a
+  highlight in rendered text or a table is found again by marks of Unicode's private area put into the text before
+  rendering. HTML files have no rendered view in LexPen's preview, so they print as text.
+- **Colours (3.4)**: every theme's colours for the languages used are sent along; another theme's own colours come
+  from the host (AppHost.ThemeVars). A page is dark when its background's luminance is below 0.35.
+- **Print (3.7)**: a set without printer settings of its own prints by WebView2's PrintAsync (printer, copies,
+  two-sided, colour); a set with them (Printer settings... was used) prints as page images at 300 dpi through .NET's
+  PrintDocument with the stored DEVMODE. Whether PrintAsync keeps a driver's own choices was not checked, so the
+  image path stays for those sets.
+- **Stored settings (3.5)**: also Delete in the right-click menu (not in the plan; without it a set could not be
+  removed).
+- **Tests**: PrintStoreTests (as SortStoreTests), PrintingTests (the printer list and a printer's papers read without
+  failing). In the test copy by script: markdown, text, a code file with a selection, a CSV, a slide PDF and a PDF
+  of 2,003 pages; highlights in every look, notes in every place (their numbers, the margin notes at their line's
+  height); black and white, another theme, the dark warning; the frame, the date; every page within its area; the
+  pages printed to a PDF (the same call as Save as PDF) with the preview's page count and size, and a page range;
+  the stored settings (save, change, revert, templates, rename, new); Print... from the Folder pane without a tab;
+  Esc; a running layout stopped by a change.
+- **Not tested**: printing on a real printer, either path, and the printer's own dialog (Printer settings...): both
+  need a person at the printer (3.9, by hand).

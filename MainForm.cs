@@ -27,7 +27,7 @@ sealed class MainForm : Form
     // Larger files are not opened.
     const long MaxFileSize = 10 * 1024 * 1024;
 
-    static readonly Dictionary<string, string> ImageTypes = new(StringComparer.OrdinalIgnoreCase)
+    internal static readonly Dictionary<string, string> ImageTypes = new(StringComparer.OrdinalIgnoreCase)
     {
         [".png"] = "image/png", [".jpg"] = "image/jpeg", [".jpeg"] = "image/jpeg",
         [".gif"] = "image/gif", [".svg"] = "image/svg+xml", [".webp"] = "image/webp",
@@ -1069,6 +1069,14 @@ sealed class MainForm : Form
                     Sign = AskForm.Sign.Warning,
                     Buttons = ok is null ? [("yes", "Yes", null), (null, "No", null)] : [("yes", ok, null), (null, "Cancel", null)],
                 }) == "yes";
+            }
+
+            // File > Print... (PrintForm, docs/plans/executed/PLAN-printing.md): the Print window on what the page made to print.
+            case "print":
+            {
+                using var print = new PrintForm(app, this, msg["source"]!);
+                print.ShowDialog(this);
+                return null;
             }
 
             // The preview of a Replace in the Search panel (ReplacePreviewForm): the ids of the changes to make, or null.

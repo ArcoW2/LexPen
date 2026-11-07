@@ -1072,7 +1072,34 @@ async function renderNow(tab) {
     : doc.ranges?.length ? renderMarkdownWithRanges(text, doc) : md.render(withFrontMatter(text));
   const content = tpl.content;
   if (doc.language && !csv && hasLongLine(text)) content.firstElementChild.classList.add('mm-long-line');
+  fixPreviewContent(content, doc);
 
+  if (large) {
+    const pre = content.firstElementChild, chunks = [...pre.children];
+    pre.replaceChildren();
+    article.replaceChildren(note, content);
+    for (let i = 0; i < chunks.length; i += CHUNKS_PER_FRAME) {
+      pre.append(...chunks.slice(i, i + CHUNKS_PER_FRAME));
+      await nextFrame();
+      if (id !== tab.renderId) return;
+      if (!previewWanted(tab)) { tab.stale = true; return; }   // again when its preview is shown again
+    }
+    note.remove();
+  } else article.replaceChildren(content);
+  if (tab.csv) for (const pane of panes) if (pane.active === tab) csvDraw(pane);
+
+  if (!await renderMathAndDiagrams(article, () => id === tab.renderId)) return;
+  tab.lines = null;
+  tab.lineBlocks = null;   // the blocks by source line (previewjump.js), and the cursor's bar in the preview
+  if (typeof markPreviewCursors === 'function') markPreviewCursors();
+  if (typeof drawPreviewHighlights === 'function') for (const pane of panes) if (pane.active === tab) drawPreviewHighlights(pane);   // highlights.js
+  if (typeof refreshOccurrencesPreview === 'function') refreshOccurrencesPreview(tab);   // occurrences.js
+  if (typeof schedulePreviewOverviews === 'function') schedulePreviewOverviews();   // the preview's scroll bar (previewoverview.js)
+}
+
+// A rendered document's parts made right (the preview, and printing: print.js): the images by their path next to the
+// document, GitHub's alerts (> [!NOTE]), long lines in code blocks.
+function fixPreviewContent(content, doc) {
   const dir = doc.path ? dirOf(doc.path) : state.root;
   if (dir) {
     for (const img of content.querySelectorAll('img[src]')) {
@@ -1093,43 +1120,28 @@ async function renderNow(tab) {
 
   for (const code of content.querySelectorAll('pre > code'))
     if (hasLongLine(code.textContent)) code.parentElement.classList.add('mm-long-line');
+}
 
-  if (large) {
-    const pre = content.firstElementChild, chunks = [...pre.children];
-    pre.replaceChildren();
-    article.replaceChildren(note, content);
-    for (let i = 0; i < chunks.length; i += CHUNKS_PER_FRAME) {
-      pre.append(...chunks.slice(i, i + CHUNKS_PER_FRAME));
-      await nextFrame();
-      if (id !== tab.renderId) return;
-      if (!previewWanted(tab)) { tab.stale = true; return; }   // again when its preview is shown again
-    }
-    note.remove();
-  } else article.replaceChildren(content);
-  if (tab.csv) for (const pane of panes) if (pane.active === tab) csvDraw(pane);
-
-  const formulas = article.querySelectorAll('.tex');
+// Formulas (KaTeX) and diagrams (mermaid) in a rendered document, their scripts loaded the first time. False when
+// `wanted` says the result is no longer wanted (a newer render) while a script loaded.
+async function renderMathAndDiagrams(root, wanted = () => true) {
+  const formulas = root.querySelectorAll('.tex');
   if (formulas.length) {
     loadCss('vendor/katex/katex.min.css');
     await loadScript('vendor/katex/katex.min.js');
-    if (id !== tab.renderId) return;
+    if (!wanted()) return false;
     for (const el of formulas)
       katex.render(el.textContent, el, { displayMode: el.hasAttribute('data-display'), throwOnError: false });
   }
 
-  const diagrams = article.querySelectorAll('pre.mermaid');
+  const diagrams = root.querySelectorAll('pre.mermaid');
   if (diagrams.length) {
     await loadScript('vendor/mermaid.min.js');
-    if (id !== tab.renderId) return;
+    if (!wanted()) return false;
     mermaid.initialize({ startOnLoad: false, theme: state.theme === 'dark' ? 'dark' : 'default' });
     await mermaid.run({ nodes: diagrams, suppressErrors: true });
   }
-  tab.lines = null;
-  tab.lineBlocks = null;   // the blocks by source line (previewjump.js), and the cursor's bar in the preview
-  if (typeof markPreviewCursors === 'function') markPreviewCursors();
-  if (typeof drawPreviewHighlights === 'function') for (const pane of panes) if (pane.active === tab) drawPreviewHighlights(pane);   // highlights.js
-  if (typeof refreshOccurrencesPreview === 'function') refreshOccurrencesPreview(tab);   // occurrences.js
-  if (typeof schedulePreviewOverviews === 'function') schedulePreviewOverviews();   // the preview's scroll bar (previewoverview.js)
+  return true;
 }
 
 function scheduleRender(tab) {
@@ -5025,6 +5037,7 @@ function openTreeMenu(row, x, y, keys = true) {
     favouriteItem(ui.treeMenu, contextPath, contextKind);   // favourites.js
     ui.treeMenu.querySelector('[data-cmd=treeRename]').hidden = row.up || row.gone;
     ui.treeMenu.querySelector('[data-cmd=treeDelete]').hidden = row.up || row.gone || row.base;
+    ui.treeMenu.querySelector('[data-cmd=treePrint]').hidden = row.up || row.gone || contextKind !== 'files';
     ui.treeMenu.querySelector('[data-cmd=treeSetRoot]').hidden = contextKind !== 'folders' || samePath(contextPath, state.root);
     // The compare (compare.js): a file with the file in the editor or a picked one; a folder with a picked folder.
     const active = activeDoc()?.path, file = contextKind === 'files';
@@ -5530,6 +5543,7 @@ const commands = {
   tabFavourite: () => menuTab && toggleFavourite(menuTab.doc.path),
   treeFavourite: () => toggleFavourite(contextPath, contextKind),
   treeRename: () => renameFile(contextPath, contextKind === 'folders'),
+  treePrint: async () => { await loadScript('printsource.js'); await printPath(contextPath); },   // without opening it in a tab
   treeDelete: () => deleteEntry(contextPath),
   // The folder becomes the tree's root; its subfolders that were open stay open.
   treeSetRoot: () => {

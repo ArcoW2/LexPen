@@ -70,6 +70,7 @@ sealed class AppHost : ApplicationContext
     public HighlightStore Highlights { get; } = new(DataFolder.StatePath(DataDir, "highlights.json"));
     /// <summary>The stored sorts (plan 3, sort.js): yours, so at the top of the data folder.</summary>
     public SortStore Sorts { get; } = new(Path.Combine(DataDir, SortStore.FileName));
+    public PrintStore Prints { get; } = new(Path.Combine(DataDir, PrintStore.FileName));
 
     // Your settings (SettingsFile): the defaults with your settings.json on top.
     JsonObject settings = SettingsFile.Load(DataDir);
@@ -565,6 +566,13 @@ sealed class AppHost : ApplicationContext
 
     /// <summary>light or dark: as Windows is (Follow Windows), else the setting "theme".</summary>
     public string Mode => SettingFlag("followWindows") ? modeOverride ?? windowsMode : SettingText("theme") == "dark" ? "dark" : "light";
+
+    /// <summary>A theme's colours, complete with its own mode's fallback (a dark theme: the dark one's), for the Print
+    /// window's colour choice (docs/plans/executed/PLAN-printing.md 3.4); null: no such theme.</summary>
+    public JsonObject? ThemeVars(string id) =>
+        themes.FirstOrDefault(t => t.Id == id) is { } theme
+            ? new JsonObject(ThemeFile.Complete(theme, theme.Chain.Contains("dark") ? fallbackDark : fallbackLight).Select(v => KeyValuePair.Create(v.Key, (JsonNode?)v.Value)))
+            : null;
 
     ThemeFile.Theme ThemeFor(string? id, string mode) =>
         themes.FirstOrDefault(t => t.Id == id) ?? themes.FirstOrDefault(t => t.Id == mode)
