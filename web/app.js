@@ -2643,7 +2643,7 @@ async function fromFolder(m, from) {
         return openTreeMenu(m, r.left + m.x, r.top + m.y);
       }
       // Floating: the menu is drawn by its page, its items as the window's menu has them now.
-      openTreeMenu(m, 0, 0);
+      openTreeMenu(m, 0, 0, false);
       ui.treeMenu.hidden = true;
       if (m.dir || m.base) await host('hasBackups', { path: m.path }).then(has => { ui.treeMenu.querySelector('[data-cmd=treeDeleteBackups]').hidden = !has || m.up || m.gone; }).catch(() => {});
       return folderPane.menuThere(ui.treeMenu, m.x, m.y);
@@ -4867,16 +4867,75 @@ events.windowActivated = folderMenuDone;
 for (const type of ['pointerdown', 'keydown'])
   addEventListener(type, e => { if (!e.target.closest?.('.mm-menu')) folderMenuDone(); }, true);
 
-function showMenu(menu, e, remember) {
+// A right-click menu takes the keys while it is open (Up / Down, Home / End, Enter, Right on Copy name, Esc), the
+// focus going back where it was after (`keys` false: a menu drawn by the floating pane, this one only filled). Its
+// item marked is the one the pointer moves over, or the keys go to; none as it opens. Not :hover: the page keeps the
+// pointer's last place over a menu, so a menu opened elsewhere showed the item that is now at that place.
+let contextFrom = null;   // what had the focus as the menu opened
+function showMenu(menu, e, remember, keys = true) {
   e.preventDefault();
   hideMenus();
   remember();
   menu.hidden = false;
   menu.style.left = Math.min(e.clientX, innerWidth - menu.offsetWidth - 4) + 'px';
   menu.style.top = Math.min(e.clientY, innerHeight - menu.offsetHeight - 4) + 'px';
+  menu.querySelector('button.mm-sel')?.classList.remove('mm-sel');
+  if (!keys) return;
+  contextFrom = document.activeElement;
+  menu.tabIndex = -1;
+  menu.focus({ preventScroll: true });
 }
-const hideMenus = () => ui.treeMenu.hidden = ui.tabMenu.hidden = ui.stripMenu.hidden =
-  ui.paneMenu.hidden = ui.dividerMenu.hidden = true;
+function hideMenus() {
+  const had = document.activeElement?.closest?.('.mm-context');
+  ui.treeMenu.hidden = ui.tabMenu.hidden = ui.stripMenu.hidden = ui.paneMenu.hidden = ui.dividerMenu.hidden = true;
+  if (had) contextMenuDone();
+}
+// Closed: the focus back where it was, unless its item put it elsewhere (Rename...'s field).
+function contextMenuDone() {
+  const from = contextFrom;
+  contextFrom = null;
+  if (document.activeElement !== document.body && !document.activeElement?.closest('.mm-context')) return;
+  if (from === folderPane.frame) focusFolder();
+  else from?.focus?.({ preventScroll: true });
+}
+const contextMenus = [ui.treeMenu, ui.tabMenu, ui.stripMenu, ui.dividerMenu];
+function markMenuItem(menu, button, byMouse) {
+  const old = menu.querySelector('button.mm-sel');
+  if (old === button) return;
+  old?.classList.remove('mm-sel');
+  button?.classList.add('mm-sel');
+  // By the pointer: Copy name's items open beside it; another item closes them.
+  if (!byMouse) return;
+  if (button?.classList.contains('mm-copy-name')) copyNameFlyout(button);
+  else if (menuBar.fromContext) closeMenus();
+}
+for (const menu of contextMenus) {
+  menu.addEventListener('mousemove', e => {
+    const b = e.target.closest('button');
+    if (b) markMenuItem(menu, b.disabled ? null : b, true);
+  });
+  menu.addEventListener('mouseleave', () => { if (!menuBar.fromContext) markMenuItem(menu, null); });
+}
+addEventListener('keydown', e => {
+  const menu = contextMenus.find(m => !m.hidden);
+  if (!menu || e.defaultPrevented || !menu.contains(document.activeElement) || ['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const items = [...menu.querySelectorAll('button')].filter(b => b.offsetParent && !b.disabled);
+  const at = items.indexOf(menu.querySelector('button.mm-sel')), sel = items[at];
+  switch (e.key) {
+    case 'ArrowDown': return markMenuItem(menu, items[(at + 1) % items.length]);
+    case 'ArrowUp': return markMenuItem(menu, items[at < 0 ? items.length - 1 : (at - 1 + items.length) % items.length]);
+    case 'Home': return markMenuItem(menu, items[0]);
+    case 'End': return markMenuItem(menu, items.at(-1));
+    case 'ArrowRight': case 'Enter': case ' ':
+      if (sel?.classList.contains('mm-copy-name')) return copyNameFlyout(sel, true);
+      if (!sel || e.key === 'ArrowRight') return;
+      sel.click();
+      return contextMenuDone();
+    case 'Escape': return hideMenus();
+  }
+}, true);
 
 // Right-click on a tree row: copy its path, absolute or relative to the open folder.
 // The click that brings a window that was not in front back (setting ignoreActivationClick): it only brings the
@@ -4920,7 +4979,7 @@ for (const type of ['mousedown', 'mouseup', 'pointerup', 'click', 'dblclick', 'a
 
 // The right-click menu of a row in the Folder pane's page (`row`: its path and kind, as its page sends them), at x, y
 // in this page.
-function openTreeMenu(row, x, y) {
+function openTreeMenu(row, x, y, keys = true) {
   showMenu(ui.treeMenu, { clientX: x, clientY: y, preventDefault() {} }, () => {
     contextPath = row.path;
     contextKind = row.dir || row.base ? 'folders' : 'files';
@@ -4951,7 +5010,7 @@ function openTreeMenu(row, x, y) {
       host('hasBackups', { path: asked }).then(has => { if (contextPath === asked) all.hidden = !has; }).catch(() => {});
     const path = contextPath;
     copyNameFor = () => copyNameItems(path, !file);
-  });
+  }, keys);
 }
 document.addEventListener('contextmenu', e => {
   if (!e.target.closest('.mm-tabs, .mm-divider')) hideMenus();   // those open their own menu
@@ -5020,20 +5079,18 @@ function copyNameItems(path, folder) {
 // The Copy name item of a right-click menu (the folder pane's, a tab's): its items beside it, as a submenu of the menu
 // bar (menus.js), on hover or click. A choice there closes the right-click menu too.
 let copyNameFor = null;   // menu -> () => its items, as the menu was opened
-function copyNameFlyout(button) {
+// By the pointer (markMenuItem) or the keys (`select`: its first item marked, the keys there).
+function copyNameFlyout(button, select = false) {
   if (button.disabled) return;
   const r = button.getBoundingClientRect();
   closeMenus();
   menuBar.fromContext = true;
-  openMenuLevel(copyNameFor(), r.right - 2, r.top - 5, false, false, button.parentElement.getBoundingClientRect().left);
+  openMenuLevel(copyNameFor(), r.right - 2, r.top - 5, select, false, button.parentElement.getBoundingClientRect().left);
 }
 for (const menu of [ui.treeMenu, ui.tabMenu]) {
   const button = menu.querySelector('.mm-copy-name');
   button.menuItems = () => copyNameFor();   // the floating folder pane draws them itself (panechannel.js menuThere)
-  button.addEventListener('mouseenter', () => copyNameFlyout(button));
   button.addEventListener('click', () => copyNameFlyout(button));
-  // Another item of the menu hovered: the flyout closes.
-  menu.addEventListener('mouseover', e => { const b = e.target.closest('button'); if (b && b !== button && menuBar.fromContext) closeMenus(); });
 }
 
 // Tree filter: all files, or the known file types only (knownFile: a language pack has the extension; folders always

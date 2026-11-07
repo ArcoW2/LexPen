@@ -32,10 +32,15 @@ function applyPaneLook({ css, theme, mode }) {
 // Floating, the window's page cannot draw here: a menu it sends ({ x, y, items: [{ label, checked, id } | '-'] }) is
 // drawn by the pane; a choice goes back as menuPick. `above`: where it ends when it does not fit below y (a button's
 // menu: above the button, not over it); `closed`: a message kind for the pane's own page once it closes.
+// It takes the keys (Up / Down, Home / End, Enter, Right / Left for a submenu, Esc), the focus going back where it was
+// after. Its item marked is the one with the focus, set by the pointer moving over it or the keys; none as it opens
+// (the menu itself has the focus). Not :hover: the page keeps the pointer's last place over a menu.
 function paneMenu({ x, y, above, closed, items }) {
   document.querySelectorAll('.mm-pane-menu').forEach(m => m.remove());
+  const from = document.activeElement;
   const menu = document.createElement('div');
   menu.className = 'mm-pane-menu';
+  menu.tabIndex = -1;
   let subMenu = null;   // an item's submenu ({ label, sub: [items] }): beside it, on hover, click or Right
   const closeSub = () => { subMenu?.remove(); subMenu = null; };
   const fill = (el, list) => {
@@ -45,11 +50,12 @@ function paneMenu({ x, y, above, closed, items }) {
       b.type = 'button';
       b.textContent = (item.checked ? '\u2713 ' : '\u2003') + item.label + (item.sub ? '  \u203a' : '');
       if (item.sub) {
-        b.onclick = b.onmouseenter = () => openSub(b, item.sub);
+        b.onclick = () => openSub(b, item.sub);
+        b.onmousemove = () => { b.focus(); openSub(b, item.sub); };
         b.onkeydown = e => { if (e.key === 'ArrowRight') { e.preventDefault(); openSub(b, item.sub, true); } };
       } else {
         b.onclick = () => { close(); toWindow({ kind: 'menuPick', id: item.id }); };
-        if (el === menu) b.onmouseenter = closeSub;
+        b.onmousemove = () => { b.focus(); if (el === menu) closeSub(); };
       }
       el.append(b);
     }
@@ -70,7 +76,12 @@ function paneMenu({ x, y, above, closed, items }) {
   }
   fill(menu, items);
   const outside = e => { if (!menu.contains(e.target) && !subMenu?.contains(e.target)) close(); };
-  const esc = e => {
+  menu.onmouseleave = () => { if (!subMenu) menu.focus(); };
+  const keys = e => {
+    const level = subMenu?.contains(document.activeElement) ? subMenu : menu;
+    const list = [...level.querySelectorAll('button')], at = list.indexOf(document.activeElement);
+    const to = { ArrowDown: (at + 1) % list.length, ArrowUp: at < 0 ? list.length - 1 : (at - 1 + list.length) % list.length, Home: 0, End: list.length - 1 }[e.key];
+    if (to !== undefined) { e.preventDefault(); return list[to]?.focus(); }
     if (e.key !== 'Escape') return;
     e.preventDefault();
     if (subMenu) { const from = subMenu.from; closeSub(); from.focus(); } else close();
@@ -79,16 +90,17 @@ function paneMenu({ x, y, above, closed, items }) {
     closeSub();
     menu.remove();
     removeEventListener('pointerdown', outside, true);
-    removeEventListener('keydown', esc, true);
+    removeEventListener('keydown', keys, true);
+    if (document.activeElement === document.body) from?.focus?.();
     if (closed) paneHandlers[closed]?.({ kind: closed });
   }
   addEventListener('pointerdown', outside, true);
-  addEventListener('keydown', esc, true);
+  addEventListener('keydown', keys, true);
   document.body.append(menu);
   menu.style.left = Math.max(0, Math.min(x, innerWidth - menu.offsetWidth - 2)) + 'px';
   const top = above !== undefined && y + menu.offsetHeight > innerHeight - 2 ? above - menu.offsetHeight : y;
   menu.style.top = Math.max(0, Math.min(top, innerHeight - menu.offsetHeight - 2)) + 'px';
-  menu.querySelector('button')?.focus();
+  menu.focus();
 }
 
 // In a text field (the Search pane's) its editing keys stay there: typing, the arrows, Ctrl+C / V / X / Z / Y / A,

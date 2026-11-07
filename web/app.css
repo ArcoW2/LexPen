@@ -145,6 +145,10 @@ body[data-orient=h] .mm-orient::before { content: "Above each other"; }
 .mm-context { position: fixed; right: auto; }   /* right-click menus, placed at the pointer */
 /* Copy name to Windows clipboard (plan 37): its items open beside it, as a menu bar's submenu. */
 .mm-context .mm-copy-name { display: flex; }
+/* Its item marked by the pointer or the keys (app.js markMenuItem), not by :hover; the menu has the focus, unmarked. */
+.mm-context:focus { outline: none; }
+.mm-context button:hover { background: none; }
+.mm-context button.mm-sel:not(:disabled) { background: var(--hover); }
 .mm-context .mm-copy-name::after { content: "\203A"; margin-left: auto; padding-left: 24px; color: var(--fg-dim); }
 
 /* The find history under a find field (history.js). */
@@ -695,6 +699,10 @@ body[data-tab-bar=menu] .mm-tabs { overflow-x: hidden; }
 .mm-pane-menu { position: fixed; z-index: 100; display: flex; flex-direction: column; min-width: 180px; padding: 4px 0;
   background: var(--bg-side); border: 1px solid var(--border); box-shadow: 0 4px 16px rgba(0, 0, 0, .3); }
 .mm-pane-menu button { text-align: left; border-radius: 0; padding: 4px 12px; white-space: nowrap; }
+/* Its item marked: the one with the focus (pane.js paneMenu), not :hover. */
+.mm-pane-menu:focus, .mm-pane-menu button:focus { outline: none; }
+.mm-pane-menu button:hover { background: none; }
+.mm-pane-menu button:focus { background: var(--hover); }
 .mm-pane-menu-sep { border: 0; border-top: 1px solid var(--border); margin: 4px 0; }
 .mm-outline-list { flex: 1; overflow: auto; padding: 8px 0 40px; user-select: none; }
 .mm-outline-item {
