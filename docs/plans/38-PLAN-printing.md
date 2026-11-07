@@ -16,8 +16,9 @@ and with the settings kept and reusable as the Sort's are.
 File > Print... (Ctrl+Shift+P), and Print... on a file in the Folder pane, open a Print window: at the left the pages
 as they will come out, at the right two tabs, Print (the options) and Stored settings (named sets of options, with
 templates, as the Sort panel has). The pages are an HTML page laid out to the paper by the page itself, so the preview
-is the print. Print hands that page to WebView2's print with the chosen printer; Save as PDF writes the same pages to
-a file. A PDF document prints its own pages, with its highlights and notes drawn on.
+is the print. Save as PDF writes those pages to a file; Print sends the same pages to the printer with the printer's
+own settings, which the printer's own dialog (Printer settings...) can change and which stay in step with LexPen's
+options. A PDF document prints its own pages, with its highlights and notes drawn on.
 
 ## 3. Details
 
@@ -43,8 +44,7 @@ a file. A PDF document prints its own pages, with its highlights and notes drawn
 ### 3.2 Highlights and notes
 
 - **Highlights**: off, or on, marked as chosen: a shaded background (the highlight colour, lighter), an underline, a
-  wavy underline, a box, or bold. A highlight with a note gets a marker in the text (a small number) so its note can be found; one without a note
-  gets none.
+  wavy underline, a box, or bold. A highlight with a note gets a marker in the text (a small number) so its note can be found; one without a note gets none.
 - **Notes**: off, or placed:
   - in a margin beside the text, left or right, with a width of its own; each note at the height of its line;
   - at the bottom of the page where its highlight is, as footnotes;
@@ -57,6 +57,11 @@ a file. A PDF document prints its own pages, with its highlights and notes drawn
 
 - **Printer**: the installed printers, the default first; the paper sizes and colour / black and white that printer
   has. Copies; two-sided when the printer can.
+- **Printer settings...**: the printer's own dialog (its driver's: paper bin, intensity, quality, stapling, ...).
+  Both ways in step: it opens with LexPen's options already in it (paper, orientation, copies, two-sided, colour),
+  and what is chosen there comes back into LexPen's options (two-sided set there shows as two-sided here). The
+  driver's own choices that LexPen has no option for are kept with the settings (3.5) and used for every print with
+  them.
 - **Paper**: size, orientation (portrait, landscape).
 - **Margins**: top, bottom, left, right in mm, one value for all four with a link to set them apart.
 - **Frame**: off, or a line around the text area, with its width and intensity.
@@ -111,10 +116,19 @@ As the Sort panel's stored sorts (docs/plans/executed/PLAN-sort-lines.md):
   in an iframe holding the print page.
 - The print page uses CSS for paper (`@page` size and margins, page breaks, the margin notes in a column beside the
   text), so what the iframe shows is what prints.
-- Print: WebView2 `PrintAsync` on that page, with `CoreWebView2PrintSettings` (printer name, copies, page ranges,
-  orientation, margins, scale, duplex, colour mode, backgrounds on for the highlight colours, the browser's own header
-  and footer off: LexPen draws its own).
-- Save as PDF: `PrintToPdfAsync` with the same settings, to a file picked in a Save dialog.
+- The printer's settings are a Windows `DEVMODE`: the driver's dialog is opened with `DocumentProperties` on it,
+  filled from LexPen's options first; afterwards its common fields (paper, orientation, copies, duplex, colour) are
+  read back into the options. The whole `DEVMODE` is stored with the settings set (base64), so the driver's private
+  choices (bin, intensity) survive; it belongs to its printer and is dropped when the set's printer changes.
+- Save as PDF: WebView2 `PrintToPdfAsync` on that page (paper size, orientation, margins, backgrounds on for the
+  highlight colours, the browser's own header and footer off: LexPen draws its own), to a file picked in a Save
+  dialog.
+- Print: WebView2's own `PrintAsync` takes only its own settings (printer name, copies, duplex, colour, ...), not a
+  `DEVMODE`, so the driver's private choices would be lost. Print therefore goes through the PDF: the pages are
+  written to a temporary PDF as for Save as PDF, rendered page by page at the printer's resolution (Windows'
+  `Windows.Data.Pdf`), and printed with .NET's `PrintDocument` using the stored `DEVMODE`. Whether `PrintAsync`
+  does honour a printer's current defaults well enough to skip this is [not yet checked]; checked first in the
+  build, the simpler path wins if it keeps the driver's choices.
 - The installed printers and their papers: .NET `PrinterSettings` on the host side.
 - A PDF document: pdf.js renders each page to an image at print resolution, the highlights drawn on it, one image
   per page.
@@ -124,8 +138,9 @@ As the Sort panel's stored sorts (docs/plans/executed/PLAN-sort-lines.md):
 
 - **The browser's print dialog** (WebView2 `ShowPrintUI`): it has a preview and the printer choice, for free. But it
   knows nothing of highlights, notes, line numbers or the colour choices, it prints the screen's page (the editor
-  shows only the lines in view), and it looks like Edge, not LexPen. Usable at most as a "More printer settings"
-  button for options LexPen does not show.
+  shows only the lines in view), and it looks like Edge, not LexPen. Its System variant opens the Windows dialog,
+  with the driver's Preferences, but what is chosen there does not come back into LexPen's options or the stored
+  settings: Printer settings... (3.3) does that.
 - **Printing the editor as on screen**: CodeMirror has only the visible lines in the page, so a long document would
   print one screen.
 - **The Windows print dialog** (.NET `PrintDocument`): a preview control and all printer settings, but every page
@@ -144,7 +159,8 @@ As the Sort panel's stored sorts (docs/plans/executed/PLAN-sort-lines.md):
   marks, markers and notes appear only with their option and in the chosen place; the dark-theme warning; Save as PDF
   writes a file with the preview's page count; a PDF document gives one page per page; a stored set comes back after
   a restart.
-- By hand: a real printer (paper, duplex, colour) and the look of the preview.
+- By hand: a real printer (paper, duplex, colour, a bin or intensity set in Printer settings...), two-sided set in
+  the printer's dialog showing in LexPen's options and the other way round, and the look of the preview.
 
 ## 4. Open questions
 
