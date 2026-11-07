@@ -137,7 +137,7 @@ function drawPanel() {
   html += `<h3>Colours</h3><div class="pp-row"><label>Colours</label><select data-k="colours"><option value="current"${opt('colours', 'current')}>The theme as on screen</option>
     ${themes}<option value="bw"${opt('colours', 'bw')}>Black and white</option><option value="grey"${opt('colours', 'grey')}>Greyscale</option></select></div>`;
   if (kind !== 'pdf' && kind !== 'table') html += `<div class="pp-row"><label>Text colour</label><select data-k="syntax">
-    <option value="true"${o.syntax ? ' selected' : ''}>By the language (as the editor)</option><option value="false"${o.syntax ? '' : ' selected'}>The text colour</option></select></div>`;
+    <option value="true"${o.syntax ? ' selected' : ''}>Language colouring</option><option value="false"${o.syntax ? '' : ' selected'}>Mono text colour</option></select></div>`;
 
   html += `<h3>Highlights and notes</h3><div class="pp-row"><label>Highlights</label><select data-k="highlights">
     <option value="off"${opt('highlights', 'off')}>Off</option><option value="shaded"${opt('highlights', 'shaded')}>Shaded</option>
