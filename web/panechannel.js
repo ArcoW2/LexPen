@@ -1,5 +1,5 @@
 'use strict';
-// A tool pane's page and this window's page (docs/plans/24-PLAN-docking.md 3.5): the pane is a frame from the panes'
+// A tool pane's page and this window's page (docs/plans/executed/PLAN-docking.md 3.5): the pane is a frame from the panes'
 // site in a view of this page (a process of its own), or floats in a window of its own (PaneForm.cs, its messages
 // through the host). Until the page it is shown in says it is ready, the last message of each kind waits (a message
 // with a `key` under that key); when it says so, it gets everything it shows (`state()`), as a frame loads again when

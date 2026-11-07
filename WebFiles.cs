@@ -13,7 +13,7 @@ static class WebFiles
 {
     public const string Host = "lexpen.example";
     // The same files for the docked panes' frames, as another site, so the browser runs a pane in a process of its own
-    // (docs/plans/24-PLAN-docking.md 3.5).
+    // (docs/plans/executed/PLAN-docking.md 3.5).
     public const string PaneHost = "lexpen-panes.example";
     const string Prefix = "web\\";   // the resource names: web\vendor\katex\katex.min.css (LexPen.csproj)
 

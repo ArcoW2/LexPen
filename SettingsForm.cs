@@ -122,7 +122,7 @@ sealed class SettingsForm : Form, IWebPost
     }
 
     /// <summary>A request of a settings page for main window `window`: its window of its own (`page`, `owner`: the
-    /// form), or the one docked in that window (docs/plans/24-PLAN-docking.md 7b: `page` the frame, `owner` the main
+    /// form), or the one docked in that window (docs/plans/executed/PLAN-docking.md 7b: `page` the frame, `owner` the main
     /// window, for the questions it asks).</summary>
     public static JsonNode? Request(AppHost app, IWebPost page, IWin32Window owner, MainForm window, JsonNode msg)
     {

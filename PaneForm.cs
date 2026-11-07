@@ -5,7 +5,7 @@ using Microsoft.Web.WebView2.WinForms;
 namespace LexPen;
 
 /// <summary>
-/// A tool pane floating in a window of its own (docs/plans/24-PLAN-docking.md 3.3, 3.5): the same page as in its
+/// A tool pane floating in a window of its own (docs/plans/executed/PLAN-docking.md 3.3, 3.5): the same page as in its
 /// LexPen window's frame (outline.html, ...), from the panes' site. Its messages go to that window's page (the event
 /// fromPane) and come from it (Send). Owned by its LexPen window, not modal, its place kept per kind of pane
 /// (AppState.PaneWindows); closing it puts the pane back in its window (the event paneClosed).

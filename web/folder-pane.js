@@ -1,4 +1,4 @@
-// The Folder pane as a page of its own (docs/plans/24-PLAN-docking.md 3.3): the window's page knows the folder, lists
+// The Folder pane as a page of its own (docs/plans/executed/PLAN-docking.md 3.3): the window's page knows the folder, lists
 // a folder when asked (each entry with its marks: git, a backup next to it, highlights, a file type no pack knows, a
 // file gone) and acts on what is done here: open, rename, the right-click menu, up a folder. This page shows the tree
 // and keeps which folders are open, the cursor row and the scroll; it tells the window those, for its session.

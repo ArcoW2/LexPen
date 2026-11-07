@@ -1,16 +1,17 @@
 # Plan: Docking: tool panes that float or dock
 
-Status: draft 2026-10-22, extended 2026-10-25 (Folder and Search apart); brought in line with plan 33 2026-10-25 (no
+Status: executed (2026-11-07): every stage built, no questions open; see 5. Resolved during execution.
+
+History: draft 2026-10-22, extended 2026-10-25 (Folder and Search apart); brought in line with plan 33 2026-10-25 (no
 view window of its own: viewing is a normal project, so all windows are the same kind); worked out 2026-10-29 with
 your answers: every tool pane is the same kind (it floats as a window or docks in the main window); what a pane
 serves (one document, a window, LexPen) decides where it docks (the table of 3.4a); a pane of one document serves its
 editor pane, then its window, then floating, the nearest first; docking in the page (a docked pane is a frame, so
 menus draw over it; native docking dropped 2026-10-29: the menus would be cut off at the panes); speed first; the
 preview stays with its editor; built in three parts (first Folder, Search and the Outline as pages of their own, then
-the docking, then the smaller panes). In progress: part 1 done (stages 0 to 3: the Outline, Folder and Search panes as pages, with Float); part 2: stage 4 done by part 1, stages 5 (the dock areas) and 6 (moving a pane) done, stage 7 in steps: 7.1 (an editor pane's own dock areas, the outline in them) and 7.2 (the window's outline) done; 7b done (Characters, Highlights, Settings, Manage projects, Theme sets, the Macros window); part 3's panes done (10 Bookmarks, 11 Messages, 12 Clipboards, 13 Step by step); 7.3, 7a, 8 and 9 done: every stage built;
-no questions open. From your answer on the character picker window (plan 15 follow-up): "docking should be a new
+the docking, then the smaller panes).
+From your answer on the character picker window (plan 15 follow-up): "docking should be a new
 plan".
-The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
 
@@ -65,8 +66,8 @@ The preview stays part of its editor pane.
 Speed comes first: docking must not make LexPen start, open a window, switch a tab or type slower than now.
 
 - Measured before part 1 and after each stage: the start until the first window shows its text, a new window, a
-  tab switch, a keystroke in a large file, with the default layout and with several panes docked. Figures:
-  [not yet calculated]; a stage that makes one of them clearly slower is not merged until it is not.
+  tab switch, a keystroke in a large file, with the default layout and with several panes docked. Figures: per
+  stage in 5 (the speed rows); a stage that makes one of them clearly slower is not merged until it is not.
 - A pane's page is made only when the pane is first shown (not at the start for panes that are hidden or in a closed
   dock), and kept while its window is open, so showing it again is instant.
 - All pages share one browser environment (as now), so a pane adds a page, not a browser. A docked pane is a frame
@@ -218,7 +219,8 @@ menus, the F1 list, the messages, the dialogs and the completion lists draw over
 - An area holds groups; a group shows one pane, or several as tabs (one shown at a time). Groups in one area sit
   above, under or next to each other, with a splitter between them.
 - Each area has a splitter against the editor area; its size is kept.
-- Minimum sizes so the editor area never vanishes: [not yet calculated]: the figures with the prototype.
+- Minimum sizes so the editor area never vanishes: the editor area keeps 300 px, an editor pane's text 200 px beside
+  its own areas (docks.js: EDITOR_MIN, TEXT_MIN).
 - The editor panes (the split into two panes) stay in the editor area as now; docking does not change them.
 
 ### 3.7 Closing and opening a dock

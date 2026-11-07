@@ -1,5 +1,5 @@
 'use strict';
-// The Bookmarks pane, the window's side (docs/plans/24-PLAN-docking.md stage 10, 3.9, 3.10): a page of its own
+// The Bookmarks pane, the window's side (docs/plans/executed/PLAN-docking.md stage 10, 3.9, 3.10): a page of its own
 // (bookmarks.html) that lists the bookmarks of the document it serves: docked in a dock area or floating, the window's
 // active document (`bm`); beside an editor pane's text, that pane's own (`bm:0`, `bm:1`), its document. Hidden at
 // first; shown docked at the right by its action. It follows the bookmarks (set, moved with the text, removed) and the

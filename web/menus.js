@@ -90,7 +90,7 @@ const MENUS = [
       ['Several &rows', 'tabBar.set', 'rows']] },
   ]],
   ['&Window', [
-    // Panels: every panel with a check when shown, the dock areas, Reset docking (docks.js, docs/plans/24-PLAN-docking.md 3.14).
+    // Panels: every panel with a check when shown, the dock areas, Reset docking (docks.js, docs/plans/executed/PLAN-docking.md 3.14).
     { label: '&Panels', fill: () => panelItems() }, '-',
     { label: '&Document panes', sub: [['&Left and right', 'paneOrientation.set', 'v'], ['&Top and bottom', 'paneOrientation.set', 'h'], '-',
       ['&Hide this document pane', 'paneHide'], ['Hide the &other document pane', 'paneHideOther'], ['&Close this document pane', 'paneClose'],

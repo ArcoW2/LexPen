@@ -1,4 +1,4 @@
-// An editor pane's outline, as a page of its own (docs/plans/24-PLAN-docking.md 3.3): the window's page works out the
+// An editor pane's outline, as a page of its own (docs/plans/executed/PLAN-docking.md 3.3): the window's page works out the
 // entries (app.js showOutline) and sends them as rows; this page shows them and sends back what is done with them:
 // a click, a double-click, a group folded, a long press (a sneak preview), the right-click menu. Up / Down, PgUp /
 // PgDn, Ctrl+Home / Ctrl+End go through the entries shown here; Enter goes there, the focus staying here.
