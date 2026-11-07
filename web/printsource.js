@@ -121,7 +121,8 @@ function printTextHtml(text, doc, hls, firstLine) {
     }
     out.push(`<div class="pp-line"><span class="pp-ln">${firstLine + i}</span><span class="pp-lt">${html || ' '}</span></div>`);
   }
-  return `<div class="pp-text" data-lang="${escapeHtml(doc.language ?? 'markdown')}">${out.join('')}</div>`;
+  // A pre: paged.js keeps whitespace-only text (the indents) only there.
+  return `<pre class="pp-text" data-lang="${escapeHtml(doc.language ?? 'markdown')}">${out.join('')}</pre>`;
 }
 
 // The text with the marks of its highlights in it (from its end, so the offsets stay right).

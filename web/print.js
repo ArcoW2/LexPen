@@ -31,7 +31,7 @@ chrome.webview.addEventListener('message', e => {
 const DEFAULTS = {
   printer: null, devmode: null, paper: 'A4', paperW: 210, paperH: 297, landscape: false, copies: 1, duplex: 'one', colourPrint: true,
   view: null, margins: [15, 15, 15, 15], marginsEach: false, frame: false, frameWidth: 0.5, frameIntensity: 60,
-  zoom: 'auto', zoomPercent: 100, textFont: '', textSize: 9, lineNumbers: true,
+  zoom: 'auto', zoomPercent: 100, textFont: '', textSize: 9, lineNumbers: 'all',
   bodyFont: '', bodySize: 11, codeFont: '', codeSize: 9,
   colours: 'current', syntax: true, highlights: 'shaded', hlColour: '', hlIntensity: 100, notes: 'end', notesWidth: 45, notesSize: 8,
   headName: true, headPages: true, headDate: false,
@@ -46,6 +46,8 @@ const pp = {
 };
 
 // The view a document prints as: rendered markdown or its text, a CSV's table or its text; a PDF its pages.
+// Line numbers: every line, every 10 lines, or off (a stored set from before: true or false).
+const lineNumbers = () => pp.opt.lineNumbers === true ? 'all' : pp.opt.lineNumbers === false ? 'off' : pp.opt.lineNumbers;
 const views = () => pp.source.kind === 'markdown' ? [['rendered', 'Rendered (as the preview)'], ['text', 'Text (as the editor)']]
   : pp.source.kind === 'csv' ? [['table', 'Table (as the preview)'], ['text', 'Text (as the editor)']]
   : pp.source.views?.rendered != null ? [['text', 'Text (as the editor)'], ['rendered', 'Rendered as markdown']] : [];
@@ -112,7 +114,9 @@ function drawPanel() {
   html += `<div class="pp-row"><label>Header, footer</label>${check('headName', 'File name')}${check('headPages', 'Page x of y')}${check('headDate', 'Date')}</div>`;
 
   if (kind === 'text' || kind === 'table') html += `<h3>Text</h3><div class="pp-row"><label>Font</label>${fontList('textFont', s.editorFont, true)}</div>
-    <div class="pp-row"><label>Size (pt)</label>${num('textSize', 4, 40, 0.5)}${kind === 'text' ? check('lineNumbers', 'Line numbers') : ''}</div>`;
+    <div class="pp-row"><label>Size (pt)</label>${num('textSize', 4, 40, 0.5)}</div>` + (kind === 'text' ? `<div class="pp-row"><label>Line numbers</label><select data-k="lineNumbers">
+    <option value="all"${lineNumbers() === 'all' ? ' selected' : ''}>Every line</option><option value="ten"${lineNumbers() === 'ten' ? ' selected' : ''}>Every 10 lines</option>
+    <option value="off"${lineNumbers() === 'off' ? ' selected' : ''}>Off</option></select></div>` : '');
   if (kind === 'rendered') html += `<h3>Text</h3><div class="pp-row"><label>Font</label>${fontList('bodyFont', s.appFont, false)}</div>
     <div class="pp-row"><label>Size (pt)</label>${num('bodySize', 4, 40, 0.5)}</div>
     <div class="pp-row"><label>Code font</label>${fontList('codeFont', s.editorFont, true)}</div>
@@ -487,8 +491,9 @@ async function contentHtml() {
   else if (kind === 'table') body = `<div class="pp-tablebox">${part.views.table}</div>`;
   else body = part.views.text;
   const tpl = document.createElement('template');
-  tpl.innerHTML = `<div class="pp-doc pp-hl-${o.highlights} pp-notes-${o.notes}${o.lineNumbers ? '' : ' pp-no-ln'}${o.colours === 'bw' ? ' pp-bw' : ''}">${body}</div>`;
+  tpl.innerHTML = `<div class="pp-doc pp-hl-${o.highlights} pp-notes-${o.notes}${lineNumbers() === 'off' ? ' pp-no-ln' : ''}${o.colours === 'bw' ? ' pp-bw' : ''}">${body}</div>`;
   const root = tpl.content.firstElementChild;
+  if (lineNumbers() === 'ten') for (const n of root.querySelectorAll('.pp-ln')) if (+n.textContent % 10) n.classList.add('pp-ln-skip');
   if (o.highlights === 'off') for (const m of root.querySelectorAll('mark.pp-hl')) m.replaceWith(...m.childNodes);
   if (kind !== 'pdf') {
     for (const n of root.querySelectorAll('.pp-note')) {
@@ -541,10 +546,11 @@ function pageCss() {
 .pagedjs_page { background: var(--bg, #fff); color: var(--fg, #000); --pp-ch: ${ch}mm; }
 ${o.frame ? `.pagedjs_area { outline: ${o.frameWidth}pt solid color-mix(in srgb, var(--fg, #000) ${o.frameIntensity}%, transparent); outline-offset: 1.5mm; }` : ''}
 .pp-doc { position: relative; }
-.pp-text { position: relative; font: ${o.textSize}pt/1.3 ${font(o.textFont || s.editorFont, 'monospace')}; white-space: pre-wrap; overflow-wrap: anywhere; tab-size: ${pp.values.tabSize || 4}; }
+.pp-text { position: relative; margin: 0; font: ${o.textSize}pt/1.3 ${font(o.textFont || s.editorFont, 'monospace')}; white-space: pre-wrap; overflow-wrap: anywhere; tab-size: ${pp.values.tabSize || 4}; }
 .pp-line { display: flex; }
 .pp-ln { flex: none; min-width: ${String(9999).length}ch; padding-right: 1.5ch; text-align: right; color: var(--fg-dim, #888); }
 .pp-no-ln .pp-ln { display: none; }
+.pp-ln.pp-ln-skip { visibility: hidden; }
 .pp-lt { flex: 1; min-width: 0; }
 .pp-rendered { position: relative; padding: 0 !important; zoom: 1 !important; font: ${o.bodySize}pt/1.5 ${font(o.bodyFont || s.appFont)}; color: var(--fg, #000); }
 .pp-rendered pre, .pp-rendered code, .pp-rendered pre code, .pp-rendered pre.mm-code { font-family: ${font(o.codeFont || s.editorFont, 'monospace')}; font-size: ${o.codeSize}pt; }
