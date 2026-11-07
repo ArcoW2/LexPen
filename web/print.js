@@ -102,7 +102,7 @@ function drawPanel() {
     <div class="pp-row"><label>Copies</label>${num('copies', 1, 999)}</div>`;
   if (info?.duplex) html += `<div class="pp-row"><label>Two-sided</label><select data-k="duplex"><option value="one"${opt('duplex', 'one')}>One-sided</option>
     <option value="long"${opt('duplex', 'long')}>Two-sided, long edge</option><option value="short"${opt('duplex', 'short')}>Two-sided, short edge</option></select></div>`;
-  if (info?.colour) html += `<div class="pp-row"><label>Printer colour</label><select data-k="colourPrint"><option value="true"${o.colourPrint ? ' selected' : ''}>Colour</option><option value="false"${o.colourPrint ? '' : ' selected'}>Monochrome (all in greys, images too)</option></select></div>`;
+  if (info?.colour) html += `<div class="pp-row"><label>Printer colour</label><select data-k="colourPrint"><option value="true"${o.colourPrint ? ' selected' : ''}>Colour</option><option value="false"${o.colourPrint ? '' : ' selected'}>Monochrome (grey)</option></select></div>`;
 
   html += '<h3>What</h3>';
   if (views().length) html += `<div class="pp-row"><label>As</label><select data-k="view">${views().map(([v, l]) => `<option value="${v}"${kind === v ? ' selected' : ''}>${l}</option>`).join('')}</select></div>`;
