@@ -34,8 +34,9 @@
 .pp-row label.pp-check { display: inline-flex; align-items: center; gap: 4px; color: var(--fg); min-width: 0; }
 .pp-row input.pp-hf { flex: 1; width: 0; }   /* the header's and footer's left, middle and right */
 .pp-hint { color: var(--fg-dim); font-size: .92em; margin: 2px 0 4px; }
-.pp-sides { display: grid; grid-template-columns: repeat(4, auto); gap: 4px 6px; align-items: center; margin-left: 7.5em; }
+.pp-sides { display: grid; grid-template-columns: repeat(4, max-content); justify-content: start; gap: 4px 6px; align-items: center; margin-left: 7.5em; }
 .pp-sides span { color: var(--fg-dim); font-size: .92em; }
+.pp-sides input { width: 4em; font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 2px 4px; }
 
 .pp-foot { border-top: 1px solid var(--border); padding: 8px 12px; display: flex; flex-direction: column; gap: 6px; }
 .pp-warn { color: var(--caution, #c80); }

@@ -42,7 +42,7 @@ const DEFAULTS = {
   zoom: 'auto', zoomPercent: 100, textFont: '', textSize: 9, lineNumbers: 'all',
   bodyFont: '', bodySize: 11, codeFont: '', codeSize: 9,
   colours: 'current', syntax: true, highlights: 'shaded', hlColour: '', hlIntensity: 100, notes: 'end', notesWidth: 45, notesSize: 8,
-  headLeft: '$F', headCenter: '', headRight: '', footLeft: '', footCenter: 'Page $P of $T', footRight: '', dateFormat: '',
+  headLeft: '$F', headCenter: '', headRight: '', footLeft: '', footCenter: 'Page $P of $T', footRight: '', dateFormat: '', headEdge: 6, footEdge: 6,
 };
 const PAPERS = [{ name: 'A3', w: 297, h: 420 }, { name: 'A4', w: 210, h: 297 }, { name: 'A5', w: 148, h: 210 },
   { name: 'Letter', w: 215.9, h: 279.4 }, { name: 'Legal', w: 215.9, h: 355.6 }];
@@ -180,7 +180,7 @@ function drawPanel() {
   html += '<h3>Layout</h3>';
   const margin = i => `<input type="number" data-m="${i}" min="0" max="100" step="0.5" value="${o.margins[i]}">`;
   html += `<div class="pp-row"><label>Margins (mm)</label>${o.marginsEach ? '' : margin(0)}${check('marginsEach', 'Each side its own')}</div>`;
-  if (o.marginsEach) html += `<div class="pp-sides">${['Top', 'Right', 'Bottom', 'Left'].map(l => `<span>${l}</span>`).join('')}${[0, 1, 2, 3].map(margin).join('')}</div>`;
+  if (o.marginsEach) html += `<div class="pp-sides">${['Top', 'Left', 'Right', 'Bottom'].map(l => `<span>${l}</span>`).join('')}${[0, 3, 1, 2].map(margin).join('')}</div>`;
   html += `<div class="pp-row"><label>Frame</label>${check('frame', 'A line around the text')}</div>`;
   if (o.frame) html += `<div class="pp-row"><label>Frame width (pt)</label>${num('frameWidth', 0.1, 5, 0.1)}</div>
     <div class="pp-row"><label>Intensity (%)</label>${num('frameIntensity', 5, 100, 5)}</div>`;
@@ -191,7 +191,9 @@ function drawPanel() {
   html += `<div class="pp-row"><label>Date format</label><input type="text" class="pp-wide" data-k="dateFormat" value="${escapeHtml(o.dateFormat)}"` +
     ` placeholder="${escapeHtml(pp.datePattern)}" spellcheck="false" title="${DATE_HELP}"></div>
     <div class="pp-hint">${Object.entries(HF_CODES).map(([c, what]) => `<b>$${c.toUpperCase()}</b> ${escapeHtml(what.replace(/ \(.*\)/, ''))}`).join(', ')}.
-    **<b>bold</b>**, *<i>italic</i>*.<br>With $T all pages are laid out before printing.</div>`;
+    **<b>bold</b>**, *<i>italic</i>*.<br>With $T all pages are laid out before printing.</div>
+    <div class="pp-row" title="The header's distance from the top of the paper, the footer's from the bottom (in the margins)"><label>From the edge (mm)</label>
+    <span class="pp-hint">Header</span>${num('headEdge', 0, 50, 0.5)}<span class="pp-hint">Footer</span>${num('footEdge', 0, 50, 0.5)}</div>`;
 
   if (kind === 'text' || kind === 'table') html += `<h3>Text</h3><div class="pp-row"><label>Font</label>${fontList('textFont', s.editorFont, true)}</div>
     <div class="pp-row"><label>Size (pt)</label>${num('textSize', 4, 40, 0.5)}</div>` + (kind === 'text' ? `<div class="pp-row"><label>Line numbers</label><select data-k="lineNumbers">
@@ -563,8 +565,8 @@ function sheetStyle(m, more) {
 .pp-sheet-head > span:empty, .pp-sheet-foot > span:empty { flex: 1 1 0; }
 .pp-sheet-head > :first-child, .pp-sheet-foot > :first-child { text-align: left; }
 .pp-sheet-head > :last-child, .pp-sheet-foot > :last-child { text-align: right; }
-.pp-sheet-head { top: ${Math.max(2, m[0] / 2 - 2)}mm; }
-.pp-sheet-foot { bottom: ${Math.max(2, m[2] / 2 - 2)}mm; }
+.pp-sheet-head { top: ${o.headEdge}mm; }
+.pp-sheet-foot { bottom: ${o.footEdge}mm; }
 .pp-sheet.pp-skip { display: none; }
 .pp-sheet .pp-pdfpage { height: 100%; }
 .pp-sheet-notes { font: ${o.notesSize}pt/1.4 ${cssString(s.appFont)}, sans-serif; }
@@ -722,6 +724,9 @@ function pageCss() {
   @footnote { border-top: 0.5pt solid color-mix(in srgb, currentColor 40%, transparent); padding-top: 1.5mm; margin-top: 2mm; }
 }
 .pagedjs_page { background: var(--bg, #fff); color: var(--fg, #000); --pp-ch: ${h - m[0] - m[2]}mm; }
+/* The header and footer at their distance from the edge (paged.js centres them in the margin). */
+.pagedjs_margin-top > div { align-items: flex-start !important; padding-top: ${o.headEdge}mm !important; box-sizing: border-box; }
+.pagedjs_margin-bottom > div { align-items: flex-end !important; padding-bottom: ${o.footEdge}mm !important; box-sizing: border-box; }
 ${HF_BOXES.map(([, at]) => `.pp-run-${at} { position: running(pp-${at}); }`).join('\n')}
 .pp-pg::after { content: counter(page); }
 .pp-pgs::after { content: counter(pages); }
