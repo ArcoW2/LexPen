@@ -1,6 +1,6 @@
 # Plan: Order and groups in the Panels menu
 
-Status: draft 2026-11-07; not started.
+Status: draft 2026-11-07, questions answered 2026-11-07; not started.
 The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
@@ -12,8 +12,8 @@ and a long list with no order has to be read from the top every time.
 
 ## 2. The solution, in brief
 
-The same flat list, split by separators into small groups by what the panel is about (plan 25's subjects), each group
-ordered by how often it is used; the dock areas and Reset docking stay last. A new panel joins the group of its
+The same flat list, split into small groups by what the panel is about (plan 25's subjects), each group under a
+dimmed heading and ordered by how often it is used; the dock areas and Reset docking stay last. A new panel joins the group of its
 subject. No submenus: Panels is a submenu already, and plan 25 allows one level only.
 
 ## 3. Details
@@ -33,7 +33,10 @@ subject. No submenus: Panels is a submenu already, and plan 25 allows one level 
 - The order inside a group is by use: the panel used most first, as plan 25 orders its menus. This is a judgement,
   not a measurement.
 - The mnemonics stay as they are where they are still unique in the menu; only a clash is changed.
-- Toolbar and keys are not touched: only `PANELS` in docks.js (its order, plus the separators) changes.
+- Each group starts with a dimmed heading (its name from the table), not clickable and skipped by the arrow keys.
+- Manage projects is in both places: in the LexPen group here, and in Window > Projects (plan 25).
+- Messages stays with LexPen: it can report on anything, not only the document worked in.
+- Toolbar and keys are not touched: only `PANELS` in docks.js (its order, plus the headings) changes.
 
 ### 3.2 What does not work, alternatives
 
@@ -44,12 +47,11 @@ subject. No submenus: Panels is a submenu already, and plan 25 allows one level 
 
 ### 3.3 Tests
 
-- The menu shows the groups in this order with separators; every item still shows / hides its panel and its check.
+- The menu shows the groups in this order, each under its dimmed heading; the arrow keys skip the headings; every item still shows / hides its panel and its check.
 - No two items share a mnemonic (a test over `PANELS` and the dock items).
 
-## 4. Open questions
+## 4. Decisions
 
-1. Separators only, or a dimmed heading per group ("The document")? A heading makes the groups clear but lengthens
-   the menu by one line per group.
-2. Manage projects: with LexPen, or out of this menu into Window > Projects (plan 25), where the projects live?
-3. Messages: with LexPen, or with the document (it reports on the document worked in)?
+1. A dimmed heading per group, not separators only.
+2. Manage projects: both, in the LexPen group and in Window > Projects.
+3. Messages: with LexPen; it can report on anything.
