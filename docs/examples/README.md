@@ -19,3 +19,16 @@ one. The file explains its own format in the comments at the top.
   default, delete it (or copy this one over it) and restart LexPen.
 - **Changes** apply as soon as the file is saved, in every LexPen window. A file with a mistake keeps the
   last rules that worked, and LexPen shows what is wrong.
+
+## print-tables.md
+
+A markdown file to try the Print window with (File > Print..., As: Rendered): a table too wide for a page
+(printed smaller; the columns that still do not fit are left out, and a line says how many) and a table too
+long for a page (its header row repeated on every page it goes on to). It is not a settings file: open it
+from here.
+
+## embedded-languages.md
+
+A markdown file with code blocks in other languages (C#, Delphi, SQL, JavaScript, Python, PowerShell, shell,
+batch, JSON, XML, YAML, CSS, HTML with a script and a style inside, plain text): each block coloured as its own
+language in the editor, the preview and the Print window. It is not a settings file: open it from here.
