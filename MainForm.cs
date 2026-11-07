@@ -432,8 +432,6 @@ sealed class MainForm : Form
                     catch (Exception ex) when (ex is InvalidOperationException or COMException) { inDocument = false; }
                 if (inDocument) AddDocumentItems(m);
                 else WebFiles.BrowserMenu(m);
-                File.WriteAllLines(Path.Combine(Path.GetTempPath(), "lexpen-ctx.txt"), Dump(m.MenuItems, ""));   // TEMP
-                static IEnumerable<string> Dump(IList<CoreWebView2ContextMenuItem> items, string indent) => items.SelectMany(i => new[] { $"{indent}{i.Name} | {i.Label} | {i.Kind}" }.Concat(i.Kind == CoreWebView2ContextMenuItemKind.Submenu ? Dump(i.Children, indent + "  ") : []));   // TEMP
             }
             finally { deferral.Complete(); }
         };
