@@ -83,8 +83,8 @@ function draw() {
   const rows = list.map((key, i) => `<div class="sp-key${i === st.focusKey ? ' sp-focus' : ''}" data-k="${i}">${mark(i)}` + (columns
     ? `<select data-f="column" data-k="${i}">` + (st.cols[i] < 0 ? `<option value="" selected>${esc(key.name ?? `Column ${key.index + 1}`)} (not in this file)</option>` : '') +
       st.names.map((n, j) => `<option value="${j}"${j === st.cols[i] ? ' selected' : ''}>${esc(n)}</option>`).join('') + '</select>'
-    : `<label>From <input class="sp-col" data-f="from" data-k="${i}" value="${Number.isFinite(key.from) ? key.from : ''}"></label>` +
-      `<label>To <input class="sp-col" data-f="to" data-k="${i}" value="${key.to ?? ''}" placeholder="end"></label>`) + dir(key, i) + del(i) + '</div>').join('');
+    : `<label>From <input class="sp-col" inputmode="numeric" data-f="from" data-k="${i}" value="${Number.isFinite(key.from) ? key.from : ''}"></label>` +
+      `<label>To <input class="sp-col" inputmode="numeric" data-f="to" data-k="${i}" value="${key.to ?? ''}" placeholder="end"></label>`) + dir(key, i) + del(i) + '</div>').join('');
   const firstDesc = list[0]?.desc;
   const caseChoice = spec.ignoreCase ? '' : '<div class="sp-sub">' + ['AaBbCc', 'aAbBcC', 'ABCabc', 'abcABC'].map(o =>
     `<label title="Stated for A to Z; Z to A turns it round"><input type="radio" name="sp-case" data-f="caseOrder" value="${o}"${spec.caseOrder === o ? ' checked' : ''}> ${o}` +
@@ -133,9 +133,22 @@ document.addEventListener('click', e => {
     : { label: m.label, disabled: !m.on(sp.st), run: () => toWindow({ kind: m.id }) }) });
 });
 
+// The window shows the keys' lines in the editor only while this page has the focus.
+addEventListener('focus', () => toWindow({ kind: 'paneFocus', on: true }));
+addEventListener('blur', () => toWindow({ kind: 'paneFocus', on: false }));
+
 // ---------- What is done here ----------
+// From / To take digits only: anything else typed or pasted is left out, the cursor staying where it was.
+document.addEventListener('beforeinput', e => {
+  if (e.target.matches?.('[data-f=from], [data-f=to]') && e.data && /\D/.test(e.data) && e.inputType === 'insertText') e.preventDefault();
+});
 document.addEventListener('input', e => {
   const el = e.target;
+  if (el.matches?.('[data-f=from], [data-f=to]') && /\D/.test(el.value)) {
+    const at = el.selectionStart - (el.value.slice(0, el.selectionStart).match(/\D/g)?.length ?? 0);
+    el.value = el.value.replace(/\D/g, '');
+    el.setSelectionRange(at, at);
+  }
   if (['from', 'to', 'decimal', 'numIgnore'].includes(el.dataset.f)) toWindow({ kind: 'set', f: el.dataset.f, k: +el.dataset.k, value: el.value });
 });
 document.addEventListener('change', e => {

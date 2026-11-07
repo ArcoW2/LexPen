@@ -114,7 +114,7 @@ sealed class PaneForm : Form, IWebPost
     /// <summary>
     /// Getting or losing the focus is told to its window's page (paneWindowFocus): a click back on that window after
     /// one here is not a click that brings the window back from elsewhere (setting ignoreActivationClick), so it acts.
-    /// Losing it, the message says which window gets it (lParam): its own window, or another.
+    /// Losing it, the message says which window gets it (lParam): its own window, or another; `id`: which pane.
     /// </summary>
     protected override void WndProc(ref Message m)
     {
@@ -122,7 +122,7 @@ sealed class PaneForm : Form, IWebPost
         if (m.Msg == WM_ACTIVATE && !owner.IsDisposed)
         {
             var active = (m.WParam.ToInt64() & 0xFFFF) != 0;   // WA_INACTIVE is 0
-            owner.Post(new JsonObject { ["event"] = "paneWindowFocus", ["active"] = active, ["toOwner"] = !active && m.LParam == owner.Handle });
+            owner.Post(new JsonObject { ["event"] = "paneWindowFocus", ["id"] = Id, ["active"] = active, ["toOwner"] = !active && m.LParam == owner.Handle });
         }
         base.WndProc(ref m);
     }

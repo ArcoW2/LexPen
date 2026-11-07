@@ -423,10 +423,11 @@ const sortRulerWanted = () => sortShown() && sortUi.spec?.kind === 'text';
 const sortList = () => sortUi.spec.kind === 'columns' ? sortUi.spec.columns : sortUi.spec.keys;
 
 // The marks on the ruler and in the text for an editor pane: [{ col (a boundary, visual columns from 0), colour,
-// num, side ('from' | 'to' | 'one'), strong }].
+// num, side ('from' | 'to' | 'one'), strong }]. Only while the panel has the focus (sortUi.focused, from its page): the
+// ruler stays while it is shown, so the text does not move when the focus comes and goes.
 function sortMarks(pane) {
   const t = sortUi.target;
-  if (!sortRulerWanted() || !t?.cm || pane.cm !== t.cm) return [];
+  if (!sortRulerWanted() || !sortUi.focused || !t?.cm || pane.cm !== t.cm) return [];
   const base = t.kind === 'block' ? t.left : 0, marks = [];
   sortUi.spec.keys.forEach((k, i) => {
     if (!Number.isInteger(k.from) || k.from < 1) return;
@@ -449,6 +450,12 @@ function sortTextOn(colour) {
   const [r, g, b] = (getComputedStyle(probe).color.match(/\d+(\.\d+)?/g) ?? [0, 0, 0]).map(Number);
   probe.remove();
   return 0.2126 * r + 0.7152 * g + 0.0722 * b > 140 ? '#000' : '#fff';
+}
+
+// The panel got or lost the focus: docked from its page, floating from its window (app.js paneWindowFocus).
+function sortFocused(on) {
+  sortUi.focused = !!on;
+  sortRedrawRuler();
 }
 
 function sortRedrawRuler() {
@@ -683,6 +690,7 @@ async function fromSortPane(m) {
     }
     case 'new': return sortNew();
     case 'revert': return sortRevert();
+    case 'paneFocus': return sortChannel.floating ? undefined : sortFocused(m.on);   // floating: its window says (paneWindowFocus)
     case 'gotoLine': return sortGotoLine(m.line);
     case 'openSetting': return host('openSetting', { name: 'sortPreviewLines' });
     case 'save': return sortSave(sortUi.name);

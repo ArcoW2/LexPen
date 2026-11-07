@@ -4967,8 +4967,9 @@ addEventListener('focus', () => { activation.back = performance.now(); });
 addEventListener('keydown', () => { activation.away = false; activation.until = 0; }, true);   // back by the keys (Alt+Tab): not a click
 // A floating pane window of this window (PaneForm.cs) got the focus, or lost it to this window: going there and back is
 // not coming back from elsewhere, so the click back here acts. It lost the focus to another program: that is away.
-events.paneWindowFocus = ({ active, toOwner }) => {
+events.paneWindowFocus = ({ id, active, toOwner }) => {
   activation.away = !active && !toOwner;
+  if (id === 'sort' && typeof sortFocused === 'function') sortFocused(active);   // its key lines (sort.js)
   paneWindowActive = active;   // the document's dimmed frame and steady cursor while it has the focus (placeFocusRing)
   placeFocusRing();
 };

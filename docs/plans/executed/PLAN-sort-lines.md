@@ -260,7 +260,12 @@ None.
   goes as with any deleted text.
 - **The key lines' intensity** (your request after the build, 2026-11-07: the first key's line had the cursor's
   colour): Settings > Editor > Sort > Sort key lines: intensity (`sortLineIntensity`, 10 to 100%, 60 by default, part
-  of a theme set as the other intensities); the key worked on at that intensity, the others at less than half.
+  of a theme set as the other intensities); the key worked on at that intensity, the others at less than half. The
+  lines and the ruler's key numbers show only while the panel has the focus (your request, 2026-11-07); the ruler
+  itself stays while the panel is shown, so the text does not move. Docked: the panel's page says when it gets and
+  loses the focus; floating: its window (PaneForm's WM_ACTIVATE, paneWindowFocus with the pane's id).
+- **From / To take digits only** (your request, 2026-11-07): another character typed is refused, one pasted is left
+  out.
 - **The preview**: a double-click on a line puts the cursor on that line in the editor, where its text is now (a
   block: the line its part comes from).
 - **Revert** goes back to the stored sort it is, or to the template a new sort started from (Use as new; the bottom

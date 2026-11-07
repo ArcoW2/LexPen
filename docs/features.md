@@ -33,7 +33,8 @@ every action with its key.
   to Z or Z to A; the first decides, the next ones break ties; dragged in the list (or Alt+Up / Alt+Down) to change
   their order, x or Delete removes one (never the last). Each key has a colour by its place: its lines in the editor
   and its number on the ruler (shown while the panel is) in that colour; the lines at Settings > Editor > Sort > Sort
-  key lines: intensity (60% by default, so the first key's line stands apart from the cursor). Ignore case (on; off: the order AaBbCc,
+  key lines: intensity (60% by default, so the first key's line stands apart from the cursor), shown only while the
+  panel has the focus. From and To take digits only. Ignore case (on; off: the order AaBbCc,
   aAbBcC, ABCabc or abcABC, stated for A to Z), numbers by value (`file2` before `file10`; a decimal sign, default
   `.`, and characters to ignore, default comma and space), remove duplicates (by the keys or the whole line,
   ignoring leading and trailing whitespace if asked), remove empty lines. A preview (a double-click on a line: the cursor there in the editor) shows the first lines (Settings > Editor > Sort: 100 by default, or All; a preview
@@ -749,7 +750,8 @@ every action with its key.
 - **Settings window** (Options > Settings): a tab per group (General, Files, Editor, Preview, Tabs, Find, App, Keys,
   Languages; Ctrl+Tab / Ctrl+PgDn between them; a tab's rows are made when it is first shown); a search shows the
   matches of the tab shown; the tabs with a match stand out (while typing, a tab without one moves to the first
-  tab with one); a change
+  tab with one); closed and opened again (its window or docked) it has the same search, tab and place in the list;
+  a change
   applies at once in every LexPen window, Reset goes back to the default. Your `settings.json` in
   `%LOCALAPPDATA%\LexPen` holds only what you changed (the defaults with a comment each: `defaults\settings.json`);
   edit it by hand or copy it to another PC, a change in it applies at once. Problems in it show in the window.
