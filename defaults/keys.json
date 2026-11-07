@@ -16,6 +16,7 @@
   // ---------- Files ----------
   "Ctrl+S": "save",
   "Ctrl+Shift+S": "saveAs",
+  "Ctrl+Shift+P": "print",            // the Print window (Ctrl+P starts the paragraph keys)
 
   // ---------- Tabs and documents ----------
   "Ctrl+Tab": ["stepTab", 1],        // the next tab in tab bar order, after the last one on to the other pane's first

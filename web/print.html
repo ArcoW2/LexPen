@@ -1,0 +1,54 @@
+<!doctype html>
+<!-- The Print window (print.js; PrintForm hosts it): the pages at the left, the options and the stored settings at the
+     right (docs/plans/38-PLAN-printing.md). Only the pages print: the rest is hidden on paper (print.css). -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https://file.lexpen.example; connect-src 'self' https://file.lexpen.example; worker-src 'self' blob:">
+<title>Print - LexPen</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="vendor/katex/katex.min.css">
+<link rel="stylesheet" href="print.css">
+</head>
+<body class="pp-body">
+<div class="pp-view">
+  <div class="pp-viewbar">
+    <span class="pp-count">Laying out pages...</span>
+    <span class="pp-gap"></span>
+    <label>Preview <select class="pp-fit" title="The size of the pages here (not on paper)">
+      <option value="page">Whole page</option><option value="width">Page width</option><option value="100">100%</option>
+    </select></label>
+  </div>
+  <div class="pp-scroll" tabindex="0"><div class="pp-zoom"><div class="pp-pages"></div></div></div>
+</div>
+<div class="pp-side">
+  <div class="pp-tabs">
+    <button type="button" data-tab="print" class="pp-on">Print</button>
+    <button type="button" data-tab="stored">Stored settings</button>
+  </div>
+  <div class="pp-panel pp-print-panel"></div>
+  <div class="pp-panel pp-stored-panel" hidden><div class="pp-stored"></div></div>
+  <div class="pp-foot">
+    <div class="pp-warn" hidden></div>
+    <div class="pp-name"></div>
+    <div class="pp-buttons pp-manage">
+      <button type="button" data-do="save" title="Under the name of the stored settings">Save</button>
+      <button type="button" data-do="saveAs" title="Under a new name">Save as...</button>
+      <button type="button" data-do="revert" title="Back to the stored settings or template these came from">Revert</button>
+      <button type="button" data-do="new" title="The settings from the start">New</button>
+    </div>
+    <div class="pp-buttons">
+      <button type="button" data-do="print" class="pp-primary" title="To the printer (Ctrl+Enter)">Print</button>
+      <button type="button" data-do="pdf" title="The same pages as a PDF file">Save as PDF...</button>
+      <span class="pp-gap"></span>
+      <button type="button" data-do="cancel" title="Close without printing (Esc)">Cancel</button>
+    </div>
+  </div>
+</div>
+<dialog class="pp-ask"><form method="dialog"><label class="pp-ask-label"></label><input class="pp-ask-input" spellcheck="false">
+  <div class="pp-buttons"><span class="pp-gap"></span><button value="ok" class="pp-primary">OK</button><button value="cancel" formnovalidate>Cancel</button></div></form></dialog>
+<script src="vendor/paged.min.js"></script>
+<script type="module" src="print.js"></script>
+</body>
+</html>

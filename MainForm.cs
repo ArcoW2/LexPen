@@ -27,7 +27,7 @@ sealed class MainForm : Form
     // Larger files are not opened.
     const long MaxFileSize = 10 * 1024 * 1024;
 
-    static readonly Dictionary<string, string> ImageTypes = new(StringComparer.OrdinalIgnoreCase)
+    internal static readonly Dictionary<string, string> ImageTypes = new(StringComparer.OrdinalIgnoreCase)
     {
         [".png"] = "image/png", [".jpg"] = "image/jpeg", [".jpeg"] = "image/jpeg",
         [".gif"] = "image/gif", [".svg"] = "image/svg+xml", [".webp"] = "image/webp",
@@ -82,6 +82,8 @@ sealed class MainForm : Form
         Font = new Font("Segoe UI", 11f),
     };
 
+    // The Print window open now (modal), for the page's later rendering of its text ("printRendered").
+    PrintForm? printing;
     // Messages for the page wait here until it has asked for "init".
     bool pageReady;
     readonly List<string> queue = [];
@@ -1069,6 +1071,22 @@ sealed class MainForm : Form
                     Sign = AskForm.Sign.Warning,
                     Buttons = ok is null ? [("yes", "Yes", null), (null, "No", null)] : [("yes", ok, null), (null, "Cancel", null)],
                 }) == "yes";
+            }
+
+            // File > Print... (PrintForm, docs/plans/executed/PLAN-printing.md): the Print window on what the page made to print.
+            case "print":
+            {
+                using var print = new PrintForm(app, this, msg["source"]!);
+                printing = print;
+                try { print.ShowDialog(this); }
+                finally { printing = null; }
+                return null;
+            }
+            // A text's rendering for the Print window open now (printsource.js), made after it opened.
+            case "printRendered":
+            {
+                printing?.Rendered(msg);
+                return null;
             }
 
             // The preview of a Replace in the Search panel (ReplacePreviewForm): the ids of the changes to make, or null.

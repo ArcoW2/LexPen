@@ -1,6 +1,6 @@
 # Plan: Printing and Save as PDF, with a preview
 
-Status: draft 2026-11-07, revised 2026-11-07; not started.
+Status: executed (2026-11-07); see 5. As built.
 The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
@@ -164,3 +164,47 @@ As the Sort panel's stored sorts (docs/plans/executed/PLAN-sort-lines.md):
 ## 4. Open questions
 
 None.
+
+## 5. As built
+
+- **Pages**: paged.js 0.4.3 (vendored, MIT) lays the document's view out in pages in the Print window, from a
+  stylesheet made from the options (@page size and margins, margin boxes for the header and footer, `float:
+  footnote` for notes at the bottom of the page). A PDF is laid out without it, a sheet per page: it is pages
+  already, and paged.js took minutes for a long one. Its pages are drawn when they come in view (150 dpi), and at
+  300 dpi before printing; the page size is read from the first page and corrected per page as it is drawn. A text
+  in lines (the Text view) is laid out without it too, a sheet at a time (layoutText): paged.js reads the whole
+  document before its first page, seconds for a large file and again on every change.
+- **Large documents (3.6)**: the first page shows at once and the others follow; the count line says which page is
+  being laid out. A change of an option ends a running layout at its next page (paged.js's own stop() only pauses)
+  and starts again from page 1. A text of 140,174 lines (7 MB): page 1 about 5.4 s after Print..., the window open
+  after 3.3 s (measured in the test copy); a PDF of 2,003 pages opened in 4 seconds. Rendering a code file as
+  markdown is made after the window opened, so it does not hold up the text.
+- **What it prints (3.1)**: the main window makes it (printsource.js): the text in lines with the editor's colouring
+  (runMode), markdown rendered as the preview renders it (renderNow's image, alert, formula and diagram steps are
+  now shared helpers in app.js: fixPreviewContent, renderMathAndDiagrams), a CSV as a table from its definition; a
+  highlight in rendered text or a table is found again by marks of Unicode's private area put into the text before
+  rendering. HTML files have no rendered view in LexPen's preview, so they print as text.
+- **Colours (3.4)**: every theme's colours for the languages used are sent along; another theme's own colours come
+  from the host (AppHost.ThemeVars). A page is dark when its background's luminance is below 0.35.
+- **Print (3.7)**: a set without printer settings of its own prints by WebView2's PrintAsync (printer, copies,
+  two-sided, colour); a set with them (Printer settings... was used) prints as page images at 300 dpi through .NET's
+  PrintDocument with the stored DEVMODE. Whether PrintAsync keeps a driver's own choices was not checked, so the
+  image path stays for those sets.
+- **Stored settings (3.5)**: also Delete in the right-click menu (not in the plan; without it a set could not be
+  removed).
+- **Tests**: PrintStoreTests (as SortStoreTests), PrintingTests (the printer list and a printer's papers read without
+  failing). In the test copy by script: markdown, text, a code file with a selection, a CSV, a slide PDF and a PDF
+  of 2,003 pages; highlights in every look, notes in every place (their numbers, the margin notes at their line's
+  height); black and white, another theme, the dark warning; the frame, the date; every page within its area; the
+  pages printed to a PDF (the same call as Save as PDF) with the preview's page count and size, and a page range;
+  the stored settings (save, change, revert, templates, rename, new); Print... from the Folder pane without a tab;
+  Esc; a running layout stopped by a change.
+- **Added after the first build (asked for while trying it)**: the fonts as lists with a sample; the view to print
+  (As) for every text, the default where Print... was chosen (editor: text, preview: rendered), a code file's
+  rendering as markdown made after the window opened; Text colour (language colouring or mono); line numbers every
+  line, every 10 lines or off; the highlights' colour, intensity and a dotted underline; the notes' size; the header
+  and footer as three texts each (left, middle, right) with codes ($F $A $P $T $D $M $$), **bold** and *italic*, a
+  date format of their own and a distance from the edge; a page range printed without waiting for the rest unless
+  $T is used; Monochrome shown in greys; the stored settings' list and buttons as the Sort's.
+- **Not tested**: printing on a real printer, either path, and the printer's own dialog (Printer settings...): both
+  need a person at the printer (3.9, by hand).

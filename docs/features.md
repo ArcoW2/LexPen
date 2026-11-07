@@ -445,7 +445,20 @@ every action with its key.
 - **Preview zoom**: Ctrl+= / Ctrl+- / Ctrl+mouse wheel over a preview. The level shows at the right of the top
   bar (click it for 100%) and is kept.
 - **Safe by default**: a Content Security Policy blocks scripts embedded in a document's raw HTML.
-- **No printing**: there is no print command (also not in the right-click menu of the page).
+- **Print** (File > Print..., Ctrl+Shift+P; the Folder pane's right-click > Print... on a file, without opening it):
+  a window with the pages as they will come out and the options beside them. Text and code in lines (coloured, line
+  numbers), markdown rendered or as text, a CSV as its table or as text, a PDF's own pages (its images at a zoom:
+  auto, fit to width / height / page, a percentage); the whole document, the selected lines or pages (typed, or
+  clicked in the preview). Paper, orientation, margins (each side its own), a frame, a header and a footer (each a text at
+  the left, in the middle and at the right, with codes: $F the file name, $A with its path, $P the page, $T the
+  number of pages, $D the print date, $M the file date, in a date format of your own; **bold** and *italic*; without
+  $T a page range prints
+  without waiting for the rest), fonts and sizes, the colours (the theme as on screen, another theme, black and white,
+  greyscale; a dark page is warned about), the highlights (shaded, underlined, dotted, wavy, a box, bold; their colour and intensity) and their notes (a
+  number in the text; the notes in the left or right margin, at the bottom of the page, or at the end; their size). Print sends
+  it to the printer (its copies, two-sided and colour; Printer settings... opens the printer's own dialog, in step
+  with these options both ways); Save as PDF writes the same pages to a file. The settings come back the next time,
+  and can be stored by name, with templates, as the Sort's (Stored settings).
 - **No browser menu**: where LexPen has no right-click menu of its own, there is none; the browser's (Cut, Copy,
   Paste) only on a text field or a selection. The editor's and the preview's keep their Highlight items, panels never
   show them.

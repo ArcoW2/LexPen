@@ -69,6 +69,10 @@ Copy-Item "$m\pdfjs-dist\build\pdf.min.mjs", "$m\pdfjs-dist\build\pdf.worker.min
 foreach ($d in 'cmaps', 'standard_fonts', 'wasm', 'iccs') { Copy-Item "$m\pdfjs-dist\$d" "$out\pdfjs" -Recurse }
 Copy-Item "$m\pdfjs-dist\web\images" "$out\pdfjs" -Recurse
 
+# Printing (docs/plans/executed/PLAN-printing.md): paged.js lays the document out in pages in the Print window.
+Copy-Item "$m\pagedjs\dist\paged.min.js" $out
+Copy-Item "$m\pagedjs\LICENSE.md" "$out\paged.LICENSE.md"
+
 # Library versions, shown in the About window.
 $versions = [ordered]@{}
 foreach ($name in (Get-Content (Join-Path $PSScriptRoot 'package.json') -Raw | ConvertFrom-Json).dependencies.PSObject.Properties.Name) {

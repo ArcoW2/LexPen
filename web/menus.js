@@ -29,6 +29,7 @@ const MENUS = [
     ['&Save', 'save'], ['Save &as...', 'saveAs'], ['Revert to save&d', 'revertToSaved'],
     { label: 'Cop&y name to Windows clipboard', fill: () => copyNameItems(), enabled: () => !!activeDoc()?.path },   // app.js, plan 37
     ['Rena&me...', 'file.rename'], '-',
+    ['&Print...', 'print'], '-',
     ['Close &tab', 'closeTab'], ['Close a&ll tabs', 'closeAllTabs'], ['Reopen closed ta&b', 'reopenTab'], '-',
     { label: 'Close &window', action: 'closeWindow', key: 'Alt+F4' },   // Windows' own key: the window closes as by its X
   ]],
