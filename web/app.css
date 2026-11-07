@@ -499,8 +499,18 @@ body[data-sort-desc] .mm-sort-dir::before { content: "\2193"; }
    hidden with the Known toggle. */
 .mm-other { color: var(--fg-dim); }
 body[data-tree=known] .mm-other { display: none; }
-.mm-known-only { font-size: calc(11px * var(--ui-scale)); font-weight: 600; }
-.mm-known-only.mm-on { background: var(--active); color: var(--accent); }
+.mm-tree-toggle { font-size: calc(11px * var(--ui-scale)); font-weight: 600; }
+.mm-tree-toggle.mm-on { background: var(--active); color: var(--accent); }
+/* The head: the sort and the toggles beside the folder's name while they fit (it keeps a few letters), else View, a
+   menu with the same (folder-pane.js fitHead). */
+.mm-tree-wide { display: flex; align-items: center; flex: none; }
+.mm-tree-head:not(.mm-compact) .mm-tree-title { min-width: 10ch; }
+.mm-tree-view { display: none; flex: none; font-size: calc(11px * var(--ui-scale)); }
+.mm-tree-head.mm-compact .mm-tree-wide { display: none; }
+.mm-tree-head.mm-compact .mm-tree-view { display: inline-block; }
+/* View > Size: each file's size after its name. */
+.mm-size { display: none; flex: none; margin-left: 8px; color: var(--fg-dim); font-size: calc(11px * var(--ui-scale)); padding-top: 1px; }
+body[data-sizes] .mm-size { display: inline; }
 
 /* Git status, like VS Code: colored name plus a letter (files) or a dot (folders with changes inside). */
 .mm-row[data-git]::after { content: attr(data-git); flex: none; margin-left: 6px; font-weight: 600; }
@@ -710,6 +720,9 @@ body[data-tab-bar=menu] .mm-tabs { overflow-x: hidden; }
 .mm-pane-menu button:hover { background: none; }
 .mm-pane-menu button:focus { background: var(--hover); }
 .mm-pane-menu-sep { border: 0; border-top: 1px solid var(--border); margin: 4px 0; }
+.mm-pane-menu-head { padding: 4px 12px 2px; font-size: calc(11px * var(--ui-scale)); font-weight: 600; letter-spacing: .04em;
+  text-transform: uppercase; color: var(--fg-dim); }
+.mm-pane-menu-head:not(:first-child) { margin-top: 4px; border-top: 1px solid var(--border); }
 .mm-outline-list { flex: 1; overflow: auto; padding: 8px 0 40px; user-select: none; }
 .mm-outline-item {
   padding: 3px 8px; color: var(--fg-dim); cursor: pointer;

@@ -498,23 +498,30 @@ for (const [name, title, hint, run] of [
 // or its window of its own open (the host knows: toolWindowsOpen). Choosing one hides it when shown (docked: hidden;
 // floating: its window closed, as by hand), else shows it as it was last through its own action (docked where it was,
 // a tab beside what is there, or its window). Below them the window's dock areas, open or closed, and Reset docking.
+// In groups by subject, each under a dimmed heading, the most used first (docs/plans/executed/PLAN-panels-menu-order.md); a
+// new panel joins the group of its subject. No two items of the menu share a letter (PanelsMenuTests).
 const PANELS = [
+  { header: 'Files and finding' },
   ['&Folder', 'folder', () => runAction('folders')],
   ['&Search', 'search', () => runAction('searchView')],
-  ['&Outline', 'outline', () => runAction('outline.toggle')],
-  ['&Characters', 'chars', () => runAction('insertCharacter')],
-  ['&Highlights', 'hls', () => runAction('highlight.list')],
   ['&Bookmarks', 'bm', () => runAction('bookmarks.pane')],
+  { header: 'The document' },
+  ['&Outline', 'outline', () => runAction('outline.toggle')],
+  ['&Highlights', 'hls', () => runAction('highlight.list')],
   ['Col&umns (CSV)', 'cols', () => runAction('csv.columns')],
-  ['So&rt', 'sort', () => runAction('edit.sortWindow')],
-  ['Step b&y step', 'step', () => showStepPane()],
-  ['&Messages', 'messages', () => runAction('messages')],
-  ['C&lipboards', 'clips', () => runAction('clipboards.pane')],
+  { header: 'Editing' },
+  ['&Characters', 'chars', () => runAction('insertCharacter')],
+  ['Cl&ipboards', 'clips', () => runAction('clipboards.pane')],
+  ['Sor&t', 'sort', () => runAction('edit.sortWindow')],
+  { header: 'Macros' },
   ['M&acros', 'macros', () => runAction('macro.manage')],
+  ['Step b&y step', 'step', () => showStepPane()],
+  { header: 'LexPen' },
+  ['Setti&ngs', 'settings', () => runAction('settings')],
   ['&Keyboard shortcuts and commands', 'commands', () => runAction('commands')],
-  ['Se&ttings', 'settings', () => runAction('settings')],
-  ['Manage &projects', 'projects', () => openToolPane('projects', 'openProjects')],
+  ['Messa&ges', 'messages', () => runAction('messages')],
   ['Th&eme sets', 'themesets', () => openToolPane('themesets', 'openThemeSetsWindow')],
+  ['Manage &projects', 'projects', () => openToolPane('projects', 'openProjects')],   // also Window > Projects
 ];
 // A kind's panes: the window's and each editor pane's own (Outline: the editor panes' own and the window's).
 const panelIds = kind => [kind === 'outline' ? 'outline:w' : kind, ...panes.map(p => `${kind}:${p.index}`)].filter(id => dockPanes.has(id));
@@ -559,7 +566,7 @@ function showStepPane() {
 
 async function panelItems() {
   const open = await host('toolWindowsOpen').catch(() => []), m = dockModel();
-  return [...PANELS.map(([label, kind, run]) => ({ label, checked: panelShown(kind, open), plain: false, run: () => togglePanel(kind, run, open) })),
+  return [...PANELS.map(p => p.header ? p : { label: p[0], checked: panelShown(p[1], open), plain: false, run: () => togglePanel(p[1], p[2], open) }),
     '-',
     ...[['Dock area at the &left', 'left'], ['Dock area at the &right', 'right'], ['Dock area at the botto&m', 'bottom']].map(([label, key]) =>
       ({ label, checked: dockOpen(m, key), run: () => toggleDock(key) })),

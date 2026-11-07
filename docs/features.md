@@ -272,7 +272,8 @@ every action with its key.
   own. Back in the window puts it at the pane it shows; closing it just closes it. A language without an outline
   (JSON, for example) greys out the pane's button and hides its outline; a floating one stays open, empty.
 - **Locate the cursor**: a short tap on Ctrl alone shows rings, in the find box's colour, shrinking onto every cursor,
-  in both panes when two show (side by side, a compare); a cursor out of view gets a marker at that edge (top: higher, bottom: lower) with its line number, several in one
+  in the editor and in the preview (its own cursor; not in a PDF), in both panes when two show (side by side, a
+  compare); a cursor out of view gets a marker at that edge (top: higher, bottom: lower) with its line number, several in one
   direction one marker with the count. A double tap scrolls to the cursor first (setting, off by default). Also View >
   Locate the cursor; settings in Editor view > Locate the cursor (on / off, the longest tap).
 - **Ctrl+Tab / Ctrl+Shift+Tab**: the next / previous tab in tab bar order; after the last tab of a pane on to the first
@@ -509,8 +510,8 @@ every action with its key.
 - **Preview place**: per editor pane the preview at the right of the text, at its left, above or below it (View >
   Preview place, or a right-click on the line between text and preview); kept with the window's layout.
 - **View > Panels**: every panel with a check when it is shown; choosing one shows it as it was last (it flashes a few times where it opened: docked its group, floating its
-  window's title bar) or hides it;
-  the dock areas open or closed; Reset docking. View > Document panels: Editor and Preview.
+  window's title bar) or hides it. The panels in groups under a dimmed heading: Files and finding, The document,
+  Editing, Macros, LexPen; then the dock areas open or closed; Reset docking. View > Document panels: Editor and Preview.
 - **Dock tab bars**: tabs that do not fit wrap over several rows or scroll in one row (setting dockTabBar); a tab
   dragged onto a head goes between the tabs where it is let go; the setting dockTabIntensity sets the contrast of the
   tab bars' colours.
@@ -542,12 +543,15 @@ every action with its key.
   Groups stacked at a side have a roll-up button (as high as their tabs; shown again, rolled down).
   Ctrl+Shift+B opens and closes the left area; View: Dock area left / right / bottom. Kept per window, floating
   panes too (they float again when the window opens).
-- **Folder pane** (Ctrl+Shift+E): browse all files in a folder, sorted by name or modified time. The `..` row
+- **Folder pane** (Ctrl+Shift+E): browse all files in a folder, sorted by modified time, name, extension or size, up or down (folders first). The `..` row
   (Alt+Up, Backspace) goes up a folder; F2 renames the file or folder. Ctrl+Shift+E (or a click) gives it the keyboard: arrows, Home/End,
   PgUp/PgDn, Enter (Shift+Enter: new tab, Ctrl+Enter: other pane, Ctrl+Shift+Enter: new tab there), Esc back to
-  the document (hidden files, dot folders and `node_modules` are skipped), with git status markers (modified,
+  the document (hidden files, dot folders and `node_modules` are skipped; **Hidden** shows the hidden and dot ones,
+  `node_modules` still not), with git status markers (modified,
   added, untracked, deleted, renamed, conflict) when the folder is in a repository. File types no language pack
-  knows are dimmed; the **Known** button in the sidebar header hides them (folders stay).
+  knows are dimmed; the **Known** button in the sidebar header hides them (folders stay). **Size** shows each file's
+  size after its name. In a narrow pane these are in **View**, a menu: Filter (Known files, Hidden folders / files),
+  View (Size), Order (Modified, Name, Extension, Size; Up, Down).
   Right-click a file or folder to copy its absolute path, or its path relative to the open folder. Right-click >
   Float the folder pane in a window of its own: the same tree in a window of its own (another monitor too), titled
   with its folder (also from its tab's right-click menu); Back in the window (its right-click menu) or closing it puts

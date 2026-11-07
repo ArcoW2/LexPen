@@ -1,6 +1,6 @@
 # Plan: Order and groups in the Panels menu
 
-Status: draft 2026-11-07, questions answered 2026-11-07; not started.
+Status: executed (2026-11-07); see 5. As built.
 The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
@@ -57,3 +57,14 @@ subject. No submenus: Panels is a submenu already, and plan 25 allows one level 
 2. Manage projects: both, in the LexPen group and in Window > Projects.
 3. Messages: with LexPen; it can report on anything.
 4. Sort: in Editing, next to its menu item under Edit.
+
+## 5. As built
+
+- `PANELS` in docks.js holds the groups as in 3.1, each after a `{ header }` entry; panelItems passes the headings
+  through, and the menu (menus.js) already draws `{ header }` dimmed and skips it with the arrow keys and letters.
+- Letters changed where they clashed with the dock area items (left, right, bottom): Cl&ipboards, Sor&t,
+  Messa&ges; Settings became Setti&ngs to free T for Sort.
+- Manage projects stays in Window > Projects as well (it was there already).
+- Tests: PanelsMenuTests (no two items of the menu share a letter; each heading is followed by panels). Checked in
+  the test copy by script: the menu as in 3.1, the first item selected, Down from Columns (CSV) goes to Characters.
+- With many panels the menu can be taller than a small window; it then scrolls, as any long menu.
