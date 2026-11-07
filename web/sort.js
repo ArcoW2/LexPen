@@ -11,17 +11,22 @@
 const SORT_COLOURS = ['var(--accent)', 'var(--tip)', 'var(--important)', 'var(--caution)', 'var(--warning)', 'var(--find-current)', 'var(--find-box)'];
 const sortColour = i => SORT_COLOURS[i % SORT_COLOURS.length];
 const SORT_NUMBER = /^\s*[+-]?(\d+\.?\d*|\.\d+)\s*$/;
+// With case not ignored, the order of capitals and small letters (stated for A to Z): paired per letter, or each
+// case as a group.
+const SORT_CASE_ORDERS = ['AaBbCc', 'aAbBcC', 'ABCabc', 'abcABC'];
 
 // A sort: As text (keys: From / To, 1-based, To null: to the end) or By columns (columns: a header name and a
 // 0-based index); each key its own direction; the options for all keys.
 const sortDefault = () => ({ kind: 'text', keys: [{ from: 1, to: null, desc: false }], columns: [{ name: null, index: 0, desc: false }],
-  ignoreCase: true, upperFirst: true, numeric: false, dups: false, dupsWhole: false, dupsTrim: false, empty: false });
+  ignoreCase: true, caseOrder: 'AaBbCc', numeric: false, decimal: '.', numIgnore: ', ', dups: false, dupsWhole: false, dupsTrim: false, empty: false });
 const sortCopy = spec => JSON.parse(JSON.stringify(spec));
 // A stored or remembered sort completed with what it lacks (an older or hand-made one).
 function sortFill(spec) {
   const out = { ...sortDefault(), ...(spec ?? {}) };
   if (!Array.isArray(out.keys) || !out.keys.length) out.keys = sortDefault().keys;
   if (!Array.isArray(out.columns) || !out.columns.length) out.columns = sortDefault().columns;
+  if (!SORT_CASE_ORDERS.includes(spec?.caseOrder)) out.caseOrder = spec?.upperFirst === false ? 'aAbBcC' : 'AaBbCc';
+  delete out.upperFirst;
   return out;
 }
 
@@ -40,9 +45,40 @@ function visualText(text, stops) {
 
 // Two keys' texts compared by the options: the user's language, case ignored or which case first, numbers by value.
 function sortComparer(spec) {
-  const coll = new Intl.Collator(undefined, { numeric: !!spec.numeric, sensitivity: spec.ignoreCase ? 'accent' : 'variant',
-    caseFirst: spec.ignoreCase ? 'false' : spec.upperFirst ? 'upper' : 'lower' });
-  return (a, b) => spec.numeric && SORT_NUMBER.test(a) && SORT_NUMBER.test(b) ? Number(a) - Number(b) || coll.compare(a, b) : coll.compare(a, b);
+  const order = spec.ignoreCase ? null : spec.caseOrder;
+  const coll = new Intl.Collator(undefined, { numeric: !!spec.numeric, sensitivity: order ? 'variant' : 'accent',
+    caseFirst: !order ? 'false' : order[0] === 'A' ? 'upper' : 'lower' });
+  const text = order === 'ABCabc' || order === 'abcABC' ? sortGrouped(coll, order[0] === 'A', !!spec.numeric) : coll.compare;
+  if (!spec.numeric) return text;
+  return (a, b) => { const x = sortNumberOf(spec, a), y = sortNumberOf(spec, b); return isNaN(x) || isNaN(y) ? text(a, b) : x - y || text(a, b); };
+}
+
+// A key's text as a number by the options (its decimal sign, the characters ignored, such as a thousands
+// separator), else NaN; a point that is neither makes it no number.
+function sortNumberOf(spec, s) {
+  const dec = spec.decimal || '.', skip = spec.numIgnore ?? '';
+  let t = '';
+  for (const c of s) t += c === dec ? '.' : skip.includes(c) ? '' : c === '.' ? 'x' : c;
+  return SORT_NUMBER.test(t) ? Number(t) : NaN;
+}
+
+// Capitals as a group before (or after) the small letters: compared position by position, a capital against a small
+// letter by its case alone, anything else by the collator (a run of digits as one part with Numbers by value).
+function sortGrouped(coll, upperFirst, numeric) {
+  const part = numeric ? /\d+|[^]/gu : /[^]/gu;
+  const rank = c => c !== c.toLocaleLowerCase() ? 0 : c !== c.toLocaleUpperCase() ? 1 : -1;
+  return (a, b) => {
+    const pa = a.match(part) ?? [], pb = b.match(part) ?? [];
+    for (let i = 0; i < Math.min(pa.length, pb.length); i++) {
+      const x = pa[i], y = pb[i];
+      if (x === y) continue;
+      const rx = rank(x), ry = rank(y);
+      if (rx >= 0 && ry >= 0 && rx !== ry) return upperFirst ? rx - ry : ry - rx;
+      const d = coll.compare(x, y);
+      if (d) return d;
+    }
+    return pa.length - pb.length || coll.compare(a, b);
+  };
 }
 
 // What duplicates are compared by: trimmed when asked, case folded when ignored.
@@ -445,9 +481,10 @@ async function fromSortPane(m) {
         spec.keys[k][f] = v === '' ? (f === 'to' ? null : NaN) : /^\d+$/.test(v) ? +v : NaN;
         return sortChanged(false);
       }
+      if (f === 'decimal' || f === 'numIgnore') { spec[f] = String(value); return sortChanged(false); }
       if (f === 'kind') { spec.kind = value; sortUi.focusKey = 0; sortChanged(); return sortRedrawRuler(); }
       if (f === 'desc') list[k].desc = !!value;
-      else if (f === 'upperFirst') spec.upperFirst = !!value;
+      else if (f === 'caseOrder') spec.caseOrder = value;
       else if (f === 'column') {
         const read = csvRead(docText(activeDoc()).replace(/\r\n?/g, '\n'), activeDoc().csvDef), c = +value;
         spec.columns[k] = { ...spec.columns[k], index: c, name: read.names?.[c] ?? null };

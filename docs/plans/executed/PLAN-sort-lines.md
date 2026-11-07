@@ -240,6 +240,13 @@ None.
   field (there Delete edits the number).
 - **The preview** sorts the whole target on each change (a moment after the last one), not only the first lines.
 - **A CSV selection** is widened in the editor; the column view does not mark the records.
+- **Case order** (your answer after the build, 2026-11-07): with Ignore case off, four orders instead of B before b
+  / b before B: **AaBbCc**, **aAbBcC** (paired per letter, the collator's `caseFirst`), **ABCabc**, **abcABC** (each
+  case as a group: compared position by position, a capital against a small letter by its case alone). Stated for A
+  to Z; Z to A turns it round. A stored sort with the old choice gets AaBbCc or aAbBcC.
+- **Numbers by value** (your answer after the build, 2026-11-07) has a decimal sign (default `.`) and characters to
+  ignore (default comma and space, so `1,234.5` and `12 000` are numbers); a point that is neither makes the key no
+  number. It applies to a key that is a number as a whole; digits inside text still sort naturally.
 - **Tests**: the store by unit tests (`SortStoreTests`); the sort itself (text, keys, case, numbers, duplicates, empty
   lines, blocks with short rows, CSV by type with empty and invalid fields, quoted line breaks, the header) and the
   panel (open on a partial selection, keys typed, moved, deleted, the ruler marks, the target following the editor,

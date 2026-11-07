@@ -67,14 +67,17 @@ function draw() {
     : `<label>From <input class="sp-col" data-f="from" data-k="${i}" value="${Number.isFinite(key.from) ? key.from : ''}"></label>` +
       `<label>To <input class="sp-col" data-f="to" data-k="${i}" value="${key.to ?? ''}" placeholder="end"></label>`) + dir(key, i) + del(i) + '</div>').join('');
   const firstDesc = list[0]?.desc;
-  const caseChoice = spec.ignoreCase ? '' : '<div class="sp-sub">' +
-    `<label title="Stated for A to Z; Z to A turns it round"><input type="radio" name="sp-upper" data-f="upperFirst" value="1"${spec.upperFirst ? ' checked' : ''}> B before b <span class="sp-dim">(${firstDesc ? 'Z to A: b B' : 'A to Z: B b'})</span></label>` +
-    `<label title="Stated for A to Z; Z to A turns it round"><input type="radio" name="sp-upper" data-f="upperFirst" value=""${spec.upperFirst ? '' : ' checked'}> b before B <span class="sp-dim">(${firstDesc ? 'Z to A: B b' : 'A to Z: b B'})</span></label></div>`;
+  const caseChoice = spec.ignoreCase ? '' : '<div class="sp-sub">' + ['AaBbCc', 'aAbBcC', 'ABCabc', 'abcABC'].map(o =>
+    `<label title="Stated for A to Z; Z to A turns it round"><input type="radio" name="sp-case" data-f="caseOrder" value="${o}"${spec.caseOrder === o ? ' checked' : ''}> ${o}` +
+    (firstDesc ? ` <span class="sp-dim">(Z to A: ${[...o].reverse().join('')})</span>` : '') + '</label>').join('') + '</div>';
   const unit = columns ? 'record' : 'line';
   const check = (f, label, title = '') => `<label${title ? ` title="${esc(title)}"` : ''}><input type="checkbox" data-f="${f}"${spec[f] ? ' checked' : ''}> ${label}</label>`;
   body.innerHTML = kind + `<div class="sp-keys">${rows}</div><div><button type="button" data-do="add">${columns ? 'Add a column' : 'Add a key'}</button></div>` +
     '<div class="sp-options">' + check('ignoreCase', 'Ignore case') + caseChoice +
     check('numeric', 'Numbers by value', 'file2 before file10; a key that is a number by its value') +
+    (spec.numeric ? '<div class="sp-sub">' +
+      `<label title="The sign between the whole number and its fraction">Decimal sign <input class="sp-col" data-f="decimal" maxlength="1" value="${esc(spec.decimal)}"></label>` +
+      `<label title="Characters skipped in a number, such as the thousands separator (a space too)">Ignore <input class="sp-col" data-f="numIgnore" value="${esc(spec.numIgnore)}"></label></div>` : '') +
     check('dups', 'Remove duplicates', 'The first one stays') +
     (spec.dups ? `<div class="sp-sub">${check('dupsWhole', `By the whole ${unit}`, 'Else by the keys')}${check('dupsTrim', 'Ignore leading and trailing whitespace')}</div>` : '') +
     check('empty', `Remove empty ${unit}s`, 'Whitespace only counts as empty') + '</div>' +
@@ -87,11 +90,11 @@ function draw() {
 // ---------- What is done here ----------
 document.addEventListener('input', e => {
   const el = e.target;
-  if (el.dataset.f === 'from' || el.dataset.f === 'to') toWindow({ kind: 'set', f: el.dataset.f, k: +el.dataset.k, value: el.value });
+  if (['from', 'to', 'decimal', 'numIgnore'].includes(el.dataset.f)) toWindow({ kind: 'set', f: el.dataset.f, k: +el.dataset.k, value: el.value });
 });
 document.addEventListener('change', e => {
   const el = e.target, f = el.dataset.f;
-  if (!f || f === 'from' || f === 'to') return;
+  if (!f || ['from', 'to', 'decimal', 'numIgnore'].includes(f)) return;
   toWindow({ kind: 'set', f, k: el.dataset.k === undefined ? null : +el.dataset.k, value: el.type === 'checkbox' ? el.checked : el.value });
 });
 document.addEventListener('focusin', e => {
