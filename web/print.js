@@ -55,15 +55,18 @@ const pp = {
 
 // The view a document prints as: rendered markdown or its text, a CSV's table or its text; a PDF its pages.
 // Today in a date format as Windows writes them (d M y: day, month, year; dd MM: two digits; ddd dddd MMM MMMM:
-// the names, short and long; yy yyyy; text in quotes as it is). Empty: the Windows short date.
-const DATE_HELP = "d, dd: day; ddd, dddd: day name; M, MM: month; MMM, MMMM: month name; yy, yyyy: year; text in single quotes as it is. Empty: as Windows writes the date";
+// the names, short and long; yy yyyy; text in quotes or a character after \ as it is, '' an apostrophe). Empty: the
+// Windows short date.
+const DATE_HELP = "d, dd: day; ddd, dddd: day name; M, MM: month; MMM, MMMM: month name; yy, yyyy: year; text in single quotes, or one character after a backslash, as it is; two single quotes: an apostrophe. Empty: as Windows writes the date";
 function dateText(format) {
   const now = new Date(), name = opts => new Intl.DateTimeFormat(pp.culture || undefined, opts).format(now);
   const two = n => String(n).padStart(2, '0');
   const parts = { dddd: () => name({ weekday: 'long' }), ddd: () => name({ weekday: 'short' }), dd: () => two(now.getDate()), d: () => String(now.getDate()),
     MMMM: () => name({ month: 'long' }), MMM: () => name({ month: 'short' }), MM: () => two(now.getMonth() + 1), M: () => String(now.getMonth() + 1),
     yyyy: () => String(now.getFullYear()), yy: () => two(now.getFullYear() % 100) };
-  return (format || pp.datePattern || 'd-M-yyyy').replace(/dddd|ddd|dd|d|MMMM|MMM|MM|M|yyyy|yy|'[^']*'/g, t => t[0] === "'" ? t.slice(1, -1) : parts[t]());
+  // As Windows reads them: \x one character as it is, '' an apostrophe, 'text' as it is.
+  return (format || pp.datePattern || 'd-M-yyyy').replace(/\\.|''|'[^']*'|dddd|ddd|dd|d|MMMM|MMM|MM|M|yyyy|yy/g,
+    t => t[0] === '\\' ? t[1] : t === "''" ? "'" : t[0] === "'" ? t.slice(1, -1) : parts[t]());
 }
 
 // Settings stored before the header and footer had their own lines: "Page x of y" (headPages) was the footer's.
