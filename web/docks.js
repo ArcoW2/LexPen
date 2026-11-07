@@ -506,6 +506,7 @@ const PANELS = [
   ['&Highlights', 'hls', () => runAction('highlight.list')],
   ['&Bookmarks', 'bm', () => runAction('bookmarks.pane')],
   ['Col&umns (CSV)', 'cols', () => runAction('csv.columns')],
+  ['So&rt', 'sort', () => runAction('edit.sortWindow')],
   ['Step b&y step', 'step', () => showStepPane()],
   ['&Messages', 'messages', () => runAction('messages')],
   ['C&lipboards', 'clips', () => runAction('clipboards.pane')],

@@ -1,10 +1,11 @@
 'use strict';
-// Sort (docs/plans/executed/PLAN-sort-lines.md): Edit > Sort... opens a window in the page with the sort at hand (its
-// keys, its options, a live preview) and the stored sorts (SortStore, sorts.json, through the host). It sorts the
-// selection widened to whole lines, a block's part of its lines, else the whole file; a CSV by its columns or as
-// text. While it is open the ruler shows each key's From and To as lines in the key's colour with its number
-// (ruler.js asks sortRulerWanted and sortMarks). edit.sort, edit.sortAsc and edit.sortDesc sort at once, optionally
-// by a stored sort's name. Loaded after app.js and csvview.js.
+// Sort (docs/plans/executed/PLAN-sort-lines.md): Edit > Sort... shows the Sort panel (sort.html: the sort at hand, its
+// keys, its options, a live preview; the stored sorts: SortStore, sorts.json, through the host), docked or floating as
+// the other panels. It sorts the selection widened to whole lines, a block's part of its lines, else the whole file;
+// a CSV by its columns or as text. While the panel is shown the ruler shows each key's From and To as lines in the
+// key's colour with its number (ruler.js asks sortRulerWanted and sortMarks). edit.sort, edit.sortAsc and
+// edit.sortDesc sort at once, optionally by a stored sort's name. Loaded after app.js and csvview.js; registered with
+// the other panels (registerDockPanes).
 
 // The keys' colours by their place in the list (the colour says the order); ruler.js's theme colours.
 const SORT_COLOURS = ['var(--accent)', 'var(--tip)', 'var(--important)', 'var(--caution)', 'var(--warning)', 'var(--find-current)', 'var(--find-box)'];
@@ -242,8 +243,8 @@ async function sortNow(name, direction = null) {
   await sortApply(sortTarget(pane, doc), spec);
 }
 
-appAction('edit.sortWindow', { title: 'Sort...', hint: 'The sort window: keys (From / To, or a CSV\'s columns), options, a preview; stored sorts', group: 'edit',
-  enabled: () => !!activeDoc(), run: () => openSortWindow() });
+appAction('edit.sortWindow', { title: 'Sort...', hint: 'The Sort panel: keys (From / To, or a CSV\'s columns), options, a preview; stored sorts', group: 'edit',
+  enabled: () => !!activeDoc(), run: () => openSortPane() });
 appAction('edit.sort', { title: 'Sort', hint: 'Sorts the selected lines (a block: its part; nothing selected: the file) at once; with a stored sort\'s name: that sort',
   group: 'edit', enabled: () => !!activeDoc(), run: ([name] = []) => sortNow(name) });
 appAction('edit.sortAsc', { title: 'Sort ascending', hint: 'As Sort, every key A to Z (also a stored sort\'s, with its name)', group: 'edit',
@@ -251,9 +252,16 @@ appAction('edit.sortAsc', { title: 'Sort ascending', hint: 'As Sort, every key A
 appAction('edit.sortDesc', { title: 'Sort descending', hint: 'As Sort, every key Z to A (also a stored sort\'s, with its name)', group: 'edit',
   enabled: () => !!activeDoc(), run: ([name] = []) => sortNow(name, 'desc') });
 
-// ---------- The window ----------
-const sortUi = { open: false, box: null, spec: null, target: null, name: null, changed: false, focusKey: 0, ruler: null };
-const sortRulerWanted = () => sortUi.open && sortUi.spec?.kind === 'text';
+// ---------- The panel (sort.html, sort-pane.js) ----------
+// A panel as the others (View > Panels): docked in the window's dock areas (at the right the first time) or floating;
+// hidden at first. It serves the active document: what it sorts (the selection, a block, the file) follows the
+// editor, and the preview with it. While it is shown, the ruler shows a text sort's keys. The page shows what is sent
+// here (sortState) and tells what is done there (fromSortPane).
+let sortChannel = null, sortView = null;
+const sortUi = { spec: null, doc: null, name: null, changed: false, focusKey: 0, page: 'sort', list: [], storedAt: 0, timer: 0, target: null };
+const sortShown = () => !!sortChannel && (sortChannel.floating || !!sortView?.offsetParent);
+const sortRulerWanted = () => sortShown() && sortUi.spec?.kind === 'text';
+const sortList = () => sortUi.spec.kind === 'columns' ? sortUi.spec.columns : sortUi.spec.keys;
 
 // The marks on the ruler and in the text for an editor pane: [{ col (a boundary, visual columns from 0), colour,
 // num, side ('from' | 'to' | 'one'), strong }].
@@ -285,66 +293,25 @@ function sortTextOn(colour) {
 }
 
 function sortRedrawRuler() {
-  applyRuler();   // shown while the window is open (rulerShown), hidden again after
+  applyRuler();   // shown while the panel is (rulerShown), hidden again after
   for (const pane of panes) if (pane.cm) drawRuler(pane);
 }
 
 // The key columns' headers in the CSV column view, in their keys' colours with their numbers.
 function sortMarkCsvHeads() {
-  for (const el of document.querySelectorAll('.mm-sort-head')) { el.classList.remove('mm-sort-head'); el.style.removeProperty('--sort-colour'); delete el.dataset.sortNum; }
+  for (const el of document.querySelectorAll('.mm-sort-head')) { el.classList.remove('mm-sort-head'); el.style.removeProperty('--sort-colour'); el.style.removeProperty('--sort-text'); delete el.dataset.sortNum; }
   const t = sortUi.target;
-  if (!sortUi.open || sortUi.spec?.kind !== 'columns' || !sortIsCsv(t?.doc)) return;
+  if (!sortShown() || sortUi.spec?.kind !== 'columns' || !sortIsCsv(t?.doc)) return;
   const read = csvRead(docText(t.doc).replace(/\r\n?/g, '\n'), t.doc.csvDef);
   sortUi.spec.columns.forEach((k, i) => {
     const c = csvSortColumn(k, read);
     for (const el of document.querySelectorAll(`.mm-csv-head .mm-csv-cell[data-c="${c}"]`)) {
       el.classList.add('mm-sort-head');
       el.style.setProperty('--sort-colour', sortColour(i));
+      el.style.setProperty('--sort-text', sortTextOn(sortColour(i)));
       el.dataset.sortNum = (el.dataset.sortNum ? el.dataset.sortNum + ',' : '') + (i + 1);
     }
   });
-}
-
-async function openSortWindow() {
-  const doc = activeDoc(), tab = activeTab();
-  if (!doc || !tab) return;
-  if (!editable(tab)) return toast('This tab is read-only.');
-  if (doc.language === 'csv' && !doc.csvDef) await csvLoad(doc, docText(doc));
-  closeSortWindow(false);
-  const stored = await host('sorts').catch(() => null);
-  const target = sortTarget();
-  widenSelection(target);
-  Object.assign(sortUi, { open: true, target, name: null, changed: false, focusKey: 0, list: stored?.list ?? [] });
-  sortUi.spec = sortFill(stored?.last);
-  sortUi.spec.kind = sortIsCsv(doc) ? 'columns' : 'text';   // a CSV by its columns first (As text one click away)
-  const box = sortUi.box = document.createElement('div');
-  box.className = 'mm-sort-box';
-  document.body.append(box);
-  sortDraw('sort');
-  sortPlace();
-  sortEvents(box);
-  sortRedrawRuler();
-  box.querySelector('[data-f]')?.focus();
-}
-
-function closeSortWindow(focus = true) {
-  if (!sortUi.box) return;
-  clearTimeout(sortUi.timer);
-  sortUi.box.remove();
-  Object.assign(sortUi, { open: false, box: null });
-  sortMarkCsvHeads();
-  sortRedrawRuler();
-  if (focus) focusPane(panes[state.activePane]);
-}
-
-// Next to the editor's right edge, at the top; dragged by its title, kept for the next time.
-let sortBoxAt = null;
-function sortPlace(at = sortBoxAt) {
-  const box = sortUi.box, w = box.offsetWidth, h = box.offsetHeight;
-  const area = (paneOf(activeTab())?.el ?? document.body).getBoundingClientRect();
-  const left = at?.left ?? area.right - w - 24, top = at?.top ?? area.top + 40;
-  box.style.left = Math.max(4, Math.min(left, innerWidth - w - 4)) + 'px';
-  box.style.top = Math.max(4, Math.min(top, innerHeight - h - 4)) + 'px';
 }
 
 // What the target is, in words.
@@ -362,93 +329,13 @@ function sortDescription(spec) {
 }
 
 const sortEsc = s => escapeHtml(String(s ?? ''));
-const sortGrip = '<svg viewBox="0 0 8 14" width="8" height="14" fill="currentColor"><circle cx="2" cy="3" r="1.2"/><circle cx="6" cy="3" r="1.2"/><circle cx="2" cy="7" r="1.2"/><circle cx="6" cy="7" r="1.2"/><circle cx="2" cy="11" r="1.2"/><circle cx="6" cy="11" r="1.2"/></svg>';
-
-// The window's content: the Sort tab or the Stored sorts tab.
-function sortDraw(page = sortUi.page ?? 'sort') {
-  sortUi.page = page;
-  const box = sortUi.box, spec = sortUi.spec, t = sortUi.target, csv = sortIsCsv(t.doc);
-  const head = `<div class="mm-sort-title">Sort <span class="mm-sort-dim">${sortEsc(sortTargetText(t))}</span></div>` +
-    `<div class="mm-sort-tabs"><button type="button" data-tab="sort"${page === 'sort' ? ' class="mm-on"' : ''}>Sort${sortUi.name ? `: ${sortEsc(sortUi.name)}${sortUi.changed ? ' (changed)' : ''}` : ''}</button>` +
-    `<button type="button" data-tab="stored"${page === 'stored' ? ' class="mm-on"' : ''}>Stored sorts</button></div>`;
-  if (page === 'stored') {
-    const items = sortUi.list.map((e, i) => {
-      const off = e.sort?.kind === 'columns' && !csv;
-      return `<div class="mm-sort-stored${i === sortUi.storedAt ? ' mm-sel' : ''}${off ? ' mm-off' : ''}" data-i="${i}" tabindex="-1"` +
-        `${off ? ' title="Sorts by columns: for a file with columns (CSV)"' : ''}><b>${sortEsc(e.name)}</b><span class="mm-sort-dim">${sortEsc(sortDescription(sortFill(e.sort)))}</span></div>`;
-    }).join('') || '<div class="mm-sort-dim mm-sort-none">No stored sorts yet: Save as... on the Sort tab stores one.</div>';
-    const sel = sortUi.list[sortUi.storedAt];
-    const off = sel && sel.sort?.kind === 'columns' && !csv;
-    box.innerHTML = head + `<div class="mm-sort-list" tabindex="0">${items}</div>` +
-      `<div class="mm-sort-bar"><button type="button" data-do="select"${sel && !off ? '' : ' disabled'}>Select</button>` +
-      `<button type="button" data-do="delete"${sel ? '' : ' disabled'}>Delete...</button><button type="button" data-do="cancel">Close</button></div>`;
-    return;
-  }
-  const kind = csv ? `<div class="mm-sort-kind"><label><input type="radio" name="mm-sort-kind" data-f="kind" value="columns"${spec.kind === 'columns' ? ' checked' : ''}> By columns</label>` +
-    `<label><input type="radio" name="mm-sort-kind" data-f="kind" value="text"${spec.kind === 'text' ? ' checked' : ''}> As text</label></div>` : '';
-  const dirSel = (k, i) => `<select data-f="desc" data-k="${i}" title="Direction"><option value=""${k.desc ? '' : ' selected'}>A to Z</option><option value="1"${k.desc ? ' selected' : ''}>Z to A</option></select>`;
-  const one = (spec.kind === 'columns' ? spec.columns : spec.keys).length === 1;
-  const mark = i => `<span class="mm-sort-grip" draggable="true" tabindex="0" title="Drag to change the order (also Alt+Up / Alt+Down); Delete removes the key">${sortGrip}</span>` +
-    `<span class="mm-sort-num" style="background:${sortColour(i)};color:${sortTextOn(sortColour(i))}">${i + 1}</span>`;
-  const del = i => `<button type="button" class="mm-sort-del" data-do="del" data-k="${i}" title="Delete this key"${one ? ' disabled' : ''}>x</button>`;
-  let rows;
-  if (spec.kind === 'columns') {
-    const read = csvRead(docText(t.doc).replace(/\r\n?/g, '\n'), t.doc.csvDef);
-    const names = Array.from({ length: read.columns }, (_, c) => csvName(read, t.doc.csvDef, c));
-    rows = spec.columns.map((k, i) => {
-      const c = csvSortColumn(k, read);
-      return `<div class="mm-sort-key" data-k="${i}">${mark(i)}<select data-f="column" data-k="${i}">` +
-        (c < 0 ? `<option value="" selected>${sortEsc(k.name ?? `Column ${k.index + 1}`)} (not in this file)</option>` : '') +
-        names.map((n, j) => `<option value="${j}"${j === c ? ' selected' : ''}>${sortEsc(n)}</option>`).join('') + `</select>${dirSel(k, i)}${del(i)}</div>`;
-    }).join('');
-  } else rows = spec.keys.map((k, i) => `<div class="mm-sort-key" data-k="${i}">${mark(i)}` +
-    `<label>From <input class="mm-sort-col" data-f="from" data-k="${i}" value="${k.from ?? ''}"></label>` +
-    `<label>To <input class="mm-sort-col" data-f="to" data-k="${i}" value="${k.to ?? ''}" placeholder="end"></label>${dirSel(k, i)}${del(i)}</div>`).join('');
-  const firstDesc = (spec.kind === 'columns' ? spec.columns : spec.keys)[0]?.desc;
-  const caseChoice = spec.ignoreCase ? '' : '<div class="mm-sort-sub">' +
-    `<label title="Stated for A to Z; Z to A turns it round"><input type="radio" name="mm-sort-upper" data-f="upperFirst" value="1"${spec.upperFirst ? ' checked' : ''}> B before b <span class="mm-sort-dim">(${firstDesc ? 'Z to A: b B' : 'A to Z: B b'})</span></label>` +
-    `<label title="Stated for A to Z; Z to A turns it round"><input type="radio" name="mm-sort-upper" data-f="upperFirst" value=""${spec.upperFirst ? '' : ' checked'}> b before B <span class="mm-sort-dim">(${firstDesc ? 'Z to A: B b' : 'A to Z: b B'})</span></label></div>`;
-  const unit = spec.kind === 'columns' ? 'record' : 'line';
-  const check = (f, label, title = '') => `<label${title ? ` title="${sortEsc(title)}"` : ''}><input type="checkbox" data-f="${f}"${spec[f] ? ' checked' : ''}> ${label}</label>`;
-  box.innerHTML = head + kind +
-    `<div class="mm-sort-keys">${rows}</div><div class="mm-sort-add"><button type="button" data-do="add">${spec.kind === 'columns' ? 'Add a column' : 'Add a key'}</button></div>` +
-    '<div class="mm-sort-options">' + check('ignoreCase', 'Ignore case') + caseChoice +
-    check('numeric', 'Numbers by value', 'file2 before file10; a key that is a number by its value') +
-    check('dups', 'Remove duplicates', 'The first one stays') +
-    (spec.dups ? `<div class="mm-sort-sub">${check('dupsWhole', `By the whole ${unit}`, `Else by the keys`)}${check('dupsTrim', 'Ignore leading and trailing whitespace')}</div>` : '') +
-    check('empty', `Remove empty ${unit}s`, 'Whitespace only counts as empty') + '</div>' +
-    '<div class="mm-sort-problem" hidden></div><pre class="mm-sort-preview"></pre>' +
-    `<div class="mm-sort-bar"><button type="button" data-do="apply" class="mm-sort-main">Apply</button>` +
-    `<button type="button" data-do="save"${sortUi.name && sortUi.changed ? '' : ' disabled'} title="Under its name${sortUi.name ? `: ${sortEsc(sortUi.name)}` : ' (select a stored sort first)'}">Save</button>` +
-    '<button type="button" data-do="saveAs">Save as...</button><button type="button" data-do="cancel" title="Esc">Cancel</button></div>';
-  for (const el of box.querySelectorAll('.mm-sort-key')) if (+el.dataset.k === sortUi.focusKey) el.classList.add('mm-sort-focus');
-  sortPreview();
-}
-
-// The preview and the marks follow a change at once (a large target: a moment after the last change).
-function sortPreview() {
-  clearTimeout(sortUi.timer);
-  const t = sortUi.target, size = t.kind === 'block' ? t.bottom - t.top : t.from === null ? 0 : t.to - t.from;
-  const run = () => {
-    if (!sortUi.open || sortUi.page !== 'sort') return;
-    const r = sortResult(sortTarget(), sortUi.spec);
-    const problem = sortUi.box.querySelector('.mm-sort-problem'), pre = sortUi.box.querySelector('.mm-sort-preview');
-    problem.hidden = !r.problem;
-    problem.textContent = r.problem ?? '';
-    sortUi.box.querySelector('[data-do=apply]').disabled = !!r.problem;
-    pre.innerHTML = r.problem ? '' : sortPreviewHtml(r);
-    sortMarkCsvHeads();
-    for (const pane of panes) if (pane.cm) drawRuler(pane);
-  };
-  if (size > 20000) sortUi.timer = setTimeout(run, 150); else run();
-}
 
 // The first lines of the result, the keys' parts in their colours (a CSV: the header line above its records).
-function sortPreviewHtml(r) {
-  const spec = sortUi.spec, t = sortUi.target, max = 40;
+function sortPreviewHtml(r, t) {
+  const spec = sortUi.spec, max = 60;
   if (spec.kind === 'columns') {
     const read = csvRead(docText(t.doc).replace(/\r\n?/g, '\n'), t.doc.csvDef);
-    const head = read.pre.map(p => `<span class="mm-sort-dim">${sortEsc(p.text)}</span>`);
+    const head = read.pre.map(p => `<span class="sp-dim">${sortEsc(p.text)}</span>`);
     return [...head, ...r.text.split('\n').slice(0, max).map(sortEsc)].join('\n');
   }
   const stops = t.cm ? stopsOf(t.cm) : { tab: 4, indent: 2, useTabs: false };
@@ -471,181 +358,158 @@ function sortPreviewHtml(r) {
   }).join('\n');
 }
 
-// A change of the sort: drawn again (the focus kept on the field it was in), marked as changed.
-function sortChanged(redraw = true) {
-  sortUi.changed = true;
-  if (!redraw) { sortPreview(); sortUi.box.querySelector('[data-tab=sort]').textContent = `Sort${sortUi.name ? `: ${sortUi.name} (changed)` : ''}`; return; }
-  const was = document.activeElement, f = was?.dataset?.f, k = was?.dataset?.k;
-  sortDraw('sort');
-  const again = f ? sortUi.box.querySelector(`[data-f="${f}"]${k !== undefined ? `[data-k="${k}"]` : ''}`) : null;
-  (again ?? sortUi.box.querySelector('.mm-sort-key.mm-sort-focus .mm-sort-grip'))?.focus();
+const sortTabText = () => `Sort${sortUi.name ? `: ${sortUi.name}${sortUi.changed ? ' (changed)' : ''}` : ''}`;
+
+// Everything the page shows. focusAt: where its focus goes ('grip' of the focused key, 'list'); else the field it was in.
+function sortState(focusAt = null) {
+  const doc = activeDoc();
+  sortUi.spec ??= sortDefault();
+  if (!doc) return { kind: 'sort', doc: null, tab: sortTabText(), page: sortUi.page, spec: sortUi.spec, list: [], colours: [] };
+  const csv = sortIsCsv(doc);
+  if (doc !== sortUi.doc) {   // another document: a CSV by its columns first, any other as text
+    sortUi.doc = doc;
+    sortUi.spec.kind = csv ? 'columns' : 'text';
+    sortUi.focusKey = 0;
+  }
+  if (!csv) sortUi.spec.kind = 'text';
+  const spec = sortUi.spec, t = sortUi.target = sortTarget();
+  let names = [], cols = [];
+  if (csv) {
+    const read = csvRead(docText(doc).replace(/\r\n?/g, '\n'), doc.csvDef);
+    names = Array.from({ length: read.columns }, (_, c) => csvName(read, doc.csvDef, c));
+    cols = spec.columns.map(k => csvSortColumn(k, read));
+  }
+  const r = sortResult(t, spec);
+  sortMarkCsvHeads();
+  return { kind: 'sort', doc: docName(doc), target: sortTargetText(t), csv, page: sortUi.page, spec, names, cols,
+    colours: sortList().map((_, i) => ({ bg: sortColour(i), fg: sortTextOn(sortColour(i)) })),
+    name: sortUi.name, changed: sortUi.changed, focusKey: sortUi.focusKey, tab: sortTabText(),
+    problem: r.problem ?? null, preview: r.problem ? '' : sortPreviewHtml(r, t),
+    list: sortUi.list.map(e => ({ name: e.name, desc: sortDescription(sortFill(e.sort)), off: e.sort?.kind === 'columns' && !csv })),
+    storedAt: sortUi.storedAt, focusAt };
 }
 
-const sortList = () => sortUi.spec.kind === 'columns' ? sortUi.spec.columns : sortUi.spec.keys;
+const sortSend = focusAt => { if (sortShown()) sortChannel.send(sortState(focusAt)); };
 
-// A key moved from one place in the list to another; the focus goes along.
-function sortMoveKey(from, to) {
-  const list = sortList();
-  if (to < 0 || to >= list.length || from === to) return;
-  list.splice(to, 0, list.splice(from, 1)[0]);
-  sortUi.focusKey = to;
-  sortChanged(false);
-  sortDraw('sort');
-  sortUi.box.querySelector(`.mm-sort-key[data-k="${to}"] .mm-sort-grip`)?.focus();
-}
-
-function sortDeleteKey(i) {
-  const list = sortList();
-  if (list.length < 2) return;
-  list.splice(i, 1);
-  sortUi.focusKey = Math.min(i, list.length - 1);
-  sortChanged(false);
-  sortDraw('sort');
-  sortUi.box.querySelector(`.mm-sort-key[data-k="${sortUi.focusKey}"] .mm-sort-grip`)?.focus();
-}
-
-function sortEvents(box) {
-  box.addEventListener('input', e => {
-    const el = e.target, f = el.dataset.f, k = +el.dataset.k, spec = sortUi.spec;
-    if (f === 'from' || f === 'to') {
-      const v = el.value.trim();
-      spec.keys[k][f] = v === '' ? (f === 'to' ? null : NaN) : /^\d+$/.test(v) ? +v : NaN;
-      sortChanged(false);
-    }
-  });
-  box.addEventListener('change', e => {
-    const el = e.target, f = el.dataset.f, k = +el.dataset.k, spec = sortUi.spec;
-    if (!f || f === 'from' || f === 'to') return;
-    if (f === 'kind') spec.kind = el.value;
-    else if (f === 'desc') sortList()[k].desc = !!el.value;
-    else if (f === 'upperFirst') spec.upperFirst = !!el.value;
-    else if (f === 'column') {
-      const read = csvRead(docText(sortUi.target.doc).replace(/\r\n?/g, '\n'), sortUi.target.doc.csvDef), c = +el.value;
-      spec.columns[k] = { ...spec.columns[k], index: c, name: read.names?.[c] ?? null };
-    } else spec[f] = el.checked;
-    if (f === 'kind') sortUi.focusKey = 0;
-    sortChanged(true);
-    if (f === 'kind') sortRedrawRuler();
-  });
-  box.addEventListener('focusin', e => {
-    const row = e.target.closest('.mm-sort-key');
-    if (!row || +row.dataset.k === sortUi.focusKey) return;
-    sortUi.focusKey = +row.dataset.k;
-    for (const el of box.querySelectorAll('.mm-sort-key')) el.classList.toggle('mm-sort-focus', el === row);
+// The editor moved on (a selection, another document, an edit): what is sorted and the preview follow, a moment after
+// the last change (app.js updateStatus).
+function tellSortPane() {
+  if (!sortShown()) return;
+  clearTimeout(sortUi.timer);
+  sortUi.timer = setTimeout(() => {
+    if (activeDoc() !== sortUi.doc || sortUi.page !== 'sort') return sortSend();
+    const t = sortUi.target = sortTarget(), r = sortResult(t, sortUi.spec);
+    sortChannel.send({ kind: 'sortPreview', preview: r.problem ? '' : sortPreviewHtml(r, t), problem: r.problem ?? null,
+      target: sortTargetText(t), tab: sortTabText() });
+    sortMarkCsvHeads();
     for (const pane of panes) if (pane.cm) drawRuler(pane);
-  });
-  box.addEventListener('click', async e => {
-    const tabBtn = e.target.closest('[data-tab]');
-    if (tabBtn) {
-      if (tabBtn.dataset.tab === 'stored') { sortUi.list = (await host('sorts').catch(() => null))?.list ?? sortUi.list; sortUi.storedAt ??= 0; }
-      sortDraw(tabBtn.dataset.tab);
-      sortRedrawRuler();
-      return box.querySelector(tabBtn.dataset.tab === 'stored' ? '.mm-sort-list' : '[data-f]')?.focus();
+  }, 150);
+}
+
+// Edit > Sort...: the selection widened to whole lines (so it shows what is sorted), the panel shown and its focus.
+async function openSortPane() {
+  const doc = activeDoc(), tab = activeTab();
+  if (!doc || !tab) return;
+  if (!editable(tab)) return toast('This tab is read-only.');
+  if (doc.language === 'csv' && !doc.csvDef) await csvLoad(doc, docText(doc));
+  widenSelection(sortTarget());
+  sortUi.page = 'sort';
+  if (dockModel().state.sort === 'floating') sortChannel.float();
+  else showDockPane('sort');
+  sortSend();
+  sortRedrawRuler();
+  setTimeout(() => { sortChannel.focus(); sortChannel.send({ kind: 'focus' }); }, 100);
+}
+
+// A change made in the panel: kept, marked as changed; drawn again (sent: true), else only the preview follows.
+function sortChanged(send = true, focusAt = null) {
+  sortUi.changed = true;
+  if (send) sortSend(focusAt);
+  else tellSortPane();
+  for (const pane of panes) if (pane.cm) drawRuler(pane);
+}
+
+async function sortStoredList() {
+  sortUi.list = (await host('sorts').catch(() => null))?.list ?? sortUi.list;
+  sortUi.storedAt = Math.max(0, Math.min(sortUi.storedAt, sortUi.list.length - 1));
+}
+
+async function fromSortPane(m) {
+  const spec = sortUi.spec ??= sortDefault(), list = sortList();
+  switch (m.kind) {
+    case 'escape': return events.toolEscape();
+    case 'set': {
+      const { f, k, value } = m;
+      if (f === 'from' || f === 'to') {
+        const v = String(value).trim();
+        spec.keys[k][f] = v === '' ? (f === 'to' ? null : NaN) : /^\d+$/.test(v) ? +v : NaN;
+        return sortChanged(false);
+      }
+      if (f === 'kind') { spec.kind = value; sortUi.focusKey = 0; sortChanged(); return sortRedrawRuler(); }
+      if (f === 'desc') list[k].desc = !!value;
+      else if (f === 'upperFirst') spec.upperFirst = !!value;
+      else if (f === 'column') {
+        const read = csvRead(docText(activeDoc()).replace(/\r\n?/g, '\n'), activeDoc().csvDef), c = +value;
+        spec.columns[k] = { ...spec.columns[k], index: c, name: read.names?.[c] ?? null };
+      } else spec[f] = !!value;
+      return sortChanged();
     }
-    const item = e.target.closest('.mm-sort-stored');
-    if (item) { sortUi.storedAt = +item.dataset.i; sortDraw('stored'); return box.querySelector('.mm-sort-list').focus(); }
-    const what = e.target.closest('button')?.dataset.do;
-    if (!what) return;
-    if (what === 'cancel') return closeSortWindow();
-    if (what === 'apply') return sortApplyWindow();
-    if (what === 'add') {
-      const list = sortList(), last = list.at(-1);
-      if (sortUi.spec.kind === 'columns') {   // the next column, by its name
-        const read = csvRead(docText(sortUi.target.doc).replace(/\r\n?/g, '\n'), sortUi.target.doc.csvDef);
+    case 'focusKey':
+      sortUi.focusKey = m.k;
+      for (const pane of panes) if (pane.cm) drawRuler(pane);
+      return;
+    case 'add': {
+      const last = list.at(-1);
+      if (spec.kind === 'columns') {   // the next column, by its name
+        const read = csvRead(docText(activeDoc()).replace(/\r\n?/g, '\n'), activeDoc().csvDef);
         const index = Math.max(0, Math.min((last?.index ?? -1) + 1, read.columns - 1));
         list.push({ name: read.names?.[index] ?? null, index, desc: false });
-      } else list.push({ from: (last?.to ?? last?.from ?? 0) + 1, to: null, desc: false });
+      } else list.push({ from: (Number.isFinite(last?.to) ? last.to : Number.isFinite(last?.from) ? last.from : 0) + 1, to: null, desc: false });
       sortUi.focusKey = list.length - 1;
-      sortChanged(true);
-      return box.querySelector(`.mm-sort-key[data-k="${sortUi.focusKey}"] [data-f]`)?.focus();
+      return sortChanged(true, 'grip');
     }
-    if (what === 'del') return sortDeleteKey(+e.target.closest('button').dataset.k);
-    if (what === 'save') return sortSave(sortUi.name);
-    if (what === 'saveAs') return sortSaveAs();
-    if (what === 'select') return sortSelectStored();
-    if (what === 'delete') return sortDeleteStored();
-  });
-  box.addEventListener('dblclick', e => { if (e.target.closest('.mm-sort-stored')) sortSelectStored(); });
-  box.addEventListener('keydown', e => {
-    e.stopPropagation();   // the window's keys, not the editor's
-    const row = e.target.closest('.mm-sort-key'), k = row ? +row.dataset.k : -1;
-    if (e.key === 'Escape') { e.preventDefault(); return closeSortWindow(); }
-    if (row && e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) { e.preventDefault(); return sortMoveKey(k, k + (e.key === 'ArrowUp' ? -1 : 1)); }
-    if (row && e.key === 'Delete' && e.target.matches('.mm-sort-grip, select, button')) { e.preventDefault(); return sortDeleteKey(k); }
-    if (e.target.closest('.mm-sort-list') && sortUi.list.length && ['ArrowUp', 'ArrowDown', 'Enter', 'Delete'].includes(e.key)) {
-      e.preventDefault();
-      if (e.key === 'Enter') return sortSelectStored();
-      if (e.key === 'Delete') return sortDeleteStored();
-      sortUi.storedAt = Math.max(0, Math.min(sortUi.list.length - 1, (sortUi.storedAt ?? 0) + (e.key === 'ArrowUp' ? -1 : 1)));
-      sortDraw('stored');
-      return box.querySelector('.mm-sort-list').focus();
+    case 'del':
+      if (list.length < 2) return;
+      list.splice(m.k, 1);
+      sortUi.focusKey = Math.min(m.k, list.length - 1);
+      return sortChanged(true, 'grip');
+    case 'move':
+      if (m.to < 0 || m.to >= list.length || m.from === m.to) return;
+      list.splice(m.to, 0, list.splice(m.from, 1)[0]);
+      sortUi.focusKey = m.to;
+      return sortChanged(true, 'grip');
+    case 'page':
+      sortUi.page = m.page;
+      if (m.page === 'stored') await sortStoredList();
+      return sortSend(m.page === 'stored' ? 'list' : null);
+    case 'storedAt': sortUi.storedAt = m.i; return sortSend('list');
+    case 'apply': {
+      const s = sortCopy(spec);
+      if (!await sortApply(sortTarget(), s)) return;
+      host('sortLast', { sort: s }).catch(() => {});
+      return sortSend();
     }
-    if (e.key === 'Enter' && sortUi.page === 'sort' && !e.target.matches('button, select')) { e.preventDefault(); sortApplyWindow(); }
-  });
-  // A key dragged by its grip to another place in the list.
-  box.addEventListener('dragstart', e => {
-    const row = e.target.closest('.mm-sort-key');
-    if (!row) return;
-    sortUi.dragFrom = +row.dataset.k;
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', '');
-    e.dataTransfer.setDragImage(row, 10, row.offsetHeight / 2);
-  });
-  box.addEventListener('dragover', e => {
-    const row = e.target.closest('.mm-sort-key');
-    if (!row || sortUi.dragFrom === undefined) return;
-    e.preventDefault();
-    for (const el of box.querySelectorAll('.mm-sort-key')) el.classList.toggle('mm-sort-over', el === row);
-  });
-  box.addEventListener('drop', e => {
-    const row = e.target.closest('.mm-sort-key');
-    if (!row || sortUi.dragFrom === undefined) return;
-    e.preventDefault();
-    sortMoveKey(sortUi.dragFrom, +row.dataset.k);
-  });
-  box.addEventListener('dragend', () => {
-    sortUi.dragFrom = undefined;
-    for (const el of box.querySelectorAll('.mm-sort-over')) el.classList.remove('mm-sort-over');
-  });
-  // Its title is a handle: dragged, the window moves (and opens there the next time).
-  box.addEventListener('pointerdown', e => {
-    const title = e.target.closest('.mm-sort-title');
-    if (e.button !== 0 || !title) return;
-    e.preventDefault();
-    const dx = e.clientX - box.offsetLeft, dy = e.clientY - box.offsetTop;
-    title.setPointerCapture(e.pointerId);
-    const move = ev => sortPlace({ left: ev.clientX - dx, top: ev.clientY - dy });
-    const up = () => {
-      title.removeEventListener('pointermove', move);
-      title.removeEventListener('pointerup', up);
-      sortBoxAt = { left: box.offsetLeft, top: box.offsetTop };
-    };
-    title.addEventListener('pointermove', move);
-    title.addEventListener('pointerup', up);
-  });
-}
-
-async function sortApplyWindow() {
-  const spec = sortCopy(sortUi.spec), t = sortTarget();
-  if (!await sortApply(t, spec)) return;
-  host('sortLast', { sort: spec }).catch(() => {});
-  closeSortWindow();
+    case 'save': return sortSave(sortUi.name);
+    case 'saveAs': return sortSaveAs();
+    case 'select': return sortSelectStored();
+    case 'deleteStored': return sortDeleteStored();
+  }
 }
 
 // Save: under the name it was selected as. Save as: a name asked; one that exists asks whether to replace it.
 async function sortSave(name) {
   if (!name) return;
   await host('sortSave', { name, sort: sortCopy(sortUi.spec) });
-  sortUi.list = (await host('sorts').catch(() => null))?.list ?? sortUi.list;
-  sortUi.name = name;
-  sortUi.changed = false;
-  sortDraw('sort');
+  await sortStoredList();
+  Object.assign(sortUi, { name, changed: false });
+  sortSend();
   toast(`Sort "${name}" stored.`, true);
 }
 
 async function sortSaveAs() {
+  await sortStoredList();
   const name = await askName('Store this sort as', sortUi.name ?? '', 'A name');
-  sortUi.box?.querySelector('[data-do=saveAs]')?.focus();
+  sortChannel.focus();
   if (!name) return;
   const same = sortUi.list.find(e => e.name.toLowerCase() === name.toLowerCase());
   if (same && !await confirmBox(`A stored sort "${same.name}" exists. Replace it?`, 'Replace')) return;
@@ -654,21 +518,36 @@ async function sortSaveAs() {
 
 function sortSelectStored() {
   const e = sortUi.list[sortUi.storedAt];
-  if (!e || (e.sort?.kind === 'columns' && !sortIsCsv(sortUi.target.doc))) return;
+  if (!e || (e.sort?.kind === 'columns' && !sortIsCsv(activeDoc()))) return;
   sortUi.spec = sortFill(sortCopy(e.sort));
-  Object.assign(sortUi, { name: e.name, changed: false, focusKey: 0 });
-  sortDraw('sort');
+  Object.assign(sortUi, { name: e.name, changed: false, focusKey: 0, page: 'sort' });
+  sortSend();
   sortRedrawRuler();
-  sortUi.box.querySelector('[data-f]')?.focus();
 }
 
 async function sortDeleteStored() {
   const e = sortUi.list[sortUi.storedAt];
   if (!e || !await confirmBox(`Delete the stored sort "${e.name}"?`, 'Delete')) return;
   await host('sortDelete', { name: e.name });
-  sortUi.list = (await host('sorts').catch(() => null))?.list ?? [];
+  await sortStoredList();
   if (sortUi.name?.toLowerCase() === e.name.toLowerCase()) sortUi.name = null;
-  sortUi.storedAt = Math.min(sortUi.storedAt, sortUi.list.length - 1);
-  sortDraw('stored');
-  sortUi.box.querySelector('.mm-sort-list')?.focus();
+  sortSend('list');
+}
+
+function registerSortPane() {
+  const view = sortView = Object.assign(document.createElement('div'), { className: 'mm-tool-view' });
+  $('.mm-dock-hold').append(view);
+  sortChannel = paneChannel({ id: 'sort', page: 'sort.html', title: 'Sort', view: () => view,
+    state: () => new Map([['look', paneLook()], ['title', { kind: 'title', text: 'Sort' }], ['sort', sortState()]]),
+    receive: fromSortPane,
+    onFloat: () => { setDockFloating('sort', true); sortRedrawRuler(); },
+    onDock: () => { if (sortUi.back) { sortUi.back = false; setDockFloating('sort', false); } sortRedrawRuler(); } });
+  registerDockPane('sort', { title: 'Sort', view, home: 'right', startHidden: true,
+    focus: () => sortChannel.focus(),
+    leave: m => { if (m.state.sort === 'floating') sortChannel.back(); m.state.sort = 'hidden'; },
+    sync: () => { if (dockShown(dockModel(), 'sort') && !sortChannel.frame) sortChannel.send(sortState()); setTimeout(sortRedrawRuler); },
+    channel: { get floating() { return sortChannel.floating; }, float: opts => sortChannel.float(opts),
+      back: () => { sortUi.back = true; sortChannel.back(); } } });
+  // The sort it opens with: the last one applied; the stored sorts.
+  host('sorts').then(s => { sortUi.list = s?.list ?? []; if (s?.last) sortUi.spec = sortFill(s.last); }).catch(() => {});
 }

@@ -1809,6 +1809,7 @@ try {
 function updateStatus() {
   if (typeof tellBookmarksPanes === 'function') tellBookmarksPanes();   // their lines move with the text (bookmarkspane.js)
   if (typeof colsDoc === 'function' && colsDoc() !== colsPane.doc) tellColumnsPane();   // another document (columnspane.js)
+  if (typeof tellSortPane === 'function') tellSortPane();   // what is sorted follows the selection (sort.js)
   const pane = panes[state.activePane], tab = pane.active, doc = tab?.doc;
   const cm = tab && pane.cm && pane.el.dataset.mode !== 'preview' ? pane.cm : null;
   let pos = '';
@@ -3280,6 +3281,8 @@ function registerDockPanes() {
   registerBookmarksPanes();
   // Columns (plan 29; columnspane.js): how the active document is read as CSV.
   registerColumnsPane();
+  // Sort (plan 3; sort.js): the sort at hand and the stored sorts, for the active document.
+  registerSortPane();
   // Manage theme sets (7b): LexPen's, as Manage projects (ThemeSetsForm).
   registerToolPane('themesets', 'Theme sets', 'themesets.html', 'openThemeSetsWindow', 'closeThemeSets');
   // The window's outline: in one of the window's dock areas (at the right, the first time it is docked) or floating;

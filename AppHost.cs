@@ -1929,7 +1929,7 @@ sealed class AppHost : ApplicationContext
     // their owner is the window they serve). Held by a window (paneHold: a macro playing or recording there, a search
     // running there), it stays with that window until let go; its bottom bar says so.
 
-    static readonly HashSet<string> FollowingPanes = ["folder", "search", "bm", "messages", "clips", "macros", "cols", "commands"];
+    static readonly HashSet<string> FollowingPanes = ["folder", "search", "bm", "messages", "clips", "macros", "cols", "sort", "commands"];
     readonly Dictionary<(MainForm, string), bool> panesWanted = [];
     readonly Dictionary<string, (MainForm Window, string Why)> paneHeld = [];
 
@@ -2022,7 +2022,7 @@ sealed class AppHost : ApplicationContext
     // ---------- The bottom bar of a floating panel (plan 22 3.4) ----------
 
     // The panels whose bar names a document: the one they work on (the active one of the window they serve).
-    static readonly HashSet<string> OnADocument = ["outline", "hls", "chars", "bm", "cols", "step"];
+    static readonly HashSet<string> OnADocument = ["outline", "hls", "chars", "bm", "cols", "sort", "step"];
 
     /// <summary>Every floating panel's bottom bar says whose it is now (a window serves another, a project renamed,
     /// the [n] shifted, the active document, a hold, the look).</summary>

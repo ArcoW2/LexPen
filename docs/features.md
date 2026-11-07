@@ -26,6 +26,22 @@ every action with its key.
   between the lines becomes one space). Moving with the keys starts move mode, an arrow up and down in the gutter of
   every line being moved: Up / Down move the lines on, PgUp / PgDn a page, Esc stops (as does any other key or a click). Delete and Join have no
   key; give them one in your keys.json.
+- **Sort** (Edit > Sort...: the Sort panel, docked or floating as the other panels, View > Panels): sorts the selected
+  lines (a selection that starts or ends inside a line takes that line whole; Edit > Sort... widens it so it shows),
+  a block's part of its lines only (the rest of each line stays), else the whole file; one undo step. Sort keys, each
+  a From and To column (To empty: to the line's end; in a block counted from the block's first column) and its own A
+  to Z or Z to A; the first decides, the next ones break ties; dragged in the list (or Alt+Up / Alt+Down) to change
+  their order, x or Delete removes one (never the last). Each key has a colour by its place: its lines in the editor
+  and its number on the ruler (shown while the panel is) in that colour. Ignore case (on; off: B before b or b before
+  B, stated for A to Z), numbers by value (`file2` before `file10`), remove duplicates (by the keys or the whole line,
+  ignoring leading and trailing whitespace if asked), remove empty lines. A preview shows the first lines as they
+  would come out; Apply sorts. A CSV sorts By columns (the default; its key columns marked in the column view) or As
+  text: per key a column, compared by its type (numbers by value, dates as dates, empty fields last, values that do
+  not fit their type after the ones that do), records moving whole, the header staying on top. Stored sorts (the
+  Stored sorts tab: Select, Delete...; Save, Save as... on the Sort tab) are kept in `sorts.json`, for any file;
+  the panel opens with the sort applied last. The actions `edit.sort`, `edit.sortAsc` and `edit.sortDesc` sort at
+  once, with a stored sort's name as their parameter (keys.json, a macro) or without one (the whole line, a CSV its
+  first column); sortAsc / sortDesc turn every key ascending / descending.
 - **Multiple cursors**: Ctrl+Alt+click adds a cursor (held and dragged, it follows the mouse until you let go); on a
   cursor or inside a selection it removes that one, never the last. Ctrl+Alt+double-click selects the find match
   there (find bar open), else the word: Ctrl+F the text, then Ctrl+Alt+double-click the matches you want. With the

@@ -1,12 +1,13 @@
 # Plan: Sort lines, remove duplicates
 
-Status: draft 2026-10-21; worked out 2026-11-07 with your answers (4): ignore case by default, one window with all
+Status: executed (2026-11-07); see 5. As built. The window became a panel (your request during the build).
+
+History: draft 2026-10-21; worked out 2026-11-07 with your answers (4): ignore case by default, one window with all
 options, Edit > Sort (not in Convert); a selection sorts only itself, a block only its own part; the sort columns
 shown in the editor; a live preview; Apply sorts. A column file (CSV) sorts by its columns too. Several sort keys
 (From / To), each its own direction and colour, dragged to reorder; sorts stored by name, on a tab of their own, and
-used by name from a key or a macro. Not started. From the list "what UltraEdit or Visual
-Studio has and LexPen does not".
-The number in the file name is the priority; rename to reorder.
+used by name from a key or a macro. From the list "what UltraEdit or Visual Studio has and
+LexPen does not".
 
 ## 1. What this is about
 
@@ -220,3 +221,28 @@ Unit: the key text of a line by From / To with tabs; the order of two keys with 
 ## 4. Open questions
 
 None.
+
+## 5. As built
+
+- **A panel, not a window** (your request during the build, 2026-11-07): the Sort panel (`sort.html`,
+  `sort-pane.js`; the window's side `sort.js`) docks in the window's dock areas (at the right the first time) or
+  floats, as the other panels; View > Panels lists it (So&rt), and it follows the window worked in as the Columns
+  panel does (AppHost FollowingPanes, OnADocument: its floating bar names the document). Edit > Sort... shows it,
+  widens the selection and puts the focus on the first field. Because it stays open: what it sorts follows the
+  editor (the selection, a block, another document) a moment after each change; Apply sorts and the panel stays; there
+  is no Cancel (Esc goes back to the document, as in the other panels). The ruler shows the keys while the panel is
+  shown (docked in front, or floating), also with View > Ruler off.
+- **The last sort used** is kept in `sorts.json` beside the stored sorts (`last`), not as a setting: a sort is a
+  structure, not a value the settings window could show.
+- **sorts.json** is at the top of the data folder (your own work, as favourites.json), by `SortStore`; a damaged file
+  is kept beside it as `sorts.json.damaged` before the first save over it.
+- **Delete on a key row** removes the key when the focus is on its grip, its direction or its x, not in its From / To
+  field (there Delete edits the number).
+- **The preview** sorts the whole target on each change (a moment after the last one), not only the first lines.
+- **A CSV selection** is widened in the editor; the column view does not mark the records.
+- **Tests**: the store by unit tests (`SortStoreTests`); the sort itself (text, keys, case, numbers, duplicates, empty
+  lines, blocks with short rows, CSV by type with empty and invalid fields, quoted line breaks, the header) and the
+  panel (open on a partial selection, keys typed, moved, deleted, the ruler marks, the target following the editor,
+  Apply and one undo, floating, hidden, a CSV By columns, stored sorts saved, listed, selected with the keys, the
+  actions by name) in the test copy by script. There is no JavaScript unit test project, so the plan's unit tests of
+  the key text and the order are among those scripted checks.
