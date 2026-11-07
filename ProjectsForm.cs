@@ -117,7 +117,7 @@ sealed class ProjectsForm : Form, IWebPost
     static List<int> Ids(JsonNode msg) => msg["projects"]?.AsArray().Select(n => n!.GetValue<int>()).ToList() ?? [];
 
     /// <summary>A request of a Manage projects page: its window's (`window` null), or the one docked in `window`
-    /// (docs/plans/24-PLAN-docking.md 7b; `owner`: whom its questions belong to). Esc with an empty search: back to the
+    /// (docs/plans/executed/PLAN-docking.md 7b; `owner`: whom its questions belong to). Esc with an empty search: back to the
     /// LexPen window last worked in (docked: to its window's document).</summary>
     public static async Task<JsonNode?> Request(AppHost app, IWin32Window owner, MainForm? window, JsonNode msg)
     {

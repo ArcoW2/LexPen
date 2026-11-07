@@ -1,5 +1,5 @@
 'use strict';
-// The Macros window's page (macros.html; docs/plans/24-PLAN-docking.md 7b, plan 36 3.3, 3.4): Manage (the stored
+// The Macros window's page (macros.html; docs/plans/executed/PLAN-docking.md 7b, plan 36 3.3, 3.4): Manage (the stored
 // macros in a list) or one macro's window, what it shows from its window's page (macros.js: the message `macros`),
 // what is done in it going there: a button (`macro`, with the macro it acts on), another macro chosen in the list
 // (`select`), Esc (`escape`). A double click in the list plays that macro.

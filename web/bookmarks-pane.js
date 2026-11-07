@@ -1,5 +1,5 @@
 'use strict';
-// The Bookmarks pane's page (bookmarks.html; docs/plans/24-PLAN-docking.md stage 10): the bookmarks of the document
+// The Bookmarks pane's page (bookmarks.html; docs/plans/executed/PLAN-docking.md stage 10): the bookmarks of the document
 // it serves (from its window's page, bookmarkspane.js: the message `bookmarks`), each with its number (a dot for an
 // unnumbered one), its line and the start of the text on that line; a click, or Enter on the one marked, goes there
 // (`go`); Up / Down move the mark; Esc back to the document (`escape`).

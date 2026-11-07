@@ -4,7 +4,7 @@ using Microsoft.Web.WebView2.Core;
 namespace LexPen;
 
 /// <summary>
-/// A tool's page docked in a LexPen window (docs/plans/24-PLAN-docking.md 7b): the same page as in its own window
+/// A tool's page docked in a LexPen window (docs/plans/executed/PLAN-docking.md 7b): the same page as in its own window
 /// (charpicker.html, ...), in a frame of the window's page, named "tool:kind" (the window's) or "tool:kind:n" (editor
 /// pane n's own: it works on that pane's document). Its requests come to the host through
 /// the frame (CoreWebView2Frame) and are answered as its own window answers them, for this window; the app's events for

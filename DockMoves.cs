@@ -5,7 +5,7 @@ namespace LexPen;
 /// <summary>
 /// A floating tool's window moved by its title bar (not resized): the LexPen window it belongs to hears where the
 /// cursor is while it moves (paneMoving) and where it is let go (paneMoved), in its page's coordinates, so its page
-/// shows the places it can dock at and docks it there (docs/plans/24-PLAN-docking.md 3.8).
+/// shows the places it can dock at and docks it there (docs/plans/executed/PLAN-docking.md 3.8).
 /// </summary>
 static class DockMoves
 {

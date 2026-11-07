@@ -124,7 +124,7 @@
 .st-picker { position: absolute; width: 0; height: 0; padding: 0; border: 0; opacity: 0; }   /* the colour dialog, opened from the list */
 
 
-/* Narrow (docked at a side, docs/plans/24-PLAN-docking.md 7b): a row's control under its text, the bars wrap. */
+/* Narrow (docked at a side, docs/plans/executed/PLAN-docking.md 7b): a row's control under its text, the bars wrap. */
 @media (max-width: 560px) {
   .st-top { flex-wrap: wrap; padding: 8px 10px; }
   .st-search { flex: 1 1 100%; }

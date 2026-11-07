@@ -1,19 +1,19 @@
 {
-  "path": "D:\\prive\\SynologyDrive\\Projects\\LexPen\\docs\\plans\\24-PLAN-docking.md",
-  "size": 76356,
-  "time": "639292063509084759",
+  "path": "D:\\prive\\SynologyDrive\\Projects\\LexPen\\docs\\plans\\executed\\PLAN-docking.md",
+  "size": 75935,
+  "time": "639296124830976148",
   "list": [
     {
       "from": [
-        16,
+        17,
         9
       ],
       "to": [
-        16,
+        17,
         14
       ],
       "text": "panes",
-      "before": "er.\n\n## 1. What this is about\n\nLexPen\u0027s ",
+      "before": "n\u0022.\n\n## 1. What this is about\n\nLexPen\u0027s ",
       "after": " are fixed: the side pane (Folder and Se",
       "note": "",
       "state": "",
@@ -21,11 +21,11 @@
     },
     {
       "from": [
-        33,
+        34,
         0
       ],
       "to": [
-        33,
+        34,
         9
       ],
       "text": "The panes",
@@ -37,11 +37,11 @@
     },
     {
       "from": [
-        20,
+        21,
         0
       ],
       "to": [
-        20,
+        21,
         7
       ],
       "text": "monitor",

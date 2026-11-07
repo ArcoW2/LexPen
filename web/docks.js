@@ -1,5 +1,5 @@
 'use strict';
-// The dock areas (docs/plans/24-PLAN-docking.md 3.6, 3.7, 3.7a, 3.10): left, right and bottom of the window around
+// The dock areas (docs/plans/executed/PLAN-docking.md 3.6, 3.7, 3.7a, 3.10): left, right and bottom of the window around
 // the editor area (the bottom one the full width of the window or between the side areas), and left, right and
 // bottom of each editor pane around its text (the bottom one the full width of the pane). An area holds groups (above
 // or under each other at the sides, next to each other at the bottom), a group its panes as tabs, one shown at a time,

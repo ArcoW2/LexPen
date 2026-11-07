@@ -19,7 +19,7 @@ size remembered, one for all LexPen windows. Insert puts the characters at the c
 document you last worked in and leaves the picker open, so you can click in the document, move the cursor and go
 on picking. At the end of a line the bottom bar shows the line end that follows (`LF`, `CRLF`, or `end` on the last
 line), clickable as the code is. Docking (the picker, the side pane, Settings) is a plan of its own:
-docs/plans/24-PLAN-docking.md.
+docs/plans/executed/PLAN-docking.md.
 
 ## 3. Details
 

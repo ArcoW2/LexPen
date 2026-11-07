@@ -199,7 +199,7 @@ sealed class AppHost : ApplicationContext
 
     // ---------- Manage theme sets (ThemeSetsForm; docs/plans/executed/PLAN-theme-sets.md, 3.10) ----------
 
-    /// <summary>Manage theme sets as it was last (docs/plans/24-PLAN-docking.md 3.7a): the window's page decides (its
+    /// <summary>Manage theme sets as it was last (docs/plans/executed/PLAN-docking.md 3.7a): the window's page decides (its
     /// window of its own, or docked); the window comes to the front.</summary>
     public void OpenThemeSets(MainForm from)
     {
@@ -1465,7 +1465,7 @@ sealed class AppHost : ApplicationContext
     public JsonArray ProjectNames() => new(projects.Projects.OrderByDescending(p => p.Used)
         .Select(p => (JsonNode?)new JsonObject { ["id"] = p.Id, ["name"] = ProjectStore.Display(p) }).ToArray());
 
-    /// <summary>View > Layout > Use layout of... (docs/plans/24-PLAN-docking.md 3.13a): the other open windows (most recently
+    /// <summary>View > Layout > Use layout of... (docs/plans/executed/PLAN-docking.md 3.13a): the other open windows (most recently
     /// used first), then the projects with no window open whose last window has a layout (newest used first).</summary>
     public JsonArray LayoutSources(MainForm asking)
     {
@@ -1534,7 +1534,7 @@ sealed class AppHost : ApplicationContext
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return null; }
     }
 
-    /// <summary>A window's Settings, as it was last (docs/plans/24-PLAN-docking.md 3.7a): its page decides (the action
+    /// <summary>A window's Settings, as it was last (docs/plans/executed/PLAN-docking.md 3.7a): its page decides (the action
     /// settings: its window of its own, or docked in the window); the window comes to the front.</summary>
     public void OpenSettings(MainForm from)
     {
@@ -1654,7 +1654,7 @@ sealed class AppHost : ApplicationContext
         }
     }
 
-    // ---------- Tools docked in a window (ToolFrame; docs/plans/24-PLAN-docking.md 7b) ----------
+    // ---------- Tools docked in a window (ToolFrame; docs/plans/executed/PLAN-docking.md 7b) ----------
     readonly List<ToolFrame> toolFrames = [];
     public void AddToolFrame(ToolFrame frame) => toolFrames.Add(frame);
     public void ToolFrameGone(ToolFrame frame) => toolFrames.Remove(frame);
@@ -1684,7 +1684,7 @@ sealed class AppHost : ApplicationContext
     public JsonObject? HighlightsShownNow { get; private set; }
 
     // What each window's editor panes show (window, pane -> its document's highlights; none: no document), and which
-    // pane is its active one: for the highlights docked there (docs/plans/24-PLAN-docking.md 7b).
+    // pane is its active one: for the highlights docked there (docs/plans/executed/PLAN-docking.md 7b).
     readonly Dictionary<(MainForm, int), JsonObject> highlightsIn = [];
     readonly Dictionary<MainForm, int> highlightsActive = [];
 
@@ -1802,7 +1802,7 @@ sealed class AppHost : ApplicationContext
         SaveState();
     }
 
-    // ---------- Floating panes (docs/plans/24-PLAN-docking.md 3.3, 3.5) ----------
+    // ---------- Floating panes (docs/plans/executed/PLAN-docking.md 3.3, 3.5) ----------
 
     readonly List<PaneForm> paneWindows = [];
 
@@ -1871,7 +1871,7 @@ sealed class AppHost : ApplicationContext
         return "closed";
     }
 
-    // ---------- View > Panels (docs/plans/24-PLAN-docking.md 3.14, stage 9) ----------
+    // ---------- View > Panels (docs/plans/executed/PLAN-docking.md 3.14, stage 9) ----------
 
     // A window's floating panes with their window open: the tools of their own (one for LexPen, its Settings one of
     // its own) and its pane windows (the floating outline: when it serves this window).
@@ -1888,7 +1888,7 @@ sealed class AppHost : ApplicationContext
     /// <summary>A floating pane's window closed, as by hand (the pane stays floating, or its page decides).</summary>
     public void CloseToolWindow(MainForm w, string kind) { foreach (var (_, f) in ToolWindows(w).Where(t => t.Kind == kind).ToList()) f.Close(); }
 
-    // ---------- The one floating outline for LexPen (docs/plans/24-PLAN-docking.md 3.9, stage 7.3) ----------
+    // ---------- The one floating outline for LexPen (docs/plans/executed/PLAN-docking.md 3.9, stage 7.3) ----------
     // It serves the windows with no outline in their dock areas, of those the document worked in last: each window's
     // page says whether it may serve it now (outlineWanted: its own outline not docked, its active editor pane without
     // an outline of its own). A window activated that it may serve takes it (outlineServe; the one before:
@@ -2104,7 +2104,7 @@ sealed class AppHost : ApplicationContext
     public void ClipboardsChanged(MainForm? only = null)
     {
         var state = Clipboards.State();
-        // The Windows clipboard's start too (as clipState), for the Clipboards panes (docs/plans/24-PLAN-docking.md 12).
+        // The Windows clipboard's start too (as clipState), for the Clipboards panes (docs/plans/executed/PLAN-docking.md 12).
         try { state["previews"]![0] = Clipboard.ContainsText() ? ClipboardStore.Preview(Clipboard.GetText()) : ""; }
         catch (System.Runtime.InteropServices.ExternalException) { }   // the clipboard is busy: as it was
         foreach (var w in windows.Where(w => only is null || w == only))

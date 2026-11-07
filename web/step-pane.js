@@ -1,5 +1,5 @@
 'use strict';
-// Step by step's page (step.html; docs/plans/24-PLAN-docking.md stage 13, plan 36 3.6): where the macro stopped, its
+// Step by step's page (step.html; docs/plans/executed/PLAN-docking.md stage 13, plan 36 3.6): where the macro stopped, its
 // buttons (Step, Step into, Continue, Stop: `step` with how), and its variables and the system ones apart, a value that
 // changed since the last stop marked (from its window's page, macros.js: the message `step`). Its keys (F10, F11, F5,
 // Shift+F5) are the window's, as everywhere; Esc back to the document (`escape`).

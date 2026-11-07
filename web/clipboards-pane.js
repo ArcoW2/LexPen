@@ -1,5 +1,5 @@
 'use strict';
-// The Clipboards pane's page (clipboards.html; docs/plans/24-PLAN-docking.md stage 12): the Windows clipboard and
+// The Clipboards pane's page (clipboards.html; docs/plans/executed/PLAN-docking.md stage 12): the Windows clipboard and
 // clipboards 1 to 9 with the start of their text (from its window's page, app.js: the message `clips`), the active one
 // marked; a click (or Enter on the one marked) makes one active (`select`): copy, cut and paste then use it. Up / Down
 // move the mark; Esc back to the document (`escape`).

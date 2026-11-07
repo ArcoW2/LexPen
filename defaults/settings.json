@@ -177,7 +177,7 @@
     "sidebar": true,              // the sidebar (Folder or Search) shown when a folder is open
     "sideView": "folder",         // "folder" or "search"
     "sidebarWidth": 0,            // in px; 0 is the standard width
-    // The dock areas (docs/plans/24-PLAN-docking.md 3.6): left (open: "sidebar", width: "sidebarWidth"), right and
+    // The dock areas (docs/plans/executed/PLAN-docking.md 3.6): left (open: "sidebar", width: "sidebarWidth"), right and
     // bottom (open, size in px; 0 is the standard size; the bottom's width "full" or "inner": between the sides); per
     // area its groups (their panes as tabs, the one in front, their share); per pane "hidden" or "floating".
     "docks": { "left": { "groups": [ { "panes": [ "folder", "search" ], "active": "folder", "size": 1 } ] },

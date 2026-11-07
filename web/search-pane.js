@@ -1,4 +1,4 @@
-// The Search pane as a page of its own (docs/plans/24-PLAN-docking.md 3.3): search and replace in files. The window's
+// The Search pane as a page of its own (docs/plans/executed/PLAN-docking.md 3.3): search and replace in files. The window's
 // page does the work: it searches (the open documents' text as it has it, unsaved edits too; the files in the folder
 // through the host), replaces (an open document as one undo step) and keeps the history; it sends the results as rows
 // to show. This page has the fields, the switches, the scope, the replace row and the results, and sends what is done

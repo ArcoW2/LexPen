@@ -115,7 +115,7 @@ sealed class ThemeSetsForm : Form, IWebPost
     }
 
     /// <summary>A request of a Manage theme sets page: its window's (`window` null), or the one docked in `window`
-    /// (docs/plans/24-PLAN-docking.md 7b; `owner`: whom its questions belong to). Esc: back to the LexPen window last
+    /// (docs/plans/executed/PLAN-docking.md 7b; `owner`: whom its questions belong to). Esc: back to the LexPen window last
     /// worked in (docked: to its window's document).</summary>
     public static JsonNode? Request(AppHost app, IWin32Window owner, MainForm? window, JsonNode msg)
     {

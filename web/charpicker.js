@@ -38,7 +38,7 @@ async function charTitle(at) {
 
 const pickerCode = at => at && !at.byte && !at.eol ? at.code : null;
 
-// The picker at a character, as it was last (docs/plans/24-PLAN-docking.md 3.7a): the active editor pane's own when it
+// The picker at a character, as it was last (docs/plans/executed/PLAN-docking.md 3.7a): the active editor pane's own when it
 // has one (not closed); else the window's: its window of its own (opened, or brought to the front), or docked in this
 // window (shown, its area opened).
 function openCharPicker(code = null) {

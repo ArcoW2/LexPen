@@ -1,5 +1,5 @@
 'use strict';
-// The Messages pane's page (messages.html; docs/plans/24-PLAN-docking.md stage 11): every message of its window since
+// The Messages pane's page (messages.html; docs/plans/executed/PLAN-docking.md stage 11): every message of its window since
 // it opened (from its window's page, app.js: the message `messages`), newest first, with its time and the document
 // active then; a click on the document goes there (`go`); Clear (`clear`); Esc back to the document (`escape`).
 

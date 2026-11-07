@@ -22,7 +22,7 @@ static class ViewProject
     static readonly string[] Off = ["sidebar", "outline", "outline2", "formatBar", "ruler"];
 
     /// <summary>The view layout: the shipped default layout with yours over it (a value of the shipped kind), and the
-    /// side panes, the outline, the format bar and the ruler off; the docking the shipped one (docs/plans/24-PLAN-docking.md
+    /// side panes, the outline, the format bar and the ruler off; the docking the shipped one (docs/plans/executed/PLAN-docking.md
     /// 3.12: no pane of yours docked or floating there).</summary>
     public static JsonObject Layout(JsonObject? shipped, JsonObject? mine)
     {

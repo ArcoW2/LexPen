@@ -171,7 +171,7 @@ function resetLayoutToDefault() {
   toast(own ? `This window has the default layout and theme set again (no longer "${own}").` : 'This window has the default layout again.', true);
 }
 
-// View > Layout > Use layout of... (docs/plans/24-PLAN-docking.md 3.13a): this window takes the layout of another open
+// View > Layout > Use layout of... (docs/plans/executed/PLAN-docking.md 3.13a): this window takes the layout of another open
 // window, or of a project with no window open (its last window's); its tabs, folder and place stay; Undo in the message.
 async function layoutSourceItems() {
   const sources = await host('layoutSources');
@@ -215,7 +215,7 @@ function toast(message, info, action) {
 }
 // ---------- Messages: what the toast showed, kept ----------
 // Every toast of this window since it opened (the last 200), with its time and the document active then: the
-// Messages pane (View > Messages..., also F1, and a click on the toast; docs/plans/24-PLAN-docking.md stage 11) lists
+// Messages pane (View > Messages..., also F1, and a click on the toast; docs/plans/executed/PLAN-docking.md stage 11) lists
 // them, newest first, kept up to date while shown; a click on a document goes there. A page of its own (messages.html)
 // that docks in the window's dock areas or floats in a window of its own, floating the first time; not modal. Its
 // window closed by hand: it stays floating, so it opens floating again.
@@ -1878,7 +1878,7 @@ events.clipboards = ({ state }) => {
   if (clipsPane.frame || clipsPane.floating) clipsPane.send(clipsState());
 };
 
-// ---------- The Clipboards pane (docs/plans/24-PLAN-docking.md stage 12) ----------
+// ---------- The Clipboards pane (docs/plans/executed/PLAN-docking.md stage 12) ----------
 // LexPen's clipboards (the Windows clipboard and 1 to 9) with the start of their text, the active one marked; a click
 // makes one active. A page of its own (clipboards.html) docked in the window's dock areas or floating; hidden at
 // first, docked at the right by its action. The popup list (clipboardList) stays.
@@ -2328,7 +2328,7 @@ function deletedIn(dir, items) {
 }
 
 // ---------- Folder tree ----------
-// The tree is the Folder pane's page (folder.html, folder-pane.js; docs/plans/24-PLAN-docking.md 3.3): it shows the
+// The tree is the Folder pane's page (folder.html, folder-pane.js; docs/plans/executed/PLAN-docking.md 3.3): it shows the
 // rows and keeps the open folders, the cursor and the scroll; this page lists a folder for it (listItems), keeps the
 // window's folder and acts on what is done there (fromFolder). treeOpen and treeTop: what it reported, for the session.
 let treeOpen = [], treeTop = 0;
@@ -2415,7 +2415,7 @@ document.body.append(focusRing);
 const focusRingWatch = new ResizeObserver(() => placeFocusRing());
 
 // While a tool pane has the focus (docked, its outline, or a floating pane's window: paneWindowFocus), the active
-// document keeps a dimmed frame of its own and its cursors shown, steady (docs/plans/24-PLAN-docking.md 3.11): so it is
+// document keeps a dimmed frame of its own and its cursors shown, steady (docs/plans/executed/PLAN-docking.md 3.11): so it is
 // clear where Characters inserts and whose highlights are listed. Its selection keeps the colour without the focus.
 const docRing = Object.assign(document.createElement('div'), { className: 'mm-focus-ring mm-doc-ring', hidden: true });
 document.body.append(docRing);
@@ -2590,7 +2590,7 @@ function sendFolderHead() {
     sort: setting('sort') === 'modified' ? 'modified' : 'name', desc: !!setting('sortDesc'), known: document.body.dataset.tree === 'known' });
 }
 
-// ---------- The Folder pane's page (docs/plans/24-PLAN-docking.md 3.3, 3.5) ----------
+// ---------- The Folder pane's page (docs/plans/executed/PLAN-docking.md 3.3, 3.5) ----------
 // In a frame in its view in a dock area (docks.js), or floating in a window of its own (panechannel.js).
 const folderPane = paneChannel({ id: 'folder', page: 'folder.html', title: 'Folder', view: () => $('.mm-folder-view'),
   state: () => folderPaneState(), receive: (m, from) => fromFolder(m, from),
@@ -2927,7 +2927,7 @@ events.adoptTab = async ({ tab: p, pane: index }) => {
 // the folder (searched by the host; open ones are searched here instead). One pattern serves both:
 // the ^ codes become regular expression parts that JavaScript and .NET read the same way.
 const SEARCH_CODES = { p: '(?:\\r\\n|\\n|\\r)', t: '\\t', '?': '.', '#': '\\d', '$': '[A-Za-z]', w: '[ \\t]+', '^': '\\^' };
-// The panel is the Search pane's page (search.html, search-pane.js; docs/plans/24-PLAN-docking.md 3.3): it has the
+// The panel is the Search pane's page (search.html, search-pane.js; docs/plans/executed/PLAN-docking.md 3.3): it has the
 // fields, switches and results; this page searches, replaces and keeps what they show (searchPage). searchUi and
 // replaceUi (searchreplace.js) stand for its fields here: what is set on them goes to its page.
 const searchPage = { values: { find: '', with: '' }, scope: 'selection', status: '', replace: false, html: '' };
@@ -3134,7 +3134,7 @@ async function goToSearchHit(hit) {
   }
 }
 
-// ---------- The Search pane's page (docs/plans/24-PLAN-docking.md 3.3, 3.5) ----------
+// ---------- The Search pane's page (docs/plans/executed/PLAN-docking.md 3.3, 3.5) ----------
 // In a frame in its view in a dock area (docks.js), or floating in a window of its own (panechannel.js).
 const searchPane = paneChannel({ id: 'search', page: 'search.html', title: 'Search', view: () => $('.mm-search-view'),
   state: () => searchPaneState(), receive: m => fromSearch(m),
@@ -3170,7 +3170,7 @@ function registerToolPane(id, title, page, open, close) {
       back: () => { host(close); setDockFloating(id, false); } } });
 }
 
-// A tool opened from its menu item, as it was last (docs/plans/24-PLAN-docking.md 3.7a): the active editor pane's own
+// A tool opened from its menu item, as it was last (docs/plans/executed/PLAN-docking.md 3.7a): the active editor pane's own
 // when it has one (not closed); else the window's: its window of its own (`open` to the host), or docked in this
 // window (shown, its area opened). The editor pane whose own it is, null: the window's docked, undefined: floating.
 function openToolPane(kind, open, args = {}) {
@@ -3504,7 +3504,7 @@ const outlineKey = pane => pane.index ? 'outline2' : 'outline';
 const outlineOn = pane => !!setting(outlineKey(pane));
 const toggleOutline = pane => setSetting(outlineKey(pane), !outlineOn(pane));
 
-// The window's outline (outline:w; 24-PLAN-docking.md 3.9): docked in one of the window's dock areas (a frame in its
+// The window's outline (outline:w; docs/plans/executed/PLAN-docking.md 3.9): docked in one of the window's dock areas (a frame in its
 // view, winOutlineNav) or floating (a window of its own, PaneForm.cs); null: neither. { pane: the editor pane whose
 // document it serves, docked, queue: what waits until its page is ready, runs: its floating menu's items }. It serves
 // the active document when that pane has no outline of its own; else it keeps showing the last one it served. Where it
@@ -3660,7 +3660,7 @@ function markOutline(pane) {
   });
 }
 
-// ---------- The outline's page (docs/plans/24-PLAN-docking.md 3.3, 3.5) ----------
+// ---------- The outline's page (docs/plans/executed/PLAN-docking.md 3.3, 3.5) ----------
 // Each editor pane's outline is a page of its own (outline.html) in a frame from the panes' site, so it runs in a
 // process of its own; made the first time the outline shows. Until it says it is ready, the last message of each kind
 // waits. Its theme and fonts are this page's (lookToPanes).
@@ -4105,7 +4105,7 @@ function setSplit(share) {
   relayout();
 }
 
-// The preview's place in its editor pane (docs/plans/24-PLAN-docking.md 3.4c): at the right (the default), the left,
+// The preview's place in its editor pane (docs/plans/executed/PLAN-docking.md 3.4c): at the right (the default), the left,
 // above or below the text (above and below the full width of the pane, the splitter setting the height). Per editor
 // pane, kept in the window's layout also while the second pane is closed (previewPlace, previewPlace2).
 const previewPlaceKey = pane => pane.index ? 'previewPlace2' : 'previewPlace';
@@ -4797,7 +4797,7 @@ events.viewLayout = async ({ layout }) => {
     afterPaneChange();
   }
   for (const tab of allTabs()) tab.mode = 'preview';
-  // The docking too (docs/plans/24-PLAN-docking.md 3.12): the shipped one, this window's windows of their own closed.
+  // The docking too (docs/plans/executed/PLAN-docking.md 3.12): the shipped one, this window's windows of their own closed.
   for (const kind of await host('toolWindowsOpen').catch(() => [])) host('closeToolWindow', { kind });
   layoutOwn = { ...layout };
   mergeLayout();
@@ -5611,7 +5611,7 @@ track((async () => {
   const tree = root && session?.root === root && session.tree && typeof session.tree === 'object' ? session.tree : null;
   if (root) await openFolder(root, Array.isArray(tree?.open) ? tree.open : [], { top: Number.isFinite(tree?.top) ? tree.top : 0 }).catch(() => {});
   if (start.restore !== undefined || start.drafts) await restore(session, start.drafts || []);
-  // The panes that floated when the window closed float again (docs/plans/24-PLAN-docking.md 3.13); not Characters (its
+  // The panes that floated when the window closed float again (docs/plans/executed/PLAN-docking.md 3.13); not Characters (its
   // window is one for LexPen; floating says only how Insert character opens it).
   for (const [id, p] of dockPanes) if (dockModel().state[id] === 'floating' && !p.floatsOnCall) p.channel.float();
   // Clipboards: its window only when it was open as the window closed (closed by hand it stays floating, not open).

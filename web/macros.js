@@ -404,7 +404,7 @@ appAction('macro.manage', { title: 'Manage macros...', hint: 'The stored macros,
 appAction('macro.window', { title: 'Macro...', hint: 'A macro\'s window: play it, step by step, record more onto it, edit, a name, a key, delete', group: 'macros',
   run: ([name]) => openMacroWindow(name ?? null) });
 
-// ---------- The macro window (plan 36 3.3, 3.4; docs/plans/24-PLAN-docking.md 7b) ----------
+// ---------- The macro window (plan 36 3.3, 3.4; docs/plans/executed/PLAN-docking.md 7b) ----------
 // One macro's window (from View > Macros), or Manage: the same window with the list. A pane of its own (macros.html,
 // macros-pane.js) that docks in the window's dock areas or floats in a window of its own, floating the first time; not
 // modal: the editor and the menus go on working while it is shown; a play from it runs on the document active at
@@ -998,7 +998,7 @@ function toggleMacroBreak(pane, line) {
   else { breaks.add(h); doc.addLineClass(h, 'gutter', 'mm-macro-break'); }
 }
 
-// ---------- The Step by step pane (docs/plans/24-PLAN-docking.md stage 13) ----------
+// ---------- The Step by step pane (docs/plans/executed/PLAN-docking.md stage 13) ----------
 // A page of its own (step.html): where the macro stopped, the buttons, the macro's variables and the system ones apart.
 // By default at the bottom of the macro's editor pane (`step:0`, `step:1`, that pane's own); moved to the window's
 // dock areas or floating it is the window's (`step`). A step by step shows the one in use (the macro's pane's own

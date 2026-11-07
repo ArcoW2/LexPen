@@ -244,7 +244,7 @@ toggleAction('editor', { title: 'Editor', hint: 'Show or hide the editor (at lea
   enabled: () => !!activeTab() }, () => !!activeTab() && activeTab().mode !== 'preview', () => setSwitch('editor'), ['show', 'hide']);
 toggleAction('preview', { title: 'Preview', hint: 'Show or hide the preview (at least one of editor and preview stays)', group: 'view',
   enabled: () => !!activeTab() }, () => !!activeTab() && activeTab().mode !== 'edit', () => setSwitch('preview'), ['show', 'hide']);
-// The preview's place in its editor pane (docs/plans/24-PLAN-docking.md 3.4c): per editor pane, kept in the window's
+// The preview's place in its editor pane (docs/plans/executed/PLAN-docking.md 3.4c): per editor pane, kept in the window's
 // layout (previewPlace, previewPlace2); the active pane's (the splitter's right-click menu: its own pane's, app.js).
 const PREVIEW_PLACES = [['right', 'Preview at the right'], ['left', 'Preview at the left'], ['top', 'Preview above'], ['bottom', 'Preview below']];
 for (const [place, title] of PREVIEW_PLACES)

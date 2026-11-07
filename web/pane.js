@@ -1,4 +1,4 @@
-// A tool pane's page (docs/plans/24-PLAN-docking.md 3.5): a frame in its window's page, from a site of its own, so it
+// A tool pane's page (docs/plans/executed/PLAN-docking.md 3.5): a frame in its window's page, from a site of its own, so it
 // runs in a process of its own; or floating, a window of its own (PaneForm.cs), where the host passes its messages.
 // Either way it talks to its window's page only: what it shows comes from there, what is done in it goes there. The
 // window gives it its theme and fonts, and gets every key the pane does not use itself (F1, Ctrl+Shift+Tab, Ctrl+M,
@@ -126,7 +126,7 @@ addEventListener('keydown', e => {
 });
 
 // Floating, its window with the focus has the active frame, as the part with the focus in the window's page has
-// (docs/plans/24-PLAN-docking.md 3.11).
+// (docs/plans/executed/PLAN-docking.md 3.11).
 if (floating) {
   const ring = document.createElement('div');
   ring.className = 'mm-pane-active-ring';
