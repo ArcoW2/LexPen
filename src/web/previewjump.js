@@ -134,7 +134,7 @@ async function previewToEditor(pane, e) {
 // The editor: this pane's in split view, else the other pane's when it shows the same document in the editor; none
 // without one. Drawn in a layer after the preview's content (as find's boxes), so it scrolls along. After a cursor
 // move or an editor scroll, with the cursor in the editor's view, the bar is kept touching the preview's view (wholly
-// in it when it fits).
+// in it when it fits); only in split view: the other pane's editor does not scroll this preview.
 function markPreviewCursor(pane, reveal) {
   const tab = pane.active, el = pane.previewEl;
   // Another width reflows the text: the lines move.
@@ -160,7 +160,9 @@ function markPreviewCursor(pane, reveal) {
   const place = (bar, r) => Object.assign(bar.style, { top: r.top - origin.top + 'px', height: Math.max(r.bottom - r.top, 2) + 'px' });
   place(block, spot.block);
   place(own, spot.line);
-  if (reveal && cursorInView(editor.cm)) alignWithCursor(pane, editor.cm, spot.line);
+  // Kept in view only for the editor in this pane: a preview showing the document whose editor is in the other pane
+  // marks its cursor but stays where it is (it may be read elsewhere while typing there).
+  if (reveal && editor === pane && cursorInView(editor.cm)) alignWithCursor(pane, editor.cm, spot.line);
   if (typeof schedulePreviewOverview === 'function') schedulePreviewOverview(pane);   // its mark on the preview's scroll bar
 }
 
