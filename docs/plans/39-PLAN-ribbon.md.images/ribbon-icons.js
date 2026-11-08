@@ -69,7 +69,7 @@ window.RIBBON_ICONS = (() => {
     'lineNumbers.set': ['Line numbers', p('M6.5 4h7.5M6.5 8h7.5M6.5 12h7.5') + t(0.6, 5.6, 5, '1') + t(0.6, 9.6, 5, '2') + t(0.6, 13.6, 5, '3')],
     ruler: ['Ruler', '<rect x="1.5" y="5" width="13" height="6" rx="1"/>' + p('M4 5v2.5M6.5 5v1.5M9 5v2.5M11.5 5v1.5')],
     formatBar: ['Formatting bar', '<rect x="1.5" y="2" width="13" height="5" rx="1"/>' + t(3, 6.3, 4.2, 'B', 700) + t(7.2, 6.3, 4.2, 'I', 400) + dim('M2 10.5h12M2 13.5h8')],
-    folders: ['Folders', p('M1.5 3.5h4.5l1.5 1.5h7v8.5h-13z')],
+    folders: ['Folder', p('M1.5 3.5h4.5l1.5 1.5h7v8.5h-13z')],
     searchView: ['Search', '<rect x="1.5" y="2" width="13" height="12" rx="1"/>' + p('M1.5 5h13') + mag(7.2, 9, 2.1)],
     outline: ['Outline', p('M3 3h5.5M5.5 6.5h6M5.5 10h6M8 13.5h6M3 3v7h2.5M3 6.5h2.5')],
     'bookmarks.pane': ['Bookmarks', p('M2.5 2h4v8l-2-1.5-2 1.5zM9 4h5M9 7.5h5M2.5 13.5h11.5')],
@@ -93,9 +93,18 @@ window.RIBBON_ICONS = (() => {
     settings: ['Settings...', '<circle cx="8" cy="8" r="3.3"/><circle cx="8" cy="8" r="1.2"/>' + p('M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4')],
     themeColours: ['Theme colours...', p('M8 1.5a6.5 6.5 0 1 0 0 13c1 0 1.5-.7 1.5-1.5s-.6-1.2-.6-2 .7-1.5 1.5-1.5h1.6a2.5 2.5 0 0 0 2.5-2.5C14.5 4 11.6 1.5 8 1.5z') + '<circle cx="4.7" cy="7.5" r=".9" fill="currentColor"/><circle cx="6.5" cy="4.5" r=".9" fill="currentColor"/><circle cx="10" cy="4.3" r=".9" fill="currentColor"/>'],
     commands: ['Keyboard shortcuts', '<rect x="1" y="4" width="14" height="8.5" rx="1.5"/>' + p('M3.5 6.8h1M6 6.8h1M8.5 6.8h1M11 6.8h1.5M3.5 9.8h1M6 9.8h4.5M12 9.8h.5')],
+    // Panels (Window > Panels): the ones without a button's icon above
+    'csv.columns': ['Columns', '<rect x="1.5" y="2.5" width="13" height="11" rx="1"/>' + p('M1.5 6h13M6 2.5v11M10.5 2.5v11')],
+    'panel.characters': ['Characters', '<rect x="1.5" y="1.5" width="13" height="13" rx="1"/>' + p('M4.5 11.5h1.8v-1A3 3 0 1 1 9.7 10.5v1h1.8')],
+    'panel.sort': ['Sort', p('M2 3.5h7M2 7h5M2 10.5h3M12 2.5v10M10 10.5l2 2 2-2')],
+    'panel.macros': ['Macros', p('M2 3.5h8M2 7h8M2 10.5h5M10.5 9.5l4 2.5-4 2.5z')],
+    'panel.step': ['Step by step', p('M1.5 14h3v-3h3V8h3V5h3V2')],
+    messages: ['Messages', p('M2 2.5h12v8.5H7.5L4.5 14v-3H2zM8 5v2.8') + '<circle cx="8" cy="9" r=".5" fill="currentColor"/>'],
+    'panel.themesets': ['Theme sets', '<rect x="1.5" y="3.5" width="4" height="9" rx="1"/><rect x="6" y="3.5" width="4" height="9" rx="1" fill="currentColor" fill-opacity=".35"/><rect x="10.5" y="3.5" width="4" height="9" rx="1" fill="currentColor" fill-opacity=".8"/>'],
+    'panel.projects': ['Projects', p('M4.5 1.5h10v8h-10zM4.5 4h10M1.5 5.5v9h10v-2.5')],
+    'panel.settings': ['Settings', '<circle cx="8" cy="8" r="3.3"/><circle cx="8" cy="8" r="1.2"/>' + p('M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4')],
   };
-})();
-// The icon of a label in the mock (labels are not unique: "Line" is both Go to line and Select line; the group tells).
+})();// The icon of a label in the mock (labels are not unique: "Line" is both Go to line and Select line; the group tells).
 window.ribbonIcon = (label, group, size) => {
   const all = Object.entries(window.RIBBON_ICONS);
   const hit = all.filter(([, [l]]) => l === label);

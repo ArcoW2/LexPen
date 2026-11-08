@@ -66,14 +66,18 @@ divider. "Corner": the action of the group's corner icon.
 |---|---|
 | Document | Editor (large, a toggle) / Preview (large, a toggle) |
 | Text | Wrap long lines (large, a toggle) / Line numbers (its choices) + Ruler + Formatting bar |
-| Panels | Folders + Search + Outline / Bookmarks + Clipboards + Highlights (each a show / hide toggle) |
+| Files and finding | Folder + Search + Bookmarks |
+| The document | Outline + Highlights + Columns (CSV) |
+| Editing | Characters + Clipboards + Sort |
+| Macros | Macros + Step by step |
+| LexPen | Settings + Keyboard shortcuts + Messages / Theme sets + Projects (Manage projects) |
 | Window | Zoom in + Zoom out + Zoom 100% / divider / Day (large) / Night (large) |
 
 **Tools**
 
 | Group | Columns |
 |---|---|
-| Macros | Record / stop recording (large) / Play + Play X times... + Manage macros... |
+| Macros | Record / stop recording (large) / Play + Play X times.... Corner: Manage macros |
 | Compare | Compare files... (large) / Compare folders... + Leave the compare / Next difference + Previous difference |
 | Settings | Settings... (large) / Theme colours... + Keyboard shortcuts and commands |
 
@@ -87,16 +91,20 @@ divider. "Corner": the action of the group's corner icon.
   as the setting Show the Occurrences bar says; question 3); Clear empties the field and the marks, also with the
   bar hidden (as now). The corner icon opens the bar with the cursor in its field, to type something else. The bar
   closes by its X or Esc in its field.
+- **The panels**: View has every panel of Window > Panels, in its groups and order (Files and finding, The
+  document, Editing, Macros, LexPen), each a show / hide toggle as there; a panel added later joins its group in both.
+- **Manage ...**: every Manage (clipboards, bookmarks, macros) and the other managers (the Highlights window, the stored
+  sorts, the Occurrences bar) are a group's corner icon, not a button.
 - **Editor and Preview** are not on Home: they are the switches at the window's top right, and View > Document.
 - **Day / Night**: the two values of Day / night, each its own button, the current one pressed.
 - **Width**, measured in a mock (a test copy, LexPen's own font and the Dark theme, group names on, the icons of
-  3.4, a 1264 px wide window): File 239 px, Home 1104 px, Select & Sort 507 px, Review 146 px, View 720 px, Tools
-  779 px. Home's groups: Edit 216, Lines 96, Clipboard 156, Find 279, Occurrences 75, Go to 98, Bookmarks 179; the
+  3.4, a 1264 px wide window): File 239 px, Home 1104 px, Select & Sort 507 px, Review 146 px, View 1204 px, Tools
+  758 px. Home's groups: Edit 216, Lines 96, Clipboard 156, Find 279, Occurrences 75, Go to 98, Bookmarks 179; the
   ribbon 120 px high with its tabs. Every tab fits that window; a narrower one sends Home's right end into the ">>"
   menu.
 
 The mock, per tab, with the icons of 3.4 (the corner icon at the bottom right of Clipboard, Occurrences, Bookmarks,
-Sort and Highlights); Home also in the light theme:
+Sort, Highlights and Macros); Home also in the light theme:
 
 ![ribbon-File](39-PLAN-ribbon.md.images/ribbon-File.png)
 
@@ -126,8 +134,8 @@ Sort and Highlights); Home also in the light theme:
   three per column. A small button not stacked starts a new column; a column of one or two small buttons has them
   centred in the height.
 - **The corner icon**: a group may name one action (`more` in ribbon.json); a small icon in its bottom-right corner
-  runs it, as Word's dialog launcher (Manage clipboards, Manage bookmarks, the Highlights window, the stored sorts,
-  the Occurrences bar with the cursor in its field).
+  runs it, as Word's dialog launcher (Manage clipboards, Manage bookmarks, Manage macros, the Highlights window,
+  the stored sorts, the Occurrences bar with the cursor in its field).
 - **Dividers**: a divider can stand between columns in a group; between groups always.
 - **Group names** (setting ribbonGroupNames, on by default): on, the name under each group (the ribbon a line
   taller); off, one compact block: dividers only, the group's name as the tooltip of its divider.
@@ -163,7 +171,7 @@ Sort and Highlights); Home also in the light theme:
   dark lines on a light theme, light lines on a dark one, with nothing to keep in step. Two sets would only be
   needed for coloured icons; a colour, where one helps later (Record red, say), comes from the theme's own colours
   (`caution`, `accent`), not from a second set.
-- **The proposal**: an icon for every button of 3.1, in `39-PLAN-ribbon.md.images/ribbon-icons.js` (per action its
+- **The proposal**: an icon for every button of 3.1 (the panels included), in `39-PLAN-ribbon.md.images/ribbon-icons.js` (per action its
   label and its drawing). The mock uses them. Below: all of them, large and small, in the dark and the light theme.
 - An action without an icon (one added later through Customize) shows a box with its first letter until it gets one.
 
