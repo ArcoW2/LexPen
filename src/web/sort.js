@@ -414,7 +414,7 @@ appAction('edit.sortAsc', { title: 'Sort ascending', hint: 'As Sort, every key A
   enabled: () => !!activeDoc(), run: ([name] = []) => sortNow(name, 'asc') });
 appAction('edit.sortDesc', { title: 'Sort descending', hint: 'As Sort, every key Z to A (also a stored sort\'s, with its name)', group: 'edit',
   enabled: () => !!activeDoc(), run: ([name] = []) => sortNow(name, 'desc') });
-// Sort again (docs/plans/39-PLAN-ribbon.md): the last sort's keys and options, on the selection or the file as Sort.
+// Sort again (docs/plans/executed/PLAN-ribbon.md): the last sort's keys and options, on the selection or the file as Sort.
 appAction('edit.sortAgain', { title: 'Sort again', hint: 'The last sort again, with its keys and options (from the Sort panel, a stored sort, or Sort), on the selected lines or the file',
   group: 'edit', enabled: () => !!activeDoc() && !!sortLast, run: async () => {
     const pane = editorPane(), doc = activeDoc(), tab = activeTab();

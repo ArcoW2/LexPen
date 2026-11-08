@@ -1527,7 +1527,7 @@ body[data-highlight=underline] .CodeMirror .mm-hl { background: none; box-shadow
   background: color-mix(in srgb, var(--accent) 22%, transparent); }
 .mm-drop-place[hidden] { display: none; }
 
-/* ---------- The ribbon (ribbon.js; docs/plans/39-PLAN-ribbon.md) ---------- */
+/* ---------- The ribbon (ribbon.js; docs/plans/executed/PLAN-ribbon.md) ---------- */
 /* What the top bar shows (commandBar): the menus, the ribbon's tab names in their place, or the menus with the ribbon
    (its tab names in a row of their own) under the top bar. Alt with the ribbon only and altOpens menu: the menus back
    for as long as one is open. */

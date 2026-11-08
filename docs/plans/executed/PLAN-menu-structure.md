@@ -304,7 +304,7 @@ file, edit, select, find, go, format, view, window, tools, options (and settings
 
 ### 3.7 A bar with all actions (proposal)
 
-The action bar gets a plan of its own: docs/plans/39-PLAN-ribbon.md. This section was its starting point. It is an optional row of icon buttons
+The action bar gets a plan of its own: docs/plans/executed/PLAN-ribbon.md. This section was its starting point. It is an optional row of icon buttons
 under the menu bar, for the actions each user wants at hand: every user has other favourites, so the user edits it.
 It may even replace the menu bar, for a user who wants that (a setting). The top bar stays as it is. It is a second view on the same actions (each button runs an action, its tooltip shows the title and the
 key, as the menus do); it can be shown or hidden (View, and its own right-click).

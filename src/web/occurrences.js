@@ -124,7 +124,7 @@ function occChanged(pane) {
 
 // ---------- Filling the field ----------
 // A text into the field (its line breaks and tabs as codes, a caret as ^^), the bar opened when the setting says so;
-// open false: never (Show all occurrences, docs/plans/39-PLAN-ribbon.md: a bar closed was closed by the user).
+// open false: never (Show all occurrences, docs/plans/executed/PLAN-ribbon.md: a bar closed was closed by the user).
 function showOccurrences(pane, text, word, open = true) {
   if (!pane?.active || !text) return;
   const q = occOf(pane);

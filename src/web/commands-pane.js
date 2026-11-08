@@ -111,7 +111,7 @@ cp.list.addEventListener('dblclick', e => {
   if (row) run(+row.dataset.row);
 });
 addEventListener('focus', () => toWindow({ kind: 'refresh' }));
-// The ribbon (docs/plans/39-PLAN-ribbon.md): its change mode on or off; while on, a row dragged onto it adds its command.
+// The ribbon (docs/plans/executed/PLAN-ribbon.md): its change mode on or off; while on, a row dragged onto it adds its command.
 cp.ribbon.addEventListener('click', () => toWindow({ kind: 'ribbonChange' }));
 cp.list.addEventListener('dragstart', e => {
   const row = e.target.closest('[data-call]');

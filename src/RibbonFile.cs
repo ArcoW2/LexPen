@@ -4,7 +4,7 @@ using System.Text.Json.Nodes;
 namespace LexPen;
 
 /// <summary>
-/// ribbon.json: the ribbon's tabs, groups and buttons (docs/plans/39-PLAN-ribbon.md). The one in defaults is the shipped
+/// ribbon.json: the ribbon's tabs, groups and buttons (docs/plans/executed/PLAN-ribbon.md). The one in defaults is the shipped
 /// ribbon; a ribbon.json in the data folder, written when the user changes the ribbon, replaces it whole. Comments and
 /// trailing commas are allowed. Reading keeps what makes sense and reports the rest: a tab without a name or groups, a
 /// group without items, an item that is not "divider" or { action, ... } is left out; an action LexPen does not know

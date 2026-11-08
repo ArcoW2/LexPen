@@ -1,5 +1,5 @@
 'use strict';
-// The ribbon's icons (docs/plans/39-PLAN-ribbon.md 3.4; ribbon.js): a drawing per action, on LexPen's 16-unit grid,
+// The ribbon's icons (docs/plans/executed/PLAN-ribbon.md 3.4; ribbon.js): a drawing per action, on LexPen's 16-unit grid,
 // stroked in the text colour so every theme colours it; small 16 px with lines of 1.4, large 32 px with lines of 1.0.
 // A button by its call: the action's name, with its parameter after a space where the parameter makes another
 // drawing ("bookmarkNext -1"). A panel ("panel folder", and the actions that open one: settings, commands,

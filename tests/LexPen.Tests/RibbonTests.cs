@@ -3,7 +3,7 @@ using System.Text.Json.Nodes;
 
 namespace LexPen.Tests;
 
-// The ribbon (docs/plans/39-PLAN-ribbon.md): ribbon.json read and written (RibbonFile), and the page's rules for a
+// The ribbon (docs/plans/executed/PLAN-ribbon.md): ribbon.json read and written (RibbonFile), and the page's rules for a
 // group's columns and the key tips (web/ribbonmodel.js under Jint).
 public class RibbonTests : IDisposable
 {

@@ -735,7 +735,7 @@ sealed class MainForm : Form
             case "keys":
                 return KeysFile.Load(AppHost.DataDir);
 
-            // The ribbon (docs/plans/39-PLAN-ribbon.md): yours or the shipped one; your changes written (the other
+            // The ribbon (docs/plans/executed/PLAN-ribbon.md): yours or the shipped one; your changes written (the other
             // windows follow); Reset back to the shipped one.
             case "ribbon":
                 return RibbonFile.Load(AppHost.DataDir, Path.Combine(AppContext.BaseDirectory, AppHost.DefaultsFolder, RibbonFile.Name));
@@ -777,7 +777,7 @@ sealed class MainForm : Form
                 app.ClipboardsChanged();
                 return null;
 
-            // Clear clipboard (the ribbon's Paste list, docs/plans/39-PLAN-ribbon.md): a numbered one emptied, or the
+            // Clear clipboard (the ribbon's Paste list, docs/plans/executed/PLAN-ribbon.md): a numbered one emptied, or the
             // Windows clipboard.
             case "clipClear":
             {

@@ -1,5 +1,5 @@
 'use strict';
-// The ribbon (docs/plans/39-PLAN-ribbon.md): tabs of named groups of buttons, each button an action as its menu item
+// The ribbon (docs/plans/executed/PLAN-ribbon.md): tabs of named groups of buttons, each button an action as its menu item
 // is (ribbon.json: yours, else the shipped one; RibbonFile.cs). Shown as the setting commandBar says: "menu" (no
 // ribbon), "ribbon" (its tab names in the top bar in the menus' place, its buttons under it) or "both" (under the
 // menus, its tab names in a row of their own). A button is large (icon above its label, the full height) or small

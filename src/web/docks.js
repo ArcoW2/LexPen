@@ -567,7 +567,7 @@ function showStepPane() {
 }
 
 // A panel shown or hidden as Window > Panels does, by its kind (the ribbon's panel buttons, a key: ["panel", "folder"];
-// docs/plans/39-PLAN-ribbon.md). Its check: as the menu's, from the windows of their own open when last asked.
+// docs/plans/executed/PLAN-ribbon.md). Its check: as the menu's, from the windows of their own open when last asked.
 let panelsOpen = [];
 const refreshPanelsOpen = async () => { panelsOpen = await host('toolWindowsOpen').catch(() => panelsOpen); return panelsOpen; };
 appAction('panel', { title: 'Panel', hint: 'Show or hide a panel (as Window > Panels)', group: 'window',

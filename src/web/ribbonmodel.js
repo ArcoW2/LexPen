@@ -1,6 +1,6 @@
 'use strict';
 // The ribbon's rules without a page (ribbon.js draws it; the tests run this file under Jint): a group's items as its
-// columns, and the key tips of one level. docs/plans/39-PLAN-ribbon.md.
+// columns, and the key tips of one level. docs/plans/executed/PLAN-ribbon.md.
 
 const RB_STACK = 3;   // small buttons in one column at most
 

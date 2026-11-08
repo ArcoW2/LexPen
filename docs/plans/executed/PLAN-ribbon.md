@@ -1,6 +1,6 @@
 # Plan: A ribbon with the actions each user wants at hand
 
-Status: draft 2026-11-07, revised 2026-11-08 (many times); not started. From plan 25 (executed/PLAN-menu-structure.md 3.7), where
+Status: draft 2026-11-07, revised 2026-11-08 (many times); executed (2026-11-08); see As built. From plan 25 (executed/PLAN-menu-structure.md 3.7), where
 it was proposed. The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
@@ -112,19 +112,19 @@ divider. "Corner": the action of the group's corner icon, bottom right; bottom l
 The mock, per tab, with the icons of 3.4 (the corner icon at the bottom right of Clipboard, Occurrences, Bookmarks,
 Sort, Highlights and Macros); Home also in the light theme:
 
-![ribbon-File](39-PLAN-ribbon.md.images/ribbon-File.png)
+![ribbon-File](PLAN-ribbon.md.images/ribbon-File.png)
 
-![ribbon-Home](39-PLAN-ribbon.md.images/ribbon-Home.png)
+![ribbon-Home](PLAN-ribbon.md.images/ribbon-Home.png)
 
-![ribbon-Home-light](39-PLAN-ribbon.md.images/ribbon-Home-light.png)
+![ribbon-Home-light](PLAN-ribbon.md.images/ribbon-Home-light.png)
 
-![ribbon-Arrange](39-PLAN-ribbon.md.images/ribbon-Arrange.png)
+![ribbon-Arrange](PLAN-ribbon.md.images/ribbon-Arrange.png)
 
-![ribbon-Review](39-PLAN-ribbon.md.images/ribbon-Review.png)
+![ribbon-Review](PLAN-ribbon.md.images/ribbon-Review.png)
 
-![ribbon-View](39-PLAN-ribbon.md.images/ribbon-View.png)
+![ribbon-View](PLAN-ribbon.md.images/ribbon-View.png)
 
-![ribbon-Tools](39-PLAN-ribbon.md.images/ribbon-Tools.png)
+![ribbon-Tools](PLAN-ribbon.md.images/ribbon-Tools.png)
 
 ### 3.2 Behaviour
 
@@ -241,7 +241,7 @@ never changes by accident while working.
   dark lines on a light theme, light lines on a dark one, with nothing to keep in step. Two sets would only be
   needed for coloured icons; a colour, where one helps later (Record red, say), comes from the theme's own colours
   (`caution`, `accent`), not from a second set.
-- **The proposal**: an icon for every button of 3.1 (the panels included), in `39-PLAN-ribbon.md.images/ribbon-icons.js` (per action its
+- **The proposal**: an icon for every button of 3.1 (the panels included), in `PLAN-ribbon.md.images/ribbon-icons.js` (per action its
   label and its drawing). The mock uses them. Below: all of them, large and small, in the dark and the light theme.
 - **Related actions share a drawing**: Find references and Clear are Show's marked text with a magnifier or an
   eraser in its corner; Sort again is Sort...'s lines with a circular arrow where its arrow down is; Play X times is
@@ -253,9 +253,9 @@ never changes by accident while working.
   a panel shows "F1"; Messages is an empty balloon.
 - An action without an icon (one added later through Customize) shows a box with its first letter until it gets one.
 
-![ribbon-icons-dark](39-PLAN-ribbon.md.images/ribbon-icons-dark.png)
+![ribbon-icons-dark](PLAN-ribbon.md.images/ribbon-icons-dark.png)
 
-![ribbon-icons-light](39-PLAN-ribbon.md.images/ribbon-icons-light.png)
+![ribbon-icons-light](PLAN-ribbon.md.images/ribbon-icons-light.png)
 
 ### 3.5 How
 
@@ -300,3 +300,27 @@ never changes by accident while working.
 ## 4. Open questions
 
 None.
+
+## 5. As built
+
+Built as planned (ribbon.js, ribbonmodel.js, ribbonicons.js, RibbonFile.cs, defaults/ribbon.json), with these
+differences:
+
+- **Customize is a dialog in the window**, not a WebView page of its own (3.5): the actions with a search at the left,
+  the ribbon as a list of tabs, groups, corners and buttons at the right, and buttons for Add, Remove, Up, Down, Large /
+  small, Stacked, Label, Divider, New tab, New group, Rename, Reset. No dragging in it; the ribbon itself is for that.
+  Every change goes through the same undo and save as change mode.
+- **Overflow moves whole groups** into ">>" (each a submenu with its buttons), from the right end, rather than single
+  buttons. In change mode there is no overflow: the ribbon scrolls sideways, so every group stays a drop target.
+- **Change mode with commandBar "menu"** sets it to "both" first, so there is a ribbon to change.
+- **The icons** are generated into `src/web/ribbonicons.js` from the proposal (`PLAN-ribbon.md.images/ribbon-icons.js`),
+  with the panels keyed by their PANELS kind (`panel folder`) and the toggles by their `.toggle` action.
+- **Show all occurrences** never opens the Occurrences bar (`showOccurrences(..., open)`); the corner's Occurrences
+  field opens it.
+
+Tested: C# and Jint unit tests (RibbonTests: ribbon.json load, save, reset, cleanup, a broken file; column shapes;
+key tips); all tests pass. In the test copy by script: the shipped buttons' actions exist; "both" and "ribbon"; key
+tips; Paste's list (the clipboards, Active clipboard, Clear clipboard, Manage); paste from clipboard 3 leaves the
+active one; Sort again repeats the last sort; Show all occurrences on a word and on a selection with the bar closed;
+change mode (F1 rows draggable, an F1 variant dropped under a button, a button moved to another group, one removed and
+undone, an action on a corner, saved to ribbon.json, Esc); ">>" at a narrow window; Customize adds a button.

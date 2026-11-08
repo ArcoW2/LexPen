@@ -469,7 +469,7 @@ function putOnClipboard(text, column = false, n = clips.active) {
 const editorCopies = (ctx, pane, n) => ctx.from === 'key' && n === undefined && clips.active === 0 && !(pane?.cm && blockOf(pane.cm));
 
 // Copy, Cut and Paste: on the active clipboard, or with a clipboard's number (0: the Windows clipboard, 1 to 9) on that
-// one once, the active one staying (the ribbon's lists, a key: ["paste", 3]; docs/plans/39-PLAN-ribbon.md).
+// one once, the active one staying (the ribbon's lists, a key: ["paste", 3]; docs/plans/executed/PLAN-ribbon.md).
 const clipVariants = [[], ...Array.from({ length: 10 }, (_, n) => [n])];
 const clipTitles = (base, word) => Object.fromEntries([['', base],
   ...Array.from({ length: 10 }, (_, n) => [n, `${base} ${word} ${n === 0 ? 'Windows clipboard' : 'clipboard ' + n}`])]);
@@ -638,7 +638,7 @@ const SETTING_ROWS = [
   { name: 'indentSize', group: 'Editor', sub: 'Tabs', kind: 'choice', title: 'Indent size',
     hint: 'Where the indent stops are: Tab in the indentation of a line, Indent / Outdent, and a tab in the indentation is shown that wide. A language can set its own (indentSize)',
     options: () => Array.from({ length: 16 }, (_, i) => [i + 1, String(i + 1)]) },
-  // The ribbon (docs/plans/39-PLAN-ribbon.md, ribbon.js): what the top bar shows, and the ribbon's look.
+  // The ribbon (docs/plans/executed/PLAN-ribbon.md, ribbon.js): what the top bar shows, and the ribbon's look.
   { name: 'commandBar', group: 'Editor view', sub: 'Menu and ribbon', kind: 'choice', title: 'Menu and ribbon',
     hint: 'The menus, the ribbon (its tab names in the menus\' place), or both (the ribbon under the menus); also View > Ribbon',
     options: () => [['menu', 'Menu'], ['ribbon', 'Ribbon only'], ['both', 'Menu and ribbon']] },
