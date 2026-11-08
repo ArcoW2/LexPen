@@ -231,8 +231,9 @@ every action with its key.
   the setting A jump (Editor, 10 by default) without typing (go to line, a bookmark, the outline, Ctrl+Home, a click
   far away), and always a found item (find, the search in files), however close. Ctrl+Alt+- goes back, Ctrl+Alt++
   forward again; also the mouse back / forward buttons. A place moves with the edits; one whose line was deleted is
-  skipped. Ctrl + the mouse buttons go through the tabs and files of the window instead (View > Back / Forward in
-  the window), like a browser.
+  skipped. With no place left to go to, a line flashes at the top and the bottom together (one edge alone means the
+  text's top or end). Ctrl + the mouse buttons go through the tabs and files of the window instead (View > Back /
+  Forward in the window), like a browser.
 - **Bookmarks**: 1 to 9 and unnumbered ones, at a line and column, kept per file. Ctrl+1, S stores bookmark 1,
   Ctrl+1, 1 (or Ctrl+1, Ctrl+1) goes there, Ctrl+1, T toggles, Ctrl+1, C clears; Ctrl+K, 1 and Ctrl+Q, 1 as in
   WordStar and Delphi; Ctrl+K, K / N / P / L for unnumbered ones, next, previous and the list. They follow
