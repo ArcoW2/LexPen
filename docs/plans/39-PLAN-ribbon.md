@@ -1,6 +1,6 @@
 # Plan: A ribbon with the actions each user wants at hand
 
-Status: draft 2026-11-07, revised 2026-11-08; not started. From plan 25 (executed/PLAN-menu-structure.md 3.7), where
+Status: draft 2026-11-07, revised 2026-11-08 (three times); not started. From plan 25 (executed/PLAN-menu-structure.md 3.7), where
 it was proposed. The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
@@ -12,10 +12,11 @@ must be able to choose what is on it.
 
 ## 2. The solution, in brief
 
-An optional ribbon under the menu bar, with tabs (Home, Edit, View, Tools); each tab holds named groups of buttons,
-each button running an action as its menu item does, its tooltip showing the title and the key. A button is large
-(icon above its label, the ribbon's full height) or small (icon with its label beside it, half the height), and two
-small buttons stack in the height of one large one. LexPen ships a first set; the user adds, removes and orders
+An optional ribbon under the menu bar, with tabs (File, Home, Format, View, Tools); each tab holds named groups of
+buttons, each button running an action as its menu item does, its tooltip showing the title and the key. A button is
+large (icon above its label, the ribbon's full height) or small (icon with its label beside it), and up to three
+small buttons stack in the height of one large one. A group may have a small icon in its corner that opens its
+manager (Clipboards, Bookmarks, Highlights, stored sorts). LexPen ships a first set; the user adds, removes and orders
 tabs, groups, buttons and dividers through Customize, kept in a `ribbon.json` in the data folder as `keys.json` is.
 A setting chooses what the window shows: the menu bar, the ribbon, or both; another whether group names are shown.
 
@@ -23,48 +24,62 @@ A setting chooses what the window shows: the menu bar, the ribbon, or both; anot
 
 ### 3.1 The shipped content
 
-Per tab its groups, left to right; per group its columns, left to right. A column is one large button, two small
-buttons stacked (the first on top), one small button alone, or a divider. Between groups there is always a divider.
+Per tab its groups, left to right; per group its columns, left to right. A column is one large button, two or three
+small buttons stacked (the first on top), one small button alone, or a divider. Between groups there is always a
+divider. "Corner": the action of the group's corner icon.
+
+**File**
+
+| Group | Columns |
+|---|---|
+| File | Save (large) / Save as... + New file + Open file... / Print... + Close tab |
 
 **Home**
 
 | Group | Columns |
 |---|---|
-| File | Save (large) / New file + Open file... (small, stacked) / Print... + Close tab (small, stacked) |
-| History | Undo + Redo (small, stacked) |
-| Clipboard | Paste (large) / Cut + Copy (small, stacked) / Clipboards (small; a number badge: the active clipboard) |
-| Find | Find (large) / Replace + Find next (small, stacked) / Search in files + Replace in files (small, stacked) |
-| Go | Back in the window + Forward in the window (small, stacked) / Go to line + Go to definition (small, stacked) |
+| Edit | Indent + Outdent / divider / Duplicate lines + Delete lines + Join lines / divider / Insert character + Complete word / divider / Editor + Preview (toggles) |
+| Clipboard | Paste (large; a number badge: the active clipboard) / Paste image + Cut + Copy. Corner: Manage clipboards |
+| Find | Find (large) / Find previous + Find next + Replace / Replace in files + Search in files + Find references |
+| Go | Position back + Position forward + Go to line / Go to definition |
+| Select | Select all (large) / Select line + Select a block + Select inside brackets / divider / Column mode (large, a toggle) |
+| Bookmarks | Toggle unnumbered bookmark (large) / Previous bookmark + Next bookmark. Corner: Manage bookmarks |
+| Highlights | Highlight (large) / Highlight note (large) / Remove highlight. Corner: Highlights window |
 
-**Edit**
+**Format**
 
 | Group | Columns |
 |---|---|
-| Lines | Duplicate lines + Delete lines (small, stacked) / Join lines (small) / divider / Indent + Outdent (small, stacked) |
-| Select | Select all + Select line (small, stacked) / Select a block + Select inside brackets (small, stacked) / divider / Column mode (large, a toggle) |
-| Sort | Sort... (large) / Sort ascending + Sort descending (small, stacked) |
-| Insert | Insert character (large) / Complete word + Paste image (small, stacked) |
-| Highlights | Highlight (large, a toggle) / Highlight note + Remove highlight (small, stacked) / Highlights window (small) |
+| Sort | Sort... (large) / Sort ascending + Sort descending + Sort again. Corner: the Sort panel's stored sorts |
+| History | Undo + Redo |
 
 **View**
 
 | Group | Columns |
 |---|---|
-| Document | Editor and preview (large) / Editor + Preview (small, stacked) |
-| Text | Wrap long lines + Line numbers (small, stacked; Line numbers opens its choices) / Ruler + Formatting bar (small, stacked) / divider / Show all occurrences + Occurrences bar (small, stacked) |
-| Panels | Folders + Search (small, stacked) / Outline + Manage bookmarks... (small, stacked) / Manage clipboards... (small) |
-| Window | Zoom in + Zoom out (small, stacked) / Zoom 100% (small) / divider / Day / night (large) |
+| Document | Editor (large, a toggle) / Preview (large, a toggle) |
+| Text | Wrap long lines (large, a toggle) / Line numbers (its choices) + Ruler + Formatting bar / divider / Show all occurrences + Occurrences bar |
+| Panels | Folders + Search + Outline / Bookmarks + Clipboards + Highlights (each a show / hide toggle) |
+| Window | Zoom in + Zoom out + Zoom 100% / divider / Day (large) / Night (large) |
 
 **Tools**
 
 | Group | Columns |
 |---|---|
-| Macros | Record / stop recording (large) / Play + Play X times... (small, stacked) / Manage macros... (small) |
-| Compare | Compare files... (large) / Compare folders... + Leave the compare (small, stacked) / Next difference + Previous difference (small, stacked) |
-| Bookmarks | Toggle bookmark (large) / Bookmark (next) + Bookmarks of this file (small, stacked) |
-| Settings | Settings... (large) / Theme colours... + Keyboard shortcuts and commands (small, stacked) |
+| Macros | Record / stop recording (large) / Play + Play X times... + Manage macros... |
+| Compare | Compare files... (large) / Compare folders... + Leave the compare / Next difference + Previous difference |
+| Settings | Settings... (large) / Theme colours... + Keyboard shortcuts and commands |
 
-All of these are actions that exist now (actions.js); the panels are their show / hide toggles.
+- **Actions**: all exist now (actions.js), except **Sort again**: a new action, the last sort again with its keys
+  and options (from the Sort panel or a stored sort), on the selection or the file as Sort.
+- **Highlight** is not a toggle: it highlights the selection, or removes the highlight the cursor is in.
+- **Position back / forward**: the cursor's jumps in the document (places.js); Back / Forward in the window (the
+  tabs and files, as a browser) are in the menus and keys, not on the ribbon.
+- **Day / Night**: the two values of Day / night, each its own button, the current one pressed.
+- **Width**, measured in a mock (a test copy, LexPen's own font and the Dark theme, group names on, a 1264 px wide
+  window): File 233 px, Home 1912 px, Format 257 px, View 866 px, Tools 779 px. Home's groups: Edit 422, Clipboard
+  152, Find 273, Go 251, Select 283, Bookmarks 236, Highlights 290; the ribbon 120 px high with its tabs. Home does
+  not fit that window (question 1).
 
 ### 3.2 Behaviour
 
@@ -73,10 +88,13 @@ All of these are actions that exist now (actions.js); the panels are their show 
   not available now is greyed out (the action's `enabled`). An action with choices (Line numbers) opens them as a
   small menu.
 - **Tabs**: a row of tab names on top; a click shows that tab's groups. The tab last shown is kept per window. The
-  ribbon's height is the same on every tab: two small rows, or one large button.
-- **Sizes**: large: the icon above the label, the full height. Small: the icon with its label beside it, half the
-  height. A small button marked "stacked" goes under the small button before it in the same column; at most two per
-  column. A small button not stacked starts a new column (alone when the next one is not stacked under it).
+  ribbon's height is the same on every tab: three small rows, or one large button.
+- **Sizes**: large: the icon above the label, the full height. Small: the icon with its label beside it, a third of
+  the height. A small button marked "stacked" goes under the small button before it in the same column; at most
+  three per column. A small button not stacked starts a new column; a column of one or two small buttons has them
+  centred in the height.
+- **The corner icon**: a group may name one action (`more` in ribbon.json); a small icon in its bottom-right corner
+  runs it, as Word's dialog launcher (Manage clipboards, Manage bookmarks, the Highlights window, the stored sorts).
 - **Dividers**: a divider can stand between columns in a group; between groups always.
 - **Group names** (setting ribbonGroupNames, on by default): on, the name under each group (the ribbon a line
   taller); off, one compact block: dividers only, the group's name as the tooltip of its divider.
@@ -93,13 +111,13 @@ All of these are actions that exist now (actions.js); the panels are their show 
 
 - A window (as F1): at the left all actions with a search, grouped as the menus; at the right the ribbon: its tabs,
   each with its groups and their columns. Add, remove, move up / down (and drag); new tab, new group, rename;
-  per button large or small and stacked or not; a divider.
+  per button large or small and stacked or not (up to three); a divider; per group its corner action.
 - An action with values (Preview place, a bookmark number) is added with its value, as keys.json writes
   `["preview.left"]`.
 - Reset: back to the shipped content.
-- `ribbon.json` in the data folder: `{ "tabs": [ { "name": "Home", "groups": [ { "name": "File", "items": [ { "action":
-  "save", "size": "large" }, { "action": "newFile", "size": "small" }, { "action": "openFile", "size": "small",
-  "stack": true }, "divider", ... ] } ] } ] }`. An action that no longer exists is skipped, not an error; a "stack"
+- `ribbon.json` in the data folder: `{ "tabs": [ { "name": "Home", "groups": [ { "name": "File", "more": "...", "items": [ { "action":
+  "save", "size": "large" }, { "action": "saveAs", "size": "small" }, { "action": "newFile", "size": "small",
+  "stack": true }, { "action": "openFile", "size": "small", "stack": true }, "divider", ... ] } ] } ] }`. An action that no longer exists is skipped, not an error; a "stack"
   without a small button before it starts a column of its own.
 
 ### 3.4 Icons
@@ -112,7 +130,7 @@ All of these are actions that exist now (actions.js); the panels are their show 
 ### 3.5 How
 
 - A bar element under the menu bar in index.html, built from `ribbon.json` (read through the host, as keys.json):
-  the tab row, and per tab its groups as a CSS grid of columns, each two rows high.
+  the tab row, and per tab its groups as a CSS grid of columns, each three rows high.
 - The state (pressed, greyed out, the clipboard badge) is refreshed where the menus refresh theirs: on the focus
   moving, a tab changing, a setting changing.
 - Customize: a WebView page of its own (as F1's commands page), talking to the window as the other tool pages do.
@@ -129,14 +147,17 @@ All of these are actions that exist now (actions.js); the panels are their show 
 ### 3.7 Tests
 
 - Unit (C#): `ribbon.json` read and written, a missing file giving the shipped one, an unknown action skipped, a
-  "stack" without a small button before it.
-- Unit (Jint): the columns of a group from its items (large, small, stacked, dividers).
+  "stack" without a small button before it, a fourth stacked one starting a new column.
+- Unit (Jint): the columns of a group from its items (large, small, two and three stacked, dividers).
 - In the test copy by script: each shipped button runs its action; toggles show their state; a button greyed out
   where its action is not available; the tabs switch and keep their choice; two stacked small buttons as high as a
-  large one; group names on and off; overflow into ">>" at a narrow window; commandBar `menu`, `ribbon` (the menu
+  large one, and three; the corner icon runs its action; Sort again repeats the last sort; group names on and off; overflow into ">>" at a narrow window; commandBar `menu`, `ribbon` (the menu
   button and Alt reach every menu) and `both`; Customize adds, moves, resizes, stacks and removes a button, adds a
   tab and a divider, and the ribbon follows; Reset.
 
 ## 4. Open questions
 
-None.
+1. Home is wider than a 1264 px window (1912 px in the mock): split it into two tabs (for instance Home: Edit,
+   Clipboard, Find; and Navigate: Go, Select, Bookmarks, Highlights), make more of its large buttons small (Select
+   all, Toggle bookmark, Highlight, Highlight note), or keep it and let the right end go into the ">>" menu?
+2. History (Undo, Redo) on Format, as now, or on Home, where the actions used most are?
