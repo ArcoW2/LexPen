@@ -791,9 +791,6 @@ function loadEditor() {
 // The editor mode: the language's, with blocks of other languages and lines you set (documentMode, languages.js).
 const editorMode = doc => documentMode(doc);
 
-// Markdown keys (Enter, Tab in tables); in code files the key keeps its editor default.
-const markdownOnly = run => editor =>
-  panes.find(p => p.cm === editor)?.active?.doc.language ? CodeMirror.Pass : run(editor);
 
 // The document's own CodeMirror Doc, created when the editor is first needed.
 function materialize(doc) {
@@ -1073,6 +1070,8 @@ async function renderNow(tab) {
   const content = tpl.content;
   if (doc.language && !csv && hasLongLine(text)) content.firstElementChild.classList.add('mm-long-line');
   fixPreviewContent(content, doc);
+  await stampImages(content);
+  if (id !== tab.renderId) return;
 
   if (large) {
     const pre = content.firstElementChild, chunks = [...pre.children];
@@ -1120,6 +1119,17 @@ function fixPreviewContent(content, doc) {
 
   for (const code of content.querySelectorAll('pre > code'))
     if (hasLongLine(code.textContent)) code.parentElement.classList.add('mm-long-line');
+}
+
+// The pictures from disk get their file's last change in their address: the page reuses a picture it loaded by its
+// address whatever the server says, so a picture changed on disk would show as it was. Unchanged: the same address,
+// nothing loaded again while typing.
+async function stampImages(content) {
+  const imgs = [...content.querySelectorAll('img[src]')].filter(img => img.getAttribute('src').startsWith(FILE_URL));
+  if (!imgs.length) return;
+  const bare = img => img.getAttribute('src').split('?')[0];
+  const times = await host('fileTimes', { paths: imgs.map(img => safeDecode(bare(img).slice(FILE_URL.length))) }).catch(() => null);
+  imgs.forEach((img, i) => { if (times?.[i]) img.src = bare(img) + '?v=' + times[i]; });
 }
 
 // Formulas (KaTeX) and diagrams (mermaid) in a rendered document, their scripts loaded the first time. False when

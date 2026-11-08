@@ -501,12 +501,13 @@ sealed class MainForm : Form
         {
             e.Response = pdf
                 ? env.CreateWebResourceResponse(new MemoryStream(File.ReadAllBytes(path)), 200, "OK",   // not held open: it may change
-                    $"Content-Type: application/pdf\r\nAccess-Control-Allow-Origin: https://{WebFiles.PaneHost}")
+                    $"Content-Type: application/pdf\r\nCache-Control: no-store\r\nAccess-Control-Allow-Origin: https://{WebFiles.PaneHost}")
                 : env.CreateWebResourceResponse(null, 404, "Not Found", $"Access-Control-Allow-Origin: https://{WebFiles.PaneHost}");
             return;
         }
+        // Not stored by the browser: a picture changed on disk shows changed at the next render, not as it was.
         e.Response = ImageTypes.TryGetValue(Path.GetExtension(path), out var type) && File.Exists(path)
-            ? env.CreateWebResourceResponse(new MemoryStream(File.ReadAllBytes(path)), 200, "OK", $"Content-Type: {type}")
+            ? env.CreateWebResourceResponse(new MemoryStream(File.ReadAllBytes(path)), 200, "OK", $"Content-Type: {type}\r\nCache-Control: no-store")
             : env.CreateWebResourceResponse(null, 404, "Not Found", "");
     }
 
@@ -1145,6 +1146,15 @@ sealed class MainForm : Form
             case "openThemeColours":   // Tools > Theme colours... (docs/plans/executed/PLAN-theme-colours.md)
                 app.OpenThemeColoursWindow(this);
                 return null;
+
+            // The preview's pictures: per path its last change (ticks), null when it is not there; the page puts it in
+            // the picture's address, so a changed picture loads again (app.js stampImages).
+            case "fileTimes":
+                return new JsonArray((msg["paths"] as JsonArray ?? []).Select(p =>
+                {
+                    try { return p?.GetValue<string>() is { } path && File.Exists(path) ? (JsonNode?)File.GetLastWriteTimeUtc(path).Ticks.ToString() : null; }
+                    catch (Exception ex) when (ex is ArgumentException or IOException or UnauthorizedAccessException or NotSupportedException) { return null; }
+                }).ToArray());
 
             // F1 > File types: this window's settings with the File types dialog open (docs/plans/executed/PLAN-file-types.md).
             case "openFileTypes":

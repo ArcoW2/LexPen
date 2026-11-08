@@ -256,8 +256,11 @@ function closeBracketKeys() {
     if (inStringOrComment(cm, pos)) return CodeMirror.Pass;
     if (quote && /[\p{L}\p{N}_]/u.test(prev)) return CodeMirror.Pass;   // don't, it's
     const close = sign ? sign[1] : ch;
-    cm.replaceRange(ch + close, pos, pos, '+input');
-    cm.setCursor(CodeMirror.Pos(pos.line, pos.ch + 1));
+    // The cursor between the pair, counted from where the pair ended up: past the end of a line the spaces up to the
+    // cursor come first (virtual.js), so the pair lands further right than `pos`.
+    cm.replaceSelection(ch + close, 'end', '+input');
+    const end = cm.getCursor();
+    cm.setCursor(CodeMirror.Pos(end.line, end.ch - close.length));
   };
   for (const ch of new Set(['(', ')', '[', ']', '{', '}', '"', "'", '`'])) keys[`'${ch}'`] = typed(ch);
   keys.Backspace = cm => {

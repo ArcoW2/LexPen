@@ -11,3 +11,11 @@ outline:
 tokens:
   atom: { like: property }            # keys
   def: { theme: fgDim }               # anchors and aliases
+# Editing keys: Enter after "key:" indents the next line a step; after "- item" it starts the next item (on an empty
+# one the list ends); Tab anywhere in an item indents it; a new line keeps the indentation.
+editing:
+  indentAfter: ':\s*(#.*)?$'
+  lists:
+    markers: ['- ']
+  tabInListItem: indent
+  keepIndent: true

@@ -513,9 +513,104 @@ function jumpTo(cm, spec, dir, extend) {
 }
 
 // ---------- Keys that type ----------
-// Enter and Tab stay editor keys (in a table they move between cells); everything else is an action.
-const mdKey = run => markdownOnly(cm => { if (!cm.getOption('readOnly')) run(cm); });
-const isMarkdown = cm => markdownOnly(() => true)(cm) === true;
+// Enter and Tab stay editor keys; everything else is an action. What they do beyond the generic behaviour comes from
+// the language pack of the cursor's line (an embedded block's own language), its section `editing`
+// (docs/plans/42-PLAN-editing-by-language-pack.md): lists that Enter continues, Tab in a list item, | tables, the text
+// of Shift+Enter, the indentation of a new line. No language is named here.
+function editingAt(cm, line = cm.getCursor().line) {
+  const doc = fmtDoc(cm);
+  if (!doc) return {};
+  const ed = packs[lineLanguage(cm, line) ?? languageOf(doc)]?.editing;
+  return ed && typeof ed === 'object' ? ed : {};
+}
+
+// A pack's list markers (regular expressions, matched after the line's indentation), compiled once; a wrong one is
+// left out.
+const listMarkerRes = new WeakMap();
+function listMarkersOf(ed) {
+  const list = ed.lists?.markers;
+  if (!Array.isArray(list)) return [];
+  if (!listMarkerRes.has(list))
+    listMarkerRes.set(list, list.flatMap(m => { try { return [new RegExp('^(?:' + m + ')')]; } catch { return []; } }));
+  return listMarkerRes.get(list);
+}
+
+// The list item a line is: { indent, marker }, or null.
+function listMarkerAt(ed, text) {
+  const indent = text.match(/^[ \t]*/)[0], rest = text.slice(indent.length);
+  for (const re of listMarkersOf(ed)) {
+    const m = re.exec(rest);
+    if (m && m[0]) return { indent, marker: m[0] };
+  }
+  return null;
+}
+
+// The next item's marker: a number counts on, a ticked box starts empty.
+const nextListMarker = marker => marker.replace(/\d+/, n => String(+n + 1)).replace(/\[[xX]\]/, '[ ]');
+
+// Enter in a list item, after its marker: the next item. On an empty item the list ends: the marker goes and an empty
+// line follows. Every cursor must be in an item (else false: Enter as usual); one with a selection: false.
+function continueList(cm, ed) {
+  const ranges = cm.listSelections();
+  if (ranges.some(r => !r.empty())) return false;
+  const items = [];
+  for (const r of ranges) {
+    const pos = r.head, text = cm.getLine(pos.line), item = listMarkerAt(ed, text);
+    if (!item || pos.ch < item.indent.length + item.marker.length) return false;
+    items.push({ pos, text, item, empty: !text.slice(item.indent.length + item.marker.length).trim() });
+  }
+  if (items.some(i => i.empty) && items.length > 1) return false;
+  cm.operation(() => {
+    if (items[0].empty) {
+      const { pos, text } = items[0];
+      cm.replaceRange('', Pos(pos.line, 0), Pos(pos.line, text.length));
+      cm.replaceSelection('\n');
+      return;
+    }
+    cm.replaceSelections(items.map(({ item }) => '\n' + item.indent + nextListMarker(item.marker)));
+    if (items.length === 1 && /\d/.test(items[0].item.marker)) renumberAfter(cm, items[0].pos.line + 1, items[0].item);
+  });
+  return true;
+}
+
+// The numbered items after a new one (on `line`), at its indentation, counted on while they would repeat a number.
+function renumberAfter(cm, line, item) {
+  let expect = +nextListMarker(item.marker).match(/\d+/)[0] + 1;
+  for (let l = line + 1; l <= cm.lastLine(); l++) {
+    const text = cm.getLine(l);
+    if (!text.trim()) continue;
+    const indent = text.match(/^[ \t]*/)[0];
+    if (indent.length > item.indent.length) continue;   // a nested line
+    if (indent.length < item.indent.length) break;
+    const m = /^\d+/.exec(text.slice(indent.length));
+    if (!m || +m[0] >= expect) break;
+    cm.replaceRange(String(expect), Pos(l, indent.length), Pos(l, indent.length + m[0].length));
+    expect++;
+  }
+}
+
+// Does the text before the cursor open a block (the pack's indentAfter: YAML's `key:`, Python's `if x:`)?
+function opensBlock(cm, ed) {
+  if (!ed.indentAfter) return false;
+  try {
+    const re = new RegExp(ed.indentAfter);
+    return cm.listSelections().every(r => re.test(cm.getLine(r.head.line).slice(0, r.head.ch)));
+  } catch { return false; }
+}
+
+// Enter with the pack's indentation: the new line as indented as the cursor's line, one step more after a line that
+// opens a block (indentAfter).
+function newlineKeepIndent(cm, ed) {
+  const doc = fmtDoc(cm), lang = lineLanguage(cm, cm.getCursor().line) ?? languageOf(doc);
+  const stops = tabStops({ language: lang === 'markdown' ? undefined : lang });
+  const step = stops.useTabs ? '\t' : ' '.repeat(stops.indent);
+  let re = null;
+  try { re = ed.indentAfter ? new RegExp(ed.indentAfter) : null; } catch { }
+  cm.replaceSelections(cm.listSelections().map(r => {
+    const text = cm.getLine(r.from().line), indent = text.match(/^[ \t]*/)[0];
+    return '\n' + indent + (re?.test(text.slice(0, r.from().ch)) ? step : '');
+  }));
+}
 
 // Home (setting homeStop): column 1, or the first non-blank character first (again: column 1, CodeMirror's smart
 // home). A motion: with Shift it selects.
@@ -524,16 +619,41 @@ const homeKey = Object.assign(cm => cm.execCommand(setting('homeStop') ? 'goLine
 function formatKeys() {
   return {
     Home: homeKey,
+    // In order: a table's rows (tables: pipe); the cursor in the indentation (every language); a line opening a block
+    // (indentAfter); a list (lists); the formatter's indentation; the pack's (keepIndent); else CodeMirror's own.
     'Enter': cm => {
-      const md = markdownOnly(c => { if (!enterInTable(c)) c.execCommand('newlineAndIndentContinueMarkdownList'); })(cm);
-      return md === CodeMirror.Pass ? formatEnter(cm) : md;
+      if (cm.getOption('readOnly')) return CodeMirror.Pass;
+      const ed = editingAt(cm);
+      if (ed.tables === 'pipe' && enterInTable(cm)) return;
+      if (enterInIndent(cm)) return;
+      if (opensBlock(cm, ed)) return newlineKeepIndent(cm, ed);
+      if (continueList(cm, ed)) return;
+      if (formatEnter(cm) !== CodeMirror.Pass) return;
+      if (ed.keepIndent) return newlineKeepIndent(cm, ed);
+      return CodeMirror.Pass;
     },
-    'Shift-Enter': mdKey(cm => cm.replaceSelection('<br>')),
-    // A markdown document by its language (as Enter), not by the editor's mode: that is a wrapped one when the
-    // language has blocks of other languages (fences), and then its name is not 'gfm'.
-    'Tab': cm => { if (!isMarkdown(cm) || !moveCell(cm, 1)) tabKey(cm); },   // tabs.js
-    'Shift-Tab': cm => { if (!isMarkdown(cm) || !moveCell(cm, -1)) shiftTabKey(cm); },
+    'Shift-Enter': cm => {
+      const text = editingAt(cm).lineBreak;
+      if (typeof text !== 'string' || cm.getOption('readOnly')) return CodeMirror.Pass;
+      cm.replaceSelection(text);
+    },
+    'Tab': cm => { if (editingAt(cm).tables !== 'pipe' || !moveCell(cm, 1)) tabKey(cm); },   // tabs.js
+    'Shift-Tab': cm => { if (editingAt(cm).tables !== 'pipe' || !moveCell(cm, -1)) shiftTabKey(cm); },
   };
+}
+
+// Enter with the cursor in a line's indentation (before a list's hyphen, say), in every language: an empty line above,
+// the line itself as it was, the cursor still before its text. CodeMirror's newlineAndIndent would indent the line as
+// the empty one above it: the indentation gone. One cursor without a selection; else false.
+function enterInIndent(cm) {
+  if (cm.somethingSelected() || cm.listSelections().length !== 1) return false;
+  const pos = cm.getCursor(), line = cm.getLine(pos.line);
+  if (!/^\s*$/.test(line.slice(0, pos.ch)) || !/\S/.test(line)) return false;
+  cm.operation(() => {
+    cm.replaceRange('\n', CodeMirror.Pos(pos.line, 0));
+    cm.setCursor(CodeMirror.Pos(pos.line + 1, pos.ch));
+  });
+  return true;
 }
 
 // ---------- Indentation while typing (docs/plans/executed/PLAN-reformat.md 3.4) ----------

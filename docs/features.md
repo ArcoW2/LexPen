@@ -715,7 +715,8 @@ every action with its key.
   - A language inside a language: 
     blocks of whole lines between marker lines (ASA's JSON API block, markdown fences coloured by their pack, HTML's script / style / php), and lines you give a language yourself (select them, then the language in the bottom bar); 
     inside, the inner language's colours, comments, indent and bar (over the top row), and a tinted gutter. A debug build reads them (and the themes) from the project's `defaults` and picks up a change at once. 
-    A pack gives the extensions, how the file opens, the colouring (a built-in mode, or word lists and patterns as SQL and Pascal), comments, the outline (procedures, classes, ...), actions and snippets and the buttons above the editor. 
+    A pack gives the extensions, how the file opens, the colouring (a built-in mode, or word lists and patterns as SQL and Pascal), comments, the outline (procedures, classes, ...), actions and snippets and the buttons above the editor,
+    and its editing keys (`editing`): lists Enter continues, Tab anywhere in a list item, | tables, Shift+Enter's text, the indent after a line opening a block (markdown, YAML, Python ship with it; Enter in a line's indentation pushes the line down as it is in every language). 
     The preview of a code file is coloured as the editor (not above Settings > Preview > "A code file larger than this
     is not coloured in the preview", 2 MB; 0: no limit), its lines in blocks the browser lays out only when in view, so a large file shows in about half a second and a tab switch back to it does not lay it out again; a
     large one (over 1 MB) shows "Rendering preview..." while it is built, and switching its preview off (or to another
