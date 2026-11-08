@@ -89,17 +89,20 @@ divider. "Corner": the action of the group's corner icon.
   closes by its X or Esc in its field.
 - **Editor and Preview** are not on Home: they are the switches at the window's top right, and View > Document.
 - **Day / Night**: the two values of Day / night, each its own button, the current one pressed.
-- **Width**, measured in a mock (a test copy, LexPen's own font and the Dark theme, group names on, a 1264 px wide
-  window): File 233 px, Home 1094 px, Select & Sort 505 px, Review 146 px, View 712 px, Tools 779 px. Home's groups:
-  Edit 216, Lines 96, Clipboard 152, Find 273, Occurrences 75, Go to 98, Bookmarks 179; the ribbon 120 px high with its
-  tabs. Every tab fits that window; a narrower one sends Home's right end into the ">>" menu.
+- **Width**, measured in a mock (a test copy, LexPen's own font and the Dark theme, group names on, the icons of
+  3.4, a 1264 px wide window): File 239 px, Home 1104 px, Select & Sort 507 px, Review 146 px, View 720 px, Tools
+  779 px. Home's groups: Edit 216, Lines 96, Clipboard 156, Find 279, Occurrences 75, Go to 98, Bookmarks 179; the
+  ribbon 120 px high with its tabs. Every tab fits that window; a narrower one sends Home's right end into the ">>"
+  menu.
 
-The mock, per tab (the icons are placeholders: a box with the label's first letter; the corner icon at the bottom
-right of Clipboard, Occurrences, Bookmarks, Sort and Highlights):
+The mock, per tab, with the icons of 3.4 (the corner icon at the bottom right of Clipboard, Occurrences, Bookmarks,
+Sort and Highlights); Home also in the light theme:
 
 ![ribbon-File](39-PLAN-ribbon.md.images/ribbon-File.png)
 
 ![ribbon-Home](39-PLAN-ribbon.md.images/ribbon-Home.png)
+
+![ribbon-Home-light](39-PLAN-ribbon.md.images/ribbon-Home-light.png)
 
 ![ribbon-SelectSort](39-PLAN-ribbon.md.images/ribbon-SelectSort.png)
 
@@ -152,10 +155,21 @@ right of Clipboard, Occurrences, Bookmarks, Sort and Highlights):
 
 ### 3.4 Icons
 
-- One set, drawn as inline SVG in the app's own style (stroke icons, `currentColor`, so every theme colours them),
-  as the format bar's icons are; a large button shows the same icon larger.
-- An action without an icon shows its short title as text.
-- Which actions get an icon in the first build: those of 3.1; the others show text until they get one.
+- **One drawing per action, two sizes**: every button can be small or large (the user changes the ribbon), so every
+  icon exists in both. One drawing on LexPen's 16-unit grid, as the formatting bar's icons (format.js ICONS):
+  small 16 px with lines of 1.4, large 32 px with lines of 1.0 (2 px on screen), so both are crisp; a size can get
+  a drawing of its own later where the small one loses detail.
+- **Light and dark: one set.** The icons are drawn in the text colour (`currentColor`), so they follow the theme:
+  dark lines on a light theme, light lines on a dark one, with nothing to keep in step. Two sets would only be
+  needed for coloured icons; a colour, where one helps later (Record red, say), comes from the theme's own colours
+  (`caution`, `accent`), not from a second set.
+- **The proposal**: an icon for every button of 3.1, in `39-PLAN-ribbon.md.images/ribbon-icons.js` (per action its
+  label and its drawing). The mock uses them. Below: all of them, large and small, in the dark and the light theme.
+- An action without an icon (one added later through Customize) shows a box with its first letter until it gets one.
+
+![ribbon-icons-dark](39-PLAN-ribbon.md.images/ribbon-icons-dark.png)
+
+![ribbon-icons-light](39-PLAN-ribbon.md.images/ribbon-icons-light.png)
 
 ### 3.5 How
 
@@ -190,7 +204,7 @@ right of Clipboard, Occurrences, Bookmarks, Sort and Highlights):
 1. The name of the tab with Select, Sort and History: "Select & Sort" in the mock; or "Arrange", "Selection", or
    another?
 2. History (Undo, Redo) on that tab, as now, or on Home, where the actions used most are? Home has room for it
-   (1094 px of a 1264 px window, History 75 px).
+   (1104 px of a 1264 px window, History 75 px).
 3. Show all occurrences without opening the bar: for every value of the setting Show the Occurrences bar (Never,
    When an occurrence is active, Always), or only the button on the ribbon (the action as now for its key and the
    menu)? With "Always" the bar is there anyway.
