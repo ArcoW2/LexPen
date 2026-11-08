@@ -43,7 +43,7 @@ divider. "Corner": the action of the group's corner icon.
 | Find | Find (large) / Find previous + Find next + Replace / Replace in files + Search in files + Find references |
 | Occurrences | Show all occurrences + Occurrences field + Clear occurrences. Corner: Show / close the Occurrences bar |
 | Go | Go to line + Go to definition |
-| Select | Select all (large) / Select line + Select a block + Select inside brackets / divider / Column mode (large, a toggle) |
+| Select | Select all (large) / Line + Block + Brackets (Select line, Select a block, Select inside brackets) / divider / Column mode (large, a toggle) |
 | Bookmarks | Toggle unnumbered bookmark (large) / Previous bookmark + Next bookmark. Corner: Manage bookmarks |
 | Highlights | Highlight + Highlight note + Remove highlight. Corner: Highlights window |
 
@@ -79,8 +79,8 @@ divider. "Corner": the action of the group's corner icon.
 - **Editor and Preview** are not on Home: they are the switches at the window's top right, and View > Document.
 - **Day / Night**: the two values of Day / night, each its own button, the current one pressed.
 - **Width**, measured in a mock (a test copy, LexPen's own font and the Dark theme, group names on, a 1264 px wide
-  window): File 233 px, Home 1711 px, Sort 257 px, View 712 px, Tools 779 px. Home's groups: Edit 337, Clipboard
-  152, Find 273, Occurrences 157, Go 129, Select 283, Bookmarks 236, Highlights 139; the ribbon 120 px high with its
+  window): File 233 px, Home 1676 px, Sort 257 px, View 712 px, Tools 779 px. Home's groups: Edit 337, Clipboard
+  152, Find 273, Occurrences 157, Go 129, Select 248, Bookmarks 236, Highlights 139; the ribbon 120 px high with its
   tabs. Home does not fit that window (question 1).
 
 The mock, per tab (the icons are placeholders: a box with the label's first letter; the corner icon at the bottom
@@ -99,7 +99,8 @@ right of Clipboard, Occurrences, Bookmarks, Highlights and Sort):
 ### 3.2 Behaviour
 
 - **A button is an action**: it runs the action (actions.js) with its value, like a menu item; its tooltip is the
-  action's title and key. A toggle shows pressed when on (Wrap, Column mode, the panels); a button whose action is
+  action's title and key. Its label is the action's title, or a shorter one of its own where the group says the
+  rest ("Line" in Select for Select line). A toggle shows pressed when on (Wrap, Column mode, the panels); a button whose action is
   not available now is greyed out (the action's `enabled`). An action with choices (Line numbers) opens them as a
   small menu.
 - **Tabs**: a row of tab names on top; a click shows that tab's groups. The tab last shown is kept per window. The
@@ -132,7 +133,7 @@ right of Clipboard, Occurrences, Bookmarks, Highlights and Sort):
   `["preview.left"]`.
 - Reset: back to the shipped content.
 - `ribbon.json` in the data folder: `{ "tabs": [ { "name": "Home", "groups": [ { "name": "File", "more": "...", "items": [ { "action":
-  "save", "size": "large" }, { "action": "saveAs", "size": "small" }, { "action": "newFile", "size": "small",
+  "save", "size": "large" }, { "action": "selectLine", "label": "Line" }, { "action": "saveAs", "size": "small" }, { "action": "newFile", "size": "small",
   "stack": true }, { "action": "openFile", "size": "small", "stack": true }, "divider", ... ] } ] } ] }`. An action that no longer exists is skipped, not an error; a "stack"
   without a small button before it starts a column of its own.
 
@@ -173,7 +174,7 @@ right of Clipboard, Occurrences, Bookmarks, Highlights and Sort):
 
 ## 4. Open questions
 
-1. Home is wider than a 1264 px window (1711 px in the mock): split it into two tabs (for instance Home: Edit,
+1. Home is wider than a 1264 px window (1676 px in the mock): split it into two tabs (for instance Home: Edit,
    Clipboard, Find, Occurrences; and Navigate: Go, Select, Bookmarks, Highlights), make more of its large buttons small (Select
    all, Toggle bookmark), or keep it and let the right end go into the ">>" menu?
 2. History (Undo, Redo) on Sort, as now, or on Home, where the actions used most are?
