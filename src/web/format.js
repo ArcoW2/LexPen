@@ -525,7 +525,7 @@ function formatKeys() {
   return {
     Home: homeKey,
     'Enter': cm => {
-      const md = markdownOnly(c => { if (!enterInTable(c)) c.execCommand('newlineAndIndentContinueMarkdownList'); })(cm);
+      const md = markdownOnly(c => { if (!enterInTable(c) && !enterInIndent(c)) c.execCommand('newlineAndIndentContinueMarkdownList'); })(cm);
       return md === CodeMirror.Pass ? formatEnter(cm) : md;
     },
     'Shift-Enter': mdKey(cm => cm.replaceSelection('<br>')),
@@ -534,6 +534,20 @@ function formatKeys() {
     'Tab': cm => { if (!isMarkdown(cm) || !moveCell(cm, 1)) tabKey(cm); },   // tabs.js
     'Shift-Tab': cm => { if (!isMarkdown(cm) || !moveCell(cm, -1)) shiftTabKey(cm); },
   };
+}
+
+// Markdown, Enter with the cursor in a line's indentation (before a list's hyphen, say): an empty line above, the line
+// itself as it was, the cursor still before its text. CodeMirror would hand this to newlineAndIndent, which indents the
+// line as the empty one above it: the indentation gone. One cursor without a selection; else false.
+function enterInIndent(cm) {
+  if (cm.somethingSelected() || cm.listSelections().length !== 1) return false;
+  const pos = cm.getCursor(), line = cm.getLine(pos.line);
+  if (!/^\s*$/.test(line.slice(0, pos.ch)) || !/\S/.test(line)) return false;
+  cm.operation(() => {
+    cm.replaceRange('\n', CodeMirror.Pos(pos.line, 0));
+    cm.setCursor(CodeMirror.Pos(pos.line + 1, pos.ch));
+  });
+  return true;
 }
 
 // ---------- Indentation while typing (docs/plans/executed/PLAN-reformat.md 3.4) ----------
