@@ -7,13 +7,16 @@
 const cp = {
   input: document.querySelector('.mm-pal-search'),
   jump: document.querySelector('.mm-pal-jump'),
+  ribbon: document.querySelector('.mm-pal-ribbon'),
   list: document.querySelector('.mm-pal-list'),
   marks: document.querySelector('.mm-pal-marks'),
   selected: -1,
 };
 const escapeHtml = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-paneHandlers.commands = ({ html, sections, foot, q }) => {
+paneHandlers.commands = ({ html, sections, foot, q, ribbon }) => {
+  cp.ribbon.textContent = ribbon ? 'Done changing the ribbon' : 'Change the ribbon';
+  cp.ribbon.classList.toggle('mm-on', !!ribbon);
   if (cp.input.value !== q && document.activeElement !== cp.input) cp.input.value = q;   // a new F1: the search empty
   const searched = cp.list.dataset.q !== q;
   cp.list.dataset.q = q;
@@ -108,3 +111,11 @@ cp.list.addEventListener('dblclick', e => {
   if (row) run(+row.dataset.row);
 });
 addEventListener('focus', () => toWindow({ kind: 'refresh' }));
+// The ribbon (docs/plans/39-PLAN-ribbon.md): its change mode on or off; while on, a row dragged onto it adds its command.
+cp.ribbon.addEventListener('click', () => toWindow({ kind: 'ribbonChange' }));
+cp.list.addEventListener('dragstart', e => {
+  const row = e.target.closest('[data-call]');
+  if (!row) return e.preventDefault();
+  e.dataTransfer.setData('text/plain', 'lexpen-call:' + row.dataset.call);
+  e.dataTransfer.effectAllowed = 'copyMove';
+});

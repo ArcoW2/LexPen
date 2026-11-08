@@ -616,3 +616,148 @@ appAction('commandBar.set', { title: 'Menu and ribbon', hint: 'What the top bar 
 appAction('ribbon.change', { title: 'Change the ribbon', hint: 'Its change mode: drag actions from F1 onto it, buttons, groups and tabs around and off it; right-click a button for its size, label and more; Esc or Done ends it',
   group: 'view', checked: () => rb.changing, run: () => rbChangeMode(!rb.changing) });
 appAction('ribbon.reset', { title: 'Reset the ribbon', hint: 'Back to the ribbon LexPen ships (your ribbon.json removed)', group: 'view', run: () => rbReset() });
+
+// ---------- The Customize window (the ribbon's right-click > Customize...) ----------
+// The same changes by list and by keyboard: at the left every command (F1's, with its search), at the right the
+// ribbon's tabs, groups, buttons, dividers and corners in order. Enter in the left list adds the command after the
+// line chosen at the right (into its group); Del removes the line chosen; Alt+Up / Alt+Down move it.
+function rbCustomize() {
+  let dlg = document.querySelector('.mm-rb-customize');
+  if (!dlg) {
+    dlg = Object.assign(document.createElement('dialog'), { className: 'mm-rb-customize' });
+    dlg.innerHTML = `<div class="mm-rbc-head">Customize the ribbon</div>
+      <div class="mm-rbc-lists">
+        <div class="mm-rbc-side"><input class="mm-rbc-search" type="text" spellcheck="false" placeholder="Search a command">
+          <select class="mm-rbc-actions" size="20"></select></div>
+        <div class="mm-rbc-mid"><button data-rbc="add" title="After the line chosen at the right (Enter in the left list)">Add &gt;</button></div>
+        <div class="mm-rbc-side"><select class="mm-rbc-ribbon" size="21"></select></div>
+        <div class="mm-rbc-buttons">
+          <button data-rbc="up" title="Alt+Up">Up</button><button data-rbc="down" title="Alt+Down">Down</button>
+          <button data-rbc="remove" title="Del">Remove</button><hr>
+          <button data-rbc="size">Large / small</button><button data-rbc="stack">Stacked</button>
+          <button data-rbc="label">Label...</button><button data-rbc="divider">Divider</button><hr>
+          <button data-rbc="newTab">New tab...</button><button data-rbc="newGroup">New group...</button><button data-rbc="rename">Rename...</button><hr>
+          <button data-rbc="reset">Reset</button><button data-rbc="close">Close</button></div>
+      </div>`;
+    document.body.append(dlg);
+    const $q = s => dlg.querySelector(s), search = $q('.mm-rbc-search'), actions = $q('.mm-rbc-actions'), list = $q('.mm-rbc-ribbon');
+    search.addEventListener('input', () => rbcFillActions(dlg));
+    actions.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); rbcDo(dlg, 'add'); } });
+    actions.addEventListener('dblclick', () => rbcDo(dlg, 'add'));
+    list.addEventListener('keydown', e => {
+      if (e.key === 'Delete') { e.preventDefault(); rbcDo(dlg, 'remove'); }
+      else if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) { e.preventDefault(); rbcDo(dlg, e.key === 'ArrowUp' ? 'up' : 'down'); }
+    });
+    dlg.addEventListener('click', e => { const b = e.target.closest('[data-rbc]'); if (b) rbcDo(dlg, b.dataset.rbc); });
+    dlg.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); dlg.close(); } }, true);
+  }
+  rbcFillActions(dlg);
+  rbcFillRibbon(dlg, 0);
+  dlg.showModal();
+  dlg.querySelector('.mm-rbc-search').focus();
+}
+
+function rbcFillActions(dlg) {
+  const q = dlg.querySelector('.mm-rbc-search').value.trim().toLowerCase(), sel = dlg.querySelector('.mm-rbc-actions');
+  const entries = paletteEntries().filter(e => !q || (e.title + ' ' + e.name).toLowerCase().includes(q));
+  sel.innerHTML = ACTION_GROUPS.map(([group, label]) => {
+    const list = entries.filter(e => e.group === group);
+    return list.length ? `<optgroup label="${escapeHtml(label)}">` + list.map(e => `<option value="${escapeHtml(JSON.stringify([e.name, ...e.params]))}">${escapeHtml(e.title)}</option>`).join('') + '</optgroup>' : '';
+  }).join('');
+  sel.selectedIndex = 0;
+}
+
+// The lines at the right: { path, kind (tab | group | item | divider | corner), text }.
+function rbcLines() {
+  const lines = [];
+  rb.model.tabs.forEach((t, ti) => {
+    lines.push({ kind: 'tab', path: [ti], text: `${t.name}` });
+    t.groups.forEach((g, gi) => {
+      lines.push({ kind: 'group', path: [ti, gi], text: `   ${g.name}` });
+      for (const side of ['left', 'right']) if (g.corners?.[side]) {
+        const c = Array.isArray(g.corners[side]) ? g.corners[side] : [g.corners[side]];
+        lines.push({ kind: 'corner', path: [ti, gi, side], text: `      corner ${side}: ${actionTitle(c[0], c.slice(1))}` });
+      }
+      g.items.forEach((it, i) => lines.push(it === 'divider'
+        ? { kind: 'divider', path: [ti, gi, i], text: '      ----' }
+        : { kind: 'item', path: [ti, gi, i], text: `      ${it.stack ? '  + ' : ''}${it.label || actionTitle(it.action, it.params ?? [])}${it.size === 'large' ? ' (large)' : ''}` }));
+    });
+  });
+  return lines;
+}
+function rbcFillRibbon(dlg, select) {
+  const sel = dlg.querySelector('.mm-rbc-ribbon'), lines = rbcLines();
+  sel.innerHTML = lines.map((l, n) => `<option value="${n}" class="mm-rbc-${l.kind}">${escapeHtml(l.text)}</option>`).join('');
+  sel.selectedIndex = Math.max(0, Math.min(select ?? sel.selectedIndex, lines.length - 1));
+  dlg.rbcLines = lines;
+}
+const rbcSame = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+async function rbcDo(dlg, what) {
+  const sel = dlg.querySelector('.mm-rbc-ribbon'), line = dlg.rbcLines?.[sel.selectedIndex];
+  const pick = path => { const n = rbcLines().findIndex(l => rbcSame(l.path, path)); rbcFillRibbon(dlg, n < 0 ? sel.selectedIndex : n); };
+  if (what === 'close') return dlg.close();
+  if (what === 'reset') { await rbReset(); return rbcFillRibbon(dlg, 0); }
+  if (what === 'newTab') {
+    const name = await askName('New tab', '', 'Its name');
+    if (name?.trim()) { rbChange(m => { m.tabs.push({ name: name.trim(), groups: [] }); }); pick([rb.model.tabs.length - 1]); }
+    return;
+  }
+  if (!line) return;
+  const [t, g, i] = line.path;
+  if (what === 'add') {
+    const v = dlg.querySelector('.mm-rbc-actions').value;
+    if (!v) return;
+    const [action, ...params] = JSON.parse(v), item = params.length ? { action, params } : { action };
+    let to = null;
+    rbChange(m => {
+      const tab = m.tabs[t];
+      if (line.kind === 'tab') { if (!tab.groups.length) tab.groups.push({ name: tab.name, items: [] }); to = [t, tab.groups.length - 1, tab.groups.at(-1).items.push(item) - 1]; return; }
+      const items = tab.groups[g].items;
+      if (line.kind === 'group' || line.kind === 'corner') { to = [t, g, items.push(item) - 1]; return; }
+      items.splice(i + 1, 0, item);
+      to = [t, g, i + 1];
+    });
+    return pick(to);
+  }
+  if (what === 'newGroup') {
+    const name = await askName('New group', '', 'Its name');
+    if (name?.trim()) { rbChange(m => { m.tabs[t].groups.splice(g === undefined ? m.tabs[t].groups.length : g + 1, 0, { name: name.trim(), items: [] }); }); pick([t, g === undefined ? rb.model.tabs[t].groups.length - 1 : g + 1]); }
+    return;
+  }
+  if (what === 'rename' && (line.kind === 'tab' || line.kind === 'group')) {
+    const old = line.kind === 'tab' ? rb.model.tabs[t].name : rb.model.tabs[t].groups[g].name;
+    const name = await askName(line.kind === 'tab' ? 'Tab name' : 'Group name', old, 'Its name');
+    if (name?.trim()) rbChange(m => { if (line.kind === 'tab') { if (rb.tab === old) rb.tab = name.trim(); m.tabs[t].name = name.trim(); } else m.tabs[t].groups[g].name = name.trim(); });
+    return pick(line.path);
+  }
+  if (what === 'remove') {
+    rbRemove({ kind: line.kind, path: line.path });
+    return rbcFillRibbon(dlg, sel.selectedIndex);
+  }
+  if (what === 'up' || what === 'down') {
+    const d = what === 'up' ? -1 : 1;
+    let to = line.path;
+    rbChange(m => {
+      const list = line.kind === 'tab' ? m.tabs : line.kind === 'group' ? m.tabs[t].groups : line.kind === 'corner' ? null : m.tabs[t].groups[g].items;
+      if (!list) return false;
+      const at = line.path.at(-1), next = at + d;
+      if (next < 0 || next >= list.length) return false;
+      [list[at], list[next]] = [list[next], list[at]];
+      to = [...line.path.slice(0, -1), next];
+    });
+    return pick(to);
+  }
+  if (line.kind !== 'item' && what !== 'divider') return;
+  if (what === 'divider') { rbChange(m => { const its = m.tabs[t].groups[g]?.items; if (!its) return false; its.splice((i ?? its.length - 1) + 1, 0, 'divider'); }); return pick([t, g, (i ?? 0) + 1]); }
+  if (what === 'size') rbChange(m => { const it = m.tabs[t].groups[g].items[i]; if (it.size === 'large') delete it.size; else { it.size = 'large'; delete it.stack; } });
+  if (what === 'stack') rbChange(m => { const it = m.tabs[t].groups[g].items[i]; if (it.size === 'large') return false; it.stack = !it.stack; });
+  if (what === 'label') {
+    const it = rb.model.tabs[t].groups[g].items[i];
+    const v = await askName('Label (empty: the action\'s title)', it.label ?? '', actionTitle(it.action, it.params ?? []));
+    if (v !== null) rbChange(m => { const x = m.tabs[t].groups[g].items[i]; if (v.trim()) x.label = v.trim(); else delete x.label; });
+  }
+  pick(line.path);
+}
+appAction('ribbon.customize', { title: 'Customize the ribbon...', hint: 'The ribbon\'s tabs, groups and buttons as a list beside every command: add, remove, move, large or small, labels (also by keyboard)', group: 'view',
+  run: () => { if (!rb.model) return; rbCustomize(); } });

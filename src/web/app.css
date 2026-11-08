@@ -1593,3 +1593,21 @@ body.mm-rb-changing .mm-rb-bodies { overflow-x: auto; }
 .mm-rb-large .mm-rb-text { align-items: flex-end; }
 
 .mm-rb-small > .mm-rb-tip { left: 1px; bottom: -2px; transform: none; }
+
+/* The Customize window (ribbon.js rbCustomize). */
+.mm-rb-customize { padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--fg);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, .3); }
+.mm-rb-customize::backdrop { background: rgba(0, 0, 0, .25); }
+.mm-rbc-head { font-weight: 600; margin-bottom: 8px; }
+.mm-rbc-lists { display: flex; gap: 8px; align-items: stretch; }
+.mm-rbc-side { display: flex; flex-direction: column; gap: 4px; width: 280px; }
+.mm-rbc-side select, .mm-rbc-search { font: inherit; color: var(--fg); background: var(--bg-side); border: 1px solid var(--border); border-radius: 4px; }
+.mm-rbc-side select { flex: 1; min-height: 360px; }
+.mm-rbc-search { padding: 3px 6px; }
+.mm-rbc-mid { display: flex; align-items: center; }
+.mm-rbc-buttons { display: flex; flex-direction: column; gap: 3px; min-width: 120px; }
+.mm-rbc-buttons hr { width: 100%; border: 0; border-top: 1px solid var(--border); margin: 3px 0; }
+.mm-rbc-buttons button, .mm-rbc-mid button { border: 1px solid var(--border); }
+.mm-rbc-tab { font-weight: 700; }
+.mm-rbc-group { font-weight: 600; color: var(--accent); }
+.mm-rbc-corner, .mm-rbc-divider { color: var(--fg-dim); }
