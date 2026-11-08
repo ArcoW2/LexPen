@@ -175,8 +175,13 @@ never changes by accident while working.
 
 - **On the ribbon**: drag an action from F1's list of commands onto the ribbon (where it lands: before, after or
   stacked under the button it is dropped on, or into an empty spot of a group); drag a button to another place, group
-  or tab (on a tab name: that tab opens, so it can be dropped there); drag a button off the ribbon to remove it. A
-  group and a tab are dragged the same way.
+  or tab (on a tab name: that tab opens, so it can be dropped there); drag a button off the ribbon to remove it.
+- **Groups**: in change mode each group has a handle (a grip at its left edge, beside its name); dragging it moves the
+  whole group to another place, or onto a tab name into that tab; dragged off the ribbon, the group is removed. A tab
+  is dragged by its name.
+- **The corner**: in change mode a group's corner shows even when it has no action (an empty outline); an action
+  dropped on it becomes the group's corner action (one there already makes room: it goes back to F1's list); the
+  corner icon dragged out of it is removed, or dropped on another group's corner, or into a group as a button.
 - **New...** (in change mode only): the last tab name is "New..." in italics; a click makes a new tab (its name typed in place). A group's
   last place is "New..." too, for a new group.
 - **A button's right-click** (in change mode): large or small, stacked under the one above or not, its label, its key tip, the
@@ -248,9 +253,12 @@ never changes by accident while working.
   names in the menus' place, the rest of the top bar as it was, Alt shows the key tips: a tab's letter opens it, a button's letter runs
   it, Esc goes back; with altOpens `menu` Alt shows the menus) and `both` (the tab names under the menus); Customize adds, moves, resizes, stacks and removes a button, adds a
   tab and a divider, and the ribbon follows; on the ribbon: an action dragged from F1 lands where it is dropped,
-  a button dragged to another group and off the ribbon, "New..." makes a tab; outside change mode nothing can be
+  a button dragged to another group and off the ribbon, a group moved by its handle, an action dropped on a corner
+  and a corner icon dragged out, "New..." makes a tab; outside change mode nothing can be
   dragged and no "New..." shows; change mode from the right-click and from F1, ended by Done and by Esc; Reset.
 
 ## 4. Open questions
 
-None.
+1. One corner per group (bottom right, as Word's), or both bottom corners, each with an action of its own? Two
+   give a group two managers (Find: the Occurrences bar and the Search panel, say); one keeps the corner a single
+   known place, the second manager a button. The group's name is between the two corners either way.
