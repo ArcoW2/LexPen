@@ -42,7 +42,7 @@ divider. "Corner": the action of the group's corner icon.
 | Lines | Duplicate + Delete + Join (Duplicate lines, Delete lines, Join lines) |
 | Clipboard | Paste (large; a number badge: the active clipboard) / Paste image + Cut + Copy. Corner: Manage clipboards |
 | Find | Find (large) / Find previous + Find next + Replace / Replace in files + Search in files + Find references |
-| Occurrences | Show all occurrences + Occurrences field + Clear occurrences. Corner: Show / close the Occurrences bar |
+| Occurrences | Show all occurrences + Clear occurrences. Corner: Occurrences field (the bar opened, the cursor in its field) |
 | Go to | Line + Definition (Go to line, Go to definition) |
 | Bookmarks | Toggle unnumbered bookmark (large) / Previous + Next (Previous bookmark, Next bookmark). Corner: Manage bookmarks |
 
@@ -82,6 +82,9 @@ divider. "Corner": the action of the group's corner icon.
 - **Highlight** is not a toggle: it highlights the selection, or removes the highlight the cursor is in.
 - **Position back / forward** (the cursor's jumps in the document) and **Back / Forward in the window** (the tabs
   and files, as a browser) are not on the ribbon: in the menus and on their keys and mouse buttons.
+- **Occurrences**: Show all occurrences fills the bar's field itself (the selection, else the word at the cursor) and
+  marks them; Clear empties it; the corner icon is for typing something else (the bar opened, its field focused).
+  The bar closes by its X or Esc in its field.
 - **Editor and Preview** are not on Home: they are the switches at the window's top right, and View > Document.
 - **Day / Night**: the two values of Day / night, each its own button, the current one pressed.
 - **Width**, measured in a mock (a test copy, LexPen's own font and the Dark theme, group names on, a 1264 px wide
@@ -119,7 +122,7 @@ right of Clipboard, Occurrences, Bookmarks, Sort and Highlights):
   centred in the height.
 - **The corner icon**: a group may name one action (`more` in ribbon.json); a small icon in its bottom-right corner
   runs it, as Word's dialog launcher (Manage clipboards, Manage bookmarks, the Highlights window, the stored sorts,
-  the Occurrences bar shown or closed).
+  the Occurrences bar with the cursor in its field).
 - **Dividers**: a divider can stand between columns in a group; between groups always.
 - **Group names** (setting ribbonGroupNames, on by default): on, the name under each group (the ribbon a line
   taller); off, one compact block: dividers only, the group's name as the tooltip of its divider.
