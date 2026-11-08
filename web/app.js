@@ -2985,7 +2985,7 @@ const searchUi = {
   scope: { get value() { return searchPage.scope; }, set value(v) { searchPage.scope = v; toSearch({ kind: 'scope', value: v }); } },
   status: { get textContent() { return searchPage.status; }, set textContent(v) { searchPage.status = v; toSearch({ kind: 'status', text: v }); } },
 };
-const searchOptions = { case: false, word: false, regex: false };
+const searchOptions = { case: false, word: false, regex: false, known: false };   // known: known file types only
 let searchRun = 0, searchHits = [];
 let searchGroups = [];   // the results: per file { path, draft, matches, skip }; a match replaced has done: { old, new }
 let lastSearch = null;   // the search the results are of: { text, options, scope, source, regex }
@@ -3074,7 +3074,7 @@ async function runSearch() {
   try { regex = new RegExp(source, searchOptions.case ? 'g' : 'gi'); }
   catch (e) { return searchUi.status.textContent = 'Not a valid regular expression: ' + e.message; }
   searchUi.status.textContent = 'Searching...';
-  const knownOnly = document.body.dataset.tree === 'known';
+  const knownOnly = !!searchOptions.known;   // the Known switch (Find references sets it)
   const folder = scope === 'folder' ? searchFolder() : null;
   if (scope === 'folder' && !folder) return searchUi.status.textContent = 'No folder: open a folder or a file first.';
 

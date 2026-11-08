@@ -193,14 +193,15 @@ async function jumpToDefinition(pane, def, where) {
 }
 
 // ---------- Find references (Shift+F12) ----------
-// The name at the cursor (without its qualifier) searched for in the folder, whole word, in the Search panel.
+// The name at the cursor (without its qualifier) searched for in the folder, whole word, in the Search panel; in the
+// known file types only (no .bak copies and the like).
 function findReferences(pane) {
   const cm = pane.cm, tab = pane.active;
   if (!cm || !tab) return;
   const rules = nameRules(tab.doc.language);
   const target = nameAtCursor(cm, rules);
   if (!target) return toast('No name at the cursor.', true);
-  Object.assign(searchOptions, { word: true, regex: false, case: !rules.ignoreCase });
+  Object.assign(searchOptions, { word: true, regex: false, case: !rules.ignoreCase, known: true });
   toSearch({ kind: 'options', options: { ...searchOptions } });
   searchUi.input.value = target.name;
   searchUi.scope.value = 'folder';

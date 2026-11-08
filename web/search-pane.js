@@ -6,7 +6,7 @@
 const $ = sel => document.querySelector(sel);
 const input = $('.mm-search-input'), withEl = $('.mm-search-with'), scopeEl = $('.mm-search-scope');
 const row = $('.mm-search-replace'), toggleEl = $('.mm-search-toggle'), statusEl = $('.mm-search-status'), results = $('.mm-search-results');
-const options = { case: false, word: false, regex: false };
+const options = { case: false, word: false, regex: false, known: false };
 
 // history.js asks the host only to clear a list: that goes to the window, which keeps the lists.
 function host(op, args) {

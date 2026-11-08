@@ -195,8 +195,9 @@ every action with its key.
 `, `	`, `$1`, `$&`. The `?` button lists
   every code, the same list as F1.
 - **Search** (Ctrl+Shift+F): in the current file, the open files (unsaved edits included) or the files in the
-  folder (the open folder, otherwise the folder of the current file), with match case, whole word and regular
-  expressions. Codes: `^p` line break (CR, LF or CRLF), `^t` tab, `^?` any character, `^#` digit, `^$` letter,
+  folder (the open folder, otherwise the folder of the current file), with match case, whole word, regular
+  expressions and Known (known file types only: a language LexPen knows, not .bak copies and the like; Find
+  references turns it on). Codes: `^p` line break (CR, LF or CRLF), `^t` tab, `^?` any character, `^#` digit, `^$` letter,
   `^w` spaces or tabs, `^^` the `^` itself. Click a result to go there (in its file's tab, else a new one; Alt+click:
   in the active tab, unless it has unsaved changes, and Back returns; Ctrl+click and Shift+click as in the Folder
   pane: the other pane, a new tab). The Search pane can float in a window of its
@@ -226,9 +227,9 @@ every action with its key.
   it (an SQL owner such as `dba.`, a C# namespace or class): `call proc_name` finds `create procedure dba.proc_name`;
   the qualifier only orders the list. F12 shows it in the other pane, this document staying as it is; Alt+F12 in
   this tab, as a link (a new tab beside it when this document has unsaved changes); Ctrl+F12 in a new tab beside
-  this one. Back returns to the line it was pressed on. Three actions, so the keys can be changed.
-  Shift+F12 searches the folder for the name, whole word, in the Search panel. What a definition is comes from the
-  language pack: the outline groups it marks `definition: true` (languages\README.md).
+  this one. Back returns to the line it was pressed on. Three actions, so the keys can be changed. Shift+F12
+  searches the folder for the name, whole word, known file types only, in the Search panel. What a definition is
+  comes from the language pack: the outline groups it marks `definition: true` (languages\README.md).
 - **Position back / forward**: every document keeps the places its cursor jumped from: a move of more lines than
   the setting A jump (Editor, 10 by default) without typing (go to line, a bookmark, the outline, Ctrl+Home, a click
   far away), and always a found item (find, the search in files), however close. Ctrl+Alt+- goes back, Ctrl+Alt++
