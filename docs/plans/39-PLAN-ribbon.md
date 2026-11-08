@@ -81,9 +81,11 @@ divider. "Corner": the action of the group's corner icon, bottom right; bottom l
 | Compare | Compare files... (large) / Compare folders... + Leave the compare / Next difference + Previous difference |
 | Settings | Settings... (large) / Theme colours... + Keyboard shortcuts and commands |
 
-- **Actions**: all exist now (actions.js), except two new ones: **Sort again**, the last sort again with its keys
-  and options (from the Sort panel or a stored sort), on the selection or the file as Sort; and **Clear clipboard**,
-  the active clipboard emptied (in the Paste list, 3.2).
+- **Actions**: all exist now (actions.js), except these new ones: **Sort again**, the last sort again with its keys
+  and options (from the Sort panel or a stored sort), on the selection or the file as Sort; **Clear clipboard**, the
+  active clipboard emptied; and **Paste from**, **Copy to** and **Cut to**, each with a number (0: the Windows
+  clipboard, 1 to 9): from or to that clipboard once, the active one staying as it is (the lists of 3.2). Copy, Cut
+  and Paste themselves stay on the active clipboard, as now.
 - **Highlight** is not a toggle: it highlights the selection, or removes the highlight the cursor is in.
 - **Position back / forward** (the cursor's jumps in the document) and **Back / Forward in the window** (the tabs
   and files, as a browser) are not on the ribbon: in the menus and on their keys and mouse buttons.
@@ -141,9 +143,12 @@ Sort, Highlights and Macros); Home also in the light theme:
 - **Numbered lists: a split button.** A button whose action works on one of several numbered things gets a small
   arrow (a large button: under its label; a small one: at its right); the arrow, and a right-click outside change
   mode, open the same list as its menu, and the button shows which one is in use:
-  - **Paste**: its badge is the active clipboard's number (none for the Windows clipboard); the list is Edit >
-    Clipboards' (the Windows clipboard and 1 to 9, each with the start of its text, the active one checked; a choice
-    makes it active and the badge follows), then Clear clipboard and Manage clipboards.
+  - **Paste**: its badge is the active clipboard's number (none for the Windows clipboard). Its list: Paste from
+    each clipboard (the Windows clipboard and 1 to 9, each with the start of its text): that one once, the active
+    one staying; then "Active clipboard" with the same clipboards, the active one checked, a choice making it active
+    (the badge follows; as Edit > Clipboards); then Clear clipboard and Manage clipboards.
+  - **Copy** and **Cut**: Copy to / Cut to each clipboard (the Windows clipboard and 1 to 9, the start of what is in
+    it now): that one once, the active one staying.
   - **Toggle bookmark**: the list is Go to > Bookmarks' numbered ones: Toggle, Go to and Clear per number (1 to 9,
     each with its line when set), then Manage bookmarks.
   - An action of your own with numbered choices (a macro's numbered actions, later) gets the arrow the same way:
@@ -264,7 +269,9 @@ never changes by accident while working.
 - In the test copy by script: each shipped button runs its action; toggles show their state; a button greyed out
   where its action is not available; the tabs switch and keep their choice; two stacked small buttons as high as a
   large one, and three; each corner icon runs its action and shows its title and key on hover; Paste's arrow and
-  right-click list the clipboards, a choice moves its badge, Clear clipboard empties the active one; Toggle bookmark's
+  right-click list the clipboards: Paste from one pastes it and leaves the active one, Active clipboard moves the
+  badge, Clear clipboard empties the active one; Copy to and Cut to fill the chosen clipboard and leave the active
+  one; Toggle bookmark's
   list the numbered bookmarks; Sort again repeats the last sort; group names on and off; overflow into ">>" at a narrow window; commandBar `menu`, `ribbon` (the tab
   names in the menus' place, the rest of the top bar as it was, Alt shows the key tips: a tab's letter opens it, a button's letter runs
   it, Esc goes back; with altOpens `menu` Alt shows the menus) and `both` (the tab names under the menus); Customize adds, moves, resizes, stacks and removes a button, adds a
