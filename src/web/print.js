@@ -889,7 +889,7 @@ ${o.syntax ? '' : '.pp-text .pp-lt, .pp-text [class*="cm-"], .pp-rendered pre [c
 .pp-endnotes h4 { margin: 2mm 0; }
 .pp-endnotes li::marker { color: var(--accent, #c00); font-weight: 700; }
 .pp-bw, .pp-bw * { color: #000 !important; border-color: #000 !important; }
-.pp-bw :not(mark) { background: transparent !important; }
+.pp-bw :not(mark, .pp-sheet) { background: transparent !important; }   /* the sheet: its paper, white in black and white */
 ${pp.themeCss ?? ''}
 ${MARKDOWN_TEXT_CSS}`;
 }
