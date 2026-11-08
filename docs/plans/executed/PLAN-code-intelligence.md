@@ -82,10 +82,11 @@ None.
 ## 5. As built
 
 - **Keys** (asked for during the build): F12 shows the definition in the other pane, this document staying as it is;
-  Alt+F12 in this pane: this tab follows it as a link does, or a new tab beside it when this document has unsaved
-  changes. Back (Position back, the mouse back button) returns to the line F12 was pressed on: the step from this tab
+  Alt+F12 in this tab, as a link does (a new tab beside it when this document has unsaved changes; a tab of the pane
+  that has the file already is the one shown); Ctrl+F12 in a new tab beside this one. Three actions (goToDefinition,
+  goToDefinitionHere, goToDefinitionNewTab), so each can have its own key. Back (Position back, the mouse back button) returns to the line F12 was pressed on: the step from this tab
   is kept as a link with its cursor (app.js go() puts the cursor back); in the same document the jump is a place
-  (places.js). Shift+F12: Find references. In the Go menu: Go to definition, ... in this pane, Find references.
+  (places.js). Shift+F12: Find references. All in the Go menu, with Find references.
 - **The marks**: `definition: true` on the groups (a plain list's patterns) of procedures, functions, classes,
   tables, labels in the shipped packs: asa, sql, csharp, javascript, pascal, python, java, cpp, php, vb, vbscript,
   powershell, shell, perl, ruby, ahk (its functions), batch, kusto, macro. Not marked: regions, TODOs, imports,
@@ -104,5 +105,5 @@ None.
   `proc_name` (no qualifier) first, then `dba.proc_name`; with the cursor on `dba` of `dba.proc_name` the order turns;
   `"dba"."other_proc"` opens older.sql at it; a table name finds its `create table`; a region named `proc_name` is
   no definition; an unknown name says so; Back returns to the line; with unsaved changes a new tab and the old one
-  kept; F12 in the other pane, Alt+F12 in this one. Not tested: the keys pressed themselves in the debug build (its
+  kept; F12 in the other pane, Alt+F12 in this tab, Ctrl+F12 in a new tab (the old one kept). Not tested: the keys pressed themselves in the debug build (its
   DevTools take F12; the release build has them off), a large folder's time [not yet measured].

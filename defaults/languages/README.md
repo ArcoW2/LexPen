@@ -209,7 +209,7 @@ more than one group.
 ### Definitions: go to definition
 
 `definition: true` on a group (or on a pattern, in a plain list) makes its entries definitions: Go to definition (F12,
-in the other pane; Alt+F12 in this one) looks the name at the cursor up in the definitions of the open files and of the folder, its
+in the other pane; Alt+F12 in this tab, Ctrl+F12 in a new tab) looks the name at the cursor up in the definitions of the open files and of the folder, its
 subfolders included; Find references (Shift+F12) searches the folder for it. Mark the groups of procedures, functions,
 classes, tables; not regions or TODOs (a region named as a procedure would be found too). A definition's name is the
 last capture that matched, its last word: `create procedure dba.proc_name` gives `dba.proc_name`. There are no other

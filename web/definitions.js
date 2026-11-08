@@ -135,8 +135,9 @@ function findDefinitions(target, rules) {
   return found.sort((a, b) => rank(a) - rank(b) || (a.path ?? '').localeCompare(b.path ?? '') || a.line - b.line);
 }
 
-// ---------- Go to definition (F12: in the other pane; Alt+F12: in this pane) ----------
-async function goToDefinition(pane, beside) {
+// ---------- Go to definition ----------
+// `where`: 'other' (F12: the other pane), 'tab' (Alt+F12: this tab), 'newTab' (Ctrl+F12: a new tab beside this one).
+async function goToDefinition(pane, where) {
   const tab = pane.active, cm = pane.cm;
   if (!tab || !cm) return;
   const rules = nameRules(tab.doc.language);
@@ -151,19 +152,19 @@ async function goToDefinition(pane, beside) {
   const found = findDefinitions(target, rules);
   const shown = (target.qualifier ? target.qualifier + (rules.separator ?? '') : '') + target.name;
   if (!found.length) return toast(`No definition of ${shown} found${building ? ' (the folder is still being read)' : ''}.`, true);
-  if (found.length === 1) return jumpToDefinition(pane, found[0], beside);
+  if (found.length === 1) return jumpToDefinition(pane, found[0], where);
   const at = cm.cursorCoords(null, 'window');
   openPopupMenu(found.map(d => ({
     label: `${d.path ? nameOf(d.path) : docName(d.doc) ?? 'Untitled'}:${d.line + 1}`, plain: true, key: d.text,
-    title: d.path ?? '', run: () => jumpToDefinition(pane, d, beside),
+    title: d.path ?? '', run: () => jumpToDefinition(pane, d, where),
   })), at.left, at.bottom);
 }
 
-// To a definition: in this document a place to go back to (places.js); in another file this tab follows it as a link
-// does (back returns to the line F12 was pressed on), or a new tab beside it when this document has unsaved changes;
-// `beside`: in the other pane, this one staying as it is.
-async function jumpToDefinition(pane, def, beside) {
-  const tab = pane.active, cm = pane.cm, here = cm.getCursor(), from = tab.doc;
+// To a definition: in this document a place to go back to (places.js). In another file: `where` 'other', in the other
+// pane, this one staying as it is; 'tab', this tab follows it as a link does (a new tab beside it when this document
+// has unsaved changes); 'newTab', a new tab beside this one. Back returns to the line it was asked on.
+async function jumpToDefinition(pane, def, where) {
+  const tab = pane.active, cm = pane.cm, here = cm.getCursor(), from = tab.doc, beside = where === 'other';
   let to;
   if (!beside && (def.doc ? def.doc === tab.doc : samePath(def.path, tab.doc.path))) to = tab;
   else if (beside) {
@@ -175,7 +176,7 @@ async function jumpToDefinition(pane, def, beside) {
     const step = navHistory.back.at(-1);
     if (step?.tab === tab.id) step.cursor = { line: here.line, ch: here.ch };   // back: this line again (go, app.js)
     if (def.doc && !def.path) { to = tabsOf(def.doc)[0]; await activate(paneOf(to), to); }
-    else if (tab.doc.dirty) to = await openFile(def.path, { pane });
+    else if (where === 'newTab' || tab.doc.dirty) to = await openFile(def.path, { pane });
     else to = await navigate(tab, def.path) ? pane.active : null;   // this tab, or the one that has the file already
   }
   if (!to) return;

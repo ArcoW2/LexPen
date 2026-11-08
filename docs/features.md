@@ -223,8 +223,8 @@ every action with its key.
   file's own), its subfolders too; more than one: a list to pick from. The name is compared without what qualifies
   it (an SQL owner such as `dba.`, a C# namespace or class): `call proc_name` finds `create procedure dba.proc_name`;
   the qualifier only orders the list. F12 shows it in the other pane, this document staying as it is; Alt+F12 in
-  this pane: this tab follows it, as a link (a new tab beside it when this document has unsaved changes), and Back
-  returns to the line it was pressed on.
+  this tab, as a link (a new tab beside it when this document has unsaved changes); Ctrl+F12 in a new tab beside
+  this one. Back returns to the line it was pressed on. Three actions, so the keys can be changed.
   Shift+F12 searches the folder for the name, whole word, in the Search panel. What a definition is comes from the
   language pack: the outline groups it marks `definition: true` (languages\README.md).
 - **Position back / forward**: every document keeps the places its cursor jumped from: a move of more lines than
