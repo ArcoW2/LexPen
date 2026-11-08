@@ -83,9 +83,10 @@ divider. "Corner": the action of the group's corner icon, bottom right; bottom l
 
 - **Actions**: all exist now (actions.js), except these new ones: **Sort again**, the last sort again with its keys
   and options (from the Sort panel or a stored sort), on the selection or the file as Sort; **Clear clipboard**, the
-  active clipboard emptied; and **Paste from**, **Copy to** and **Cut to**, each with a number (0: the Windows
-  clipboard, 1 to 9): from or to that clipboard once, the active one staying as it is (the lists of 3.2). Copy, Cut
-  and Paste themselves stay on the active clipboard, as now.
+  active clipboard emptied. And **Copy, Cut and Paste get a parameter**: a clipboard's number (0: the Windows
+  clipboard, 1 to 9), as Clipboard (clipboardSelect) has, as variants; with it they use that clipboard once and the
+  active one stays as it is; without it, the active clipboard, as now (a key in keys.json can name a variant:
+  `"Ctrl+Alt+3": ["paste", 3]`).
 - **Highlight** is not a toggle: it highlights the selection, or removes the highlight the cursor is in.
 - **Position back / forward** (the cursor's jumps in the document) and **Back / Forward in the window** (the tabs
   and files, as a browser) are not on the ribbon: in the menus and on their keys and mouse buttons.
@@ -140,19 +141,18 @@ Sort, Highlights and Macros); Home also in the light theme:
   centred in the height.
 - **Tooltips**: every button and corner icon shows its action's title and key when the mouse is over it (a button
   with a short label: the full title, Go to line for Line).
-- **Numbered lists: a split button.** A button whose action works on one of several numbered things gets a small
-  arrow (a large button: under its label; a small one: at its right); the arrow, and a right-click outside change
-  mode, open the same list as its menu, and the button shows which one is in use:
-  - **Paste**: its badge is the active clipboard's number (none for the Windows clipboard). Its list: Paste from
-    each clipboard (the Windows clipboard and 1 to 9, each with the start of its text): that one once, the active
-    one staying; then "Active clipboard" with the same clipboards, the active one checked, a choice making it active
-    (the badge follows; as Edit > Clipboards); then Clear clipboard and Manage clipboards.
-  - **Copy** and **Cut**: Copy to / Cut to each clipboard (the Windows clipboard and 1 to 9, the start of what is in
-    it now): that one once, the active one staying.
+- **Variants: a split button.** A button whose action has variants (its parameter: a clipboard's number, a
+  bookmark's) gets a small arrow (a large button: under its label; a small one: at its right); the arrow, and a
+  right-click outside change mode, open the list of its variants, each with its title, and the button shows which one
+  is in use where the action says so. The action decides, not the ribbon: any action with variants gets the arrow.
+  - **Paste**: its badge is the active clipboard's number (none for the Windows clipboard). Its list: its variants,
+    Paste from each clipboard (the Windows clipboard and 1 to 9, each with the start of its text): that one once,
+    the active one staying; then Clipboard's variants under "Active clipboard", the active one checked, a choice
+    making it active (the badge follows; as Edit > Clipboards); then Clear clipboard and Manage clipboards.
+  - **Copy** and **Cut**: their variants, Copy to / Cut to each clipboard (the start of what is in it now): that one
+    once, the active one staying.
   - **Toggle bookmark**: the list is Go to > Bookmarks' numbered ones: Toggle, Go to and Clear per number (1 to 9,
     each with its line when set), then Manage bookmarks.
-  - An action of your own with numbered choices (a macro's numbered actions, later) gets the arrow the same way:
-    the action says it has a list, not the ribbon.
 - **The corner icons**: a group may name an action for each bottom corner (`corners: { left, right }` in
   ribbon.json); a small icon in that corner runs it, the group's name between them, as Word's dialog launcher (Manage clipboards, Manage bookmarks, Manage macros, the Highlights window,
   the stored sorts, the Occurrences bar with the cursor in its field).
