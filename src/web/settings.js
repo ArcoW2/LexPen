@@ -552,6 +552,8 @@ function filter(typing = false) {
   if (words.length || layerShown) for (const group of groupsOf()) buildGroup(group);
   document.body.classList.toggle('st-searching', words.length > 0 || !!layerShown);
   const matches = r => {
+    // A row that only counts with another setting's value (Alt opens: with the ribbon only).
+    if (r.def.showWhen && valueOf(r.def.showWhen.name) !== r.def.showWhen.value) return false;
     // This screen: the rows with a line of this screen's zoom (the editor font size, the preview zoom).
     if (layerShown && (r.def.layer ?? 'global') !== layerShown && !(layerShown === 'screen' && r.el.querySelector('.st-screen'))) return false;
     const text = (r.def.title + ' ' + r.def.hint + ' ' + (r.def.hintOff ?? '') + ' ' + r.def.group + ' ' + (r.def.sub ?? '') + ' ' +

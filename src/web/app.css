@@ -1526,3 +1526,110 @@ body[data-highlight=underline] .CodeMirror .mm-hl { background: none; box-shadow
 .mm-drop-place { position: fixed; z-index: 1001; pointer-events: none; border: 2px solid var(--accent); border-radius: 4px;
   background: color-mix(in srgb, var(--accent) 22%, transparent); }
 .mm-drop-place[hidden] { display: none; }
+
+/* ---------- The ribbon (ribbon.js; docs/plans/executed/PLAN-ribbon.md) ---------- */
+/* What the top bar shows (commandBar): the menus, the ribbon's tab names in their place, or the menus with the ribbon
+   (its tab names in a row of their own) under the top bar. Alt with the ribbon only and altOpens menu: the menus back
+   for as long as one is open. */
+.mm-rb-tabs { display: flex; gap: 1px; margin-left: 4px; }
+body[data-command-bar=ribbon] .mm-menubar { display: none; }
+body[data-command-bar=ribbon].mm-rb-menus .mm-menubar { display: flex; }
+body.mm-rb-menus .mm-rb-tabs-top { display: none; }
+.mm-rb-tab { padding: 3px 10px; position: relative; }
+.mm-rb-tab.mm-on { color: var(--accent); box-shadow: inset 0 -2px var(--accent); border-radius: 4px 4px 0 0; }
+.mm-rb-tabs-row { padding: 2px 8px 0; background: var(--bg-bar); }
+.mm-rb-new { font-style: italic; color: var(--fg-dim); }
+.mm-ribbon { flex: none; background: var(--bg-bar); border-bottom: 1px solid var(--border); user-select: none; position: relative;
+  --rb-row: calc(30px * var(--ui-scale)); }   /* three: a large button's icon, two lines of label and a split's arrow row */
+.mm-rb-bodies { display: flex; align-items: stretch; overflow: hidden; padding: 3px 4px 0; }
+.mm-rb-body { display: flex; align-items: stretch; flex: none; }
+.mm-rb-group { position: relative; display: flex; flex-direction: column; padding: 0 5px; border-right: 1px solid var(--border); }
+.mm-rb-cols { display: flex; align-items: stretch; gap: 1px; height: calc(var(--rb-row) * 3); }
+.mm-rb-name { display: grid; grid-template-columns: 18px 1fr 18px; align-items: center; gap: 4px; min-height: calc(14px * var(--ui-scale));
+  font-size: .85em; color: var(--fg-dim); padding: 1px 0 2px; }   /* the corners in the group's corners, the name centred */
+.mm-rb-name > span { grid-row: 1; grid-column: 2; text-align: center; }
+.mm-rb-name > .mm-rb-left { grid-row: 1; grid-column: 1; }
+.mm-rb-name > .mm-rb-right { grid-row: 1; grid-column: 3; }
+.mm-ribbon:not(.mm-rb-names) .mm-rb-name > span { display: none; }
+.mm-rb-col { display: flex; flex-direction: column; justify-content: center; }
+.mm-rb-div { width: 1px; margin: 4px 3px; background: var(--border); }
+.mm-rb-btn { position: relative; display: flex; align-items: center; gap: 5px; padding: 0 6px; border-radius: 4px; white-space: nowrap; }
+.mm-rb-small { height: var(--rb-row); }
+.mm-rb-large { flex-direction: column; justify-content: flex-start; gap: 1px; padding: 3px 6px; text-align: center; white-space: normal; }
+.mm-rb-small .mm-rb-label { max-width: var(--rb-ch); overflow: hidden; text-overflow: ellipsis; }
+.mm-rb-large .mm-rb-label { max-width: calc(var(--rb-ch) / 2); line-height: 1.3; overflow: hidden; display: -webkit-box;
+  -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.mm-rb-icon { position: relative; display: inline-flex; flex: none; }
+.mm-rb-letter { display: inline-grid; place-items: center; width: 14px; height: 14px; border: 1.4px solid currentColor; border-radius: 3px;
+  font-size: 9px; font-weight: 700; }
+.mm-rb-large .mm-rb-letter { width: 28px; height: 28px; font-size: 13px; }
+.mm-rb-badge, .mm-rb-mark { position: absolute; right: -6px; top: -4px; min-width: 9px; padding: 0 3px; border-radius: 7px; font-size: 9px;
+  font-weight: 700; line-height: 13px; text-align: center; color: var(--bookmark-fg); background: var(--accent); }
+.mm-rb-mark { background: var(--fg-dim); color: var(--bg); top: auto; bottom: -3px; }
+.mm-rb-arrow::after { content: ""; border: 4px solid transparent; border-top-color: currentColor; margin-top: 4px; }
+.mm-rb-arrow { display: inline-grid; place-items: center; flex: none; }
+/* A split button (an action with a list): the arrow a part of its own behind a divider, each part lit on its own;
+   a small button's arrow the full height at its right, a large one's a row under the label, the button's width */
+.mm-rb-small .mm-rb-arrow[data-arrow] { align-self: stretch; width: 18px; margin: 0 -6px 0 auto; border-radius: 0 4px 4px 0;
+  background: linear-gradient(var(--border), var(--border)) left center / 1px 12px no-repeat; }   /* lower than the text: stacked ones' do not join */
+.mm-rb-small:has(.mm-rb-arrow[data-arrow]) .mm-rb-text { align-self: stretch; flex: 1; }   /* the arrow at the button's right end */
+.mm-rb-small:has(.mm-rb-arrow[data-arrow]) .mm-rb-label { padding-right: 4px; }
+.mm-rb-large > .mm-rb-arrow[data-arrow] { align-self: stretch; height: 16px; margin: auto -6px -3px; border-top: 1px solid var(--border);
+  border-radius: 0 0 4px 4px; }
+.mm-rb-large > .mm-rb-arrow::after { margin-top: 4px; }
+.mm-rb-btn:has([data-arrow]):hover { background: none; }
+.mm-rb-btn [data-arrow]:hover { background: var(--hover); }
+.mm-rb-btn:has([data-arrow]):hover:not(:has([data-arrow]:hover)) { background: linear-gradient(var(--hover), var(--hover)) no-repeat;
+  background-size: var(--rb-main-w, 100%) var(--rb-main-h, 100%); }
+.mm-rb-small:has([data-arrow]) { --rb-main-w: calc(100% - 18px); }
+.mm-rb-large:has([data-arrow]) { --rb-main-h: calc(100% - 17px); }
+.mm-rb-btn.mm-on { background: var(--active); color: var(--accent); }
+.mm-rb-btn.mm-off { opacity: .45; }
+.mm-rb-btn.mm-off:hover { background: none; }
+/* 22 x 18 to hit, into the group's padding and down to its edge; the mark a small corner at the outside */
+.mm-rb-corner { width: 22px; height: 18px; padding: 0; margin-bottom: -2px; border-radius: 2px; flex: none; position: relative; }
+.mm-rb-corner.mm-rb-right { margin-right: -4px; justify-self: end; }
+.mm-rb-corner.mm-rb-left { margin-left: -4px; }
+.mm-rb-corner::after { content: ""; position: absolute; right: 4px; bottom: 4px; width: 6px; height: 6px;
+  border-right: 1.4px solid var(--fg-dim); border-bottom: 1.4px solid var(--fg-dim); }
+.mm-rb-corner.mm-rb-left::after { right: auto; left: 4px; border-right: 0; border-left: 1.4px solid var(--fg-dim); }
+.mm-rb-corner.mm-rb-empty { outline: 1px dashed var(--border); }
+.mm-rb-corner.mm-rb-empty::after { display: none; }
+.mm-rb-more { flex: none; align-self: center; margin-left: auto; }
+.mm-rb-tip { position: absolute; z-index: 20; left: 50%; bottom: -4px; transform: translateX(-50%); padding: 0 4px; border-radius: 3px;
+  font: 600 10px/14px var(--app-font); color: var(--bg); background: var(--fg); box-shadow: 0 1px 3px rgba(0, 0, 0, .35); pointer-events: none; }
+/* Change mode: a dashed edge, Done at the right; the groups with a grip; the drop place marked. */
+body.mm-rb-changing .mm-ribbon { outline: 2px dashed var(--accent); outline-offset: -2px; }
+body.mm-rb-changing .mm-rb-bodies { overflow-x: auto; }
+.mm-rb-done { position: absolute; right: 6px; top: 6px; color: var(--accent); font-weight: 600; border: 1px solid var(--accent); }
+.mm-rb-grip { position: absolute; left: 0; top: 0; bottom: 0; width: 5px; cursor: grab;
+  background: repeating-linear-gradient(transparent 0 2px, var(--fg-dim) 2px 3px); opacity: .5; }
+.mm-rb-new-group .mm-rb-cols { align-items: center; padding: 0 10px; color: var(--fg-dim); border: 1px dashed var(--border); border-radius: 4px; }
+.mm-rb-missing { color: var(--caution); }
+.mm-rb-drop.mm-rb-before { box-shadow: inset 2px 0 var(--accent); }
+.mm-rb-drop.mm-rb-after { box-shadow: inset -2px 0 var(--accent); }
+.mm-rb-drop.mm-rb-under { box-shadow: inset 0 -2px var(--accent); }
+.mm-rb-drop:not(.mm-rb-before):not(.mm-rb-after):not(.mm-rb-under) { outline: 2px solid var(--accent); }
+.mm-rb-text { display: inline-flex; align-items: center; gap: 2px; min-width: 0; }
+.mm-rb-large .mm-rb-text { align-items: flex-end; }
+
+.mm-rb-small > .mm-rb-tip { left: 1px; bottom: -2px; transform: none; }
+
+/* The Customize window (ribbon.js rbCustomize). */
+.mm-rb-customize { padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--fg);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, .3); }
+.mm-rb-customize::backdrop { background: none; }   /* the ribbon above it in full view */
+.mm-rb-picked { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 4px; }   /* Customize's chosen line */
+.mm-rbc-head { font-weight: 600; margin-bottom: 8px; }
+.mm-rbc-lists { display: flex; gap: 8px; align-items: stretch; }
+.mm-rbc-side { display: flex; flex-direction: column; gap: 4px; width: 280px; }
+.mm-rbc-side select, .mm-rbc-search { font: inherit; color: var(--fg); background: var(--bg-side); border: 1px solid var(--border); border-radius: 4px; }
+.mm-rbc-side select { flex: 1; min-height: 360px; }
+.mm-rbc-search { padding: 3px 6px; }
+.mm-rbc-mid { display: flex; align-items: center; }
+.mm-rbc-buttons { display: flex; flex-direction: column; gap: 3px; min-width: 120px; }
+.mm-rbc-buttons hr { width: 100%; border: 0; border-top: 1px solid var(--border); margin: 3px 0; }
+.mm-rbc-buttons button, .mm-rbc-mid button { border: 1px solid var(--border); }
+.mm-rbc-tab { font-weight: 700; }
+.mm-rbc-group { font-weight: 600; color: var(--accent); }
+.mm-rbc-corner, .mm-rbc-divider { color: var(--fg-dim); }

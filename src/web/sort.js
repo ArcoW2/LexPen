@@ -360,10 +360,14 @@ function sortKeysProblem(spec, t) {
   return null;
 }
 
+// The last sort's keys and options (the panel's, a stored one's, Sort's own): Sort again sorts with them.
+let sortLast = null;
+
 // Puts the result in: one undo step; the sorted text selected (a block: the block again).
 async function sortApply(t, spec) {
   const r = sortResult(t, spec);
   if (r.problem) { toast(r.problem); return false; }
+  sortLast = structuredClone(spec);
   let cd = t.cd;
   if (!cd) {   // a CSV shown as its column view only: the editor holds the undo step
     await setMode('split');
@@ -410,6 +414,16 @@ appAction('edit.sortAsc', { title: 'Sort ascending', hint: 'As Sort, every key A
   enabled: () => !!activeDoc(), run: ([name] = []) => sortNow(name, 'asc') });
 appAction('edit.sortDesc', { title: 'Sort descending', hint: 'As Sort, every key Z to A (also a stored sort\'s, with its name)', group: 'edit',
   enabled: () => !!activeDoc(), run: ([name] = []) => sortNow(name, 'desc') });
+// Sort again (docs/plans/executed/PLAN-ribbon.md): the last sort's keys and options, on the selection or the file as Sort.
+appAction('edit.sortAgain', { title: 'Sort again', hint: 'The last sort again, with its keys and options (from the Sort panel, a stored sort, or Sort), on the selected lines or the file',
+  group: 'edit', enabled: () => !!activeDoc() && !!sortLast, run: async () => {
+    const pane = editorPane(), doc = activeDoc(), tab = activeTab();
+    if (!doc || !tab || !sortLast) return;
+    if (!editable(tab)) return toast('This tab is read-only.');
+    const t = sortTarget(pane, doc);
+    widenSelection(t);
+    await sortApply(sortTarget(pane, doc), structuredClone(sortLast));
+  } });
 
 // ---------- The panel (sort.html, sort-pane.js) ----------
 // A panel as the others (View > Panels): docked in the window's dock areas (at the right the first time) or floating;

@@ -509,7 +509,7 @@ const PANELS = [
   { header: 'The document' },
   ['&Outline', 'outline', () => runAction('outline.toggle')],
   ['&Highlights', 'hls', () => runAction('highlight.list')],
-  ['Col&umns (CSV)', 'cols', () => runAction('csv.columns')],
+  ['Columns (CS&V)', 'cols', () => runAction('csv.columns')],
   { header: 'Editing' },
   ['&Characters', 'chars', () => runAction('insertCharacter')],
   ['Cl&ipboards', 'clips', () => runAction('clipboards.pane')],
@@ -522,6 +522,7 @@ const PANELS = [
   ['&Keyboard shortcuts and commands', 'commands', () => runAction('commands')],
   ['Messa&ges', 'messages', () => runAction('messages')],
   ['Th&eme sets', 'themesets', () => openToolPane('themesets', 'openThemeSetsWindow')],
+  ['Theme colo&urs', 'themecolours', () => runAction('themeColours')],   // its window (docs/plans/executed/PLAN-theme-colours.md)
   ['Manage &projects', 'projects', () => openToolPane('projects', 'openProjects')],   // also Window > Projects
 ];
 // A kind's panes: the window's and each editor pane's own (Outline: the editor panes' own and the window's).
@@ -564,6 +565,19 @@ function showStepPane() {
   if (m.state.step === 'floating') return dockPanes.get('step').channel.float();
   showDockPane(dockHidden(m, 'step') ? `step:${state.activePane}` : 'step');
 }
+
+// A panel shown or hidden as Window > Panels does, by its kind (the ribbon's panel buttons, a key: ["panel", "folder"];
+// docs/plans/executed/PLAN-ribbon.md). Its check: as the menu's, from the windows of their own open when last asked.
+let panelsOpen = [];
+const refreshPanelsOpen = async () => { panelsOpen = await host('toolWindowsOpen').catch(() => panelsOpen); return panelsOpen; };
+appAction('panel', { title: 'Panel', hint: 'Show or hide a panel (as Window > Panels)', group: 'window',
+  variants: PANELS.filter(p => !p.header).map(p => [p[1]]),
+  variantTitles: Object.fromEntries(PANELS.filter(p => !p.header).map(p => [p[1], p[0].replace('&', '')])),
+  checked: ([kind]) => panelShown(kind, panelsOpen),
+  run: async ([kind]) => {
+    const p = PANELS.find(x => !x.header && x[1] === kind);
+    if (p) await togglePanel(kind, p[2], await refreshPanelsOpen());
+  } });
 
 async function panelItems() {
   const open = await host('toolWindowsOpen').catch(() => []), m = dockModel();

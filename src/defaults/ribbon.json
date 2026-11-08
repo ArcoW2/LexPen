@@ -1,0 +1,95 @@
+// The ribbon LexPen ships (docs/plans/executed/PLAN-ribbon.md). Yours is ribbon.json in the data folder, made when you change
+// the ribbon (its right-click: Change the ribbon); Reset goes back to this one.
+// A tab: { name, groups }. A group: { name, corners: { left, right }, items }; a corner: an action, or [action, params].
+// An item: "divider", or { action, params, size: "large" or "small" (the default), stack: true (under the small one
+// before it, at most three in a column), label (shorter than the action's title), tip (its key tip letter) }.
+{
+  "tabs": [
+    { "name": "File", "groups": [
+      { "name": "File", "items": [
+        { "action": "save", "size": "large" },
+        { "action": "saveAs" }, { "action": "newFile", "stack": true }, { "action": "openFile", "stack": true },
+        { "action": "print" }, { "action": "closeTab", "stack": true } ] } ] },
+
+    { "name": "Home", "groups": [
+      { "name": "Edit", "items": [
+        { "action": "indentMore", "label": "Indent" }, { "action": "indentLess", "label": "Outdent", "stack": true },
+        "divider",
+        { "action": "insertCharacter" }, { "action": "complete", "stack": true } ] },
+      { "name": "Lines", "items": [
+        { "action": "duplicateLines", "label": "Duplicate" }, { "action": "deleteLines", "label": "Delete", "stack": true },
+        { "action": "joinLines", "label": "Join", "stack": true } ] },
+      { "name": "Clipboard", "corners": { "right": "clipboards.pane" }, "items": [
+        { "action": "paste", "size": "large" },
+        { "action": "pasteImage" }, { "action": "cut", "stack": true }, { "action": "copy", "stack": true } ] },
+      { "name": "Find", "items": [
+        { "action": "find", "size": "large" },
+        { "action": "findPrevious" }, { "action": "findNext", "stack": true }, { "action": "replace", "stack": true },
+        { "action": "searchReplace" }, { "action": "searchInFiles", "stack": true }, { "action": "findReferences", "stack": true } ] },
+      { "name": "Occurrences", "corners": { "right": "occurrences.field" }, "items": [
+        { "action": "occurrences.show", "label": "Show" }, { "action": "occurrences.clear", "label": "Clear", "stack": true } ] },
+      { "name": "Go to", "items": [
+        { "action": "goToLine", "label": "Line" }, { "action": "goToDefinition", "label": "Definition", "stack": true } ] },
+      { "name": "Bookmarks", "corners": { "right": "bookmarks.pane" }, "items": [
+        { "action": "bookmarkToggleFree", "size": "large", "label": "Toggle bookmark" },
+        { "action": "bookmarkNext", "params": [-1], "label": "Previous" },
+        { "action": "bookmarkNext", "params": [1], "label": "Next", "stack": true } ] } ] },
+
+    { "name": "Arrange", "groups": [
+      { "name": "Select", "items": [
+        { "action": "selectAll", "size": "large" },
+        { "action": "selectLine", "label": "Line" }, { "action": "blockSelect", "label": "Block", "stack": true },
+        { "action": "selectInsideBrackets", "label": "Brackets", "stack": true },
+        "divider",
+        { "action": "columnMode.toggle", "size": "large" } ] },
+      { "name": "Sort", "corners": { "right": "edit.sortWindow" }, "items": [
+        { "action": "edit.sortWindow", "size": "large" },
+        { "action": "edit.sortAsc" }, { "action": "edit.sortDesc", "stack": true }, { "action": "edit.sortAgain", "stack": true } ] },
+      { "name": "History", "items": [
+        { "action": "undo" }, { "action": "redo", "stack": true } ] } ] },
+
+    { "name": "Review", "groups": [
+      { "name": "Highlights", "corners": { "right": "highlight.list" }, "items": [
+        { "action": "highlight.toggle" }, { "action": "highlight.note", "stack": true }, { "action": "highlight.remove", "stack": true } ] } ] },
+
+    { "name": "View", "groups": [
+      { "name": "Document", "items": [
+        { "action": "editor.toggle", "size": "large" }, { "action": "preview.toggle", "size": "large" } ] },
+      { "name": "Text", "items": [
+        { "action": "wrap.toggle", "size": "large" },
+        { "action": "lineNumbers.set", "label": "Line numbers" }, { "action": "ruler.toggle", "stack": true },
+        { "action": "formatBar.toggle", "stack": true } ] },
+      { "name": "Files and finding", "items": [
+        { "action": "panel", "params": ["folder"] }, { "action": "panel", "params": ["search"], "stack": true },
+        { "action": "panel", "params": ["bm"], "stack": true } ] },
+      { "name": "The document", "items": [
+        { "action": "panel", "params": ["outline"] }, { "action": "panel", "params": ["hls"], "stack": true },
+        { "action": "panel", "params": ["cols"], "label": "Columns", "stack": true } ] },
+      { "name": "Editing", "items": [
+        { "action": "panel", "params": ["chars"] }, { "action": "panel", "params": ["clips"], "stack": true },
+        { "action": "panel", "params": ["sort"], "stack": true } ] },
+      { "name": "Macros", "items": [
+        { "action": "panel", "params": ["macros"] }, { "action": "panel", "params": ["step"], "stack": true } ] },
+      { "name": "LexPen", "items": [
+        { "action": "panel", "params": ["settings"] }, { "action": "panel", "params": ["commands"], "label": "Keyboard shortcuts", "stack": true },
+        { "action": "panel", "params": ["messages"], "stack": true },
+        { "action": "panel", "params": ["themesets"] }, { "action": "panel", "params": ["themecolours"], "stack": true },
+        { "action": "panel", "params": ["projects"], "label": "Projects", "stack": true } ] },
+      { "name": "Window", "items": [
+        { "action": "zoomIn" }, { "action": "zoomOut", "stack": true }, { "action": "zoomReset", "stack": true },
+        "divider",
+        { "action": "theme.day", "size": "large", "label": "Day" }, { "action": "theme.night", "size": "large", "label": "Night" } ] } ] },
+
+    { "name": "Tools", "groups": [
+      { "name": "Macros", "corners": { "right": "macro.manage" }, "items": [
+        { "action": "macro.record", "size": "large" },
+        { "action": "macro.play", "label": "Play" }, { "action": "macro.playTimes", "label": "Play X times...", "stack": true } ] },
+      { "name": "Compare", "items": [
+        { "action": "compareFiles", "size": "large" },
+        { "action": "compareFolders" }, { "action": "compareClose", "stack": true },
+        { "action": "compareNext" }, { "action": "comparePrevious", "stack": true } ] },
+      { "name": "Settings", "items": [
+        { "action": "settings", "size": "large" },
+        { "action": "themeColours" }, { "action": "commands", "label": "Keyboard shortcuts", "stack": true } ] } ] }
+  ]
+}

@@ -84,7 +84,7 @@ const MENUS = [
   ['&View', [
     ['&Editor', 'editor.toggle'], ['&Preview', 'preview.toggle'], ['Editor &and preview', 'split.toggle'], '-',
     { label: 'Preview pla&ce', sub: [['At the &right', 'preview.right'], ['At the &left', 'preview.left'], ['&Above', 'preview.top'], ['&Below', 'preview.bottom']] }, '-',
-    ['&Wrap long lines', 'wrap.toggle'], ['R&uler', 'ruler.toggle'], ['For&matting bar', 'formatBar.toggle'], '-',
+    ['&Wrap long lines', 'wrap.toggle'], ['R&uler', 'ruler.toggle'], ['For&matting bar', 'formatBar.toggle'], ['&Ribbon', 'ribbon.toggle'], '-',
     { label: '&Gutter', sub: GUTTER_ITEMS },
     { label: 'Scroll &bar marks', sub: [['&Find matches', 'overviewMark.toggle', 'find'], ['&Occurrences', 'overviewMark.toggle', 'occurrences'],
       ['&Unsaved changes', 'overviewMark.toggle', 'changes'], ['&Git changes', 'overviewMark.toggle', 'git'],
@@ -268,6 +268,7 @@ function closeMenus() {
   menuBar.fromContext = false;
   if (menuBar.top >= 0) menuBar.el.children[menuBar.top]?.classList.remove('mm-on');
   menuBar.top = -1;
+  if (typeof rbShowMenus === 'function') rbShowMenus(false);   // the ribbon only: its tab names back in the menus' place
   // A right-click menu's (openContextMenu): the focus back where it was, unless it went elsewhere meanwhile.
   const from = menuBar.focusFrom;
   menuBar.focusFrom = null;
@@ -279,6 +280,11 @@ addEventListener('keydown', e => {
   if (document.querySelector('dialog[open]')) return;
   if (!menuBar.levels.length) {
     if (!e.altKey || e.ctrlKey || e.shiftKey || !/^Key[A-Z]$/.test(e.code)) return;
+    // The ribbon only, its key tips for Alt: the ribbon's (ribbon.js); its menus for Alt: shown first.
+    if (typeof rbMode === 'function' && rbMode() === 'ribbon') {
+      if ((setting('altOpens') || 'tips') === 'tips') return;
+      rbShowMenus(true);
+    }
     const i = MENUS.findIndex(([title]) => menuLabel(title).letter === e.code[3].toLowerCase());
     if (i < 0) return;
     e.preventDefault();

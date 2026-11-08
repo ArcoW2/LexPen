@@ -180,6 +180,7 @@ function toggleAction(name, def, get, flip, words = ['on', 'off']) {
   appAction(name + '.toggle', { ...def, checked: get, run: flip });
   for (const [word, on] of [[words[0], true], [words[1], false]])
     appAction(`${name}.${word}`, { ...def, title: `${def.title}: ${word}`, hint: `${def.hint} (${word}; nothing when it already is)`,
+      checked: (params, ctx) => !!get(params, ctx) === on,   // pressed while it is so (the ribbon's Day and Night)
       run: (params, ctx) => { if (!!get(params, ctx) !== on) flip(params, ctx); } });
 }
 
@@ -457,26 +458,37 @@ function textToCopy(pane) {
 }
 
 // A block goes on the clipboard marked as one (the Windows clipboard: MSDEVColumnSelect), so paste puts it back as a column.
-function putOnClipboard(text, column = false) {
+// n: the clipboard (0: the Windows clipboard), the active one when not given.
+function putOnClipboard(text, column = false, n = clips.active) {
   if (!text) return;
-  if (clips.active === 0) host('clipboardSetText', { text, column });
-  else host('clipSet', { n: clips.active, text, column });
+  if (n === 0) host('clipboardSetText', { text, column });
+  else host('clipSet', { n, text, column });
 }
 
 // A key with the Windows clipboard is left to the editor, except on a block: the marker needs the host.
-const editorCopies = (ctx, pane) => ctx.from === 'key' && clips.active === 0 && !(pane?.cm && blockOf(pane.cm));
+const editorCopies = (ctx, pane, n) => ctx.from === 'key' && n === undefined && clips.active === 0 && !(pane?.cm && blockOf(pane.cm));
 
-appAction('copy', { title: 'Copy', hint: 'To the active clipboard', group: 'edit', run: (_, ctx) => {
-  const pane = ctx.from === 'key' ? focusedEditor() : editorPane(ctx);
-  if (ctx.from === 'key' && inInput() || editorCopies(ctx, pane)) return PASS;
-  putOnClipboard(textToCopy(pane), !!(pane?.cm && blockOf(pane.cm)));
+// Copy, Cut and Paste: on the active clipboard, or with a clipboard's number (0: the Windows clipboard, 1 to 9) on that
+// one once, the active one staying (the ribbon's lists, a key: ["paste", 3]; docs/plans/executed/PLAN-ribbon.md).
+const clipVariants = [[], ...Array.from({ length: 10 }, (_, n) => [n])];
+const clipTitles = (base, word) => Object.fromEntries([['', base],
+  ...Array.from({ length: 10 }, (_, n) => [n, `${base} ${word} ${n === 0 ? 'Windows clipboard' : 'clipboard ' + n}`])]);
+const clipNumber = params => Number.isInteger(params[0]) && params[0] >= 0 && params[0] <= 9 ? params[0] : undefined;
+
+appAction('copy', { title: 'Copy', hint: 'To the active clipboard; with a number: to that clipboard', group: 'edit',
+  variants: clipVariants, variantTitles: clipTitles('Copy', 'to'), run: (params, ctx) => {
+  const n = clipNumber(params), pane = ctx.from === 'key' ? focusedEditor() : editorPane(ctx);
+  if (ctx.from === 'key' && n === undefined && inInput() || editorCopies(ctx, pane, n)) return PASS;
+  putOnClipboard(textToCopy(pane), !!(pane?.cm && blockOf(pane.cm)), n ?? clips.active);
 } });
-appAction('cut', { title: 'Cut', hint: 'To the active clipboard', group: 'edit', editor: true, run: (_, ctx) => {
-  if (editorCopies(ctx, ctx.pane)) return PASS;
+appAction('cut', { title: 'Cut', hint: 'To the active clipboard; with a number: to that clipboard', group: 'edit', editor: true,
+  variants: clipVariants, variantTitles: clipTitles('Cut', 'to'), run: (params, ctx) => {
+  const n = clipNumber(params);
+  if (editorCopies(ctx, ctx.pane, n)) return PASS;
   const cm = ctx.pane.cm;
   if (cm.getOption('readOnly')) return;
   const block = !!blockOf(cm);
-  putOnClipboard(textToCopy(ctx.pane), block);
+  putOnClipboard(textToCopy(ctx.pane), block, n ?? clips.active);
   if (block) clearBlock(cm);
   else if (cm.somethingSelected()) cm.replaceSelection('');
   else {
@@ -486,10 +498,12 @@ appAction('cut', { title: 'Cut', hint: 'To the active clipboard', group: 'edit',
 } });
 // Not async: the key handler must see PASS itself, not a promise of it. The key with the Windows clipboard is the
 // editor's own paste (a block or column mode: onNativePaste, column.js). As a column, or a line per selection: pasteText.
-appAction('paste', { title: 'Paste', hint: 'From the active clipboard', group: 'edit', editor: true, run: (_, ctx) => {
-  if (ctx.from === 'key' && clips.active === 0) return PASS;
+appAction('paste', { title: 'Paste', hint: 'From the active clipboard; with a number: from that clipboard', group: 'edit', editor: true,
+  variants: clipVariants, variantTitles: clipTitles('Paste', 'from'), run: (params, ctx) => {
+  const given = clipNumber(params);
+  if (ctx.from === 'key' && given === undefined && clips.active === 0) return PASS;
   return (async () => {
-    const n = clips.active, text = n === 0 ? await host('clipboardText') : await host('clipGet', { n });
+    const n = given ?? clips.active, text = n === 0 ? await host('clipboardText') : await host('clipGet', { n });
     pasteText(ctx.pane.cm, text, n === 0 ? clips.windowsColumn : clips.columns[n]);
   })();
 },
@@ -507,6 +521,8 @@ appAction('clipboardSelect', { title: 'Clipboard', hint: 'Copy, cut and paste wo
   variants: Array.from({ length: 10 }, (_, n) => [n]),
   variantTitles: Object.fromEntries(Array.from({ length: 10 }, (_, n) => [n, n === 0 ? 'Windows clipboard' : 'Clipboard ' + n])),
   checked: ([n]) => clips.active === n, run: ([n]) => host('clipSelect', { n }) });
+appAction('clipboardClear', { title: 'Clear clipboard', hint: 'The active clipboard emptied (the Windows clipboard too, when it is the active one)', group: 'clipboard',
+  run: () => host('clipClear', { n: clips.active }) });
 appAction('clipboardList', { title: 'Clipboards', hint: 'The list of clipboards with the start of their text; choose one', group: 'clipboard',
   run: () => showClipboardList() });
 appAction('clipboards.pane', { title: 'Manage clipboards...', hint: 'The clipboards with the start of their text, the active one marked; a click makes one active', group: 'clipboard',
@@ -622,6 +638,18 @@ const SETTING_ROWS = [
   { name: 'indentSize', group: 'Editor', sub: 'Tabs', kind: 'choice', title: 'Indent size',
     hint: 'Where the indent stops are: Tab in the indentation of a line, Indent / Outdent, and a tab in the indentation is shown that wide. A language can set its own (indentSize)',
     options: () => Array.from({ length: 16 }, (_, i) => [i + 1, String(i + 1)]) },
+  // The ribbon (docs/plans/executed/PLAN-ribbon.md, ribbon.js): what the top bar shows, and the ribbon's look.
+  { name: 'commandBar', group: 'Editor view', sub: 'Menu and ribbon', kind: 'choice', title: 'Menu and ribbon',
+    hint: 'The menus, the ribbon (its tab names in the menus\' place), or both (the ribbon under the menus); also View > Ribbon',
+    options: () => [['menu', 'Menu'], ['ribbon', 'Ribbon only'], ['both', 'Menu and ribbon']] },
+  { name: 'altOpens', group: 'Editor view', sub: 'Menu and ribbon', kind: 'choice', title: 'Alt opens',
+    hint: 'With the ribbon only: Alt shows the ribbon\'s key tips (a letter per tab, then per button), or the menus in the tab names\' place',
+    options: () => [['tips', 'Ribbon key tips'], ['menu', 'Menu']], showWhen: { name: 'commandBar', value: 'ribbon' } },
+  { name: 'ribbonGroupNames', group: 'Editor view', sub: 'Menu and ribbon', kind: 'toggle', title: 'Group names on the ribbon',
+    hint: 'Each group\'s name under it (the ribbon a line taller)', hintOff: 'No group names: dividers only, the name as their tooltip' },
+  { name: 'ribbonLabelWidth', group: 'Editor view', sub: 'Menu and ribbon', kind: 'range', range: [8, 60, 1], unit: ' characters', title: 'Longest button label',
+    hint: 'In characters: a longer label is cut off with "..." (a large button\'s after two lines of half this); the tooltip has it whole',
+  },
   { name: 'formatBar', group: 'Editor view', kind: 'toggle',
     hint: 'The bar with bold, headings, lists, tables, ... is shown above the editor (also View > Formatting bar)',
     hintOff: 'No formatting bar above the editor; its commands stay in the menus and on their keys (View > Formatting bar shows it)' },
@@ -976,6 +1004,7 @@ function settingDefs() {
       range: r.range ?? null, unit: r.unit ?? '', buttons: r.buttons ?? null,
       none: r.none ?? null, more: r.more ?? null,   // a project row: what 0 is, choices before the projects
       keywords: r.keywords ?? '',   // more words the settings window's search finds the row by
+      showWhen: r.showWhen ?? null,   // { name, value }: the row only shown while that setting has that value
       layer: LAYOUT.has(r.name) ? 'window' : THEME_SET_NAMES.has(r.name) ? 'set' : 'global',   // executed/PLAN-settings-layers.md
     };
   });

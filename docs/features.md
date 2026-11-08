@@ -814,6 +814,21 @@ every action with its key.
 - **Menus**: File, Edit, Format, View and Options in the toolbar row. Every item shows its key; Alt+letter opens a
   menu, the arrow keys move, Enter runs, Esc closes one level, an underlined letter runs its item. The focus stays
   in the editor, so a menu item works on the cursor and the selection there.
+- **The ribbon** (View > Ribbon; Settings, Editor view > Menu and ribbon): tabs File, Home, Arrange, Review, View
+  and Tools of named groups of buttons, large or small (up to three stacked), each an action with its icon (drawn in
+  the text colour, so every theme colours it), its state (on, off, greyed out) and its key in the tooltip. Command
+  bar: the menus, the ribbon (its tab names in the menus' place, the rest of the top bar as it was) or both (the tab
+  names under the menus); per window. With the ribbon only, Alt shows key tips (a letter opens a tab, then runs a
+  button) or the menus (Alt opens). Each group's bottom corners hold an action (Clipboards, Occurrences field,
+  Bookmarks, Sort, Highlights, Macros). Paste, Copy and Cut have an arrow with the clipboards (Paste: Active
+  clipboard, Clear clipboard); Paste shows the active clipboard's number. Labels longer than Longest button label
+  are cut off with "..."; group names on or off. Too narrow: the groups that do not fit go under ">>".
+- **Your ribbon**: change it in its change mode (the ribbon's right-click > Change the ribbon, or the button in F1;
+  Done or Esc ends it): drag commands from F1 onto it (an action, or one of its variants: Paste from clipboard 3),
+  move buttons, groups (by their grip) and tabs, drop an action on a group's corner, drag anything off to remove it,
+  "New..." for a tab or a group, right-click for size, stacking, label, key tip, parameter, divider; Ctrl+Z undoes.
+  Customize... does the same by list. Your `ribbon.json` in `%LOCALAPPDATA%\LexPen` (the shipped one:
+  `defaults\ribbon.json`); Reset goes back to the shipped ribbon.
 - **Questions** come in LexPen's own window: in the app theme of the window that asks (its colours, the app font),
   movable, with a sign for what it is (information, question, warning, error), the default button in the accent
   (Enter), Esc for Cancel. Choices as a list of command links (a name, a note under it), radio buttons or

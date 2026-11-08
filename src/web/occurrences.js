@@ -123,13 +123,14 @@ function occChanged(pane) {
 }
 
 // ---------- Filling the field ----------
-// A text into the field (its line breaks and tabs as codes, a caret as ^^), the bar opened when the setting says so.
-function showOccurrences(pane, text, word) {
+// A text into the field (its line breaks and tabs as codes, a caret as ^^), the bar opened when the setting says so;
+// open false: never (Show all occurrences, docs/plans/executed/PLAN-ribbon.md: a bar closed was closed by the user).
+function showOccurrences(pane, text, word, open = true) {
   if (!pane?.active || !text) return;
   const q = occOf(pane);
   Object.assign(q, { query: text.replace(/\^/g, '^^').replace(/\r?\n/g, '^p').replace(/\t/g, '^t'), case: true, word: !!word, regex: false });
   pane.occClosed = false;
-  if (occBarMode() !== 'never') openOccBar(pane);
+  if (open && occBarMode() !== 'never') openOccBar(pane);
   occChanged(pane);
 }
 
@@ -150,13 +151,13 @@ function previewSelectionText(pane) {
 // the editor's cursor (as a whole word).
 function showOccurrencesOfSelection(ctx = {}) {
   const inPreview = panes.find(p => previewSelectionText(p));
-  if (inPreview) return showOccurrences(inPreview, previewSelectionText(inPreview));
+  if (inPreview) return showOccurrences(inPreview, previewSelectionText(inPreview), false, false);
   const pane = editorPane(ctx) ?? panes[state.activePane], cm = pane?.cm;
   if (!cm || pane.active?.mode === 'preview') return toast('Select text to show its occurrences.', true);
   const text = editorSelectionText(cm);
-  if (text) return showOccurrences(pane, text);
+  if (text) return showOccurrences(pane, text, false, false);
   const w = cm.findWordAt(cm.getCursor()), word = cm.getRange(w.anchor, w.head);
-  if (/[\p{L}\p{N}_]/u.test(word)) return showOccurrences(pane, word, true);
+  if (/[\p{L}\p{N}_]/u.test(word)) return showOccurrences(pane, word, true, false);
   toast('Select text to show its occurrences.', true);
 }
 
