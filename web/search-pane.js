@@ -61,7 +61,7 @@ $('.mm-search-codes').addEventListener('click', e => {
 });
 
 // The results: a file's head folds its matches or (its Replace) replaces in that file; a match goes there in the
-// window or (its Replace) is replaced.
+// window (Alt+click: in the active tab instead of a tab of its own) or (its Replace) is replaced.
 results.addEventListener('click', e => {
   const head = e.target.closest('.mm-result-file');
   if (head && e.target.closest('.mm-result-rep')) return toWindow({ kind: 'replaceFile', group: +head.dataset.group });
@@ -71,7 +71,7 @@ results.addEventListener('click', e => {
   if (e.target.closest('.mm-result-rep')) return toWindow({ kind: 'replaceMatch', hit: +hit.dataset.hit });
   for (const on of results.querySelectorAll('.mm-result.mm-on')) on.classList.remove('mm-on');
   hit.classList.add('mm-on');
-  toWindow({ kind: 'goto', hit: +hit.dataset.hit });
+  toWindow({ kind: 'goto', hit: +hit.dataset.hit, here: e.altKey });
 });
 
 // Esc: back as before the search (the window decides); Alt+A: Replace all, with the replace row shown. On the document:

@@ -3159,10 +3159,21 @@ function drawSearchResults() {
   toSearch({ kind: 'results', html: searchPage.html });
 }
 
-// A match clicked in the results: there in the window, selected (and in the preview's view).
-async function goToSearchHit(hit) {
-  let tab;
-  if (hit.draft) {
+// A match clicked in the results: there in the window, selected (and in the preview's view): in the pane's tab of its
+// file, else a new one. `here` (Alt+click): in the active tab instead, as a link is followed (back returns to its line),
+// unless that tab's document has unsaved changes.
+async function goToSearchHit(hit, here) {
+  let tab, how = 'found';
+  const active = activeTab();
+  if (here && !hit.draft && active?.doc.path && !samePath(active.doc.path, hit.path) && !active.doc.dirty && !active.doc.pdf) {
+    const cm = paneOf(active).cm, at = cm?.getCursor();
+    remember(active, active.doc.path, true);
+    const step = navHistory.back.at(-1);
+    if (at && step?.tab === active.id) step.cursor = { line: at.line, ch: at.ch };   // back: this line again (go)
+    if (!await navigate(active, hit.path)) return;
+    tab = paneOf(active).active;
+    how = 'quiet';   // the way back is the step above, not where this file's cursor was
+  } else if (hit.draft) {
     const doc = findDraft(hit.draft);
     if (!doc) return toast('That draft is closed.');
     tab = tabsOf(doc).find(t => paneOf(t).index === state.activePane) ?? tabsOf(doc)[0];
@@ -3172,7 +3183,7 @@ async function goToSearchHit(hit) {
   if (tab.mode !== 'edit') setPreviewLine(pane, Math.max(0, hit.line - 3));
   if (tab.mode !== 'preview' && pane.cm) {
     pane.placed = tab.mode === 'split';
-    asFound(pane, () => pane.cm.setSelection({ line: hit.line, ch: hit.col }, { line: hit.endLine, ch: hit.endCol }));   // places.js
+    asFound(pane, () => pane.cm.setSelection({ line: hit.line, ch: hit.col }, { line: hit.endLine, ch: hit.endCol }), how);   // places.js
     revealFound(pane.cm, { line: hit.line, ch: 0 }, { line: hit.endLine, ch: hit.endCol });
   }
 }
@@ -3356,7 +3367,7 @@ function fromSearch(m) {
       Object.assign(searchOptions, m.options);
       return m.run && runSearch();
     case 'scope': searchPage.scope = m.value; keepLayout('searchScope', m.value); return runSearch();
-    case 'goto': return searchHits[m.hit] && goToSearchHit(searchHits[m.hit]);
+    case 'goto': return searchHits[m.hit] && goToSearchHit(searchHits[m.hit], m.here);
     case 'replaceFile': return replaceFile(m.group);   // searchreplace.js
     case 'replaceMatch': return searchHits[m.hit] && replaceMatch(searchHits[m.hit]);
     case 'replaceAll': return replaceAllResults();
