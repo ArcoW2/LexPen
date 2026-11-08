@@ -1,6 +1,6 @@
 # Plan: a window that shows every colour of a theme
 
-Status: draft 2026-11-08, revised 2026-11-08 (twice); not started. The number in the file name is the priority; rename to reorder.
+Status: executed (2026-11-08); see As built.
 
 ## 1. What this is about
 
@@ -103,3 +103,23 @@ that every colour name has it and appears in the example.
 ## 4. Open questions
 
 None.
+
+## 5. As built
+
+- **The window** (ThemeColoursForm, web\themecolours.html, .css, .js): one for the app, its place kept
+  (AppState.ThemeColoursWindow), in the look of the window last worked in (as Manage theme sets); not dockable. Esc
+  closes it. Tools > Theme colours... (action `themeColours`, no key).
+- **Groups**: not the two of the theme files but finer ones, easier to read: backgrounds, text and lines; marks in
+  the text; gutter, panes and bars; the preview; files in the Folder pane (git); the settings window; code.
+- **The descriptions and the example** are in `web\themecolourlist.js`, a file without a page, so the tests load
+  it under Jint (ThemeColoursTests). The example is drawn with classes of its own (`tx-...`, themecolours.css) on
+  the chosen theme's variables, not with LexPen's own classes: those need the real layout around them.
+- **Where a colour comes from**: ThemeFile.Theme has `From` (colour -> the id of the theme in the chain that set
+  it), filled by Parse and Resolve; AppHost.ThemeColours sends every theme complete with its mode's fallback and
+  its `From` (a colour not in it: LexPen's default). A value `var(--bg)` (the dark fallback of `bookmarkFg`) is shown
+  as the colour it points to.
+- **The divider**'s place is kept in the window's browser storage.
+- Tested: the unit tests (every colour name described once, every one used in the example, the setter per colour
+  two bases deep; 397 passed); in the test copy: a theme of mine on Dark ocean shows `bg` from this theme, `accent`
+  from Dark ocean, `keyword` from Dark; `findHit` as `#ffc40066`, `rgba(255, 196, 0, 0.4)`, `hsla(...)`; Light
+  parchment chosen in a dark LexPen: the samples and the example on its light background, the window dark.

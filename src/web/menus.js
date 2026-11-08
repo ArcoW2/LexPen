@@ -110,7 +110,8 @@ const MENUS = [
     { label: '&Compare', sub: [['Compare &files...', 'compareFiles'], ['Compare f&olders...', 'compareFolders'], '-',
       ['&Next difference', 'compareNext'], ['&Previous difference', 'comparePrevious'],
       ['&Align the cursor lines', 'compareAlign'], ['&Swap the files', 'compareSwap'], ['L&eave the compare', 'compareClose'], '-',
-      ['Ignore &whitespace', 'compareWhitespace.toggle'], ['Ignore &case', 'compareCase.toggle'], ['&Line strip', 'compareStrip.toggle']] },
+      ['Ignore &whitespace', 'compareWhitespace.toggle'], ['Ignore &case', 'compareCase.toggle'], ['&Line strip', 'compareStrip.toggle']] }, '-',
+    ['&Theme colours...', 'themeColours'],
   ]],
   ['&Options', [
     ['&Settings...', 'settings'],

@@ -737,6 +737,12 @@ every action with its key.
   alerts: `note`, `tip`, `important`, `warning`, `caution`; markers: `gitModified`, `gitAdded`, `gitUntracked`,
   `gitDeleted`, `barChanged`, `barRemoved`; find: `findHit`, `findCurrent`, `findCurrentFg`, `findBox`; occurrences: `occurrenceHit`, `occurrenceBox` (in every shipped theme: `occurrenceHit` its `highlight` 35% toward its background `bg`, so the text on it stays clear); a bookmark's number: `bookmarkFg` (on light themes white, on dark ones the theme's own `bg`, readable on the accent); the pair at the cursor: `bracketMatch`, `bracketNoMatch`; indent guides (rainbow, per level): `guide1` to `guide6`; shown spaces, tabs and line ends: `whitespace`; the gutter beside lines of another language: `gutterBgEmbedded`; the settings window's line per row, by what a setting belongs to: `layerGlobal`, `layerWindow`, `layerSet`, `layerScreen`. Values:
   `#rrggbb`, `#rgb` or `rgba(r, g, b, a)`. Mistakes show in the settings window.
+- **Theme colours** (Tools > Theme colours...): every colour of a theme chosen at the top, one row each: its name,
+  what it is for, where it comes from (this theme, the base that sets it, or LexPen's default; the theme's own rows
+  stand out), its value as hex, rgb and hsl, and samples as text, line and block on that theme's background. Under
+  it, behind a divider you can drag, an example: a small LexPen in that theme only (bars, folder list with the git
+  colours, tabs, the editor with a highlight, a selection, find hits, brackets, indent guides and the language
+  colours, a preview with its alerts, the settings' layer lines), every colour named where it is used.
 - **Theme sets**: a named combination of the themes (app, editor, preview, sneak preview; per mode) and the
   colours and intensities of highlights, guides and inline code, so projects look apart at a glance. Every window
   shows one: its project's own set, else the default set of its virtual desktop, else the app's. The look in

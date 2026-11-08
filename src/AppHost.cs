@@ -51,6 +51,7 @@ sealed class AppHost : ApplicationContext
         public int[]? HighlightsWindow { get; set; }   // the highlights window's place: x, y, width, height
         public int[]? ProjectsWindow { get; set; }   // the Manage projects window's place: x, y, width, height
         public int[]? ThemeSetsWindow { get; set; }  // the Manage theme sets window's place: x, y, width, height
+        public int[]? ThemeColoursWindow { get; set; }  // the Theme colours window's place: x, y, width, height
         public Dictionary<string, int[]>? PaneWindows { get; set; }   // a floating pane's place, per kind ("outline"): x, y, width, height
         public Dictionary<string, ScreenZoom> Screens { get; set; } = [];   // the zoom per monitor, by its key (Monitors)
     }
@@ -140,7 +141,7 @@ sealed class AppHost : ApplicationContext
             if (SettingsFor(owner) is var o && Changed(s, "settings", o)) s.Post(new JsonObject { ["event"] = "settings", ["settings"] = o });
         // The tool windows follow the window last worked in; a tool docked in a window follows that window.
         var values = Values(LastActive);
-        foreach (var tool in new IWebPost?[] { charPicker, highlightsWindow, projectsWindow, themeSetsWindow })
+        foreach (var tool in new IWebPost?[] { charPicker, highlightsWindow, projectsWindow, themeSetsWindow, themeColoursWindow })
             if (tool is Form f && Changed(f, "settings", values)) tool.Post(new JsonObject { ["event"] = "settings", ["settings"] = values.DeepClone() });
         foreach (var frame in toolFrames.Where(f => f.Kind != "settings"))   // a docked Settings: above, as its window
             if (Values(frame.Window) is var own && Changed(frame, "settings", own)) frame.Post(new JsonObject { ["event"] = "settings", ["settings"] = own.DeepClone() });
@@ -211,6 +212,41 @@ sealed class AppHost : ApplicationContext
     }
 
     public void CloseThemeSetsWindow() => themeSetsWindow?.Close();
+
+    // ---------- Theme colours (ThemeColoursForm; docs/plans/executed/PLAN-theme-colours.md) ----------
+    ThemeColoursForm? themeColoursWindow;
+
+    /// <summary>The Theme colours window: one for the app; opened again, brought to the front.</summary>
+    public void OpenThemeColoursWindow(MainForm from)
+    {
+        if (themeColoursWindow is { IsDisposed: false }) { BringToFront(themeColoursWindow); return; }
+        themeColoursWindow = new ThemeColoursForm(this, from);
+        themeColoursWindow.FormClosed += (_, _) => themeColoursWindow = null;
+        themeColoursWindow.Show(from);
+    }
+
+    public void SaveThemeColoursWindow(int[] bounds)
+    {
+        State.ThemeColoursWindow = bounds;
+        SaveState();
+    }
+
+    /// <summary>Every theme with all its colours for the Theme colours window: per colour its value (with the fallback
+    /// of the theme's own mode, as ThemeVars) and the theme of its chain that set it (null: the fallback). Names: colour
+    /// name -> CSS variable. Current: the app theme of the window last worked in.</summary>
+    public JsonObject ThemeColours() => new()
+    {
+        ["mode"] = Mode,
+        ["current"] = AppTheme(Values(LastActive)).Id,
+        ["names"] = new JsonObject(themeNames.Select(n => KeyValuePair.Create(n.Key, (JsonNode?)n.Value))),
+        ["themes"] = new JsonArray(themes.Select(t => (JsonNode?)new JsonObject
+        {
+            ["id"] = t.Id, ["name"] = t.Name, ["description"] = t.Description, ["mine"] = t.Mine,
+            ["dark"] = t.Chain.Contains("dark"),
+            ["vars"] = new JsonObject(ThemeFile.Complete(t, t.Chain.Contains("dark") ? fallbackDark : fallbackLight).Select(v => KeyValuePair.Create(v.Key, (JsonNode?)v.Value))),
+            ["from"] = new JsonObject((t.From ?? new Dictionary<string, string>()).Select(v => KeyValuePair.Create(v.Key, (JsonNode?)v.Value))),
+        }).ToArray()),
+    };
 
     /// <summary>The Manage theme sets window: one for the app; opened again, brought to the front.</summary>
     public void OpenThemeSetsWindow(MainForm from)
@@ -564,6 +600,7 @@ sealed class AppHost : ApplicationContext
     List<ThemeFile.Theme> themes = [];
     List<string> themeProblems = [];
     Dictionary<string, string> fallbackLight = [], fallbackDark = [];   // app.css: a colour no theme in the chain sets
+    Dictionary<string, string> themeNames = [];   // colour name -> its CSS variable (ThemeFile.Names)
     string windowsMode = WindowsMode();
     string? modeOverride;   // Day / night while following Windows: until Windows changes mode
 
@@ -693,7 +730,8 @@ sealed class AppHost : ApplicationContext
         var problems = new List<string>();
         var css = WebFiles.ReadText("app.css");
         (fallbackLight, fallbackDark) = (ThemeFile.Fallback(css, "light"), ThemeFile.Fallback(css, "dark"));
-        themes = ThemeFile.Load(ShippedThemesDir, UserThemesDir, ThemeFile.Names(css), problems);
+        themeNames = ThemeFile.Names(css);
+        themes = ThemeFile.Load(ShippedThemesDir, UserThemesDir, themeNames, problems);
         themeProblems = problems;
     }
 
@@ -720,7 +758,7 @@ sealed class AppHost : ApplicationContext
     // projects, Theme sets), as the window last worked in.
     void SendToolLook()
     {
-        foreach (var tool in new IWebPost?[] { charPicker, highlightsWindow, projectsWindow, themeSetsWindow })
+        foreach (var tool in new IWebPost?[] { charPicker, highlightsWindow, projectsWindow, themeSetsWindow, themeColoursWindow })
             if (tool is Form f && Look(tool == charPicker || tool == highlightsWindow ? ToolServes(f) : LastActive) is var look && Changed(f, "look", look))
             {
                 tool.ApplyTheme();
@@ -1161,6 +1199,7 @@ sealed class AppHost : ApplicationContext
             highlightsWindow?.Close();
             projectsWindow?.Close();
             themeSetsWindow?.Close();
+            themeColoursWindow?.Close();
             Drafts.Flush();
             ExitThread();
         }

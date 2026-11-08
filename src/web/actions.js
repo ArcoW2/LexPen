@@ -191,6 +191,8 @@ appAction('projects', { title: 'Projects...', hint: 'Every project and its windo
   run: () => openProjectMenu() });
 appAction('fileTypes', { title: 'File types...', hint: 'Which file types a double-click in Explorer opens in LexPen (Settings > App > Windows Explorer)', group: 'files',
   run: () => host('openFileTypes') });
+appAction('themeColours', { title: 'Theme colours...', hint: 'Every colour of a theme: what it is for, where it comes from, its value, and an example', group: 'settings',
+  run: () => host('openThemeColours') });
 appAction('newProject', { title: 'New project...', hint: 'A new empty window in a new project', group: 'files',
   run: async () => { const name = await askName('New project', ''); if (name !== null) host('project', { kind: 'new', name }); } });
 appAction('renameProject', { title: 'Rename this project...', hint: 'The name of this window\'s project', group: 'files', run: () => renameProject() });
