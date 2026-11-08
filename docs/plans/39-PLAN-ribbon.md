@@ -176,7 +176,7 @@ Sort, Highlights and Macros); Home also in the light theme:
 - **Related actions share a drawing**: Find references and Clear are Show's marked text with a magnifier or an
   eraser in its corner; Sort again is Sort...'s lines with a circular arrow where its arrow down is; Play X times is
   Play with an X inside.
-- **Panels**: a panel's icon is its own drawing at half size inside a small window (a frame with a title bar), so a
+- **Panels**: a panel's icon is its own drawing at 0.6 of its size inside a small window, about a pixel from its frame (a frame with a title bar), so a
   panel button reads as "a window opens"; Keyboard shortcuts as a panel shows "F1". At 16 px the drawing inside is
   small (question 4).
 - An action without an icon (one added later through Customize) shows a box with its first letter until it gets one.

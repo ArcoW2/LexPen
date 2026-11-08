@@ -128,10 +128,11 @@ window.RIBBON_ICONS = (() => {
 // The groups of View that hold panels (as Window > Panels).
 window.PANEL_GROUPS = ['Files and finding', 'The document', 'Editing', 'Macros panels', 'LexPen'];
 // The svg of a drawing: small 16 px with lines of 1.4, large 32 px with lines of 1.0. A panel: a window (frame and
-// title bar) with the drawing at half size in it; its lines twice as wide so they show as wide as the frame's.
+// title bar) with the drawing at 0.6 of its size in it, about a pixel from the frame; its lines widened by as much,
+// so they show as wide as the frame's.
 window.iconSvg = (body, size, panel) => {
   const px = size === 'large' ? 32 : 16, w = size === 'large' ? 1 : 1.4;
-  const inner = panel ? `<rect x="1" y="1" width="14" height="14" rx="1.5"/><path d="M1 4.2h14"/><g transform="translate(4 5.3) scale(.5)" style="stroke-width: ${w * 2}">${body}</g>` : body;
+  const inner = panel ? `<rect x="1" y="1" width="14" height="14" rx="1.5"/><path d="M1 3.8h14"/><g transform="translate(3.2 4.6) scale(.6)" style="stroke-width: ${(w / 0.6).toFixed(2)}">${body}</g>` : body;
   return `<svg viewBox="0 0 16 16" width="${px}" height="${px}" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
 };
 // The icon of a label in the mock: a panel in View's panel groups, else a button ("Line" is Go to line and Select
