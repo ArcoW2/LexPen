@@ -45,7 +45,7 @@ divider. "Corner": the action of the group's corner icon.
 | Go | Position back + Position forward + Go to line / Go to definition |
 | Select | Select all (large) / Select line + Select a block + Select inside brackets / divider / Column mode (large, a toggle) |
 | Bookmarks | Toggle unnumbered bookmark (large) / Previous bookmark + Next bookmark. Corner: Manage bookmarks |
-| Highlights | Highlight (large) / Highlight note (large) / Remove highlight. Corner: Highlights window |
+| Highlights | Highlight + Highlight note + Remove highlight. Corner: Highlights window |
 
 **Format**
 
@@ -78,8 +78,8 @@ divider. "Corner": the action of the group's corner icon.
   tabs and files, as a browser) are in the menus and keys, not on the ribbon.
 - **Day / Night**: the two values of Day / night, each its own button, the current one pressed.
 - **Width**, measured in a mock (a test copy, LexPen's own font and the Dark theme, group names on, a 1264 px wide
-  window): File 233 px, Home 2189 px, Format 257 px, View 712 px, Tools 779 px. Home's groups: Edit 422, Clipboard
-  152, Find 273, Occurrences 277, Go 251, Select 283, Bookmarks 236, Highlights 290; the ribbon 120 px high with its
+  window): File 233 px, Home 2038 px, Format 257 px, View 712 px, Tools 779 px. Home's groups: Edit 422, Clipboard
+  152, Find 273, Occurrences 277, Go 251, Select 283, Bookmarks 236, Highlights 139; the ribbon 120 px high with its
   tabs. Home does not fit that window (question 1).
 
 The mock, per tab (the icons are placeholders: a box with the label's first letter; the corner icon at the bottom
@@ -171,7 +171,7 @@ right of Clipboard, Bookmarks, Highlights and Sort):
 
 ## 4. Open questions
 
-1. Home is wider than a 1264 px window (2189 px in the mock): split it into two tabs (for instance Home: Edit,
+1. Home is wider than a 1264 px window (2038 px in the mock): split it into two tabs (for instance Home: Edit,
    Clipboard, Find, Occurrences; and Navigate: Go, Select, Bookmarks, Highlights), make more of its large buttons small (Select
-   all, Toggle bookmark, Highlight, Highlight note), or keep it and let the right end go into the ">>" menu?
+   all, Toggle bookmark), or keep it and let the right end go into the ">>" menu?
 2. History (Undo, Redo) on Format, as now, or on Home, where the actions used most are?
