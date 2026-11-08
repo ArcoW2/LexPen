@@ -15,7 +15,7 @@ must be able to choose what is on it.
 An optional ribbon under the menu bar, with tabs (File, Home, Arrange, Review, View, Tools); each tab holds named groups of
 buttons, each button running an action as its menu item does, its tooltip showing the title and the key. A button is
 large (icon above its label, the ribbon's full height) or small (icon with its label beside it), and up to three
-small buttons stack in the height of one large one. A group may have a small icon in its corner that opens its
+small buttons stack in the height of one large one. A group may have a small icon in each bottom corner that opens its
 manager (Clipboards, Bookmarks, Highlights, stored sorts) or bar (Occurrences). LexPen ships a first set; the user adds, removes and orders
 tabs, groups, buttons and dividers through Customize, kept in a `ribbon.json` in the data folder as `keys.json` is.
 A setting chooses what the window shows: the menu bar, the ribbon, or both; another whether group names are shown.
@@ -26,7 +26,7 @@ A setting chooses what the window shows: the menu bar, the ribbon, or both; anot
 
 Per tab its groups, left to right; per group its columns, left to right. A column is one large button, two or three
 small buttons stacked (the first on top), one small button alone, or a divider. Between groups there is always a
-divider. "Corner": the action of the group's corner icon.
+divider. "Corner": the action of the group's corner icon, bottom right; bottom left is free in the shipped ribbon.
 
 **File**
 
@@ -135,8 +135,8 @@ Sort, Highlights and Macros); Home also in the light theme:
   the height. A small button marked "stacked" goes under the small button before it in the same column; at most
   three per column. A small button not stacked starts a new column; a column of one or two small buttons has them
   centred in the height.
-- **The corner icon**: a group may name one action (`more` in ribbon.json); a small icon in its bottom-right corner
-  runs it, as Word's dialog launcher (Manage clipboards, Manage bookmarks, Manage macros, the Highlights window,
+- **The corner icons**: a group may name an action for each bottom corner (`corners: { left, right }` in
+  ribbon.json); a small icon in that corner runs it, the group's name between them, as Word's dialog launcher (Manage clipboards, Manage bookmarks, Manage macros, the Highlights window,
   the stored sorts, the Occurrences bar with the cursor in its field).
 - **Dividers**: a divider can stand between columns in a group; between groups always.
 - **Group names** (setting ribbonGroupNames, on by default): on, the name under each group (the ribbon a line
@@ -155,7 +155,7 @@ Sort, Highlights and Macros); Home also in the light theme:
   View > Ribbon switches between `menu` and `both`; the ribbon's own right-click has Customize..., Reset and the
   three choices.
 - **Key tips** (Alt with `ribbon` and altOpens `tips`): a small letter on each tab name; its letter opens that tab
-  and shows a letter on each of its buttons, and on each group's corner icon; a button's letter runs it, as a click.
+  and shows a letter on each of its buttons, and on each group's corner icons; a button's letter runs it, as a click.
   Esc goes a level back (the buttons' letters to the tabs', then off); a click elsewhere or another key ends them.
   The letters come from the names as the menus' underlined letters do (the first letter of the name no other one at
   that level has; two letters when one is not enough), so they stay the same while the ribbon does; a button may
@@ -179,20 +179,21 @@ never changes by accident while working.
 - **Groups**: in change mode each group has a handle (a grip at its left edge, beside its name); dragging it moves the
   whole group to another place, or onto a tab name into that tab; dragged off the ribbon, the group is removed. A tab
   is dragged by its name.
-- **The corner**: in change mode a group's corner shows even when it has no action (an empty outline); an action
-  dropped on it becomes the group's corner action (one there already makes room: it goes back to F1's list); the
-  corner icon dragged out of it is removed, or dropped on another group's corner, or into a group as a button.
+- **The corners**: in change mode both corners of a group show, an empty outline where there is no action; an
+  action dropped on a corner becomes that corner's action (one there already makes room: it goes back to F1's
+  list); a corner icon dragged out is removed, or dropped on another corner (of this group or another), or into a
+  group as a button.
 - **New...** (in change mode only): the last tab name is "New..." in italics; a click makes a new tab (its name typed in place). A group's
   last place is "New..." too, for a new group.
 - **A button's right-click** (in change mode): large or small, stacked under the one above or not, its label, its key tip, the
-  group's corner action, a divider before it, Remove; a group's and a tab's: Rename, Remove, a corner action.
+  group's corner actions, a divider before it, Remove; a group's and a tab's: Rename, Remove, its corner actions.
 - **The Customize window** (the ribbon's right-click > Customize...) remains for the same work by list, as F1:
   at the left all actions with a search, grouped as the menus; at the right the ribbon's tabs, groups and columns;
   Add, Remove, Move up / down (and drag). For the keyboard, and for a full overview.
 - An action with values (Preview place, a bookmark number) is added with its value, as keys.json writes
   `["preview.left"]`.
 - Undo: Ctrl+Z in change mode takes the last change back; Reset: back to the shipped content.
-- `ribbon.json` in the data folder: `{ "tabs": [ { "name": "Home", "groups": [ { "name": "File", "more": "...", "items": [ { "action":
+- `ribbon.json` in the data folder: `{ "tabs": [ { "name": "Home", "groups": [ { "name": "File", "corners": { "right": "..." }, "items": [ { "action":
   "save", "size": "large" }, { "action": "selectLine", "label": "Line" }, { "action": "saveAs", "size": "small" }, { "action": "newFile", "size": "small",
   "stack": true }, { "action": "openFile", "size": "small", "stack": true }, "divider", ... ] } ] } ] }`. An action that no longer exists is skipped, not an error; a "stack"
   without a small button before it starts a column of its own.
@@ -249,7 +250,7 @@ never changes by accident while working.
   of a tab and of its buttons (unique per level, from the names, a button's own `tip` first).
 - In the test copy by script: each shipped button runs its action; toggles show their state; a button greyed out
   where its action is not available; the tabs switch and keep their choice; two stacked small buttons as high as a
-  large one, and three; the corner icon runs its action; Sort again repeats the last sort; group names on and off; overflow into ">>" at a narrow window; commandBar `menu`, `ribbon` (the tab
+  large one, and three; each corner icon runs its action; Sort again repeats the last sort; group names on and off; overflow into ">>" at a narrow window; commandBar `menu`, `ribbon` (the tab
   names in the menus' place, the rest of the top bar as it was, Alt shows the key tips: a tab's letter opens it, a button's letter runs
   it, Esc goes back; with altOpens `menu` Alt shows the menus) and `both` (the tab names under the menus); Customize adds, moves, resizes, stacks and removes a button, adds a
   tab and a divider, and the ribbon follows; on the ribbon: an action dragged from F1 lands where it is dropped,
@@ -259,6 +260,4 @@ never changes by accident while working.
 
 ## 4. Open questions
 
-1. One corner per group (bottom right, as Word's), or both bottom corners, each with an action of its own? Two
-   give a group two managers (Find: the Occurrences bar and the Search panel, say); one keeps the corner a single
-   known place, the second manager a button. The group's name is between the two corners either way.
+None.
