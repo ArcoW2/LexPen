@@ -309,7 +309,8 @@ differences:
 - **Customize is a dialog in the window**, not a WebView page of its own (3.5): the actions with a search at the left,
   the ribbon as a list of tabs, groups, corners and buttons at the right, and buttons for Add, Remove, Up, Down, Large /
   small, Stacked, Label, Divider, New tab, New group, Rename, Reset. No dragging in it; the ribbon itself is for that.
-  Every change goes through the same undo and save as change mode.
+  Every change goes through the same undo and save as change mode. It opens under the ribbon, and the line chosen
+  at the right is shown there: its tab opened, the tab, group, corner or button outlined.
 - **Overflow moves whole groups** into ">>" (each a submenu with its buttons), from the right end, rather than single
   buttons. In change mode there is no overflow: the ribbon scrolls sideways, so every group stays a drop target.
 - **Change mode with commandBar "menu"** sets it to "both" first, so there is a ribbon to change.

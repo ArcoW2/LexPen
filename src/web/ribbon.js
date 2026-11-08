@@ -666,10 +666,14 @@ function rbCustomize() {
     });
     dlg.addEventListener('click', e => { const b = e.target.closest('[data-rbc]'); if (b) rbcDo(dlg, b.dataset.rbc); });
     dlg.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); dlg.close(); } }, true);
+    list.addEventListener('change', () => rbcShow(dlg));
+    dlg.addEventListener('close', () => rbcShow(dlg));   // the outline gone
   }
   rbcFillActions(dlg);
-  rbcFillRibbon(dlg, 0);
+  if (rbMode() === 'menu') setSetting('commandBar', 'both');   // as change mode: a ribbon to see the changes on
+  dlg.style.margin = `${Math.round(document.querySelector('.mm-ribbon')?.getBoundingClientRect().bottom ?? 0) + 8}px auto auto`;   // under the ribbon
   dlg.showModal();
+  rbcFillRibbon(dlg, 0);
   dlg.querySelector('.mm-rbc-search').focus();
 }
 
@@ -706,6 +710,17 @@ function rbcFillRibbon(dlg, select) {
   sel.innerHTML = lines.map((l, n) => `<option value="${n}" class="mm-rbc-${l.kind}">${escapeHtml(l.text)}</option>`).join('');
   sel.selectedIndex = Math.max(0, Math.min(select ?? sel.selectedIndex, lines.length - 1));
   dlg.rbcLines = lines;
+  rbcShow(dlg);
+}
+
+// The line chosen at the right shown on the ribbon: its tab opened, the tab, group, corner or button outlined.
+function rbcShow(dlg) {
+  for (const x of document.querySelectorAll('.mm-rb-picked')) x.classList.remove('mm-rb-picked');
+  const line = dlg.rbcLines?.[dlg.querySelector('.mm-rbc-ribbon').selectedIndex];
+  if (!line || !dlg.open) return;
+  rbShowTab(line.path[0]);
+  const p = line.path.join('.'), attr = { tab: 'data-tab', group: 'data-group', corner: 'data-corner' }[line.kind] ?? 'data-path';
+  for (const x of document.querySelectorAll(`.mm-ribbon [${attr}="${p}"], .mm-rb-tabs-top [${attr}="${p}"]`)) x.classList.add('mm-rb-picked');
 }
 const rbcSame = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 

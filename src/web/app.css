@@ -1618,7 +1618,8 @@ body.mm-rb-changing .mm-rb-bodies { overflow-x: auto; }
 /* The Customize window (ribbon.js rbCustomize). */
 .mm-rb-customize { padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--fg);
   box-shadow: 0 8px 30px rgba(0, 0, 0, .3); }
-.mm-rb-customize::backdrop { background: rgba(0, 0, 0, .25); }
+.mm-rb-customize::backdrop { background: none; }   /* the ribbon above it in full view */
+.mm-rb-picked { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 4px; }   /* Customize's chosen line */
 .mm-rbc-head { font-weight: 600; margin-bottom: 8px; }
 .mm-rbc-lists { display: flex; gap: 8px; align-items: stretch; }
 .mm-rbc-side { display: flex; flex-direction: column; gap: 4px; width: 280px; }
