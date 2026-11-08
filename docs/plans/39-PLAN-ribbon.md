@@ -42,7 +42,7 @@ divider. "Corner": the action of the group's corner icon.
 | Lines | Duplicate + Delete + Join (Duplicate lines, Delete lines, Join lines) |
 | Clipboard | Paste (large; a number badge: the active clipboard) / Paste image + Cut + Copy. Corner: Manage clipboards |
 | Find | Find (large) / Find previous + Find next + Replace / Replace in files + Search in files + Find references |
-| Occurrences | Show all occurrences + Clear occurrences. Corner: Occurrences field (the bar opened, the cursor in its field) |
+| Occurrences | Show + Clear (Show all occurrences, Clear occurrences). Corner: Occurrences field (the bar opened, the cursor in its field) |
 | Go to | Line + Definition (Go to line, Go to definition) |
 | Bookmarks | Toggle unnumbered bookmark (large) / Previous + Next (Previous bookmark, Next bookmark). Corner: Manage bookmarks |
 
@@ -90,8 +90,8 @@ divider. "Corner": the action of the group's corner icon.
 - **Editor and Preview** are not on Home: they are the switches at the window's top right, and View > Document.
 - **Day / Night**: the two values of Day / night, each its own button, the current one pressed.
 - **Width**, measured in a mock (a test copy, LexPen's own font and the Dark theme, group names on, a 1264 px wide
-  window): File 233 px, Home 1176 px, Select & Sort 505 px, Review 146 px, View 712 px, Tools 779 px. Home's groups:
-  Edit 216, Lines 96, Clipboard 152, Find 273, Occurrences 157, Go to 98, Bookmarks 179; the ribbon 120 px high with its
+  window): File 233 px, Home 1094 px, Select & Sort 505 px, Review 146 px, View 712 px, Tools 779 px. Home's groups:
+  Edit 216, Lines 96, Clipboard 152, Find 273, Occurrences 75, Go to 98, Bookmarks 179; the ribbon 120 px high with its
   tabs. Every tab fits that window; a narrower one sends Home's right end into the ">>" menu.
 
 The mock, per tab (the icons are placeholders: a box with the label's first letter; the corner icon at the bottom
@@ -190,7 +190,7 @@ right of Clipboard, Occurrences, Bookmarks, Sort and Highlights):
 1. The name of the tab with Select, Sort and History: "Select & Sort" in the mock; or "Arrange", "Selection", or
    another?
 2. History (Undo, Redo) on that tab, as now, or on Home, where the actions used most are? Home has room for it
-   (1176 px of a 1264 px window, History 75 px), just.
+   (1094 px of a 1264 px window, History 75 px).
 3. Show all occurrences without opening the bar: for every value of the setting Show the Occurrences bar (Never,
    When an occurrence is active, Always), or only the button on the ribbon (the action as now for its key and the
    menu)? With "Always" the bar is there anyway.
