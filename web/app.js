@@ -3161,8 +3161,9 @@ function drawSearchResults() {
 
 // A match clicked in the results: there in the window, selected (and in the preview's view): in the pane's tab of its
 // file, else a new one. `here` (Alt+click): in the active tab instead, as a link is followed (back returns to its line),
-// unless that tab's document has unsaved changes.
-async function goToSearchHit(hit, here) {
+// unless that tab's document has unsaved changes. Ctrl+click and Shift+click as in the Folder pane (openFromTree): the
+// other pane, a new tab.
+async function goToSearchHit(hit, here, { ctrlKey, shiftKey } = {}) {
   let tab, how = 'found';
   const active = activeTab();
   if (here && !hit.draft && active?.doc.path && !samePath(active.doc.path, hit.path) && !active.doc.dirty && !active.doc.pdf) {
@@ -3173,6 +3174,11 @@ async function goToSearchHit(hit, here) {
     if (!await navigate(active, hit.path)) return;
     tab = paneOf(active).active;
     how = 'quiet';   // the way back is the step above, not where this file's cursor was
+  } else if (!hit.draft && (ctrlKey || shiftKey)) {
+    const pane = ctrlKey ? otherPane() : panes[state.activePane];
+    await openFromTree(hit.path, { ctrlKey, shiftKey });
+    tab = pane.active;
+    if (!tab || !samePath(tab.doc.path, hit.path)) return;
   } else if (hit.draft) {
     const doc = findDraft(hit.draft);
     if (!doc) return toast('That draft is closed.');
@@ -3367,7 +3373,7 @@ function fromSearch(m) {
       Object.assign(searchOptions, m.options);
       return m.run && runSearch();
     case 'scope': searchPage.scope = m.value; keepLayout('searchScope', m.value); return runSearch();
-    case 'goto': return searchHits[m.hit] && goToSearchHit(searchHits[m.hit], m.here);
+    case 'goto': return searchHits[m.hit] && goToSearchHit(searchHits[m.hit], m.here, m);
     case 'replaceFile': return replaceFile(m.group);   // searchreplace.js
     case 'replaceMatch': return searchHits[m.hit] && replaceMatch(searchHits[m.hit]);
     case 'replaceAll': return replaceAllResults();

@@ -198,7 +198,8 @@ every action with its key.
   folder (the open folder, otherwise the folder of the current file), with match case, whole word and regular
   expressions. Codes: `^p` line break (CR, LF or CRLF), `^t` tab, `^?` any character, `^#` digit, `^$` letter,
   `^w` spaces or tabs, `^^` the `^` itself. Click a result to go there (in its file's tab, else a new one; Alt+click:
-  in the active tab, unless it has unsaved changes, and Back returns). The Search pane can float in a window of its
+  in the active tab, unless it has unsaved changes, and Back returns; Ctrl+click and Shift+click as in the Folder
+  pane: the other pane, a new tab). The Search pane can float in a window of its
   own (and back), as the Folder pane (its tab's right-click menu).
 - **Replace in files** (Ctrl+Shift+R, or the Replace button in the Search panel): a Replace with field, and a scope
   In selection (the editor's selection when the search runs: one, several or a column block, marked while the
