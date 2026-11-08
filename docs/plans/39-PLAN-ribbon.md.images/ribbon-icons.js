@@ -109,7 +109,7 @@ window.RIBBON_ICONS = (() => {
   const panels = {
     folders: ['Folder', p('M1.5 3.5h4.5l1.5 1.5h7v8.5h-13z'), p('M3.2 6h3l1 1h5.3v5.8H3.2z')],
     searchView: ['Search', mag(6.8, 6.8, 4.5), '<circle cx="7.3" cy="8.6" r="2.6"/>' + p('M9.2 10.5l2.5 2.5')],
-    'bookmarks.pane': ['Bookmarks', p('M4 1.5h8v13l-4-3-4 3z'), p('M5.6 5.8h4.8v7.2L8 11.3 5.6 13z')],
+    'bookmarks.pane': ['Bookmarks', p('M4 1.5h8v13l-4-3-4 3z'), p('M4.9 5.8h6.2v7.2L8 10.4 4.9 13z')],
     'outline.toggle': ['Outline', p('M3 3h5.5M5.5 6.5h6M5.5 10h6M8 13.5h6M3 3v7h2.5M3 6.5h2.5'), p('M3.6 6.2h4M6 9h6M6 12h6M3.6 6.2V12H6M3.6 9H6')],
     'highlight.list': ['Highlights', p(mark + 'M2 14.5h8'), p('M9.5 5.8l2.6 2.6-3.5 3.5H6.2V9.4zM3.4 12.9h5.2')],
     'csv.columns': ['Columns', '<rect x="1.5" y="2.5" width="13" height="11" rx="1"/>' + p('M1.5 6h13M6 2.5v11M10.5 2.5v11'), p('M3.4 8.2h9.2M6.4 5.8v7M9.6 5.8v7')],
