@@ -150,7 +150,8 @@ function renderDocks() {
       }
     });
     if (key === 'bottom') document.body.dataset.dockBottomWidth = m.bottom.width;
-    layoutWidth(dockSizeVar(key), dockArea(m, key).size, dockHost(key));
+    // The left area's width is a setting of its own (sidebarWidth, kept by its splitter), not in the model.
+    layoutWidth(dockSizeVar(key), key === 'left' ? setting('sidebarWidth') : dockArea(m, key).size, dockHost(key));
   }
   // A floating pane keeps its view out of sight.
   for (const [id, p] of dockPanes) if (m.state[id] === 'floating' && p.view.parentElement !== hold) hold.append(p.view);
