@@ -104,6 +104,7 @@ function themeExampleHtml() {
       ${at('barChanged', `changed.txt ${name('barChanged')}`, 'tx-tab tx-dot tx-dot-changed')}
       ${at('barRemoved', `gone.txt ${name('barRemoved')}`, 'tx-tab tx-dot tx-dot-removed')}
     </div>
+    <div class="tx-tabrules"></div>
     <div class="tx-panes">
       <div class="tx-editor" data-colour="paneActive" title="paneActive: the ring around the active pane">
         <div class="tx-gutter-note">${name('paneActive')}</div>

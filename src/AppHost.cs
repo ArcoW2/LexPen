@@ -233,7 +233,8 @@ sealed class AppHost : ApplicationContext
 
     /// <summary>Every theme with all its colours for the Theme colours window: per colour its value (with the fallback
     /// of the theme's own mode, as ThemeVars) and the theme of its chain that set it (null: the fallback). Names: colour
-    /// name -> CSS variable. Current: the app theme of the window last worked in.</summary>
+    /// name -> CSS variable. Current: the app theme of the window last worked in. TabRules: the rules of tab-colours.json
+    /// (null when it cannot be read).</summary>
     public JsonObject ThemeColours() => new()
     {
         ["mode"] = Mode,
@@ -246,7 +247,15 @@ sealed class AppHost : ApplicationContext
             ["vars"] = new JsonObject(ThemeFile.Complete(t, t.Chain.Contains("dark") ? fallbackDark : fallbackLight).Select(v => KeyValuePair.Create(v.Key, (JsonNode?)v.Value))),
             ["from"] = new JsonObject((t.From ?? new Dictionary<string, string>()).Select(v => KeyValuePair.Create(v.Key, (JsonNode?)v.Value))),
         }).ToArray()),
+        ["tabRules"] = TabRules(),
     };
+
+    JsonNode? TabRules()
+    {
+        if (TabColours() is not { } text) return null;
+        try { return JsonNode.Parse(text, documentOptions: new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true }); }
+        catch (JsonException) { return null; }
+    }
 
     /// <summary>The Manage theme sets window: one for the app; opened again, brought to the front.</summary>
     public void OpenThemeSetsWindow(MainForm from)
@@ -2393,6 +2402,7 @@ sealed class AppHost : ApplicationContext
                 var text = TabColourFile.Read(DataDir);
                 if (text is null) return;
                 foreach (var w in windows) w.Post(new JsonObject { ["event"] = "tabColours", ["text"] = text });
+                themeColoursWindow?.Post(new JsonObject { ["event"] = "tabColours" });   // it asks for its list again
             };
             tabColoursWatcher.EnableRaisingEvents = true;
         }

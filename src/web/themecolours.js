@@ -113,6 +113,23 @@ function draw() {
           : '<td></td><td></td><td></td>') + '</tr>';
     }
   }
+  // The tab colours (tab-colours.json): not part of any theme; per rule its style for the selected theme's mode (day:
+  // light, night: dark), the same for every theme of that mode.
+  const mode = theme.dark ? 'dark' : 'light', rules = tabRules(mode);
+  rows += `<tr class="tc-group tc-notheme"><td colspan="7">Tab colours: not part of the theme` +
+    `<span class="tc-notheme-note">From tab-colours.json in LexPen's data folder: its ${theme.dark ? 'night' : 'day'} style, the same for every ${theme.dark ? 'dark' : 'light'} theme. Shown here on the selected theme's background.</span></td></tr>`;
+  if (!rules.length) rows += `<tr class="tc-row"><td colspan="7" class="tc-what">${list.tabRules ? 'No rule has a style for this mode.' : 'tab-colours.json cannot be read.'}</td></tr>`;
+  for (const r of rules) {
+    const on = { ...r.style, ...r.style.active }, parts = [];
+    for (const [k, label] of [['background', 'background'], ['color', 'text']]) if (r.style[k]) parts.push(`${label} ${r.style[k]}`);
+    const act = ['background', 'color', 'line'].filter(k => r.style.active?.[k]).map(k => `${k === 'color' ? 'text' : k} ${r.style.active[k]}`);
+    if (act.length) parts.push('active: ' + act.join(', '));
+    const sample = inner => `<td class="tc-sample" style="background: ${escapeHtml(bg)}">${inner}</td>`;
+    rows += `<tr class="tc-row tc-tabrule"><td class="tc-name">${escapeHtml(r.label)}</td><td class="tc-what">Tabs of a file that fits; the active one</td>` +
+      `<td class="tc-from">tab-colours.json</td><td class="tc-value">${parts.map(p => `<span>${escapeHtml(p)}</span>`).join('')}</td>` +
+      sample(tabHtml(r.file, r.style, false)) + sample(on.line ? `<div class="tc-sample-line" style="border-color: ${escapeHtml(on.line)}"></div>` : '') +
+      sample(tabHtml(r.file, on, true)) + '</tr>';
+  }
   $('.tc-list').innerHTML = '<table class="tc-table"><thead><tr><th>Name</th><th>What it is for</th><th>From</th><th>Value</th>' +
     '<th>Text</th><th>Line</th><th>Block</th></tr></thead><tbody>' + rows + '</tbody></table>';
   // The example: the chosen theme's own variables (complete, with its mode's fallback), nothing of LexPen's look.
@@ -120,6 +137,30 @@ function draw() {
   ex.dataset.theme = theme.dark ? 'dark' : 'light';
   ex.style.cssText = Object.entries(vars).map(([name, v]) => `${name}: ${v}`).join('; ');
   if (!ex.firstChild) ex.innerHTML = themeExampleHtml();
+  // Its tab bars of the tab colours (not the theme's): every rule's tab, then each one active.
+  ex.querySelector('.tx-tabrules').innerHTML = rules.length ? `<div class="tx-tabrules-note">Tab colours from tab-colours.json, not part of the theme:</div>` +
+    [false, true].map(active =>
+      `<div class="tx-tabs">${rules.map(r => tabHtml(r.file, active ? { ...r.style, ...r.style.active } : r.style, active, `${r.label}${active ? ', active' : ''} (tab-colours.json)`)).join('')}` +
+      `<i class="tx-name">${active ? '(active)' : ''}</i></div>`).join('') : '';
+}
+
+// The rules of tab-colours.json with a style for `mode`: { label, file (a name that fits, for the samples), style }.
+function tabRules(mode) {
+  const list = Array.isArray(view.list?.tabRules) ? view.list.tabRules : [];
+  return list.filter(r => r && (r.match || r.regex) && r[mode]).map(r => {
+    const first = String(r.match ?? '').split(';').map(p => p.trim()).find(Boolean);
+    const file = first ? first.split('\\').filter(p => p && p !== '**').pop().replace(/\*/g, 'name').replace(/\?/g, 'x') : 'by regex';
+    return { label: [r.match, r.regex].filter(Boolean).join(' / '), file, style: r[mode] };
+  });
+}
+
+// A tab as LexPen draws it with a style of tab-colours.json; active: with the line on top.
+function tabHtml(name, s, active, title = '') {
+  const css = [s.background && `background: ${s.background}`, s.color && `color: ${s.color}`, s.bold && 'font-weight: 700',
+    s.italic && 'font-style: italic', s.underline && 'text-decoration: underline',
+    s.size && `font-size: calc(1em + ${Math.max(-3, Math.min(3, parseFloat(s.size) || 0))}px)`,
+    active && s.line && `box-shadow: inset 0 2px ${s.line}`].filter(Boolean).join('; ');
+  return `<span class="tc-tab" style="${escapeHtml(css)}"${title ? ` title="${escapeHtml(title)}"` : ''}>${escapeHtml(name)}</span>`;
 }
 
 // ---------- The divider between the list and the example (its place kept in this window's storage) ----------
@@ -150,6 +191,7 @@ $('.tc-theme').addEventListener('change', e => { view.chosen = e.target.value; d
 document.addEventListener('keydown', e => { if (e.key === 'Escape') host('close'); });
 // A theme file or a setting changed: the look comes again, and with it the list.
 events.look = async ({ look }) => { applyLook(look); view.list = await host('list'); draw(); };
+events.tabColours = async () => { view.list = await host('list'); draw(); };   // tab-colours.json saved
 events.settings = ({ settings }) => { view.values = settings ?? {}; applyLook(null); };
 
 (async () => {

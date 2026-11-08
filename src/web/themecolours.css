@@ -85,3 +85,14 @@
 .tx-alert { border-left: 4px solid; padding: 3px 10px; margin: 4px 0; }
 .tx-settings { margin-top: 8px; }
 .tx-layer { border-left: 4px solid; padding: 2px 10px; margin: 3px 0; background: var(--bg-side); }
+
+/* The tab colours (tab-colours.json): not the theme's; in the list and in the example's tab bars. */
+.tc-group.tc-notheme td { border-top: 2px solid var(--border); }
+.tc-notheme-note { display: block; margin-top: 2px; font-size: calc(12px * var(--ui-scale)); font-weight: normal; letter-spacing: 0; text-transform: none; }
+.tc-row.tc-tabrule .tc-name, .tc-row.tc-tabrule .tc-from { font-style: italic; }
+.tc-row.tc-tabrule .tc-value { white-space: normal; }
+.tc-tab { display: inline-block; padding: 3px 10px; white-space: nowrap; }
+.tx-tabrules { border-bottom: 1px solid var(--border); }
+.tx-tabrules .tx-tabs { align-items: center; }
+.tx-tabrules .tc-tab { padding: 5px 12px; }
+.tx-tabrules-note { padding: 2px 10px; font-size: .85em; font-style: italic; color: var(--fg-dim); background: var(--bg-bar); }

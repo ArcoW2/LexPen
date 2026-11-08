@@ -742,7 +742,9 @@ every action with its key.
   stand out), its value as hex, rgb and hsl, and samples as text, line and block on that theme's background. Under
   it, behind a divider you can drag, an example: a small LexPen in that theme only (bars, folder list with the git
   colours, tabs, the editor with a highlight, a selection, find hits, brackets, indent guides and the language
-  colours, a preview with its alerts, the settings' layer lines), every colour named where it is used.
+  colours, a preview with its alerts, the settings' layer lines), every colour named where it is used. Also the tab
+  colours, marked as not part of the theme: each rule of `tab-colours.json` with its day or night style (the
+  selected theme's mode), as a row and as tabs in the example's tab bars, normal and active.
 - **Theme sets**: a named combination of the themes (app, editor, preview, sneak preview; per mode) and the
   colours and intensities of highlights, guides and inline code, so projects look apart at a glance. Every window
   shows one: its project's own set, else the default set of its virtual desktop, else the app's. The look in

@@ -119,6 +119,11 @@ None.
   its `From` (a colour not in it: LexPen's default). A value `var(--bg)` (the dark fallback of `bookmarkFg`) is shown
   as the colour it points to.
 - **From** says `selected theme`, not `this theme`: "this theme" read as the theme the LexPen window uses.
+- **Tab colours** (asked for after the build): `tab-colours.json` is not part of a theme, and the window says so. Its
+  rules (parsed by the host, AppHost.TabRules) are a group of their own at the end of the list, headed "Tab colours:
+  not part of the theme", each rule with its style for the selected theme's mode (day: `light`, night: `dark`) as
+  normal and active tab; the example has two tab bars of them under its own, with the same note. A saved
+  tab-colours.json refreshes the window.
 - **The divider**'s place is kept in the window's browser storage.
 - Tested: the unit tests (every colour name described once, every one used in the example, the setter per colour
   two bases deep; 397 passed); in the test copy: a theme of mine on Dark ocean shows `bg` from this theme, `accent`
