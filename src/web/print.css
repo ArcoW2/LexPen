@@ -22,7 +22,12 @@
 .pp-tabs button { flex: 1; border: 0; border-radius: 0; padding: 7px 4px; background: none; color: var(--fg-dim); }
 .pp-tabs button.pp-on { color: var(--fg); box-shadow: inset 0 -2px var(--accent); font-weight: 600; }
 .pp-panel { flex: 1; min-height: 0; overflow: auto; padding: 4px 12px 12px; }
-.pp-panel h3 { margin: 12px 0 4px; font-size: calc(11px * var(--ui-scale, 1)); letter-spacing: .04em; text-transform: uppercase; color: var(--fg-dim); }
+.pp-panel h3 { margin: 20px 0 4px; font-size: calc(11px * var(--ui-scale, 1)); letter-spacing: .04em; text-transform: uppercase; color: var(--fg);
+  display: flex; align-items: center; gap: 8px; }
+.pp-panel h3:first-child { margin-top: 12px; }   /* the space above a header is between sections, not at the top */
+/* A divider: a line from the header to the right end, in the middle of its row; as the header, in the text colour of
+   the buttons (the labels are dimmer). */
+.pp-panel h3::after { content: ''; flex: 1; border-top: 2px solid var(--fg); }
 .pp-row { display: flex; align-items: center; gap: 8px; margin: 4px 0; flex-wrap: wrap; }
 .pp-row > label:first-child, .pp-row > .pp-label { min-width: 7.5em; color: var(--fg-dim); }
 .pp-row select, .pp-row input[type=text], .pp-row input[type=number] { font: inherit; color: var(--fg); background: var(--bg);

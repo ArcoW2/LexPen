@@ -21,8 +21,8 @@ async function printDoc(doc, pane) {
   await printOpen({ ...await printSource(doc, lines), from });
 }
 
-// The Print window (modal: the host answers when it closes), then the text's rendering as markdown when it waits for
-// that (printLater): the window shows the text meanwhile.
+// The Print window (modal: the host answers when it closes), then the text's preview when it waits for that
+// (printLater): the window shows the text meanwhile.
 async function printOpen(source) {
   const later = printLater;
   printLater = null;
@@ -63,7 +63,7 @@ async function printSource(doc, lines) {
   const rendered = async (from, to) => {
     const { part, mine } = piece(from, to);
     printNotes = new Map(mine.filter(h => h.n).map(h => [h.n, h.note]));
-    return printRenderedHtml(part, doc, mine);
+    return kind === 'markdown' ? printRenderedHtml(part, doc, mine) : printCodePreviewHtml(part, doc, mine);
   };
   const build = async (from, to, firstLine) => {
     const { part, mine } = piece(from, to);
@@ -76,8 +76,8 @@ async function printSource(doc, lines) {
   const sel = lines && [starts[lines[0]] ?? 0, lines[1] + 1 < starts.length ? starts[lines[1] + 1] - 1 : text.length];
   const all = await build(0, text.length, 1);
   const selection = sel ? await build(sel[0], sel[1], lines[0] + 1) : null;
-  // Any other text can be rendered too (code, plain text, HTML through the markdown renderer): made after the window
-  // opened (printOpen), so a large file does not wait for it.
+  // Any other text as its preview too (coloured by its language, without line numbers): made after the window opened
+  // (printOpen), so a large file does not wait for it.
   if (kind === 'text') printLater = async () => ({ rendered: await rendered(0, text.length), selection: sel ? await rendered(sel[0], sel[1]) : null });
   const used = new Set([lang]);
   for (const html of [all.views.text, all.views.rendered ?? '']) for (const m of html.matchAll(/cm-in-([\w-]+)/g)) used.add(m[1]);
@@ -164,6 +164,15 @@ async function printRenderedHtml(text, doc, hls) {
   } finally { box.remove(); }
 }
 
+// A code or text file as the preview shows it: its text coloured by its language in one block, no line numbers, the
+// highlights marked.
+function printCodePreviewHtml(text, doc, hls) {
+  const box = document.createElement('div');
+  box.innerHTML = `<pre class="mm-code pp-codefile" data-lang="${escapeHtml(doc.language)}">${codeHtml(printMarked(text, hls), editorMode(doc))}</pre>`;
+  printWrapMarks(box);
+  return box.innerHTML;
+}
+
 // A CSV as its table: the header (when the definition has one) and the rows, the highlights marked in their cells.
 function printTableHtml(text, doc, hls) {
   const def = doc.csvDef ?? csvDetect(text);
@@ -184,10 +193,12 @@ function printWrapMarks(root) {
     for (const a of [...el.attributes]) if (marks.test(a.value)) el.setAttribute(a.name, a.value.replace(/\uE000\d*\uE002|\uE001/g, ''));
   const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), nodes = [];
   for (let n = walk.nextNode(); n; n = walk.nextNode()) nodes.push(n);
-  let open = null;
+  // A mark's start, number and middle may be in different text nodes (coloured code puts the number in a span of its
+  // own): the number is read on until the middle, across nodes.
+  let open = null, num = null;
   for (const node of nodes) {
     const s = node.data;
-    if (!open && !marks.test(s)) continue;
+    if (!open && num === null && !marks.test(s)) continue;
     const frag = document.createDocumentFragment();
     let buf = '';
     const flush = () => {
@@ -197,11 +208,11 @@ function printWrapMarks(root) {
       buf = '';
     };
     for (let i = 0; i < s.length; i++) {
-      if (s[i] === PRINT_START) {
+      if (num !== null) {
+        if (s[i] === PRINT_MID) { open = { n: +num }; num = null; } else num += s[i];
+      } else if (s[i] === PRINT_START) {
         flush();
-        const j = s.indexOf(PRINT_MID, i);
-        open = { n: +s.slice(i + 1, j) };
-        i = j;
+        num = '';
       } else if (s[i] === PRINT_END) {
         flush();
         if (open?.n) {

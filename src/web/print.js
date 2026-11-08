@@ -19,7 +19,7 @@ function host(op, args) {
   });
 }
 chrome.webview.addEventListener('message', e => {
-  // A text's rendering as markdown, made by the main window after this one opened (PrintForm.Rendered).
+  // A text's preview, made by the main window after this one opened (PrintForm.Rendered).
   if (e.data.event === 'rendered') {
     if (!pp.source) return;   // init has it
     pp.source.views.rendered = e.data.rendered;
@@ -41,7 +41,7 @@ const DEFAULTS = {
   view: null, margins: [15, 15, 15, 15], marginsEach: false, frame: false, frameWidth: 0.5, frameIntensity: 60,
   zoom: 'auto', zoomPercent: 100, textFont: '', textSize: 9, lineNumbers: 'all',
   bodyFont: '', bodySize: 11, codeFont: '', codeSize: 9,
-  colours: 'current', syntax: true, highlights: 'shaded', hlColour: '', hlIntensity: 100, notes: 'end', notesWidth: 45, notesSize: 8,
+  colours: 'current', background: true, syntax: true, highlights: 'shaded', hlColour: '', hlIntensity: 100, notes: 'end', notesWidth: 45, notesSize: 8,
   headLeft: '$F', headCenter: '', headRight: '', footLeft: '', footCenter: 'Page $P of $T', footRight: '', dateFormat: '', headEdge: 6, footEdge: 6,
 };
 const PAPERS = [{ name: 'A3', w: 297, h: 420 }, { name: 'A4', w: 210, h: 297 }, { name: 'A5', w: 148, h: 210 },
@@ -121,9 +121,11 @@ function upgraded(o) {
 }
 // Line numbers: every line, every 10 lines, or off (a stored set from before: true or false).
 const lineNumbers = () => pp.opt.lineNumbers === true ? 'all' : pp.opt.lineNumbers === false ? 'off' : pp.opt.lineNumbers;
-const views = () => pp.source.kind === 'markdown' ? [['rendered', 'Rendered (as the preview)'], ['text', 'Text (as the editor)']]
-  : pp.source.kind === 'csv' ? [['table', 'Table (as the preview)'], ['text', 'Text (as the editor)']]
-  : pp.source.renderLater || pp.source.views?.rendered != null ? [['text', 'Text (as the editor)'], ['rendered', 'Rendered as markdown']] : [];
+// What is printed: as the editor shows it, or as the preview does (markdown rendered, a CSV as its table, other text
+// coloured by its language without line numbers).
+const views = () => pp.source.kind === 'markdown' ? [['rendered', 'Preview'], ['text', 'Editor']]
+  : pp.source.kind === 'csv' ? [['table', 'Preview'], ['text', 'Editor']]
+  : pp.source.renderLater || pp.source.views?.rendered != null ? [['text', 'Editor'], ['rendered', 'Preview']] : [];
 const viewOf = () => pp.source.kind === 'pdf' ? 'pdf' : views().some(([v]) => v === pp.opt.view) ? pp.opt.view : views()[0]?.[0] ?? 'text';
 
 // ---------- The Print tab ----------
@@ -158,7 +160,7 @@ function drawPanel() {
   const printers = pp.printers.list.map(n => `<option value="${escapeHtml(n)}"${opt('printer', n)}>${escapeHtml(n)}</option>`).join('');
   const themes = (s.themes?.list ?? []).map(t => `<option value="theme:${escapeHtml(t.id)}"${opt('colours', 'theme:' + t.id)}>${escapeHtml(t.name)}</option>`).join('');
   const kind = viewOf();
-  let html = '<h3>Printer</h3>' + (pp.printers.list.length
+  let html = '<h3>Printer &amp; paper</h3>' + (pp.printers.list.length
     ? `<div class="pp-row"><label>Printer</label><select data-k="printer">${printers}</select></div>
        <div class="pp-row"><span class="pp-label"></span><button type="button" data-do="printerDialog" title="The printer's own settings: paper bin, intensity, quality, ...; kept with these settings">Printer settings...</button></div>`
     : '<div class="pp-hint">No printer is installed: Save as PDF only.</div>');
@@ -169,8 +171,8 @@ function drawPanel() {
     <option value="long"${opt('duplex', 'long')}>Two-sided, long edge</option><option value="short"${opt('duplex', 'short')}>Two-sided, short edge</option></select></div>`;
   if (info?.colour) html += `<div class="pp-row"><label>Printer colour</label><select data-k="colourPrint"><option value="true"${o.colourPrint ? ' selected' : ''}>Colour</option><option value="false"${o.colourPrint ? '' : ' selected'}>Monochrome (grey)</option></select></div>`;
 
-  html += '<h3>What</h3>';
-  if (views().length) html += `<div class="pp-row"><label>As</label><select data-k="view">${views().map(([v, l]) => `<option value="${v}"${kind === v ? ' selected' : ''}>${l}</option>`).join('')}</select></div>`;
+  html += '<h3>What to print</h3>';
+  if (views().length) html += `<div class="pp-row"><label>Source</label><select data-k="view">${views().map(([v, l]) => `<option value="${v}"${kind === v ? ' selected' : ''}>${l}</option>`).join('')}</select></div>`;
   html += `<div class="pp-row"><label>Print</label><select data-w="what"><option value="all"${pp.what === 'all' ? ' selected' : ''}>The whole document</option>` +
     (s.selection ? `<option value="selection"${pp.what === 'selection' ? ' selected' : ''}>The selected lines</option>` : '') +
     `<option value="pages"${pp.what === 'pages' ? ' selected' : ''}>Pages</option></select></div>`;
@@ -199,17 +201,21 @@ function drawPanel() {
     <div class="pp-row"><label>Size (pt)</label>${num('textSize', 4, 40, 0.5)}</div>` + (kind === 'text' ? `<div class="pp-row"><label>Line numbers</label><select data-k="lineNumbers">
     <option value="all"${lineNumbers() === 'all' ? ' selected' : ''}>Every line</option><option value="ten"${lineNumbers() === 'ten' ? ' selected' : ''}>Every 10 lines</option>
     <option value="off"${lineNumbers() === 'off' ? ' selected' : ''}>Off</option></select></div>` : '');
-  if (kind === 'rendered') html += `<h3>Text</h3><div class="pp-row"><label>Font</label>${fontList('bodyFont', s.appFont, false)}</div>
+  // The preview of a code file is all code: only the code font and size.
+  if (kind === 'rendered' && s.kind !== 'markdown') html += `<h3>Text</h3><div class="pp-row"><label>Font</label>${fontList('codeFont', s.editorFont, true)}</div>
+    <div class="pp-row"><label>Size (pt)</label>${num('codeSize', 4, 40, 0.5)}</div>`;
+  else if (kind === 'rendered') html += `<h3>Text</h3><div class="pp-row"><label>Font</label>${fontList('bodyFont', s.appFont, false)}</div>
     <div class="pp-row"><label>Size (pt)</label>${num('bodySize', 4, 40, 0.5)}</div>
     <div class="pp-row"><label>Code font</label>${fontList('codeFont', s.editorFont, true)}</div>
     <div class="pp-row"><label>Code size (pt)</label>${num('codeSize', 4, 40, 0.5)}</div>`;
-  if (kind === 'pdf' || kind === 'rendered') html += `<div class="pp-row"><label>${kind === 'pdf' ? 'Pages' : 'Images'} at</label><select data-k="zoom">
+  if (kind === 'pdf' || (kind === 'rendered' && s.kind === 'markdown')) html += `<div class="pp-row"><label>${kind === 'pdf' ? 'Pages' : 'Images'} at</label><select data-k="zoom">
     <option value="auto"${opt('zoom', 'auto')}>Auto (own size, smaller when needed)</option><option value="width"${opt('zoom', 'width')}>Fit to width</option>
     <option value="height"${opt('zoom', 'height')}>Fit to height</option><option value="page"${opt('zoom', 'page')}>Fit to page</option>
     <option value="percent"${opt('zoom', 'percent')}>Percentage</option></select>${o.zoom === 'percent' ? num('zoomPercent', 5, 400, 5) + '%' : ''}</div>`;
 
   html += `<h3>Colours</h3><div class="pp-row"><label>Colours</label><select data-k="colours"><option value="current"${opt('colours', 'current')}>The theme as on screen</option>
     ${themes}<option value="bw"${opt('colours', 'bw')}>Black and white</option><option value="grey"${opt('colours', 'grey')}>Greyscale</option></select></div>`;
+  if (kind !== 'pdf' && o.colours !== 'bw') html += `<div class="pp-row"><span class="pp-label"></span>${check('background', 'Background', "The theme's background between the margins; off: white paper")}</div>`;
   if (kind !== 'pdf' && kind !== 'table') html += `<div class="pp-row"><label>Text colour</label><select data-k="syntax">
     <option value="true"${o.syntax ? ' selected' : ''}>Language colouring</option><option value="false"${o.syntax ? '' : ' selected'}>Mono text colour</option></select></div>`;
 
@@ -497,7 +503,7 @@ async function layout() {
   await applyColours();
   if (viewOf() === 'pdf') return layoutPdf();
   if (viewOf() === 'text') return layoutText();
-  if (viewOf() === 'rendered' && pp.source.views.rendered == null) { $('.pp-count').textContent = 'Rendering as markdown...'; return; }   // laid out when it comes
+  if (viewOf() === 'rendered' && pp.source.views.rendered == null) { $('.pp-count').textContent = 'Making the preview...'; return; }   // laid out when it comes
   sheetStyle(null, null);   // the sheets' page rules are not paged.js's
   const html = await contentHtml();
   previewer?.polisher?.destroy?.();
@@ -584,11 +590,11 @@ function sheetStyle(m, more) {
   style.textContent = more == null ? '' : `
 @page { size: ${w}mm ${h}mm; margin: 0; }
 .pp-sheets { display: flex; flex-direction: column; align-items: center; gap: 16px; }
-.pp-sheet { position: relative; width: ${w}mm; height: ${h}mm; background: var(--bg, #fff); color: var(--fg, #000); overflow: hidden; break-after: page; }
+.pp-sheet { position: relative; width: ${w}mm; height: ${h}mm; ${paperBackground()} color: var(--fg, #000); overflow: hidden; break-after: page; }
 .pp-sheet:last-child { break-after: auto; }
 .pp-sheet-area { position: absolute; top: ${m[0]}mm; right: ${m[1]}mm; bottom: ${m[2]}mm; left: ${m[3]}mm; --pp-ch: ${h - m[0] - m[2]}mm;
   ${o.frame ? `outline: ${o.frameWidth}pt solid color-mix(in srgb, var(--fg, #000) ${o.frameIntensity}%, transparent); outline-offset: 1.5mm;` : ''} }
-.pp-sheet-head, .pp-sheet-foot { position: absolute; left: ${m[3]}mm; right: ${m[1]}mm; display: flex; gap: 3mm; font: ${font}; color: var(--fg-dim, #666); }
+.pp-sheet-head, .pp-sheet-foot { position: absolute; left: ${o.margins[3]}mm; right: ${o.margins[1]}mm; display: flex; gap: 3mm; font: ${font}; color: #000; }   /* on the white paper, outside the background */
 .pp-sheet-head > span, .pp-sheet-foot > span { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
 .pp-sheet-head > span:empty, .pp-sheet-foot > span:empty { flex: 1 1 0; }
 .pp-sheet-head > :first-child, .pp-sheet-foot > :first-child { text-align: left; }
@@ -601,6 +607,12 @@ function sheetStyle(m, more) {
 .pp-sheet-notes ol { margin: 0; }
 .pp-sheet-notes li::marker { color: var(--accent, #c00); font-weight: 700; }
 ${more}`;
+}
+// The paper white and the theme's background between the margins as set (the notes beside the text inside it, the header
+// and footer outside): a printer cannot print up to the paper's edges.
+function paperBackground() {
+  const [t, r, b, l] = pp.opt.margins;
+  return `background: #fff linear-gradient(var(--bg, #fff), var(--bg, #fff)) no-repeat ${l}mm ${t}mm / calc(100% - ${l + r}mm) calc(100% - ${t + b}mm);`;
 }
 // A sheet: its header, `body` in the area, its footer with page `n` of the total (filled in when it is known).
 function sheetHtml(body, n) {
@@ -781,7 +793,8 @@ function fitTables(root, size) {
 // text, at the foot or left out (the end's are added after it), the markers with them.
 function dressContent(root) {
   const o = pp.opt;
-  if (lineNumbers() === 'ten') for (const n of root.querySelectorAll('.pp-ln')) if (+n.textContent % 10) n.classList.add('pp-ln-skip');
+  // Every 10 lines, as the gutter: the number on every tenth line, a dash halfway, a small dot on the others.
+  if (lineNumbers() === 'ten') for (const n of root.querySelectorAll('.pp-ln')) { const v = +n.textContent; if (v % 10) n.textContent = v % 5 ? '·' : '-'; }
   if (o.highlights === 'off') for (const m of root.querySelectorAll('mark.pp-hl')) m.replaceWith(...m.childNodes);
   for (const n of root.querySelectorAll('.pp-note')) {
     if (o.notes === 'off' || o.notes === 'end') { n.remove(); continue; }
@@ -797,7 +810,7 @@ function pageCss() {
   const o = pp.opt, s = pp.source, [w, h] = paper(), m = [...o.margins], side = o.notesWidth + 4;
   const sideNotes = (o.notes === 'left' || o.notes === 'right') && viewOf() !== 'pdf';
   if (sideNotes) m[o.notes === 'left' ? 3 : 1] += side;
-  const box = (where, content) => `@${where} { content: ${content}; font: 8pt ${cssString(s.appFont)}, sans-serif; color: var(--fg-dim, #666); }`;
+  const box = (where, content) => `@${where} { content: ${content}; font: 8pt ${cssString(s.appFont)}, sans-serif; color: #000; }`;   // on the white paper, outside the background
   // A text in a margin box: its HTML (bold, italic) as a running element at the start of the content (contentHtml).
   const boxes = HF_BOXES.filter(([key]) => o[key]).map(([key, at]) => box(at, `element(pp-${at})`));
   return `
@@ -806,10 +819,12 @@ function pageCss() {
   ${boxes.join(' ')}
   @footnote { border-top: 0.5pt solid color-mix(in srgb, currentColor 40%, transparent); padding-top: 1.5mm; margin-top: 2mm; }
 }
-.pagedjs_page { background: var(--bg, #fff); color: var(--fg, #000); --pp-ch: ${h - m[0] - m[2]}mm; }
+.pagedjs_page { ${paperBackground()} color: var(--fg, #000); --pp-ch: ${h - m[0] - m[2]}mm; }
 /* The header and footer at their distance from the edge (paged.js centres them in the margin). */
 .pagedjs_margin-top > div { align-items: flex-start !important; padding-top: ${o.headEdge}mm !important; box-sizing: border-box; }
 .pagedjs_margin-bottom > div { align-items: flex-end !important; padding-bottom: ${o.footEdge}mm !important; box-sizing: border-box; }
+/* The header and footer as wide as the margins as set: also over the notes beside the text. */
+${sideNotes ? `.pagedjs_margin-top, .pagedjs_margin-bottom { width: calc(100% + ${side}mm); margin-${o.notes}: -${side}mm; }` : ''}
 ${HF_BOXES.map(([, at]) => `.pp-run-${at} { position: running(pp-${at}); }`).join('\n')}
 .pp-pg::after { content: counter(page); }
 .pp-pgs::after { content: counter(pages); }
@@ -843,12 +858,13 @@ function contentCss() {
 .pp-text { position: relative; margin: 0; font: ${o.textSize}pt/1.3 ${font(o.textFont || s.editorFont, 'monospace')}; white-space: pre-wrap; overflow-wrap: anywhere; tab-size: ${pp.values.tabSize || 4}; }
 .pp-line { display: flex; }
 .pp-ln { flex: none; min-width: ${String(9999).length}ch; padding-right: 1.5ch; text-align: right; color: var(--fg-dim, #888); }
-.pp-no-ln .pp-ln { display: none; }
-.pp-ln.pp-ln-skip { visibility: hidden; }
-.pp-lt { flex: 1; min-width: 0; }
+.pp-no-ln .pp-ln { display: none; }.pp-lt { flex: 1; min-width: 0; }
 .pp-rendered { position: relative; padding: 0 !important; zoom: 1 !important; font: ${o.bodySize}pt/1.5 ${font(o.bodyFont || s.appFont)}; color: var(--fg, #000); }
 .pp-rendered pre, .pp-rendered code, .pp-rendered pre code, .pp-rendered pre.mm-code { font-family: ${font(o.codeFont || s.editorFont, 'monospace')}; font-size: ${o.codeSize}pt; }
 .pp-rendered pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+/* A code file's preview: the whole text, on the page's background (not a block of its own). */
+.pp-rendered pre.pp-codefile { background: none; border-radius: 0; padding: 0; margin: 0; border: 0; }
+.pagedjs_margin-top *, .pagedjs_margin-bottom * { color: #000; }
 .pp-rendered img { ${zoom} }
 /* A table as wide as its columns (the preview's scrolls inside a box: on paper that cuts it off); its cells' room
    grows and shrinks with its text (fitTables makes a wide one smaller). */
@@ -878,7 +894,7 @@ ${o.syntax ? '' : '.pp-text .pp-lt, .pp-text [class*="cm-"], .pp-rendered pre [c
 .pp-endnotes h4 { margin: 2mm 0; }
 .pp-endnotes li::marker { color: var(--accent, #c00); font-weight: 700; }
 .pp-bw, .pp-bw * { color: #000 !important; border-color: #000 !important; }
-.pp-bw :not(mark) { background: transparent !important; }
+.pp-bw :not(mark, .pp-sheet) { background: transparent !important; }   /* the sheet: its paper, white in black and white */
 ${pp.themeCss ?? ''}
 ${MARKDOWN_TEXT_CSS}`;
 }
@@ -966,7 +982,7 @@ function placeSideNotes() {
 
 // ---------- Colours ----------
 // The document's colours on the pages: the theme as on screen (the editor's for text, the preview's for rendered),
-// another theme, black and white, or greyscale; a dark page is said, with a way out.
+// another theme, black and white, or greyscale, with the theme's background or none; a dark page is said, with a way out.
 async function applyColours() {
   const o = pp.opt, s = pp.source, kind = viewOf(), current = kind === 'rendered' ? s.themes.current.rendered : s.themes.current.text;
   let vars = current.vars, css = current.css;
@@ -977,6 +993,9 @@ async function applyColours() {
     css = s.themes.css[id] ?? css;
   }
   if (o.colours === 'bw') vars = { ...vars, '--bg': '#ffffff', '--fg': '#000000', '--fg-dim': '#555555', '--accent': '#000000' };
+  // No background: white paper behind everything (the page, code blocks, inline code, table headers), the text in the
+  // theme's colours.
+  else if (!o.background && kind !== 'pdf') vars = { ...vars, '--bg': '#ffffff', '--bg-code': '#ffffff', '--inline-code': '#ffffff', '--bg-side': '#ffffff', '--bg-bar': '#ffffff' };
   pp.themeCss = css;
   const style = pagesEl.style;
   for (const name of [...style].filter(n => n.startsWith('--'))) style.removeProperty(name);
