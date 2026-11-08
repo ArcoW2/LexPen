@@ -18,7 +18,7 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
-    <ProjectReference Include="..\..\LexPen.csproj" />
+    <ProjectReference Include="..\..\src\LexPen.csproj" />
   </ItemGroup>
 
   <!-- As in LexPen.csproj: the WebView2 package also references its WPF control, which is not used. -->

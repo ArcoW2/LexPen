@@ -133,11 +133,11 @@ desktop, or a real mouse drag across windows / from Explorer is needed). Worth a
   under the mouse; it only shows with the real mouse, not with synthetic moves through the debugging port.
   Wrapping avoids it (docs/plans/executed/PLAN-long-lines.md).
 - The comment and fold add-ons of CodeMirror and the line diff were added without Node.js: see section 5 of the
-  editor-first plan before running `vendor.ps1`.
+  editor-first plan before running `src\vendor.ps1`.
 
 ## 5. How it was tested (to repeat later)
 
-- Unit tests: `dotnet test tests\LexPen.Tests` (routing, drafts, image links, recent lists, folder search).
+- Unit tests: `dotnet test` at the top (tests\LexPen.Tests: routing, drafts, image links, recent lists, folder search).
 - The app was driven through the WebView2 debugging port: start the debug build with
   `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=9222` and `LEXPEN_DATA=<scratch folder>`
   (keeps the real session, drafts and settings in `%LOCALAPPDATA%\LexPen` untouched), then use
@@ -153,7 +153,7 @@ desktop, or a real mouse drag across windows / from Explorer is needed). Worth a
 - Problems that only the real mouse shows (see 4b): attach to your LexPen started with the port, run a
   recorder (page answer times, long tasks, CPU per process), a CPU profile or a browser trace
   (`Tracing.start`, category devtools.timeline) while you reproduce it.
-- After changing files in `web` while the debug build runs: the debug build serves the project's `web` itself;
+- After changing files in `src\web` while the debug build runs: the debug build serves the project's `web` itself;
   reload with the cache ignored (`Page.reload` with `ignoreCache`), or the old `app.js` keeps running. The
   release build serves the page from the exe (WebFiles.cs).
 - Close the test app before `dotnet build` (it locks `LexPen.exe`).

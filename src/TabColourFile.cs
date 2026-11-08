@@ -28,8 +28,8 @@ static class TabColourFile
         }
     }
 
-    /// <summary>The default rules: docs\examples\tab-colours.json, embedded in the program, so the
-    /// example in the project and what LexPen writes are always the same file.</summary>
+    /// <summary>The default rules: defaults\user\tab-colours.json, embedded in the program, so the
+    /// file in the project and what LexPen writes are always the same file.</summary>
     public static string Default { get; } = LoadDefault();
 
     static string LoadDefault()
