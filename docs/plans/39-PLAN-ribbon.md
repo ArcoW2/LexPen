@@ -80,8 +80,20 @@ divider. "Corner": the action of the group's corner icon.
 - **Width**, measured in a mock (a test copy, LexPen's own font and the Dark theme, group names on, a 1264 px wide
   window): File 233 px, Home 2189 px, Format 257 px, View 712 px, Tools 779 px. Home's groups: Edit 422, Clipboard
   152, Find 273, Occurrences 277, Go 251, Select 283, Bookmarks 236, Highlights 290; the ribbon 120 px high with its
-  tabs. Home does
-  not fit that window (question 1).
+  tabs. Home does not fit that window (question 1).
+
+The mock, per tab (the icons are placeholders: a box with the label's first letter; the corner icon at the bottom
+right of Clipboard, Bookmarks, Highlights and Sort):
+
+![ribbon-File](39-PLAN-ribbon.md.images/ribbon-File.png)
+
+![ribbon-Home](39-PLAN-ribbon.md.images/ribbon-Home.png)
+
+![ribbon-Format](39-PLAN-ribbon.md.images/ribbon-Format.png)
+
+![ribbon-View](39-PLAN-ribbon.md.images/ribbon-View.png)
+
+![ribbon-Tools](39-PLAN-ribbon.md.images/ribbon-Tools.png)
 
 ### 3.2 Behaviour
 
