@@ -32,3 +32,18 @@ from here.
 A markdown file with code blocks in other languages (C#, Delphi, SQL, JavaScript, Python, PowerShell, shell,
 batch, JSON, XML, YAML, CSS, HTML with a script and a style inside, plain text): each block coloured as its own
 language in the editor, the preview and the Print window. It is not a settings file: open it from here.
+
+## definitions-sql and definitions-languages
+
+Folders to try Go to definition with (F12: in the other pane; Alt+F12: in this tab; Ctrl+F12: in a new tab;
+Shift+F12: Find references). Open the folder in the Folder pane, open the file at the top and press F12 on a name.
+
+- **definitions-sql**: `main.sql` calls procedures defined two folders down. `call proc_name` finds two definitions
+  (`create procedure proc_name` and `create or replace procedure dba.proc_name`): a list, the one without an owner
+  first; with the cursor on `dba` of `dba.proc_name` the `dba.` one comes first. `"dba"."other_proc"` (quoted) and the
+  table `orders` are found too; `missing_one` is not (a message says so); the region `//--- proc_name` in procs.sql is
+  no definition.
+- **definitions-languages**: a definition in `lib` and its use one folder up, for C# (`Picker`, `p.Pick`,
+  `Orders.Picker.Pick`), JavaScript (a function, an arrow function, a class), Python (a method, a function), Pascal
+  (`TInvoice.Total`: its declaration and its implementation, names without regard to case) and PowerShell
+  (`Get-OrderLines`, with its dash, any case).
