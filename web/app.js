@@ -1444,6 +1444,14 @@ function remember(tab, path, link = false) {
   navHistory.forward.length = 0;
 }
 
+// A link followed in a tab (or another file shown in it: Ctrl+click in the Folder pane or the search, go to
+// definition): the step kept with the tab's cursor, so back returns to that line (go).
+function rememberAt(tab) {
+  remember(tab, tab.doc.path, true);
+  const step = navHistory.back.at(-1), at = tab.cmDoc?.getCursor();
+  if (at && step?.tab === tab.id && samePath(step.path, tab.doc.path)) step.cursor = { line: at.line, ch: at.ch };
+}
+
 // One step: to the tab of the entry (skipping tabs closed since), showing the entry's file again.
 async function go(from, to) {
   const here = activeTab();
@@ -1455,7 +1463,9 @@ async function go(from, to) {
     try {
       if (here) {
         const herePane = paneOf(here);
-        to.push({ tab: here.id, path: here.doc.path, top: herePane.active === here ? herePane.previewEl.scrollTop : here.previewTop, link: entry.link });
+        const at = here.cmDoc?.getCursor();   // forward (or back again): this line again
+        to.push({ tab: here.id, path: here.doc.path, top: herePane.active === here ? herePane.previewEl.scrollTop : here.previewTop, link: entry.link,
+          ...(at ? { cursor: { line: at.line, ch: at.ch } } : {}) });
       }
       const pane = paneOf(tab);
       if (!samePath(tab.doc.path, entry.path) && entry.path) {
@@ -1477,9 +1487,10 @@ async function go(from, to) {
   }
 }
 
+let quietSwitch = false;   // a file opened in the other pane (Ctrl+click): leaving this pane's tab is no step back
 async function activate(pane, tab) {
   const before = activeTab();
-  if (before && before !== tab) remember(before, before.doc.path);
+  if (before && before !== tab && !(quietSwitch && paneOf(before) !== pane)) remember(before, before.doc.path);
   if (state.hidden === pane.index) showHiddenPane();   // something sent to the hidden pane brings it back
   if (pane.active && pane.active !== tab) pane.active.previewTop = pane.previewEl.scrollTop;
   pane.active = tab;
@@ -1966,7 +1977,7 @@ async function navigate(tab, path, anchor, restoring) {
   }
   const already = pane.tabs.find(t => samePath(t.doc.path, path));
   if (already) {
-    if (!restoring && tab.doc.path) remember(tab, tab.doc.path, true);
+    if (!restoring && tab.doc.path) rememberAt(tab);
     await activate(pane, already);
     if (anchor) scrollToAnchor(pane, anchor);
     return true;
@@ -1979,7 +1990,7 @@ async function navigate(tab, path, anchor, restoring) {
   }
   const doc = findDoc(path) ?? await loadDoc(path);
 
-  if (!restoring && old.path) remember(tab, old.path, true);
+  if (!restoring && old.path) rememberAt(tab);
   // The file left the window (no other tab has it): recently closed, as closing its tab would (Reopen closed tab too).
   if (last && old.path) {
     noteOpened('closed', old.path);
@@ -2597,12 +2608,18 @@ async function showInTree(path) {
   toFolder({ kind: 'reveal', path });
 }
 
-// A file from the tree: shown in the current tab of the pane (when it is already open there: that tab).
-// Ctrl: the other pane; Shift: a new tab. A draft or a changed file is never replaced (a new tab instead).
-function openFromTree(path, { ctrlKey, shiftKey }) {
-  const pane = ctrlKey ? otherPane() : panes[state.activePane], tab = pane.active;
-  if (shiftKey || !tab || tab.doc.draft || tab.doc.dirty || pane.tabs.some(t => samePath(t.doc.path, path))) return openFile(path, { pane });
-  return navigate(tab, path);
+// A file from the tree (and the search results): shown in the current tab of the pane (when it is already open there:
+// that tab). Ctrl: the other pane, the active pane staying the one it was (so a next Ctrl+click goes to that other pane
+// again, as the dimmed frame shows); Shift: a new tab. A draft or a changed file is never replaced (a new tab instead).
+async function openFromTree(path, { ctrlKey, shiftKey }) {
+  const was = state.activePane, pane = ctrlKey ? otherPane() : panes[was], tab = pane.active;
+  quietSwitch = !!ctrlKey;
+  try {
+    const result = shiftKey || !tab || tab.doc.draft || tab.doc.dirty || pane.tabs.some(t => samePath(t.doc.path, path))
+      ? await openFile(path, { pane }) : await navigate(tab, path);
+    if (ctrlKey) setActivePane(was);
+    return result;
+  } finally { quietSwitch = false; }
 }
 // `open`: the folders to open again (a restored session: the tree as it was); `cursor`: the row selected; `top`: the
 // scroll position.
@@ -2985,7 +3002,7 @@ const searchUi = {
   scope: { get value() { return searchPage.scope; }, set value(v) { searchPage.scope = v; toSearch({ kind: 'scope', value: v }); } },
   status: { get textContent() { return searchPage.status; }, set textContent(v) { searchPage.status = v; toSearch({ kind: 'status', text: v }); } },
 };
-const searchOptions = { case: false, word: false, regex: false };
+const searchOptions = { case: false, word: false, regex: false, known: false };   // known: known file types only
 let searchRun = 0, searchHits = [];
 let searchGroups = [];   // the results: per file { path, draft, matches, skip }; a match replaced has done: { old, new }
 let lastSearch = null;   // the search the results are of: { text, options, scope, source, regex }
@@ -3074,7 +3091,7 @@ async function runSearch() {
   try { regex = new RegExp(source, searchOptions.case ? 'g' : 'gi'); }
   catch (e) { return searchUi.status.textContent = 'Not a valid regular expression: ' + e.message; }
   searchUi.status.textContent = 'Searching...';
-  const knownOnly = document.body.dataset.tree === 'known';
+  const knownOnly = !!searchOptions.known;   // the Known switch (Find references sets it)
   const folder = scope === 'folder' ? searchFolder() : null;
   if (scope === 'folder' && !folder) return searchUi.status.textContent = 'No folder: open a folder or a file first.';
 
@@ -3159,10 +3176,28 @@ function drawSearchResults() {
   toSearch({ kind: 'results', html: searchPage.html });
 }
 
-// A match clicked in the results: there in the window, selected (and in the preview's view).
-async function goToSearchHit(hit) {
-  let tab;
-  if (hit.draft) {
+// A match clicked in the results: there in the window, selected (and in the preview's view): in the pane's tab of its
+// file, else a new one. `here` (Alt+click): in the active tab instead, as a link is followed (back returns to its line),
+// unless that tab's document has unsaved changes. Ctrl+click and Shift+click as in the Folder pane (openFromTree): the
+// other pane, a new tab.
+async function goToSearchHit(hit, here, { ctrlKey, shiftKey } = {}) {
+  let tab, how = 'found';
+  const active = activeTab();
+  if (here && !hit.draft && active?.doc.path && !samePath(active.doc.path, hit.path) && !active.doc.dirty && !active.doc.pdf) {
+    const cm = paneOf(active).cm, at = cm?.getCursor();
+    remember(active, active.doc.path, true);
+    const step = navHistory.back.at(-1);
+    if (at && step?.tab === active.id) step.cursor = { line: at.line, ch: at.ch };   // back: this line again (go)
+    if (!await navigate(active, hit.path)) return;
+    tab = paneOf(active).active;
+    how = 'quiet';   // the way back is the step above, not where this file's cursor was
+  } else if (!hit.draft && (ctrlKey || shiftKey)) {
+    const pane = ctrlKey ? otherPane() : panes[state.activePane], was = pane.active, wasDoc = was?.doc;
+    await openFromTree(hit.path, { ctrlKey, shiftKey });
+    tab = pane.active;
+    if (!tab || !samePath(tab.doc.path, hit.path)) return;
+    if (tab === was && tab.doc !== wasDoc) how = 'quiet';   // the tab showed another file: back is the step kept
+  } else if (hit.draft) {
     const doc = findDraft(hit.draft);
     if (!doc) return toast('That draft is closed.');
     tab = tabsOf(doc).find(t => paneOf(t).index === state.activePane) ?? tabsOf(doc)[0];
@@ -3172,7 +3207,7 @@ async function goToSearchHit(hit) {
   if (tab.mode !== 'edit') setPreviewLine(pane, Math.max(0, hit.line - 3));
   if (tab.mode !== 'preview' && pane.cm) {
     pane.placed = tab.mode === 'split';
-    asFound(pane, () => pane.cm.setSelection({ line: hit.line, ch: hit.col }, { line: hit.endLine, ch: hit.endCol }));   // places.js
+    asFound(pane, () => pane.cm.setSelection({ line: hit.line, ch: hit.col }, { line: hit.endLine, ch: hit.endCol }), how);   // places.js
     revealFound(pane.cm, { line: hit.line, ch: 0 }, { line: hit.endLine, ch: hit.endCol });
   }
 }
@@ -3356,7 +3391,7 @@ function fromSearch(m) {
       Object.assign(searchOptions, m.options);
       return m.run && runSearch();
     case 'scope': searchPage.scope = m.value; keepLayout('searchScope', m.value); return runSearch();
-    case 'goto': return searchHits[m.hit] && goToSearchHit(searchHits[m.hit]);
+    case 'goto': return searchHits[m.hit] && goToSearchHit(searchHits[m.hit], m.here, m);
     case 'replaceFile': return replaceFile(m.group);   // searchreplace.js
     case 'replaceMatch': return searchHits[m.hit] && replaceMatch(searchHits[m.hit]);
     case 'replaceAll': return replaceAllResults();

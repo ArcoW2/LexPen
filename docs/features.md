@@ -195,9 +195,12 @@ every action with its key.
 `, `	`, `$1`, `$&`. The `?` button lists
   every code, the same list as F1.
 - **Search** (Ctrl+Shift+F): in the current file, the open files (unsaved edits included) or the files in the
-  folder (the open folder, otherwise the folder of the current file), with match case, whole word and regular
-  expressions. Codes: `^p` line break (CR, LF or CRLF), `^t` tab, `^?` any character, `^#` digit, `^$` letter,
-  `^w` spaces or tabs, `^^` the `^` itself. Click a result to go there. The Search pane can float in a window of its
+  folder (the open folder, otherwise the folder of the current file), with match case, whole word, regular
+  expressions and Known (known file types only: a language LexPen knows, not .bak copies and the like; Find
+  references turns it on). Codes: `^p` line break (CR, LF or CRLF), `^t` tab, `^?` any character, `^#` digit, `^$` letter,
+  `^w` spaces or tabs, `^^` the `^` itself. Click a result to go there (in its file's tab, else a new one; Alt+click:
+  in the active tab, unless it has unsaved changes, and Back returns; Ctrl+click and Shift+click as in the Folder
+  pane: the other pane, a new tab). The Search pane can float in a window of its
   own (and back), as the Folder pane (its tab's right-click menu).
 - **Replace in files** (Ctrl+Shift+R, or the Replace button in the Search panel): a Replace with field, and a scope
   In selection (the editor's selection when the search runs: one, several or a column block, marked while the
@@ -224,14 +227,16 @@ every action with its key.
   it (an SQL owner such as `dba.`, a C# namespace or class): `call proc_name` finds `create procedure dba.proc_name`;
   the qualifier only orders the list. F12 shows it in the other pane, this document staying as it is; Alt+F12 in
   this tab, as a link (a new tab beside it when this document has unsaved changes); Ctrl+F12 in a new tab beside
-  this one. Back returns to the line it was pressed on. Three actions, so the keys can be changed.
-  Shift+F12 searches the folder for the name, whole word, in the Search panel. What a definition is comes from the
-  language pack: the outline groups it marks `definition: true` (languages\README.md).
+  this one. Back returns to the line it was pressed on. Three actions, so the keys can be changed. Shift+F12
+  searches the folder for the name, whole word, known file types only, in the Search panel. What a definition is
+  comes from the language pack: the outline groups it marks `definition: true` (languages\README.md).
 - **Position back / forward**: every document keeps the places its cursor jumped from: a move of more lines than
   the setting A jump (Editor, 10 by default) without typing (go to line, a bookmark, the outline, Ctrl+Home, a click
   far away), and always a found item (find, the search in files), however close. Ctrl+Alt+- goes back, Ctrl+Alt++
   forward again; also the mouse back / forward buttons. A place moves with the edits; one whose line was deleted is
-  skipped. With no place left to go to, a line flashes at the top and the bottom together (one edge alone means the
+  skipped. Past a document's places, back goes to the file the tab showed before (a link followed, Go to definition,
+  a click in the Folder pane or the search results that showed another file in the tab, also with Ctrl in the other
+  pane), at the line it was on. With no place left to go to, a line flashes at the top and the bottom together (one edge alone means the
   text's top or end). Ctrl + the mouse buttons go through the tabs and files of the window instead (View > Back /
   Forward in the window), like a browser.
 - **Bookmarks**: 1 to 9 and unnumbered ones, at a line and column, kept per file. Ctrl+1, S stores bookmark 1,
