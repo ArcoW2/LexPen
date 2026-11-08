@@ -1,6 +1,6 @@
 # Plan: A ribbon with the actions each user wants at hand
 
-Status: draft 2026-11-07, revised 2026-11-08 (three times); not started. From plan 25 (executed/PLAN-menu-structure.md 3.7), where
+Status: draft 2026-11-07, revised 2026-11-08 (many times); not started. From plan 25 (executed/PLAN-menu-structure.md 3.7), where
 it was proposed. The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
@@ -12,7 +12,7 @@ must be able to choose what is on it.
 
 ## 2. The solution, in brief
 
-An optional ribbon under the menu bar, with tabs (File, Home, Select & Sort, Review, View, Tools); each tab holds named groups of
+An optional ribbon under the menu bar, with tabs (File, Home, Arrange, Review, View, Tools); each tab holds named groups of
 buttons, each button running an action as its menu item does, its tooltip showing the title and the key. A button is
 large (icon above its label, the ribbon's full height) or small (icon with its label beside it), and up to three
 small buttons stack in the height of one large one. A group may have a small icon in its corner that opens its
@@ -46,7 +46,7 @@ divider. "Corner": the action of the group's corner icon.
 | Go to | Line + Definition (Go to line, Go to definition) |
 | Bookmarks | Toggle unnumbered bookmark (large) / Previous + Next (Previous bookmark, Next bookmark). Corner: Manage bookmarks |
 
-**Select & Sort** (its name: question 1)
+**Arrange**
 
 | Group | Columns |
 |---|---|
@@ -87,9 +87,9 @@ divider. "Corner": the action of the group's corner icon.
 - **Position back / forward** (the cursor's jumps in the document) and **Back / Forward in the window** (the tabs
   and files, as a browser) are not on the ribbon: in the menus and on their keys and mouse buttons.
 - **Occurrences**: the occurrences of a word without the bar. Show all occurrences takes the selection, else the
-  word at the cursor, into the bar's field and marks them, without opening the bar (a change: today it opens the bar
-  as the setting Show the Occurrences bar says; question 3); Clear empties the field and the marks, also with the
-  bar hidden (as now). The corner icon opens the bar with the cursor in its field, to type something else. The bar
+  word at the cursor, into the bar's field and marks them, and never opens the bar, whatever the setting Show the
+  Occurrences bar says (a change: today it opens the bar as that setting says; a bar closed was closed by the user,
+  and the corner icon opens it); Clear empties the field and the marks, also with the bar hidden (as now). The corner icon opens the bar with the cursor in its field, to type something else. The bar
   closes by its X or Esc in its field.
 - **The panels**: View has every panel of Window > Panels, in its groups and order (Files and finding, The
   document, Editing, Macros, LexPen), each a show / hide toggle as there; a panel added later joins its group in both.
@@ -97,9 +97,10 @@ divider. "Corner": the action of the group's corner icon.
 - **Manage ...**: every Manage (clipboards, bookmarks, macros) and the other managers (the Highlights window, the stored
   sorts, the Occurrences bar) are a group's corner icon, not a button.
 - **Editor and Preview** are not on Home: they are the switches at the window's top right, and View > Document.
+- **History** (Undo, Redo) is on Arrange: Home has room for it, but need not fill the window.
 - **Day / Night**: the two values of Day / night, each its own button, the current one pressed.
 - **Width**, measured in a mock (a test copy, LexPen's own font and the Dark theme, group names on, the icons of
-  3.4, a 1264 px wide window): File 239 px, Home 1104 px, Select & Sort 507 px, Review 146 px, View 1222 px, Tools
+  3.4, a 1264 px wide window): File 239 px, Home 1104 px, Arrange 507 px, Review 146 px, View 1222 px, Tools
   758 px. Home's groups: Edit 216, Lines 96, Clipboard 156, Find 279, Occurrences 75, Go to 98, Bookmarks 179; the
   ribbon 120 px high with its tabs. Every tab fits that window; a narrower one sends Home's right end into the ">>"
   menu.
@@ -113,7 +114,7 @@ Sort, Highlights and Macros); Home also in the light theme:
 
 ![ribbon-Home-light](39-PLAN-ribbon.md.images/ribbon-Home-light.png)
 
-![ribbon-SelectSort](39-PLAN-ribbon.md.images/ribbon-SelectSort.png)
+![ribbon-Arrange](39-PLAN-ribbon.md.images/ribbon-Arrange.png)
 
 ![ribbon-Review](39-PLAN-ribbon.md.images/ribbon-Review.png)
 
@@ -218,10 +219,4 @@ Sort, Highlights and Macros); Home also in the light theme:
 
 ## 4. Open questions
 
-1. The name of the tab with Select, Sort and History: "Select & Sort" in the mock; or "Arrange", "Selection", or
-   another?
-2. History (Undo, Redo) on that tab, as now, or on Home, where the actions used most are? Home has room for it
-   (1104 px of a 1264 px window, History 75 px).
-3. Show all occurrences without opening the bar: for every value of the setting Show the Occurrences bar (Never,
-   When an occurrence is active, Always), or only the button on the ribbon (the action as now for its key and the
-   menu)? With "Always" the bar is there anyway.
+None.
