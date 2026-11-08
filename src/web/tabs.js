@@ -104,7 +104,9 @@ function tabKey(cm) {
   if (cm.isReadOnly()) return;
   if (cm.somethingSelected()) return indentLines(cm, 1);
   const stops = stopsOf(cm);
-  const listItem = text => cm.getOption('mode')?.name === 'gfm' && typeof parseLine === 'function' && ['bullet', 'number', 'task'].includes(parseLine(text).kind);
+  // A markdown document by its language (isMarkdown, format.js), not by the editor's mode: that is a wrapped one, not
+  // named 'gfm', when the document has blocks of other languages.
+  const listItem = text => typeof isMarkdown === 'function' && isMarkdown(cm) && typeof parseLine === 'function' && ['bullet', 'number', 'task'].includes(parseLine(text).kind);
   cm.operation(() => {
     const heads = cm.listSelections().map(r => r.head).sort((a, b) => b.line - a.line || b.ch - a.ch);
     for (const pos of heads) {
