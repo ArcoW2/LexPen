@@ -164,23 +164,29 @@ Sort, Highlights and Macros); Home also in the light theme:
 
 ### 3.3 Customize
 
-The ribbon is the user's: everything on it can be changed, on the ribbon itself, while it is being customized
-(question 1).
+The ribbon is the user's: everything on it can be changed, on the ribbon itself, but only in its change mode, so it
+never changes by accident while working.
+
+- **Change mode**: started from the ribbon's right-click (Change the ribbon) or from the F1 window (a button
+  there); ended by Done (on the ribbon) or Esc. While it lasts the ribbon is marked as being changed (a dashed edge,
+  "Done" at its right end), its buttons do not run their actions, F1's list of commands is open beside it as the
+  source of actions, and the "New..." places show. Starting it from F1 keeps F1 open; from the right-click it opens
+  F1.
 
 - **On the ribbon**: drag an action from F1's list of commands onto the ribbon (where it lands: before, after or
   stacked under the button it is dropped on, or into an empty spot of a group); drag a button to another place, group
   or tab (on a tab name: that tab opens, so it can be dropped there); drag a button off the ribbon to remove it. A
   group and a tab are dragged the same way.
-- **New...**: the last tab name is "New..." in italics; a click makes a new tab (its name typed in place). A group's
+- **New...** (in change mode only): the last tab name is "New..." in italics; a click makes a new tab (its name typed in place). A group's
   last place is "New..." too, for a new group.
-- **A button's right-click**: large or small, stacked under the one above or not, its label, its key tip, the
+- **A button's right-click** (in change mode): large or small, stacked under the one above or not, its label, its key tip, the
   group's corner action, a divider before it, Remove; a group's and a tab's: Rename, Remove, a corner action.
 - **The Customize window** (the ribbon's right-click > Customize...) remains for the same work by list, as F1:
   at the left all actions with a search, grouped as the menus; at the right the ribbon's tabs, groups and columns;
   Add, Remove, Move up / down (and drag). For the keyboard, and for a full overview.
 - An action with values (Preview place, a bookmark number) is added with its value, as keys.json writes
   `["preview.left"]`.
-- Undo: Ctrl+Z while customizing takes the last change back; Reset: back to the shipped content.
+- Undo: Ctrl+Z in change mode takes the last change back; Reset: back to the shipped content.
 - `ribbon.json` in the data folder: `{ "tabs": [ { "name": "Home", "groups": [ { "name": "File", "more": "...", "items": [ { "action":
   "save", "size": "large" }, { "action": "selectLine", "label": "Line" }, { "action": "saveAs", "size": "small" }, { "action": "newFile", "size": "small",
   "stack": true }, { "action": "openFile", "size": "small", "stack": true }, "divider", ... ] } ] } ] }`. An action that no longer exists is skipped, not an error; a "stack"
@@ -242,10 +248,9 @@ The ribbon is the user's: everything on it can be changed, on the ribbon itself,
   names in the menus' place, the rest of the top bar as it was, Alt shows the key tips: a tab's letter opens it, a button's letter runs
   it, Esc goes back; with altOpens `menu` Alt shows the menus) and `both` (the tab names under the menus); Customize adds, moves, resizes, stacks and removes a button, adds a
   tab and a divider, and the ribbon follows; on the ribbon: an action dragged from F1 lands where it is dropped,
-  a button dragged to another group and off the ribbon, "New..." makes a tab; Reset.
+  a button dragged to another group and off the ribbon, "New..." makes a tab; outside change mode nothing can be
+  dragged and no "New..." shows; change mode from the right-click and from F1, ended by Done and by Esc; Reset.
 
 ## 4. Open questions
 
-1. When can the ribbon be changed by dragging: always (a button dragged off by accident is gone, Undo brings it
-   back), or only while customizing (the ribbon's right-click > Customize ribbon, ended by Done or Esc; F1's list
-   open beside it as the source of actions; "New..." shown only then)?
+None.
