@@ -117,9 +117,11 @@ window.RIBBON_ICONS = (() => {
     'clipboards.pane': ['Clipboards', p(clip + 'M6 8h4M6 11h4'), p('M5 6.6h6v6.4H5zM6.8 5.8h2.4M6.6 9h2.8M6.6 11.2h2.8')],
     'edit.sortWindow': ['Sort', p(sortLines + 'M12 2.5v10M10 10.5l2 2 2-2'), p('M3.6 6.2h4.4M3.6 9.2h3M3.6 12.2h1.6M10.8 5.8v6.8M9.3 11.2l1.5 1.5 1.5-1.5')],
     'macro.manage': ['Macros', p('M2 3.5h8M2 7h8M2 10.5h5M10.5 9.5l4 2.5-4 2.5z'), p('M3.6 6.2h5.6M3.6 9.2h5.6M3.6 12.2h3M9.4 10l3 1.6-3 1.6z')],
-    step: ['Step by step', p('M1.5 14h3v-3h3V8h3V5h3V2'), p('M3.4 12.8h2.4v-2.2h2.4V8.4h2.4V6.2h2')],
+    step: ['Step by step', p('M1.5 14h4.3v-4h4.3V6h4.3V2'), p('M3.2 12.8h3.2V9.3h3.2V5.8h3.2')],
     settings: ['Settings', cog, '<circle cx="8" cy="9.2" r="1.9"/>' + p('M8 5.8v1M8 11.6v1.1M4.6 9.2h1M10.4 9.2h1M5.6 6.8l.7.7M9.7 10.9l.7.7M5.6 11.6l.7-.7M9.7 7.5l.7-.7')],
-    commands: ['Keyboard shortcuts', t(1.5, 12, 9, 'F1', 700), t(3.6, 12.6, 6.4, 'F1', 700)],
+    // F1 as large as the inside allows, its ink measured (Segoe UI bold: 7% bearing at the left, 71% high): no white
+    // of the font's box counted.
+    commands: ['Keyboard shortcuts', t(0.44, 13.37, 15.12, 'F1', 700), t(2.58, 13.1, 10.85, 'F1', 700)],
     messages: ['Messages', p('M2 2.5h12v8.5H7.5L4.5 14v-3H2z'), p('M3.4 5.8h9.2v5H8.2l-2.6 2.2v-2.2H3.4z')],
     themesets: ['Theme sets', '<rect x="1.5" y="3.5" width="4" height="9" rx="1"/><rect x="6" y="3.5" width="4" height="9" rx="1" fill="currentColor" fill-opacity=".35"/><rect x="10.5" y="3.5" width="4" height="9" rx="1" fill="currentColor" fill-opacity=".8"/>',
       '<rect x="3.4" y="5.8" width="2.6" height="7" rx=".6"/><rect x="6.7" y="5.8" width="2.6" height="7" rx=".6" fill="currentColor" fill-opacity=".35"/><rect x="10" y="5.8" width="2.6" height="7" rx=".6" fill="currentColor" fill-opacity=".8"/>'],
