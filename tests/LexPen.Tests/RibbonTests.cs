@@ -76,6 +76,17 @@ public class RibbonTests : IDisposable
         Assert.NotEmpty(r["ribbon"]!["tabs"]!.AsArray());
     }
 
+    [Fact]
+    public void ArrangeSelectHasTextColumnAndHexStackedInsteadOfColumnMode()
+    {
+        var select = RibbonFile.Load(dir, Shipped)["ribbon"]!["tabs"]!.AsArray().First(t => t!["name"]!.GetValue<string>() == "Arrange")!
+            ["groups"]!.AsArray().First(g => g!["name"]!.GetValue<string>() == "Select")!["items"]!.AsArray();
+        var modes = select.Where(i => i is JsonObject o && o["action"]!.GetValue<string>() == "editMode.set").ToList();
+        Assert.Equal(["text", "column", "hex"], modes.Select(i => i!["params"]![0]!.GetValue<string>()));
+        Assert.Equal([false, true, true], modes.Select(i => i!["stack"]?.GetValue<bool>() == true));
+        Assert.DoesNotContain(select, i => i is JsonObject o && o["action"]!.GetValue<string>() == "columnMode.toggle");
+    }
+
     // ---------- The columns of a group ----------
 
     static string Shape(string items) =>

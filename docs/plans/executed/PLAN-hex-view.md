@@ -1,6 +1,6 @@
 # Plan: Hex view
 
-Status: draft 2026-10-21, revised 2026-11-08 (five times); not started. From the list "what UltraEdit or Visual
+Status: draft 2026-10-21, revised 2026-11-08; executed (2026-11-08); see As built. From the list "what UltraEdit or Visual
 Studio has and LexPen does not". The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
@@ -170,3 +170,47 @@ LexPen does not know (today refused) opens in Hex by default.
 ## 4. Open questions
 
 None.
+
+## 5. As built
+
+Built on branch `hex-view` (2026-11-08): `HexFile.cs` (whether a file is binary, its bytes), `TextFile.DecodeAs`, the
+host's `hexRead`, `hexWrite`, `hexEncode`, `hexDecode`, `web/hexmodel.js` (one byte one character, a line, a byte's
+digits), `web/hexview.js` (the view, editing, the actions `hex.toggle`, `editMode.set`, `hex.insert`, `hex.fill`,
+`hex.delete`, `hex.pasteOver`, `hex.pasteIn`), the settings `hexBytesPerLine` and `hexGroup`, View > Hex, the top
+bar's Hex switch, the ribbon's Arrange > Select Text / Column / Hex.
+
+Differs from the plan:
+
+- **The bytes travel whole**, not in pieces: the host reads the file and the page holds it, so editing, inserting and
+  deleting are simple and a save writes it whole. The limit is 64 MB (`HexFile.MaxSize`). Measured in the test copy
+  (random bytes): 10 MB opened in 586 ms, a digit typed in 66 ms, saved in 371 ms; 60 MB opened in 3049 ms, a digit
+  typed in 57 ms, saved in 1536 ms.
+- **Hex is a flag of the tab** (`tab.hex`), not a fourth mode beside edit, preview and split: the tab keeps its mode,
+  so leaving Hex goes back to it, and the editor's actions are off while it shows (no editor for them). A mode chosen
+  (Editor, Preview, Editor and preview) leaves Hex; Text / Column / Hex on the ribbon are `editMode.set`'s variants.
+- **Find in Hex** asks what to find in a small window (Ctrl+F; hex bytes, or text in quotes) and F3 / Shift+F3 go on;
+  the find bar and the Occurrences bar are the editor's and do not show in Hex.
+- **A text tab in Hex**: the bytes are made from the text as `diskText` gives it, before the trimming a save may do
+  (Settings: trim on save). The editor holds lines, so line-end bytes changed in Hex come back as the file's line end.
+  Bytes are marked as changed only for changes made in Hex.
+- **A PDF in Hex** shows its bytes read-only, as the PDF tab is.
+- **Copy from the text part**: a byte without a character is copied as ".".
+- **The Hex icon** has its digits as text in the drawing (as the F1 icon), not strokes. The icon sheet's source
+  (`executed/PLAN-ribbon.md.images/ribbon-icons.js`) has the new drawings; its PNGs were not drawn again.
+- **A file of bytes** shows "Bytes" in the bottom bar (no line ends, no language list); removed on disk, its bar has
+  no Keep as draft.
+
+Tested: unit (C#, `HexTests`): a zero byte makes a file binary, UTF-16 and empty files not; the bytes read whole, over
+the limit refused; a text encoded as a save writes it and decoded back the same, for UTF-8, UTF-8 BOM, UTF-16 LE / BE
+and ANSI; a byte UTF-8 cannot read kept as the stand-in and written back; the shipped ribbon has Text, Column and Hex
+stacked in Arrange > Select (`RibbonTests`). Unit (Jint): a line for 16 / 8, 8 / 0 and 32 / 4; Windows-1252
+characters, the dot for control and undefined bytes, the byte of a character typed; the offset's width; a digit gone
+counting as 0. All tests pass. In the test copy by script: a binary file opens in Hex; typing digits (either case);
+Delete on the high digit of 3F gives 0F, Backspace after its low digit 30, both removed 00; in the text part Delete
+and Backspace give 00, a character without a byte refused, e acute types E9; the length never changes by typing;
+Insert bytes (4), Fill with 00 and Delete bytes on a selection of 3; Paste over two bytes before the end (one left
+over, said), Paste in, the Ctrl+V and Ctrl+X menus, text that is no hex refused; undo and redo; save, the file equal
+to the bytes shown; a UTF-8 file with a BOM shows EF BB BF and 0D 0A, E9 typed reaches the editor as the stand-in,
+undo and redo through the editor, saved as E9; an LF file with unsaved changes shows them and 0A; the Editor switch
+leaves Hex; Text / Column / Hex one checked at a time; the settings change the layout at once; Find; a Hex tab comes
+back in Hex after a restart.

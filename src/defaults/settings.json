@@ -176,6 +176,9 @@
   "altOpens": "tips",             // with the ribbon only: Alt shows the ribbon's key tips ("tips") or the menus ("menu")
   "ribbonGroupNames": true,       // each group's name under it; false: dividers only, the name as their tooltip
   "ribbonLabelWidth": 24,         // the longest button label, in characters; longer ones are cut off with "..."
+  // Hex, a tab as its bytes (docs/plans/executed/PLAN-hex-view.md).
+  "hexBytesPerLine": 16,          // the bytes on one line
+  "hexGroup": 8,                  // an extra space after every so many bytes (hex and characters alike); 0: none
 
   // ---------- Layout ----------
   // What is open and shown in a window is kept per window, with its session (so per project). This is the layout

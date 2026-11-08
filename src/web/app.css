@@ -1633,3 +1633,27 @@ body.mm-rb-changing .mm-rb-bodies { overflow-x: auto; }
 .mm-rbc-tab { font-weight: 700; }
 .mm-rbc-group { font-weight: 600; color: var(--accent); }
 .mm-rbc-corner, .mm-rbc-divider { color: var(--fg-dim); }
+/* ---------- Hex (hexview.js; docs/plans/executed/PLAN-hex-view.md) ---------- */
+.mm-hex { display: none; }
+.mm-pane[data-hex] .mm-editor-pane, .mm-pane[data-hex] .mm-preview-pane, .mm-pane[data-hex] .mm-split,
+.mm-pane[data-hex] .mm-bars, .mm-pane[data-hex] .mm-find { display: none; }   /* find, occurrences: the editor's */
+.mm-pane[data-hex] .mm-hex { display: block; position: relative; flex: 1; min-width: 0; overflow: auto; outline: none;
+  background: var(--bg); color: var(--fg); }
+.mm-hex-lines { position: absolute; left: 0; top: 0; padding: 0 12px; white-space: pre; font-family: var(--editor-font);
+  font-size: var(--editor-size); line-height: calc(var(--editor-size) * var(--editor-line)); }
+.mm-hx-line { display: flex; gap: 2ch; }
+.mm-hx-off { color: var(--fg-dim); }
+.mm-hx-hex, .mm-hx-text { display: flex; }
+.mm-hx-b { display: inline-flex; margin-right: 1ch; }
+.mm-hx-b i { display: inline-block; width: 1ch; font-style: normal; text-align: center; }
+.mm-hx-none { width: 2ch; }
+.mm-hx-b.mm-hx-gap { margin-right: 2ch; }
+.mm-hx-c { display: inline-block; width: 1ch; text-align: center; }
+.mm-hx-c.mm-hx-gap { margin-right: 1ch; }
+.mm-hx-dot { color: var(--fg-dim); }
+.mm-hx-chg { color: var(--git-modified); }
+.mm-hx-sel { background: var(--select); }
+.mm-hx-cur { background: var(--select); }          /* the cursor's byte in the part with the caret */
+.mm-hx-ul { text-decoration: underline; text-underline-offset: 3px; }   /* the same byte in the other part */
+.mm-hx-caret { box-shadow: inset 2px 0 0 var(--accent); }   /* before the digit or character typed next */
+.mm-hx-empty { color: var(--fg-dim); padding: 8px 0; }

@@ -71,6 +71,11 @@ const RIBBON_ICONS = (() => {
     blockSelect: ['Block', dim('M2 3h12M2 6.3h12M2 9.7h12M2 13h12') + '<rect x="5" y="1.5" width="6" height="13" rx="1"/>'],
     selectInsideBrackets: ['Brackets', p('M4.5 2q-3 6 0 12M11.5 2q3 6 0 12') + '<rect x="6" y="5.5" width="4" height="5" rx=".8"/>'],
     'columnMode.toggle': ['Column mode', dim('M2 3h12M2 6.3h12M2 9.7h12M2 13h12') + '<path d="M8 1.5v13" stroke-width="2.4"/>'],
+    // How the tab is worked on (docs/plans/executed/PLAN-hex-view.md): Text, Column, Hex, one at a time.
+    'editMode.set text': ['Text', dim('M2 3h12M2 6.3h12M2 9.7h5M11 9.7h3M2 13h9') + '<path d="M8.5 7.6v4.2" stroke-width="1.8"/>'],
+    'editMode.set column': ['Column', dim('M2 3h12M2 6.3h12M2 9.7h12M2 13h12') + '<path d="M8 1.5v13" stroke-width="2.4"/>'],
+    'editMode.set hex': ['Hex', p('M2.5 1.5h11v13h-11z') + t(4, 7.4, 5.4, '0F', 700) + t(4, 13.4, 5.4, 'A3', 700)],
+    'hex.toggle': ['Hex', p('M2.5 1.5h11v13h-11z') + t(4, 7.4, 5.4, '0F', 700) + t(4, 13.4, 5.4, 'A3', 700)],
     'edit.sortWindow': ['Sort...', p(sortLines + 'M12 2.5v9M10 9.5l2 2 2-2') + '<circle cx="8" cy="14" r=".5" fill="currentColor"/><circle cx="10.5" cy="14" r=".5" fill="currentColor"/><circle cx="13" cy="14" r=".5" fill="currentColor"/>'],
     'edit.sortAsc': ['Sort ascending', t(1, 7, 6.5, 'A') + t(1, 14.5, 6.5, 'Z') + p('M12 2v11M10 11l2 2 2-2')],
     'edit.sortDesc': ['Sort descending', t(1, 7, 6.5, 'Z') + t(1, 14.5, 6.5, 'A') + p('M12 2v11M10 11l2 2 2-2')],
