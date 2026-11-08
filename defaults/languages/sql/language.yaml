@@ -40,8 +40,10 @@ tokens:
   global: { like: variable-2, contrast: 10 }     # @@: the strongest
   variable: { like: variable-2 }                 # @: as variable-2 in the theme
   local: { like: variable-2, contrast: -10 }     # @_: the subtlest
+names: { separator: '.', quotes: ['"', '[]'], case: false }   # how its names are written (go to definition): see README.md, Outline
 outline:
   - pattern: '^\s*create\s+(?:or\s+(?:replace|alter)\s+)?(?:procedure|proc|function|view|trigger|table|package(?:\s+body)?)\s+([\w.\[\]"]+)'
+    definition: true   # its entries are definitions (go to definition)
     name: 1
     level: 1
     flags: i

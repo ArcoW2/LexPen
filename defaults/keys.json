@@ -78,6 +78,10 @@
   "F3": "findNext",
   "Shift+F3": "findPrevious",
   "Ctrl+G": "goToLine",
+  "F12": "goToDefinition",          // in the other pane
+  "Alt+F12": "goToDefinitionHere",   // in this tab
+  "Ctrl+F12": "goToDefinitionNewTab",   // in a new tab beside this one
+  "Shift+F12": "findReferences",
   "Ctrl+Alt+U": "insertCharacter",   // the character picker
   "Ctrl+Down": "scrollLine.down",    // the text a line (the cursor stays, or moves along: setting scrollMovesCursor)
   "Ctrl+Up": "scrollLine.up",

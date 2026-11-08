@@ -120,6 +120,7 @@ tokens:
 embedded:
   - { open: '/*==[', close: ']==*/', language: json }
 # The tag groups of the word file: procedures / functions / triggers, tables, regions, TODO, API definitions.
+names: { separator: '.', quotes: ['"', '[]'], case: false }   # how its names are written (go to definition): see README.md, Outline
 outline:   # the groups of Sybase_ASA_SQL.uew (/TGBegin), in its order
   - group: 'TODO'
     indent: auto    # under what is above it (a procedure, a region)
@@ -130,6 +131,7 @@ outline:   # the groups of Sybase_ASA_SQL.uew (/TGBegin), in its order
     patterns:
       - { pattern: '^\s*"StoredProcName"\s*:\s*"([0-9a-z_]*)"' }
   - group: 'Procs/Funcs/triggers'
+    definition: true   # its entries are definitions (go to definition)
     patterns:
       - { pattern: '^\s*create\s+(?:or\s+replace\s+)?(procedure|function|view|event|domain)\s+([\w".]+)' }
       - { pattern: '^\s*create\s+or\s+replace\s+trigger\s+([\w".]+)' }
@@ -140,6 +142,7 @@ outline:   # the groups of Sybase_ASA_SQL.uew (/TGBegin), in its order
       - { pattern: '^\s*begin\s*(?:--|//)\s*(.+)$' }
       - { pattern: '^\s*//\s*\*\*\*\s?([^*]+)\**$', case: true }
   - group: 'Tables'
+    definition: true   # its entries are definitions (go to definition)
     patterns:
       - { pattern: '^\s*create\s+(?:or\s+replace\s+)?table\s+([\w".]+)' }
 

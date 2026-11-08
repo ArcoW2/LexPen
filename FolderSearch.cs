@@ -55,6 +55,22 @@ static class FolderSearch
         return new JsonObject { ["files"] = files, ["truncated"] = truncated };
     }
 
+    /// <summary>
+    /// The files below the folder that the search would look in (<paramref name="extensions"/> as there), each with
+    /// the time it was last written (ticks, UTC): [{path, time}], by path. For the index of definitions (go to
+    /// definition, docs/plans/executed/PLAN-code-intelligence.md), which reads again only what changed.
+    /// </summary>
+    public static JsonArray List(string root, IReadOnlySet<string>? extensions)
+    {
+        var list = new JsonArray();
+        foreach (var path in Files(root, extensions))
+        {
+            try { list.Add(new JsonObject { ["path"] = path, ["time"] = File.GetLastWriteTimeUtc(path).Ticks.ToString() }); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+        }
+        return list;
+    }
+
     // All files below the folder, in a stable order (by path), the way the tree shows them.
     static IEnumerable<string> Files(string root, IReadOnlySet<string>? extensions)
     {

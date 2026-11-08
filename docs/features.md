@@ -218,12 +218,22 @@ every action with its key.
   within those lines of an edge, or centred. The number of lines is a setting (0 to 20). Sideways (without wrapping)
   the start of the place stays at least Scroll sideways before the edge columns from the left and right edge; the
   whole place is in view when it fits.
+- **Go to definition, find references** (Go menu; F12, Alt+F12, Shift+F12): F12 goes to the definition of the name at
+  the cursor (a procedure, function, class, table, ...) in the open files and the folder (the Folder pane's, else the
+  file's own), its subfolders too; more than one: a list to pick from. The name is compared without what qualifies
+  it (an SQL owner such as `dba.`, a C# namespace or class): `call proc_name` finds `create procedure dba.proc_name`;
+  the qualifier only orders the list. F12 shows it in the other pane, this document staying as it is; Alt+F12 in
+  this tab, as a link (a new tab beside it when this document has unsaved changes); Ctrl+F12 in a new tab beside
+  this one. Back returns to the line it was pressed on. Three actions, so the keys can be changed.
+  Shift+F12 searches the folder for the name, whole word, in the Search panel. What a definition is comes from the
+  language pack: the outline groups it marks `definition: true` (languages\README.md).
 - **Position back / forward**: every document keeps the places its cursor jumped from: a move of more lines than
   the setting A jump (Editor, 10 by default) without typing (go to line, a bookmark, the outline, Ctrl+Home, a click
   far away), and always a found item (find, the search in files), however close. Ctrl+Alt+- goes back, Ctrl+Alt++
   forward again; also the mouse back / forward buttons. A place moves with the edits; one whose line was deleted is
-  skipped. Ctrl + the mouse buttons go through the tabs and files of the window instead (View > Back / Forward in
-  the window), like a browser.
+  skipped. With no place left to go to, a line flashes at the top and the bottom together (one edge alone means the
+  text's top or end). Ctrl + the mouse buttons go through the tabs and files of the window instead (View > Back /
+  Forward in the window), like a browser.
 - **Bookmarks**: 1 to 9 and unnumbered ones, at a line and column, kept per file. Ctrl+1, S stores bookmark 1,
   Ctrl+1, 1 (or Ctrl+1, Ctrl+1) goes there, Ctrl+1, T toggles, Ctrl+1, C clears; Ctrl+K, 1 and Ctrl+Q, 1 as in
   WordStar and Delphi; Ctrl+K, K / N / P / L for unnumbered ones, next, previous and the list. They follow

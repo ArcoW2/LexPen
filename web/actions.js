@@ -350,6 +350,15 @@ appAction('complete', { title: 'Complete word', hint: 'A list of what completes 
   run: (_, { pane }) => showCompletion(pane) });
 // +n / -n (or +-n): that many lines down / up from the cursor. With relative line numbers the field starts as "+"
 // with the caret after it: a number goes down, -n up, Backspace and a number to that line.
+// Go to definition, find references (definitions.js; docs/plans/executed/PLAN-code-intelligence.md).
+appAction('goToDefinition', { title: 'Go to definition', hint: 'The definition of the name at the cursor (in the open files and the folder, its subfolders too; a list when there are more), shown in the other pane: this document stays as it is', group: 'edit', editor: true,
+  run: (_, { pane }) => goToDefinition(pane, 'other') });
+appAction('goToDefinitionHere', { title: 'Go to definition in this tab', hint: 'As Go to definition, shown in this tab instead of this document (in a new tab beside it when this document has unsaved changes); Back returns here', group: 'edit', editor: true,
+  run: (_, { pane }) => goToDefinition(pane, 'tab') });
+appAction('goToDefinitionNewTab', { title: 'Go to definition in a new tab', hint: 'As Go to definition, shown in a new tab beside this one in this pane: this document stays open; Back returns here', group: 'edit', editor: true,
+  run: (_, { pane }) => goToDefinition(pane, 'newTab') });
+appAction('findReferences', { title: 'Find references', hint: 'The name at the cursor (without what qualifies it) searched for in the folder, whole word, in the Search panel', group: 'edit', editor: true,
+  run: (_, { pane }) => findReferences(pane) });
 appAction('goToLine', { title: 'Go to line', hint: 'A line number, or line:column; +n or -n: that many lines down or up; the cursor goes there', group: 'edit', editor: true,
   run: async (_, { pane }) => {
     const cm = pane.cm, here = cm.getCursor();

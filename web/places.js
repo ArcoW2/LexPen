@@ -92,7 +92,7 @@ function stepPlace(dir) {
     place.mark.clear();
     if (pos && (pos.line !== here.line || pos.ch !== here.ch)) { to = pos; break; }   // its text deleted, or here: skipped
   }
-  if (!to) return linkStep(dir) || flashEdge(cm, dir);   // virtual.js
+  if (!to) return linkStep(dir) || flashEdge(cm, 0);   // virtual.js: both edges, no position to go to
   const other = dir < 0 ? (doc.placesForward ??= []) : (doc.placesBack ??= []);
   other.push(makePlace(doc.cmDoc, here));
   if (other.length > PLACES_MAX) other.shift().mark.clear();

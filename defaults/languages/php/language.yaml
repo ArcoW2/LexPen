@@ -1485,6 +1485,7 @@ tokens:
   keyword-2: { like: keyword }
   class: { like: type }
 # The tag groups of the word file.
+names: { separator: '::', case: false }   # how its names are written (go to definition): see README.md, Outline
 outline:   # the groups of php.uew (/TGBegin), in its order
   - group: 'Requires'
     patterns:
@@ -1493,6 +1494,7 @@ outline:   # the groups of php.uew (/TGBegin), in its order
     patterns:
       - { pattern: '^\s*include(?:_once)?[\s"'']+([\w$&*\-./:=?\\^]+)["'']*;' }
   - group: 'Functions'
+    definition: true   # its entries are definitions (go to definition)
     patterns:
       - { pattern: '^\s*(?:(?:abstract|final|private|protected|public|static)\s+)*function\s+([a-z_\u007f-\ufffd][0-9a-z_\u007f-\ufffd]*)' }
 

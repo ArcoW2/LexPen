@@ -74,8 +74,9 @@ tokens:
   signal: { like: atom }
   test: { like: keyword }
 # The function string of the word file.
+names: { chars: '-' }   # how its names are written (go to definition): see README.md, Outline
 outline:
-  - { pattern: '\bfunction\s+([\w-]+)', name: 1, level: 1 }   # functions
+  - { pattern: '\bfunction\s+([\w-]+)', name: 1, level: 1, definition: true }   # functions
 
 # ---------- Format ----------
 # The parameters of the formatter (Format, Enter): the roles of the words and signs of this language and the

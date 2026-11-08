@@ -525,7 +525,7 @@ function outlineOf(doc) {
         const shown = outlineText(m[p.name ?? 1] ?? m[0].trim());
         if (!isOutlineText(shown)) continue;
         const ch = Math.max(0, m.index + Math.max(0, m[0].indexOf(shown)));   // where its text starts (a double-click)
-        entries.push({ level: Math.max(1, Math.min(6, level)), text: shown, line, ch });
+        entries.push({ level: Math.max(1, Math.min(6, level)), text: shown, line, ch, ...definitionOf(p.definition, [m[p.name ?? 1]]) });
         break;
       }
     });
@@ -564,7 +564,8 @@ function outlineOf(doc) {
           } else if (Number.isInteger(p.indent)) level = base + Math.floor(width(m[p.indent] ?? '') / step);
           const first = outlineText(parts.find(x => x !== undefined && outlineText(x)) ?? '');   // where its text starts (a double-click)
           const at = m.index + Math.max(0, m[0].indexOf(first)) - starts[line];
-          found.set(line, { level: Math.max(1, Math.min(6, level)), text: shown, line, group: gi, ch: Math.max(0, at), extra: level - base });
+          found.set(line, { level: Math.max(1, Math.min(6, level)), text: shown, line, group: gi, ch: Math.max(0, at), extra: level - base,
+            ...definitionOf(g.definition || p.definition, parts) });
         }
       }
       entries.push(...[...found.values()].sort((a, b) => a.line - b.line));
@@ -589,6 +590,15 @@ function outlineOf(doc) {
   }
   doc.outlineVersion = doc.version;
   return doc.outline = entries;
+}
+
+// An entry of a group (or a pattern) marked `definition: true` is a definition (go to definition, definitions.js): its
+// name is the last capture that matched, its last word (`procedure dba.proc_name`: dba.proc_name), as written.
+function definitionOf(marked, parts) {
+  if (marked !== true) return {};
+  const last = [...parts].reverse().find(x => x !== undefined && x.trim());
+  const name = last?.trim().split(/\s+/).at(-1);
+  return name ? { definition: name } : {};
 }
 
 // A group's colour: `#rrggbb`, a theme colour's name (accent), else one by its place.

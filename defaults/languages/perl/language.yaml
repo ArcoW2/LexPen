@@ -78,11 +78,13 @@ tokens:
   dbi: { like: type }
   variable: { like: variable-2 }
 # The tag groups (use declarations, subs) of the word file.
+names: { separator: '::' }   # how its names are written (go to definition): see README.md, Outline
 outline:   # the groups of perl.uew (/TGBegin), in its order
   - group: 'Use Declarations'
     patterns:
       - { pattern: '^\s*use\s+([\w:]+)', case: true }
   - group: 'Subs'
+    definition: true   # its entries are definitions (go to definition)
     patterns:
       - { pattern: '^\s*sub\s+(\w+)', case: true }
 

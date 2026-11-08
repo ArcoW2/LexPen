@@ -1465,6 +1465,11 @@ async function go(from, to) {
         }
       } else await activate(pane, tab);
       if (tab.mode !== 'edit') pane.previewEl.scrollTop = tab.previewTop = entry.top;
+      // A step with the cursor kept (go to definition, definitions.js): there again.
+      if (entry.cursor && tab.mode !== 'preview' && pane.cm) {
+        pane.cm.setCursor(entry.cursor);
+        revealFound(pane.cm, entry.cursor);
+      }
     } finally {
       goingBack = false;
     }

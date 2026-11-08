@@ -528,7 +528,7 @@ sealed class MainForm : Form
     }
 
     // Requests that may carry a whole file: their answer is turned into text off the UI thread as well.
-    static readonly HashSet<string> LargeAnswers = ["read", "gitHead", "search", "folderList", "format"];
+    static readonly HashSet<string> LargeAnswers = ["read", "gitHead", "search", "folderList", "format", "listFiles"];
 
     async void OnMessage(string json, string[]? files)
     {
@@ -544,6 +544,9 @@ sealed class MainForm : Form
             reply["result"] = op switch
             {
                 "search" => await Task.Run(() => Search(msg)),
+                // The files of a folder for the index of definitions (definitions.js): those of the extensions given.
+                "listFiles" => await Task.Run(() => FolderSearch.List(msg["root"]!.GetValue<string>(),
+                    new HashSet<string>(Strings(msg["extensions"]), StringComparer.OrdinalIgnoreCase))),
                 // Highlights (HighlightStore): the store's files and the .lph files off the UI thread.
                 "highlightsGet" => await Task.Run(() => app.Highlights.Get(msg["path"]?.GetValue<string>(), msg["draft"]?.GetValue<string>())),
                 "highlightsSet" => await SetHighlights(msg),

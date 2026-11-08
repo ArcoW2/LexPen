@@ -6,8 +6,10 @@ open: edit
 mode: powershell        # built in
 fold: brace
 comments: { line: '#', block: ['<#', '#>'] }
+names: { chars: '-', case: false }   # how its names are written (go to definition): see README.md, Outline
 outline:   # the groups of powershell.uew (/TGBegin), in its order
   - group: 'Functions'
+    definition: true   # its entries are definitions (go to definition)
     patterns:
       - { pattern: '^\s*(?:function|filter)\s+([\w-]+)' }
 actions:

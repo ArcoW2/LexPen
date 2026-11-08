@@ -406,11 +406,15 @@ function scrollLine(cm, dir, extend = false) {
   cm.scrollTo(null, top);   // the move must not scroll the view again
 }
 
+// The edge of the editor flashes: the bottom (dir > 0: no further down), the top (dir < 0: no further up), or both
+// (dir 0: nothing to go to at all, as Position back / forward with no positions: unlike the top or the end of the text).
 function flashEdge(cm, dir) {
   const wrapper = cm.getWrapperElement();
-  wrapper.querySelector('.mm-edge-flash')?.remove();
-  const el = document.createElement('div');
-  el.className = 'mm-edge-flash ' + (dir > 0 ? 'mm-edge-bottom' : 'mm-edge-top');
-  wrapper.append(el);
-  setTimeout(() => el.remove(), 1000);
+  for (const old of wrapper.querySelectorAll('.mm-edge-flash')) old.remove();
+  for (const edge of dir > 0 ? ['mm-edge-bottom'] : dir < 0 ? ['mm-edge-top'] : ['mm-edge-top', 'mm-edge-bottom']) {
+    const el = document.createElement('div');
+    el.className = 'mm-edge-flash ' + edge;
+    wrapper.append(el);
+    setTimeout(() => el.remove(), 1000);
+  }
 }

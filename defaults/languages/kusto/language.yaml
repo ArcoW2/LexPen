@@ -54,7 +54,7 @@ rules:
 tokens:
   pipe: { like: keyword, bold: true }
 outline:
-  - { pattern: '^\s*let\s+(\w+)', name: 1, level: 1 }
+  - { pattern: '^\s*let\s+(\w+)', name: 1, level: 1, definition: true }
 actions:
   snippetLastHour:
     title: 'Snippet: the last hour'

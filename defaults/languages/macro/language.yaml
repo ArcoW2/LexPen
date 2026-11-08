@@ -29,9 +29,11 @@ tokens:
 
 outline:
   - group: 'Procedures and functions'
+    definition: true   # its entries are definitions (go to definition)
     patterns:
       - { pattern: '^\s*(?:procedure|function)\s+(\w+)' }
   - group: 'Labels'
+    definition: true   # its entries are definitions (go to definition)
     indent: auto
     patterns:
       - { pattern: '^\s*:(\w+)' }

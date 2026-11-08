@@ -65,6 +65,7 @@ const MENUS = [
   ]],
   ['&Go', [
     ['Go to &line...', 'goToLine'], ['Locate the &cursor (tap Ctrl)', 'locateCursor'], '-',
+    ['Go to d&efinition', 'goToDefinition'], ['Go to definition in &this tab', 'goToDefinitionHere'], ['&Go to definition in a new tab', 'goToDefinitionNewTab'], ['Find reference&s', 'findReferences'], '-',
     { label: '&Bookmarks', sub: [
       { label: '&Go to bookmark', fill: () => loadEditor().then(() => bookmarkItems('go')) },   // bookmarks.js comes with the editor
       { label: '&Store bookmark', fill: () => loadEditor().then(() => bookmarkItems('store')) },
