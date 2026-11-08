@@ -118,6 +118,7 @@ None.
   it), filled by Parse and Resolve; AppHost.ThemeColours sends every theme complete with its mode's fallback and
   its `From` (a colour not in it: LexPen's default). A value `var(--bg)` (the dark fallback of `bookmarkFg`) is shown
   as the colour it points to.
+- **From** says `selected theme`, not `this theme`: "this theme" read as the theme the LexPen window uses.
 - **The divider**'s place is kept in the window's browser storage.
 - Tested: the unit tests (every colour name described once, every one used in the example, the setter per colour
   two bases deep; 397 passed); in the test copy: a theme of mine on Dark ocean shows `bg` from this theme, `accent`

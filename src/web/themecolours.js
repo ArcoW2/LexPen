@@ -1,7 +1,7 @@
 'use strict';
 // The Theme colours window's page (themecolours.html; ThemeColoursForm hosts it), docs/plans/executed/PLAN-theme-colours.md:
 // a theme chosen at the top (the app's theme of the window last worked in first); per colour name its group, what it
-// is for (themecolourlist.js), where its value comes from (this theme, a base, or LexPen's default), the value as hex,
+// is for (themecolourlist.js), where its value comes from (the selected theme, a base, or LexPen's default), the value as hex,
 // rgb and hsl, and samples as text, line and block on that theme's background; under it the example, in that theme's
 // colours only. The window itself stays in LexPen's look. Esc closes it.
 
@@ -95,7 +95,7 @@ function draw() {
   const vars = theme.vars, bg = vars['--bg'], fg = vars['--fg'];
   const own = Object.values(theme.from).filter(id => id === theme.id).length;
   $('.tc-about').textContent = `${theme.dark ? 'A dark theme' : 'A light theme'}; it sets ${own} of its colours itself`;
-  const fromText = id => !id ? "LexPen's default" : id === theme.id ? 'this theme' : themeOf(id)?.name ?? id;
+  const fromText = id => !id ? "LexPen's default" : id === theme.id ? 'selected theme' : themeOf(id)?.name ?? id;
   let rows = '';
   for (const [group, colours] of THEME_COLOUR_GROUPS) {
     rows += `<tr class="tc-group"><td colspan="7">${escapeHtml(group)}</td></tr>`;
