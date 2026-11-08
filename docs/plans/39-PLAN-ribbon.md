@@ -141,6 +141,10 @@ Sort, Highlights and Macros); Home also in the light theme:
   centred in the height.
 - **Tooltips**: every button and corner icon shows its action's title and key when the mouse is over it (a button
   with a short label: the full title, Go to line for Line).
+- **Long labels**: a label that does not fit is cut off with "...": a small button's at the width of the widest
+  label of the shipped ribbon, a large button's after two lines; the tooltip has it whole. A long name (a macro's,
+  Play macro with the macro as its parameter) works at once that way; a shorter label of the button's own (its
+  right-click in change mode) is a choice, and the macro keeps its name.
 - **Variants: a split button.** A button whose action has variants (its parameter: a clipboard's number, a
   bookmark's) gets a small arrow (a large button: under its label; a small one: at its right); the arrow, and a
   right-click outside change mode, open the list of its variants, each with its title, and the button shows which one
@@ -280,7 +284,7 @@ never changes by accident while working.
   large one, and three; each corner icon runs its action and shows its title and key on hover; Paste's arrow and
   right-click list the clipboards: Paste from one pastes it and leaves the active one, Active clipboard moves the
   badge, Clear clipboard empties the active one; Copy to and Cut to fill the chosen clipboard and leave the active
-  one; a variant dragged from F1 is a button for that one choice (its label, the number on its icon, no arrow), the
+  one; a long label cut off with "..." (small and large), whole in the tooltip; a variant dragged from F1 is a button for that one choice (its label, the number on its icon, no arrow), the
   action itself a button with the arrow; Parameter in a button's right-click turns one into the other; Toggle bookmark's
   list the numbered bookmarks; Sort again repeats the last sort; group names on and off; overflow into ">>" at a narrow window; commandBar `menu`, `ribbon` (the tab
   names in the menus' place, the rest of the top bar as it was, Alt shows the key tips: a tab's letter opens it, a button's letter runs
