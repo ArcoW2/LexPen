@@ -1570,9 +1570,10 @@ body.mm-rb-menus .mm-rb-tabs-top { display: none; }
 .mm-rb-arrow { display: inline-grid; place-items: center; flex: none; }
 /* A split button (an action with a list): the arrow a part of its own behind a divider, each part lit on its own;
    a small button's arrow the full height at its right, a large one's a row under the label, the button's width */
-.mm-rb-small .mm-rb-arrow[data-arrow] { align-self: stretch; width: 18px; margin: 0 -6px 0 2px; border-radius: 0 4px 4px 0;
+.mm-rb-small .mm-rb-arrow[data-arrow] { align-self: stretch; width: 18px; margin: 0 -6px 0 auto; border-radius: 0 4px 4px 0;
   background: linear-gradient(var(--border), var(--border)) left center / 1px 12px no-repeat; }   /* lower than the text: stacked ones' do not join */
-.mm-rb-small:has(.mm-rb-arrow[data-arrow]) .mm-rb-text { align-self: stretch; }
+.mm-rb-small:has(.mm-rb-arrow[data-arrow]) .mm-rb-text { align-self: stretch; flex: 1; }   /* the arrow at the button's right end */
+.mm-rb-small:has(.mm-rb-arrow[data-arrow]) .mm-rb-label { padding-right: 4px; }
 .mm-rb-large > .mm-rb-arrow[data-arrow] { align-self: stretch; height: 16px; margin: auto -6px -3px; border-top: 1px solid var(--border);
   border-radius: 0 0 4px 4px; }
 .mm-rb-large > .mm-rb-arrow::after { margin-top: 4px; }
