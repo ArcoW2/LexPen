@@ -1,6 +1,6 @@
 # Plan: a window that shows every colour of a theme
 
-Status: draft 2026-11-08, revised 2026-11-08; not started. The number in the file name is the priority; rename to reorder.
+Status: draft 2026-11-08, revised 2026-11-08 (twice); not started. The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
 
@@ -13,8 +13,11 @@ a colour looks is only visible where LexPen happens to use it. Making or checkin
 A new window, Tools > Theme colours...: one row per colour name, with its name, what it is used for, where its
 value comes from (the theme itself or which base), its value (hex, rgb, hsl) and three samples: the colour as text, as a line and as a block. A list at the top picks any
 theme; it changes only the sample part of the rows, including its background, so a colour is always seen on the
-background of its own theme. The window itself stays in LexPen's current theme. What each colour is for is written
-once, in the page, and a test checks that every colour name has it.
+background of its own theme. Under the list an example shows every colour of the chosen theme where LexPen uses it,
+named: a small LexPen with its bars, tabs, gutter and editor text (`This is a highlight`, a selection, find hits,
+brackets, indent guides, language colours, ...), a folder list with git colours and a preview with its alerts. The
+window itself stays in LexPen's current theme. What each colour is for is written once, in the page, and tests check
+that every colour name has it and appears in the example.
 
 ## 3. Details
 
@@ -47,7 +50,30 @@ once, in the page, and a test checks that every colour name has it.
 - Rows in the order and groups of the theme files: the app (backgrounds, text, borders, ...), then code (keyword,
   string, ...), with the group as a header row.
 
-### 3.3 Where the colours come from
+### 3.3 The example
+
+- Under the list, the two parted by a divider that can be dragged (its place kept with the window). It shows the
+  chosen theme only: its own background, all its colours, nothing of LexPen's current theme.
+- A small LexPen drawn by the page itself (HTML and LexPen's own CSS classes where they fit; not a real editor), in
+  which every colour is used where LexPen uses it and says its name:
+  - **The window**: the menu bar and status bar (`bgBar`), a side panel (`bgSide`) with a folder list: files in the git
+    colours (`gitModified`, `gitAdded`, `gitUntracked`, `gitDeleted`), a row under the mouse (`hover`) and the active
+    one (`active`); tabs with the active one (`accent`) and the active pane's mark (`paneActive`); the formatting bar
+    (`bgBarDim`, `barChanged`, `barRemoved`); the settings layer marks (`layerGlobal`, `layerWindow`, `layerSet`,
+    `layerScreen`).
+  - **The editor**: a gutter with line numbers (`fgDim`), a bookmark (`bookmarkFg`) and change markers; lines such as
+    `This is a highlight` (`highlight`), `This is selected text` (`select`), `the word at the cursor, and the word
+    again` (`occurrenceHit`, `occurrenceBox`), `a find hit and the current one` (`findHit`, `findCurrent`,
+    `findCurrentFg`, `findBox`), matching and unmatched brackets (`bracketMatch`, `bracketNoMatch`), indent guides
+    (`guide1` to `guide6`), visible whitespace (`whitespace`), an embedded block's gutter (`gutterBgEmbedded`), and a
+    few lines of code in the language colours, each naming its own (`keyword`, `string`, `comment`, `number`,
+    `title`, `attr`).
+  - **The preview**: headings and text (`fg`, `border`), inline code (`inlineCode`, `inlineCodeFg`), a code block
+    (`bgCode`) and the five alerts (`note`, `tip`, `important`, `warning`, `caution`).
+- Every coloured part carries its colour name (`data-colour`), shown as a tooltip as well; the text of a part says
+  the name where it reads naturally (`This is a highlight (highlight)`).
+
+### 3.4 Where the colours come from
 
 - The host already resolves each theme through its bases (ThemeFile.Load, Resolve) and completes it with the
   fallbacks from app.css (Complete). A host op returns that list: per theme its id, name and every colour name with
@@ -56,20 +82,22 @@ once, in the page, and a test checks that every colour name has it.
 - A change to a theme file (yours or shipped, in a debug build) refreshes the window, as the themes already do for
   the other windows.
 
-### 3.4 What each colour is for
+### 3.5 What each colour is for
 
 - Written in `themecolours.js`, one line per name, in the groups of 3.2. Only there; the README's list of names
   keeps pointing to the themes.
 - A unit test: every colour name in light.json and dark.json has a line there, and there is no line for a name
   that is not a colour.
 
-### 3.5 Tests
+### 3.6 Tests
 
-- The unit test of 3.4.
+- The unit test of 3.5, and one that every colour name in light.json and dark.json is used in the example (its
+  `data-colour` names).
 - In the test copy: the window opens from Tools; picking Dark in a Light LexPen shows the samples on Dark's
   background and leaves the rest of the window light; a translucent colour (`hover`, `findHit`) shows its rgba and
   its hex with alpha; your own theme with a base shows the base's colours it does not set, From naming the base
-  for those and `this theme` for its own; a theme two bases deep names the right one per colour.
+  for those and `this theme` for its own; a theme two bases deep names the right one per colour; the example follows
+  the theme list and stays in the chosen theme's colours only.
 - A unit test of the host op: a theme on a base on a root gives each colour's setter.
 
 ## 4. Open questions
