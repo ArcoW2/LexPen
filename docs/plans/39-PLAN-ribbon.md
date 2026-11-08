@@ -147,19 +147,27 @@ Sort, Highlights and Macros); Home also in the light theme:
   file name, Stop recording, Save, the panes' orientation, Editor / Preview, Day / night, the zoom) stays in every
   case; only its menu part changes:
   - `menu`: the menus in the top bar, as now; no ribbon.
-  - `ribbon`: the ribbon's tab names in the top bar, in the menus' place; its buttons under the top bar. Alt shows
-    the menus there instead of the tab names until a menu closes, so nothing becomes unreachable (F1 lists every
-    command too).
+  - `ribbon`: the ribbon's tab names in the top bar, in the menus' place; its buttons under the top bar. What Alt
+    does is a setting of its own, shown in Settings only with `ribbon` (setting altOpens: "Alt opens"): `tips`
+    (Ribbon key tips, the default; below) or `menu` (the menus in the tab names' place until a menu closes). A
+    command that is in no tab stays reachable by its key, by F1's list of every command, or by adding it (Customize).
   - `both`: the menus in the top bar; under it the ribbon, its tab names in a row of their own above its buttons.
   View > Ribbon switches between `menu` and `both`; the ribbon's own right-click has Customize..., Reset and the
   three choices.
+- **Key tips** (Alt with `ribbon` and altOpens `tips`): a small letter on each tab name; its letter opens that tab
+  and shows a letter on each of its buttons, and on each group's corner icon; a button's letter runs it, as a click.
+  Esc goes a level back (the buttons' letters to the tabs', then off); a click elsewhere or another key ends them.
+  The letters come from the names as the menus' underlined letters do (the first letter of the name no other one at
+  that level has; two letters when one is not enough), so they stay the same while the ribbon does; a button may
+  have a letter of its own (`tip` in ribbon.json). With `menu` and `both`, Alt opens the menus as now.
 - **The format bar** stays the document's own bar above the text: the ribbon is the window's.
 
 ### 3.3 Customize
 
 - A window (as F1): at the left all actions with a search, grouped as the menus; at the right the ribbon: its tabs,
   each with its groups and their columns. Add, remove, move up / down (and drag); new tab, new group, rename;
-  per button large or small and stacked or not (up to three); a divider; per group its corner action.
+  per button large or small and stacked or not (up to three), its label and its key tip; a divider; per group its
+  corner action.
 - An action with values (Preview place, a bookmark number) is added with its value, as keys.json writes
   `["preview.left"]`.
 - Reset: back to the shipped content.
@@ -202,7 +210,8 @@ Sort, Highlights and Macros); Home also in the light theme:
   moving, a tab changing, a setting changing.
 - Customize: a WebView page of its own (as F1's commands page), talking to the window as the other tool pages do.
 - The host: read and write `ribbon.json`, a default copy shipped in `defaults/`.
-- The settings commandBar and ribbonGroupNames in Settings, with the other settings of the window's bars.
+- The settings commandBar, altOpens (shown only with `ribbon`) and ribbonGroupNames in Settings, with the other
+  settings of the window's bars.
 
 ### 3.6 Alternatives
 
@@ -215,12 +224,13 @@ Sort, Highlights and Macros); Home also in the light theme:
 
 - Unit (C#): `ribbon.json` read and written, a missing file giving the shipped one, an unknown action skipped, a
   "stack" without a small button before it, a fourth stacked one starting a new column.
-- Unit (Jint): the columns of a group from its items (large, small, two and three stacked, dividers).
+- Unit (Jint): the columns of a group from its items (large, small, two and three stacked, dividers); the key tips
+  of a tab and of its buttons (unique per level, from the names, a button's own `tip` first).
 - In the test copy by script: each shipped button runs its action; toggles show their state; a button greyed out
   where its action is not available; the tabs switch and keep their choice; two stacked small buttons as high as a
   large one, and three; the corner icon runs its action; Sort again repeats the last sort; group names on and off; overflow into ">>" at a narrow window; commandBar `menu`, `ribbon` (the tab
-  names in the menus' place, the rest of the top bar as it was, Alt reaches every menu) and `both` (the tab names
-  under the menus); Customize adds, moves, resizes, stacks and removes a button, adds a
+  names in the menus' place, the rest of the top bar as it was, Alt shows the key tips: a tab's letter opens it, a button's letter runs
+  it, Esc goes back; with altOpens `menu` Alt shows the menus) and `both` (the tab names under the menus); Customize adds, moves, resizes, stacks and removes a button, adds a
   tab and a divider, and the ribbon follows; Reset.
 
 ## 4. Open questions
