@@ -12,7 +12,7 @@ must be able to choose what is on it.
 
 ## 2. The solution, in brief
 
-An optional ribbon under the menu bar, with tabs (File, Home, Format, View, Tools); each tab holds named groups of
+An optional ribbon under the menu bar, with tabs (File, Home, Sort, View, Tools); each tab holds named groups of
 buttons, each button running an action as its menu item does, its tooltip showing the title and the key. A button is
 large (icon above its label, the ribbon's full height) or small (icon with its label beside it), and up to three
 small buttons stack in the height of one large one. A group may have a small icon in its corner that opens its
@@ -42,12 +42,12 @@ divider. "Corner": the action of the group's corner icon.
 | Clipboard | Paste (large; a number badge: the active clipboard) / Paste image + Cut + Copy. Corner: Manage clipboards |
 | Find | Find (large) / Find previous + Find next + Replace / Replace in files + Search in files + Find references |
 | Occurrences | Show all occurrences + Occurrences field + Clear occurrences / Occurrences bar (a toggle) |
-| Go | Position back + Position forward + Go to line / Go to definition |
+| Go | Go to line + Go to definition |
 | Select | Select all (large) / Select line + Select a block + Select inside brackets / divider / Column mode (large, a toggle) |
 | Bookmarks | Toggle unnumbered bookmark (large) / Previous bookmark + Next bookmark. Corner: Manage bookmarks |
 | Highlights | Highlight + Highlight note + Remove highlight. Corner: Highlights window |
 
-**Format**
+**Sort**
 
 | Group | Columns |
 |---|---|
@@ -74,12 +74,12 @@ divider. "Corner": the action of the group's corner icon.
 - **Actions**: all exist now (actions.js), except **Sort again**: a new action, the last sort again with its keys
   and options (from the Sort panel or a stored sort), on the selection or the file as Sort.
 - **Highlight** is not a toggle: it highlights the selection, or removes the highlight the cursor is in.
-- **Position back / forward**: the cursor's jumps in the document (places.js); Back / Forward in the window (the
-  tabs and files, as a browser) are in the menus and keys, not on the ribbon.
+- **Position back / forward** (the cursor's jumps in the document) and **Back / Forward in the window** (the tabs
+  and files, as a browser) are not on the ribbon: in the menus and on their keys and mouse buttons.
 - **Day / Night**: the two values of Day / night, each its own button, the current one pressed.
 - **Width**, measured in a mock (a test copy, LexPen's own font and the Dark theme, group names on, a 1264 px wide
-  window): File 233 px, Home 2038 px, Format 257 px, View 712 px, Tools 779 px. Home's groups: Edit 422, Clipboard
-  152, Find 273, Occurrences 277, Go 251, Select 283, Bookmarks 236, Highlights 139; the ribbon 120 px high with its
+  window): File 233 px, Home 1917 px, Sort 257 px, View 712 px, Tools 779 px. Home's groups: Edit 422, Clipboard
+  152, Find 273, Occurrences 277, Go 129, Select 283, Bookmarks 236, Highlights 139; the ribbon 120 px high with its
   tabs. Home does not fit that window (question 1).
 
 The mock, per tab (the icons are placeholders: a box with the label's first letter; the corner icon at the bottom
@@ -89,7 +89,7 @@ right of Clipboard, Bookmarks, Highlights and Sort):
 
 ![ribbon-Home](39-PLAN-ribbon.md.images/ribbon-Home.png)
 
-![ribbon-Format](39-PLAN-ribbon.md.images/ribbon-Format.png)
+![ribbon-Sort](39-PLAN-ribbon.md.images/ribbon-Sort.png)
 
 ![ribbon-View](39-PLAN-ribbon.md.images/ribbon-View.png)
 
@@ -171,7 +171,7 @@ right of Clipboard, Bookmarks, Highlights and Sort):
 
 ## 4. Open questions
 
-1. Home is wider than a 1264 px window (2038 px in the mock): split it into two tabs (for instance Home: Edit,
+1. Home is wider than a 1264 px window (1917 px in the mock): split it into two tabs (for instance Home: Edit,
    Clipboard, Find, Occurrences; and Navigate: Go, Select, Bookmarks, Highlights), make more of its large buttons small (Select
    all, Toggle bookmark), or keep it and let the right end go into the ">>" menu?
-2. History (Undo, Redo) on Format, as now, or on Home, where the actions used most are?
+2. History (Undo, Redo) on Sort, as now, or on Home, where the actions used most are?
