@@ -1540,7 +1540,7 @@ body.mm-rb-menus .mm-rb-tabs-top { display: none; }
 .mm-rb-tabs-row { padding: 2px 8px 0; background: var(--bg-bar); }
 .mm-rb-new { font-style: italic; color: var(--fg-dim); }
 .mm-ribbon { flex: none; background: var(--bg-bar); border-bottom: 1px solid var(--border); user-select: none; position: relative;
-  --rb-row: calc(22px * var(--ui-scale)); }
+  --rb-row: calc(25px * var(--ui-scale)); }   /* three: a large button's icon and two lines of label */
 .mm-rb-bodies { display: flex; align-items: stretch; overflow: hidden; padding: 3px 4px 0; }
 .mm-rb-body { display: flex; align-items: stretch; flex: none; }
 .mm-rb-group { position: relative; display: flex; flex-direction: column; padding: 0 5px; border-right: 1px solid var(--border); }
@@ -1554,7 +1554,7 @@ body.mm-rb-menus .mm-rb-tabs-top { display: none; }
 .mm-rb-small { height: var(--rb-row); }
 .mm-rb-large { flex-direction: column; justify-content: flex-start; gap: 2px; padding: 3px 6px; text-align: center; white-space: normal; }
 .mm-rb-small .mm-rb-label { max-width: var(--rb-ch); overflow: hidden; text-overflow: ellipsis; }
-.mm-rb-large .mm-rb-label { max-width: calc(var(--rb-ch) / 2); line-height: 1.15; overflow: hidden; display: -webkit-box;
+.mm-rb-large .mm-rb-label { max-width: calc(var(--rb-ch) / 2); line-height: 1.3; overflow: hidden; display: -webkit-box;
   -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .mm-rb-icon { position: relative; display: inline-flex; flex: none; }
 .mm-rb-letter { display: inline-grid; place-items: center; width: 14px; height: 14px; border: 1.4px solid currentColor; border-radius: 3px;
