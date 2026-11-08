@@ -10,13 +10,12 @@ Go to definition, find all references, rename a symbol, errors while typing: Vis
 
 ## 2. The solution, in brief
 
-The simple level, without a language server: "Go to definition" looks up the name at the cursor, without its owner
-(schema), in the definitions of the open files and of the folder in the Folder pane, its subfolders included; an
-owner only orders the list of what is found. A definition is an outline entry of
-a group the language pack marks as one (procedures, functions, classes; not regions or TODOs). "Find references" is
-a whole-word search in those files. A line `call
-proc_name` thus finds `create or replace procedure proc_name` wherever it is in the folder. A full level through the
-Language Server Protocol is not part of this plan.
+The simple level, without a language server: "Go to definition" looks up the name at the cursor, without what
+qualifies it (an SQL owner or schema, a C# namespace or class, a JavaScript object), in the definitions of the open
+files and of the folder in the Folder pane, its subfolders included; a qualifier only orders the list of what is
+found. A definition is an outline entry of a group the language pack marks as one (procedures, functions, classes;
+not regions or TODOs). "Find references" is a whole-word search in those files. A full level through the Language
+Server Protocol is not part of this plan.
 
 ## 3. Details
 
@@ -25,8 +24,8 @@ Language Server Protocol is not part of this plan.
   (regions, TODOs, ...) are not. No separate list of definition patterns: the pattern that finds a procedure for the
   outline is the one that marks it. Shipped packs: the asa pack's "Procs/Funcs/triggers" group, the sql pack's create
   pattern, and the class, function and method patterns of the other packs; defaults\languages\README.md describes the
-  mark. Should a definition ever be needed that the outline must not
-  show, a group could get a `hidden` mark as well; only when that need comes up, not in this plan.
+  mark. Should a definition ever be needed that the outline must not show, a group could get a `hidden` mark as
+  well; only when that need comes up, not in this plan.
 - **Index**: the definitions of every file of the folder whose language marks any, built in the background when the
   folder is shown and refreshed when a file changes (the folder watcher). The open files count as they are in the
   editor, saved or not.
@@ -35,13 +34,20 @@ Language Server Protocol is not part of this plan.
 - **The name at the cursor**: the word at the cursor, extended over the separator and quotes the pack names (SQL:
   `.`, `"` and `[ ]`), so the cursor anywhere in `"dba"."proc_name"` or `dba.proc_name` reads the whole qualified
   name. Only F12 reads it so: the editor's words (double-click, Ctrl+Left / Right, whole-word search) stay as they are,
-  the dot a separator. Quotes off, split at the separator: the last part is the name, what is before it the owner
-  (schema, namespace). A definition in the index is split the same way.
-- **Names and owners**: names are compared without the owner, as the language compares them (SQL without regard to
-  case; C#, JavaScript as written). An owner never leaves a definition out: a `create procedure` without one is in the
-  owner of the connection that runs it, so `proc_name` at the cursor finds both `create procedure proc_name` and
-  `create procedure dba.proc_name`, and `dba.proc_name` at the cursor finds them both too. The owner only orders the
-  list: the same owner as at the cursor first, then those without one, then other owners.
+  the dot a separator. Quotes off, split at the separator: the last part is the name, what is before it the
+  qualifier. A definition in the index is split the same way, its qualifier as written in its line.
+- **Qualifiers**: the generic word for what is written before a name, whatever the language calls it: an SQL owner
+  or schema (`dba.proc_name`), a C# namespace or class (`Orders.Picker.Pick`), a JavaScript object or module
+  (`orders.total`), a Delphi unit or class (`TInvoice.Total`). The program does not need to know which it is.
+- **Names and qualifiers**: names are compared without the qualifier, as the language compares them (SQL without
+  regard to case; C#, JavaScript as written). A qualifier never leaves a definition out, since a definition need not
+  write one (a `create procedure` without an owner is in the owner of the connection that runs it): `proc_name` at the
+  cursor finds both `create procedure proc_name` and `create procedure dba.proc_name`, and `dba.proc_name` at the
+  cursor finds them both too. The qualifier only orders the list: the same qualifier as at the cursor first, then
+  those without one, then those with another. Where the qualifier is a variable (`picker.Pick` in C#) it matches no
+  definition's and the list is every `Pick`; where it is the class (`Picker.Pick`), that class's comes first. The
+  class a C# method is in (its outline parent) as its qualifier would order such lists better: later, not in this
+  plan.
 - **Per language**: the pack says how its names are written: the separator, the quote characters, whether case
   counts (a setting next to its outline; defaults\languages\README.md describes it). A pack without it: plain words,
   compared as written.
@@ -60,9 +66,10 @@ Language Server Protocol is not part of this plan.
 
 ### 3.1 Tests
 
-- Unit: the name read at the cursor (on the owner, on the name, in quotes); name comparison (case, owner, quotes per
-  language); a definition without an owner and one with an owner both found, in the list's order; the index of a folder with nested subfolders; only
-  entries of a marked group are definitions (a region of the same name is not found); a pack without marks gives none.
+- Unit: the name read at the cursor (on the qualifier, on the name, in quotes); name comparison (case, qualifier,
+  quotes per language); a definition without a qualifier and one with a qualifier both found, in the list's order; the
+  index of a folder with nested subfolders; only entries of a marked group are definitions (a region of the same name
+  is not found); a pack without marks gives none.
 - In-app: F12 on `proc_name` in `call proc_name` opens the file in a subfolder at its `create or replace procedure`;
   two candidates give a list; F12 on `dba.proc_name` (the cursor on `dba` or on `proc_name`) finds the same, and a
   `create procedure dba.proc_name` is found from a plain `call proc_name`; an unsaved new definition in an open file is
