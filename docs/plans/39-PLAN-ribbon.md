@@ -82,9 +82,11 @@ divider. "Corner": the action of the group's corner icon.
 - **Highlight** is not a toggle: it highlights the selection, or removes the highlight the cursor is in.
 - **Position back / forward** (the cursor's jumps in the document) and **Back / Forward in the window** (the tabs
   and files, as a browser) are not on the ribbon: in the menus and on their keys and mouse buttons.
-- **Occurrences**: Show all occurrences fills the bar's field itself (the selection, else the word at the cursor) and
-  marks them; Clear empties it; the corner icon is for typing something else (the bar opened, its field focused).
-  The bar closes by its X or Esc in its field.
+- **Occurrences**: the occurrences of a word without the bar. Show all occurrences takes the selection, else the
+  word at the cursor, into the bar's field and marks them, without opening the bar (a change: today it opens the bar
+  as the setting Show the Occurrences bar says; question 3); Clear empties the field and the marks, also with the
+  bar hidden (as now). The corner icon opens the bar with the cursor in its field, to type something else. The bar
+  closes by its X or Esc in its field.
 - **Editor and Preview** are not on Home: they are the switches at the window's top right, and View > Document.
 - **Day / Night**: the two values of Day / night, each its own button, the current one pressed.
 - **Width**, measured in a mock (a test copy, LexPen's own font and the Dark theme, group names on, a 1264 px wide
@@ -189,3 +191,6 @@ right of Clipboard, Occurrences, Bookmarks, Sort and Highlights):
    another?
 2. History (Undo, Redo) on that tab, as now, or on Home, where the actions used most are? Home has room for it
    (1176 px of a 1264 px window, History 75 px), just.
+3. Show all occurrences without opening the bar: for every value of the setting Show the Occurrences bar (Never,
+   When an occurrence is active, Always), or only the button on the ribbon (the action as now for its key and the
+   menu)? With "Always" the bar is there anyway.
