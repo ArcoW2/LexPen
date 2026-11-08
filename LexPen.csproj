@@ -22,7 +22,8 @@
     <!-- One exe: LexPen.dll, its .NET json files and the libraries inside; WebView2Loader.dll (native) stays next to
          it, so nothing is unpacked to a temp folder. -->
     <PublishSingleFile>true</PublishSingleFile>
-    <DefaultItemExcludes>$(DefaultItemExcludes);node_modules\**;publish\**;tests\**</DefaultItemExcludes>
+    <!-- docs: plans and examples (an example's C# is a sample, not part of LexPen; tab-colours.json is taken by name). -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);node_modules\**;publish\**;tests\**;docs\**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>
