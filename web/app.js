@@ -1444,6 +1444,14 @@ function remember(tab, path, link = false) {
   navHistory.forward.length = 0;
 }
 
+// A link followed in a tab (or another file shown in it: Ctrl+click in the Folder pane or the search, go to
+// definition): the step kept with the tab's cursor, so back returns to that line (go).
+function rememberAt(tab) {
+  remember(tab, tab.doc.path, true);
+  const step = navHistory.back.at(-1), at = tab.cmDoc?.getCursor();
+  if (at && step?.tab === tab.id && samePath(step.path, tab.doc.path)) step.cursor = { line: at.line, ch: at.ch };
+}
+
 // One step: to the tab of the entry (skipping tabs closed since), showing the entry's file again.
 async function go(from, to) {
   const here = activeTab();
@@ -1455,7 +1463,9 @@ async function go(from, to) {
     try {
       if (here) {
         const herePane = paneOf(here);
-        to.push({ tab: here.id, path: here.doc.path, top: herePane.active === here ? herePane.previewEl.scrollTop : here.previewTop, link: entry.link });
+        const at = here.cmDoc?.getCursor();   // forward (or back again): this line again
+        to.push({ tab: here.id, path: here.doc.path, top: herePane.active === here ? herePane.previewEl.scrollTop : here.previewTop, link: entry.link,
+          ...(at ? { cursor: { line: at.line, ch: at.ch } } : {}) });
       }
       const pane = paneOf(tab);
       if (!samePath(tab.doc.path, entry.path) && entry.path) {
@@ -1477,9 +1487,10 @@ async function go(from, to) {
   }
 }
 
+let quietSwitch = false;   // a file opened in the other pane (Ctrl+click): leaving this pane's tab is no step back
 async function activate(pane, tab) {
   const before = activeTab();
-  if (before && before !== tab) remember(before, before.doc.path);
+  if (before && before !== tab && !(quietSwitch && paneOf(before) !== pane)) remember(before, before.doc.path);
   if (state.hidden === pane.index) showHiddenPane();   // something sent to the hidden pane brings it back
   if (pane.active && pane.active !== tab) pane.active.previewTop = pane.previewEl.scrollTop;
   pane.active = tab;
@@ -1966,7 +1977,7 @@ async function navigate(tab, path, anchor, restoring) {
   }
   const already = pane.tabs.find(t => samePath(t.doc.path, path));
   if (already) {
-    if (!restoring && tab.doc.path) remember(tab, tab.doc.path, true);
+    if (!restoring && tab.doc.path) rememberAt(tab);
     await activate(pane, already);
     if (anchor) scrollToAnchor(pane, anchor);
     return true;
@@ -1979,7 +1990,7 @@ async function navigate(tab, path, anchor, restoring) {
   }
   const doc = findDoc(path) ?? await loadDoc(path);
 
-  if (!restoring && old.path) remember(tab, old.path, true);
+  if (!restoring && old.path) rememberAt(tab);
   // The file left the window (no other tab has it): recently closed, as closing its tab would (Reopen closed tab too).
   if (last && old.path) {
     noteOpened('closed', old.path);
@@ -2602,10 +2613,13 @@ async function showInTree(path) {
 // again, as the dimmed frame shows); Shift: a new tab. A draft or a changed file is never replaced (a new tab instead).
 async function openFromTree(path, { ctrlKey, shiftKey }) {
   const was = state.activePane, pane = ctrlKey ? otherPane() : panes[was], tab = pane.active;
-  const result = shiftKey || !tab || tab.doc.draft || tab.doc.dirty || pane.tabs.some(t => samePath(t.doc.path, path))
-    ? await openFile(path, { pane }) : await navigate(tab, path);
-  if (ctrlKey) setActivePane(was);
-  return result;
+  quietSwitch = !!ctrlKey;
+  try {
+    const result = shiftKey || !tab || tab.doc.draft || tab.doc.dirty || pane.tabs.some(t => samePath(t.doc.path, path))
+      ? await openFile(path, { pane }) : await navigate(tab, path);
+    if (ctrlKey) setActivePane(was);
+    return result;
+  } finally { quietSwitch = false; }
 }
 // `open`: the folders to open again (a restored session: the tree as it was); `cursor`: the row selected; `top`: the
 // scroll position.
@@ -3178,10 +3192,11 @@ async function goToSearchHit(hit, here, { ctrlKey, shiftKey } = {}) {
     tab = paneOf(active).active;
     how = 'quiet';   // the way back is the step above, not where this file's cursor was
   } else if (!hit.draft && (ctrlKey || shiftKey)) {
-    const pane = ctrlKey ? otherPane() : panes[state.activePane];
+    const pane = ctrlKey ? otherPane() : panes[state.activePane], was = pane.active, wasDoc = was?.doc;
     await openFromTree(hit.path, { ctrlKey, shiftKey });
     tab = pane.active;
     if (!tab || !samePath(tab.doc.path, hit.path)) return;
+    if (tab === was && tab.doc !== wasDoc) how = 'quiet';   // the tab showed another file: back is the step kept
   } else if (hit.draft) {
     const doc = findDraft(hit.draft);
     if (!doc) return toast('That draft is closed.');
