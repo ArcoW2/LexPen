@@ -5,7 +5,7 @@ program.
 
 ## markdown\print-tables.md
 
-A markdown file to try the Print window with (File > Print..., As: Rendered): a table too wide for a page
+A markdown file to try the Print window with (File > Print..., Source: Rendered): a table too wide for a page
 (printed smaller; the columns that still do not fit are left out, and a line says how many) and a table too
 long for a page (its header row repeated on every page it goes on to). It is not a settings file: open it
 from here.

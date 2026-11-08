@@ -158,7 +158,7 @@ function drawPanel() {
   const printers = pp.printers.list.map(n => `<option value="${escapeHtml(n)}"${opt('printer', n)}>${escapeHtml(n)}</option>`).join('');
   const themes = (s.themes?.list ?? []).map(t => `<option value="theme:${escapeHtml(t.id)}"${opt('colours', 'theme:' + t.id)}>${escapeHtml(t.name)}</option>`).join('');
   const kind = viewOf();
-  let html = '<h3>Printer</h3>' + (pp.printers.list.length
+  let html = '<h3>Printer &amp; paper</h3>' + (pp.printers.list.length
     ? `<div class="pp-row"><label>Printer</label><select data-k="printer">${printers}</select></div>
        <div class="pp-row"><span class="pp-label"></span><button type="button" data-do="printerDialog" title="The printer's own settings: paper bin, intensity, quality, ...; kept with these settings">Printer settings...</button></div>`
     : '<div class="pp-hint">No printer is installed: Save as PDF only.</div>');
@@ -169,8 +169,8 @@ function drawPanel() {
     <option value="long"${opt('duplex', 'long')}>Two-sided, long edge</option><option value="short"${opt('duplex', 'short')}>Two-sided, short edge</option></select></div>`;
   if (info?.colour) html += `<div class="pp-row"><label>Printer colour</label><select data-k="colourPrint"><option value="true"${o.colourPrint ? ' selected' : ''}>Colour</option><option value="false"${o.colourPrint ? '' : ' selected'}>Monochrome (grey)</option></select></div>`;
 
-  html += '<h3>What</h3>';
-  if (views().length) html += `<div class="pp-row"><label>As</label><select data-k="view">${views().map(([v, l]) => `<option value="${v}"${kind === v ? ' selected' : ''}>${l}</option>`).join('')}</select></div>`;
+  html += '<h3>What to print</h3>';
+  if (views().length) html += `<div class="pp-row"><label>Source</label><select data-k="view">${views().map(([v, l]) => `<option value="${v}"${kind === v ? ' selected' : ''}>${l}</option>`).join('')}</select></div>`;
   html += `<div class="pp-row"><label>Print</label><select data-w="what"><option value="all"${pp.what === 'all' ? ' selected' : ''}>The whole document</option>` +
     (s.selection ? `<option value="selection"${pp.what === 'selection' ? ' selected' : ''}>The selected lines</option>` : '') +
     `<option value="pages"${pp.what === 'pages' ? ' selected' : ''}>Pages</option></select></div>`;
