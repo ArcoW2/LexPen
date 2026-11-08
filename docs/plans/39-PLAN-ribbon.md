@@ -164,13 +164,23 @@ Sort, Highlights and Macros); Home also in the light theme:
 
 ### 3.3 Customize
 
-- A window (as F1): at the left all actions with a search, grouped as the menus; at the right the ribbon: its tabs,
-  each with its groups and their columns. Add, remove, move up / down (and drag); new tab, new group, rename;
-  per button large or small and stacked or not (up to three), its label and its key tip; a divider; per group its
-  corner action.
+The ribbon is the user's: everything on it can be changed, on the ribbon itself, while it is being customized
+(question 1).
+
+- **On the ribbon**: drag an action from F1's list of commands onto the ribbon (where it lands: before, after or
+  stacked under the button it is dropped on, or into an empty spot of a group); drag a button to another place, group
+  or tab (on a tab name: that tab opens, so it can be dropped there); drag a button off the ribbon to remove it. A
+  group and a tab are dragged the same way.
+- **New...**: the last tab name is "New..." in italics; a click makes a new tab (its name typed in place). A group's
+  last place is "New..." too, for a new group.
+- **A button's right-click**: large or small, stacked under the one above or not, its label, its key tip, the
+  group's corner action, a divider before it, Remove; a group's and a tab's: Rename, Remove, a corner action.
+- **The Customize window** (the ribbon's right-click > Customize...) remains for the same work by list, as F1:
+  at the left all actions with a search, grouped as the menus; at the right the ribbon's tabs, groups and columns;
+  Add, Remove, Move up / down (and drag). For the keyboard, and for a full overview.
 - An action with values (Preview place, a bookmark number) is added with its value, as keys.json writes
   `["preview.left"]`.
-- Reset: back to the shipped content.
+- Undo: Ctrl+Z while customizing takes the last change back; Reset: back to the shipped content.
 - `ribbon.json` in the data folder: `{ "tabs": [ { "name": "Home", "groups": [ { "name": "File", "more": "...", "items": [ { "action":
   "save", "size": "large" }, { "action": "selectLine", "label": "Line" }, { "action": "saveAs", "size": "small" }, { "action": "newFile", "size": "small",
   "stack": true }, { "action": "openFile", "size": "small", "stack": true }, "divider", ... ] } ] } ] }`. An action that no longer exists is skipped, not an error; a "stack"
@@ -231,8 +241,11 @@ Sort, Highlights and Macros); Home also in the light theme:
   large one, and three; the corner icon runs its action; Sort again repeats the last sort; group names on and off; overflow into ">>" at a narrow window; commandBar `menu`, `ribbon` (the tab
   names in the menus' place, the rest of the top bar as it was, Alt shows the key tips: a tab's letter opens it, a button's letter runs
   it, Esc goes back; with altOpens `menu` Alt shows the menus) and `both` (the tab names under the menus); Customize adds, moves, resizes, stacks and removes a button, adds a
-  tab and a divider, and the ribbon follows; Reset.
+  tab and a divider, and the ribbon follows; on the ribbon: an action dragged from F1 lands where it is dropped,
+  a button dragged to another group and off the ribbon, "New..." makes a tab; Reset.
 
 ## 4. Open questions
 
-None.
+1. When can the ribbon be changed by dragging: always (a button dragged off by accident is gone, Undo brings it
+   back), or only while customizing (the ribbon's right-click > Customize ribbon, ended by Done or Esc; F1's list
+   open beside it as the source of actions; "New..." shown only then)?
