@@ -5317,6 +5317,7 @@ function applySettings() {
   if (changed('previewWrap')) document.body.toggleAttribute('data-preview-nowrap', now.previewWrap === false);
   if (changed('showBackupFiles') && 'showBackupFiles' in was) refreshTree(false);
   if (changed('tabBar')) applyTabBar(now.tabBar);
+  if (['commandBar', 'ribbonGroupNames', 'ribbonLabelWidth', 'altOpens'].some(changed) && typeof renderRibbon === 'function') renderRibbon();
   if (changed('dockTabBar')) document.body.dataset.dockTabBar = now.dockTabBar;
   if (changed('previewPlace') || changed('previewPlace2')) applyPreviewPlace();
   if (changed('dockTabIntensity')) applyDockTabs();
@@ -5690,6 +5691,7 @@ track((async () => {
   const start = await host('init');
   await loadLanguages();   // first: the keys name their actions
   setKeys(await host('keys'));
+  loadRibbon();   // ribbon.js: shown as the window's layout says (commandBar)
   host('settingDefs', { defs: settingDefs() });   // the rows of the settings window
   Object.assign(clips, await host('clipState').catch(() => ({})));   // the Windows clipboard busy elsewhere: no previews
   await loadFindHistory();   // history.js

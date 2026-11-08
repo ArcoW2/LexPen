@@ -735,6 +735,21 @@ sealed class MainForm : Form
             case "keys":
                 return KeysFile.Load(AppHost.DataDir);
 
+            // The ribbon (docs/plans/39-PLAN-ribbon.md): yours or the shipped one; your changes written (the other
+            // windows follow); Reset back to the shipped one.
+            case "ribbon":
+                return RibbonFile.Load(AppHost.DataDir, Path.Combine(AppContext.BaseDirectory, AppHost.DefaultsFolder, RibbonFile.Name));
+
+            case "ribbonSave":
+                RibbonFile.Save(AppHost.DataDir, msg["ribbon"]!);
+                app.RibbonChanged(this);
+                return null;
+
+            case "ribbonReset":
+                RibbonFile.Reset(AppHost.DataDir);
+                app.RibbonChanged(this);
+                return RibbonFile.Load(AppHost.DataDir, Path.Combine(AppContext.BaseDirectory, AppHost.DefaultsFolder, RibbonFile.Name));
+
             case "fonts":
                 return new JsonArray(Fonts.List().Select(f => (JsonNode)new JsonObject { ["name"] = f.Name, ["mono"] = f.Mono }).ToArray());
 
@@ -761,6 +776,17 @@ sealed class MainForm : Form
                 app.Clipboards.Set(msg["n"]!.GetValue<int>(), Arg("text"), msg["column"]?.GetValue<bool>() == true);
                 app.ClipboardsChanged();
                 return null;
+
+            // Clear clipboard (the ribbon's Paste list, docs/plans/39-PLAN-ribbon.md): a numbered one emptied, or the
+            // Windows clipboard.
+            case "clipClear":
+            {
+                var n = msg["n"]!.GetValue<int>();
+                if (n == 0) Clipboard.Clear();
+                else app.Clipboards.Set(n, "", false);
+                app.ClipboardsChanged();
+                return null;
+            }
 
             // The character picker (CharPickerForm): opened at a character; the character after the cursor, while it
             // is open.

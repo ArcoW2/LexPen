@@ -172,6 +172,10 @@
   "appSize": 0,                   // in points; 0 is 9.75 pt
   "statusFont": "",               // the bottom bar; "" is the app font
   "statusSize": 0,                // in points; 0 is the app's size for small texts
+  // The ribbon (docs/plans/39-PLAN-ribbon.md; its buttons: ribbon.json). Shown or not: commandBar, per window (Layout).
+  "altOpens": "tips",             // with the ribbon only: Alt shows the ribbon's key tips ("tips") or the menus ("menu")
+  "ribbonGroupNames": true,       // each group's name under it; false: dividers only, the name as their tooltip
+  "ribbonLabelWidth": 24,         // the longest button label, in characters; longer ones are cut off with "..."
 
   // ---------- Layout ----------
   // What is open and shown in a window is kept per window, with its session (so per project). This is the layout
@@ -200,6 +204,9 @@
     "sortDesc": false,            // the folder pane: descending
     "treeHidden": false,          // the folder pane: also the hidden files and folders, and those starting with a dot
     "treeSize": false,            // the folder pane: each file's size after its name
+    "commandBar": "menu",         // the top bar's menus ("menu"), the ribbon's tab names there and its buttons under it
+                                  // ("ribbon"), or the menus and the ribbon under them ("both"); View > Ribbon
+    "ribbonTab": "Home",          // the ribbon's tab shown last
     "formatBar": true,            // the bar with bold, headings, lists, ... above the editor
     "ruler": false,               // the ruler above the editor: columns, the cursor's column, guides; a click on it
                                   // sets a tab stop (Tab goes there, Shift+Tab back) or a helper line (only shows),

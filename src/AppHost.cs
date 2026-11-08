@@ -213,6 +213,12 @@ sealed class AppHost : ApplicationContext
 
     public void CloseThemeSetsWindow() => themeSetsWindow?.Close();
 
+    /// <summary>The ribbon changed in window `from` (ribbon.json written or reset): every other window reads it again.</summary>
+    public void RibbonChanged(MainForm from)
+    {
+        foreach (var w in windows) if (w != from) w.Post(new JsonObject { ["event"] = "ribbon" });
+    }
+
     // ---------- Theme colours (ThemeColoursForm; docs/plans/executed/PLAN-theme-colours.md) ----------
     ThemeColoursForm? themeColoursWindow;
 
