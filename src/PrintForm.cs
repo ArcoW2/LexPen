@@ -91,7 +91,7 @@ sealed class PrintForm : Form
         try
         {
             e.Response = type is not null && File.Exists(path)
-                ? env.CreateWebResourceResponse(new MemoryStream(File.ReadAllBytes(path)), 200, "OK", $"Content-Type: {type}\r\n{cors}")
+                ? env.CreateWebResourceResponse(new MemoryStream(File.ReadAllBytes(path)), 200, "OK", $"Content-Type: {type}\r\nCache-Control: no-store\r\n{cors}")   // as it is on disk now
                 : env.CreateWebResourceResponse(null, 404, "Not Found", cors);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
