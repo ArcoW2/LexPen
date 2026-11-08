@@ -595,7 +595,15 @@ function rbEditMenu(e) {
         { label: '&None (the action itself, its list)', checked: !item.params?.length, run: set(it => { delete it.params; }) },
         ...variants.map(p => ({ label: actionTitle(item.action, p).replace(/&/g, '&&'), checked: JSON.stringify(item.params ?? []) === JSON.stringify(p), run: set(it => { it.params = p; }) }))] }] : []),
       { label: 'Rena&me...', run: async () => { const v = await askName('Label (empty: the action\'s title)', item.label ?? '', actionTitle(item.action, item.params ?? [])); if (v !== null) set(it => { if (v.trim()) it.label = v.trim(); else delete it.label; })(); } },
-      { label: '&Key tip...', run: async () => { const v = await askName('Key tip (one or two letters; empty: from the label)', item.tip ?? '', 'A letter'); if (v !== null) set(it => { if (v.trim()) it.tip = v.trim().slice(0, 2).toUpperCase(); else delete it.tip; })(); } },
+      { label: '&Key tip...', run: async () => {
+        const v = await askName('Key tip (one or two letters; empty: from the label)', item.tip ?? '', 'A letter');
+        if (v === null) return;
+        const tip = v.trim().slice(0, 2).toUpperCase();
+        // No tip on this tab may start another ("P" and "PF": the P would run before the F is typed).
+        const clash = rb.model.tabs[t].groups.flatMap(gr => gr.items).find(it => it !== item && it.tip && tip && (it.tip.startsWith(tip) || tip.startsWith(it.tip)));
+        if (clash) return toast(`Key tip ${tip} clashes with ${clash.tip} (${clash.label || actionTitle(clash.action, clash.params ?? [])}): one may not start the other.`, true);
+        set(it => { if (tip) it.tip = tip; else delete it.tip; })();
+      } },
       { label: '&Divider before it', checked: g >= 0 && rb.model.tabs[t].groups[g].items[i - 1] === 'divider',
         run: () => rbChange(m => { const its = m.tabs[t].groups[g].items; if (its[i - 1] === 'divider') its.splice(i - 1, 1); else its.splice(i, 0, 'divider'); }) },
       '-',

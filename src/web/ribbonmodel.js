@@ -22,10 +22,10 @@ function ribbonColumns(items) {
 
 // The key tips of one level (the tab names; a tab's buttons and corners): per name a letter no other one at that level
 // has: its own tip first (when free), else the first letter of its words, else any letter of it, else two letters.
-// Upper case; names without a usable letter get a number.
+// Upper case. No tip starts another (a "P" beside a "PF" would run at the P), so a letter typed never waits.
 function ribbonTips(names, own = []) {
   const used = new Set(), tips = Array(names.length).fill('');
-  const take = (i, t) => { if (!t || used.has(t)) return false; used.add(t); tips[i] = t; return true; };
+  const take = (i, t) => { if (!t || [...used].some(u => u.startsWith(t) || t.startsWith(u))) return false; used.add(t); tips[i] = t; return true; };
   names.forEach((_, i) => { if (own[i]) take(i, String(own[i]).toUpperCase().slice(0, 2)); });
   const letters = name => [...String(name).toUpperCase()].filter(c => /[A-Z0-9]/.test(c));
   const starts = name => String(name).toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean).map(w => w[0]);
@@ -36,8 +36,8 @@ function ribbonTips(names, own = []) {
   });
   names.forEach((name, i) => {
     if (tips[i]) return;
-    const l = letters(name), first = l[0] ?? 'X';
-    for (const c of [...l.slice(1), ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ']) if (take(i, first + c)) return;
+    const l = letters(name), abc = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'];
+    for (const first of [...l, ...abc]) for (const c of [...l.slice(1), ...abc]) if (take(i, first + c)) return;
   });
   return tips;
 }

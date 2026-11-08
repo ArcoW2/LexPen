@@ -109,4 +109,20 @@ public class RibbonTests : IDisposable
         var many = Tips("['Aa', 'Ab', 'Ac', 'Ad']");
         Assert.Equal(many.Length, many.Distinct().Count());
     }
+
+    static bool PrefixFree(string[] tips) => !tips.Any(a => tips.Any(b => !ReferenceEquals(a, b) && b.StartsWith(a)));
+
+    [Fact]
+    public void NoKeyTipStartsAnotherSoNoLetterWaits()
+    {
+        var tips = Tips("['Print', 'Copy name: Path and filename.ext']", "[null, 'PF']");   // Alt, F, P would run Print before the F
+        Assert.Equal("PF", tips[1]);
+        Assert.False(tips[0].StartsWith('P'));
+        var own = Tips("['Copy path', 'Paste']", "['PF', 'P']");   // two own tips that clash: the second gives way
+        Assert.Equal("PF", own[0]);
+        Assert.True(PrefixFree(own));
+        var full = Tips("['Aa', 'Ab', 'Ac', 'Ad', 'Ba', 'Bb', 'Ca', 'Cb', 'Da', 'Db']");   // two-letter ones needed
+        Assert.True(PrefixFree(full));
+        Assert.Equal(full.Length, full.Distinct().Count());
+    }
 }
