@@ -25,9 +25,10 @@ words:
 rules:
   - { regex: '#\d+', token: string }             # character codes: #13#10
   - { regex: '\$[0-9a-fA-F]+', token: number }   # $FF
+names: { separator: '.', quotes: ['&'], case: false }   # how its names are written (go to definition): see README.md, Outline
 outline:
-  - { pattern: '^\s*(\w+)\s*=\s*(?:packed\s+)?(?:class|record|interface)\b', name: 1, level: 1, flags: i }
-  - { pattern: '^\s*(?:class\s+)?(?:procedure|function|constructor|destructor)\s+([\w.]+)', name: 1, level: 2, flags: i }
+  - { pattern: '^\s*(\w+)\s*=\s*(?:packed\s+)?(?:class|record|interface)\b', name: 1, level: 1, flags: i, definition: true }
+  - { pattern: '^\s*(?:class\s+)?(?:procedure|function|constructor|destructor)\s+([\w.]+)', name: 1, level: 2, flags: i, definition: true }
 actions:
   section:
     title: Section

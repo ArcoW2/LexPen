@@ -61,18 +61,22 @@ tokens:
   variable: { like: variable-2 }
   library: { like: builtin }
 # The tag groups of the word file.
+names: { separator: '::' }   # how its names are written (go to definition): see README.md, Outline
 outline:   # the groups of c_cplusplus.uew (/TGBegin), in its order
   - group: 'Typedefs'
+    definition: true   # its entries are definitions (go to definition)
     patterns:
       - { pattern: '^[ \t]*typedef[ \t]+(?:struct|union|enum)[ \t]+(?:\w+[ \t]+)?\{[^{}]*\}[ \t]*(\w+);', case: true, span: true }   # the struct over lines
       - { pattern: '^\s*typedef\s+(?:[\w*\[\]]+\s+)+(\w+);', case: true }
   - group: 'Macros'
+    definition: true   # its entries are definitions (go to definition)
     patterns:
       - { pattern: '^\s*#define\s+(\w+)\(', case: true }
   - group: 'Prototypes'
     patterns:
       - { pattern: '^(?:\w+[ \t]+)+[ *]*(\w+)[ \t]*\([^)]*\);', case: true }
   - group: 'Functions'
+    definition: true   # its entries are definitions (go to definition)
     patterns:
       - { pattern: '^(?!\s*(?:if|else|while|for|switch|return)\b)\s*(?:[\w*&:<>,]+\s+)+\**(\w+)\s*\([^{;}]*\)\s*(?:const\s*)?\{', case: true, span: true }   # the { may be on the next line
 

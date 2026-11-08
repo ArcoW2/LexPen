@@ -206,6 +206,33 @@ nothing else (`// ----------`) is no entry: dashes are no way to indent, the gro
 A group without entries is not shown. Within a group a line counts once (its first matching pattern); a line can be in
 more than one group.
 
+### Definitions: go to definition
+
+`definition: true` on a group (or on a pattern, in a plain list) makes its entries definitions: Go to definition (F12,
+in the other pane; Alt+F12 in this one) looks the name at the cursor up in the definitions of the open files and of the folder, its
+subfolders included; Find references (Shift+F12) searches the folder for it. Mark the groups of procedures, functions,
+classes, tables; not regions or TODOs (a region named as a procedure would be found too). A definition's name is the
+last capture that matched, its last word: `create procedure dba.proc_name` gives `dba.proc_name`. There are no other
+definition patterns: the one that shows a procedure in the outline is the one that makes it a definition.
+
+```yaml
+names: { separator: '.', quotes: ['"', '[]'], case: false }
+outline:
+  - group: 'Procedures'
+    definition: true
+    patterns:
+      - { pattern: '^\s*create\s+(?:or\s+replace\s+)?procedure\s+([\w".]+)' }
+```
+
+`names` says how the language writes its names. What stands before a name, joined by the `separator` (an SQL owner or
+schema, a C# namespace or class, a JavaScript object), is its qualifier: names are compared without it, so
+`proc_name` finds `create procedure dba.proc_name` and `dba.proc_name` finds `create procedure proc_name`; a
+qualifier only orders the list (the same one first, then none, then others). At the cursor F12 reads the whole name,
+taken on over the separator and the `quotes` (one character: the same at both ends; two: the opening and the closing
+one), so the cursor may be on the qualifier too; the editor's own words (double-click, Ctrl+Left / Right) stay as
+they are. `chars`: more characters a name may hold (`-` for PowerShell's `Get-Thing`). `case: false`: names ignore
+case (SQL, Pascal, Basic); left out, they are compared as written. A pack without `names`: plain words, as written.
+
 ## Format: the formatter's parameters
 
 One formatter for every language (`web/reformat.js`). It knows roles, not words: groups, blocks, conditions,

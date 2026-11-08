@@ -249,6 +249,7 @@ body[data-orient=h] .mm-orient::before { content: "Above each other"; }
 .mm-status button { border: 0; border-radius: 3px; font-size: inherit; }
 .mm-st-fill { flex: 1; display: block !important; }
 .mm-st-chord { color: var(--accent); font-weight: 600; }
+.mm-st-defs { color: var(--fg-dim); }   /* the folder being read for definitions (definitions.js) */
 .mm-st-ins.mm-on { color: var(--accent); font-weight: 600; }
 .mm-st-col { color: var(--accent); font-weight: 600; }
 .mm-st-col[hidden] { display: none; }

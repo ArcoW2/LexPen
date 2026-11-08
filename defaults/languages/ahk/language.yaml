@@ -123,11 +123,12 @@ words:
 tokens:
   key: { like: attribute }
 # The function list of ahk.uew: hotstrings, hotkeys, labels, functions, directives.
+names: { case: false }   # how its names are written (go to definition): see README.md, Outline
 outline:
   - { pattern: '^\s*(:[*?bckoprz0-9 -]*:.*?::)', name: 1, level: 1, flags: i }     # hotstring  :*:btw::
   - { pattern: '^\s*([a-z0-9 #!^&<>*~$]+::)', name: 1, level: 1, flags: i }         # hotkey     ^!x::
   - { pattern: '^\s*([\w#@$?\[\]\u00e4\u00f6\u00fc\u00c4\u00d6\u00dc\u00df]+:)\s*$', name: 1, level: 1 }              # label      Start: (letters as in ahk.uew, umlauts too)
-  - { pattern: '^\s*([\w#@$?\[\]\u00e4\u00f6\u00fc\u00c4\u00d6\u00dc\u00df]+)\(.*\)', name: 1, level: 1 }             # function   Name(a, b)
+  - { pattern: '^\s*([\w#@$?\[\]\u00e4\u00f6\u00fc\u00c4\u00d6\u00dc\u00df]+)\(.*\)', name: 1, level: 1, definition: true }             # function   Name(a, b)
   - { pattern: '^\s*(#[a-z]+) ', name: 1, level: 2, flags: i }                      # directive  #Include x
 
 # ---------- Format ----------

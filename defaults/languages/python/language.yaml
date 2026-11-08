@@ -92,11 +92,14 @@ tokens:
   library: { like: type, italic: true }
   self: { like: variable-2 }
 # The tag groups of the word file.
+names: { separator: '.' }   # how its names are written (go to definition): see README.md, Outline
 outline:   # the groups of python.uew (/TGBegin), in its order
   - group: 'Classes'
+    definition: true   # its entries are definitions (go to definition)
     patterns:
       - { pattern: '^\s*class\s+(\w+)', case: true, indent: line }
   - group: 'Functions'
+    definition: true   # its entries are definitions (go to definition)
     patterns:
       - { pattern: '^\s*def\s+(\w+)', case: true, indent: line }
 

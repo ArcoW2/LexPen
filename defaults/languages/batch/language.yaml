@@ -53,8 +53,10 @@ tokens:
   echo: { like: keyword }
   argument: { like: atom }
 # The tag groups of the word file.
+names: { case: false }   # how its names are written (go to definition): see README.md, Outline
 outline:   # the groups of batch.uew (/TGBegin), in its order
   - group: 'Labels'
+    definition: true   # its entries are definitions (go to definition)
     patterns:
       - { pattern: '^:(?!:)(.+)$', case: true }
 

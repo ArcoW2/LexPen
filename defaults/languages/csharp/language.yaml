@@ -6,11 +6,14 @@ open: edit
 mode: text/x-csharp     # built in
 fold: brace
 comments: { line: '//', block: ['/*', '*/'] }
+names: { separator: '.', quotes: ['@'] }   # how its names are written (go to definition): see README.md, Outline
 outline:   # the groups of csharp.uew (/TGBegin), in its order
   - group: 'Functions'
+    definition: true   # its entries are definitions (go to definition)
     patterns:
       - { pattern: '^\s*(?:(?:public|private|protected|internal|static|virtual|override|async|abstract|sealed|extern|unsafe|new|partial)\s+)+[\w<>\[\],.?() ]+?\s+(\w+)\s*(?:<[^>]*>)?\s*\(', case: true }
   - group: 'Classes'
+    definition: true   # its entries are definitions (go to definition)
     patterns:
       - { pattern: '^\s*(?:\[[^\]]*\]\s*)*(?:(?:public|private|protected|internal|static|sealed|abstract|partial|readonly|unsafe|file|ref)\s+)*(?:class|interface|record|struct|enum)\s+(\w+)', case: true }
 actions:

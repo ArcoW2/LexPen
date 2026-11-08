@@ -120,6 +120,21 @@ public class LanguagePacksTests : IDisposable
         Assert.Contains("<svg", LanguagePacks.Load(Shipped, Path.Combine(dir, "none"))["packs"]!["plaintext"]!["icons"]!["comment"]!.GetValue<string>());
     }
 
+    // Go to definition (docs/plans/executed/PLAN-code-intelligence.md): the outline groups of procedures and tables are
+    // marked as definitions, regions and TODOs are not; SQL's names have a qualifier (dba.) and ignore case.
+    [Fact]
+    public void ShippedPacksMarkTheirDefinitions()
+    {
+        var packs = LanguagePacks.Load(Shipped, Path.Combine(dir, "none"))["packs"]!;
+        var asa = packs["asa"]!;
+        var marked = asa["outline"]!.AsArray().Where(g => g!["definition"]?.GetValue<bool>() == true).Select(g => g!["group"]!.GetValue<string>()).ToList();
+        Assert.Equal(["Procs/Funcs/triggers", "Tables"], marked);
+        Assert.Equal(".", asa["names"]!["separator"]!.GetValue<string>());
+        Assert.False(asa["names"]!["case"]!.GetValue<bool>());
+        Assert.True(packs["sql"]!["outline"]![0]!["definition"]!.GetValue<bool>());
+        Assert.True(packs["csharp"]!["outline"]!.AsArray().All(g => g!["definition"]?.GetValue<bool>() == true));
+    }
+
     [Fact]
     public void TheTemplateIsAValidPack()
     {

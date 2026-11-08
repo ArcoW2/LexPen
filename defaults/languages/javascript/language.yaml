@@ -6,14 +6,18 @@ open: edit
 mode: javascript        # built in
 fold: brace
 comments: { line: '//', block: ['/*', '*/'] }
+names: { separator: '.' }   # how its names are written (go to definition): see README.md, Outline
 outline:   # the groups of javascript.uew (/TGBegin), in its order
   - group: 'Named Functions'
+    definition: true   # its entries are definitions (go to definition)
     patterns:
       - { pattern: '^\s*(?:export\s+)?(?:async\s+)?function\s*\*?\s*(\w+)', case: true }
   - group: 'Anonymous Functions'
+    definition: true   # its entries are definitions (go to definition)
     patterns:
       - { pattern: '^\s*(?:export\s+)?(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?(?:function|\([^)]*\)\s*=>|\w+\s*=>)', case: true }
   - group: 'Classes'
+    definition: true   # its entries are definitions (go to definition)
     patterns:
       - { pattern: '^\s*(?:export\s+)?(?:default\s+)?class\s+(\w+)', case: true }
 actions:

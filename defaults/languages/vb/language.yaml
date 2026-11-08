@@ -94,11 +94,14 @@ tokens:
   method: { like: def }
   event: { like: attribute }
 # The tag groups of the word file.
+names: { separator: '.', quotes: ['[]'], case: false }   # how its names are written (go to definition): see README.md, Outline
 outline:   # the groups of visualbasic.uew (/TGBegin), in its order
   - group: 'Functions'
+    definition: true   # its entries are definitions (go to definition)
     patterns:
       - { pattern: '^\s*(?:(?:public|private)\s+)*function\s+([a-z]\w*)' }
   - group: 'Subs'
+    definition: true   # its entries are definitions (go to definition)
     patterns:
       - { pattern: '^\s*(?:(?:public|private)\s+)*sub\s+([a-z]\w*)' }
 

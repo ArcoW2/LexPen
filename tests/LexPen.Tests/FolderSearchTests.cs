@@ -26,6 +26,18 @@ public class FolderSearchTests : IDisposable
     static List<string> Names(JsonObject result) =>
         result["files"]!.AsArray().Select(f => Path.GetFileName(f!["path"]!.GetValue<string>())).ToList();
 
+    // The index of definitions (go to definition) lists the folder as the search looks in it: subfolders too, what the
+    // tree skips left out, only the extensions asked for, each with the time it was written.
+    [Fact]
+    public void ListsTheFilesOfTheExtensionsWithTheirTimes()
+    {
+        var list = FolderSearch.List(root, Markdown);
+        var names = list.Select(f => Path.GetFileName(f!["path"]!.GetValue<string>())).ToList();
+        Assert.Equal(["a.md", "bin.md", "b.md"], names);   // the search reads bin.md and finds it binary; the list has it
+        var time = new DateTime(long.Parse(list[0]!["time"]!.GetValue<string>()), DateTimeKind.Utc);
+        Assert.Equal(File.GetLastWriteTimeUtc(Path.Combine(root, "a.md")), time);
+    }
+
     [Fact]
     public void FindsInAllTextFilesButSkipsWhatTheTreeSkips()
     {

@@ -98,11 +98,13 @@ words:
 tokens:
   class: { like: type }
 # The tag groups of the word file.
+names: { separator: '.' }   # how its names are written (go to definition): see README.md, Outline
 outline:   # the groups of java.uew (/TGBegin), in its order
   - group: 'Imports'
     patterns:
       - { pattern: '^import\s+([\w.*]+);', case: true }
   - group: 'Methods'
+    definition: true   # its entries are definitions (go to definition)
     patterns:
       - { pattern: '^\s*(?:(?:public|protected|private|static|final|abstract|synchronized|native)\s+)+[\w<>\[\],.?\s]*?(\w+)\s*\(', case: true }
 

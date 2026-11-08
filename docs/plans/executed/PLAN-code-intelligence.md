@@ -1,6 +1,6 @@
 # Plan: Code intelligence (go to definition, find references)
 
-Status: draft 2026-10-21, revised 2026-11-08; not started. From the list "what UltraEdit or Visual Studio has and
+Status: executed (2026-11-08); see 5. As built. From the list "what UltraEdit or Visual Studio has and
 LexPen does not". The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
@@ -78,3 +78,31 @@ Server Protocol is not part of this plan.
 ## 4. Open questions
 
 None.
+
+## 5. As built
+
+- **Keys** (asked for during the build): F12 shows the definition in the other pane, this document staying as it is;
+  Alt+F12 in this pane: this tab follows it as a link does, or a new tab beside it when this document has unsaved
+  changes. Back (Position back, the mouse back button) returns to the line F12 was pressed on: the step from this tab
+  is kept as a link with its cursor (app.js go() puts the cursor back); in the same document the jump is a place
+  (places.js). Shift+F12: Find references. In the Go menu: Go to definition, ... in this pane, Find references.
+- **The marks**: `definition: true` on the groups (a plain list's patterns) of procedures, functions, classes,
+  tables, labels in the shipped packs: asa, sql, csharp, javascript, pascal, python, java, cpp, php, vb, vbscript,
+  powershell, shell, perl, ruby, ahk (its functions), batch, kusto, macro. Not marked: regions, TODOs, imports,
+  C prototypes, the HTML / CSS / YAML outlines. A definition's name: the last capture that matched, its last word.
+- **`names`** per pack: `separator`, `quotes` (one character or an opening and closing pair), `chars` (more
+  characters a name may hold: `-` for PowerShell and shell), `case: false`; the README's Outline section describes
+  them and the marks.
+- **The index** (definitions.js): the host lists the folder's files of the marked languages with their times
+  (FolderSearch.List, op listFiles: what the search in files would look in); the page reads each and takes its
+  outline; on a change of the folder (the watcher) it lists again and reads only what changed. The first F12 waits
+  for the whole folder; later ones look in what is there after a moment. While it reads, the bottom bar says
+  "Reading definitions: n of m files" (asked for during the build), hidden when done. It starts a moment after the
+  window opens.
+- **Tests**: unit (FolderSearchTests: the listing with times; LanguagePacksTests: the shipped marks and names). In
+  the test copy, a folder with the calls at the top and the definitions two folders down: `call proc_name` lists
+  `proc_name` (no qualifier) first, then `dba.proc_name`; with the cursor on `dba` of `dba.proc_name` the order turns;
+  `"dba"."other_proc"` opens older.sql at it; a table name finds its `create table`; a region named `proc_name` is
+  no definition; an unknown name says so; Back returns to the line; with unsaved changes a new tab and the old one
+  kept; F12 in the other pane, Alt+F12 in this one. Not tested: the keys pressed themselves in the debug build (its
+  DevTools take F12; the release build has them off), a large folder's time [not yet measured].
