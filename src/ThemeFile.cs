@@ -19,9 +19,10 @@ static partial class ThemeFile
     public const string FolderName = "themes";
 
     /// <summary>One theme. Vars: its colours through its chain (its own win, then its base's, ...), without the
-    /// fallback (Complete adds it). Chain: its id, then the ids of its bases, nearest first.</summary>
+    /// fallback (Complete adds it). Chain: its id, then the ids of its bases, nearest first. From: per colour in Vars,
+    /// the id of the theme in the chain that set it (the Theme colours window, docs/plans/executed/PLAN-theme-colours.md).</summary>
     public sealed record Theme(string Id, string Name, string? BaseId, IReadOnlyDictionary<string, string> Vars, bool Mine,
-        IReadOnlyList<string> Chain, string? Description = null);
+        IReadOnlyList<string> Chain, string? Description = null, IReadOnlyDictionary<string, string>? From = null);
 
     /// <summary>Shipped themes that were renamed: old id -> new id. An old id in settings.json, in a theme's base or
     /// in a language pack's byTheme finds the new theme, unless a theme with the old id is there (yours).</summary>
@@ -133,7 +134,7 @@ static partial class ThemeFile
                 else vars[cssVar] = value.GetValue<string>().Trim();
             }
         else if (root["colors"] is not null) problems.Add($"{source}: \"colors\" must be {{ name: colour, ... }}.");
-        return new Theme(id, name, themeBase, vars, mine, [id], description);
+        return new Theme(id, name, themeBase, vars, mine, [id], description, vars.Keys.ToDictionary(k => k, _ => id, StringComparer.Ordinal));
     }
 
     /// <summary>The shipped themes, with yours on top (same file name: yours wins), each with the colours of its
@@ -187,8 +188,9 @@ static partial class ThemeFile
             if (resolved.TryGetValue(id, out done)) return done;   // part of a loop
         }
         var vars = new Dictionary<string, string>(from?.Vars ?? new Dictionary<string, string>(), StringComparer.Ordinal);
-        foreach (var (name, value) in theme.Vars) vars[name] = value;
-        return resolved[id] = theme with { Vars = vars, Chain = [id, .. from?.Chain ?? []] };
+        var setters = new Dictionary<string, string>(from?.From ?? new Dictionary<string, string>(), StringComparer.Ordinal);
+        foreach (var (name, value) in theme.Vars) (vars[name], setters[name]) = (value, id);
+        return resolved[id] = theme with { Vars = vars, Chain = [id, .. from?.Chain ?? []], From = setters };
     }
 
     [GeneratedRegex(@"--([a-z0-9-]+)\s*:\s*([^;]+);")]

@@ -1142,6 +1142,10 @@ sealed class MainForm : Form
                 app.OpenThemeSets(this);
                 return null;
 
+            case "openThemeColours":   // Tools > Theme colours... (docs/plans/executed/PLAN-theme-colours.md)
+                app.OpenThemeColoursWindow(this);
+                return null;
+
             // F1 > File types: this window's settings with the File types dialog open (docs/plans/executed/PLAN-file-types.md).
             case "openFileTypes":
                 app.OpenSettings(this);
