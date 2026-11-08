@@ -41,7 +41,7 @@ const DEFAULTS = {
   view: null, margins: [15, 15, 15, 15], marginsEach: false, frame: false, frameWidth: 0.5, frameIntensity: 60,
   zoom: 'auto', zoomPercent: 100, textFont: '', textSize: 9, lineNumbers: 'all',
   bodyFont: '', bodySize: 11, codeFont: '', codeSize: 9,
-  colours: 'current', background: 'theme', syntax: true, highlights: 'shaded', hlColour: '', hlIntensity: 100, notes: 'end', notesWidth: 45, notesSize: 8,
+  colours: 'current', background: true, syntax: true, highlights: 'shaded', hlColour: '', hlIntensity: 100, notes: 'end', notesWidth: 45, notesSize: 8,
   headLeft: '$F', headCenter: '', headRight: '', footLeft: '', footCenter: 'Page $P of $T', footRight: '', dateFormat: '', headEdge: 6, footEdge: 6,
 };
 const PAPERS = [{ name: 'A3', w: 297, h: 420 }, { name: 'A4', w: 210, h: 297 }, { name: 'A5', w: 148, h: 210 },
@@ -215,8 +215,7 @@ function drawPanel() {
 
   html += `<h3>Colours</h3><div class="pp-row"><label>Colours</label><select data-k="colours"><option value="current"${opt('colours', 'current')}>The theme as on screen</option>
     ${themes}<option value="bw"${opt('colours', 'bw')}>Black and white</option><option value="grey"${opt('colours', 'grey')}>Greyscale</option></select></div>`;
-  if (kind !== 'pdf' && o.colours !== 'bw') html += `<div class="pp-row"><label>Background</label><select data-k="background">
-    <option value="theme"${opt('background', 'theme')}>The theme's</option><option value="white"${opt('background', 'white')}>None (white paper)</option></select></div>`;
+  if (kind !== 'pdf' && o.colours !== 'bw') html += `<div class="pp-row"><span class="pp-label"></span>${check('background', 'Background', "The theme's background between the margins; off: white paper")}</div>`;
   if (kind !== 'pdf' && kind !== 'table') html += `<div class="pp-row"><label>Text colour</label><select data-k="syntax">
     <option value="true"${o.syntax ? ' selected' : ''}>Language colouring</option><option value="false"${o.syntax ? '' : ' selected'}>Mono text colour</option></select></div>`;
 
@@ -591,7 +590,7 @@ function sheetStyle(m, more) {
   style.textContent = more == null ? '' : `
 @page { size: ${w}mm ${h}mm; margin: 0; }
 .pp-sheets { display: flex; flex-direction: column; align-items: center; gap: 16px; }
-.pp-sheet { position: relative; width: ${w}mm; height: ${h}mm; background: var(--bg, #fff); color: var(--fg, #000); overflow: hidden; break-after: page; }
+.pp-sheet { position: relative; width: ${w}mm; height: ${h}mm; ${paperBackground()} color: var(--fg, #000); overflow: hidden; break-after: page; }
 .pp-sheet:last-child { break-after: auto; }
 .pp-sheet-area { position: absolute; top: ${m[0]}mm; right: ${m[1]}mm; bottom: ${m[2]}mm; left: ${m[3]}mm; --pp-ch: ${h - m[0] - m[2]}mm;
   ${o.frame ? `outline: ${o.frameWidth}pt solid color-mix(in srgb, var(--fg, #000) ${o.frameIntensity}%, transparent); outline-offset: 1.5mm;` : ''} }
@@ -608,6 +607,12 @@ function sheetStyle(m, more) {
 .pp-sheet-notes ol { margin: 0; }
 .pp-sheet-notes li::marker { color: var(--accent, #c00); font-weight: 700; }
 ${more}`;
+}
+// The paper white and the theme's background between the margins as set (the notes beside the text inside it, the header
+// and footer outside): a printer cannot print up to the paper's edges.
+function paperBackground() {
+  const [t, r, b, l] = pp.opt.margins;
+  return `background: #fff linear-gradient(var(--bg, #fff), var(--bg, #fff)) no-repeat ${l}mm ${t}mm / calc(100% - ${l + r}mm) calc(100% - ${t + b}mm);`;
 }
 // A sheet: its header, `body` in the area, its footer with page `n` of the total (filled in when it is known).
 function sheetHtml(body, n) {
@@ -814,7 +819,7 @@ function pageCss() {
   ${boxes.join(' ')}
   @footnote { border-top: 0.5pt solid color-mix(in srgb, currentColor 40%, transparent); padding-top: 1.5mm; margin-top: 2mm; }
 }
-.pagedjs_page { background: var(--bg, #fff); color: var(--fg, #000); --pp-ch: ${h - m[0] - m[2]}mm; }
+.pagedjs_page { ${paperBackground()} color: var(--fg, #000); --pp-ch: ${h - m[0] - m[2]}mm; }
 /* The header and footer at their distance from the edge (paged.js centres them in the margin). */
 .pagedjs_margin-top > div { align-items: flex-start !important; padding-top: ${o.headEdge}mm !important; box-sizing: border-box; }
 .pagedjs_margin-bottom > div { align-items: flex-end !important; padding-bottom: ${o.footEdge}mm !important; box-sizing: border-box; }
@@ -985,7 +990,7 @@ async function applyColours() {
   if (o.colours === 'bw') vars = { ...vars, '--bg': '#ffffff', '--fg': '#000000', '--fg-dim': '#555555', '--accent': '#000000' };
   // No background: white paper behind everything (the page, code blocks, inline code, table headers), the text in the
   // theme's colours.
-  else if (o.background === 'white' && kind !== 'pdf') vars = { ...vars, '--bg': '#ffffff', '--bg-code': '#ffffff', '--inline-code': '#ffffff', '--bg-side': '#ffffff', '--bg-bar': '#ffffff' };
+  else if (!o.background && kind !== 'pdf') vars = { ...vars, '--bg': '#ffffff', '--bg-code': '#ffffff', '--inline-code': '#ffffff', '--bg-side': '#ffffff', '--bg-bar': '#ffffff' };
   pp.themeCss = css;
   const style = pagesEl.style;
   for (const name of [...style].filter(n => n.startsWith('--'))) style.removeProperty(name);
