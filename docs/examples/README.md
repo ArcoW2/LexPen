@@ -40,7 +40,7 @@ A markdown file that shows what the preview renders: headings, lists, tables, co
 CSV files to try the columns view with (and the Print window):
 
 - **regular.csv**: a small order list with the common column types (integer, text, date, decimal, true/false).
-- **long.csv**: stock movements, a very long file (200000 rows).
+- **long.csv**: stock movements, a very long file (150000 rows, just under the 10 MB LexPen opens). Not in git (its size).
 - **wide.csv**: a column per week of two years plus totals, too wide for a window or a page.
 - **line-breaks.csv**: quoted fields with line breaks inside: LF, CRLF, a lone CR, several in one field, an empty
   line, a break at the end of a field, and quotes and commas inside too. The rows themselves end with CRLF.
