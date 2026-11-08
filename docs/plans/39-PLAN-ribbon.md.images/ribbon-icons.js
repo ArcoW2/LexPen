@@ -104,35 +104,40 @@ window.RIBBON_ICONS = (() => {
     themeColours: ['Theme colours...', p('M8 1.5a6.5 6.5 0 1 0 0 13c1 0 1.5-.7 1.5-1.5s-.6-1.2-.6-2 .7-1.5 1.5-1.5h1.6a2.5 2.5 0 0 0 2.5-2.5C14.5 4 11.6 1.5 8 1.5z') + '<circle cx="4.7" cy="7.5" r=".9" fill="currentColor"/><circle cx="6.5" cy="4.5" r=".9" fill="currentColor"/><circle cx="10" cy="4.3" r=".9" fill="currentColor"/>'],
     commands: ['Keyboard shortcuts', keyboard],
   };
-  // The panels: the inner drawing, framed by panelIcon.
+  // The panels: per panel the drawing for 32 px (at 0.66 in the frame) and one drawn for 16 px in the frame's inside
+  // (x 2.7 to 13.3, y 5.2 to 13.3: a pixel from the frame and the title bar), simpler, its lines not scaled.
   const panels = {
-    folders: ['Folder', p('M1.5 3.5h4.5l1.5 1.5h7v8.5h-13z')],
-    searchView: ['Search', mag(6.8, 6.8, 4.5)],
-    'bookmarks.pane': ['Bookmarks', p('M4 1.5h8v13l-4-3-4 3z')],
-    'outline.toggle': ['Outline', p('M3 3h5.5M5.5 6.5h6M5.5 10h6M8 13.5h6M3 3v7h2.5M3 6.5h2.5')],
-    'highlight.list': ['Highlights', p(mark + 'M2 14.5h8')],
-    'csv.columns': ['Columns', '<rect x="1.5" y="2.5" width="13" height="11" rx="1"/>' + p('M1.5 6h13M6 2.5v11M10.5 2.5v11')],
-    insertCharacter: ['Characters', p('M3.5 13.5h2.5v-1.6A4.6 4.6 0 1 1 10 11.9v1.6h2.5')],
-    'clipboards.pane': ['Clipboards', p(clip + 'M6 8h4M6 11h4')],
-    'edit.sortWindow': ['Sort', p(sortLines + 'M12 2.5v10M10 10.5l2 2 2-2')],
-    'macro.manage': ['Macros', p('M2 3.5h8M2 7h8M2 10.5h5M10.5 9.5l4 2.5-4 2.5z')],
-    step: ['Step by step', p('M1.5 14h3v-3h3V8h3V5h3V2')],
-    settings: ['Settings', cog],
-    commands: ['Keyboard shortcuts', t(1.5, 12, 9, 'F1', 700)],
-    messages: ['Messages', p('M2 2.5h12v8.5H7.5L4.5 14v-3H2zM8 5v2.8') + '<circle cx="8" cy="9" r=".5" fill="currentColor"/>'],
-    themesets: ['Theme sets', '<rect x="1.5" y="3.5" width="4" height="9" rx="1"/><rect x="6" y="3.5" width="4" height="9" rx="1" fill="currentColor" fill-opacity=".35"/><rect x="10.5" y="3.5" width="4" height="9" rx="1" fill="currentColor" fill-opacity=".8"/>'],
-    projects: ['Projects', p('M1.5 3.5h4.5l1.5 1.5h7v8.5h-13z') + p('M4 9h8')],
+    folders: ['Folder', p('M1.5 3.5h4.5l1.5 1.5h7v8.5h-13z'), p('M3.2 6h3l1 1h5.3v5.8H3.2z')],
+    searchView: ['Search', mag(6.8, 6.8, 4.5), '<circle cx="7.3" cy="8.6" r="2.6"/>' + p('M9.2 10.5l2.5 2.5')],
+    'bookmarks.pane': ['Bookmarks', p('M4 1.5h8v13l-4-3-4 3z'), p('M5.6 5.8h4.8v7.2L8 11.3 5.6 13z')],
+    'outline.toggle': ['Outline', p('M3 3h5.5M5.5 6.5h6M5.5 10h6M8 13.5h6M3 3v7h2.5M3 6.5h2.5'), p('M3.6 6.2h4M6 9h6M6 12h6M3.6 6.2V12H6M3.6 9H6')],
+    'highlight.list': ['Highlights', p(mark + 'M2 14.5h8'), p('M9.5 5.8l2.6 2.6-3.5 3.5H6.2V9.4zM3.4 12.9h5.2')],
+    'csv.columns': ['Columns', '<rect x="1.5" y="2.5" width="13" height="11" rx="1"/>' + p('M1.5 6h13M6 2.5v11M10.5 2.5v11'), p('M3.4 8.2h9.2M6.4 5.8v7M9.6 5.8v7')],
+    insertCharacter: ['Characters', p('M3.5 13.5h2.5v-1.6A4.6 4.6 0 1 1 10 11.9v1.6h2.5'), p('M4.6 12.8h1.8v-1A2.9 2.9 0 1 1 9.6 11.8v1h1.8')],
+    'clipboards.pane': ['Clipboards', p(clip + 'M6 8h4M6 11h4'), p('M5 6.6h6v6.4H5zM6.8 5.8h2.4M6.6 9h2.8M6.6 11.2h2.8')],
+    'edit.sortWindow': ['Sort', p(sortLines + 'M12 2.5v10M10 10.5l2 2 2-2'), p('M3.6 6.2h4.4M3.6 9.2h3M3.6 12.2h1.6M10.8 5.8v6.8M9.3 11.2l1.5 1.5 1.5-1.5')],
+    'macro.manage': ['Macros', p('M2 3.5h8M2 7h8M2 10.5h5M10.5 9.5l4 2.5-4 2.5z'), p('M3.6 6.2h5.6M3.6 9.2h5.6M3.6 12.2h3M9.4 10l3 1.6-3 1.6z')],
+    step: ['Step by step', p('M1.5 14h3v-3h3V8h3V5h3V2'), p('M3.4 12.8h2.4v-2.2h2.4V8.4h2.4V6.2h2')],
+    settings: ['Settings', cog, '<circle cx="8" cy="9.2" r="1.9"/>' + p('M8 5.8v1M8 11.6v1.1M4.6 9.2h1M10.4 9.2h1M5.6 6.8l.7.7M9.7 10.9l.7.7M5.6 11.6l.7-.7M9.7 7.5l.7-.7')],
+    commands: ['Keyboard shortcuts', t(1.5, 12, 9, 'F1', 700), t(3.6, 12.6, 6.4, 'F1', 700)],
+    messages: ['Messages', p('M2 2.5h12v8.5H7.5L4.5 14v-3H2z'), p('M3.4 5.8h9.2v5H8.2l-2.6 2.2v-2.2H3.4z')],
+    themesets: ['Theme sets', '<rect x="1.5" y="3.5" width="4" height="9" rx="1"/><rect x="6" y="3.5" width="4" height="9" rx="1" fill="currentColor" fill-opacity=".35"/><rect x="10.5" y="3.5" width="4" height="9" rx="1" fill="currentColor" fill-opacity=".8"/>',
+      '<rect x="3.4" y="5.8" width="2.6" height="7" rx=".6"/><rect x="6.7" y="5.8" width="2.6" height="7" rx=".6" fill="currentColor" fill-opacity=".35"/><rect x="10" y="5.8" width="2.6" height="7" rx=".6" fill="currentColor" fill-opacity=".8"/>'],
+    projects: ['Projects', p('M1.5 3.5h4.5l1.5 1.5h7v8.5h-13z') + p('M4 9h8'), p('M3.2 6h3l1 1h5.3v5.8H3.2zM5 10.2h6')],
   };
   return { buttons, panels };
 })();
 // The groups of View that hold panels (as Window > Panels).
 window.PANEL_GROUPS = ['Files and finding', 'The document', 'Editing', 'Macros panels', 'LexPen'];
 // The svg of a drawing: small 16 px with lines of 1.4, large 32 px with lines of 1.0. A panel: a window (frame and
-// title bar) with the drawing at 0.6 of its size in it, about a pixel from the frame; its lines widened by as much,
-// so they show as wide as the frame's.
-window.iconSvg = (body, size, panel) => {
+// title bar); large: its drawing at 0.66 in it, its lines widened by as much (as wide as the frame's); small: its own
+// drawing for 16 px.
+window.iconSvg = (body, size, panel, small) => {
   const px = size === 'large' ? 32 : 16, w = size === 'large' ? 1 : 1.4;
-  const inner = panel ? `<rect x="1" y="1" width="14" height="14" rx="1.5"/><path d="M1 3.8h14"/><g transform="translate(3.2 4.6) scale(.6)" style="stroke-width: ${(w / 0.6).toFixed(2)}">${body}</g>` : body;
+  const frame = '<rect x="1" y="1" width="14" height="14" rx="1.5"/><path d="M1 3.5h14"/>';
+  const inner = !panel ? body
+    : size !== 'large' && small ? frame + small
+    : frame + `<g transform="translate(2.72 3.97) scale(.66)" style="stroke-width: ${(w / 0.66).toFixed(2)}">${body}</g>`;
   return `<svg viewBox="0 0 16 16" width="${px}" height="${px}" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
 };
 // The icon of a label in the mock: a panel in View's panel groups, else a button ("Line" is Go to line and Select
@@ -141,7 +146,7 @@ window.ribbonIcon = (label, group, size) => {
   const { buttons, panels } = window.RIBBON_ICONS;
   if (window.PANEL_GROUPS.includes(group) || (group === 'Macros' && window.RIBBON_GROUP_TAB === 'View')) {
     const hit = Object.values(panels).find(([l]) => l === label);
-    if (hit) return window.iconSvg(hit[1], size, true);
+    if (hit) return window.iconSvg(hit[1], size, true, hit[2]);
   }
   const hit = Object.entries(buttons).filter(([, [l]]) => l === label);
   const pick = hit.length > 1 ? hit.find(([k]) => group === 'Go to' ? k === 'goToLine' : k !== 'goToLine') : hit[0];

@@ -176,9 +176,10 @@ Sort, Highlights and Macros); Home also in the light theme:
 - **Related actions share a drawing**: Find references and Clear are Show's marked text with a magnifier or an
   eraser in its corner; Sort again is Sort...'s lines with a circular arrow where its arrow down is; Play X times is
   Play with an X inside.
-- **Panels**: a panel's icon is its own drawing at 0.6 of its size inside a small window, about a pixel from its frame (a frame with a title bar), so a
-  panel button reads as "a window opens"; Keyboard shortcuts as a panel shows "F1". At 16 px the drawing inside is
-  small (question 4).
+- **Panels**: a panel's icon is a small window (a frame with a title bar) with the panel's drawing inside, so a
+  panel button reads as "a window opens". At 32 px the drawing is the panel's own at 0.66; at 16 px a simpler one
+  drawn for that size, about a pixel from the frame (shrinking the large one leaves too little). Keyboard shortcuts as
+  a panel shows "F1"; Messages is an empty balloon.
 - An action without an icon (one added later through Customize) shows a box with its first letter until it gets one.
 
 ![ribbon-icons-dark](39-PLAN-ribbon.md.images/ribbon-icons-dark.png)
@@ -222,5 +223,3 @@ Sort, Highlights and Macros); Home also in the light theme:
 3. Show all occurrences without opening the bar: for every value of the setting Show the Occurrences bar (Never,
    When an occurrence is active, Always), or only the button on the ribbon (the action as now for its key and the
    menu)? With "Always" the bar is there anyway.
-4. Panel icons at 16 px: the window frame with the drawing at half size (as in the mock, the drawing hard to read),
-   or at 16 px the drawing alone (the group's name says they are panels) and the frame only at 32 px?
