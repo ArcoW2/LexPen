@@ -578,7 +578,7 @@ function rbEditMenu(e) {
       ...(variants.length ? [{ label: '&Parameter', sub: [
         { label: '&None (the action itself, its list)', checked: !item.params?.length, run: set(it => { delete it.params; }) },
         ...variants.map(p => ({ label: actionTitle(item.action, p).replace(/&/g, '&&'), checked: JSON.stringify(item.params ?? []) === JSON.stringify(p), run: set(it => { it.params = p; }) }))] }] : []),
-      { label: 'La&bel...', run: async () => { const v = await askName('Label (empty: the action\'s title)', item.label ?? '', actionTitle(item.action, item.params ?? [])); if (v !== null) set(it => { if (v.trim()) it.label = v.trim(); else delete it.label; })(); } },
+      { label: 'Rena&me (its label)...', run: async () => { const v = await askName('Label (empty: the action\'s title)', item.label ?? '', actionTitle(item.action, item.params ?? [])); if (v !== null) set(it => { if (v.trim()) it.label = v.trim(); else delete it.label; })(); } },
       { label: '&Key tip...', run: async () => { const v = await askName('Key tip (one or two letters; empty: from the label)', item.tip ?? '', 'A letter'); if (v !== null) set(it => { if (v.trim()) it.tip = v.trim().slice(0, 2).toUpperCase(); else delete it.tip; })(); } },
       { label: '&Divider before it', checked: g >= 0 && rb.model.tabs[t].groups[g].items[i - 1] === 'divider',
         run: () => rbChange(m => { const its = m.tabs[t].groups[g].items; if (its[i - 1] === 'divider') its.splice(i - 1, 1); else its.splice(i, 0, 'divider'); }) },
@@ -752,7 +752,7 @@ async function rbcDo(dlg, what) {
   if (what === 'divider') { rbChange(m => { const its = m.tabs[t].groups[g]?.items; if (!its) return false; its.splice((i ?? its.length - 1) + 1, 0, 'divider'); }); return pick([t, g, (i ?? 0) + 1]); }
   if (what === 'size') rbChange(m => { const it = m.tabs[t].groups[g].items[i]; if (it.size === 'large') delete it.size; else { it.size = 'large'; delete it.stack; } });
   if (what === 'stack') rbChange(m => { const it = m.tabs[t].groups[g].items[i]; if (it.size === 'large') return false; it.stack = !it.stack; });
-  if (what === 'label') {
+  if (what === 'label' || what === 'rename') {   // a button's name is its label (a long macro name made short)
     const it = rb.model.tabs[t].groups[g].items[i];
     const v = await askName('Label (empty: the action\'s title)', it.label ?? '', actionTitle(it.action, it.params ?? []));
     if (v !== null) rbChange(m => { const x = m.tabs[t].groups[g].items[i]; if (v.trim()) x.label = v.trim(); else delete x.label; });
