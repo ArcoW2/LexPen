@@ -81,8 +81,9 @@ divider. "Corner": the action of the group's corner icon, bottom right; bottom l
 | Compare | Compare files... (large) / Compare folders... + Leave the compare / Next difference + Previous difference |
 | Settings | Settings... (large) / Theme colours... + Keyboard shortcuts and commands |
 
-- **Actions**: all exist now (actions.js), except **Sort again**: a new action, the last sort again with its keys
-  and options (from the Sort panel or a stored sort), on the selection or the file as Sort.
+- **Actions**: all exist now (actions.js), except two new ones: **Sort again**, the last sort again with its keys
+  and options (from the Sort panel or a stored sort), on the selection or the file as Sort; and **Clear clipboard**,
+  the active clipboard emptied (in the Paste list, 3.2).
 - **Highlight** is not a toggle: it highlights the selection, or removes the highlight the cursor is in.
 - **Position back / forward** (the cursor's jumps in the document) and **Back / Forward in the window** (the tabs
   and files, as a browser) are not on the ribbon: in the menus and on their keys and mouse buttons.
@@ -135,6 +136,18 @@ Sort, Highlights and Macros); Home also in the light theme:
   the height. A small button marked "stacked" goes under the small button before it in the same column; at most
   three per column. A small button not stacked starts a new column; a column of one or two small buttons has them
   centred in the height.
+- **Tooltips**: every button and corner icon shows its action's title and key when the mouse is over it (a button
+  with a short label: the full title, Go to line for Line).
+- **Numbered lists: a split button.** A button whose action works on one of several numbered things gets a small
+  arrow (a large button: under its label; a small one: at its right); the arrow, and a right-click outside change
+  mode, open the same list as its menu, and the button shows which one is in use:
+  - **Paste**: its badge is the active clipboard's number (none for the Windows clipboard); the list is Edit >
+    Clipboards' (the Windows clipboard and 1 to 9, each with the start of its text, the active one checked; a choice
+    makes it active and the badge follows), then Clear clipboard and Manage clipboards.
+  - **Toggle bookmark**: the list is Go to > Bookmarks' numbered ones: Toggle, Go to and Clear per number (1 to 9,
+    each with its line when set), then Manage bookmarks.
+  - An action of your own with numbered choices (a macro's numbered actions, later) gets the arrow the same way:
+    the action says it has a list, not the ribbon.
 - **The corner icons**: a group may name an action for each bottom corner (`corners: { left, right }` in
   ribbon.json); a small icon in that corner runs it, the group's name between them, as Word's dialog launcher (Manage clipboards, Manage bookmarks, Manage macros, the Highlights window,
   the stored sorts, the Occurrences bar with the cursor in its field).
@@ -250,7 +263,9 @@ never changes by accident while working.
   of a tab and of its buttons (unique per level, from the names, a button's own `tip` first).
 - In the test copy by script: each shipped button runs its action; toggles show their state; a button greyed out
   where its action is not available; the tabs switch and keep their choice; two stacked small buttons as high as a
-  large one, and three; each corner icon runs its action; Sort again repeats the last sort; group names on and off; overflow into ">>" at a narrow window; commandBar `menu`, `ribbon` (the tab
+  large one, and three; each corner icon runs its action and shows its title and key on hover; Paste's arrow and
+  right-click list the clipboards, a choice moves its badge, Clear clipboard empties the active one; Toggle bookmark's
+  list the numbered bookmarks; Sort again repeats the last sort; group names on and off; overflow into ">>" at a narrow window; commandBar `menu`, `ribbon` (the tab
   names in the menus' place, the rest of the top bar as it was, Alt shows the key tips: a tab's letter opens it, a button's letter runs
   it, Esc goes back; with altOpens `menu` Alt shows the menus) and `both` (the tab names under the menus); Customize adds, moves, resizes, stacks and removes a button, adds a
   tab and a divider, and the ribbon follows; on the ribbon: an action dragged from F1 lands where it is dropped,
