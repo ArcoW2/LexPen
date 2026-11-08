@@ -247,7 +247,7 @@ examples) and `LexPen.sln`. The paths below are in `src`, unless they say otherw
 | `defaults/` | Copied next to the exe: `keys.json` and `settings.json` (the defaults), `languages/` (the language packs), `themes/` |
 | `defaults/user/` | What LexPen writes into your data folder when it finds none there (`tab-colours.json`); also built into the exe |
 | `img/icon/` | App icon: `lexpen.ico` (`lexpen.svg` is its source, `make-ico.ps1` rebuilds `lexpen.ico` and `lexpen.png`) |
-| `docs/examples/demo.md` (at the top) | Formatting showcase |
+| `docs/examples/markdown/demo.md` (at the top) | Formatting showcase |
 | `vendor.ps1` | Rebuilds `web/vendor` |
 
 `%LOCALAPPDATA%\LexPen` holds what you choose: `settings.json` (only what differs from the defaults), `keys.json`,

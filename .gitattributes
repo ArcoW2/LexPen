@@ -4,3 +4,6 @@
 *.ico binary
 *.png binary
 *.woff2 binary
+
+# The CSV examples keep their bytes: CRLF rows (as RFC 4180) and the LF, CRLF and CR inside line-breaks.csv.
+docs/examples/csv/*.csv -text

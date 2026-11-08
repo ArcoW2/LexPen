@@ -1,0 +1,23 @@
+Id,Name,Address,Note
+1,Plain row,"Main street 1, Utrecht",no line break
+2,LF in a field,"Main street 2
+Utrecht",the address has a LF
+3,CRLF in a field,"Main street 3
+Utrecht",the address has a CRLF
+4,CR in a field,"Main street 4Utrecht",the address has a lone CR
+5,Two fields,"Line one
+Line two","Note one
+Note two"
+6,Many lines,"a
+b
+c
+d",four lines in one field
+7,Empty line inside,"before
+
+after",an empty line in the field
+8,Quotes too,"He said ""hello""
+and left","quoted ""word"" and a, comma"
+9,Break at the end,"ends with a break
+",the field ends with a LF
+10,Last row,"Main street 10
+Utrecht",after it the file ends
