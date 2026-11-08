@@ -594,7 +594,7 @@ function sheetStyle(m, more) {
 .pp-sheet:last-child { break-after: auto; }
 .pp-sheet-area { position: absolute; top: ${m[0]}mm; right: ${m[1]}mm; bottom: ${m[2]}mm; left: ${m[3]}mm; --pp-ch: ${h - m[0] - m[2]}mm;
   ${o.frame ? `outline: ${o.frameWidth}pt solid color-mix(in srgb, var(--fg, #000) ${o.frameIntensity}%, transparent); outline-offset: 1.5mm;` : ''} }
-.pp-sheet-head, .pp-sheet-foot { position: absolute; left: ${m[3]}mm; right: ${m[1]}mm; display: flex; gap: 3mm; font: ${font}; color: var(--fg-dim, #666); }
+.pp-sheet-head, .pp-sheet-foot { position: absolute; left: ${o.margins[3]}mm; right: ${o.margins[1]}mm; display: flex; gap: 3mm; font: ${font}; color: var(--fg-dim, #666); }
 .pp-sheet-head > span, .pp-sheet-foot > span { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
 .pp-sheet-head > span:empty, .pp-sheet-foot > span:empty { flex: 1 1 0; }
 .pp-sheet-head > :first-child, .pp-sheet-foot > :first-child { text-align: left; }
@@ -823,6 +823,8 @@ function pageCss() {
 /* The header and footer at their distance from the edge (paged.js centres them in the margin). */
 .pagedjs_margin-top > div { align-items: flex-start !important; padding-top: ${o.headEdge}mm !important; box-sizing: border-box; }
 .pagedjs_margin-bottom > div { align-items: flex-end !important; padding-bottom: ${o.footEdge}mm !important; box-sizing: border-box; }
+/* The header and footer as wide as the margins as set: also over the notes beside the text. */
+${sideNotes ? `.pagedjs_margin-top, .pagedjs_margin-bottom { width: calc(100% + ${side}mm); margin-${o.notes}: -${side}mm; }` : ''}
 ${HF_BOXES.map(([, at]) => `.pp-run-${at} { position: running(pp-${at}); }`).join('\n')}
 .pp-pg::after { content: counter(page); }
 .pp-pgs::after { content: counter(pages); }
