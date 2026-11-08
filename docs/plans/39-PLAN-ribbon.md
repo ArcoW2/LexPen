@@ -44,7 +44,7 @@ divider. "Corner": the action of the group's corner icon.
 | Occurrences | Show all occurrences + Occurrences field + Clear occurrences. Corner: Show / close the Occurrences bar |
 | Go | Go to line + Go to definition |
 | Select | Select all (large) / Line + Block + Brackets (Select line, Select a block, Select inside brackets) / divider / Column mode (large, a toggle) |
-| Bookmarks | Toggle unnumbered bookmark (large) / Previous bookmark + Next bookmark. Corner: Manage bookmarks |
+| Bookmarks | Toggle unnumbered bookmark (large) / Previous + Next (Previous bookmark, Next bookmark). Corner: Manage bookmarks |
 | Highlights | Highlight + Highlight note + Remove highlight. Corner: Highlights window |
 
 **Sort**
@@ -79,8 +79,8 @@ divider. "Corner": the action of the group's corner icon.
 - **Editor and Preview** are not on Home: they are the switches at the window's top right, and View > Document.
 - **Day / Night**: the two values of Day / night, each its own button, the current one pressed.
 - **Width**, measured in a mock (a test copy, LexPen's own font and the Dark theme, group names on, a 1264 px wide
-  window): File 233 px, Home 1676 px, Sort 257 px, View 712 px, Tools 779 px. Home's groups: Edit 337, Clipboard
-  152, Find 273, Occurrences 157, Go 129, Select 248, Bookmarks 236, Highlights 139; the ribbon 120 px high with its
+  window): File 233 px, Home 1619 px, Sort 257 px, View 712 px, Tools 779 px. Home's groups: Edit 337, Clipboard
+  152, Find 273, Occurrences 157, Go 129, Select 248, Bookmarks 179, Highlights 139; the ribbon 120 px high with its
   tabs. Home does not fit that window (question 1).
 
 The mock, per tab (the icons are placeholders: a box with the label's first letter; the corner icon at the bottom
@@ -174,7 +174,7 @@ right of Clipboard, Occurrences, Bookmarks, Highlights and Sort):
 
 ## 4. Open questions
 
-1. Home is wider than a 1264 px window (1676 px in the mock): split it into two tabs (for instance Home: Edit,
+1. Home is wider than a 1264 px window (1619 px in the mock): split it into two tabs (for instance Home: Edit,
    Clipboard, Find, Occurrences; and Navigate: Go, Select, Bookmarks, Highlights), make more of its large buttons small (Select
    all, Toggle bookmark), or keep it and let the right end go into the ">>" menu?
 2. History (Undo, Redo) on Sort, as now, or on Home, where the actions used most are?
