@@ -22,7 +22,10 @@
 .pp-tabs button { flex: 1; border: 0; border-radius: 0; padding: 7px 4px; background: none; color: var(--fg-dim); }
 .pp-tabs button.pp-on { color: var(--fg); box-shadow: inset 0 -2px var(--accent); font-weight: 600; }
 .pp-panel { flex: 1; min-height: 0; overflow: auto; padding: 4px 12px 12px; }
-.pp-panel h3 { margin: 12px 0 4px; font-size: calc(11px * var(--ui-scale, 1)); letter-spacing: .04em; text-transform: uppercase; color: var(--fg-dim); }
+.pp-panel h3 { margin: 12px 0 4px; font-size: calc(11px * var(--ui-scale, 1)); letter-spacing: .04em; text-transform: uppercase; color: var(--fg-dim);
+  display: flex; align-items: center; gap: 8px; }
+/* A divider: a line from the header to the right end, in the middle of its row. */
+.pp-panel h3::after { content: ''; flex: 1; border-top: 1px solid var(--fg-dim); opacity: .5; }
 .pp-row { display: flex; align-items: center; gap: 8px; margin: 4px 0; flex-wrap: wrap; }
 .pp-row > label:first-child, .pp-row > .pp-label { min-width: 7.5em; color: var(--fg-dim); }
 .pp-row select, .pp-row input[type=text], .pp-row input[type=number] { font: inherit; color: var(--fg); background: var(--bg);

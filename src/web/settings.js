@@ -765,5 +765,5 @@ layoutBar.querySelector('[data-layout="reset"]').addEventListener('click', () =>
   await usableFonts().catch(() => []);
   buildLegend();
   build();
-  if (!settingShown) { restoreView(); ui.search.focus(); }
+  if (!settingShown) { restoreView(); ui.search.focus(); ui.search.select(); }   // typing replaces the last search
 })();

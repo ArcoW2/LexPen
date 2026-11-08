@@ -781,7 +781,8 @@ function fitTables(root, size) {
 // text, at the foot or left out (the end's are added after it), the markers with them.
 function dressContent(root) {
   const o = pp.opt;
-  if (lineNumbers() === 'ten') for (const n of root.querySelectorAll('.pp-ln')) if (+n.textContent % 10) n.classList.add('pp-ln-skip');
+  // Every 10 lines, as the gutter: the number on every tenth line, a dash halfway, a small dot on the others.
+  if (lineNumbers() === 'ten') for (const n of root.querySelectorAll('.pp-ln')) { const v = +n.textContent; if (v % 10) n.textContent = v % 5 ? '·' : '-'; }
   if (o.highlights === 'off') for (const m of root.querySelectorAll('mark.pp-hl')) m.replaceWith(...m.childNodes);
   for (const n of root.querySelectorAll('.pp-note')) {
     if (o.notes === 'off' || o.notes === 'end') { n.remove(); continue; }
@@ -843,9 +844,7 @@ function contentCss() {
 .pp-text { position: relative; margin: 0; font: ${o.textSize}pt/1.3 ${font(o.textFont || s.editorFont, 'monospace')}; white-space: pre-wrap; overflow-wrap: anywhere; tab-size: ${pp.values.tabSize || 4}; }
 .pp-line { display: flex; }
 .pp-ln { flex: none; min-width: ${String(9999).length}ch; padding-right: 1.5ch; text-align: right; color: var(--fg-dim, #888); }
-.pp-no-ln .pp-ln { display: none; }
-.pp-ln.pp-ln-skip { visibility: hidden; }
-.pp-lt { flex: 1; min-width: 0; }
+.pp-no-ln .pp-ln { display: none; }.pp-lt { flex: 1; min-width: 0; }
 .pp-rendered { position: relative; padding: 0 !important; zoom: 1 !important; font: ${o.bodySize}pt/1.5 ${font(o.bodyFont || s.appFont)}; color: var(--fg, #000); }
 .pp-rendered pre, .pp-rendered code, .pp-rendered pre code, .pp-rendered pre.mm-code { font-family: ${font(o.codeFont || s.editorFont, 'monospace')}; font-size: ${o.codeSize}pt; }
 .pp-rendered pre { white-space: pre-wrap; overflow-wrap: anywhere; }
