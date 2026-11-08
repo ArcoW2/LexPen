@@ -16,7 +16,7 @@ An optional ribbon under the menu bar, with tabs (File, Home, Sort, View, Tools)
 buttons, each button running an action as its menu item does, its tooltip showing the title and the key. A button is
 large (icon above its label, the ribbon's full height) or small (icon with its label beside it), and up to three
 small buttons stack in the height of one large one. A group may have a small icon in its corner that opens its
-manager (Clipboards, Bookmarks, Highlights, stored sorts). LexPen ships a first set; the user adds, removes and orders
+manager (Clipboards, Bookmarks, Highlights, stored sorts) or bar (Occurrences). LexPen ships a first set; the user adds, removes and orders
 tabs, groups, buttons and dividers through Customize, kept in a `ribbon.json` in the data folder as `keys.json` is.
 A setting chooses what the window shows: the menu bar, the ribbon, or both; another whether group names are shown.
 
@@ -38,10 +38,10 @@ divider. "Corner": the action of the group's corner icon.
 
 | Group | Columns |
 |---|---|
-| Edit | Indent + Outdent / divider / Duplicate lines + Delete lines + Join lines / divider / Insert character + Complete word / divider / Editor + Preview (toggles) |
+| Edit | Indent + Outdent / divider / Duplicate lines + Delete lines + Join lines / divider / Insert character + Complete word |
 | Clipboard | Paste (large; a number badge: the active clipboard) / Paste image + Cut + Copy. Corner: Manage clipboards |
 | Find | Find (large) / Find previous + Find next + Replace / Replace in files + Search in files + Find references |
-| Occurrences | Show all occurrences + Occurrences field + Clear occurrences / Occurrences bar (a toggle) |
+| Occurrences | Show all occurrences + Occurrences field + Clear occurrences. Corner: Show / close the Occurrences bar |
 | Go | Go to line + Go to definition |
 | Select | Select all (large) / Select line + Select a block + Select inside brackets / divider / Column mode (large, a toggle) |
 | Bookmarks | Toggle unnumbered bookmark (large) / Previous bookmark + Next bookmark. Corner: Manage bookmarks |
@@ -76,14 +76,15 @@ divider. "Corner": the action of the group's corner icon.
 - **Highlight** is not a toggle: it highlights the selection, or removes the highlight the cursor is in.
 - **Position back / forward** (the cursor's jumps in the document) and **Back / Forward in the window** (the tabs
   and files, as a browser) are not on the ribbon: in the menus and on their keys and mouse buttons.
+- **Editor and Preview** are not on Home: they are the switches at the window's top right, and View > Document.
 - **Day / Night**: the two values of Day / night, each its own button, the current one pressed.
 - **Width**, measured in a mock (a test copy, LexPen's own font and the Dark theme, group names on, a 1264 px wide
-  window): File 233 px, Home 1917 px, Sort 257 px, View 712 px, Tools 779 px. Home's groups: Edit 422, Clipboard
-  152, Find 273, Occurrences 277, Go 129, Select 283, Bookmarks 236, Highlights 139; the ribbon 120 px high with its
+  window): File 233 px, Home 1711 px, Sort 257 px, View 712 px, Tools 779 px. Home's groups: Edit 337, Clipboard
+  152, Find 273, Occurrences 157, Go 129, Select 283, Bookmarks 236, Highlights 139; the ribbon 120 px high with its
   tabs. Home does not fit that window (question 1).
 
 The mock, per tab (the icons are placeholders: a box with the label's first letter; the corner icon at the bottom
-right of Clipboard, Bookmarks, Highlights and Sort):
+right of Clipboard, Occurrences, Bookmarks, Highlights and Sort):
 
 ![ribbon-File](39-PLAN-ribbon.md.images/ribbon-File.png)
 
@@ -108,7 +109,8 @@ right of Clipboard, Bookmarks, Highlights and Sort):
   three per column. A small button not stacked starts a new column; a column of one or two small buttons has them
   centred in the height.
 - **The corner icon**: a group may name one action (`more` in ribbon.json); a small icon in its bottom-right corner
-  runs it, as Word's dialog launcher (Manage clipboards, Manage bookmarks, the Highlights window, the stored sorts).
+  runs it, as Word's dialog launcher (Manage clipboards, Manage bookmarks, the Highlights window, the stored sorts,
+  the Occurrences bar shown or closed).
 - **Dividers**: a divider can stand between columns in a group; between groups always.
 - **Group names** (setting ribbonGroupNames, on by default): on, the name under each group (the ribbon a line
   taller); off, one compact block: dividers only, the group's name as the tooltip of its divider.
@@ -171,7 +173,7 @@ right of Clipboard, Bookmarks, Highlights and Sort):
 
 ## 4. Open questions
 
-1. Home is wider than a 1264 px window (1917 px in the mock): split it into two tabs (for instance Home: Edit,
+1. Home is wider than a 1264 px window (1711 px in the mock): split it into two tabs (for instance Home: Edit,
    Clipboard, Find, Occurrences; and Navigate: Go, Select, Bookmarks, Highlights), make more of its large buttons small (Select
    all, Toggle bookmark), or keep it and let the right end go into the ">>" menu?
 2. History (Undo, Redo) on Sort, as now, or on Home, where the actions used most are?
