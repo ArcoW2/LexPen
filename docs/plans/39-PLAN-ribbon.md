@@ -203,7 +203,16 @@ never changes by accident while working.
   group as a button.
 - **New...** (in change mode only): the last tab name is "New..." in italics; a click makes a new tab (its name typed in place). A group's
   last place is "New..." too, for a new group.
-- **A button's right-click** (in change mode): large or small, stacked under the one above or not, its label, its key tip, the
+- **An action with a parameter**: F1 lists such an action and, folded under it, each of its variants (as it does now:
+  Clipboard with Windows clipboard, Clipboard 1 to 9). Dragged onto the ribbon:
+  - **the action itself** (Paste, no parameter): a button for the action as its key works (the active clipboard),
+    with its badge (the active one's number) and its arrow with all its variants (3.2);
+  - **one variant** (Paste from clipboard 3): a button for that one choice: its label the variant's title, short
+    where the group says the rest ("Paste 3"), its icon the action's with the parameter in a small corner mark ("3"),
+    no arrow.
+  A button's parameter can be changed later by its right-click in change mode: Parameter > None (the action itself)
+  or one of the variants. In ribbon.json as in keys.json: `{ "action": "paste", "params": [3] }`.
+- **A button's right-click** (in change mode): large or small, stacked under the one above or not, its parameter, its label, its key tip, the
   group's corner actions, a divider before it, Remove; a group's and a tab's: Rename, Remove, its corner actions.
 - **The Customize window** (the ribbon's right-click > Customize...) remains for the same work by list, as F1:
   at the left all actions with a search, grouped as the menus; at the right the ribbon's tabs, groups and columns;
@@ -271,7 +280,8 @@ never changes by accident while working.
   large one, and three; each corner icon runs its action and shows its title and key on hover; Paste's arrow and
   right-click list the clipboards: Paste from one pastes it and leaves the active one, Active clipboard moves the
   badge, Clear clipboard empties the active one; Copy to and Cut to fill the chosen clipboard and leave the active
-  one; Toggle bookmark's
+  one; a variant dragged from F1 is a button for that one choice (its label, the number on its icon, no arrow), the
+  action itself a button with the arrow; Parameter in a button's right-click turns one into the other; Toggle bookmark's
   list the numbered bookmarks; Sort again repeats the last sort; group names on and off; overflow into ">>" at a narrow window; commandBar `menu`, `ribbon` (the tab
   names in the menus' place, the rest of the top bar as it was, Alt shows the key tips: a tab's letter opens it, a button's letter runs
   it, Esc goes back; with altOpens `menu` Alt shows the menus) and `both` (the tab names under the menus); Customize adds, moves, resizes, stacks and removes a button, adds a
