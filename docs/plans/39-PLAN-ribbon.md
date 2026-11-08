@@ -12,7 +12,7 @@ must be able to choose what is on it.
 
 ## 2. The solution, in brief
 
-An optional ribbon under the menu bar, with tabs (File, Home, Sort, View, Tools); each tab holds named groups of
+An optional ribbon under the menu bar, with tabs (File, Home, Select & Sort, Review, View, Tools); each tab holds named groups of
 buttons, each button running an action as its menu item does, its tooltip showing the title and the key. A button is
 large (icon above its label, the ribbon's full height) or small (icon with its label beside it), and up to three
 small buttons stack in the height of one large one. A group may have a small icon in its corner that opens its
@@ -44,16 +44,21 @@ divider. "Corner": the action of the group's corner icon.
 | Find | Find (large) / Find previous + Find next + Replace / Replace in files + Search in files + Find references |
 | Occurrences | Show all occurrences + Occurrences field + Clear occurrences. Corner: Show / close the Occurrences bar |
 | Go | Go to line + Go to definition |
-| Select | Select all (large) / Line + Block + Brackets (Select line, Select a block, Select inside brackets) / divider / Column mode (large, a toggle) |
 | Bookmarks | Toggle unnumbered bookmark (large) / Previous + Next (Previous bookmark, Next bookmark). Corner: Manage bookmarks |
-| Highlights | Highlight + Highlight note + Remove highlight. Corner: Highlights window |
 
-**Sort**
+**Select & Sort** (its name: question 1)
 
 | Group | Columns |
 |---|---|
+| Select | Select all (large) / Line + Block + Brackets (Select line, Select a block, Select inside brackets) / divider / Column mode (large, a toggle) |
 | Sort | Sort... (large) / Sort ascending + Sort descending + Sort again. Corner: the Sort panel's stored sorts |
 | History | Undo + Redo |
+
+**Review**
+
+| Group | Columns |
+|---|---|
+| Highlights | Highlight + Highlight note + Remove highlight. Corner: Highlights window |
 
 **View**
 
@@ -80,18 +85,20 @@ divider. "Corner": the action of the group's corner icon.
 - **Editor and Preview** are not on Home: they are the switches at the window's top right, and View > Document.
 - **Day / Night**: the two values of Day / night, each its own button, the current one pressed.
 - **Width**, measured in a mock (a test copy, LexPen's own font and the Dark theme, group names on, a 1264 px wide
-  window): File 233 px, Home 1594 px, Sort 257 px, View 712 px, Tools 779 px. Home's groups: Edit 216, Lines 96, Clipboard
-  152, Find 273, Occurrences 157, Go 129, Select 248, Bookmarks 179, Highlights 139; the ribbon 120 px high with its
-  tabs. Home does not fit that window (question 1).
+  window): File 233 px, Home 1207 px, Select & Sort 505 px, Review 146 px, View 712 px, Tools 779 px. Home's groups:
+  Edit 216, Lines 96, Clipboard 152, Find 273, Occurrences 157, Go 129, Bookmarks 179; the ribbon 120 px high with its
+  tabs. Every tab fits that window; a narrower one sends Home's right end into the ">>" menu.
 
 The mock, per tab (the icons are placeholders: a box with the label's first letter; the corner icon at the bottom
-right of Clipboard, Occurrences, Bookmarks, Highlights and Sort):
+right of Clipboard, Occurrences, Bookmarks, Sort and Highlights):
 
 ![ribbon-File](39-PLAN-ribbon.md.images/ribbon-File.png)
 
 ![ribbon-Home](39-PLAN-ribbon.md.images/ribbon-Home.png)
 
-![ribbon-Sort](39-PLAN-ribbon.md.images/ribbon-Sort.png)
+![ribbon-SelectSort](39-PLAN-ribbon.md.images/ribbon-SelectSort.png)
+
+![ribbon-Review](39-PLAN-ribbon.md.images/ribbon-Review.png)
 
 ![ribbon-View](39-PLAN-ribbon.md.images/ribbon-View.png)
 
@@ -175,7 +182,7 @@ right of Clipboard, Occurrences, Bookmarks, Highlights and Sort):
 
 ## 4. Open questions
 
-1. Home is wider than a 1264 px window (1594 px in the mock): split it into two tabs (for instance Home: Edit,
-   Lines, Clipboard, Find, Occurrences; and Navigate: Go, Select, Bookmarks, Highlights), make more of its large buttons small (Select
-   all, Toggle bookmark), or keep it and let the right end go into the ">>" menu?
-2. History (Undo, Redo) on Sort, as now, or on Home, where the actions used most are?
+1. The name of the tab with Select, Sort and History: "Select & Sort" in the mock; or "Arrange", "Selection", or
+   another?
+2. History (Undo, Redo) on that tab, as now, or on Home, where the actions used most are? Home has room for it
+   (1207 px of a 1264 px window, History 75 px), just.
