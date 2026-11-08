@@ -19,7 +19,7 @@ function host(op, args) {
   });
 }
 chrome.webview.addEventListener('message', e => {
-  // A text's rendering as markdown, made by the main window after this one opened (PrintForm.Rendered).
+  // A text's preview, made by the main window after this one opened (PrintForm.Rendered).
   if (e.data.event === 'rendered') {
     if (!pp.source) return;   // init has it
     pp.source.views.rendered = e.data.rendered;
@@ -121,9 +121,11 @@ function upgraded(o) {
 }
 // Line numbers: every line, every 10 lines, or off (a stored set from before: true or false).
 const lineNumbers = () => pp.opt.lineNumbers === true ? 'all' : pp.opt.lineNumbers === false ? 'off' : pp.opt.lineNumbers;
-const views = () => pp.source.kind === 'markdown' ? [['rendered', 'Rendered (as the preview)'], ['text', 'Text (as the editor)']]
-  : pp.source.kind === 'csv' ? [['table', 'Table (as the preview)'], ['text', 'Text (as the editor)']]
-  : pp.source.renderLater || pp.source.views?.rendered != null ? [['text', 'Text (as the editor)'], ['rendered', 'Rendered as markdown']] : [];
+// What is printed: as the editor shows it, or as the preview does (markdown rendered, a CSV as its table, other text
+// coloured by its language without line numbers).
+const views = () => pp.source.kind === 'markdown' ? [['rendered', 'Preview'], ['text', 'Editor']]
+  : pp.source.kind === 'csv' ? [['table', 'Preview'], ['text', 'Editor']]
+  : pp.source.renderLater || pp.source.views?.rendered != null ? [['text', 'Editor'], ['rendered', 'Preview']] : [];
 const viewOf = () => pp.source.kind === 'pdf' ? 'pdf' : views().some(([v]) => v === pp.opt.view) ? pp.opt.view : views()[0]?.[0] ?? 'text';
 
 // ---------- The Print tab ----------
@@ -199,11 +201,14 @@ function drawPanel() {
     <div class="pp-row"><label>Size (pt)</label>${num('textSize', 4, 40, 0.5)}</div>` + (kind === 'text' ? `<div class="pp-row"><label>Line numbers</label><select data-k="lineNumbers">
     <option value="all"${lineNumbers() === 'all' ? ' selected' : ''}>Every line</option><option value="ten"${lineNumbers() === 'ten' ? ' selected' : ''}>Every 10 lines</option>
     <option value="off"${lineNumbers() === 'off' ? ' selected' : ''}>Off</option></select></div>` : '');
-  if (kind === 'rendered') html += `<h3>Text</h3><div class="pp-row"><label>Font</label>${fontList('bodyFont', s.appFont, false)}</div>
+  // The preview of a code file is all code: only the code font and size.
+  if (kind === 'rendered' && s.kind !== 'markdown') html += `<h3>Text</h3><div class="pp-row"><label>Font</label>${fontList('codeFont', s.editorFont, true)}</div>
+    <div class="pp-row"><label>Size (pt)</label>${num('codeSize', 4, 40, 0.5)}</div>`;
+  else if (kind === 'rendered') html += `<h3>Text</h3><div class="pp-row"><label>Font</label>${fontList('bodyFont', s.appFont, false)}</div>
     <div class="pp-row"><label>Size (pt)</label>${num('bodySize', 4, 40, 0.5)}</div>
     <div class="pp-row"><label>Code font</label>${fontList('codeFont', s.editorFont, true)}</div>
     <div class="pp-row"><label>Code size (pt)</label>${num('codeSize', 4, 40, 0.5)}</div>`;
-  if (kind === 'pdf' || kind === 'rendered') html += `<div class="pp-row"><label>${kind === 'pdf' ? 'Pages' : 'Images'} at</label><select data-k="zoom">
+  if (kind === 'pdf' || (kind === 'rendered' && s.kind === 'markdown')) html += `<div class="pp-row"><label>${kind === 'pdf' ? 'Pages' : 'Images'} at</label><select data-k="zoom">
     <option value="auto"${opt('zoom', 'auto')}>Auto (own size, smaller when needed)</option><option value="width"${opt('zoom', 'width')}>Fit to width</option>
     <option value="height"${opt('zoom', 'height')}>Fit to height</option><option value="page"${opt('zoom', 'page')}>Fit to page</option>
     <option value="percent"${opt('zoom', 'percent')}>Percentage</option></select>${o.zoom === 'percent' ? num('zoomPercent', 5, 400, 5) + '%' : ''}</div>`;
@@ -497,7 +502,7 @@ async function layout() {
   await applyColours();
   if (viewOf() === 'pdf') return layoutPdf();
   if (viewOf() === 'text') return layoutText();
-  if (viewOf() === 'rendered' && pp.source.views.rendered == null) { $('.pp-count').textContent = 'Rendering as markdown...'; return; }   // laid out when it comes
+  if (viewOf() === 'rendered' && pp.source.views.rendered == null) { $('.pp-count').textContent = 'Making the preview...'; return; }   // laid out when it comes
   sheetStyle(null, null);   // the sheets' page rules are not paged.js's
   const html = await contentHtml();
   previewer?.polisher?.destroy?.();

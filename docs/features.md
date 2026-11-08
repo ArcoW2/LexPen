@@ -461,8 +461,8 @@ every action with its key.
   bar (click it for 100%) and is kept.
 - **Safe by default**: a Content Security Policy blocks scripts embedded in a document's raw HTML.
 - **Print** (File > Print..., Ctrl+Shift+P; the Folder pane's right-click > Print... on a file, without opening it):
-  a window with the pages as they will come out and the options beside them. Text and code in lines (coloured, line
-  numbers), markdown rendered or as text, a CSV as its table or as text, a PDF's own pages (its images at a zoom:
+  a window with the pages as they will come out and the options beside them. Source: the Editor (in lines, coloured,
+  line numbers) or the Preview (markdown rendered, a CSV as its table, code coloured without line numbers), a PDF's own pages (its images at a zoom:
   auto, fit to width / height / page, a percentage); the whole document, the selected lines or pages (typed, or
   clicked in the preview). Paper, orientation, margins (each side its own), a frame, a header and a footer (each a text at
   the left, in the middle and at the right, with codes: $F the file name, $A with its path, $P the page, $T the
