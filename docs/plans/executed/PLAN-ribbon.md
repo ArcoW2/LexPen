@@ -315,6 +315,10 @@ differences:
 - **Change mode with commandBar "menu"** sets it to "both" first, so there is a ribbon to change.
 - **The icons** are generated into `src/web/ribbonicons.js` from the proposal (`PLAN-ribbon.md.images/ribbon-icons.js`),
   with the panels keyed by their PANELS kind (`panel folder`) and the toggles by their `.toggle` action.
+- **Split buttons** (an action with a list: Paste, Copy, Cut, Toggle bookmark): the arrow is a part of its own behind
+  a divider, each part lit on its own; on a large button a row under the label as wide as the button, on a small one
+  a strip at its right. The rows are 30 px, so a large button holds its icon, two lines of label and that row.
+- **Rename** (Customize and a button's right-click) renames a tab, a group or a button; a button's name is its label.
 - **Show all occurrences** never opens the Occurrences bar (`showOccurrences(..., open)`); the corner's Occurrences
   field opens it.
 

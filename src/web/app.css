@@ -1540,7 +1540,7 @@ body.mm-rb-menus .mm-rb-tabs-top { display: none; }
 .mm-rb-tabs-row { padding: 2px 8px 0; background: var(--bg-bar); }
 .mm-rb-new { font-style: italic; color: var(--fg-dim); }
 .mm-ribbon { flex: none; background: var(--bg-bar); border-bottom: 1px solid var(--border); user-select: none; position: relative;
-  --rb-row: calc(25px * var(--ui-scale)); }   /* three: a large button's icon and two lines of label */
+  --rb-row: calc(30px * var(--ui-scale)); }   /* three: a large button's icon, two lines of label and a split's arrow row */
 .mm-rb-bodies { display: flex; align-items: stretch; overflow: hidden; padding: 3px 4px 0; }
 .mm-rb-body { display: flex; align-items: stretch; flex: none; }
 .mm-rb-group { position: relative; display: flex; flex-direction: column; padding: 0 5px; border-right: 1px solid var(--border); }
@@ -1555,7 +1555,7 @@ body.mm-rb-menus .mm-rb-tabs-top { display: none; }
 .mm-rb-div { width: 1px; margin: 4px 3px; background: var(--border); }
 .mm-rb-btn { position: relative; display: flex; align-items: center; gap: 5px; padding: 0 6px; border-radius: 4px; white-space: nowrap; }
 .mm-rb-small { height: var(--rb-row); }
-.mm-rb-large { flex-direction: column; justify-content: flex-start; gap: 2px; padding: 3px 6px; text-align: center; white-space: normal; }
+.mm-rb-large { flex-direction: column; justify-content: flex-start; gap: 1px; padding: 3px 6px; text-align: center; white-space: normal; }
 .mm-rb-small .mm-rb-label { max-width: var(--rb-ch); overflow: hidden; text-overflow: ellipsis; }
 .mm-rb-large .mm-rb-label { max-width: calc(var(--rb-ch) / 2); line-height: 1.3; overflow: hidden; display: -webkit-box;
   -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
@@ -1566,8 +1566,22 @@ body.mm-rb-menus .mm-rb-tabs-top { display: none; }
 .mm-rb-badge, .mm-rb-mark { position: absolute; right: -6px; top: -4px; min-width: 9px; padding: 0 3px; border-radius: 7px; font-size: 9px;
   font-weight: 700; line-height: 13px; text-align: center; color: var(--bookmark-fg); background: var(--accent); }
 .mm-rb-mark { background: var(--fg-dim); color: var(--bg); top: auto; bottom: -3px; }
-.mm-rb-arrow { width: 0; height: 0; border: 4px solid transparent; border-top-color: currentColor; margin-top: 3px; padding: 0 1px; }
-.mm-rb-large .mm-rb-arrow { margin: 0; }
+.mm-rb-arrow::after { content: ""; border: 4px solid transparent; border-top-color: currentColor; margin-top: 4px; }
+.mm-rb-arrow { display: inline-grid; place-items: center; flex: none; }
+/* A split button (an action with a list): the arrow a part of its own behind a divider, each part lit on its own;
+   a small button's arrow the full height at its right, a large one's a row under the label, the button's width */
+.mm-rb-small .mm-rb-arrow[data-arrow] { align-self: stretch; width: 18px; margin: 0 -6px 0 2px; border-radius: 0 4px 4px 0;
+  background: linear-gradient(var(--border), var(--border)) left center / 1px 12px no-repeat; }   /* lower than the text: stacked ones' do not join */
+.mm-rb-small:has(.mm-rb-arrow[data-arrow]) .mm-rb-text { align-self: stretch; }
+.mm-rb-large > .mm-rb-arrow[data-arrow] { align-self: stretch; height: 16px; margin: auto -6px -3px; border-top: 1px solid var(--border);
+  border-radius: 0 0 4px 4px; }
+.mm-rb-large > .mm-rb-arrow::after { margin-top: 4px; }
+.mm-rb-btn:has([data-arrow]):hover { background: none; }
+.mm-rb-btn [data-arrow]:hover { background: var(--hover); }
+.mm-rb-btn:has([data-arrow]):hover:not(:has([data-arrow]:hover)) { background: linear-gradient(var(--hover), var(--hover)) no-repeat;
+  background-size: var(--rb-main-w, 100%) var(--rb-main-h, 100%); }
+.mm-rb-small:has([data-arrow]) { --rb-main-w: calc(100% - 18px); }
+.mm-rb-large:has([data-arrow]) { --rb-main-h: calc(100% - 17px); }
 .mm-rb-btn.mm-on { background: var(--active); color: var(--accent); }
 .mm-rb-btn.mm-off { opacity: .45; }
 .mm-rb-btn.mm-off:hover { background: none; }

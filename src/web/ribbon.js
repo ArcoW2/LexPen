@@ -117,10 +117,11 @@ function rbButtonHtml(path, item, size) {
   if (!def) return rb.changing ? `<button class="mm-rb-btn mm-rb-${size} mm-rb-missing" data-path="${path}" draggable="true" title="No action ${escapeHtml(item.action)} (drag it off to remove it)" tabindex="-1">?</button>` : '';
   const title = actionTitle(item.action, item.params ?? []), label = item.label || title;
   const icon = ribbonIcon(call, size) ?? `<span class="mm-rb-letter">${escapeHtml(label.trim()[0] ?? '?')}</span>`;
-  const list = rbHasList(item), mark = item.params?.length && !rbOwnDrawing(call) ? `<span class="mm-rb-mark">${escapeHtml(String(item.params[0]))}</span>` : '';
+  const list = rbHasList(item), arrow = '<span class="mm-rb-arrow" data-arrow title="Its list"></span>', mark = item.params?.length && !rbOwnDrawing(call) ? `<span class="mm-rb-mark">${escapeHtml(String(item.params[0]))}</span>` : '';
   return `<button class="mm-rb-btn mm-rb-${size}" data-path="${path}" data-call="${escapeHtml(JSON.stringify(call))}"${rb.changing ? ' draggable="true"' : ''} title="${escapeHtml(withKey(title, ...call))}" tabindex="-1">` +
     `<span class="mm-rb-icon">${icon}${mark}<span class="mm-rb-badge" hidden></span></span>` +
-    `<span class="mm-rb-text"><span class="mm-rb-label">${escapeHtml(label)}</span>${list ? '<span class="mm-rb-arrow" data-arrow title="Its list"></span>' : ''}</span></button>`;
+    // With a list, a split button: the arrow a part of its own that opens it (a large button's: a row under the label).
+    `<span class="mm-rb-text"><span class="mm-rb-label">${escapeHtml(label)}</span>${list && size !== 'large' ? arrow : ''}</span>${list && size === 'large' ? arrow : ''}</button>`;
 }
 
 // ---------- State of the buttons: pressed, greyed out, the clipboard badge ----------
@@ -578,7 +579,7 @@ function rbEditMenu(e) {
       ...(variants.length ? [{ label: '&Parameter', sub: [
         { label: '&None (the action itself, its list)', checked: !item.params?.length, run: set(it => { delete it.params; }) },
         ...variants.map(p => ({ label: actionTitle(item.action, p).replace(/&/g, '&&'), checked: JSON.stringify(item.params ?? []) === JSON.stringify(p), run: set(it => { it.params = p; }) }))] }] : []),
-      { label: 'Rena&me (its label)...', run: async () => { const v = await askName('Label (empty: the action\'s title)', item.label ?? '', actionTitle(item.action, item.params ?? [])); if (v !== null) set(it => { if (v.trim()) it.label = v.trim(); else delete it.label; })(); } },
+      { label: 'Rena&me...', run: async () => { const v = await askName('Label (empty: the action\'s title)', item.label ?? '', actionTitle(item.action, item.params ?? [])); if (v !== null) set(it => { if (v.trim()) it.label = v.trim(); else delete it.label; })(); } },
       { label: '&Key tip...', run: async () => { const v = await askName('Key tip (one or two letters; empty: from the label)', item.tip ?? '', 'A letter'); if (v !== null) set(it => { if (v.trim()) it.tip = v.trim().slice(0, 2).toUpperCase(); else delete it.tip; })(); } },
       { label: '&Divider before it', checked: g >= 0 && rb.model.tabs[t].groups[g].items[i - 1] === 'divider',
         run: () => rbChange(m => { const its = m.tabs[t].groups[g].items; if (its[i - 1] === 'divider') its.splice(i - 1, 1); else its.splice(i, 0, 'divider'); }) },
@@ -635,8 +636,8 @@ function rbCustomize() {
           <button data-rbc="up" title="Alt+Up">Up</button><button data-rbc="down" title="Alt+Down">Down</button>
           <button data-rbc="remove" title="Del">Remove</button><hr>
           <button data-rbc="size">Large / small</button><button data-rbc="stack">Stacked</button>
-          <button data-rbc="label">Label...</button><button data-rbc="divider">Divider</button><hr>
-          <button data-rbc="newTab">New tab...</button><button data-rbc="newGroup">New group...</button><button data-rbc="rename">Rename...</button><hr>
+          <button data-rbc="divider">Divider</button><button data-rbc="rename" title="A tab, a group, or a button (its label)">Rename...</button><hr>
+          <button data-rbc="newTab">New tab...</button><button data-rbc="newGroup">New group...</button><hr>
           <button data-rbc="reset">Reset</button><button data-rbc="close">Close</button></div>
       </div>`;
     document.body.append(dlg);
@@ -752,7 +753,7 @@ async function rbcDo(dlg, what) {
   if (what === 'divider') { rbChange(m => { const its = m.tabs[t].groups[g]?.items; if (!its) return false; its.splice((i ?? its.length - 1) + 1, 0, 'divider'); }); return pick([t, g, (i ?? 0) + 1]); }
   if (what === 'size') rbChange(m => { const it = m.tabs[t].groups[g].items[i]; if (it.size === 'large') delete it.size; else { it.size = 'large'; delete it.stack; } });
   if (what === 'stack') rbChange(m => { const it = m.tabs[t].groups[g].items[i]; if (it.size === 'large') return false; it.stack = !it.stack; });
-  if (what === 'label' || what === 'rename') {   // a button's name is its label (a long macro name made short)
+  if (what === 'rename') {   // a button's name is its label (a long macro name made short)
     const it = rb.model.tabs[t].groups[g].items[i];
     const v = await askName('Label (empty: the action\'s title)', it.label ?? '', actionTitle(it.action, it.params ?? []));
     if (v !== null) rbChange(m => { const x = m.tabs[t].groups[g].items[i]; if (v.trim()) x.label = v.trim(); else delete x.label; });
