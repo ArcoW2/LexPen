@@ -433,11 +433,14 @@ sealed class AppHost : ApplicationContext
 #endif
 
     /// <summary>A folder of the project the exe was built from (defaults, web): up from `from` to the folder with
-    /// LexPen.csproj.</summary>
+    /// LexPen.csproj, or to the top folder with src\LexPen.csproj (from the tests, which are beside src).</summary>
     internal static string? FindProjectFolder(string from, string folder)
     {
         for (var dir = new DirectoryInfo(from); dir is not null; dir = dir.Parent)
+        {
             if (File.Exists(Path.Combine(dir.FullName, "LexPen.csproj"))) return Path.Combine(dir.FullName, folder);
+            if (File.Exists(Path.Combine(dir.FullName, "src", "LexPen.csproj"))) return Path.Combine(dir.FullName, "src", folder);
+        }
         return null;
     }
 

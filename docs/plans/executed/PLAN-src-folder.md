@@ -1,7 +1,6 @@
 # Plan: a src folder for everything LexPen is built from
 
-Status: draft 2026-11-08, revised 2026-11-08; not started. The number in the file name is the priority; rename to
-reorder.
+Status: executed (2026-11-08); see As built.
 
 ## 1. What this is about
 
@@ -51,7 +50,7 @@ LexPen\
   one). `defaults`
   is not embedded: it is copied next to the exe.
 - **Finding `defaults` in a debug build**: AppHost.FindProjectFolder walks up from `bin` to the folder that has it;
-  with `bin` under `src` it finds `src\defaults`. [not yet checked in the test copy]
+  with `bin` under `src` it finds `src\defaults`.
 - **vendor.ps1** and **shell\build.cmd** use paths relative to themselves (`$PSScriptRoot`, `%~dp0`): unchanged.
   `node_modules` (not in git) is made again in `src` by `npm install` when a library is upgraded.
 - **The publish profile** (`Properties\PublishProfiles`, not in git: yours) moves along with Properties; its target
@@ -64,8 +63,7 @@ LexPen\
 - **Paths in the docs and in code comments** that name a file with its folder from the top (`web\app.js`, `defaults\`)
   stay right: they are relative to `src` then, which the docs say once (README). Plans in `docs\plans\executed` are a
   record and are not edited.
-- **.claude** (the plans skill, settings): nothing in it names a source path [checked by a search; checked again
-  after the move].
+- **.claude** (the plans skill, settings): nothing in it names a source path [checked by a search, before and after the move].
 
 ### 3.3 Tests
 
@@ -77,3 +75,17 @@ LexPen\
 ## 4. Open questions
 
 None.
+
+## 5. As built
+
+- As planned, with one change in the code: **AppHost.FindProjectFolder** also stops at a folder with
+  `src\LexPen.csproj` (and returns the folder in `src`). The tests run from `tests\LexPen.Tests\bin`, beside `src`,
+  and walking up from there found no LexPen.csproj any more, so the tests that read `web` files failed. The app
+  itself (bin under `src`) still finds `src` first.
+- `web` could only be moved after a background test of mine had been stopped: it held a handle in `web`.
+- HANDOFF.md: the test command, `src\web` and `src\vendor.ps1`.
+- Tested: `dotnet build` at the top (both projects), `dotnet test` (394 passed), a Release publish (LexPen.exe,
+  LexPenShell.dll, WebView2Loader.dll, defaults; the assembly's resources hold `tab-colours.json`, `app.ico` and
+  `web\...`), the test copy from `src\bin\Debug` on an empty data folder (the page starts, it writes
+  `tab-colours.json` equal to `src\defaults\user\tab-colours.json`), and `git log --follow` on a moved file.
+- The old `bin` and `obj` at the top are left; they can be deleted.

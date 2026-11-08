@@ -22,8 +22,7 @@
     <!-- One exe: LexPen.dll, its .NET json files and the libraries inside; WebView2Loader.dll (native) stays next to
          it, so nothing is unpacked to a temp folder. -->
     <PublishSingleFile>true</PublishSingleFile>
-    <!-- docs: plans and examples (an example's C# is a sample, not part of LexPen; tab-colours.json is taken by name). -->
-    <DefaultItemExcludes>$(DefaultItemExcludes);node_modules\**;publish\**;tests\**;docs\**</DefaultItemExcludes>
+    <DefaultItemExcludes>$(DefaultItemExcludes);node_modules\**;publish\**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>
@@ -32,8 +31,9 @@
     <!-- The page's files: inside the exe (WebFiles). -->
     <EmbeddedResource Include="web\**" LogicalName="web\%(RecursiveDir)%(Filename)%(Extension)" />
     <EmbeddedResource Include="$(ApplicationIcon)" LogicalName="app.ico" />
-    <!-- Written to the data folder the first time; the file in docs\examples is the one source. -->
-    <EmbeddedResource Include="docs\examples\tab-colours.json" LogicalName="tab-colours.json" />
+    <!-- defaults\user: written to the data folder the first time LexPen finds none there (TabColourFile), so they
+         are inside the exe too (and copied next to it with the rest of defaults). -->
+    <EmbeddedResource Include="defaults\user\tab-colours.json" LogicalName="tab-colours.json" />
     <InternalsVisibleTo Include="LexPen.Tests" />
     <!-- Shown in the About window. -->
     <AssemblyMetadata Include="BuildTime" Value="$([System.DateTime]::UtcNow.ToString('o'))" />
