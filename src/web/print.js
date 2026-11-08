@@ -594,7 +594,7 @@ function sheetStyle(m, more) {
 .pp-sheet:last-child { break-after: auto; }
 .pp-sheet-area { position: absolute; top: ${m[0]}mm; right: ${m[1]}mm; bottom: ${m[2]}mm; left: ${m[3]}mm; --pp-ch: ${h - m[0] - m[2]}mm;
   ${o.frame ? `outline: ${o.frameWidth}pt solid color-mix(in srgb, var(--fg, #000) ${o.frameIntensity}%, transparent); outline-offset: 1.5mm;` : ''} }
-.pp-sheet-head, .pp-sheet-foot { position: absolute; left: ${o.margins[3]}mm; right: ${o.margins[1]}mm; display: flex; gap: 3mm; font: ${font}; color: var(--fg-dim, #666); }
+.pp-sheet-head, .pp-sheet-foot { position: absolute; left: ${o.margins[3]}mm; right: ${o.margins[1]}mm; display: flex; gap: 3mm; font: ${font}; color: #000; }   /* on the white paper, outside the background */
 .pp-sheet-head > span, .pp-sheet-foot > span { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
 .pp-sheet-head > span:empty, .pp-sheet-foot > span:empty { flex: 1 1 0; }
 .pp-sheet-head > :first-child, .pp-sheet-foot > :first-child { text-align: left; }
@@ -810,7 +810,7 @@ function pageCss() {
   const o = pp.opt, s = pp.source, [w, h] = paper(), m = [...o.margins], side = o.notesWidth + 4;
   const sideNotes = (o.notes === 'left' || o.notes === 'right') && viewOf() !== 'pdf';
   if (sideNotes) m[o.notes === 'left' ? 3 : 1] += side;
-  const box = (where, content) => `@${where} { content: ${content}; font: 8pt ${cssString(s.appFont)}, sans-serif; color: var(--fg-dim, #666); }`;
+  const box = (where, content) => `@${where} { content: ${content}; font: 8pt ${cssString(s.appFont)}, sans-serif; color: #000; }`;   // on the white paper, outside the background
   // A text in a margin box: its HTML (bold, italic) as a running element at the start of the content (contentHtml).
   const boxes = HF_BOXES.filter(([key]) => o[key]).map(([key, at]) => box(at, `element(pp-${at})`));
   return `
@@ -862,6 +862,9 @@ function contentCss() {
 .pp-rendered { position: relative; padding: 0 !important; zoom: 1 !important; font: ${o.bodySize}pt/1.5 ${font(o.bodyFont || s.appFont)}; color: var(--fg, #000); }
 .pp-rendered pre, .pp-rendered code, .pp-rendered pre code, .pp-rendered pre.mm-code { font-family: ${font(o.codeFont || s.editorFont, 'monospace')}; font-size: ${o.codeSize}pt; }
 .pp-rendered pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+/* A code file's preview: the whole text, on the page's background (not a block of its own). */
+.pp-rendered pre.pp-codefile { background: none; border-radius: 0; padding: 0; margin: 0; border: 0; }
+.pagedjs_margin-top *, .pagedjs_margin-bottom * { color: #000; }
 .pp-rendered img { ${zoom} }
 /* A table as wide as its columns (the preview's scrolls inside a box: on paper that cuts it off); its cells' room
    grows and shrinks with its text (fitTables makes a wide one smaller). */

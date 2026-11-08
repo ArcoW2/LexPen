@@ -168,7 +168,7 @@ async function printRenderedHtml(text, doc, hls) {
 // highlights marked.
 function printCodePreviewHtml(text, doc, hls) {
   const box = document.createElement('div');
-  box.innerHTML = `<pre class="mm-code" data-lang="${escapeHtml(doc.language)}">${codeHtml(printMarked(text, hls), editorMode(doc))}</pre>`;
+  box.innerHTML = `<pre class="mm-code pp-codefile" data-lang="${escapeHtml(doc.language)}">${codeHtml(printMarked(text, hls), editorMode(doc))}</pre>`;
   printWrapMarks(box);
   return box.innerHTML;
 }
