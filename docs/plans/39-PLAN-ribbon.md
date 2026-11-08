@@ -38,7 +38,8 @@ divider. "Corner": the action of the group's corner icon.
 
 | Group | Columns |
 |---|---|
-| Edit | Indent + Outdent / divider / Duplicate lines + Delete lines + Join lines / divider / Insert character + Complete word |
+| Edit | Indent + Outdent / divider / Insert character + Complete word |
+| Lines | Duplicate + Delete + Join (Duplicate lines, Delete lines, Join lines) |
 | Clipboard | Paste (large; a number badge: the active clipboard) / Paste image + Cut + Copy. Corner: Manage clipboards |
 | Find | Find (large) / Find previous + Find next + Replace / Replace in files + Search in files + Find references |
 | Occurrences | Show all occurrences + Occurrences field + Clear occurrences. Corner: Show / close the Occurrences bar |
@@ -79,7 +80,7 @@ divider. "Corner": the action of the group's corner icon.
 - **Editor and Preview** are not on Home: they are the switches at the window's top right, and View > Document.
 - **Day / Night**: the two values of Day / night, each its own button, the current one pressed.
 - **Width**, measured in a mock (a test copy, LexPen's own font and the Dark theme, group names on, a 1264 px wide
-  window): File 233 px, Home 1619 px, Sort 257 px, View 712 px, Tools 779 px. Home's groups: Edit 337, Clipboard
+  window): File 233 px, Home 1594 px, Sort 257 px, View 712 px, Tools 779 px. Home's groups: Edit 216, Lines 96, Clipboard
   152, Find 273, Occurrences 157, Go 129, Select 248, Bookmarks 179, Highlights 139; the ribbon 120 px high with its
   tabs. Home does not fit that window (question 1).
 
@@ -174,7 +175,7 @@ right of Clipboard, Occurrences, Bookmarks, Highlights and Sort):
 
 ## 4. Open questions
 
-1. Home is wider than a 1264 px window (1619 px in the mock): split it into two tabs (for instance Home: Edit,
-   Clipboard, Find, Occurrences; and Navigate: Go, Select, Bookmarks, Highlights), make more of its large buttons small (Select
+1. Home is wider than a 1264 px window (1594 px in the mock): split it into two tabs (for instance Home: Edit,
+   Lines, Clipboard, Find, Occurrences; and Navigate: Go, Select, Bookmarks, Highlights), make more of its large buttons small (Select
    all, Toggle bookmark), or keep it and let the right end go into the ">>" menu?
 2. History (Undo, Redo) on Sort, as now, or on Home, where the actions used most are?
