@@ -41,6 +41,7 @@ divider. "Corner": the action of the group's corner icon.
 | Edit | Indent + Outdent / divider / Duplicate lines + Delete lines + Join lines / divider / Insert character + Complete word / divider / Editor + Preview (toggles) |
 | Clipboard | Paste (large; a number badge: the active clipboard) / Paste image + Cut + Copy. Corner: Manage clipboards |
 | Find | Find (large) / Find previous + Find next + Replace / Replace in files + Search in files + Find references |
+| Occurrences | Show all occurrences + Occurrences field + Clear occurrences / Occurrences bar (a toggle) |
 | Go | Position back + Position forward + Go to line / Go to definition |
 | Select | Select all (large) / Select line + Select a block + Select inside brackets / divider / Column mode (large, a toggle) |
 | Bookmarks | Toggle unnumbered bookmark (large) / Previous bookmark + Next bookmark. Corner: Manage bookmarks |
@@ -58,7 +59,7 @@ divider. "Corner": the action of the group's corner icon.
 | Group | Columns |
 |---|---|
 | Document | Editor (large, a toggle) / Preview (large, a toggle) |
-| Text | Wrap long lines (large, a toggle) / Line numbers (its choices) + Ruler + Formatting bar / divider / Show all occurrences + Occurrences bar |
+| Text | Wrap long lines (large, a toggle) / Line numbers (its choices) + Ruler + Formatting bar |
 | Panels | Folders + Search + Outline / Bookmarks + Clipboards + Highlights (each a show / hide toggle) |
 | Window | Zoom in + Zoom out + Zoom 100% / divider / Day (large) / Night (large) |
 
@@ -77,8 +78,9 @@ divider. "Corner": the action of the group's corner icon.
   tabs and files, as a browser) are in the menus and keys, not on the ribbon.
 - **Day / Night**: the two values of Day / night, each its own button, the current one pressed.
 - **Width**, measured in a mock (a test copy, LexPen's own font and the Dark theme, group names on, a 1264 px wide
-  window): File 233 px, Home 1912 px, Format 257 px, View 866 px, Tools 779 px. Home's groups: Edit 422, Clipboard
-  152, Find 273, Go 251, Select 283, Bookmarks 236, Highlights 290; the ribbon 120 px high with its tabs. Home does
+  window): File 233 px, Home 2189 px, Format 257 px, View 712 px, Tools 779 px. Home's groups: Edit 422, Clipboard
+  152, Find 273, Occurrences 277, Go 251, Select 283, Bookmarks 236, Highlights 290; the ribbon 120 px high with its
+  tabs. Home does
   not fit that window (question 1).
 
 ### 3.2 Behaviour
@@ -157,7 +159,7 @@ divider. "Corner": the action of the group's corner icon.
 
 ## 4. Open questions
 
-1. Home is wider than a 1264 px window (1912 px in the mock): split it into two tabs (for instance Home: Edit,
-   Clipboard, Find; and Navigate: Go, Select, Bookmarks, Highlights), make more of its large buttons small (Select
+1. Home is wider than a 1264 px window (2189 px in the mock): split it into two tabs (for instance Home: Edit,
+   Clipboard, Find, Occurrences; and Navigate: Go, Select, Bookmarks, Highlights), make more of its large buttons small (Select
    all, Toggle bookmark, Highlight, Highlight note), or keep it and let the right end go into the ">>" menu?
 2. History (Undo, Redo) on Format, as now, or on Home, where the actions used most are?
