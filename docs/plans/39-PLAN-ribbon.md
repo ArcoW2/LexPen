@@ -70,7 +70,7 @@ divider. "Corner": the action of the group's corner icon.
 | The document | Outline + Highlights + Columns (CSV) |
 | Editing | Characters + Clipboards + Sort |
 | Macros | Macros + Step by step |
-| LexPen | Settings + Keyboard shortcuts + Messages / Theme sets + Projects (Manage projects) |
+| LexPen | Settings + Keyboard shortcuts + Messages / Theme sets + Theme colours + Projects (Manage projects) |
 | Window | Zoom in + Zoom out + Zoom 100% / divider / Day (large) / Night (large) |
 
 **Tools**
@@ -93,12 +93,13 @@ divider. "Corner": the action of the group's corner icon.
   closes by its X or Esc in its field.
 - **The panels**: View has every panel of Window > Panels, in its groups and order (Files and finding, The
   document, Editing, Macros, LexPen), each a show / hide toggle as there; a panel added later joins its group in both.
+  Theme colours (plan 41's window) is a panel too: it joins Window > Panels' LexPen group, after Theme sets.
 - **Manage ...**: every Manage (clipboards, bookmarks, macros) and the other managers (the Highlights window, the stored
   sorts, the Occurrences bar) are a group's corner icon, not a button.
 - **Editor and Preview** are not on Home: they are the switches at the window's top right, and View > Document.
 - **Day / Night**: the two values of Day / night, each its own button, the current one pressed.
 - **Width**, measured in a mock (a test copy, LexPen's own font and the Dark theme, group names on, the icons of
-  3.4, a 1264 px wide window): File 239 px, Home 1104 px, Select & Sort 507 px, Review 146 px, View 1204 px, Tools
+  3.4, a 1264 px wide window): File 239 px, Home 1104 px, Select & Sort 507 px, Review 146 px, View 1222 px, Tools
   758 px. Home's groups: Edit 216, Lines 96, Clipboard 156, Find 279, Occurrences 75, Go to 98, Bookmarks 179; the
   ribbon 120 px high with its tabs. Every tab fits that window; a narrower one sends Home's right end into the ">>"
   menu.
@@ -177,7 +178,8 @@ Sort, Highlights and Macros); Home also in the light theme:
   eraser in its corner; Sort again is Sort...'s lines with a circular arrow where its arrow down is; Play X times is
   Play with an X inside.
 - **Panels**: a panel's icon is a small window (a frame with a title bar) with the panel's drawing inside, so a
-  panel button reads as "a window opens". At 32 px the drawing is the panel's own at 0.66; at 16 px a simpler one
+  panel button reads as "a window opens"; a button that opens a panel has the panel's icon wherever it stands
+  (Tools: Settings..., Theme colours..., Keyboard shortcuts). At 32 px the drawing is the panel's own at 0.66; at 16 px a simpler one
   drawn for that size, about a pixel from the frame (shrinking the large one leaves too little). Keyboard shortcuts as
   a panel shows "F1"; Messages is an empty balloon.
 - An action without an icon (one added later through Customize) shows a box with its first letter until it gets one.

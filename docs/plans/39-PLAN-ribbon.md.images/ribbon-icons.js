@@ -25,7 +25,6 @@ window.RIBBON_ICONS = (() => {
   const marked = dim('M2 3.5h12M2 8h12M2 12.5h6') + '<path d="M4 3.5h4M9 8h4M2.5 12.5h3" stroke-width="2.6"/>';
   const eraser = p('M11.6 8.6l3.2 3.2-2.6 2.6h-2l-1.4-1.4zM9.9 10.3l3.2 3.2');
   const sortLines = 'M2 3.5h7M2 7h5M2 10.5h3';
-  const keyboard = '<rect x="1" y="4" width="14" height="8.5" rx="1.5"/>' + [3.6, 6.2, 8.8, 11.4].map(x => dot(x, 6.8)).join('') + dot(3.6, 9.8) + p('M6.2 9.8h3.6') + dot(12.4, 9.8);
   const buttons = {
     // File
     save: ['Save', p('M2.5 2.5h9l2 2v9h-11zM5 2.5v3.5h5.5V2.5M4.5 13.5V9.5h7v4')],
@@ -100,16 +99,13 @@ window.RIBBON_ICONS = (() => {
     compareClose: ['Leave the compare', p('M1.5 2.5h4v8h-4zM10.5 2.5h4v8h-4zM6.5 11l3 3M9.5 11l-3 3')],
     compareNext: ['Next difference', p('M1.5 2.5h4v11h-4zM10.5 2.5h4v11h-4zM8 3.5v8M6 9.5l2 2 2-2')],
     comparePrevious: ['Previous difference', p('M1.5 2.5h4v11h-4zM10.5 2.5h4v11h-4zM8 12.5v-8M6 6.5l2-2 2 2')],
-    settings: ['Settings...', cog],
-    themeColours: ['Theme colours...', p('M8 1.5a6.5 6.5 0 1 0 0 13c1 0 1.5-.7 1.5-1.5s-.6-1.2-.6-2 .7-1.5 1.5-1.5h1.6a2.5 2.5 0 0 0 2.5-2.5C14.5 4 11.6 1.5 8 1.5z') + '<circle cx="4.7" cy="7.5" r=".9" fill="currentColor"/><circle cx="6.5" cy="4.5" r=".9" fill="currentColor"/><circle cx="10" cy="4.3" r=".9" fill="currentColor"/>'],
-    commands: ['Keyboard shortcuts', keyboard],
   };
   // The panels: per panel the drawing for 32 px (at 0.66 in the frame) and one drawn for 16 px in the frame's inside
   // (x 2.7 to 13.3, y 5.2 to 13.3: a pixel from the frame and the title bar), simpler, its lines not scaled.
   const panels = {
     folders: ['Folder', p('M1.5 3.5h4.5l1.5 1.5h7v8.5h-13z'), p('M3.2 6h3l1 1h5.3v5.8H3.2z')],
     searchView: ['Search', mag(6.8, 6.8, 4.5), '<circle cx="7.3" cy="8.6" r="2.6"/>' + p('M9.2 10.5l2.5 2.5')],
-    'bookmarks.pane': ['Bookmarks', p('M4 1.5h8v13l-4-3-4 3z'), p('M4.9 5.8h6.2v7.2L8 10.4 4.9 13z')],
+    'bookmarks.pane': ['Bookmarks', p('M4 1.5h8v13l-4-3-4 3z'), p('M4.9 5.8h6.2v7.2L8 10.4 4.9 13z') + '<circle cx="8" cy="9.4" r=".55" fill="currentColor" stroke="none"/>'],
     'outline.toggle': ['Outline', p('M3 3h5.5M5.5 6.5h6M5.5 10h6M8 13.5h6M3 3v7h2.5M3 6.5h2.5'), p('M3.6 6.2h4M6 9h6M6 12h6M3.6 6.2V12H6M3.6 9H6')],
     'highlight.list': ['Highlights', p(mark + 'M2 14.5h8'), p('M9.5 5.8l2.6 2.6-3.5 3.5H6.2V9.4zM3.4 12.9h5.2')],
     'csv.columns': ['Columns', '<rect x="1.5" y="2.5" width="13" height="11" rx="1"/>' + p('M1.5 6h13M6 2.5v11M10.5 2.5v11'), p('M3.4 8.2h9.2M6.4 5.8v7M9.6 5.8v7')],
@@ -125,6 +121,8 @@ window.RIBBON_ICONS = (() => {
     messages: ['Messages', p('M2 2.5h12v8.5H7.5L4.5 14v-3H2z'), p('M3.4 5.8h9.2v5H8.2l-2.6 2.2v-2.2H3.4z')],
     themesets: ['Theme sets', '<rect x="1.5" y="3.5" width="4" height="9" rx="1"/><rect x="6" y="3.5" width="4" height="9" rx="1" fill="currentColor" fill-opacity=".35"/><rect x="10.5" y="3.5" width="4" height="9" rx="1" fill="currentColor" fill-opacity=".8"/>',
       '<rect x="3.4" y="5.8" width="2.6" height="7" rx=".6"/><rect x="6.7" y="5.8" width="2.6" height="7" rx=".6" fill="currentColor" fill-opacity=".35"/><rect x="10" y="5.8" width="2.6" height="7" rx=".6" fill="currentColor" fill-opacity=".8"/>'],
+    themeColours: ['Theme colours', p('M8 1.5a6.5 6.5 0 1 0 0 13c1 0 1.5-.7 1.5-1.5s-.6-1.2-.6-2 .7-1.5 1.5-1.5h1.6a2.5 2.5 0 0 0 2.5-2.5C14.5 4 11.6 1.5 8 1.5z') + '<circle cx="4.7" cy="7.5" r=".9" fill="currentColor"/><circle cx="6.5" cy="4.5" r=".9" fill="currentColor"/><circle cx="10" cy="4.3" r=".9" fill="currentColor"/>',
+      p('M8 5.6a3.7 3.7 0 1 0 0 7.4c.6 0 .9-.4.9-.9s-.4-.7-.4-1.1.4-.9.9-.9h.9a1.4 1.4 0 0 0 1.4-1.4C11.7 7 10.1 5.6 8 5.6z') + '<circle cx="6.1" cy="9.2" r=".55" fill="currentColor"/><circle cx="7.6" cy="7.4" r=".55" fill="currentColor"/>'],
     projects: ['Projects', p('M1.5 3.5h4.5l1.5 1.5h7v8.5h-13z') + p('M4 9h8'), p('M3.2 6h3l1 1h5.3v5.8H3.2zM5 10.2h6')],
   };
   return { buttons, panels };
@@ -142,14 +140,15 @@ window.iconSvg = (body, size, panel, small) => {
     : frame + `<g transform="translate(2.72 3.97) scale(.66)" style="stroke-width: ${(w / 0.66).toFixed(2)}">${body}</g>`;
   return `<svg viewBox="0 0 16 16" width="${px}" height="${px}" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
 };
-// The icon of a label in the mock: a panel in View's panel groups, else a button ("Line" is Go to line and Select
+// The icon of a label in the mock: a panel's when the label is a panel's, else a button's ("Line" is Go to line and Select
 // line: the group tells).
 window.ribbonIcon = (label, group, size) => {
   const { buttons, panels } = window.RIBBON_ICONS;
-  if (window.PANEL_GROUPS.includes(group) || (group === 'Macros' && window.RIBBON_GROUP_TAB === 'View')) {
-    const hit = Object.values(panels).find(([l]) => l === label);
-    if (hit) return window.iconSvg(hit[1], size, true, hit[2]);
-  }
+  // A button that opens a panel is the panel's icon wherever it is (Tools: Settings..., Keyboard shortcuts, Theme
+  // colours...); the label without its dots. Macros is a panel in View only (in Tools a group of buttons).
+  const name = label.replace(/\.\.\.$/, '');
+  const panel = Object.values(panels).find(([l]) => l === name);
+  if (panel && (name !== 'Macros' || window.RIBBON_GROUP_TAB === 'View')) return window.iconSvg(panel[1], size, true, panel[2]);
   const hit = Object.entries(buttons).filter(([, [l]]) => l === label);
   const pick = hit.length > 1 ? hit.find(([k]) => group === 'Go to' ? k === 'goToLine' : k !== 'goToLine') : hit[0];
   return pick ? window.iconSvg(pick[1][1], size, false) : null;
