@@ -791,9 +791,6 @@ function loadEditor() {
 // The editor mode: the language's, with blocks of other languages and lines you set (documentMode, languages.js).
 const editorMode = doc => documentMode(doc);
 
-// Markdown keys (Enter, Tab in tables); in code files the key keeps its editor default.
-const markdownOnly = run => editor =>
-  panes.find(p => p.cm === editor)?.active?.doc.language ? CodeMirror.Pass : run(editor);
 
 // The document's own CodeMirror Doc, created when the editor is first needed.
 function materialize(doc) {

@@ -296,6 +296,25 @@ In `language.yaml`, all optional:
 
 Markdown ships with `trimTrailing: { keep: 2 }`: two spaces at a line's end are a line break there.
 
+## Editing keys: editing
+
+What Enter, Tab, Shift+Tab and Shift+Enter do beyond the generic behaviour, for the lines of this language (also in
+a block of it inside another file). Every language has the generic behaviour: Enter in a line's indentation pushes
+the line down as it is; Tab in the indentation or on a selection indents. In `language.yaml`, under `editing:`, all
+optional:
+
+| Key | What | Example |
+|---|---|---|
+| `indentAfter` | A pattern on the text before the cursor: when it matches, Enter indents the new line a step more (a line that opens a block) | `indentAfter: ':\s*(#.*)?$'` (YAML, Python) |
+| `lists` | `markers`: list items, patterns matched after the line's indentation. Enter after an item starts the next one with the same marker (a number counts on, a ticked box `[x]` starts empty, the numbers after it count on too); Enter on an empty item ends the list | `lists: { markers: ['- ', '\d+[.)] '] }` |
+| `tabInListItem` | `indent`: Tab / Shift+Tab anywhere in a list item indent / outdent the item; else Tab after text types a tab | `tabInListItem: indent` |
+| `tables` | `pipe`: in a `\|` table Tab and Shift+Tab move between cells, Enter at the end of a row adds one | `tables: pipe` (markdown) |
+| `lineBreak` | The text Shift+Enter types; without it Shift+Enter is Enter | `lineBreak: '<br>'` (markdown) |
+| `keepIndent` | `true`: Enter gives the new line the indentation of the line before, when the formatter (`format`) does not set it | `keepIndent: true` |
+
+Markdown, YAML and Python ship with an `editing` section. A copy of such a pack of your own keeps these keys only
+with that section.
+
 A key for an action goes in your `keys.json` by the action's name: `"Ctrl+Alt+I": "snippetIff"`. The same key
 can do something else in another language, through an action of the same name there. An action a language does
 not have itself comes from plain text.

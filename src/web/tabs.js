@@ -98,21 +98,20 @@ function indentLines(cm, dir, lines = selectedLines(cm)) {
 }
 
 // Tab: with a selection its lines one indent stop in. A cursor before a manual tab (ruler.js): spaces up to it. A cursor
-// in the indentation (or at the line's start), or in a markdown list item: its line to the next indent stop. A cursor
-// after text: a tab, or spaces to the next tab stop.
+// in the indentation (or at the line's start), or in a list item (its pack's editing: tabInListItem): its line to the
+// next indent stop. A cursor after text: a tab, or spaces to the next tab stop.
 function tabKey(cm) {
   if (cm.isReadOnly()) return;
   if (cm.somethingSelected()) return indentLines(cm, 1);
   const stops = stopsOf(cm);
-  // A markdown document by its language (isMarkdown, format.js), not by the editor's mode: that is a wrapped one, not
-  // named 'gfm', when the document has blocks of other languages.
-  const listItem = text => typeof isMarkdown === 'function' && isMarkdown(cm) && typeof parseLine === 'function' && ['bullet', 'number', 'task'].includes(parseLine(text).kind);
+  // A list item of the language at that line, by its pack (editing: tabInListItem, lists; format.js).
+  const listItem = (line, text) => typeof editingAt === 'function' && (ed => ed.tabInListItem === 'indent' && !!listMarkerAt(ed, text))(editingAt(cm, line));
   cm.operation(() => {
     const heads = cm.listSelections().map(r => r.head).sort((a, b) => b.line - a.line || b.ch - a.ch);
     for (const pos of heads) {
       const text = cm.getLine(pos.line), col = textColumn(text, pos.ch, stops), manual = manualTabAfter(cm, col);
       if (manual != null) cm.replaceRange(' '.repeat(manual - col), pos, pos, '+input');
-      else if (/^[ \t]*$/.test(text.slice(0, pos.ch)) || listItem(text)) indentLineStop(cm, pos.line, 1);
+      else if (/^[ \t]*$/.test(text.slice(0, pos.ch)) || listItem(pos.line, text)) indentLineStop(cm, pos.line, 1);
       else {
         cm.replaceRange(stops.useTabs ? '\t' : ' '.repeat(stops.tab - col % stops.tab), pos, pos, '+input');
       }

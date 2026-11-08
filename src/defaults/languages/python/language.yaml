@@ -103,6 +103,13 @@ outline:   # the groups of python.uew (/TGBegin), in its order
     patterns:
       - { pattern: '^\s*def\s+(\w+)', case: true, indent: line }
 
+# ---------- Editing keys ----------
+# Enter after a line ending in ":" (if, def, class, ...) indents the next line a step; else the new line keeps the
+# indentation. See languages\_template\language.yaml.
+editing:
+  indentAfter: ':\s*(#.*)?$'
+  keepIndent: true
+
 # ---------- Format ----------
 # The parameters of the formatter (Format, Enter): the roles of the words and signs of this language and the
 # style it uses. See README.md (Format) and docs/plans/executed/PLAN-reformat.md; the indent step is the indent size.

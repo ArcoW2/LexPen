@@ -88,6 +88,27 @@ aliases: [4nt, take-command]
 # useTabs: false
 # trimTrailing: { mode: setting, keep: 0 }
 
+# ---------- Editing keys ----------
+# What Enter, Tab, Shift+Tab and Shift+Enter do in this language beyond the generic behaviour (Enter in a line's
+# indentation pushes the line down as it is; Tab in the indentation or on a selection indents), for the lines of
+# this language (also inside a block of another file). Every part is optional; none: the generic behaviour.
+#   indentAfter: a pattern on the text before the cursor; when it matches, Enter indents the new line a step more
+#     (a line that opens a block: YAML's "key:", Python's "if x:").
+#   lists: { markers: [patterns] }: list items. Each pattern is matched after the line's indentation (as '[-*+] ' or
+#     '\d+[.)] '). Enter after an item starts the next one with the same marker (a number counts on, a ticked box
+#     [x] starts empty); Enter on an empty item ends the list.
+#   tabInListItem: indent: Tab / Shift+Tab anywhere in a list item indent / outdent the item (else a tab at the
+#     cursor).
+#   tables: pipe: in a | table, Tab and Shift+Tab move between cells, Enter at the end of a row adds one.
+#   lineBreak: the text Shift+Enter types (markdown: '<br>'); none: Shift+Enter is Enter.
+#   keepIndent: true: Enter gives the new line the indentation of the line before (when the formatter, format,
+#     does not set it).
+# editing:
+#   indentAfter: ':\s*(#.*)?$'
+#   lists: { markers: ['- ', '\d+\. '] }
+#   tabInListItem: indent
+#   keepIndent: true
+
 # ---------- Outline ----------
 # Patterns that find the entries of the outline (the Outline button): name is the group with the name,
 # level 1 or 2 (or a group whose length is the level), flags i for any case. Or named groups, as UltraEdit's tag

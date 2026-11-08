@@ -45,6 +45,18 @@ actions:
 embedded:
   - { openRegex: '^\s*(`{3,}|~{3,})\s*([\w#+.-]+)', closeRegex: '^\s*(`{3,}|~{3,})\s*$', languageGroup: 2 }
 
+# ---------- Editing keys ----------
+# Enter continues a list (a number counts on, a ticked box starts empty) and ends it on an empty item; Tab and
+# Shift+Tab anywhere in a list item indent it; in a | table Tab, Shift+Tab and Enter move between cells;
+# Shift+Enter types <br>; a new line keeps the indentation. See languages\_template\language.yaml.
+editing:
+  lists:
+    markers: ['[-*+] \[[ xX]\] ', '[-*+] ', '\d+[.)] ', '(?:> ?)+']
+  tabInListItem: indent
+  tables: pipe
+  lineBreak: '<br>'
+  keepIndent: true
+
 # ---------- Format ----------
 # The parameters of the formatter (Format, Enter): the roles of the words and signs of this language and the
 # style it uses. See README.md (Format) and docs/plans/executed/PLAN-reformat.md; the indent step is the indent size.
