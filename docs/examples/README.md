@@ -3,22 +3,6 @@
 Files to try LexPen with, in a folder per type (markdown, csv, sql, json, pdf, text); none of them is part of the
 program.
 
-## tab-colours.json (in src\defaults\user)
-
-Not here any more: `src\defaults\user\tab-colours.json`, with the other files LexPen writes into its data folder
-(`%LOCALAPPDATA%\LexPen\`, for example `C:\Users\<you>\AppData\Local\LexPen\`, the folder that holds `settings.json`
-and `session.json`). Colours for the tabs, by file name or path: the first rule that fits a tab's file styles it, with
-a style for the day theme and one for the night theme, and a style of its own while the tab is the active one. The
-file explains its own format in the comments at the top.
-
-- **Where it goes:** `%LOCALAPPDATA%\LexPen\tab-colours.json`.
-- **How it gets there:** LexPen writes this exact file there the first time it starts without one. The program
-  carries it inside (built in from `src\defaults\user`), so that file and what LexPen writes are always the same.
-- **After that** the file in the data folder is yours: LexPen never changes it. To start again from the default,
-  delete it (or copy the one next to LexPen.exe, in `defaults\user`, over it) and restart LexPen.
-- **Changes** apply as soon as the file is saved, in every LexPen window. A file with a mistake keeps the
-  last rules that worked, and LexPen shows what is wrong.
-
 ## markdown\print-tables.md
 
 A markdown file to try the Print window with (File > Print..., As: Rendered): a table too wide for a page
