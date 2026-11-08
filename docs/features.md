@@ -469,7 +469,7 @@ every action with its key.
   number of pages, $D the print date, $M the file date, in a date format of your own; **bold** and *italic*; without
   $T a page range prints
   without waiting for the rest), fonts and sizes, the colours (the theme as on screen, another theme, black and white,
-  greyscale; a dark page is warned about), the highlights (shaded, underlined, dotted, wavy, a box, bold; their colour and intensity) and their notes (a
+  greyscale; the theme's background or none, white paper; a dark page is warned about), the highlights (shaded, underlined, dotted, wavy, a box, bold; their colour and intensity) and their notes (a
   number in the text; the notes in the left or right margin, at the bottom of the page, or at the end; their size). Print sends
   it to the printer (its copies, two-sided and colour; Printer settings... opens the printer's own dialog, in step
   with these options both ways); Save as PDF writes the same pages to a file. The settings come back the next time,

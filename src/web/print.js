@@ -41,7 +41,7 @@ const DEFAULTS = {
   view: null, margins: [15, 15, 15, 15], marginsEach: false, frame: false, frameWidth: 0.5, frameIntensity: 60,
   zoom: 'auto', zoomPercent: 100, textFont: '', textSize: 9, lineNumbers: 'all',
   bodyFont: '', bodySize: 11, codeFont: '', codeSize: 9,
-  colours: 'current', syntax: true, highlights: 'shaded', hlColour: '', hlIntensity: 100, notes: 'end', notesWidth: 45, notesSize: 8,
+  colours: 'current', background: 'theme', syntax: true, highlights: 'shaded', hlColour: '', hlIntensity: 100, notes: 'end', notesWidth: 45, notesSize: 8,
   headLeft: '$F', headCenter: '', headRight: '', footLeft: '', footCenter: 'Page $P of $T', footRight: '', dateFormat: '', headEdge: 6, footEdge: 6,
 };
 const PAPERS = [{ name: 'A3', w: 297, h: 420 }, { name: 'A4', w: 210, h: 297 }, { name: 'A5', w: 148, h: 210 },
@@ -215,6 +215,8 @@ function drawPanel() {
 
   html += `<h3>Colours</h3><div class="pp-row"><label>Colours</label><select data-k="colours"><option value="current"${opt('colours', 'current')}>The theme as on screen</option>
     ${themes}<option value="bw"${opt('colours', 'bw')}>Black and white</option><option value="grey"${opt('colours', 'grey')}>Greyscale</option></select></div>`;
+  if (kind !== 'pdf' && o.colours !== 'bw') html += `<div class="pp-row"><label>Background</label><select data-k="background">
+    <option value="theme"${opt('background', 'theme')}>The theme's</option><option value="white"${opt('background', 'white')}>None (white paper)</option></select></div>`;
   if (kind !== 'pdf' && kind !== 'table') html += `<div class="pp-row"><label>Text colour</label><select data-k="syntax">
     <option value="true"${o.syntax ? ' selected' : ''}>Language colouring</option><option value="false"${o.syntax ? '' : ' selected'}>Mono text colour</option></select></div>`;
 
@@ -970,7 +972,7 @@ function placeSideNotes() {
 
 // ---------- Colours ----------
 // The document's colours on the pages: the theme as on screen (the editor's for text, the preview's for rendered),
-// another theme, black and white, or greyscale; a dark page is said, with a way out.
+// another theme, black and white, or greyscale, with the theme's background or none; a dark page is said, with a way out.
 async function applyColours() {
   const o = pp.opt, s = pp.source, kind = viewOf(), current = kind === 'rendered' ? s.themes.current.rendered : s.themes.current.text;
   let vars = current.vars, css = current.css;
@@ -981,6 +983,9 @@ async function applyColours() {
     css = s.themes.css[id] ?? css;
   }
   if (o.colours === 'bw') vars = { ...vars, '--bg': '#ffffff', '--fg': '#000000', '--fg-dim': '#555555', '--accent': '#000000' };
+  // No background: white paper behind everything (the page, code blocks, inline code, table headers), the text in the
+  // theme's colours.
+  else if (o.background === 'white' && kind !== 'pdf') vars = { ...vars, '--bg': '#ffffff', '--bg-code': '#ffffff', '--inline-code': '#ffffff', '--bg-side': '#ffffff', '--bg-bar': '#ffffff' };
   pp.themeCss = css;
   const style = pagesEl.style;
   for (const name of [...style].filter(n => n.startsWith('--'))) style.removeProperty(name);
