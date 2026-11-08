@@ -2597,12 +2597,15 @@ async function showInTree(path) {
   toFolder({ kind: 'reveal', path });
 }
 
-// A file from the tree: shown in the current tab of the pane (when it is already open there: that tab).
-// Ctrl: the other pane; Shift: a new tab. A draft or a changed file is never replaced (a new tab instead).
-function openFromTree(path, { ctrlKey, shiftKey }) {
-  const pane = ctrlKey ? otherPane() : panes[state.activePane], tab = pane.active;
-  if (shiftKey || !tab || tab.doc.draft || tab.doc.dirty || pane.tabs.some(t => samePath(t.doc.path, path))) return openFile(path, { pane });
-  return navigate(tab, path);
+// A file from the tree (and the search results): shown in the current tab of the pane (when it is already open there:
+// that tab). Ctrl: the other pane, the active pane staying the one it was (so a next Ctrl+click goes to that other pane
+// again, as the dimmed frame shows); Shift: a new tab. A draft or a changed file is never replaced (a new tab instead).
+async function openFromTree(path, { ctrlKey, shiftKey }) {
+  const was = state.activePane, pane = ctrlKey ? otherPane() : panes[was], tab = pane.active;
+  const result = shiftKey || !tab || tab.doc.draft || tab.doc.dirty || pane.tabs.some(t => samePath(t.doc.path, path))
+    ? await openFile(path, { pane }) : await navigate(tab, path);
+  if (ctrlKey) setActivePane(was);
+  return result;
 }
 // `open`: the folders to open again (a restored session: the tree as it was); `cursor`: the row selected; `top`: the
 // scroll position.
