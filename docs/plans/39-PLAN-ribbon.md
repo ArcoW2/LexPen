@@ -143,12 +143,17 @@ Sort, Highlights and Macros); Home also in the light theme:
   taller); off, one compact block: dividers only, the group's name as the tooltip of its divider.
 - **Overflow**: columns that do not fit go into a ">>" menu at the right end, in their order; a group that does not
   fit at all goes there as a submenu.
-- **Menu, ribbon or both** (setting commandBar: `menu`, `ribbon` or `both`; `menu` by default): with `ribbon`, the
-  menus stay reachable from a menu button at the ribbon's left end (all menus in one) and with Alt, which shows the
-  menu bar until the menu closes, so nothing becomes unreachable. View > Ribbon switches between `menu` and `both`;
-  the ribbon's own right-click has Customize..., Reset and the three choices.
-- **The top bar stays** (Editor / Preview, Day / night, the zoom) and the format bar stays as the document's own bar
-  above the text: the ribbon is the window's.
+- **Menu, ribbon or both** (setting commandBar: `menu`, `ribbon` or `both`; `menu` by default). The top bar (the
+  file name, Stop recording, Save, the panes' orientation, Editor / Preview, Day / night, the zoom) stays in every
+  case; only its menu part changes:
+  - `menu`: the menus in the top bar, as now; no ribbon.
+  - `ribbon`: the ribbon's tab names in the top bar, in the menus' place; its buttons under the top bar. Alt shows
+    the menus there instead of the tab names until a menu closes, so nothing becomes unreachable (F1 lists every
+    command too).
+  - `both`: the menus in the top bar; under it the ribbon, its tab names in a row of their own above its buttons.
+  View > Ribbon switches between `menu` and `both`; the ribbon's own right-click has Customize..., Reset and the
+  three choices.
+- **The format bar** stays the document's own bar above the text: the ribbon is the window's.
 
 ### 3.3 Customize
 
@@ -213,8 +218,9 @@ Sort, Highlights and Macros); Home also in the light theme:
 - Unit (Jint): the columns of a group from its items (large, small, two and three stacked, dividers).
 - In the test copy by script: each shipped button runs its action; toggles show their state; a button greyed out
   where its action is not available; the tabs switch and keep their choice; two stacked small buttons as high as a
-  large one, and three; the corner icon runs its action; Sort again repeats the last sort; group names on and off; overflow into ">>" at a narrow window; commandBar `menu`, `ribbon` (the menu
-  button and Alt reach every menu) and `both`; Customize adds, moves, resizes, stacks and removes a button, adds a
+  large one, and three; the corner icon runs its action; Sort again repeats the last sort; group names on and off; overflow into ">>" at a narrow window; commandBar `menu`, `ribbon` (the tab
+  names in the menus' place, the rest of the top bar as it was, Alt reaches every menu) and `both` (the tab names
+  under the menus); Customize adds, moves, resizes, stacks and removes a button, adds a
   tab and a divider, and the ribbon follows; Reset.
 
 ## 4. Open questions
