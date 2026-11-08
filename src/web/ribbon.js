@@ -198,6 +198,18 @@ async function rbOpenList(button, item) {
   openMenuBelow(await rbListItems(item), button);
 }
 
+// What opens a list: a split button's arrow, a button that is only a list, ">>". Pressed again while its list shows,
+// the list only closes (menus.js closes it on mousedown; pointerdown comes first, so the click after it is skipped).
+let rbListFrom = null, rbSkipClick = null;
+const rbOpener = t => t.closest('.mm-ribbon [data-arrow], .mm-rb-more') ?? (() => {
+  const b = t.closest('.mm-ribbon .mm-rb-btn[data-path]'), item = b && rbItemAt(rbPath(b.dataset.path));
+  return item && rbListOnly(item) ? b : null;
+})();
+addEventListener('pointerdown', e => {
+  const o = e.target instanceof Element ? rbOpener(e.target) : null;
+  rbSkipClick = o && o === rbListFrom && menuBar.levels.length ? o : null;
+}, true);
+
 // ---------- Clicks ----------
 const rbPath = s => s.split('.').map(x => /^-?\d+$/.test(x) ? +x : x);
 const rbItemAt = ([t, g, i]) => rb.model.tabs[t]?.groups[g]?.items[i];
@@ -217,6 +229,9 @@ async function rbClick(e) {
   const el = e.target.closest('button');
   if (!el) return;
   rbTipsOff();
+  const opener = rbOpener(e.target);
+  if (opener && opener === rbSkipClick) { rbSkipClick = rbListFrom = null; return; }   // its list was open: now closed
+  rbListFrom = opener;
   if (el.matches('[data-tab]')) return rbShowTab(+el.dataset.tab);
   if (el.matches('[data-new-tab]')) return rbNewTab();
   if (el.matches('.mm-rb-done')) return rbChangeMode(false);
