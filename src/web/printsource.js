@@ -193,10 +193,12 @@ function printWrapMarks(root) {
     for (const a of [...el.attributes]) if (marks.test(a.value)) el.setAttribute(a.name, a.value.replace(/\uE000\d*\uE002|\uE001/g, ''));
   const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), nodes = [];
   for (let n = walk.nextNode(); n; n = walk.nextNode()) nodes.push(n);
-  let open = null;
+  // A mark's start, number and middle may be in different text nodes (coloured code puts the number in a span of its
+  // own): the number is read on until the middle, across nodes.
+  let open = null, num = null;
   for (const node of nodes) {
     const s = node.data;
-    if (!open && !marks.test(s)) continue;
+    if (!open && num === null && !marks.test(s)) continue;
     const frag = document.createDocumentFragment();
     let buf = '';
     const flush = () => {
@@ -206,11 +208,11 @@ function printWrapMarks(root) {
       buf = '';
     };
     for (let i = 0; i < s.length; i++) {
-      if (s[i] === PRINT_START) {
+      if (num !== null) {
+        if (s[i] === PRINT_MID) { open = { n: +num }; num = null; } else num += s[i];
+      } else if (s[i] === PRINT_START) {
         flush();
-        const j = s.indexOf(PRINT_MID, i);
-        open = { n: +s.slice(i + 1, j) };
-        i = j;
+        num = '';
       } else if (s[i] === PRINT_END) {
         flush();
         if (open?.n) {
