@@ -173,14 +173,16 @@ public class RibbonTests : IDisposable
     }
 
     [Fact]
-    public void FileHasOpenSaveAndCloseWithTheRecentAndFavouriteLists()
+    public void FileHasItsGroupsWithTheRecentAndFavouriteLists()
     {
         var groups = RibbonFile.Load(dir, Shipped)["ribbon"]!["tabs"]!.AsArray().First(t => t!["name"]!.GetValue<string>() == "File")!["groups"]!.AsArray();
-        Assert.Equal(["Open", "Save", "Close"], groups.Select(g => g!["name"]!.GetValue<string>()));
+        Assert.Equal(["File", "Print", "Folder", "Document tabs"], groups.Select(g => g!["name"]!.GetValue<string>()));
         string Calls(int g) => string.Join(" ", groups[g]!["items"]!.AsArray().Select(i => i!["action"]!.GetValue<string>() + (i["params"] is JsonArray p ? ":" + p[0] : "")));
-        Assert.Equal("newFile openFile openFolder recent.list:files recent.list:folders favourites.list:files favourites.list:folders", Calls(0));
-        Assert.Equal("save saveAs print", Calls(1));
-        Assert.Equal("closeTab reopenTab recent.list:closed", Calls(2));
+        Assert.Equal("newFile openFile recent.list:files favourites.list:files save saveAs", Calls(0));
+        Assert.Equal("print", Calls(1));
+        Assert.Equal("openFolder recent.list:folders favourites.list:folders", Calls(2));
+        Assert.Equal("closeTab reopenTab recent.list:closed", Calls(3));
+        Assert.Equal("New\nfile", groups[0]!["items"]![0]!["label"]!.GetValue<string>());   // a label with a line break of its own
     }
 
     [Fact]
