@@ -111,7 +111,8 @@ LexPen does not know (today refused) opens in Hex by default.
 - **Undo / redo** (Ctrl+Z / Ctrl+Y) per change; a changed byte stands out (the changed colour) until saved.
 - **Save** of a file opened in Hex writes the bytes exactly as they are: no encoding, no line ends, no BOM added or
   removed. A text file edited in Hex is saved as text, as always (3.1).
-- **Find in Hex**: bytes (hex digits, spaces allowed) or text.
+- **Find in Hex**: by the part the cursor is in: in the hex part bytes written as hex in any of the usual ways (as
+  pasted, 3.2), or text in quotes; in the text part text, its ASCII letters in either case.
 
 ### 3.3 How
 
@@ -190,7 +191,7 @@ Differs from the plan:
 - **Hex is a flag of the tab** (`tab.hex`), not a fourth mode beside edit, preview and split: the tab keeps its mode,
   so leaving Hex goes back to it, and the editor's actions are off while it shows (no editor for them). A mode chosen
   (Editor, Preview, Editor and preview) leaves Hex; Text / Column / Hex on the ribbon are `editMode.set`'s variants.
-- **Find in Hex** asks what to find in a small window (Ctrl+F; hex bytes, or text in quotes) and F3 / Shift+F3 go on;
+- **Find in Hex** asks what to find in a small window (Ctrl+F; in the hex part hex, in the text part text) and F3 / Shift+F3 go on;
   the find bar and the Occurrences bar are the editor's and do not show in Hex.
 - **A text tab in Hex**: the bytes are made from the text as `diskText` gives it, before the trimming a save may do
   (Settings: trim on save). The editor holds lines, so line-end bytes changed in Hex come back as the file's line end.

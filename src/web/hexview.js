@@ -463,25 +463,29 @@ async function hexPaste(tab, insert) {
 }
 
 // ---------- Find (Ctrl+F, F3) ----------
-let hexFindLast = '';
+// What is found depends on the part the cursor is in: in the hex part bytes written as hex in any of the usual ways
+// (hexParseBytes), or text in quotes; in the text part text, its letters in either case. F3 goes on in the same way.
+let hexFindLast = null;   // { q, part }
 async function hexFind(tab) {
-  const v = await askName('Find in Hex: hex bytes (3F 00 A1), or text in quotes ("PDF")', hexFindLast, 'What to find');
+  const part = hexState(tab).part === 'hex' ? 'hex' : 'text';
+  const ask = part === 'hex' ? 'Find in Hex: bytes (3F 00 A1, 3F00A1, 0x3F, $3F, \\x3F, ...), or text in quotes ("PDF")' : 'Find in Hex: text';
+  const v = await askName(ask, hexFindLast?.part === part ? hexFindLast.q : '', 'What to find');
   if (!v?.trim()) return;
-  hexFindLast = v.trim();
+  hexFindLast = { q: part === 'hex' ? v.trim() : v, part };
   hexFindNext(tab, false);
 }
 function hexFindNext(tab, back) {
   if (!hexFindLast) return hexFind(tab);
-  const q = hexFindLast, quoted = /^"(.*)"?$/s.exec(q);
-  let needle;
-  if (quoted) needle = [...quoted[1].replace(/"$/, '')].map(hexByteOf);
-  else {
-    const digits = q.replace(/\s+/g, '');
-    needle = /^([0-9a-f]{2})+$/i.test(digits) ? digits.match(/../g).map(h => parseInt(h, 16)) : [null];
-  }
-  if (!needle.length || needle.includes(null)) return toast('Find in Hex: pairs of hex digits (3F 00), or text in quotes.', true);
-  const bytes = tab.doc.hexData.bytes, st = hexState(tab), n = bytes.length, m = needle.length;
-  const at = i => { for (let k = 0; k < m; k++) if (bytes[i + k] !== needle[k]) return false; return true; };
+  const { q, part } = hexFindLast, quoted = part === 'hex' && /^"(.*)"?$/s.exec(q);
+  const text = part === 'text' ? q : quoted ? quoted[1].replace(/"$/, '') : null;
+  const needle = text !== null ? [...text].map(hexByteOf) : hexParseBytes(q) ?? [null];
+  if (!needle.length || needle.includes(null))
+    return toast(part === 'hex' ? 'Find in Hex: hex bytes (3F 00, 0x3F, $3F, ...), or text in quotes.' : 'Find in Hex: a character there has no byte of its own (Windows-1252).', true);
+  // Text: an ASCII letter matches either case.
+  const fold = b => text !== null && (b >= 0x41 && b <= 0x5A) ? b + 0x20 : b;
+  const want = needle.map(fold);
+  const bytes = tab.doc.hexData.bytes, st = hexState(tab), n = bytes.length, m = want.length;
+  const at = i => { for (let k = 0; k < m; k++) if (fold(bytes[i + k]) !== want[k]) return false; return true; };
   for (let step = 1; step <= n; step++) {
     const i = ((back ? st.cur - step : st.cur + step) % n + n) % n;
     if (i + m <= n && at(i)) {

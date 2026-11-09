@@ -472,7 +472,8 @@ every action with its key.
   same length, stopping at the end; or Paste in). Copy gives hex digits from the hex part, text from the text part;
   that copy pastes back as the same bytes in either part. The hex part takes hex in the usual notations (3F 00 A1,
   0x3F, $3F, \x3F, #3F00A1, &H3F, %3F, 3Fh, 3F:00:A1), the text part any text.
-  Changed bytes are coloured until saved; Ctrl+Z / Ctrl+Y; Ctrl+F, F3 find hex bytes or "text".
+  Changed bytes are coloured until saved; Ctrl+Z / Ctrl+Y; Ctrl+F, F3 find hex (the usual notations) from the hex part,
+  text (either case) from the text part.
 - **Preview zoom**: Ctrl+= / Ctrl+- / Ctrl+mouse wheel over a preview. The level shows at the right of the top
   bar (click it for 100%) and is kept.
 - **Safe by default**: a Content Security Policy blocks scripts embedded in a document's raw HTML.
