@@ -1,6 +1,6 @@
 # Plan: Exchange the selection with the clipboard
 
-Status: draft 2026-11-08, revised 2026-11-09 (twice); not started. The number in the file name is the priority; rename to reorder.
+Status: draft 2026-11-08, revised 2026-11-09; executed (2026-11-09); see As built.
 
 ## 1. What this is about
 
@@ -77,3 +77,31 @@ empty clipboard: nothing happens, with a message.
 ## 4. Open questions
 
 None.
+
+## 5. As built
+
+Built on branch `exchange-clipboard` (2026-11-09): the action `clipboard.exchange` with its variants (actions.js), a
+`select` argument for `pasteText` (column.js: the pasted text selected, a column as a block), Ctrl+Alt+X (keys.json),
+Edit > Exchange with clipboard after Paste (menus.js), the editor's right-click item after the browser's Paste on a
+selection in an editable place (MainForm.cs), the ribbon button's list of clipboards (ribbon.js), its icon
+(ribbonicons.js and the icon sheet's source), and Home > Clipboard in `defaults/ribbon.json`.
+
+Differs from the plan:
+
+- **The icon** has straight arrows, not curved ones: a narrower clipboard at the left, an arrow going in at the top
+  and one coming out at the bottom at the right; curved arrows did not read at 16 px. The icon sheet's PNGs were not
+  drawn again (its source has the drawing).
+- **Several selections** with a one-line clipboard text: that text goes into each selection, as Paste does; the
+  selections' texts go onto the clipboard joined by line ends, as Cut does.
+- **Its title** is "Exchange with clipboard"; the numbered variants "Exchange with Windows clipboard", "Exchange with
+  clipboard 1" to 9; the ribbon label "Exchange".
+
+Tested: unit (C#, `RibbonTests`): the shipped Home > Clipboard is Paste with Paste image in one column, then Cut, Copy
+and Exchange. All tests pass. In the test copy by script, with the Windows clipboard and with clipboard 3 active: the
+selection exchanged, the pasted text selected and the old text on the clipboard; Exchange again puts both back; one
+undo takes an exchange back; Exchange with clipboard 3 while the Windows clipboard is active (that one stays active);
+two selections; a block with a one-line text (on every line, the block's text on the clipboard marked as a block, the
+pasted text selected as a block); a marked block over a selection; nothing selected and an empty clipboard (nothing
+changed, the message); a read-only document (nothing changed); Ctrl+Alt+X; the ribbon button, its list (the ten
+clipboards) and its place under Copy; the icon small and large, in the dark and the light theme. The ribbon button
+case once came back empty on the first run after a build and passed on the runs after it; not reproduced.

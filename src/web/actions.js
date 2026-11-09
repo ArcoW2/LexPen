@@ -517,6 +517,21 @@ appAction('paste', { title: 'Paste', hint: 'From the active clipboard; with a nu
       document.execCommand('insertText', false, String(text).replace(/\r?\n/g, ' '));
     });
   } });
+// Exchange (docs/plans/executed/PLAN-exchange-with-clipboard.md): the clipboard's text read first, then the selection put on
+// the clipboard (as Cut), then the text read pasted in its place (as Paste), selected, so the same again swaps back;
+// one undo step. Nothing selected or an empty clipboard: nothing, with a message (never half of it).
+appAction('clipboard.exchange', { title: 'Exchange with clipboard', hint: 'The clipboard\'s text takes the selection\'s place and the selection goes onto the clipboard; again: back',
+  group: 'edit', editor: true, variants: clipVariants, variantTitles: { ...clipTitles('Exchange', 'with'), '': 'Exchange with clipboard' }, run: async (params, { pane }) => {
+  const cm = pane.cm;
+  if (cm.getOption('readOnly')) return;
+  const block = !!blockOf(cm);
+  if (!block && !cm.somethingSelected()) return toast('Select text to exchange with the clipboard.');
+  const n = clipNumber(params) ?? clips.active, text = n === 0 ? await host('clipboardText') : await host('clipGet', { n });
+  if (!text) return toast('The clipboard is empty.');
+  const marked = n === 0 ? clips.windowsColumn : clips.columns[n];
+  putOnClipboard(textToCopy(pane), block, n);
+  cm.operation(() => pasteText(cm, text, marked, true));
+} });
 appAction('clipboardSelect', { title: 'Clipboard', hint: 'Copy, cut and paste work on it until another one is chosen', group: 'clipboard',
   variants: Array.from({ length: 10 }, (_, n) => [n]),
   variantTitles: Object.fromEntries(Array.from({ length: 10 }, (_, n) => [n, n === 0 ? 'Windows clipboard' : 'Clipboard ' + n])),

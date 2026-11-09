@@ -91,6 +91,15 @@ public class RibbonTests : IDisposable
         Assert.DoesNotContain(select, i => i is JsonValue);   // no divider left at its end
     }
 
+    [Fact]
+    public void HomeClipboardHasPasteWithImageThenCutCopyAndExchange()
+    {
+        var clipboard = RibbonFile.Load(dir, Shipped)["ribbon"]!["tabs"]!.AsArray().First(t => t!["name"]!.GetValue<string>() == "Home")!
+            ["groups"]!.AsArray().First(g => g!["name"]!.GetValue<string>() == "Clipboard")!["items"]!;
+        var cols = Js($"ribbonColumns({clipboard.ToJsonString()}).map(c => c.items.map(x => x.item.action).join(' '))");
+        Assert.Equal(["paste pasteImage", "cut copy clipboard.exchange"], cols.EnumerateArray().Select(e => e.GetString()));
+    }
+
     // ---------- The columns of a group ----------
 
     static string Shape(string items) =>

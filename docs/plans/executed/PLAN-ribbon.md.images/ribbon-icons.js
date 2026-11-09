@@ -46,6 +46,7 @@ window.RIBBON_ICONS = (() => {
     pasteImage: ['Paste image', p(clip + 'M5 13l2.5-2.5 1.5 1.5 1.5-1.5 1.5 1.5') + '<circle cx="10" cy="7.5" r="1"/>'],
     cut: ['Cut', '<circle cx="4.5" cy="12" r="2"/><circle cx="11.5" cy="12" r="2"/>' + p('M5.7 10.4L12 1.5M10.3 10.4L4 1.5')],
     copy: ['Copy', p('M5.5 5.5h8v9h-8zM10.5 5.5v-4h-8v9h3')],
+    'clipboard.exchange': ['Exchange', p('M3.5 1.5h3v2h-3zM3.5 2.5h-2v12h7v-12h-2M3.5 8h3M3.5 11h3') + p('M15 5.5h-4.5M12.5 3.5l-2 2 2 2M10.5 11.5H15M13 9.5l2 2-2 2')],
     // Find, Occurrences, Go to
     find: ['Find', mag(6.8, 6.8, 4.5)],
     findPrevious: ['Find previous', mag(5.5, 9, 3.3) + p('M12.5 8V1.5M10.5 3.5l2-2 2 2')],

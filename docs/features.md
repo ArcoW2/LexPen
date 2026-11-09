@@ -153,6 +153,11 @@ every action with its key.
   kept across restarts). Ctrl+Shift+1 to 9 selects one, Ctrl+Shift+` the Windows clipboard; Ctrl+C, Ctrl+X and
   Ctrl+V then work on the active one, which is each window's own (every window starts with the Windows clipboard). The bottom bar shows it (Clip: Win, Clip: 3); a click there or Ctrl+Shift+C lists them
   with the start of their text.
+- **Exchange with clipboard** (Ctrl+Alt+X, Edit > Exchange with clipboard, the editor's right-click on a selection,
+  the ribbon's Home > Clipboard): the clipboard's text takes the selection's place and the selection goes onto the
+  clipboard, in one undo step; the pasted text stays selected, so the same again swaps back. On the active clipboard,
+  or from the ribbon button's list on another (Windows, 1 to 9). Blocks and several selections as Cut and Paste do.
+  Nothing selected or an empty clipboard: nothing, with a message.
 - **Character picker** (Edit > Insert character..., Ctrl+Alt+U, or a click on the code in the bottom bar): a window
   of its own like the Windows Character Map, not in the way of the document: every character of the editor font in
   a grid, drawn in that font, a heading per Unicode block and the blocks at the side; All characters shows every

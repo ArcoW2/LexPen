@@ -310,8 +310,9 @@ function pasteColumn(cm, pieces, line, col) {
 }
 
 // Paste (3.5 of the plan): as a column in column mode, with a block, or when the text is a marked block; else as many
-// selections as the text has lines each get their own line; else as one text.
-function pasteText(cm, text, marked) {
+// selections as the text has lines each get their own line; else as one text. select: the pasted text selected after it
+// (a column: as a block), as Exchange wants (actions.js).
+function pasteText(cm, text, marked, select = false) {
   if (!text || cm.getOption('readOnly')) return;
   let pieces = text.split(/\r?\n/);
   if (pieces.length > 1 && pieces.at(-1) === '') pieces.pop();
@@ -330,12 +331,14 @@ function pasteText(cm, text, marked) {
         if (cm.somethingSelected()) cm.replaceSelection('');
       }
       pasteColumn(cm, pieces, line, col);
+      if (select) setBlock(cm, { line, col }, { line: line + pieces.length - 1, col: col + Math.max(...pieces.map(p => p.length)) });
     });
     return;
   }
   const ranges = cm.listSelections();
-  if (ranges.length > 1 && ranges.length === pieces.length) cm.replaceSelections(pieces, null, 'paste');
-  else cm.replaceSelection(text, null, 'paste');
+  const around = select ? 'around' : null;
+  if (ranges.length > 1 && ranges.length === pieces.length) cm.replaceSelections(pieces, around, 'paste');
+  else cm.replaceSelection(text, around, 'paste');
 }
 
 // Ctrl+V with the Windows clipboard is the editor's own paste: taken over for a block, column mode, a marked text.
