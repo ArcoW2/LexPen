@@ -1523,7 +1523,8 @@ body[data-highlight=underline] .CodeMirror .mm-hl { background: none; box-shadow
   border-left: 2px solid var(--accent); border-right: 2px solid var(--accent); }
 /* The preview's scroll bar (previewoverview.js): the editor's strip in place of the browser's bar; the content keeps
    clear of it. */
-.mm-preview-pane { scrollbar-width: none; padding-right: var(--mm-overview-w, 20px); box-sizing: border-box; }
+.mm-preview-pane { scrollbar-width: none; padding-right: var(--mm-overview-w, 20px); box-sizing: border-box;
+  clip-path: inset(0 var(--mm-overview-w, 20px) 0 0); }   /* what scrolls sideways (a wide table) not under the strip */
 .mm-pv-overview, .mm-pv-overview-view { position: absolute; }
 
 /* During a splitter's drag (docks.js dockDrag): over everything, so a pane's frame does not take the moves. */
