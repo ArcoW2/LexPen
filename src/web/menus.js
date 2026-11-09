@@ -35,7 +35,7 @@ const MENUS = [
   ]],
   ['&Edit', [
     ['&Undo', 'undo'], ['&Redo', 'redo'], '-',
-    ['Cu&t', 'cut'], ['&Copy', 'copy'], ['&Paste', 'paste'], ['Paste i&mage (asks how to link it)...', 'pasteImage'], '-',
+    ['Cu&t', 'cut'], ['&Copy', 'copy'], ['&Paste', 'paste'], ['E&xchange with clipboard', 'clipboard.exchange'], ['Paste i&mage (asks how to link it)...', 'pasteImage'], '-',
     { label: 'C&lipboards', fill: async () => [...await clipboardItems(), '-', ['&Manage clipboards...', 'clipboards.pane']] }, '-',
     { label: '&Insert', sub: [['&Character...', 'insertCharacter'], '-', ['&Link...', 'link'], ['&Image...', 'imageFromFile']] },
     ['Complete wor&d', 'complete'], ['Insert / &overwrite', 'overwrite.toggle'], '-',

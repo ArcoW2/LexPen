@@ -106,6 +106,7 @@
   "Ctrl+C": "copy",
   "Ctrl+X": "cut",
   "Ctrl+V": "paste",
+  "Ctrl+Alt+X": "clipboard.exchange",  // the selection and the clipboard swap places (the pasted text selected: again swaps back)
   "Ctrl+Shift+`": ["clipboardSelect", 0],
   "Ctrl+Shift+1": ["clipboardSelect", 1],
   "Ctrl+Shift+2": ["clipboardSelect", 2],

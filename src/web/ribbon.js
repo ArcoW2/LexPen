@@ -195,7 +195,7 @@ const rbListOnly = item => !item.params?.length && !RB_LISTS[item.action] && Arr
 
 async function rbListItems(item) {
   if (RB_LISTS[item.action]) return RB_LISTS[item.action]();
-  const def = actionDef(item.action), clip = ['paste', 'copy', 'cut'].includes(item.action);
+  const def = actionDef(item.action), clip = ['paste', 'copy', 'cut', 'clipboard.exchange'].includes(item.action);
   if (clip) Object.assign(clips, await host('clipState').catch(() => ({})));
   const items = def.variants.filter(p => p.length).map(p => ({ label: actionTitle(item.action, p).replace(/&/g, '&&'), action: item.action, params: p,
     key: clip ? (clips.previews[p[0]] || '(empty)') : keyText(item.action, ...p), checked: def.checked?.(p) }));

@@ -442,6 +442,14 @@ sealed class MainForm : Form
             // Highlights (docs/plans/executed/PLAN-highlights.md): in the editor and the preview, on the selection or the cursor;
             // one submenu (docs/plans/executed/PLAN-menu-structure.md 3.5).
             var env = core.Environment;
+            // Exchange with clipboard (docs/plans/executed/PLAN-exchange-with-clipboard.md): on a selection in the editor, after Paste.
+            if (m.ContextMenuTarget.HasSelection && m.ContextMenuTarget.IsEditable)
+            {
+                var exchange = env.CreateContextMenuItem("Exchange with clipboard", null, CoreWebView2ContextMenuItemKind.Command);
+                exchange.CustomItemSelected += (_, _) => Post(new JsonObject { ["event"] = "contextAction", ["action"] = "clipboard.exchange" });
+                var paste = m.MenuItems.Select((item, i) => (item, i)).FirstOrDefault(p => p.item.Name == "paste");
+                m.MenuItems.Insert(paste.item is null ? m.MenuItems.Count : paste.i + 1, exchange);
+            }
             m.MenuItems.Add(env.CreateContextMenuItem("", null, CoreWebView2ContextMenuItemKind.Separator));
             var highlight = env.CreateContextMenuItem("Highlight", null, CoreWebView2ContextMenuItemKind.Submenu);
             foreach (var (label, action) in new[] { ("Highlight", "highlight.toggle"), ("Selection to highlight", "highlight.fromSelection"),
