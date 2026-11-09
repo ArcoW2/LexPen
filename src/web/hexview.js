@@ -413,9 +413,13 @@ function hexSelBytes(tab) {
   return tab.doc.hexData.bytes.slice(s, e + 1);
 }
 
+// A copy from Hex: its bytes kept with its text, so while the clipboard still holds that text it pastes as those
+// bytes in either part (the text part's copy has a "." for a byte without a character).
+let hexCopied = null;
 function hexCopy(tab) {
   const bytes = hexSelBytes(tab);
   const text = hexState(tab).part === 'hex' ? [...bytes].map(b => hex2(b)).join(' ') : [...bytes].map(b => hexChar(b) ?? '.').join('');
+  hexCopied = { text, bytes };
   putOnClipboard(text, false, clips.active);
 }
 
@@ -426,14 +430,16 @@ const hexPasteItems = () => [
   { label: 'Paste &over (the same length)', run: () => runAction('hex.pasteOver') },
   { label: 'Paste &in (the bytes after it move along)', run: () => runAction('hex.pasteIn') }];
 
-// The clipboard's bytes: in the hex part its text as hex digits, in the text part its characters. Null: none (said).
+// The clipboard's bytes: a copy from Hex its own bytes, in either part; else in the hex part its text read as hex
+// (hexParseBytes), in the text part its characters. Null: none (said).
 async function hexClipBytes(tab) {
   const n = clips.active, text = n === 0 ? await host('clipboardText') : await host('clipGet', { n });
   if (!text) { toast('The clipboard is empty.', true); return null; }
+  if (hexCopied?.text === text) return hexCopied.bytes.slice();
   if (hexState(tab).part === 'hex') {
-    const digits = text.replace(/\s+/g, '');
-    if (!/^([0-9a-f]{2})+$/i.test(digits)) { toast('The clipboard holds no hex bytes (pairs of digits, like 3F 00 A1): nothing pasted.', true); return null; }
-    return Uint8Array.from(digits.match(/../g), h => parseInt(h, 16));
+    const bytes = hexParseBytes(text);
+    if (!bytes) { toast('The clipboard holds no hex bytes (like 3F 00 A1, 0x3F, $3F, \\x3F): nothing pasted.', true); return null; }
+    return Uint8Array.from(bytes);
   }
   const bytes = [...text.replace(/\r\n/g, '\n')].map(hexByteOf);
   const bad = bytes.indexOf(null);

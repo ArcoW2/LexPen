@@ -139,6 +139,8 @@ if (!floating) cp.list.addEventListener('pointerdown', e => {
       if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 6) return;
       dragging = true;
       document.body.style.cursor = 'copy';
+      document.body.style.userSelect = 'none';   // no selection made along the way
+      getSelection().removeAllRanges();
       toWindow({ kind: 'ribbonDragStart', call });
     }
     toWindow({ kind: 'ribbonDragMove', x: ev.clientX, y: ev.clientY });
@@ -153,10 +155,11 @@ if (!floating) cp.list.addEventListener('pointerdown', e => {
     end: () => {
       removeEventListener('pointermove', move);
       removeEventListener('pointerup', up);
-      document.body.style.cursor = '';
+      document.body.style.cursor = document.body.style.userSelect = '';
       rowDrag = null;
     },
   };
   addEventListener('pointermove', move);
   addEventListener('pointerup', up);
 });
+paneHandlers.ribbonDragDone = () => rowDrag?.end();   // the window ended it (let go there, or Esc)

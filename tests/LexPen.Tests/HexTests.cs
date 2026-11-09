@@ -129,4 +129,37 @@ public class HexTests : IDisposable
         Assert.Equal(0xAB, Js("hexValue(['a', 'B'])").GetInt32());   // either case
         Assert.True(Js("isHexDigit('f') && isHexDigit('F') && !isHexDigit('g')").GetBoolean());
     }
+
+    // ---------- Hex pasted in the hex part ----------
+
+    [Theory]
+    [InlineData("3F 00 A1")]
+    [InlineData("3f00a1")]
+    [InlineData("3F\r\n00\tA1\r\n")]
+    [InlineData("0x3F, 0x00, 0xA1")]
+    [InlineData("{ 0x3F, 0x0, 0xa1 }")]
+    [InlineData("$3F $00 $A1")]
+    [InlineData(@"\x3F\x00\xA1")]
+    [InlineData("#3F00A1")]
+    [InlineData("&H3F &H0 &HA1")]
+    [InlineData("%3F%00%A1")]
+    [InlineData("3Fh 00h A1h")]
+    [InlineData("3F:00:A1")]
+    [InlineData("3F-00-A1")]
+    [InlineData("[3F; 00; A1]")]
+    public void HexIsReadInTheUsualWays(string text)
+    {
+        Assert.Equal("[63,0,161]", Js($"hexParseBytes({JsonSerializer.Serialize(text)})").GetRawText());
+    }
+
+    [Theory]
+    [InlineData("Hello")]
+    [InlineData("3F0")]
+    [InlineData("3F 0G")]
+    [InlineData("")]
+    [InlineData("  ,  ")]
+    public void AnythingElseIsNoHex(string text)
+    {
+        Assert.Equal(JsonValueKind.Null, Js($"hexParseBytes({JsonSerializer.Serialize(text)})").ValueKind);
+    }
 }

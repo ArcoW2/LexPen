@@ -469,7 +469,9 @@ every action with its key.
   counting as 0 when the cursor leaves: 3F becomes 0F or 30), in the text part they set a byte to 00. Typing never
   changes the length; that is a choice each time: the right-click's Insert bytes... (zeros), Fill with 00 and Delete
   bytes on a selection (Shift+arrows, dragging), Ctrl+X (Cut and fill with 00, or Cut) and Ctrl+V (Paste over, the
-  same length, stopping at the end; or Paste in). Copy gives hex digits from the hex part, text from the text part.
+  same length, stopping at the end; or Paste in). Copy gives hex digits from the hex part, text from the text part;
+  that copy pastes back as the same bytes in either part. The hex part takes hex in the usual notations (3F 00 A1,
+  0x3F, $3F, \x3F, #3F00A1, &H3F, %3F, 3Fh, 3F:00:A1), the text part any text.
   Changed bytes are coloured until saved; Ctrl+Z / Ctrl+Y; Ctrl+F, F3 find hex bytes or "text".
 - **Preview zoom**: Ctrl+= / Ctrl+- / Ctrl+mouse wheel over a preview. The level shows at the right of the top
   bar (click it for 100%) and is kept.

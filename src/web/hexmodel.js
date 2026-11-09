@@ -57,3 +57,19 @@ function hexLineText(bytes, from, perLine, group, size) {
 const hexDigits = b => [...hex2(b)];
 const hexValue = d => parseInt((d[0] ?? '0') + (d[1] ?? '0'), 16);
 const isHexDigit = c => /^[0-9a-f]$/i.test(c);
+
+// ---------- Hex as text (pasted in the hex part) ----------
+// The bytes a text writes in hex, in any of the usual ways: "3F 00 A1", "3F00A1", "0x3F, 0x00", "$3F $00", "\x3F\x00",
+// "#3F00A1", "&H3F", "%3F%00", "3Fh 00h", "3F:00:A1", "3F-00-A1", "{ 0x3F, 0x00 }". A prefix or a separator ends a
+// byte, so one there may be a single digit ("0xF": 0F); a run of digits without one is read in pairs. Null: anything
+// else in it, an odd run of more than one digit, or no bytes at all.
+function hexParseBytes(text) {
+  const words = String(text).split(/[\s,;:\-(){}\[\]]+|0x|\\x|&h|[$#%]/i).filter(w => w);
+  const bytes = [];
+  for (let w of words) {
+    if (/^[0-9a-f]+h$/i.test(w)) w = w.slice(0, -1);   // 3Fh
+    if (!/^[0-9a-f]+$/i.test(w) || w.length > 1 && w.length % 2) return null;
+    for (let i = 0; i < w.length; i += 2) bytes.push(parseInt(w.slice(i, i + 2), 16));
+  }
+  return bytes.length ? bytes : null;
+}

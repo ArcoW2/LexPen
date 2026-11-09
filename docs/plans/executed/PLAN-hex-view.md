@@ -103,9 +103,11 @@ LexPen does not know (today refused) opens in Hex by default.
     that many). The right-click has both as well. Esc: nothing.
   - Paste over stops at the end of the file: it never makes the file longer; the bytes left over are not pasted, and a
     message says how many.
-  - The clipboard's bytes: in the hex part its text read as hex digits (spaces and line ends ignored; anything else
-    and nothing is pasted, with a message); in the text part its characters as Windows-1252 bytes (a character
-    without one: nothing is pasted, with a message).
+  - The clipboard's bytes: a copy from Hex (either part) pastes as the bytes copied, in either part, while the
+    clipboard still holds that text; else in the hex part its text read as hex, in any of the usual ways ("3F 00 A1",
+    "3F00A1", "0x3F, 0x00", "$3F", "\x3F", "#3F00A1", "&H3F", "%3F", "3Fh", "3F:00:A1", "3F-00-A1"; anything else and
+    nothing is pasted, with a message); in the text part its characters as Windows-1252 bytes (a character without
+    one: nothing is pasted, with a message).
 - **Undo / redo** (Ctrl+Z / Ctrl+Y) per change; a changed byte stands out (the changed colour) until saved.
 - **Save** of a file opened in Hex writes the bytes exactly as they are: no encoding, no line ends, no BOM added or
   removed. A text file edited in Hex is saved as text, as always (3.1).
@@ -194,7 +196,9 @@ Differs from the plan:
   (Settings: trim on save). The editor holds lines, so line-end bytes changed in Hex come back as the file's line end.
   Bytes are marked as changed only for changes made in Hex.
 - **A PDF in Hex** shows its bytes read-only, as the PDF tab is.
-- **Copy from the text part**: a byte without a character is copied as ".".
+- **Copy from the text part**: a byte without a character is copied as "."; pasted back while the clipboard still
+  holds that copy, the bytes copied come back, in either part (added after the build, with hex in the usual notations
+  in the hex part: `hexParseBytes`).
 - **The Hex icon** has its digits as text in the drawing (as the F1 icon), not strokes. The icon sheet's source
   (`executed/PLAN-ribbon.md.images/ribbon-icons.js`) has the new drawings; its PNGs were not drawn again.
 - **A file of bytes** shows "Bytes" in the bottom bar (no line ends, no language list); removed on disk, its bar has
@@ -205,7 +209,8 @@ the limit refused; a text encoded as a save writes it and decoded back the same,
 and ANSI; a byte UTF-8 cannot read kept as the stand-in and written back; the shipped ribbon has Text, Column and Hex
 stacked in Arrange > Select (`RibbonTests`). Unit (Jint): a line for 16 / 8, 8 / 0 and 32 / 4; Windows-1252
 characters, the dot for control and undefined bytes, the byte of a character typed; the offset's width; a digit gone
-counting as 0. All tests pass. In the test copy by script: a binary file opens in Hex; typing digits (either case);
+counting as 0; hex in each usual notation read, other text refused. All tests pass.
+In the test copy by script: a binary file opens in Hex; typing digits (either case);
 Delete on the high digit of 3F gives 0F, Backspace after its low digit 30, both removed 00; in the text part Delete
 and Backspace give 00, a character without a byte refused, e acute types E9; the length never changes by typing;
 Insert bytes (4), Fill with 00 and Delete bytes on a selection of 3; Paste over two bytes before the end (one left

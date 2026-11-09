@@ -473,7 +473,13 @@ function rbCallDragStart(call) {
   const move = e => { if (e.buttons & 1) rbCallDragAt(e.clientX, e.clientY); else rbCallDragEnd(); };
   const up = e => rbCallDragAt(e.clientX, e.clientY, true);
   const key = e => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); rbCallDragEnd(); } };
-  rbCallDrag = { call, off: () => { removeEventListener('pointermove', move, true); removeEventListener('pointerup', up, true); removeEventListener('keydown', key, true); } };
+  // Its drag image: the action's name beside the pointer.
+  const ghost = document.createElement('div');
+  ghost.className = 'mm-rb-ghost';
+  ghost.textContent = actionTitle(call[0], call.slice(1));
+  ghost.hidden = true;
+  document.body.append(ghost);
+  rbCallDrag = { call, ghost, off: () => { removeEventListener('pointermove', move, true); removeEventListener('pointerup', up, true); removeEventListener('keydown', key, true); } };
   addEventListener('pointermove', move, true);
   addEventListener('pointerup', up, true);
   addEventListener('keydown', key, true);
@@ -482,6 +488,8 @@ function rbCallDragStart(call) {
 function rbCallDragEnd() {
   if (!rbCallDrag) return;
   rbCallDrag.off();
+  rbCallDrag.ghost.remove();
+  commandsPane?.send({ kind: 'ribbonDragDone' });   // F1 sees no release outside its frame
   rbCallDrag = null;
   document.body.style.cursor = '';
   clearTimeout(rbTabTimer);
@@ -491,6 +499,8 @@ function rbCallDragEnd() {
 // The pointer at x, y in this window; `drop`: let go there.
 function rbCallDragAt(x, y, drop = false) {
   if (!rbCallDrag) return;
+  Object.assign(rbCallDrag.ghost.style, { left: x + 12 + 'px', top: y + 14 + 'px' });
+  rbCallDrag.ghost.hidden = false;
   const el = document.elementFromPoint(x, y);
   const target = rb.changing && el && [rb.els.el, rb.els.top].some(box => box.contains(el)) ? rbDropTarget({ target: el, clientX: x, clientY: y }) : null;
   if (!drop) { rbMarkDrop(target); return rbOverTab(target); }
