@@ -71,6 +71,8 @@ function rbElements() {
 // ---------- Drawing ----------
 function renderRibbon() {
   const mode = rbMode();
+  // Menu only while changing it: change mode ends (every change is written at once: nothing to keep).
+  if (mode === 'menu' && rb.changing) return rbChangeMode(false);
   document.body.dataset.commandBar = mode;
   if (!rb.model) return;
   const { top, el, row, bodies } = rbElements();
