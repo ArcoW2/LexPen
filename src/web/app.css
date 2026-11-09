@@ -293,9 +293,11 @@ body[data-show-eol] .CodeMirror[data-eol=cr] .CodeMirror-line:not(.mm-last-line)
 .mm-name-dialog { min-width: 26em; }
 /* Messages (app.js, showMessages): time, message, document; errors in the caution colour. */
 .mm-name-dialog label { display: block; margin-bottom: 8px; }
-.mm-name-dialog input { width: 100%; box-sizing: border-box; padding: 4px 6px; font: inherit; color: var(--fg);
+.mm-name-dialog input, .mm-name-dialog textarea { width: 100%; box-sizing: border-box; padding: 4px 6px; font: inherit; color: var(--fg);
   background: var(--bg); border: 1px solid var(--border); border-radius: 4px; }
 .mm-name-dialog .mm-name-buttons { display: flex; justify-content: flex-end; gap: 6px; margin-top: 12px; }
+.mm-name-dialog textarea { display: block; resize: none; text-align: left; }   /* a label with lines (askName lines) */
+.mm-name-dialog [hidden] { display: none; }
 /* Macros > Manage (macros.js) */
 /* A macro's window and Manage (macros.js, plan 36): not modal, over the window at its right, moved by its title. */
 /* A macro's mistakes as you type (macros.js): underlined, their line numbers marked; the message as a tooltip. */
@@ -1567,7 +1569,7 @@ body.mm-rb-menus .mm-rb-tabs-top { display: none; }
 .mm-rb-large { flex-direction: column; justify-content: flex-start; gap: 1px; padding: calc(3px * var(--rb-sp, 1)) 6px; text-align: center; white-space: normal; }
 .mm-rb-small .mm-rb-label { max-width: var(--rb-ch); overflow: hidden; text-overflow: ellipsis; }
 .mm-rb-large .mm-rb-label { max-width: calc(var(--rb-ch) / 2); line-height: var(--rb-lh, 1.3); overflow: hidden; display: -webkit-box;
-  -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  -webkit-line-clamp: 2; -webkit-box-orient: vertical; white-space: pre-line; }   /* a line break of its own (a label renamed with Shift+Enter); a small one: a space */
 .mm-rb-icon { position: relative; display: inline-flex; flex: none; }
 .mm-rb-letter { display: inline-grid; place-items: center; width: calc(14px * var(--rb-f, 1)); height: calc(14px * var(--rb-f, 1)); border: 1.4px solid currentColor; border-radius: 3px;
   font-size: 9px; font-weight: 700; }

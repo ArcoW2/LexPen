@@ -323,6 +323,8 @@ differences:
 - **Rename** (Customize and a button's right-click) renames a tab, a group or a button; a button's name is its label.
 - **Columns** (added after the build): one or two small buttons sit at the top of their column, not centred; a large
   button can share its column with one small button above or under it.
+- **A label's own line break** (added after the build): renaming a button (its right-click, Customize), Shift+Enter
+  makes a line break (the label in ribbon.json with "\n"); a large button shows it, a small one has a space there.
 - **The File tab** (added after the build): groups Open (New file; Open file, Open folder; Recent files, Recent folders;
   Favourite files, Favourite folders), Save (Save; Save as, Print) and Close (Close tab, Reopen closed tab, Recently
   closed). The lists are the actions `recent.list` (files, folders, closed) and `favourites.list` (files, folders):

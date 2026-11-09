@@ -785,7 +785,7 @@ function rbEditMenu(e) {
       ...(variants.length ? [{ label: '&Parameter', sub: [
         { label: '&None (the action itself, its list)', checked: !item.params?.length, run: set(it => { delete it.params; }) },
         ...variants.map(p => ({ label: actionTitle(item.action, p).replace(/&/g, '&&'), checked: JSON.stringify(item.params ?? []) === JSON.stringify(p), run: set(it => { it.params = p; }) }))] }] : []),
-      { label: 'Rena&me...', run: async () => { const v = await askName('Label (empty: the action\'s title)', item.label ?? '', actionTitle(item.action, item.params ?? [])); if (v !== null) set(it => { if (v.trim()) it.label = v.trim(); else delete it.label; })(); } },
+      { label: 'Rena&me...', run: async () => { const v = await askName('Label (empty: the action\'s title)', item.label ?? '', actionTitle(item.action, item.params ?? []), undefined, true); if (v !== null) set(it => { if (v.trim()) it.label = v.trim(); else delete it.label; })(); } },
       { label: '&Key tip...', run: async () => {
         const v = await askName('Key tip (one or two letters; empty: from the label)', item.tip ?? '', 'A letter');
         if (v === null) return;
@@ -1006,7 +1006,7 @@ async function rbcDo(dlg, what) {
   if (what === 'stack') rbChange(m => { const it = m.tabs[t].groups[g].items[i]; it.stack = !it.stack; });
   if (what === 'rename') {   // a button's name is its label (a long macro name made short)
     const it = rb.model.tabs[t].groups[g].items[i];
-    const v = await askName('Label (empty: the action\'s title)', it.label ?? '', actionTitle(it.action, it.params ?? []));
+    const v = await askName('Label (empty: the action\'s title)', it.label ?? '', actionTitle(it.action, it.params ?? []), undefined, true);
     if (v !== null) rbChange(m => { const x = m.tabs[t].groups[g].items[i]; if (v.trim()) x.label = v.trim(); else delete x.label; });
   }
   pick(line.path);

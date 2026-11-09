@@ -862,6 +862,7 @@ every action with its key.
   Done or Esc ends it): drag commands from F1 onto it (an action, or one of its variants: Paste from clipboard 3),
   move buttons, groups (by their grip) and tabs, drop an action on a group's corner, drag anything off to remove it,
   "New..." for a tab or a group, right-click for size, stacking, label, key tip, parameter, divider; Ctrl+Z undoes.
+  A label can have a line break of its own (Shift+Enter when renaming): a large button shows it.
   Customize... does the same by list. Your `ribbon.json` in `%LOCALAPPDATA%\LexPen` (the shipped one:
   `defaults\ribbon.json`); Reset goes back to the shipped ribbon.
 - **Questions** come in LexPen's own window: in the app theme of the window that asks (its colours, the app font),

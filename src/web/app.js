@@ -4787,9 +4787,13 @@ async function deleteEntry(path) {
 // Asks a name: the text, or null for Cancel / Esc.
 // `placeholder`: the hint in the empty field (a project name: a number when left empty).
 // select: the part of the value selected, [from, to] (from == to: only the caret there); default all of it.
-function askName(title, value, placeholder = 'Empty: a number', select = [0, value.length]) {
-  const dialog = $('.mm-name-dialog'), input = dialog.querySelector('.mm-name-input');
-  dialog.querySelector('.mm-name-label').textContent = title;
+// lines: a text that may have line breaks (a ribbon button's label): Shift+Enter makes one, Enter is OK.
+function askName(title, value, placeholder = 'Empty: a number', select = [0, value.length], lines = false) {
+  const dialog = $('.mm-name-dialog'), one = dialog.querySelector('.mm-name-input'), more = dialog.querySelector('.mm-name-text');
+  const input = lines ? more : one;
+  one.hidden = lines;
+  more.hidden = !lines;
+  dialog.querySelector('.mm-name-label').textContent = title + (lines ? ' (Shift+Enter: a new line)' : '');
   input.placeholder = placeholder;
   input.value = value;
   dialog.returnValue = '';
@@ -4803,6 +4807,9 @@ function askName(title, value, placeholder = 'Empty: a number', select = [0, val
   });
 }
 $('.mm-name-dialog .mm-name-cancel').addEventListener('click', () => $('.mm-name-dialog').close('cancel'));
+$('.mm-name-dialog .mm-name-text').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('.mm-name-dialog').close('ok'); }   // Shift+Enter: the line break
+});
 
 // A dialog of this page (a name asked, Customize, ...) under one of LexPen's floating windows (F1 and the other panes
 // in a window of their own: owned by this window, so always above it) moves out from under it: to the place in the
