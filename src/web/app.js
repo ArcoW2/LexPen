@@ -1201,7 +1201,7 @@ function onPreviewClick(pane, e) {
     const [path, anchor] = href.split('#');
     const target = resolvePath(tab?.doc.path ? dirOf(tab.doc.path) : state.root || '', safeDecode(path));
     if (codeLang(target) === 'plaintext') return;
-    if (!tab || e.ctrlKey || e.shiftKey || tab.doc.draft) openFile(target, { pane, anchor });
+    if (!tab || e.ctrlKey || e.shiftKey || tab.pinned || tab.doc.draft) openFile(target, { pane, anchor });   // a pinned tab stays
     else navigate(tab, target, anchor);
   }
 }
@@ -2663,12 +2663,13 @@ async function showInTree(path) {
 
 // A file from the tree (and the search results): shown in the current tab of the pane (when it is already open there:
 // that tab). Ctrl: the other pane, the active pane staying the one it was (so a next Ctrl+click goes to that other pane
-// again, as the dimmed frame shows); Shift: a new tab. A draft or a changed file is never replaced (a new tab instead).
+// again, as the dimmed frame shows); Shift: a new tab. A draft, a changed file or a pinned tab is never replaced (a new
+// tab instead).
 async function openFromTree(path, { ctrlKey, shiftKey }) {
   const was = state.activePane, pane = ctrlKey ? otherPane() : panes[was], tab = pane.active;
   quietSwitch = !!ctrlKey;
   try {
-    const result = shiftKey || !tab || tab.doc.draft || tab.doc.dirty || pane.tabs.some(t => samePath(t.doc.path, path))
+    const result = shiftKey || !tab || tab.pinned || tab.doc.draft || tab.doc.dirty || pane.tabs.some(t => samePath(t.doc.path, path))
       ? await openFile(path, { pane }) : await navigate(tab, path);
     if (ctrlKey) setActivePane(was);
     return result;
@@ -3240,8 +3241,8 @@ function drawSearchResults() {
 
 // A match clicked in the results: there in the window, selected (and in the preview's view): in the pane's tab of its
 // file, else a new one. `here` (Alt+click): in the active tab instead, as a link is followed (back returns to its line),
-// unless that tab's document has unsaved changes. Ctrl+click and Shift+click as in the Folder pane (openFromTree): the
-// other pane, a new tab.
+// unless that tab is pinned or its document has unsaved changes. Ctrl+click and Shift+click as in the Folder pane
+// (openFromTree): the other pane, a new tab.
 async function goToSearchHit(hit, here, { ctrlKey, shiftKey } = {}) {
   if (hit.page) {   // a PDF's: shown there as the find bar shows a match (pdffind.js)
     const pdf = await openFile(hit.path);
@@ -3250,7 +3251,7 @@ async function goToSearchHit(hit, here, { ctrlKey, shiftKey } = {}) {
   }
   let tab, how = 'found';
   const active = activeTab();
-  if (here && !hit.draft && active?.doc.path && !samePath(active.doc.path, hit.path) && !active.doc.dirty && !active.doc.pdf) {
+  if (here && !hit.draft && active?.doc.path && !active.pinned && !samePath(active.doc.path, hit.path) && !active.doc.dirty && !active.doc.pdf) {
     const cm = paneOf(active).cm, at = cm?.getCursor();
     remember(active, active.doc.path, true);
     const step = navHistory.back.at(-1);

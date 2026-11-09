@@ -702,7 +702,8 @@ every action with its key.
 - **Pinned tabs** (right-click a tab > Pin tab): a pin before the name. Closing it alone asks first; Close other
   tabs, Close tabs to the right, Close all tabs (tab menu, the tab bar's own menu and File menu; one pane) and closing a pane leave it
   open. Closing the second pane, or a window while another window of its project stays open, moves pinned tabs to
-  the main pane / that window (a setting, on by default). Kept in the session.
+  the main pane / that window (a setting, on by default). A pinned tab never takes another file: a file from the Folder
+  pane or a search result, or a link followed, opens in a new tab beside it. Kept in the session.
 - **Read-only tabs** (right-click a tab > Read-only): the tab cannot change the file; switching it off is
   refused while another tab or window edits the file. A file with the Windows read-only attribute opens
   read-only. A padlock before the name shows it (underlined: set by you); the tooltip says why.
