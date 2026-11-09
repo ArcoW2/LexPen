@@ -163,7 +163,7 @@ async function open() {
     if (!pdf.scrollFrame) pdf.scrollFrame = requestAnimationFrame(() => { pdf.scrollFrame = 0; toWindow({ kind: 'scroll', top: document.getElementById('pdf-scroll').scrollTop }); });
   });
   eventBus.on('pagechanging', tellState);
-  eventBus.on('scalechanging', () => { tellState(); laterLayout(); });
+  eventBus.on('scalechanging', () => { hidePressCaret(); tellState(); laterLayout(); });
   try {
     pdf.doc = await pdfjsLib.getDocument({
       url: file, isEvalSupported: false,
@@ -231,6 +231,7 @@ addEventListener('contextmenu', e => { e.preventDefault(); toWindow({ kind: 'men
 addEventListener('pointerdown', e => {
   const page = e.button === 0 ? pageOfNode(e.target) : null;
   toWindow({ kind: 'activate', at: page ? offsetAt(e.clientX, e.clientY) ?? { page: +page.dataset.pageNumber, offset: 0 } : null });
+  if (page) showPressCaret(page, e.clientX, e.clientY);
   if (!e.target.closest?.('input, textarea, select')) setTimeout(() => document.getElementById('pdf-scroll').focus({ preventScroll: true }));
 }, true);
 addEventListener('focus', () => { if (document.activeElement === document.body) document.getElementById('pdf-scroll').focus({ preventScroll: true }); });
@@ -453,9 +454,34 @@ function drawFind(pageNumber) {
 }
 
 // The current match: its page, it in view (a third down), marked as the current one.
+// Where F3 goes on from after a click (the window's pdfview.js pressedAt): a caret at the character clicked (beside
+// the text: at the point), so the click is seen. Gone when a match is shown (that is where F3 is then), or the zoom
+// changes (the page drawn again at another size).
+let pressCaret = null;
+function hidePressCaret() {
+  pressCaret?.remove();
+  pressCaret = null;
+}
+function showPressCaret(pageDiv, x, y) {
+  hidePressCaret();
+  const caret = document.caretPositionFromPoint?.(x, y);
+  let r = null;
+  if (caret?.offsetNode?.nodeType === 3 && pageDiv.contains(caret.offsetNode)) {
+    const range = document.createRange();
+    range.setStart(caret.offsetNode, caret.offset);
+    range.collapse(true);
+    r = range.getClientRects()[0] ?? null;
+  }
+  const p = pageDiv.getBoundingClientRect(), h = r?.height || 16;
+  pressCaret = Object.assign(document.createElement('div'), { className: 'pdf-press-caret' });
+  Object.assign(pressCaret.style, { left: (r ? r.left : x) - p.left + 'px', top: (r ? r.top : y - h / 2) - p.top + 'px', height: h + 'px' });
+  pageDiv.append(pressCaret);
+}
+
 async function findShow({ page, from, to }) {
   const v = pdf.viewer;
   if (!v?.pagesCount) return;
+  hidePressCaret();
   const before = found.current?.page;
   found.current = { page, from, to };
   if (before && before !== page) drawFind(before);   // the one before: a plain match again

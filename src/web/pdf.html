@@ -31,6 +31,10 @@
   /* The find bar's matches (pdf-pane.js): the window's find colours. */
   .pdf-find { position: absolute; background: var(--pdf-find); border-radius: 2px; }
   .pdf-find.pdf-find-current { background: var(--pdf-find-current); }
+  /* Where F3 goes on from (a click, pdf-pane.js showPressCaret): a caret in the current match's colour, the click seen. */
+  .pdf-press-caret { position: absolute; width: 2px; margin-left: -1px; pointer-events: none; z-index: 3;
+    background: var(--pdf-find-current, #e8700a); box-shadow: 0 0 0 1px rgb(255 255 255 / .6); animation: pdf-caret-in .3s ease-out; }
+  @keyframes pdf-caret-in { from { transform: scaleY(2.2); opacity: 0; } }
 </style>
 </head>
 <body>
