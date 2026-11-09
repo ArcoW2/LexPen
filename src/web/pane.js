@@ -18,10 +18,12 @@ function fromWindow(m) {
   if (m.kind === 'menu') return paneMenu(m);
   paneHandlers[m.kind]?.(m);
 }
-// Shown by an action while floating (docks.js flashDock): the page flashes as a docked pane's group does.
-paneHandlers.flash = () => {
+// Shown by an action while floating (docks.js flashDock): the page flashes as a docked pane's group does; once: one blink
+// (F3 come here, app.js f3Step).
+paneHandlers.flash = m => {
   const body = document.body;
   body.classList.remove('mm-pane-flash');
+  body.classList.toggle('mm-flash-once', !!m?.once);
   void body.offsetWidth;   // the animation again when it was still running
   body.classList.add('mm-pane-flash');
   setTimeout(() => body.classList.remove('mm-pane-flash'), 1300);

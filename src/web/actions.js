@@ -437,8 +437,8 @@ appAction('indentMore', { title: 'Indent', hint: 'The lines of the cursor or sel
 appAction('indentLess', { title: 'Outdent', hint: 'The lines of the cursor or selection one indent step left', group: 'edit', editor: true,
   run: (_, { pane }) => { pane.cm.execCommand('indentLess'); pane.cm.focus(); } });
 appAction('find', { title: 'Find', hint: 'In this pane: the editor or the preview; with text selected in the editor, only within it', group: 'edit', run: () => findKey('open') });
-appAction('findNext', { title: 'Find next', hint: 'With an empty or hidden find bar: show it', group: 'edit', run: () => findKey('next') });
-appAction('findPrevious', { title: 'Find previous', hint: 'The match before', group: 'edit', run: () => findKey('prev') });
+appAction('findNext', { title: 'Find next', hint: 'The next match of the find bar, or the next result of the Search pane: whichever was used last (its F3 tag lit); with an empty or hidden find bar: show it', group: 'edit', run: () => f3Step(1) });
+appAction('findPrevious', { title: 'Find previous', hint: 'The match before, or the result before: as Find next', group: 'edit', run: () => f3Step(-1) });
 appAction('replace', { title: 'Replace', hint: 'The find bar with its replace row, in the editor; with text selected, only within it', group: 'edit', run: () => findKey('replace') });
 // The find bar's Replace all (docs/plans/executed/PLAN-find-bar-replace.md): Alt+A while the bar has the focus; no key elsewhere.
 appAction('replaceAll', { title: 'Replace all', hint: 'In the find bar: all matches in the selection or the file, one undo step (Alt+A in the bar)', group: 'edit', run: () => findKey('replaceAll') });
@@ -942,6 +942,10 @@ const SETTING_ROWS = [
   { name: 'scrollTogether', group: 'Tabs', sub: 'Two panes', kind: 'choice', title: 'Align scrolling by',
     hint: 'Keeping the line distance: Scroll together scrolls the documents as they are aligned now, without putting them on the same line number first (Level does that; Alt + mouse wheel scrolls one pane alone). The same line number: Scroll together always puts the other pane on the same line number',
     options: () => [['distance', 'keeping the line distance'], ['line', 'the same line number']] },
+  // docs/plans/executed/PLAN-pinned-tabs-grouped-or-own-row.md
+  { name: 'pinnedTabs', group: 'Tabs', kind: 'choice', title: 'Pinned tabs',
+    hint: 'Among the others (first), in one tab "Pinned (n)" whose click lists them, or on a row of their own above the others; also in a tab\'s right-click',
+    options: () => [['regular', 'Among the others'], ['grouped', 'In one tab'], ['row', 'A row of their own']] },
   { name: 'movePinned', group: 'Tabs', kind: 'toggle',
     hint: 'Closing a pane moves its pinned tabs to the main pane; closing a window moves them to another open window of the same project',
     hintOff: 'Pinned tabs keep their pane open, and close with their window' },

@@ -208,6 +208,10 @@ addEventListener('message', e => {
   else if (m.kind === 'activate') {   // a press in the PDF: also outside an open menu, which closes (menus.js)
     closeMenus();
     const pane = paneOf(tab);
+    if (m.at) {   // where it was pressed: the find bar goes on from there, not from its last match (pdffind.js)
+      tab.pdf.pressedAt = m.at;
+      if (pane?.find) pane.find.at = null;
+    }
     if (pane && pane.index !== state.activePane) setActivePane(pane.index);
   }
   else if (m.kind === 'key') document.dispatchEvent(new KeyboardEvent('keydown', { key: m.key, code: m.code, ctrlKey: m.ctrlKey,

@@ -139,6 +139,8 @@
   // ---------- Tabs ----------
   "tabOrder": "recent",           // Document order (Ctrl+PgDn): "recent" (recently used) or "tabs" (the tab bar)
   "scrollTogether": "distance",   // scroll together (the button between the panes): "distance" (as the panes are aligned now) or "line" (the same line number)
+  "pinnedTabs": "regular",        // a pane's pinned tabs: "regular" (first, among the others), "grouped" (one tab "Pinned (n)"
+                                  // that lists them) or "row" (a row of their own above the others); the same everywhere
   "movePinned": true,             // closing a pane or window moves its pinned tabs to the main pane / another
                                   // open window of the same project
   "dockTabBar": "rows",           // a dock area's tabs that do not fit: "rows" (several rows, all tabs visible) or

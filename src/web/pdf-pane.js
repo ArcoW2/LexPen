@@ -163,7 +163,7 @@ async function open() {
     if (!pdf.scrollFrame) pdf.scrollFrame = requestAnimationFrame(() => { pdf.scrollFrame = 0; toWindow({ kind: 'scroll', top: document.getElementById('pdf-scroll').scrollTop }); });
   });
   eventBus.on('pagechanging', tellState);
-  eventBus.on('scalechanging', () => { tellState(); laterLayout(); });
+  eventBus.on('scalechanging', () => { hidePressCaret(); tellState(); laterLayout(); });
   try {
     pdf.doc = await pdfjsLib.getDocument({
       url: file, isEvalSupported: false,
@@ -226,15 +226,29 @@ addEventListener('wheel', e => {
 // The right-click: where, the selection, and the page and offset under it (a highlight there: its items).
 addEventListener('contextmenu', e => { e.preventDefault(); toWindow({ kind: 'menu', x: e.clientX, y: e.clientY, parts: selectionParts(), at: offsetAt(e.clientX, e.clientY) }); });
 // A press: its pane the active one; the keys scroll the PDF (PgUp / PgDn, the arrows, Home / End: its scroll area's
-// own), so the scroll area takes the focus.
+// own), so the scroll area takes the focus. Where (a left press): the find bar goes on from there (pdffind.js); beside
+// the text, the start of that page.
 addEventListener('pointerdown', e => {
-  toWindow({ kind: 'activate' });
+  const page = e.button === 0 ? pageOfNode(e.target) : null;
+  toWindow({ kind: 'activate', at: page ? offsetAt(e.clientX, e.clientY) ?? { page: +page.dataset.pageNumber, offset: 0 } : null });
+  if (page) showPressCaret(page, e.clientX, e.clientY);
   if (!e.target.closest?.('input, textarea, select')) setTimeout(() => document.getElementById('pdf-scroll').focus({ preventScroll: true }));
 }, true);
 addEventListener('focus', () => { if (document.activeElement === document.body) document.getElementById('pdf-scroll').focus({ preventScroll: true }); });
 // The window's keys (a key with Ctrl or Alt, F1 to F12, Esc); the arrows, PgUp / PgDn, Home / End and typing stay here.
 addEventListener('keydown', e => {
   if (['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) return;
+  // As in the editor: Ctrl+Home / Ctrl+End the start / end of the PDF; Home / End, and Ctrl+Left / Ctrl+Right, the view
+  // to its left / right edge (zoomed in), not the scroll area's own (Home / End went to the start / end).
+  const edge = !e.altKey && !e.metaKey && !e.shiftKey && (e.key === 'Home' || e.key === 'End' ? (e.ctrlKey ? 'vertical' : 'horizontal')
+    : e.ctrlKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight') ? 'horizontal' : null);
+  if (edge) {
+    const s = document.getElementById('pdf-scroll'), end = e.key === 'End' || e.key === 'ArrowRight';
+    e.preventDefault();
+    if (edge === 'vertical') s.scrollTop = end ? s.scrollHeight : 0;
+    else s.scrollLeft = end ? s.scrollWidth : 0;
+    return;
+  }
   if (!(e.ctrlKey || e.altKey || e.metaKey || /^F\d+$/.test(e.key) || e.key === 'Escape')) return;
   if (e.ctrlKey && !e.altKey && ['c', 'a'].includes(e.key.toLowerCase())) return;   // copy, select all: the PDF's text
   e.preventDefault();
@@ -451,9 +465,34 @@ function drawFind(pageNumber) {
 }
 
 // The current match: its page, it in view (a third down), marked as the current one.
+// Where F3 goes on from after a click (the window's pdfview.js pressedAt): a caret at the character clicked (beside
+// the text: at the point), so the click is seen. Gone when a match is shown (that is where F3 is then), or the zoom
+// changes (the page drawn again at another size).
+let pressCaret = null;
+function hidePressCaret() {
+  pressCaret?.remove();
+  pressCaret = null;
+}
+function showPressCaret(pageDiv, x, y) {
+  hidePressCaret();
+  const caret = document.caretPositionFromPoint?.(x, y);
+  let r = null;
+  if (caret?.offsetNode?.nodeType === 3 && pageDiv.contains(caret.offsetNode)) {
+    const range = document.createRange();
+    range.setStart(caret.offsetNode, caret.offset);
+    range.collapse(true);
+    r = range.getClientRects()[0] ?? null;
+  }
+  const p = pageDiv.getBoundingClientRect(), h = r?.height || 16;
+  pressCaret = Object.assign(document.createElement('div'), { className: 'pdf-press-caret' });
+  Object.assign(pressCaret.style, { left: (r ? r.left : x) - p.left + 'px', top: (r ? r.top : y - h / 2) - p.top + 'px', height: h + 'px' });
+  pageDiv.append(pressCaret);
+}
+
 async function findShow({ page, from, to }) {
   const v = pdf.viewer;
   if (!v?.pagesCount) return;
+  hidePressCaret();
   const before = found.current?.page;
   found.current = { page, from, to };
   if (before && before !== page) drawFind(before);   // the one before: a plain match again

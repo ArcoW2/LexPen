@@ -593,7 +593,8 @@ function makePane(index) {
   el.dataset.mode = 'preview';
   el.innerHTML = '<div class="mm-tabs-row"><button class="mm-sync-tree" title="Show the file in the folder pane">' +
     '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.5h11M10 2.5l3 3-3 3M14 10.5H3M6 7.5l-3 3 3 3"/></svg></button>' +
-    '<div class="mm-tabs"></div>' +
+    // The tabs: pinned ones on a row of their own (setting pinnedTabs "row"), the others below (refreshTabs).
+    '<div class="mm-tabs-stack"><div class="mm-tabs-pinned"></div><div class="mm-tabs"></div></div>' +
     '<button class="mm-tabs-more" title="Tabs out of view" hidden></button>' +
     '<button class="mm-pane-outline" title="The outline of this pane: show / hide">' +
     '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M2 3.5h9M4.5 7h9M4.5 10.5h9M2 14h7"/></svg></button>' +
@@ -610,7 +611,8 @@ function makePane(index) {
     '<div class="mm-drop" hidden></div><div class="mm-bar" hidden></div></div>';
   const pane = {
     index, el, tabs: [], active: null, cm: null, ignoreScroll: false, ignoreEditorScroll: false,
-    tabsEl: el.querySelector('.mm-tabs'), editorEl: el.querySelector('.mm-editor-pane'),
+    tabsEl: el.querySelector('.mm-tabs'), pinnedEl: el.querySelector('.mm-tabs-pinned'), stackEl: el.querySelector('.mm-tabs-stack'),
+    editorEl: el.querySelector('.mm-editor-pane'),
     previewEl: el.querySelector('.mm-preview-pane'), dropEl: el.querySelector('.mm-drop'), barEl: el.querySelector('.mm-bar'),
     outlineNav: el.querySelector('.mm-outline'), outlineFrame: null, outlineRows: [],
   };
@@ -670,17 +672,19 @@ function makePane(index) {
 
   const tabOf = e => pane.tabs.find(t => t.id === +e.target.closest('.mm-tab')?.dataset.tab);
   // The full name above the tabs follows the mouse over the tabs (showDocName).
-  pane.tabsEl.addEventListener('mouseover', e => {
+  pane.stackEl.addEventListener('mouseover', e => {
     const tab = tabOf(e) ?? null;
     if (tab === hoverTab) return;
     hoverTab = tab;
     showDocName();
   });
-  pane.tabsEl.addEventListener('mouseleave', () => {
+  pane.stackEl.addEventListener('mouseleave', () => {
     hoverTab = null;
     showDocName();
   });
-  pane.tabsEl.addEventListener('click', e => {
+  pane.stackEl.addEventListener('click', e => {
+    // The group of pinned tabs (setting pinnedTabs "grouped"): its list; empty: nothing.
+    if (e.target.closest('.mm-tab-group')) return showPinnedList(pane, e.target.closest('.mm-tab-group'));
     const tab = tabOf(e);
     if (!tab) return;
     if (e.target.closest('.mm-tab-close')) return closeTab(tab);
@@ -693,47 +697,28 @@ function makePane(index) {
     }
     activate(pane, tab).then(() => focusPane(pane));   // the tab's editor or preview, as it had the focus last
   });
-  pane.tabsEl.addEventListener('mousedown', e => { if (e.button === 1) e.preventDefault(); });   // no autoscroll
-  pane.tabsEl.addEventListener('auxclick', e => {
+  pane.stackEl.addEventListener('mousedown', e => { if (e.button === 1) e.preventDefault(); });   // no autoscroll
+  pane.stackEl.addEventListener('auxclick', e => {
     const tab = e.button === 1 && tabOf(e);
     if (tab) closeTab(tab);
   });
   // Right-click a tab: its menu; the empty part of the bar: reopen a closed tab.
-  pane.tabsEl.addEventListener('contextmenu', e => {
-    const tab = tabOf(e);
+  pane.stackEl.addEventListener('contextmenu', e => {
+    // The group of pinned tabs: the tab menu of the pinned document shown (none shown: the bar's menu).
+    const group = e.target.closest('.mm-tab-group'), tab = group ? (pane.active?.pinned ? pane.active : null) : tabOf(e);
     menuPaneIndex = index;
-    if (tab) return showMenu(ui.tabMenu, e, () => {
-      menuTab = tab;
-      paneItems(ui.tabMenu);
-      favouriteItem(ui.tabMenu, tab.doc.path);
-      ui.tabMenu.querySelector('[data-cmd=tabPin]').textContent = tab.pinned ? 'Unpin tab' : 'Pin tab';
-      ui.tabMenu.querySelector('[data-cmd=tabReadOnly]').classList.toggle('mm-on', tab.readOnly || tab.doc.diskReadOnly);
-      ui.tabMenu.querySelector('[data-cmd=tabShowInTree]').hidden = !tab.doc.path;
-      ui.tabMenu.querySelector('.mm-copy-name').disabled = !tab.doc.path;   // a draft never saved: greyed out
-      copyNameFor = () => copyNameItems(tab.doc.path, false);
-      ui.tabMenu.querySelector('[data-cmd=tabRename]').hidden = !tab.doc.path;
-      ui.tabMenu.querySelector('[data-cmd=tabRenameDraft]').hidden = !tab.doc.draft;
-      ui.tabMenu.querySelector('[data-cmd=tabRevert]').hidden = !canRevert(tab.doc);
-      const other = panes[1 - index].active;   // the compare (compare.js)
-      ui.tabMenu.querySelector('[data-cmd=tabCompareOther]').hidden = !twoPanes() || !other || other.doc === tab.doc;
-      ui.tabMenu.querySelector('[data-cmd=tabCompareSaved]').hidden = !tab.doc.path || !changed(tab.doc);
-      leftSideItems(ui.tabMenu, 'tab', tab.doc.path, false);
-      gitCompareItems(ui.tabMenu, 'tab', tab.doc.path, tab.doc.dirty);   // compare.js
-    });
+    if (tab) return showTabMenu(pane, tab, e);
     ui.stripMenu.querySelector('button').disabled = !closedTabs.length;
     ui.stripMenu.querySelector('[data-cmd=stripCloseAll]').disabled = !pane.tabs.length;
-    showMenu(ui.stripMenu, e, () => { menuPane = pane; paneItems(ui.stripMenu); });
+    showMenu(ui.stripMenu, e, () => { menuPane = pane; paneItems(ui.stripMenu); pinnedTabsChecks(ui.stripMenu); });
   });
-  pane.tabsEl.addEventListener('dragstart', e => {
+  pane.stackEl.addEventListener('dragstart', e => {
     const tab = tabOf(e);
     if (!tab) return;
-    draggedTab = tab;
-    e.dataTransfer.setData(TAB_TYPE, JSON.stringify({ win: state.win, tab: tab.id }));
-    if (tab.doc.path) e.dataTransfer.setData('text/plain', tab.doc.path);
-    e.dataTransfer.effectAllowed = 'move';
+    startTabDrag(tab, e);
   });
   // Dropped outside every window: the tab gets a window of its own.
-  pane.tabsEl.addEventListener('dragend', e => {
+  pane.stackEl.addEventListener('dragend', e => {
     hideDrops();
     draggedTab = null;
     const tab = tabOf(e);
@@ -743,14 +728,15 @@ function makePane(index) {
   });
 
   el.addEventListener('dragover', e => {
-    // A tab of this window over a tab bar: it goes between the tabs, at the marker.
-    if (draggedTab && e.target.closest('.mm-tabs')) {
+    // A tab of this window over a tab bar: it goes between the tabs, at the marker (onto the group of pinned tabs:
+    // pinned, the group marked).
+    if (draggedTab && e.target.closest('.mm-tabs-stack')) {
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
       hideDrops();
-      const at = stripIndex(pane, e.clientX, e.clientY);
-      pane.tabsEl.children[at]?.classList.add('mm-insert');
-      pane.tabsEl.classList.toggle('mm-insert-end', at === pane.tabs.length);
+      const at = stripAt(pane, e);
+      if (at.el) at.el.classList.add(at.group ? 'mm-insert-group' : 'mm-insert');
+      else at.row.classList.add('mm-insert-end');
       return;
     }
     // Images over the editor become links there (CodeMirror shows where): no pane marker.
@@ -766,10 +752,11 @@ function makePane(index) {
   el.addEventListener('dragleave', e => { if (!el.contains(e.relatedTarget)) pane.dropEl.hidden = true; });
   el.addEventListener('drop', e => {
     if (e.defaultPrevented) return hideDrops();   // the editor took it (images, see onEditorDrop)
-    if (draggedTab && e.target.closest('.mm-tabs')) {
+    if (draggedTab && e.target.closest('.mm-tabs-stack')) {
       e.preventDefault();
       hideDrops();
-      return moveToPane(draggedTab, pane, stripIndex(pane, e.clientX, e.clientY));
+      const at = stripAt(pane, e), tab = draggedTab;
+      return moveToPane(tab, pane, at.index).then(() => { if (at.pinned !== null) setPinned(tab, at.pinned); });
     }
     const target = dropTarget(pane, e);
     hideDrops();
@@ -1201,7 +1188,7 @@ function onPreviewClick(pane, e) {
     const [path, anchor] = href.split('#');
     const target = resolvePath(tab?.doc.path ? dirOf(tab.doc.path) : state.root || '', safeDecode(path));
     if (codeLang(target) === 'plaintext') return;
-    if (!tab || e.ctrlKey || e.shiftKey || tab.doc.draft) openFile(target, { pane, anchor });
+    if (!tab || e.ctrlKey || e.shiftKey || tab.pinned || tab.doc.draft) openFile(target, { pane, anchor });   // a pinned tab stays
     else navigate(tab, target, anchor);
   }
 }
@@ -1581,9 +1568,17 @@ async function moveToPane(tab, target, index) {
 const otherPane = () => panes[1 - state.activePane];   // with one pane: the second, which then appears
 
 // ---------- Tab strips ----------
+// Pinned tabs (docs/plans/executed/PLAN-pinned-tabs-grouped-or-own-row.md; setting pinnedTabs): "regular" among the
+// others, "grouped" in one tab "Pinned (n)" whose click lists them, or "row" on a row of their own above the others.
+const pinnedTabsMode = () => ['grouped', 'row'].includes(setting('pinnedTabs')) ? setting('pinnedTabs') : 'regular';
+
 function refreshTabs(only) {
+  const mode = pinnedTabsMode();
   for (const pane of only ? [only] : panes) {
-    pane.tabsEl.replaceChildren(...pane.tabs.map(tab => tabElement(pane, tab)));
+    const pinned = pane.tabs.filter(t => t.pinned), rest = mode === 'regular' ? pane.tabs : pane.tabs.filter(t => !t.pinned);
+    pane.el.dataset.pinnedMode = mode;
+    pane.pinnedEl.replaceChildren(...(mode === 'row' ? pinned.map(tab => tabElement(pane, tab)) : []));
+    pane.tabsEl.replaceChildren(...(mode === 'grouped' ? [pinnedGroupElement(pane, pinned)] : []), ...rest.map(tab => tabElement(pane, tab)));
     if (setting('tabBar') === 'menu') pane.tabsEl.querySelector('.mm-tab.mm-on')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     updateTabsMore(pane);
   }
@@ -1613,6 +1608,88 @@ function showTabsMore(pane, button) {
   hideMenus();
   openMenuLevel(hiddenTabs(pane).map(tab => ({ label: docName(tab.doc), plain: true, key: tab.doc.path ? dirOf(tab.doc.path) : '',
     run: () => activate(pane, tab) })), Math.max(4, r.right - 320), r.bottom + 2, true);
+}
+
+// The group of pinned tabs: "Pinned (n)" and an arrow; one of them shown: "Pinned (n)-name", active, in that document's
+// tab colours as its own tab would have them. None: "Pinned (0)", dimmed (still a place to drop a tab on to pin it).
+function pinnedGroupElement(pane, pinned) {
+  const shown = pinned.includes(pane.active) ? pane.active : null, el = document.createElement('div');
+  el.className = 'mm-tab mm-tab-group' + (shown ? ' mm-on' : '') + (pinned.length ? '' : ' mm-off') + (shown && changed(shown.doc) ? ' mm-dirty' : '');
+  el.dataset.group = 'pinned';
+  el.title = (shown ? (shown.doc.path || docName(shown.doc)) + '\n' : '') +
+    (pinned.length ? 'The pinned documents: a click lists them' : 'No pinned documents: drop a tab here to pin it');
+  if (shown) applyTabStyle(el, shown.doc, true);
+  el.insertAdjacentHTML('beforeend', PIN_ICON);
+  const name = document.createElement('span');
+  name.className = 'mm-tab-name';
+  name.textContent = `Pinned (${pinned.length})` + (shown ? '-' + docName(shown.doc) : '');
+  el.append(name, Object.assign(document.createElement('span'), { className: 'mm-tab-arrow' }));
+  return el;
+}
+
+// Its click: the pinned tabs listed under it, each in its own tab colours, the one shown marked as active; a choice shows
+// it, a right-click its tab menu, dragged out onto the bar it is unpinned there (stripAt). Again while open: closed.
+let pinnedListFrom = null, pinnedListSkip = null;
+// The menus close on a press (menus.js), before the click: whether this group's list was open is seen here.
+addEventListener('pointerdown', e => {
+  pinnedListSkip = pinnedListFrom && menuBar.levels.length && e.target instanceof Element && e.target.closest('.mm-tab-group') === pinnedListFrom ? pinnedListFrom : null;
+}, true);
+async function showPinnedList(pane, el) {
+  const pinned = pane.tabs.filter(t => t.pinned);
+  if (!pinned.length) return;
+  if (pinnedListSkip === el) { pinnedListSkip = pinnedListFrom = null; return; }   // its list was open: now closed
+  closeMenus();
+  hideMenus();
+  const r = el.getBoundingClientRect();
+  await openMenuLevel(pinned.map(tab => ({ label: docName(tab.doc), plain: true, key: tab.doc.path ? dirOf(tab.doc.path) : '',
+    cls: 'mm-tab-entry' + (tab === pane.active ? ' mm-on' : '') + (changed(tab.doc) ? ' mm-dirty' : '') + (editable(tab) ? '' : ' mm-ro'),
+    run: () => activate(pane, tab).then(() => focusPane(pane)) })), r.left, r.bottom + 2, true);
+  pinnedListFrom = el;
+  const list = menuBar.levels.at(-1)?.el;
+  if (!list) return;
+  [...list.querySelectorAll('button')].forEach((b, i) => {
+    const tab = pinned[i];
+    applyTabStyle(b, tab.doc, tab === pane.active);
+    b.draggable = true;
+    b.addEventListener('dragstart', e => { startTabDrag(tab, e); list.style.visibility = 'hidden'; });
+    b.addEventListener('dragend', () => { draggedTab = null; hideDrops(); closeMenus(); hideMenus(); });
+    b.addEventListener('contextmenu', e => { e.preventDefault(); e.stopPropagation(); closeMenus(); hideMenus(); menuPaneIndex = pane.index; showTabMenu(pane, tab, e); });
+  });
+}
+
+// A tab dragged (its bar, the list of pinned tabs): within the window to between the tabs, outside it a window of its own.
+function startTabDrag(tab, e) {
+  draggedTab = tab;
+  e.dataTransfer.setData(TAB_TYPE, JSON.stringify({ win: state.win, tab: tab.id }));
+  if (tab.doc.path) e.dataTransfer.setData('text/plain', tab.doc.path);
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+// The tab menus' Pinned tabs choice: the one in use checked.
+const pinnedTabsChecks = menu => { for (const b of menu.querySelectorAll('[data-pinned-tabs]')) b.classList.toggle('mm-on', b.dataset.pinnedTabs === pinnedTabsMode()); };
+
+// A tab's right-click menu (its tab, an entry of the list of pinned tabs).
+function showTabMenu(pane, tab, e) {
+  const index = pane.index;
+  showMenu(ui.tabMenu, e, () => {
+    menuTab = tab;
+    paneItems(ui.tabMenu);
+    pinnedTabsChecks(ui.tabMenu);
+    favouriteItem(ui.tabMenu, tab.doc.path);
+    ui.tabMenu.querySelector('[data-cmd=tabPin]').textContent = tab.pinned ? 'Unpin tab' : 'Pin tab';
+    ui.tabMenu.querySelector('[data-cmd=tabReadOnly]').classList.toggle('mm-on', tab.readOnly || tab.doc.diskReadOnly);
+    ui.tabMenu.querySelector('[data-cmd=tabShowInTree]').hidden = !tab.doc.path;
+    ui.tabMenu.querySelector('.mm-copy-name').disabled = !tab.doc.path;   // a draft never saved: greyed out
+    copyNameFor = () => copyNameItems(tab.doc.path, false);
+    ui.tabMenu.querySelector('[data-cmd=tabRename]').hidden = !tab.doc.path;
+    ui.tabMenu.querySelector('[data-cmd=tabRenameDraft]').hidden = !tab.doc.draft;
+    ui.tabMenu.querySelector('[data-cmd=tabRevert]').hidden = !canRevert(tab.doc);
+    const other = panes[1 - index].active;   // the compare (compare.js)
+    ui.tabMenu.querySelector('[data-cmd=tabCompareOther]').hidden = !twoPanes() || !other || other.doc === tab.doc;
+    ui.tabMenu.querySelector('[data-cmd=tabCompareSaved]').hidden = !tab.doc.path || !changed(tab.doc);
+    leftSideItems(ui.tabMenu, 'tab', tab.doc.path, false);
+    gitCompareItems(ui.tabMenu, 'tab', tab.doc.path, tab.doc.dirty);   // compare.js
+  });
 }
 
 function tabElement(pane, tab) {
@@ -2663,12 +2740,13 @@ async function showInTree(path) {
 
 // A file from the tree (and the search results): shown in the current tab of the pane (when it is already open there:
 // that tab). Ctrl: the other pane, the active pane staying the one it was (so a next Ctrl+click goes to that other pane
-// again, as the dimmed frame shows); Shift: a new tab. A draft or a changed file is never replaced (a new tab instead).
+// again, as the dimmed frame shows); Shift: a new tab. A draft, a changed file or a pinned tab is never replaced (a new
+// tab instead).
 async function openFromTree(path, { ctrlKey, shiftKey }) {
   const was = state.activePane, pane = ctrlKey ? otherPane() : panes[was], tab = pane.active;
   quietSwitch = !!ctrlKey;
   try {
-    const result = shiftKey || !tab || tab.doc.draft || tab.doc.dirty || pane.tabs.some(t => samePath(t.doc.path, path))
+    const result = shiftKey || !tab || tab.pinned || tab.doc.draft || tab.doc.dirty || pane.tabs.some(t => samePath(t.doc.path, path))
       ? await openFile(path, { pane }) : await navigate(tab, path);
     if (ctrlKey) setActivePane(was);
     return result;
@@ -2836,23 +2914,28 @@ function folderDragAt(x, y, drop, shift = false) {
 function hideDrops() {
   for (const pane of panes) {
     pane.dropEl.hidden = true;
-    pane.tabsEl.classList.remove('mm-insert-end');
-    for (const el of pane.tabsEl.querySelectorAll('.mm-insert')) el.classList.remove('mm-insert');
+    for (const row of [pane.tabsEl, pane.pinnedEl]) row.classList.remove('mm-insert-end');
+    for (const el of pane.stackEl.querySelectorAll('.mm-insert, .mm-insert-group')) el.classList.remove('mm-insert', 'mm-insert-group');
   }
 }
 
 // The tab being dragged inside this window, for dropping it between other tabs.
 let draggedTab = null;
 
-// Where a tab dropped at x lands in the pane's tab bar: before the first tab whose middle is right of x.
-// With the tabs on several rows the row counts first: above a tab's row, or on it left of its middle.
-function stripIndex(pane, x, y) {
-  const els = [...pane.tabsEl.children];
-  const at = els.findIndex(el => {
-    const r = el.getBoundingClientRect();
-    return y < r.top || (y <= r.bottom && x < r.left + r.width / 2);
-  });
-  return at < 0 ? els.length : at;
+// Where a tab dropped lands in the pane's tab bar: before the first tab of the row it is over whose middle is right of x
+// (with the tabs on several rows the row counts first: above a tab's row, or on it left of its middle); { index in
+// pane.tabs, el to mark (none: the row's end), row, group: on the group of pinned tabs, pinned: what it becomes (null:
+// as it is) }. Pinned tabs (setting pinnedTabs): on their own row or the group pinned, on the other row unpinned.
+function stripAt(pane, e) {
+  const mode = pinnedTabsMode(), x = e.clientX, y = e.clientY, afterPinned = pane.tabs.findLastIndex(t => t.pinned) + 1;
+  const group = e.target.closest('.mm-tab-group');
+  if (group) return { index: afterPinned, el: group, row: pane.tabsEl, group: true, pinned: true };
+  const inPinned = !!e.target.closest('.mm-tabs-pinned'), row = inPinned ? pane.pinnedEl : pane.tabsEl;
+  const els = [...row.querySelectorAll('.mm-tab[data-tab]')];
+  const el = els.find(t => { const r = t.getBoundingClientRect(); return y < r.top || (y <= r.bottom && x < r.left + r.width / 2); }) ?? null;
+  const tab = el && pane.tabs.find(t => t.id === +el.dataset.tab);
+  const index = tab ? pane.tabs.indexOf(tab) : inPinned ? afterPinned : pane.tabs.length;
+  return { index, el, row, group: false, pinned: mode === 'regular' ? null : mode === 'row' ? inPinned : false };
 }
 
 async function onDrop(data, pane) {
@@ -3194,7 +3277,9 @@ function showSearchResults(groups, truncated, folder) {
     `${total} match${total === 1 ? '' : 'es'} in ${groups.length} file${groups.length === 1 ? '' : 's'}` +
     (truncated ? ' (stopped at 2000)' : '') + (folder ? ` - ${folder}` : '') +
     (lastSearch?.scope === 'selection' ? ' (in the selection)' : '');
+  searchAt = null;   // F3 starts again from the cursor (plan 47)
   drawSearchResults();
+  if (total) f3Take('search');   // a search run: F3 goes through its results
 }
 
 // The results as searchGroups has them now. A replaced match (searchreplace.js) shows its old text crossed out and the
@@ -3232,12 +3317,14 @@ function drawSearchResults() {
   box.append(...parts);
   searchPage.html = box.innerHTML;
   toSearch({ kind: 'results', html: searchPage.html });
+  if (searchAt != null) toSearch({ kind: 'current', hit: searchAt, quiet: true });   // still marked (plan 47)
+  showF3();
 }
 
 // A match clicked in the results: there in the window, selected (and in the preview's view): in the pane's tab of its
 // file, else a new one. `here` (Alt+click): in the active tab instead, as a link is followed (back returns to its line),
-// unless that tab's document has unsaved changes. Ctrl+click and Shift+click as in the Folder pane (openFromTree): the
-// other pane, a new tab.
+// unless that tab is pinned or its document has unsaved changes. Ctrl+click and Shift+click as in the Folder pane
+// (openFromTree): the other pane, a new tab.
 async function goToSearchHit(hit, here, { ctrlKey, shiftKey } = {}) {
   if (hit.page) {   // a PDF's: shown there as the find bar shows a match (pdffind.js)
     const pdf = await openFile(hit.path);
@@ -3246,7 +3333,7 @@ async function goToSearchHit(hit, here, { ctrlKey, shiftKey } = {}) {
   }
   let tab, how = 'found';
   const active = activeTab();
-  if (here && !hit.draft && active?.doc.path && !samePath(active.doc.path, hit.path) && !active.doc.dirty && !active.doc.pdf) {
+  if (here && !hit.draft && active?.doc.path && !active.pinned && !samePath(active.doc.path, hit.path) && !active.doc.dirty && !active.doc.pdf) {
     const cm = paneOf(active).cm, at = cm?.getCursor();
     remember(active, active.doc.path, true);
     const step = navHistory.back.at(-1);
@@ -3273,6 +3360,69 @@ async function goToSearchHit(hit, here, { ctrlKey, shiftKey } = {}) {
     asFound(pane, () => pane.cm.setSelection({ line: hit.line, ch: hit.col }, { line: hit.endLine, ch: hit.endCol }), how);   // places.js
     revealFound(pane.cm, { line: hit.line, ch: 0 }, { line: hit.endLine, ch: hit.endCol });
   }
+}
+
+// ---------- F3: the search used last (docs/plans/executed/PLAN-f3-follows-the-last-search.md) ----------
+// F3 and Shift+F3 go to the find bar ('find') or the Search pane ('search'): the one used last (typed in, run, a match or
+// result chosen, its F3 tag clicked). The Search pane only with results; with the find bar closed and results there,
+// the Search pane. Each shows an F3 tag, lit on the one F3 goes to. A press going to the other one than the press
+// before flashes that one once. searchAt: the result chosen last (clicked or stepped to), an index of searchHits.
+const f3 = { holder: 'find', last: null };
+let searchAt = null;
+const searchSteppable = () => searchHits.some(h => !h.done);
+function f3Target() {
+  if (!searchSteppable()) return 'find';
+  const bar = panes[state.activePane]?.find;
+  return f3.holder === 'search' || !bar || bar.el.hidden ? 'search' : 'find';
+}
+function f3Take(holder) {
+  f3.holder = holder;
+  showF3();
+}
+function showF3() {
+  const to = f3Target();
+  for (const p of panes) p.find?.el.querySelector('.mm-find-f3')?.classList.toggle('mm-on', to === 'find');
+  toSearch({ kind: 'f3', on: to === 'search', shown: searchSteppable() });
+}
+function f3Step(dir) {
+  const to = f3Target();
+  if (f3.last && f3.last !== to) {   // F3 went elsewhere the press before: this one flashes once
+    if (to === 'search') searchPane.send({ kind: 'flash', once: true });
+    else {
+      const el = panes[state.activePane]?.find?.el;
+      el?.classList.remove('mm-find-flash');
+      void el?.offsetWidth;
+      el?.classList.add('mm-find-flash');
+      setTimeout(() => el?.classList.remove('mm-find-flash'), 400);
+    }
+  }
+  f3.last = to;
+  if (to === 'search') return searchStep(dir);
+  return findKey(dir > 0 ? 'next' : 'prev');
+}
+
+// The next or previous result: after the one chosen last; none chosen yet, from the cursor in the active file when that
+// file has results, else the first (the last). Replaced ones are passed. At the end: as the find bar (findWrap).
+async function searchStep(dir) {
+  const live = searchHits.map((h, i) => [h, i]).filter(([h]) => !h.done);
+  if (!live.length) return;
+  let k;
+  if (searchAt != null) k = dir > 0 ? live.findIndex(([, i]) => i > searchAt) : live.findLastIndex(([, i]) => i < searchAt);
+  else {
+    const tab = activeTab(), doc = tab?.doc, at = tab && !doc.pdf ? paneOf(tab).cm?.getCursor() : null;
+    const mine = ([h]) => doc && (h.path ? samePath(h.path, doc.path) : h.draft === doc.draft);
+    const after = ([h]) => h.line > at.line || h.line === at.line && h.col >= at.ch;
+    if (at && live.some(mine)) k = dir > 0 ? live.findIndex(x => mine(x) && after(x)) : live.findLastIndex(x => mine(x) && !after(x));
+    else k = dir > 0 ? 0 : live.length - 1;
+  }
+  if (k < 0) {
+    if ((setting('findWrap') || 'end') === 'end') return toast(dir > 0 ? 'No more results below.' : 'No more results above.', true);
+    k = dir > 0 ? 0 : live.length - 1;
+  }
+  const [hit, i] = live[k];
+  searchAt = i;
+  toSearch({ kind: 'current', hit: i });
+  await goToSearchHit(hit);
 }
 
 // ---------- The Search pane's page (docs/plans/executed/PLAN-docking.md 3.3, 3.5) ----------
@@ -3442,7 +3592,7 @@ function searchPaneState() {
     ['text:with', { kind: 'text', key: 'text:with', field: 'with', value: searchPage.values.with }],
     ['options', { kind: 'options', options: { ...searchOptions } }], ['scope', { kind: 'scope', value: searchPage.scope }],
     ['replace', { kind: 'replace', on: searchPage.replace }], ['status', { kind: 'status', text: searchPage.status }],
-    ['results', { kind: 'results', html: searchPage.html }], ['history', { kind: 'history', lists: findHistory }]]);
+    ['results', { kind: 'results', html: searchPage.html }], ['history', { kind: 'history', lists: findHistory }], ['f3', { kind: 'f3', on: f3Target() === 'search', shown: searchSteppable() }]]);
 }
 
 // From the Search pane's page.
@@ -3454,7 +3604,13 @@ function fromSearch(m) {
       Object.assign(searchOptions, m.options);
       return m.run && runSearch();
     case 'scope': searchPage.scope = m.value; keepLayout('searchScope', m.value); return runSearch();
-    case 'goto': return searchHits[m.hit] && goToSearchHit(searchHits[m.hit], m.here, m);
+    case 'goto':   // a result clicked: F3 goes on from it (plan 47)
+      if (!searchHits[m.hit]) return;
+      searchAt = m.hit;
+      f3Take('search');
+      return goToSearchHit(searchHits[m.hit], m.here, m);
+    case 'f3': return f3Take('search');   // its F3 tag clicked
+    case 'step': f3Take('search'); return searchStep(m.dir);   // its Previous / Next
     case 'replaceFile': return replaceFile(m.group);   // searchreplace.js
     case 'replaceMatch': return searchHits[m.hit] && replaceMatch(searchHits[m.hit]);
     case 'replaceAll': return replaceAllResults();
@@ -5316,7 +5472,14 @@ async function closeTabs(tabs) {
 
 // ---------- Pin and read-only (tab menu) ----------
 function togglePin(tab) {
-  tab.pinned = !tab.pinned;
+  setPinned(tab, !tab.pinned);
+}
+// Pinned or not; pinned tabs stand first in their pane's order, the others after them, each part in its order (a tab
+// pinned goes after the pinned ones, one unpinned before the others unless it was dropped among them: stripAt).
+function setPinned(tab, on) {
+  const pane = paneOf(tab);
+  tab.pinned = on;
+  if (pane) pane.tabs.splice(0, pane.tabs.length, ...pane.tabs.filter(t => t.pinned), ...pane.tabs.filter(t => !t.pinned));
   refreshTabs();
   saveSession();
 }
@@ -5408,6 +5571,7 @@ function applySettings() {
   if (changed('previewWrap')) document.body.toggleAttribute('data-preview-nowrap', now.previewWrap === false);
   if (changed('showBackupFiles') && 'showBackupFiles' in was) refreshTree(false);
   if (changed('tabBar')) applyTabBar(now.tabBar);
+  if (changed('pinnedTabs')) refreshTabs();   // plan 49
   if (['commandBar', 'ribbonGroupNames', 'ribbonLabelWidth', 'altOpens', 'ribbonShow', 'ribbonRow'].some(changed) && typeof renderRibbon === 'function') renderRibbon();
   if (['hexBytesPerLine', 'hexGroup'].some(changed) && typeof hexRedrawAll === 'function') hexRedrawAll();
   if (changed('dockTabBar')) document.body.dataset.dockTabBar = now.dockTabBar;
@@ -5659,6 +5823,7 @@ const commands = {
   tabCompareTo: () => menuTab && compareToLeftSide({ tab: menuTab }, false),
   tabCloseOthers: () => menuTab && closeTabs(paneOf(menuTab).tabs.filter(t => t !== menuTab)),
   tabCloseRight: () => menuTab && closeTabs(paneOf(menuTab).tabs.slice(paneOf(menuTab).tabs.indexOf(menuTab) + 1)),
+  tabCloseLeft: () => menuTab && closeTabs(paneOf(menuTab).tabs.slice(0, paneOf(menuTab).tabs.indexOf(menuTab))),   // pinned ones stay
   tabCloseAll: () => menuTab && closeTabs([...paneOf(menuTab).tabs]),
   tabPin: () => menuTab && togglePin(menuTab),
   tabReadOnly: () => menuTab && setReadOnly(menuTab, !menuTab.readOnly),
@@ -5719,6 +5884,7 @@ document.addEventListener('click', e => {
   ui.treeMenu.hidden = ui.tabMenu.hidden = ui.stripMenu.hidden = ui.dividerMenu.hidden = true;
   if (!button?.classList.contains('mm-pane-button')) ui.paneMenu.hidden = true;   // that one opens it
   if (button?.dataset.cmd) commands[button.dataset.cmd]();
+  else if (button?.dataset.pinnedTabs) setSetting('pinnedTabs', button.dataset.pinnedTabs);   // the tab menus' Pinned tabs choice
   else if (button?.dataset.action && !button.closest('.mm-format, .mm-dropdown')) runAction(button.dataset.action, [], { from: 'menu' });
 });
 

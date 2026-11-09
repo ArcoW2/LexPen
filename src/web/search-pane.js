@@ -23,13 +23,27 @@ paneHandlers.focus = m => {
   if (m.select) el.select();
 };
 paneHandlers.options = m => { Object.assign(options, m.options); showOptions(); };
-paneHandlers.scope = m => { scopeEl.value = m.value; };
+// Known only filters the files in a folder: shown with that scope only.
+const showKnown = () => { $('.mm-search-bar [data-opt=known]').hidden = scopeEl.value !== 'folder'; };
+paneHandlers.scope = m => { scopeEl.value = m.value; showKnown(); };
 paneHandlers.replace = m => {
   row.hidden = !m.on;
   toggleEl.classList.toggle('mm-on', m.on);
   document.body.toggleAttribute('data-search-replace', m.on);
 };
 paneHandlers.status = m => { statusEl.textContent = m.text; };
+// F3 (the window's f3Take; plan 47): the tag lit while F3 comes here; Previous / Next step through the results (and take
+// F3); the result gone to marked and in view (quiet: the list drawn again, the mark back).
+const f3El = $('.mm-search-f3');
+paneHandlers.f3 = m => { f3El.classList.toggle('mm-on', !!m.on); };
+f3El.addEventListener('click', () => toWindow({ kind: 'f3' }));
+for (const b of document.querySelectorAll('.mm-search-step')) b.addEventListener('click', () => toWindow({ kind: 'step', dir: +b.dataset.step }));
+paneHandlers.current = m => {
+  for (const on of results.querySelectorAll('.mm-result.mm-on')) on.classList.remove('mm-on');
+  const hit = results.querySelector(`.mm-result[data-hit="${m.hit}"]`);
+  hit?.classList.add('mm-on');
+  if (!m.quiet) { hit?.closest('.mm-result-list')?.previousElementSibling?.classList.remove('mm-closed'); hit?.scrollIntoView({ block: 'nearest' }); }
+};
 paneHandlers.results = m => { results.innerHTML = m.html; };   // made by the window's page, its texts escaped
 paneHandlers.history = m => Object.assign(findHistory, m.lists);
 
@@ -51,7 +65,7 @@ for (const b of document.querySelectorAll('.mm-search-bar [data-opt]'))
     showOptions();
     toWindow({ kind: 'options', options: { ...options }, run: true });
   });
-scopeEl.addEventListener('change', () => toWindow({ kind: 'scope', value: scopeEl.value }));
+scopeEl.addEventListener('change', () => { showKnown(); toWindow({ kind: 'scope', value: scopeEl.value }); });
 toggleEl.addEventListener('click', () => toWindow({ kind: 'toggleReplace' }));
 $('.mm-search-all').addEventListener('click', () => toWindow({ kind: 'replaceAll' }));
 $('.mm-search-preview').addEventListener('click', () => toWindow({ kind: 'preview' }));

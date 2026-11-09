@@ -144,6 +144,9 @@
   <button data-cmd="tabFavourite" class="mm-fav-item">Add to favourites</button>
   <hr>
   <button data-cmd="tabPin" data-key-of="pin.toggle">Pin tab</button>
+  <button class="mm-check" data-pinned-tabs="regular">Pinned tabs: among the others</button>
+  <button class="mm-check" data-pinned-tabs="grouped">Pinned tabs: in one tab</button>
+  <button class="mm-check" data-pinned-tabs="row">Pinned tabs: a row of their own</button>
   <button data-cmd="tabReadOnly" data-key-of="readOnly.toggle" class="mm-check">Read-only</button>
   <button data-cmd="tabRevert" data-key-of="revertToSaved">Revert to saved</button>
   <hr>
@@ -156,8 +159,10 @@
   <button data-cmd="tabCompareTo" hidden>Compare to</button>
   <hr>
   <button data-cmd="tabClose" data-key-of="closeTab">Close</button>
-  <button data-cmd="tabCloseOthers">Close other tabs</button>
-  <button data-cmd="tabCloseRight">Close tabs to the right</button>
+  <!-- Several tabs at once: pinned ones stay (closeTabs). -->
+  <button data-cmd="tabCloseLeft">Close all tabs before this tab</button>
+  <button data-cmd="tabCloseRight">Close all tabs after this tab</button>
+  <button data-cmd="tabCloseOthers">Close all tabs except this tab</button>
   <button data-cmd="tabCloseAll" data-key-of="closeAllTabs">Close all tabs</button>
   <hr class="mm-pane-sep">
   <button data-cmd="paneHide" class="mm-pane-item">Hide this pane</button>
@@ -170,6 +175,10 @@
 <div class="mm-menu mm-context mm-strip-menu" hidden>
   <button data-cmd="stripReopen" data-key-of="reopenTab">Reopen closed tab</button>
   <button data-cmd="stripCloseAll" data-key-of="closeAllTabs">Close all tabs</button>
+  <hr>
+  <button class="mm-check" data-pinned-tabs="regular">Pinned tabs: among the others</button>
+  <button class="mm-check" data-pinned-tabs="grouped">Pinned tabs: in one tab</button>
+  <button class="mm-check" data-pinned-tabs="row">Pinned tabs: a row of their own</button>
   <hr class="mm-pane-sep">
   <button data-cmd="paneHide" class="mm-pane-item">Hide this pane</button>
   <button data-cmd="paneHideOther" class="mm-pane-item">Hide other pane</button>

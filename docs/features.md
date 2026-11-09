@@ -198,13 +198,20 @@ every action with its key.
   finds and replaces (several selections, a column block per line), marked while the bar is open; the count says "in
   the selection"; F3 keeps to it until the next Ctrl+F or Ctrl+R. In the replacement `^p` is a line break (with the
   file's line end), `^t` a tab, `^^` a caret; with a regular expression `\n`, `\t`, `$1`, `$&`. The `?` button lists
-  every code, the same list as F1. A click on the count ("3 of 13", an icon after it): the same search, with its
-  switches, in the Search pane on this file, every match in a list there. Also on a PDF:
-  its matches per page ("p. 12"), a click shows the match there (read-only: no Replace).
+  every code, the same list as F1. F3 goes on from the cursor: in the editor, in the preview (its cursor,
+  placed by a click or the keys) and in a PDF (where it was clicked: a caret there
+  until F3 shows the next match), else from the match before.
+  A click on the count ("3 of 13", an icon after it): the same search, with its switches, in the Search pane on this
+  file, every match in a list there. Also on a PDF:
+  its matches per page ("p. 12"), a click shows the match there (read-only: no Replace). F3 and
+  Shift+F3 go to the find bar or the Search pane, whichever was used last: an "F3" tag in each, lit where F3 goes (a
+  click on it moves F3 there); the Search pane's F3 steps through its results, opening their files. Switching, the one
+  taking over flashes once.
 - **Search** (Ctrl+Shift+F): in the current file, the open files (unsaved edits included) or the files in the
   folder (the open folder, otherwise the folder of the current file), with match case, whole word, regular
-  expressions and Known (known file types only: a language LexPen knows, not .bak copies and the like; Find
-  references turns it on). Codes: `^p` line break (CR, LF or CRLF), `^t` tab, `^?` any character, `^#` digit, `^$` letter,
+  expressions and, for the files in the folder, Known (known file types only: a language LexPen knows, not .bak
+  copies and the like; Find references turns it on). Previous, Next and an F3 tag as in the find bar.
+  Codes: `^p` line break (CR, LF or CRLF), `^t` tab, `^?` any character, `^#` digit, `^$` letter,
   `^w` spaces or tabs, `^^` the `^` itself. Click a result to go there (in its file's tab, else a new one; Alt+click:
   in the active tab, unless it has unsaved changes, and Back returns; Ctrl+click and Shift+click as in the Folder
   pane: the other pane, a new tab). The Search pane can float in a window of its
@@ -456,7 +463,8 @@ every action with its key.
   threshold, 50 %) is turned round with its colours kept, its paper the preview's background; a page that suits it
   stays as it is. The bar above it (where other files have theirs): follow the theme / the original (kept per file),
   the threshold, fit the width / the page, zoom (also Ctrl+mouse wheel), the page and previous / next; the right-click
-  has the same. The mouse wheel and the keys scroll it; it keeps its place when its tab is shown again. Its bookmarks
+  has the same. The mouse wheel and the keys scroll it (Ctrl+Home / Ctrl+End its start / end; Home / End and Ctrl+Left /
+  Ctrl+Right its left / right edge, zoomed in); it keeps its place when its tab is shown again. Its bookmarks
   (chapters and their parts) are in the Outline pane. Highlights with notes on its text (Ctrl+F8, Edit > Highlights,
   the right-click), listed in the Highlights pane by page; kept in LexPen, next to the file (`name.pdf.lph`) or inside
   the PDF as its highlight annotations (other PDF readers show them; moving them in or out asks first, and Save
@@ -687,14 +695,20 @@ every action with its key.
   in the other pane, Ctrl+Shift+click opens a new tab there.
   The same file can be open in both panes, both editing it (a split): View > **Split into the other pane**
   (Ctrl+Alt+S) opens it there at the same place, with its own cursor and scroll position. Drag a
-  tab along the tab bar to reorder it. Right-click a tab for Close, Close other tabs, Close tabs to the right;
+  tab along the tab bar to reorder it. Right-click a tab for Close, Close all tabs before this tab, after this tab,
+  except this tab;
   View > **Tab bar**: one row that scrolls, one row with a menu for the tabs out of view, or several rows.
   The arrows button at the left of each tab bar shows the pane's file in the folder pane (opening its folder
   when it lies outside the open one), as Visual Studio's Sync with active document.
-- **Pinned tabs** (right-click a tab > Pin tab): a pin before the name. Closing it alone asks first; Close other
-  tabs, Close tabs to the right, Close all tabs (tab menu, the tab bar's own menu and File menu; one pane) and closing a pane leave it
-  open. Closing the second pane, or a window while another window of its project stays open, moves pinned tabs to
-  the main pane / that window (a setting, on by default). Kept in the session.
+- **Pinned tabs** (right-click a tab > Pin tab): a pin before the name, first in the tab bar. Closing it alone asks
+  first; closing several (before, after or except a tab, Close all tabs: the tab menu, the tab bar's own menu and File
+  menu; one pane) and closing a pane leave it open. Shown (Settings > Tabs > Pinned tabs, also in the right-click):
+  among the others; in one tab "Pinned (n)" whose click lists them in their tab colours (one of them shown: "Pinned
+  (n)-name" in its colours; its right-click that document's tab menu; a tab dropped on it pinned, one dragged out of the
+  list unpinned); or on a row of their own above the others (a tab dropped there pinned, on the other row unpinned).
+  Closing the second pane, or a window while another window of its project stays open, moves pinned tabs to
+  the main pane / that window (a setting, on by default). A pinned tab never takes another file: a file from the Folder
+  pane or a search result, or a link followed, opens in a new tab beside it. Kept in the session.
 - **Read-only tabs** (right-click a tab > Read-only): the tab cannot change the file; switching it off is
   refused while another tab or window edits the file. A file with the Windows read-only attribute opens
   read-only. A padlock before the name shows it (underlined: set by you); the tooltip says why.
