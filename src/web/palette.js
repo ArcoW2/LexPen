@@ -179,6 +179,13 @@ async function fromCommandsPane(m) {
   if (m.kind === 'refresh') return commandsPane.send(renderPalette());   // its window got the focus: this document's commands
   if (m.kind === 'close') return closePalette();
   if (m.kind === 'ribbonChange') return runAction('ribbon.change');   // the button: change mode on or off (ribbon.js)
+  // Docked: a row dragged to the ribbon with the pointer (ribbon.js, rbCallDragStart); its point in F1's frame.
+  if (m.kind === 'ribbonDragStart') return rbCallDragStart(m.call);
+  if (m.kind === 'ribbonDragMove' || m.kind === 'ribbonDragEnd') {
+    if (m.kind === 'ribbonDragEnd' && !m.drop) return rbCallDragEnd();
+    const r = commandsPane.frame.getBoundingClientRect();
+    return rbCallDragAt(r.left + m.x, r.top + m.y, m.kind === 'ribbonDragEnd');
+  }
   if (m.kind !== 'run') return;
   const row = palette.rows[m.row];
   if (!row) return;

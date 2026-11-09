@@ -193,8 +193,8 @@ body[data-orient=h] .mm-orient::before { content: "Above each other"; }
 }
 .mm-pal-search:focus { border-color: var(--accent); }
 /* The search and the section list on one row; the list with a mark per section on its scrollbar. */
-.mm-pal-top { flex: none; display: flex; gap: 8px; }
-.mm-pal-top .mm-pal-search { flex: 1; min-width: 0; }
+.mm-pal-top { flex: none; display: flex; flex-wrap: wrap; gap: 6px 8px; }   /* narrow (docked at a side): the list and the button go under the search */
+.mm-pal-top .mm-pal-search { flex: 1 1 14em; min-width: 0; }
 .mm-pal-jump { flex: none; max-width: 40%; font: inherit; font-size: calc(13px * var(--ui-scale)); color: var(--fg); background: var(--bg);
   border: 1px solid var(--border); border-radius: 5px; padding: 4px 6px; }
 .mm-pal-body { flex: 1; min-height: 0; position: relative; margin-top: 8px; }

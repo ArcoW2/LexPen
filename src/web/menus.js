@@ -82,7 +82,7 @@ const MENUS = [
   // Filled when it opens: the bar items of the file's language and of the cursor line's, then Convert.
   ['Fo&rmat', () => formatMenuItems()],
   ['&View', [
-    ['&Editor', 'editor.toggle'], ['&Preview', 'preview.toggle'], ['Editor &and preview', 'split.toggle'], ['&Hex', 'hex.toggle'], '-',
+    ['&Editor', 'editor.toggle'], ['&Preview', 'preview.toggle'], ['Editor &and preview', 'split.toggle'], ['&Hex mode', 'hex.toggle'], '-',
     { label: 'Preview pla&ce', sub: [['At the &right', 'preview.right'], ['At the &left', 'preview.left'], ['&Above', 'preview.top'], ['&Below', 'preview.bottom']] }, '-',
     ['&Wrap long lines', 'wrap.toggle'], ['R&uler', 'ruler.toggle'], ['For&matting bar', 'formatBar.toggle'], ['&Ribbon', 'ribbon.toggle'], '-',
     { label: '&Gutter', sub: GUTTER_ITEMS },

@@ -455,9 +455,48 @@ function rbDragOver(e) {
   e.preventDefault();
   e.dataTransfer.dropEffect = 'move';
   rbMarkDrop(target);
-  // Over a tab name: that tab shows, so the button can go there.
-  if (target.kind === 'tab' && rbTabIndex() !== target.path[0] && !rbTabTimer)
+  rbOverTab(target);
+}
+// Over a tab name: that tab shows, so the button can go there.
+function rbOverTab(target) {
+  if (target?.kind === 'tab' && rbTabIndex() !== target.path[0] && !rbTabTimer)
     rbTabTimer = setTimeout(() => { rbTabTimer = 0; rbShowTab(target.path[0]); }, 400);
+}
+
+// A row of F1 docked (a frame of another site: the browser lets no drag from it drop here) comes with the pointer, as
+// the Folder pane's file (app.js, startFolderDrag): the moves over F1's frame come from it (palette.js), those over the
+// rest of the window are seen here. Let go on the ribbon: placed as a drop; elsewhere or Esc: nothing.
+let rbCallDrag = null;
+function rbCallDragStart(call) {
+  rbCallDragEnd();
+  if (!rb.changing) return;
+  const move = e => { if (e.buttons & 1) rbCallDragAt(e.clientX, e.clientY); else rbCallDragEnd(); };
+  const up = e => rbCallDragAt(e.clientX, e.clientY, true);
+  const key = e => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); rbCallDragEnd(); } };
+  rbCallDrag = { call, off: () => { removeEventListener('pointermove', move, true); removeEventListener('pointerup', up, true); removeEventListener('keydown', key, true); } };
+  addEventListener('pointermove', move, true);
+  addEventListener('pointerup', up, true);
+  addEventListener('keydown', key, true);
+  document.body.style.cursor = 'copy';
+}
+function rbCallDragEnd() {
+  if (!rbCallDrag) return;
+  rbCallDrag.off();
+  rbCallDrag = null;
+  document.body.style.cursor = '';
+  clearTimeout(rbTabTimer);
+  rbTabTimer = 0;
+  rbMarkDrop(null);
+}
+// The pointer at x, y in this window; `drop`: let go there.
+function rbCallDragAt(x, y, drop = false) {
+  if (!rbCallDrag) return;
+  const el = document.elementFromPoint(x, y);
+  const target = rb.changing && el && [rb.els.el, rb.els.top].some(box => box.contains(el)) ? rbDropTarget({ target: el, clientX: x, clientY: y }) : null;
+  if (!drop) { rbMarkDrop(target); return rbOverTab(target); }
+  const call = rbCallDrag.call;
+  rbCallDragEnd();
+  if (target) rbPlace({ kind: 'call', call }, target);
 }
 
 function rbDragged(e) {
@@ -499,6 +538,11 @@ function rbDrop(e) {
   if (!what || !target) return;
   e.preventDefault();
   if (rbDragging) rbDragging.dropped = true;
+  rbPlace(what, target);
+}
+
+// What is dragged put where it is dropped.
+function rbPlace(what, target) {
   if (target.kind === 'newGroup') {
     const taken = what.kind === 'group' || what.kind === 'tab' ? null : rbTake(structuredClone(rb.model), what);
     if (!taken) return;

@@ -509,11 +509,11 @@ const hexTab = () => { const t = activeTab(); return t?.hex && t.doc.hexData ? t
 const hexEditable = () => { const t = hexTab(); return !!t && editable(t); };
 const hexHasSel = () => { const t = hexTab(); return !!t && hexState(t).anchor !== null && editable(t); };
 
-appAction('hex.toggle', { title: 'Hex', hint: 'The tab as its bytes: offset, hex and characters, edited in either part (again: back to the text)',
+appAction('hex.toggle', { title: 'Hex mode', hint: 'The tab as its bytes: offset, hex and characters, edited in either part (again: back to the text)',
   group: 'view', checked: () => !!activeTab()?.hex, enabled: () => !!activeTab() && !activeTab().doc.binary,
   run: () => { const t = activeTab(); if (t) hexSet(t, !t.hex); } });
 appAction('editMode.set', { title: 'Work on the tab as', hint: 'Text, Column (column mode) or Hex (its bytes): one at a time', group: 'edit',
-  variants: [['text'], ['column'], ['hex']], variantTitles: { text: 'Text', column: 'Column', hex: 'Hex' },
+  variants: [['text'], ['column'], ['hex']], variantTitles: { text: 'Text mode', column: 'Column mode', hex: 'Hex mode' },
   checked: ([m]) => !!activeTab() && hexEditMode() === m,
   enabled: ([m]) => !!activeTab() && (m === 'hex' || !activeTab().doc.binary),
   run: async ([m]) => {
