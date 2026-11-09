@@ -32,8 +32,9 @@ their page and the start of their text.
   storing n again moves it; Clear bookmark n, Clear all.
 - **Kept**: in bookmarks.json (BookmarkStore.cs), under the PDF's path, the list items { n, page, offset, text }
   beside a text file's { n, line, ch, text }; loaded when the PDF opens, written when one changes, renamed with the
-  file. A PDF is read-only to LexPen, so its text does not move; a PDF changed on disk keeps them where they were
-  (open question 2).
+  file. A PDF is read-only to LexPen, so its text does not move. A PDF changed on disk (another version of the same
+  file): each bookmark looked up again by its text, on its page and the pages around it, as a text file's are by
+  their line (BookmarkStore Resolve); not found, it stays at its page and offset.
 
 ### 3.2 Shown
 
@@ -62,10 +63,12 @@ their page and the start of their text.
 
 - Unit (C#, BookmarkStore): a PDF's list { n, page, offset, text } written, read back and renamed with the file.
 - In the test copy, with a long PDF: a click and Ctrl+K, 1 (bookmark 1 at the caret); Toggle bookmark with no click
-  (at the top of the view); the icons in the gutter at the right height, zoomed in and scrolled sideways still in view; a
-  click in the gutter beside text (a bookmark there) and on an icon (gone); Go to bookmark 1 from far away; next / previous through them in order; Clear; the Bookmarks pane and
-  the ribbon's drop-down list them with their page; a restart and the PDF opened again: the bookmarks back; the scroll
-  strip's marks.
+  (at the top of the view); the icons in the gutter at the right height, zoomed in and scrolled sideways still in
+  view; a click in the gutter beside text (a bookmark there) and on an icon (gone); Go to bookmark 1 from far away;
+  next / previous through them in order; Clear; the Bookmarks pane and the ribbon's drop-down list them with their
+  page; a restart and the PDF opened again: the bookmarks back; the scroll strip's marks.
+- Unit (C#): a PDF's bookmarks looked up by their text in another version of the file (moved a page down, found;
+  their text gone, kept where they were).
 
 ### 3.5 Alternatives
 
@@ -76,7 +79,4 @@ their page and the start of their text.
 
 ## 4. Open questions
 
-1. **A PDF changed on disk** (another version of the same file): its bookmarks stay at their page and offset (they
-   may then point at other text), or are they looked up again by their text, as a text file's are (BookmarkStore
-   Resolve)? Suggestion: looked up by their text on the same page and the pages around it; not found: kept where they
-   were.
+None.
