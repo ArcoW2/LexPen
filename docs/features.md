@@ -467,9 +467,11 @@ every action with its key.
   offset, the bytes in hex and the same bytes as characters (one byte, one character: Windows-1252; a control or
   undefined byte a dimmed dot). Settings, Editor view > Hex: the bytes on a line (16) and an extra space after every
   so many (8; 0: none). A file that is neither text nor a kind LexPen knows opens in Hex only (up to 64 MB; "Bytes" in
-  the bottom bar) and is saved as its bytes. A text file in Hex shows its text as the next save writes it (encoding,
-  BOM, line ends, unsaved changes included); a change goes back into the text as one undo step, a byte its encoding
-  cannot read showing as 0xAB there and saved back as it was. Editing, in either part (Tab between them): a hex digit
+  the bottom bar) and is saved as its bytes; also in a tab that had another file, which then goes back to Text for a
+  text file, unless Hex was chosen for that tab (the ribbon: Hex not chosen has a dotted line). A text file in Hex
+  shows its text as the next save writes it (encoding, BOM, line ends, unsaved changes included); a change goes back
+  into the text as one undo step, a byte its encoding cannot read showing as 0xAB there and saved back as it was.
+  Editing, in either part (Tab between them): a hex digit
   (either case) or a character overwrites; the cursor's byte is coloured in its part, underlined in the other. Delete
   and Backspace never remove a byte: in the hex part they remove one digit (the other stays where it is, the gone one
   counting as 0 when the cursor leaves: 3F becomes 0F or 30), in the text part they set a byte to 00. Typing never

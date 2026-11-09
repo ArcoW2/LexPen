@@ -35,6 +35,7 @@ function actionGroup(name, def) {
 // { title, hint, group, run(params, ctx), editor: works on the editor, move: Shift selects,
 //   variants: the parameter lists F1 offers: [[1], [2]], variantTitles: { "1": "..." },
 //   checked(params): a tick in the menu, enabled(params): greyed out when false,
+//   auto(params): on by itself, not chosen (the ribbon: a dotted line instead of lit; Hex for a binary file),
 //   dropDown(params): its short form, the items of a list of what its window shows (a ribbon button or corner with
 //   "open": "dropDown" opens it under itself; ribbon.js, docs/plans/executed/PLAN-ribbon-drop-down-lists.md),
 //   dropDownOnly: the action is that list (Recent, Favourites): on the ribbon always a drop-down }

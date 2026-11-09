@@ -1786,7 +1786,7 @@ function updateChrome() {
 async function setMode(mode) {
   const pane = panes[state.activePane], tab = pane.active;
   if (!tab || tab.doc.pdf || tab.doc.binary) return;   // a PDF is only its preview, a file of bytes only Hex
-  tab.hex = false;   // a mode chosen: out of Hex (hexview.js)
+  tab.hex = tab.hexChosen = false;   // a mode chosen: out of Hex (hexview.js)
   if (tab.mode === 'preview') tab.previewTop = pane.previewEl.scrollTop;
   // The preview opens: its cursor starts at the top of the view again (previewcursor.js).
   if (tab.mode === 'edit' && mode !== 'edit' && typeof resetPreviewCursor === 'function') resetPreviewCursor(tab);
@@ -2042,6 +2042,8 @@ async function navigate(tab, path, anchor, restoring) {
   tab.stale = true;
   tab.previewTop = 0;
   tab.mode = openMode(doc);
+  // Hex: a file LexPen does not know always; another file only when Hex was chosen for this tab (hexview.js hexSet).
+  tab.hex = !!doc.binary || !!tab.hexChosen;
   if (last) dropDoc(old);
   syncWatchFiles();
   noteOpened('files', path);
@@ -4484,7 +4486,7 @@ function sessionData() {
       tabs: kept(pane).map(tab => ({
         path: tab.doc.path, draft: tab.doc.draft, mode: c.modes?.get(tab) ?? tab.mode,
         top: pane.active === tab && !pane.el.hidden ? pane.previewEl.scrollTop : tab.previewTop,
-        ...(tab.pinned && { pinned: true }), ...(tab.readOnly && { readOnly: true }), ...(tab.hex && { hex: true }),
+        ...(tab.pinned && { pinned: true }), ...(tab.readOnly && { readOnly: true }), ...(tab.hex && { hex: true }), ...(tab.hexChosen && { hexChosen: true }),
         ...(tab.doc.draft && tab.doc.languageChosen && { language: languageOf(tab.doc) }),   // a file's choice: the host keeps it
         ...tabCursor(tab),
       })),
@@ -4530,6 +4532,7 @@ async function restore(session, drafts) {
       tab.pinned = !!t.pinned;
       tab.readOnly = !!t.readOnly;
       tab.hex ||= !!t.hex;
+      tab.hexChosen = !!t.hexChosen;
       if (Array.isArray(t.cursor)) tab.restoreCursor = { line: t.cursor[0] | 0, ch: t.cursor[1] | 0, top: t.editorTop | 0 };
       if (doc.draft && t.language && packs[t.language]) {
         doc.language = t.language === 'markdown' ? undefined : t.language;

@@ -1602,6 +1602,7 @@ body.mm-rb-menus .mm-rb-tabs-top { display: none; }
 .mm-rb-small:has([data-arrow]) { --rb-main-w: calc(100% - 18px); }
 .mm-rb-large:has([data-arrow]) { --rb-main-h: calc(100% - (var(--rb-ar, 16) + 1) * 1px); }
 .mm-rb-btn.mm-on { background: var(--active); color: var(--accent); }
+.mm-rb-btn.mm-auto { outline: 1px dashed var(--accent); outline-offset: -1px; }   /* on by itself, not chosen (Hex for a binary file) */
 .mm-rb-btn.mm-off { opacity: .45; }
 .mm-rb-btn.mm-off:hover { background: none; }
 /* 22 x 18 to hit, into the group's padding and down to its edge; the mark a small corner at the outside */

@@ -153,7 +153,10 @@ function rbRefresh() {
   const body = rb.els.bodies.querySelector(`[data-body="${rbTabIndex()}"]`);
   for (const b of body?.querySelectorAll('.mm-rb-btn[data-call]') ?? []) {
     const [name, ...params] = JSON.parse(b.dataset.call), def = appActions.get(name);
-    b.classList.toggle('mm-on', !!def?.checked?.(params));
+    // On by itself (auto: Hex for a binary file), not chosen: a dotted line, not lit.
+    const auto = !!def?.auto?.(params);
+    b.classList.toggle('mm-on', !auto && !!def?.checked?.(params));
+    b.classList.toggle('mm-auto', auto);
     b.classList.toggle('mm-off', !rb.changing && !actionAvailable(name, params) && !rbListOnly({ action: name, params }));
     const badge = b.querySelector('.mm-rb-badge');
     const n = name === 'paste' && !params.length ? clips.active : 0;
