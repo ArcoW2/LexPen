@@ -326,8 +326,8 @@ differences:
 - **A label's own line break** (added after the build): renaming a button (its right-click, Customize), Shift+Enter
   makes a line break (the label in ribbon.json with "\n"); a large button shows it, a small one has a space there.
 - **The File tab** (added after the build, laid out by hand): File (New file and Open file large, Recent files with
-  Favourite files under it, Save file large with Save as under it), Print, Folder (Open folder, Recent folders,
-  Favourite folders) and Document tabs (Close tab, Reopen closed tab, Recently closed). The lists are the actions `recent.list` (files, folders, closed) and `favourites.list` (files, folders):
+  Favourite files under it, Save file large with Save as under it), Print, Folder (Open folder large, Recent folders
+  with Favourite folders under it) and Document tabs (Close tab, Reopen closed tab, Recently closed). The lists are the actions `recent.list` (files, folders, closed) and `favourites.list` (files, folders):
   an action that is its list (`dropDownOnly`) is always a drop-down on the ribbon, and from F1 or a key opens it at
   the cursor.
 - **A list action on the ribbon** (added after the build; `RB_LIST_ACTIONS`): Clipboards (`clipboardList`) as a button

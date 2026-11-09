@@ -16,8 +16,8 @@
       { "name": "Print", "items": [
         { "action": "print", "size": "large" } ] },
       { "name": "Folder", "items": [
-        { "action": "openFolder" }, { "action": "recent.list", "params": ["folders"], "stack": true },
-        { "action": "favourites.list", "params": ["folders"], "stack": true } ] },
+        { "action": "openFolder", "size": "large", "label": "Open\nfolder" },
+        { "action": "recent.list", "params": ["folders"], "label": "Recent" }, { "action": "favourites.list", "params": ["folders"], "label": "Favourites", "stack": true } ] },
       { "name": "Document tabs", "items": [
         { "action": "closeTab" }, { "action": "reopenTab", "stack": true }, { "action": "recent.list", "params": ["closed"], "stack": true } ] } ] },
 
