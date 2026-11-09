@@ -18,7 +18,9 @@ function pdfGotTexts(tab, texts) {
   tab.pdf.texts = texts;
   tab.pdf.findCache = null;
   const pane = paneOf(tab);
-  if (pane?.active === tab && pane.find && !pane.find.el.hidden) refresh(pane, false);
+  // The search typed meanwhile: now counted, and to its first match after the cursor (a click, else the page shown), as
+  // typing does once the texts are there.
+  if (pane?.active === tab && pane.find && !pane.find.el.hidden) refresh(pane, true);
 }
 
 function pdfMatches(tab, regex) {
