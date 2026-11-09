@@ -2,7 +2,8 @@
 // the ribbon (its right-click: Change the ribbon); Reset goes back to this one.
 // A tab: { name, groups }. A group: { name, corners: { left, right }, items }; a corner: an action, or [action, params].
 // An item: "divider", or { action, params, size: "large" or "small" (the default), stack: true (under the small one
-// before it, at most three in a column), label (shorter than the action's title), tip (its key tip letter) }.
+// before it, at most three in a column; or one small and one large in a column, either on top), label (shorter
+// than the action's title), tip (its key tip letter) }.
 {
   "tabs": [
     { "name": "File", "groups": [
@@ -21,11 +22,11 @@
         { "action": "joinLines", "label": "Join", "stack": true } ] },
       { "name": "Clipboard", "corners": { "right": "clipboards.pane" }, "items": [
         { "action": "paste", "size": "large" },
-        { "action": "pasteImage" }, { "action": "cut", "stack": true }, { "action": "copy", "stack": true } ] },
+        { "action": "pasteImage", "label": "Image", "stack": true }, { "action": "cut", "stack": true }, { "action": "copy", "stack": true } ] },
       { "name": "Find", "items": [
-        { "action": "find", "size": "large" },
-        { "action": "findPrevious" }, { "action": "findNext", "stack": true }, { "action": "replace", "stack": true },
-        { "action": "searchReplace" }, { "action": "searchInFiles", "stack": true }, { "action": "findReferences", "stack": true } ] },
+        { "action": "find", "size": "large" }, { "action": "replace", "stack": true },
+        { "action": "findPrevious" }, { "action": "findNext", "stack": true },
+        { "action": "searchInFiles" }, { "action": "searchReplace", "stack": true }, { "action": "findReferences", "stack": true } ] },
       { "name": "Occurrences", "corners": { "right": "occurrences.field" }, "items": [
         { "action": "occurrences.show", "label": "Show" }, { "action": "occurrences.clear", "label": "Clear", "stack": true } ] },
       { "name": "Go to", "items": [
@@ -84,11 +85,11 @@
     { "name": "Tools", "groups": [
       { "name": "Macros", "corners": { "right": "macro.manage" }, "items": [
         { "action": "macro.record", "size": "large" },
-        { "action": "macro.play", "label": "Play" }, { "action": "macro.playTimes", "label": "Play X times...", "stack": true } ] },
+        { "action": "macro.play", "size": "large", "label": "Play" }, { "action": "macro.playTimes", "label": "Play X times...", "stack": true } ] },
       { "name": "Compare", "items": [
         { "action": "compareFiles", "size": "large" },
-        { "action": "compareFolders" }, { "action": "compareClose", "stack": true },
-        { "action": "compareNext" }, { "action": "comparePrevious", "stack": true } ] },
+        { "action": "compareFolders", "stack": true },
+        { "action": "comparePrevious" }, { "action": "compareNext", "stack": true }, { "action": "compareClose", "stack": true } ] },
       { "name": "Settings", "items": [
         { "action": "settings", "size": "large" },
         { "action": "themeColours" }, { "action": "commands", "label": "Keyboard shortcuts", "stack": true } ] } ] }

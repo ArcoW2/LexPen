@@ -1,6 +1,6 @@
 # Plan: Exchange the selection with the clipboard
 
-Status: draft 2026-11-08; not started. The number in the file name is the priority; rename to reorder.
+Status: draft 2026-11-08, revised 2026-11-09; not started. The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
 
@@ -13,8 +13,7 @@ two pieces of text (two arguments, two names) is a common edit that LexPen has n
 A command Exchange with clipboard: the clipboard's text takes the selection's place, and the selection goes onto
 the clipboard, in one step and one undo. It works on the active clipboard, as Paste and Cut do, or on a numbered one;
 the pasted text stays selected, so the same command again puts everything back. It is on the ribbon (Home >
-Clipboard, stacked with Cut and Copy, Paste made small beside Paste image) with an icon of its own, beside the menus
-and a key.
+Clipboard, stacked under Copy) with an icon of its own, beside the menus and a key.
 
 ## 3. Details
 
@@ -37,8 +36,9 @@ and a key.
 
 - The action `clipboard.exchange` (with its variants), in F1 under Edit.
 - Edit menu: Exchange with clipboard, after Paste; the editor's right-click: the same, when there is a selection.
-- **On the shipped ribbon**: Home > Clipboard becomes two columns of small buttons: Paste and Paste image (Paste no
-  longer large), then Cut, Copy and Exchange stacked. Exchange's label "Exchange"; a split button as Paste: the button exchanges with the active
+- **On the shipped ribbon**: Home > Clipboard is Paste large with Paste image ("Image") small under it, then Cut and
+  Copy stacked; Exchange goes stacked under Copy, so that column is Cut, Copy, Exchange. Exchange's label "Exchange";
+  a split button as Paste: the button exchanges with the active
   clipboard, its arrow lists the clipboards to exchange with (Windows clipboard, 1 to 9). In `defaults/ribbon.json`;
   a ribbon.json of your own gets it by Customize or change mode (it is not changed for you).
 - **Its icon**: Paste's clipboard with two curved arrows round it, one going in and one coming out (the exchange),
@@ -60,9 +60,9 @@ and a key.
   empty clipboard (open question 2); the ribbon's Exchange button (the active clipboard) and its arrow's list
   (clipboard 3); its icon at both sizes in a light and a dark theme.
 - Unit (C#): the shipped ribbon.json has `clipboard.exchange` in Home > Clipboard (RibbonTests); Jint: that group's
-  columns are "S2 S3" (Paste and Paste image; Cut, Copy and Exchange).
-- In the test copy: the Clipboard group no larger than before (it loses the large Paste); Paste's badge (the active
-  clipboard's number) still readable on the small icon.
+  columns are Paste with Paste image in one column, then Cut, Copy and Exchange stacked.
+- In the test copy: the Clipboard group no wider than before (Exchange fills the third row of the Cut and Copy
+  column).
 
 ### 3.4 Alternatives
 
