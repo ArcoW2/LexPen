@@ -1,7 +1,7 @@
 # Plan: The ribbon's height, and showing it only when wanted
 
-Status: draft 2026-11-09, revised 2026-11-09 (twice); not started. The number in the file name is the priority; rename to
-reorder.
+Status: draft 2026-11-09, revised 2026-11-09 (three times); not started. The number in the file name is the priority;
+rename to reorder.
 
 ## 1. What this is about
 
@@ -12,12 +12,12 @@ View > Ribbon (the setting commandBar), which removes it altogether.
 ## 2. The solution, in brief
 
 The ribbon's bottom edge (a grip under the group names) can be dragged: up makes it lower, the space between the
-rows and around the labels going first; down makes it higher again. Its three rows go from 90 px (3 x 30, as now)
-down to 50 px. The ribbon is shown always, or only when wanted (a setting, per window): then only its tab names
-stay, and Alt, a drag down from the tab names or a click on one (that tab shown) slides the ribbon down over the
-document, which does not move; it slides away
-again when an action is run, on Esc or a click elsewhere. A button at the ribbon's bottom right, a drag of its edge
-up past the lowest height, and Ctrl+F1 switch between the two.
+rows and around the labels going first and the text getting smaller after that, down to 3/4 of its size; down makes
+it higher again. Its three rows go from 90 px (3 x 30, as now) down to 50 px. The ribbon is shown always, or only
+when wanted (a setting, per window): then only its tab names stay, and a drag down from the tab names, a click on
+one (that tab shown) or Alt (when the menus are not shown) slides the ribbon down over the document, which does not
+move; it slides away again when an action is run, on Esc or a click elsewhere. A button at the ribbon's bottom
+right, a drag of its edge up past the lowest height, and Ctrl+F1 switch between the two.
 
 ## 3. Details
 
@@ -30,8 +30,9 @@ up past the lowest height, and Ctrl+F1 switch between the two.
   end, after the last group, so it is never on a corner either.
 - **What gets lower, in order**: first the spacing (the padding of the buttons, the gap between icon and label, the
   line height of a large button's two label lines, the group name's padding), down to a minimum spacing; then the
-  text (labels, group names) and the icons with it, down to a smallest size that still reads ([not yet checked]: to
-  be found in the test copy, with light and dark themes and UI scale 100% and 150%).
+  text (labels, group names) and the icons with it, down to 3/4 of their size (the labels' 13 px to a little under
+  10 px, times the UI scale). Lower than that does not go: at the lowest height (50 px) the text is at most that
+  much smaller, and what still does not fit is cut off as a long label is now. That is the height asked for.
 - **How**: one number, the row height, as now (`--rb-row`); the spacing and the font size derive from it in CSS
   (`clamp()` / `calc()`), so every part follows the same value and nothing else has to know about it. The large
   button's icon (32 px) follows the height too; the small icon stays 16 px until the text shrinks.
@@ -52,8 +53,10 @@ up past the lowest height, and Ctrl+F1 switch between the two.
   "ribbon"); the buttons are hidden and the document has the room.
 - **Showing it** (only when wanted): it slides down over the document from under the tab names, with a shadow at
   its lower edge; the document does not move. By:
-  - **Alt** (commandBar "ribbon", with altOpens "tips"): the ribbon slides down with its key tips; a tip typed runs
-    the button and the ribbon slides away again. With altOpens "menu", Alt opens the menus as now.
+  - **Alt**, only where the menus are not shown (commandBar "ribbon", with altOpens "tips"): the ribbon slides down
+    with its key tips; a tip typed runs the button and the ribbon slides away again. With altOpens "menu", Alt opens
+    the menus as now. With commandBar "both" (the menu bar there) Alt goes to the menus as now: the menu bar is the
+    keyboard's way in; the ribbon shows by a drag down or a click on a tab name.
   - **A drag down** from the tab names (a press on a tab name or the row, moved down a few pixels): the ribbon
     follows the pointer down.
   - **A click on a tab name**: that tab's buttons slide down.
@@ -75,9 +78,11 @@ up past the lowest height, and Ctrl+F1 switch between the two.
 ### 3.4 Tests
 
 - Jint or the test copy: the spacing and the font size for a row height (full, the spacing at its minimum, the
-  smallest); the ribbon's height following a drag of the grip; a double click back to full.
-- In the test copy, only when wanted: the document's top the same with the ribbon down and up; Alt slides it down
-  with key tips and a tip runs its button and hides it; a drag down from the tab names and a click on a tab name
+  smallest: the text at 3/4 of its size, not less); the ribbon's height following a drag of the grip; a double click
+  back to full.
+- In the test copy, only when wanted: the document's top the same with the ribbon down and up; with commandBar
+  "ribbon" Alt slides it down with key tips and a tip runs its button and hides it, with "both" Alt opens the menus
+  (the ribbon stays up); a drag down from the tab names and a click on a tab name
   slide it down; a button run, Esc, a click in the document hide it; a split button's list and a tab switch do not;
   with commandBar "both" and "ribbon".
 - In the test copy: the chevron, the pin, Ctrl+F1, the setting, and the grip dragged up past the lowest height switch
@@ -96,12 +101,4 @@ up past the lowest height, and Ctrl+F1 switch between the two.
 
 ## 4. Open questions
 
-1. **Alt with commandBar "both"**: Alt now goes to the menus (the menu bar is there). With only when wanted, should
-   Alt there slide the ribbon down (with key tips), the menus then reached by their own Alt+letter keys, or keep going
-   to the menus, the ribbon shown by a drag or a click on a tab name? Suggestion: keep going to the menus; with
-   "both" the menu bar is the keyboard's way in.
-2. **Text before spacing?** The order asked: the spacing gets shorter first, the text smaller only after. With 50 px
-   as the lowest, a row of a little under 17 px may still hold the labels at their present size (13 px text) with the
-   spacing gone ([not yet checked] in the test copy). Should the text then never shrink (the ribbon stops at 50 px,
-   or higher where a label would be cut), or shrink near the lowest height? Suggestion: never shrink; the 50 px is
-   reached by the spacing alone, and where that is not enough the lowest height is a little higher.
+None.
