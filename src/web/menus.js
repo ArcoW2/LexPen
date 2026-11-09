@@ -511,3 +511,20 @@ No longer exists; click to remove it from the list`,
   }));
   return items;
 }
+
+// The same lists as actions: on the ribbon a drop-down under the button (dropDownOnly: the action is its list; ribbon.js),
+// from F1 or a key at the cursor.
+async function showListHere(items) {
+  const pane = panes[state.activePane], cm = pane?.active?.mode !== 'preview' ? pane?.cm : null;
+  const at = cm ? cm.cursorCoords(null, 'window') : pane?.el.getBoundingClientRect();
+  openPopupMenu(items, at?.left ?? 100, at?.bottom ?? 100);
+}
+const orNone = (items, none) => items.length ? items : [{ label: none, enabled: false }];
+appAction('recent.list', { title: 'Recent', hint: 'The files or folders opened lately, or the tabs closed lately; a click opens one', group: 'files',
+  variants: [['files'], ['folders'], ['closed']], variantTitles: { files: 'Recent files', folders: 'Recent folders', closed: 'Recently closed' },
+  dropDownOnly: true, dropDown: async ([list = 'files']) => orNone(await recentItems(list), '(none yet)'),
+  run: async ([list = 'files']) => showListHere(orNone(await recentItems(list), '(none yet)')) });
+appAction('favourites.list', { title: 'Favourites', hint: 'Your favourite files or folders; a click opens one; also adding the current one and managing them', group: 'files',
+  variants: [['files'], ['folders']], variantTitles: { files: 'Favourite files', folders: 'Favourite folders' },
+  dropDownOnly: true, dropDown: ([kind = 'files']) => favouriteItems(kind),
+  run: async ([kind = 'files']) => showListHere(await favouriteItems(kind)) });

@@ -851,6 +851,8 @@ every action with its key.
   A button or corner whose action shows a window with a list (Manage clipboards..., Manage bookmarks..., Highlights
   window, Manage macros...) can open that list under it instead (right-click > Opens: Drop-down; a small arrow down
   on a corner); Clipboard, Bookmarks and Highlights have the window in the left corner and the drop-down in the right.
+  The File tab: Open (with Recent files, Recent folders, Favourite files and Favourite folders as drop-downs), Save,
+  and Close (with Recently closed).
   Its height: drag the strip under the group names (lower: the spacing first, then the text down to 3/4; from 90 to
   50 px for the three rows; a double click: the full height). Shown always or only when wanted (Settings: Show the
   ribbon, Ctrl+F1, the button at its right end, or dragging the strip up past its lowest): then only its tab names

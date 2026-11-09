@@ -36,7 +36,8 @@ function actionGroup(name, def) {
 //   variants: the parameter lists F1 offers: [[1], [2]], variantTitles: { "1": "..." },
 //   checked(params): a tick in the menu, enabled(params): greyed out when false,
 //   dropDown(params): its short form, the items of a list of what its window shows (a ribbon button or corner with
-//   "open": "dropDown" opens it under itself; ribbon.js, docs/plans/executed/PLAN-ribbon-drop-down-lists.md) }
+//   "open": "dropDown" opens it under itself; ribbon.js, docs/plans/executed/PLAN-ribbon-drop-down-lists.md),
+//   dropDownOnly: the action is that list (Recent, Favourites): on the ribbon always a drop-down }
 const appActions = new Map();
 const appAction = (name, def) => appActions.set(name, { name, ...def });
 

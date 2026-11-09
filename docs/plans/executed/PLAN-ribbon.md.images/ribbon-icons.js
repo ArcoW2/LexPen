@@ -33,6 +33,12 @@ window.RIBBON_ICONS = (() => {
     openFile: ['Open file...', p('M1.5 13V3h4l1.5 1.5h5.5V7M1.5 13h11l2-6h-10z')],
     print: ['Print...', p('M4.5 6V1.5h7V6M4.5 12h-2V6h11v6h-2M4.5 9.5h7v5h-7z')],
     closeTab: ['Close tab', p('M1.5 13.5V4a1 1 0 0 1 1-1h5l1.5 1.5h5v9zM6 7l4 4M10 7l-4 4')],
+    // Recent (a clock) and favourites (a star) on a page, a folder or a tab
+    'recent.list files': ['Recent files', p('M3.5 1.5h5.5l3 3v2.5M3.5 1.5v13H7') + '<circle cx="11.5" cy="11.5" r="3.5"/>' + p('M11.5 9.6v2l1.3.9')],
+    'recent.list folders': ['Recent folders', p('M1.5 13V3h4l1.5 1.5h7V7M1.5 13H7') + '<circle cx="11.5" cy="11.5" r="3.5"/>' + p('M11.5 9.6v2l1.3.9')],
+    'recent.list closed': ['Recently closed', p('M1.5 13.5V4a1 1 0 0 1 1-1h5l1.5 1.5h5V7M1.5 13.5H7') + '<circle cx="11.5" cy="11.5" r="3.5"/>' + p('M11.5 9.6v2l1.3.9')],
+    'favourites.list files': ['Favourite files', p('M3.5 1.5h5.5l3 3v2.5M3.5 1.5v13H7') + p('M11.5 7.9l.88 2.39 2.54.1-1.99 1.57.69 2.45-2.12-1.41-2.12 1.41.69-2.45-1.99-1.57 2.54-.1z')],
+    'favourites.list folders': ['Favourite folders', p('M1.5 13V3h4l1.5 1.5h7V7M1.5 13H7') + p('M11.5 7.9l.88 2.39 2.54.1-1.99 1.57.69 2.45-2.12-1.41-2.12 1.41.69-2.45-1.99-1.57 2.54-.1z')],
     // Edit, Lines
     indentMore: ['Indent', p('M7 3h7M7 7h7M7 11h7M2 14h12M2 5l2.5 2L2 9')],
     indentLess: ['Outdent', p('M7 3h7M7 7h7M7 11h7M2 14h12M4.5 5L2 7l2.5 2')],

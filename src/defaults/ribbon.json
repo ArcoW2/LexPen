@@ -9,10 +9,16 @@
 {
   "tabs": [
     { "name": "File", "groups": [
-      { "name": "File", "items": [
+      { "name": "Open", "items": [
+        { "action": "newFile", "size": "large" },
+        { "action": "openFile" }, { "action": "openFolder", "stack": true },
+        { "action": "recent.list", "params": ["files"] }, { "action": "recent.list", "params": ["folders"], "stack": true },
+        { "action": "favourites.list", "params": ["files"] }, { "action": "favourites.list", "params": ["folders"], "stack": true } ] },
+      { "name": "Save", "items": [
         { "action": "save", "size": "large" },
-        { "action": "saveAs" }, { "action": "newFile", "stack": true }, { "action": "openFile", "stack": true },
-        { "action": "print" }, { "action": "closeTab", "stack": true } ] } ] },
+        { "action": "saveAs" }, { "action": "print", "stack": true } ] },
+      { "name": "Close", "items": [
+        { "action": "closeTab" }, { "action": "reopenTab", "stack": true }, { "action": "recent.list", "params": ["closed"], "stack": true } ] } ] },
 
     { "name": "Home", "groups": [
       { "name": "Edit", "items": [

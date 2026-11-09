@@ -308,14 +308,16 @@ async function rbOpenList(button, item) {
 
 // Drop-down (docs/plans/executed/PLAN-ribbon-drop-down-lists.md): a button or corner with "open": "dropDown" whose action has a
 // short form (its dropDown(), actions.js) opens that list under it; the list ends with the action itself (its window).
-const rbDropDown = (action, open) => open === 'dropDown' && typeof actionDef(action)?.dropDown === 'function';
+// An action that is its list (dropDownOnly: Recent, Favourites) opens it so always, and its list does not end with it.
+const rbDropDown = (action, open) => (open === 'dropDown' || !!actionDef(action)?.dropDownOnly) && typeof actionDef(action)?.dropDown === 'function';
 async function rbDropDownItems([action, ...params]) {
   const items = await actionDef(action).dropDown(params);
+  if (actionDef(action).dropDownOnly) return items;
   return [...items, ...(items.length ? ['-'] : []), { label: actionTitle(action, params).replace(/&/g, '&&'), action, params, key: keyText(action, ...params) }];
 }
 // The right-click's choice for an action with a short form: what a click opens (`set`: "dropDown", or undefined: its
 // window or pane).
-const rbOpensItems = (action, open, set) => typeof actionDef(action)?.dropDown !== 'function' ? [] : [{ label: '&Opens', sub: [
+const rbOpensItems = (action, open, set) => typeof actionDef(action)?.dropDown !== 'function' || actionDef(action).dropDownOnly ? [] : [{ label: '&Opens', sub: [
   { label: '&Window or pane', checked: open !== 'dropDown', run: () => set(undefined) },
   { label: '&Drop-down', checked: open === 'dropDown', run: () => set('dropDown') }] }];
 const rbCornerAt = el => { const [t, g, side] = rbPath(el.dataset.corner); return ribbonCorner(rb.model.tabs[t]?.groups[g]?.corners?.[side]); };
@@ -992,7 +994,7 @@ async function rbcDo(dlg, what) {
   if (what === 'dropDown') {   // a button or a corner: its action's list under it, or its window (plan 46)
     rbChange(m => {
       const grp = m.tabs[t].groups[g], it = line.kind === 'corner' ? ribbonItemOf(grp.corners?.[i]) : line.kind === 'item' ? grp.items[i] : null;
-      if (!it || it === 'divider' || typeof actionDef(it.action)?.dropDown !== 'function') return false;
+      if (!it || it === 'divider' || typeof actionDef(it.action)?.dropDown !== 'function' || actionDef(it.action).dropDownOnly) return false;
       if (it.open) delete it.open; else it.open = 'dropDown';
       if (line.kind === 'corner') grp.corners[i] = ribbonCornerOf(it);
     });
