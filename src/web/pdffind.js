@@ -82,7 +82,9 @@ function pdfFindGo(pane, regex, dir, fromOrigin) {
   const bar = pane.find, tab = pane.active, matches = pdfMatches(tab, regex);
   if (!matches) return pdfFindRefresh(pane, regex, false);
   if (!matches.length) return notFound(pane, matches, fromOrigin);
-  const shown = (tab.pdf.state?.page ?? 1) * PDF_PAGE_KEY;
+  // Where it starts: where the PDF was pressed last (pdfview.js, used once), else the top of the page shown.
+  const pressed = tab.pdf.pressedAt, shown = pressed ? pressed.page * PDF_PAGE_KEY + pressed.offset : (tab.pdf.state?.page ?? 1) * PDF_PAGE_KEY;
+  if (pressed && (fromOrigin || bar.at == null)) tab.pdf.pressedAt = null;
   let i;
   if (fromOrigin) { bar.origin ??= shown; i = matches.findIndex(m => m[0] >= bar.origin); }
   else if (bar.at == null) i = dir > 0 ? matches.findIndex(m => m[0] >= shown) : matches.findLastIndex(m => m[0] < shown);

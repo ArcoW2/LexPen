@@ -226,9 +226,11 @@ addEventListener('wheel', e => {
 // The right-click: where, the selection, and the page and offset under it (a highlight there: its items).
 addEventListener('contextmenu', e => { e.preventDefault(); toWindow({ kind: 'menu', x: e.clientX, y: e.clientY, parts: selectionParts(), at: offsetAt(e.clientX, e.clientY) }); });
 // A press: its pane the active one; the keys scroll the PDF (PgUp / PgDn, the arrows, Home / End: its scroll area's
-// own), so the scroll area takes the focus.
+// own), so the scroll area takes the focus. Where (a left press): the find bar goes on from there (pdffind.js); beside
+// the text, the start of that page.
 addEventListener('pointerdown', e => {
-  toWindow({ kind: 'activate' });
+  const page = e.button === 0 ? pageOfNode(e.target) : null;
+  toWindow({ kind: 'activate', at: page ? offsetAt(e.clientX, e.clientY) ?? { page: +page.dataset.pageNumber, offset: 0 } : null });
   if (!e.target.closest?.('input, textarea, select')) setTimeout(() => document.getElementById('pdf-scroll').focus({ preventScroll: true }));
 }, true);
 addEventListener('focus', () => { if (document.activeElement === document.body) document.getElementById('pdf-scroll').focus({ preventScroll: true }); });

@@ -573,12 +573,16 @@ function previewMatches(pane, regex) {
 function goPreview(pane, regex, dir, fromOrigin) {
   const bar = pane.find, matches = previewMatches(pane, regex);
   if (!matches.length) return notFound(pane, matches, fromOrigin);
-  // Start: the current match; else the selection in the preview; else the top of what is visible.
+  // Start: the current match, unless the preview's cursor (previewcursor.js) moved since it (a click, the keys): then the
+  // cursor; else the selection in the preview; else the top of what is visible.
+  const pc = pane.active?.pcDom, pcNode = pc && bar.index.nodes.find(n => n.node === pc.node);
+  if (bar.at !== null && pcNode && (pc.node !== bar.pcSeen?.node || pc.offset !== bar.pcSeen?.offset)) bar.at = null;
   let start = bar.at;
   if (start === null || fromOrigin) {
     const sel = getSelection();
     const node = sel.rangeCount && pane.previewEl.contains(sel.anchorNode) && bar.index.nodes.find(n => n.node === sel.anchorNode);
-    if (node) start = node.start + sel.anchorOffset;
+    if (pcNode) start = pcNode.start + pc.offset;
+    else if (node) start = node.start + sel.anchorOffset;
     else {
       const top = pane.previewEl.getBoundingClientRect().top;
       const first = matches.findIndex(([s, e]) => previewRange(bar.index, s, e).getBoundingClientRect().bottom >= top);
@@ -593,6 +597,7 @@ function goPreview(pane, regex, dir, fromOrigin) {
   i = pickMatch(pane, matches, i, dir, fromOrigin);
   if (i < 0) return;
   bar.at = matches[i][0];
+  bar.pcSeen = pc ? { node: pc.node, offset: pc.offset } : null;   // the cursor as it is now: moved after this, it counts
   const range = previewRange(bar.index, ...matches[i]);
   CSS.highlights.set('mm-find-cur-' + pane.index, new Highlight(range));
   pane.previewBoxes.current = range;
