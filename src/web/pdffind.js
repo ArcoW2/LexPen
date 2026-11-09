@@ -17,6 +17,7 @@ function pdfTexts(tab) {
 function pdfGotTexts(tab, texts) {
   tab.pdf.texts = texts;
   tab.pdf.findCache = null;
+  pdfMarksCheck(tab);   // its bookmarks, by their text (pdfbookmarks.js)
   const pane = paneOf(tab);
   // The search typed meanwhile: now counted, and to its first match after the cursor (a click, else the page shown), as
   // typing does once the texts are there.
