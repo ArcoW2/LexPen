@@ -52,6 +52,52 @@ public class RibbonTests : IDisposable
         Assert.False(RibbonFile.Load(dir, Shipped)["user"]!.GetValue<bool>());
     }
 
+    // ---------- Drop-down (docs/plans/executed/PLAN-ribbon-drop-down-lists.md) ----------
+
+    [Fact]
+    public void ADropDownOnAButtonAndOnACornerIsWrittenAndReadBack()
+    {
+        var mine = JsonNode.Parse("""{ "tabs": [ { "name": "T", "groups": [ { "name": "G", "corners": { "left": ["paste", 3], "right": { "action": "bookmarks.pane", "open": "dropDown" } }, "items": [ { "action": "clipboards.pane", "open": "dropDown" } ] } ] } ] }""")!;
+        RibbonFile.Save(dir, mine);
+        var g = RibbonFile.Load(dir, Shipped)["ribbon"]!["tabs"]![0]!["groups"]![0]!;
+        Assert.Equal("dropDown", g["items"]![0]!["open"]!.GetValue<string>());
+        Assert.Equal("bookmarks.pane", g["corners"]!["right"]!["action"]!.GetValue<string>());
+        Assert.Equal("dropDown", g["corners"]!["right"]!["open"]!.GetValue<string>());
+        Assert.Equal(3, g["corners"]!["left"]![1]!.GetValue<int>());   // the plain forms still read
+    }
+
+    [Fact]
+    public void TheShippedClipboardBookmarksAndHighlightsCornersAreDropDowns()
+    {
+        var tabs = RibbonFile.Load(dir, Shipped)["ribbon"]!["tabs"]!.AsArray();
+        JsonNode Corner(string tab, string group) => tabs.First(t => t!["name"]!.GetValue<string>() == tab)!["groups"]!.AsArray()
+            .First(g => g!["name"]!.GetValue<string>() == group)!["corners"]!["right"]!;
+        foreach (var (tab, group, action) in new[] { ("Home", "Clipboard", "clipboards.pane"), ("Home", "Bookmarks", "bookmarks.pane"), ("Review", "Highlights", "highlight.list") })
+        {
+            Assert.Equal(action, Corner(tab, group)["action"]!.GetValue<string>());
+            Assert.Equal("dropDown", Corner(tab, group)["open"]!.GetValue<string>());
+            // The left corner: the same action as its window.
+            Assert.Equal(action, tabs.First(t => t!["name"]!.GetValue<string>() == tab)!["groups"]!.AsArray()
+                .First(g => g!["name"]!.GetValue<string>() == group)!["corners"]!["left"]!.GetValue<string>());
+        }
+        Assert.Equal("macro.manage", Corner("Tools", "Macros").GetValue<string>());   // its window, as before
+    }
+
+    [Fact]
+    public void ACornerInEachFormAndBackToAButton()
+    {
+        Assert.Equal("""{"call":["find"]}""", Js("ribbonCorner('find')").GetRawText());
+        Assert.Equal("""{"call":["paste",3]}""", Js("ribbonCorner(['paste', 3])").GetRawText());
+        Assert.Equal("""{"call":["clipboards.pane"],"open":"dropDown"}""", Js("ribbonCorner({ action: 'clipboards.pane', open: 'dropDown' })").GetRawText());
+        Assert.Equal(JsonValueKind.Null, Js("ribbonCorner(undefined)").ValueKind);
+        // A button into a corner: the plainest form that keeps it; and back.
+        Assert.Equal("\"find\"", Js("ribbonCornerOf({ action: 'find' })").GetRawText());
+        Assert.Equal("""["paste",3]""", Js("ribbonCornerOf({ action: 'paste', params: [3] })").GetRawText());
+        Assert.Equal("""{"action":"bookmarks.pane","open":"dropDown"}""", Js("ribbonCornerOf({ action: 'bookmarks.pane', open: 'dropDown' })").GetRawText());
+        Assert.Equal("""{"action":"paste","params":[3]}""", Js("ribbonItemOf(['paste', 3])").GetRawText());
+        Assert.Equal("""{"action":"bookmarks.pane","open":"dropDown"}""", Js("ribbonItemOf({ action: 'bookmarks.pane', open: 'dropDown' })").GetRawText());
+    }
+
     [Fact]
     public void WhatMakesNoSenseIsLeftOutAndReported()
     {

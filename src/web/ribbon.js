@@ -103,10 +103,10 @@ function rbGroupHtml(ti, gi, g) {
     return `<div class="mm-rb-col">${c.items.map(({ item, i }) => rbButtonHtml(`${ti}.${gi}.${i}`, item, 'small')).join('')}</div>`;
   }).join('');
   const corner = side => {
-    const call = g.corners?.[side], c = Array.isArray(call) ? call : call ? [call] : null;
+    const k = ribbonCorner(g.corners?.[side]), c = k?.call;
     if (!c && !rb.changing) return '';
-    const title = c ? rbTip(c) : `The ${side} corner: drop an action here`;
-    return `<button class="mm-rb-corner mm-rb-${side}${c ? '' : ' mm-rb-empty'}" data-corner="${ti}.${gi}.${side}"${c && rb.changing ? ' draggable="true"' : ''} title="${escapeHtml(title)}" tabindex="-1"></button>`;
+    const title = c ? rbTip(c, rbDropDown(c[0], k.open)) : `The ${side} corner: drop an action here`;
+    return `<button class="mm-rb-corner mm-rb-${side}${c ? '' : ' mm-rb-empty'}${c && rbDropDown(c[0], k.open) ? ' mm-rb-drop-down' : ''}" data-corner="${ti}.${gi}.${side}"${c && rb.changing ? ' draggable="true"' : ''} title="${escapeHtml(title)}" tabindex="-1"></button>`;
   };
   return `<div class="mm-rb-group" data-group="${ti}.${gi}" title="${setting('ribbonGroupNames') === false ? escapeHtml(g.name) : ''}">` +
     (rb.changing ? `<span class="mm-rb-grip" draggable="true" data-grip="${ti}.${gi}" title="Drag the group; right-click: rename, remove"></span>` : '') +
@@ -116,10 +116,11 @@ function rbGroupHtml(ti, gi, g) {
 // The icon has a drawing for the parameter itself (Previous, a panel): no number on it.
 const rbOwnDrawing = call => call[0] === 'panel' || !!RIBBON_ICONS.buttons[call.join(' ')];
 
-// A button's or corner's tooltip: its title and key, and on a line under it what it does (the action's hint).
-function rbTip(call) {
+// A button's or corner's tooltip: its title and key, and on a line under it what it does (the action's hint); one
+// that opens a drop-down says so.
+function rbTip(call, dropDown = false) {
   const hint = actionDef(call[0])?.hint;
-  return withKey(actionTitle(call[0], call.slice(1)), ...call) + (hint ? '\n' + hint : '');
+  return withKey(actionTitle(call[0], call.slice(1)), ...call) + (dropDown ? ' (drop-down)' : '') + (hint ? '\n' + hint : '');
 }
 
 function rbButtonHtml(path, item, size) {
@@ -128,7 +129,7 @@ function rbButtonHtml(path, item, size) {
   const title = actionTitle(item.action, item.params ?? []), label = item.label || title;
   const icon = ribbonIcon(call, size) ?? `<span class="mm-rb-letter">${escapeHtml(label.trim()[0] ?? '?')}</span>`;
   const list = rbHasList(item), arrow = '<span class="mm-rb-arrow" data-arrow title="Its list"></span>', mark = item.params?.length && !rbOwnDrawing(call) ? `<span class="mm-rb-mark">${escapeHtml(String(item.params[0]))}</span>` : '';
-  return `<button class="mm-rb-btn mm-rb-${size}" data-path="${path}" data-call="${escapeHtml(JSON.stringify(call))}"${rb.changing ? ' draggable="true"' : ''} title="${escapeHtml(rbTip(call))}" tabindex="-1">` +
+  return `<button class="mm-rb-btn mm-rb-${size}" data-path="${path}" data-call="${escapeHtml(JSON.stringify(call))}"${rb.changing ? ' draggable="true"' : ''} title="${escapeHtml(rbTip(call, rbDropDown(item.action, item.open)))}" tabindex="-1">` +
     `<span class="mm-rb-icon">${icon}${mark}<span class="mm-rb-badge" hidden></span></span>` +
     // With a list, a split button: the arrow a part of its own that opens it (a large button's: a row under the label).
     `<span class="mm-rb-text"><span class="mm-rb-label">${escapeHtml(label)}</span>${list && size !== 'large' ? arrow : ''}</span>${list && size === 'large' ? arrow : ''}</button>`;
@@ -186,14 +187,16 @@ const RB_LISTS = {
     { label: '&Clear bookmark', fill: () => bookmarkItems('clear') }, '-', ['&Manage bookmarks...', 'bookmarks.pane']]),
 };
 function rbHasList(item) {
+  if (rbDropDown(item.action, item.open)) return true;
   if (item.params?.length) return false;
   const v = actionDef(item.action)?.variants;
   return !!RB_LISTS[item.action] || Array.isArray(v) && v.filter(p => p.length).length > 1;
 }
-const rbListOnly = item => !item.params?.length && !RB_LISTS[item.action] && Array.isArray(actionDef(item.action)?.variants) &&
-  !actionDef(item.action).variants.some(p => !p.length);
+const rbListOnly = item => rbDropDown(item.action, item.open) || !item.params?.length && !RB_LISTS[item.action] &&
+  Array.isArray(actionDef(item.action)?.variants) && !actionDef(item.action).variants.some(p => !p.length);
 
 async function rbListItems(item) {
+  if (rbDropDown(item.action, item.open)) return rbDropDownItems([item.action, ...(item.params ?? [])]);
   if (RB_LISTS[item.action]) return RB_LISTS[item.action]();
   const def = actionDef(item.action), clip = ['paste', 'copy', 'cut', 'clipboard.exchange'].includes(item.action);
   if (clip) Object.assign(clips, await host('clipState').catch(() => ({})));
@@ -208,24 +211,28 @@ async function rbOpenList(button, item) {
   openMenuBelow(await rbListItems(item), button);
 }
 
-// Actions that are a list (Clipboards): on the ribbon, as a button or a corner, a click opens that list under it
-// instead of running the action (which shows it elsewhere: at the bottom bar).
-const RB_LIST_ACTIONS = {
-  clipboardList: async () => [...await clipboardItems(), '-', ['&Manage clipboards...', 'clipboards.pane']],
-};
-const rbCornerCall = el => {
-  const [t, g, side] = rbPath(el.dataset.corner), c = rb.model.tabs[t]?.groups[g]?.corners?.[side];
-  return c ? (Array.isArray(c) ? c : [c]) : null;
-};
+// Drop-down (docs/plans/executed/PLAN-ribbon-drop-down-lists.md): a button or corner with "open": "dropDown" whose action has a
+// short form (its dropDown(), actions.js) opens that list under it; the list ends with the action itself (its window).
+const rbDropDown = (action, open) => open === 'dropDown' && typeof actionDef(action)?.dropDown === 'function';
+async function rbDropDownItems([action, ...params]) {
+  const items = await actionDef(action).dropDown(params);
+  return [...items, ...(items.length ? ['-'] : []), { label: actionTitle(action, params).replace(/&/g, '&&'), action, params, key: keyText(action, ...params) }];
+}
+// The right-click's choice for an action with a short form: what a click opens (`set`: "dropDown", or undefined: its
+// window or pane).
+const rbOpensItems = (action, open, set) => typeof actionDef(action)?.dropDown !== 'function' ? [] : [{ label: '&Opens', sub: [
+  { label: '&Window or pane', checked: open !== 'dropDown', run: () => set(undefined) },
+  { label: '&Drop-down', checked: open === 'dropDown', run: () => set('dropDown') }] }];
+const rbCornerAt = el => { const [t, g, side] = rbPath(el.dataset.corner); return ribbonCorner(rb.model.tabs[t]?.groups[g]?.corners?.[side]); };
 
 // What opens a list: a split button's arrow, a button that is only a list, ">>". Pressed again while its list shows,
 // the list only closes (menus.js closes it on mousedown; pointerdown comes first, so the click after it is skipped).
 let rbListFrom = null, rbSkipClick = null;
 const rbOpener = t => t.closest('.mm-ribbon [data-arrow], .mm-rb-more') ?? (() => {
   const corner = t.closest('.mm-ribbon [data-corner]');
-  if (corner) return RB_LIST_ACTIONS[rbCornerCall(corner)?.[0]] ? corner : null;
+  if (corner) { const c = rbCornerAt(corner); return c && rbDropDown(c.call[0], c.open) ? corner : null; }
   const b = t.closest('.mm-ribbon .mm-rb-btn[data-path]'), item = b && rbItemAt(rbPath(b.dataset.path));
-  return item && (rbListOnly(item) || RB_LIST_ACTIONS[item.action]) ? b : null;
+  return item && rbListOnly(item) ? b : null;
 })();
 addEventListener('pointerdown', e => {
   const o = e.target instanceof Element ? rbOpener(e.target) : null;
@@ -260,8 +267,8 @@ async function rbClick(e) {
   if (el.matches('.mm-rb-more')) return openMenuBelow(rbOverflowItems(), el);
   if (rb.changing) return;   // in change mode the buttons do not run
   if (el.matches('[data-corner]')) {
-    const call = rbCornerCall(el);
-    if (call && RB_LIST_ACTIONS[call[0]]) return openMenuBelow(await RB_LIST_ACTIONS[call[0]](), el);
+    const c = rbCornerAt(el), call = c?.call;
+    if (call && rbDropDown(call[0], c.open)) return openMenuBelow(await rbDropDownItems(call), el);
     if (call) runAction(call[0], call.slice(1), { from: 'ribbon' });
     return rbRefreshSoon();
   }
@@ -269,7 +276,6 @@ async function rbClick(e) {
     const item = rbItemAt(rbPath(el.dataset.path));
     if (!item || el.classList.contains('mm-off')) return;
     if (e.target.closest('[data-arrow]') || rbListOnly(item)) return rbOpenList(el, item);
-    if (RB_LIST_ACTIONS[item.action]) return openMenuBelow(await RB_LIST_ACTIONS[item.action](), el);
     await runAction(item.action, item.params ?? [], { from: 'ribbon' });
     rbRefreshSoon();
   }
@@ -548,11 +554,10 @@ function rbTake(m, what) {
     return { item: params.length ? { action, params } : { action } };
   }
   if (what.kind === 'corner') {
-    const [t, g, side] = what.path, corners = m.tabs[t].groups[g].corners, c = corners?.[side];
-    if (!c) return null;
+    const [t, g, side] = what.path, corners = m.tabs[t].groups[g].corners, item = ribbonItemOf(corners?.[side]);
+    if (!item) return null;
     delete corners[side];
-    const call = Array.isArray(c) ? c : [c];
-    return { item: call.length > 1 ? { action: call[0], params: call.slice(1) } : { action: call[0] } };
+    return { item };
   }
   if (what.kind === 'item' || what.kind === 'divider') {
     const [t, g, i] = what.path, items = m.tabs[t].groups[g].items, item = items[i];
@@ -618,7 +623,7 @@ function rbPlace(what, target) {
     if (target.kind === 'corner') {
       if (item === 'divider') return false;
       const [t, g, side] = tpath, grp = m.tabs[t].groups[g];
-      grp.corners = { ...(grp.corners ?? {}), [side]: item.params?.length ? [item.action, ...item.params] : item.action };
+      grp.corners = { ...(grp.corners ?? {}), [side]: ribbonCornerOf(item) };
       return;
     }
     if (target.kind === 'tab') {
@@ -684,14 +689,20 @@ function rbEditMenu(e) {
       { label: '&Divider before it', checked: g >= 0 && rb.model.tabs[t].groups[g].items[i - 1] === 'divider',
         run: () => rbChange(m => { const its = m.tabs[t].groups[g].items; if (its[i - 1] === 'divider') its.splice(i - 1, 1); else its.splice(i, 0, 'divider'); }) },
       '-',
-      { label: 'Into the l&eft corner', run: () => rbChange(m => { const grp = m.tabs[t].groups[g], [it] = grp.items.splice(i, 1); grp.corners = { ...(grp.corners ?? {}), left: it.params?.length ? [it.action, ...it.params] : it.action }; }) },
-      { label: 'Into the r&ight corner', run: () => rbChange(m => { const grp = m.tabs[t].groups[g], [it] = grp.items.splice(i, 1); grp.corners = { ...(grp.corners ?? {}), right: it.params?.length ? [it.action, ...it.params] : it.action }; }) },
+      ...rbOpensItems(item.action, item.open, open => set(it => { if (open) it.open = open; else delete it.open; })()),
+      { label: 'Into the l&eft corner', run: () => rbChange(m => { const grp = m.tabs[t].groups[g], [it] = grp.items.splice(i, 1); grp.corners = { ...(grp.corners ?? {}), left: ribbonCornerOf(it) }; }) },
+      { label: 'Into the r&ight corner', run: () => rbChange(m => { const grp = m.tabs[t].groups[g], [it] = grp.items.splice(i, 1); grp.corners = { ...(grp.corners ?? {}), right: ribbonCornerOf(it) }; }) },
       '-', { label: '&Remove', run: () => rbRemove({ kind: 'item', path }) }];
   } else if (el?.matches('.mm-rb-div[data-path]')) {
     items = [{ label: '&Remove the divider', run: () => rbRemove({ kind: 'divider', path: rbPath(el.dataset.path) }) }];
   } else if (el?.matches('[data-corner]')) {
-    const path = rbPath(el.dataset.corner), [t, g, side] = path, has = !!rb.model.tabs[t].groups[g].corners?.[side];
-    items = [{ label: 'Make it a &button', enabled: has, run: () => rbChange(m => { const taken = rbTake(m, { kind: 'corner', path }); if (!taken) return false; m.tabs[t].groups[g].items.push(taken.item); }) },
+    const path = rbPath(el.dataset.corner), [t, g, side] = path, c = ribbonCorner(rb.model.tabs[t].groups[g].corners?.[side]), has = !!c;
+    items = [...(c ? rbOpensItems(c.call[0], c.open, open => rbChange(m => {
+      const grp = m.tabs[t].groups[g], it = ribbonItemOf(grp.corners[side]);
+      if (open) it.open = open; else delete it.open;
+      grp.corners[side] = ribbonCornerOf(it);
+    })) : []),
+      { label: 'Make it a &button', enabled: has, run: () => rbChange(m => { const taken = rbTake(m, { kind: 'corner', path }); if (!taken) return false; m.tabs[t].groups[g].items.push(taken.item); }) },
       { label: '&Remove from the corner', enabled: has, run: () => rbRemove({ kind: 'corner', path }) }];
   } else if (el?.matches('[data-grip], [data-group]')) {
     const [t, g] = rbPath(el.dataset.grip ?? el.dataset.group), grp = rb.model.tabs[t].groups[g];
@@ -736,6 +747,7 @@ function rbCustomize() {
           <button data-rbc="up" title="Alt+Up">Up</button><button data-rbc="down" title="Alt+Down">Down</button>
           <button data-rbc="remove" title="Del">Remove</button><hr>
           <button data-rbc="size">Large / small</button><button data-rbc="stack">Stacked</button>
+          <button data-rbc="dropDown" title="A button or corner whose action has a list (Manage clipboards..., Manage bookmarks..., ...): that list under it, or its window">Drop-down</button>
           <button data-rbc="divider">Divider</button><button data-rbc="rename" title="A tab, a group, or a button (its label)">Rename...</button><hr>
           <button data-rbc="newTab">New tab...</button><button data-rbc="newGroup">New group...</button><hr>
           <button data-rbc="reset">Reset</button><button data-rbc="close">Close</button></div>
@@ -780,12 +792,12 @@ function rbcLines() {
     t.groups.forEach((g, gi) => {
       lines.push({ kind: 'group', path: [ti, gi], text: `   ${g.name}` });
       for (const side of ['left', 'right']) if (g.corners?.[side]) {
-        const c = Array.isArray(g.corners[side]) ? g.corners[side] : [g.corners[side]];
-        lines.push({ kind: 'corner', path: [ti, gi, side], text: `      corner ${side}: ${actionTitle(c[0], c.slice(1))}` });
+        const k = ribbonCorner(g.corners[side]), c = k.call;
+        lines.push({ kind: 'corner', path: [ti, gi, side], text: `      corner ${side}: ${actionTitle(c[0], c.slice(1))}${rbDropDown(c[0], k.open) ? ' (drop-down)' : ''}` });
       }
       g.items.forEach((it, i) => lines.push(it === 'divider'
         ? { kind: 'divider', path: [ti, gi, i], text: '      ----' }
-        : { kind: 'item', path: [ti, gi, i], text: `      ${it.stack ? '  + ' : ''}${it.label || actionTitle(it.action, it.params ?? [])}${it.size === 'large' ? ' (large)' : ''}` }));
+        : { kind: 'item', path: [ti, gi, i], text: `      ${it.stack ? '  + ' : ''}${it.label || actionTitle(it.action, it.params ?? [])}${it.size === 'large' ? ' (large)' : ''}${rbDropDown(it.action, it.open) ? ' (drop-down)' : ''}` }));
     });
   });
   return lines;
@@ -863,6 +875,15 @@ async function rbcDo(dlg, what) {
       to = [...line.path.slice(0, -1), next];
     });
     return pick(to);
+  }
+  if (what === 'dropDown') {   // a button or a corner: its action's list under it, or its window (plan 46)
+    rbChange(m => {
+      const grp = m.tabs[t].groups[g], it = line.kind === 'corner' ? ribbonItemOf(grp.corners?.[i]) : line.kind === 'item' ? grp.items[i] : null;
+      if (!it || it === 'divider' || typeof actionDef(it.action)?.dropDown !== 'function') return false;
+      if (it.open) delete it.open; else it.open = 'dropDown';
+      if (line.kind === 'corner') grp.corners[i] = ribbonCornerOf(it);
+    });
+    return pick(line.path);
   }
   if (line.kind !== 'item' && what !== 'divider') return;
   if (what === 'divider') { rbChange(m => { const its = m.tabs[t].groups[g]?.items; if (!its) return false; its.splice((i ?? its.length - 1) + 1, 0, 'divider'); }); return pick([t, g, (i ?? 0) + 1]); }

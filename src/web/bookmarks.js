@@ -189,11 +189,18 @@ async function bookmarkItems(kind) {
 }
 
 async function showBookmarkList(pane, preview) {
-  await loadBookmarks(pane.active.doc);
-  const list = bookmarkList(pane.active.doc);
-  if (!list.length) return toast('This file has no bookmarks.');
+  const items = await bookmarkGoItems(pane, preview);
+  if (!items.length) return toast('This file has no bookmarks.');
   const at = preview ? previewCursorCoords(pane) : pane.cm.cursorCoords(null, 'window');
-  openPopupMenu(list.map(b => ({
+  openPopupMenu(items, at.left, at.top);
+}
+
+// The document's bookmarks, each going there: the list above, and Manage bookmarks... as a drop-down on the ribbon
+// (bookmarkspane.js). No document: none.
+async function bookmarkGoItems(pane = previewOrEditor()?.pane, preview = pane?.active?.mode === 'preview') {
+  if (!pane?.active) return [];
+  await loadBookmarks(pane.active.doc);
+  return bookmarkList(pane.active.doc).map(b => ({
     label: b.n ? `Bookmark &${b.n}` : 'Bookmark', key: bookmarkText(b), run: () => moveTo(pane, Pos5(b.line, b.ch), false, preview),
-  })), at.left, at.top);
+  }));
 }

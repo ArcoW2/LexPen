@@ -89,4 +89,6 @@ function registerBookmarksPanes() {
 }
 
 appAction('bookmarks.pane', { title: 'Manage bookmarks...', hint: 'The bookmarks of the document, each with its line and the start of its text; a click goes there', group: 'bookmarks',
+  // On the ribbon as a drop-down (ribbon.js): the document's bookmarks, a click going there (bookmarks.js, loaded with the editor).
+  dropDown: () => loadEditor().then(async () => { const items = await bookmarkGoItems(); return items.length ? items : [{ label: '(no bookmarks)', enabled: false }]; }),
   run: () => openBookmarksPane() });
