@@ -457,7 +457,7 @@ every action with its key.
   elsewhere they are marked as the PDF's and stay as they are. The find bar (Ctrl+F, F3) searches its text. Its
   scroll bar is the preview's strip, with marks for find matches, highlights and chapters. Opened again, it is where
   it was read last (its page, the place on it, its zoom; the last 100 PDFs).
-- **Hex** (View > Hex, the top bar's Hex, the ribbon's Arrange > Text / Column / Hex): a tab as its bytes, per line the
+- **Hex** (View > Hex, the top bar's Hex, the ribbon's Arrange > Mode): a tab as its bytes, per line the
   offset, the bytes in hex and the same bytes as characters (one byte, one character: Windows-1252; a control or
   undefined byte a dimmed dot). Settings, Editor view > Hex: the bytes on a line (16) and an extra space after every
   so many (8; 0: none). A file that is neither text nor a kind LexPen knows opens in Hex only (up to 64 MB; "Bytes" in

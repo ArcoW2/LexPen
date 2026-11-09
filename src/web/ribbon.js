@@ -3,7 +3,8 @@
 // is (ribbon.json: yours, else the shipped one; RibbonFile.cs). Shown as the setting commandBar says: "menu" (no
 // ribbon), "ribbon" (its tab names in the top bar in the menus' place, its buttons under it) or "both" (under the
 // menus, its tab names in a row of their own). A button is large (icon above its label, the full height) or small
-// (icon and label, a third of it); up to three small ones stack in a column. A group may have an action in each
+// (icon and label, a third of it); up to three small ones stack in a column, or one above or under a large one (that
+// a row shorter). A group may have an action in each
 // bottom corner. An action with variants is a split button: its arrow (and its right-click) lists them. Alt with the
 // ribbon only shows key tips (setting altOpens). The ribbon changes only in its change mode: dragging (also from
 // F1's list), right-click, "New...", Ctrl+Z; every change is written to your ribbon.json at once.
@@ -95,13 +96,16 @@ function renderRibbon() {
 function rbGroupHtml(ti, gi, g) {
   const cols = ribbonColumns(g.items).map(c => {
     if (c.kind === 'divider') return `<div class="mm-rb-div" data-path="${ti}.${gi}.${c.i}"${rb.changing ? ' draggable="true"' : ''}></div>`;
-    if (c.kind === 'large') return rbButtonHtml(`${ti}.${gi}.${c.items[0].i}`, c.items[0].item, 'large');
+    if (c.kind === 'large') {   // alone, or with a small one above or under it
+      const html = c.items.map(({ item, i }) => rbButtonHtml(`${ti}.${gi}.${i}`, item, item.size === 'large' ? 'large' : 'small')).join('');
+      return c.items.length > 1 ? `<div class="mm-rb-col mm-rb-col-large">${html}</div>` : html;
+    }
     return `<div class="mm-rb-col">${c.items.map(({ item, i }) => rbButtonHtml(`${ti}.${gi}.${i}`, item, 'small')).join('')}</div>`;
   }).join('');
   const corner = side => {
     const call = g.corners?.[side], c = Array.isArray(call) ? call : call ? [call] : null;
     if (!c && !rb.changing) return '';
-    const title = c ? withKey(actionTitle(c[0], c.slice(1)), ...c) : `The ${side} corner: drop an action here`;
+    const title = c ? rbTip(c) : `The ${side} corner: drop an action here`;
     return `<button class="mm-rb-corner mm-rb-${side}${c ? '' : ' mm-rb-empty'}" data-corner="${ti}.${gi}.${side}"${c && rb.changing ? ' draggable="true"' : ''} title="${escapeHtml(title)}" tabindex="-1"></button>`;
   };
   return `<div class="mm-rb-group" data-group="${ti}.${gi}" title="${setting('ribbonGroupNames') === false ? escapeHtml(g.name) : ''}">` +
@@ -112,13 +116,19 @@ function rbGroupHtml(ti, gi, g) {
 // The icon has a drawing for the parameter itself (Previous, a panel): no number on it.
 const rbOwnDrawing = call => call[0] === 'panel' || !!RIBBON_ICONS.buttons[call.join(' ')];
 
+// A button's or corner's tooltip: its title and key, and on a line under it what it does (the action's hint).
+function rbTip(call) {
+  const hint = actionDef(call[0])?.hint;
+  return withKey(actionTitle(call[0], call.slice(1)), ...call) + (hint ? '\n' + hint : '');
+}
+
 function rbButtonHtml(path, item, size) {
   const call = rbCall(item), def = actionDef(item.action);
   if (!def) return rb.changing ? `<button class="mm-rb-btn mm-rb-${size} mm-rb-missing" data-path="${path}" draggable="true" title="No action ${escapeHtml(item.action)} (drag it off to remove it)" tabindex="-1">?</button>` : '';
   const title = actionTitle(item.action, item.params ?? []), label = item.label || title;
   const icon = ribbonIcon(call, size) ?? `<span class="mm-rb-letter">${escapeHtml(label.trim()[0] ?? '?')}</span>`;
   const list = rbHasList(item), arrow = '<span class="mm-rb-arrow" data-arrow title="Its list"></span>', mark = item.params?.length && !rbOwnDrawing(call) ? `<span class="mm-rb-mark">${escapeHtml(String(item.params[0]))}</span>` : '';
-  return `<button class="mm-rb-btn mm-rb-${size}" data-path="${path}" data-call="${escapeHtml(JSON.stringify(call))}"${rb.changing ? ' draggable="true"' : ''} title="${escapeHtml(withKey(title, ...call))}" tabindex="-1">` +
+  return `<button class="mm-rb-btn mm-rb-${size}" data-path="${path}" data-call="${escapeHtml(JSON.stringify(call))}"${rb.changing ? ' draggable="true"' : ''} title="${escapeHtml(rbTip(call))}" tabindex="-1">` +
     `<span class="mm-rb-icon">${icon}${mark}<span class="mm-rb-badge" hidden></span></span>` +
     // With a list, a split button: the arrow a part of its own that opens it (a large button's: a row under the label).
     `<span class="mm-rb-text"><span class="mm-rb-label">${escapeHtml(label)}</span>${list && size !== 'large' ? arrow : ''}</span>${list && size === 'large' ? arrow : ''}</button>`;
@@ -276,7 +286,7 @@ function rbTipTargets() {
   }
   const ti = rbTabIndex(), tab = rb.model.tabs[ti], body = rb.els.bodies.querySelector(`[data-body="${ti}"]`);
   const els = [...body.querySelectorAll('.mm-rb-btn[data-path], .mm-rb-corner:not(.mm-rb-empty)')].filter(b => !b.closest('[hidden]'));
-  const names = els.map(b => b.matches('[data-corner]') ? b.title : b.querySelector('.mm-rb-label').textContent);
+  const names = els.map(b => b.matches('[data-corner]') ? b.title.split('\n')[0] : b.querySelector('.mm-rb-label').textContent);
   const own = els.map(b => b.matches('[data-path]') ? rbItemAt(rbPath(b.dataset.path))?.tip : '');
   return { els, tips: ribbonTips(names, own), tab };
 }
@@ -430,7 +440,7 @@ function rbDropTarget(e) {
   const btn = e.target.closest('.mm-rb-btn[data-path], .mm-rb-div[data-path]');
   if (btn) {
     const r = btn.getBoundingClientRect(), small = btn.classList.contains('mm-rb-small');
-    const how = small && e.clientY > r.top + r.height * 0.6 ? 'under' : e.clientX < r.left + r.width / 2 ? 'before' : 'after';
+    const how = e.clientY > r.top + r.height * (small ? 0.6 : 0.8) ? 'under' : e.clientX < r.left + r.width / 2 ? 'before' : 'after';
     return { kind: 'item', el: btn, path: rbPath(btn.dataset.path), how };
   }
   const corner = e.target.closest('[data-corner]');
@@ -644,7 +654,7 @@ function rbEditMenu(e) {
     items = [
       { label: '&Large', checked: item.size === 'large', run: set(it => { it.size = 'large'; delete it.stack; }) },
       { label: '&Small', checked: item.size !== 'large', run: set(it => { delete it.size; }) },
-      { label: 'S&tacked under the one above', checked: !!item.stack, enabled: item.size !== 'large', run: set(it => { it.stack = !it.stack; }) },
+      { label: 'S&tacked under the one above', checked: !!item.stack, run: set(it => { it.stack = !it.stack; }) },
       ...(variants.length ? [{ label: '&Parameter', sub: [
         { label: '&None (the action itself, its list)', checked: !item.params?.length, run: set(it => { delete it.params; }) },
         ...variants.map(p => ({ label: actionTitle(item.action, p).replace(/&/g, '&&'), checked: JSON.stringify(item.params ?? []) === JSON.stringify(p), run: set(it => { it.params = p; }) }))] }] : []),
@@ -844,7 +854,7 @@ async function rbcDo(dlg, what) {
   if (line.kind !== 'item' && what !== 'divider') return;
   if (what === 'divider') { rbChange(m => { const its = m.tabs[t].groups[g]?.items; if (!its) return false; its.splice((i ?? its.length - 1) + 1, 0, 'divider'); }); return pick([t, g, (i ?? 0) + 1]); }
   if (what === 'size') rbChange(m => { const it = m.tabs[t].groups[g].items[i]; if (it.size === 'large') delete it.size; else { it.size = 'large'; delete it.stack; } });
-  if (what === 'stack') rbChange(m => { const it = m.tabs[t].groups[g].items[i]; if (it.size === 'large') return false; it.stack = !it.stack; });
+  if (what === 'stack') rbChange(m => { const it = m.tabs[t].groups[g].items[i]; it.stack = !it.stack; });
   if (what === 'rename') {   // a button's name is its label (a long macro name made short)
     const it = rb.model.tabs[t].groups[g].items[i];
     const v = await askName('Label (empty: the action\'s title)', it.label ?? '', actionTitle(it.action, it.params ?? []));

@@ -53,7 +53,7 @@ LexPen does not know (today refused) opens in Hex by default.
   while that mode is the one in use, so only one is ever checked. Hex is per tab; column mode stays what it is now (on
   or off for the window), so a text tab shows Column or Text by it, a tab in Hex shows Hex. `columnMode.toggle` and
   `hex.toggle` stay for their keys; `hex.toggle` switches between Hex and the mode the tab had before.
-- **On the ribbon**: Arrange > Select, where the large Column mode button is now: three small buttons stacked, Text,
+- **On the ribbon**: Arrange > Mode, a group of its own after Select (where the large Column mode button was): three small buttons stacked, Text,
   Column and Hex (`editMode.set` with each variant), radio buttons by how the ribbon already shows a checked
   variant: the one in use lit, a click on another switches, a click on the lit one changes nothing. In
   `defaults/ribbon.json`; a ribbon.json of your own keeps its Column mode button until changed by Customize or change
@@ -127,7 +127,7 @@ LexPen does not know (today refused) opens in Hex by default.
 - Unit (C#): `hexRead` of a range, at the start, the end and past it; `hexWrite` changing bytes and leaving the rest
   exactly as it was; a text encoded for Hex equals the bytes a save writes (UTF-8 with and without BOM, UTF-16, ANSI;
   CR LF and LF), and decodes back to the same text.
-- Unit (C#): the shipped ribbon.json has `editMode.set` text, column and hex stacked in Arrange > Select, and no
+- Unit (C#): the shipped ribbon.json has `editMode.set` text, column and hex stacked in Arrange > Mode, and no
   `columnMode.toggle` there (RibbonTests).
 - Unit (Jint): a byte's digits edited (one removed at the left or the right, the empty half filled with 0 on
   leaving, both removed giving 00, a-f in either case); a line's layout for several `hexBytesPerLine` and `hexGroup`
@@ -179,7 +179,7 @@ Built on branch `hex-view` (2026-11-08): `HexFile.cs` (whether a file is binary,
 host's `hexRead`, `hexWrite`, `hexEncode`, `hexDecode`, `web/hexmodel.js` (one byte one character, a line, a byte's
 digits), `web/hexview.js` (the view, editing, the actions `hex.toggle`, `editMode.set`, `hex.insert`, `hex.fill`,
 `hex.delete`, `hex.pasteOver`, `hex.pasteIn`), the settings `hexBytesPerLine` and `hexGroup`, View > Hex, the top
-bar's Hex switch, the ribbon's Arrange > Select Text / Column / Hex.
+bar's Hex switch, the ribbon's Arrange > Mode (Text mode / Column mode / Hex mode).
 
 Differs from the plan:
 
@@ -207,7 +207,7 @@ Differs from the plan:
 Tested: unit (C#, `HexTests`): a zero byte makes a file binary, UTF-16 and empty files not; the bytes read whole, over
 the limit refused; a text encoded as a save writes it and decoded back the same, for UTF-8, UTF-8 BOM, UTF-16 LE / BE
 and ANSI; a byte UTF-8 cannot read kept as the stand-in and written back; the shipped ribbon has Text, Column and Hex
-stacked in Arrange > Select (`RibbonTests`). Unit (Jint): a line for 16 / 8, 8 / 0 and 32 / 4; Windows-1252
+stacked in Arrange > Mode (`RibbonTests`). Unit (Jint): a line for 16 / 8, 8 / 0 and 32 / 4; Windows-1252
 characters, the dot for control and undefined bytes, the byte of a character typed; the offset's width; a digit gone
 counting as 0; hex in each usual notation read, other text refused. All tests pass.
 In the test copy by script: a binary file opens in Hex; typing digits (either case);

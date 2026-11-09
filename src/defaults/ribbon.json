@@ -39,15 +39,15 @@
       { "name": "Select", "items": [
         { "action": "selectAll", "size": "large" },
         { "action": "selectLine", "label": "Line" }, { "action": "blockSelect", "label": "Block", "stack": true },
-        { "action": "selectInsideBrackets", "label": "Brackets", "stack": true },
-        "divider",
+        { "action": "selectInsideBrackets", "label": "Brackets", "stack": true } ] },
+      { "name": "Mode", "items": [
         { "action": "editMode.set", "params": ["text"], "label": "Text mode" }, { "action": "editMode.set", "params": ["column"], "label": "Column mode", "stack": true },
         { "action": "editMode.set", "params": ["hex"], "label": "Hex mode", "stack": true } ] },
       { "name": "Sort", "corners": { "right": "edit.sortWindow" }, "items": [
         { "action": "edit.sortWindow", "size": "large" },
         { "action": "edit.sortAsc" }, { "action": "edit.sortDesc", "stack": true }, { "action": "edit.sortAgain", "stack": true } ] },
       { "name": "History", "items": [
-        { "action": "undo" }, { "action": "redo", "stack": true } ] } ] },
+        { "action": "undo", "size": "large" }, { "action": "redo", "stack": true } ] } ] },
 
     { "name": "Review", "groups": [
       { "name": "Highlights", "corners": { "right": "highlight.list" }, "items": [

@@ -77,14 +77,18 @@ public class RibbonTests : IDisposable
     }
 
     [Fact]
-    public void ArrangeSelectHasTextColumnAndHexStackedInsteadOfColumnMode()
+    public void ArrangeHasAModeGroupAfterSelectWithTextColumnAndHexStacked()
     {
-        var select = RibbonFile.Load(dir, Shipped)["ribbon"]!["tabs"]!.AsArray().First(t => t!["name"]!.GetValue<string>() == "Arrange")!
-            ["groups"]!.AsArray().First(g => g!["name"]!.GetValue<string>() == "Select")!["items"]!.AsArray();
-        var modes = select.Where(i => i is JsonObject o && o["action"]!.GetValue<string>() == "editMode.set").ToList();
+        var groups = RibbonFile.Load(dir, Shipped)["ribbon"]!["tabs"]!.AsArray().First(t => t!["name"]!.GetValue<string>() == "Arrange")!
+            ["groups"]!.AsArray().ToList();
+        var names = groups.Select(g => g!["name"]!.GetValue<string>()).ToList();
+        Assert.Equal(names.IndexOf("Select") + 1, names.IndexOf("Mode"));
+        var select = groups[names.IndexOf("Select")]!["items"]!.AsArray();
+        var modes = groups[names.IndexOf("Mode")]!["items"]!.AsArray();
         Assert.Equal(["text", "column", "hex"], modes.Select(i => i!["params"]![0]!.GetValue<string>()));
         Assert.Equal([false, true, true], modes.Select(i => i!["stack"]?.GetValue<bool>() == true));
-        Assert.DoesNotContain(select, i => i is JsonObject o && o["action"]!.GetValue<string>() == "columnMode.toggle");
+        Assert.DoesNotContain(select, i => i is JsonObject o && o["action"]!.GetValue<string>() is "columnMode.toggle" or "editMode.set");
+        Assert.DoesNotContain(select, i => i is JsonValue);   // no divider left at its end
     }
 
     // ---------- The columns of a group ----------
@@ -99,10 +103,22 @@ public class RibbonTests : IDisposable
     }
 
     [Fact]
-    public void AFourthStackedOneStartsANewColumnAndAStackWithoutASmallOneBeforeItToo()
+    public void ASmallOneSharesALargeOnesColumnAboveOrUnder()
+    {
+        string Order(string items) => string.Join(" ", Js($"ribbonColumns({items}).map(c => c.items.map(x => x.item.action).join(''))").EnumerateArray().Select(e => e.GetString()));
+        // Under a large one: one column; a second stacked one starts its own.
+        Assert.Equal("ab c", Order("""[{ action: 'a', size: 'large' }, { action: 'b', stack: true }, { action: 'c', stack: true }]"""));
+        // A large one stacked under a small one alone: one column, the small one on top; under two small ones: its own.
+        Assert.Equal("ab", Order("""[{ action: 'a' }, { action: 'b', size: 'large', stack: true }]"""));
+        Assert.Equal("ab c", Order("""[{ action: 'a' }, { action: 'b', stack: true }, { action: 'c', size: 'large', stack: true }]"""));
+        Assert.Equal("L", Shape("""[{ action: 'a' }, { action: 'b', size: 'large', stack: true }]"""));
+    }
+
+    [Fact]
+    public void AFourthStackedOneStartsANewColumnAndAStackWithoutAColumnBeforeItToo()
     {
         Assert.Equal("S3 S1", Shape("""[{ action: 'a' }, { action: 'b', stack: true }, { action: 'c', stack: true }, { action: 'd', stack: true }]"""));
-        Assert.Equal("L S1 | S1", Shape("""[{ action: 'a', size: 'large' }, { action: 'b', stack: true }, 'divider', { action: 'c', stack: true }]"""));
+        Assert.Equal("L | S1", Shape("""[{ action: 'a', size: 'large' }, { action: 'b', stack: true }, 'divider', { action: 'c', stack: true }]"""));   // b under a, c alone
     }
 
     // ---------- Key tips ----------

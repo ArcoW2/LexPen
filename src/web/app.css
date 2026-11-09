@@ -1551,7 +1551,10 @@ body.mm-rb-menus .mm-rb-tabs-top { display: none; }
 .mm-rb-name > .mm-rb-left { grid-row: 1; grid-column: 1; }
 .mm-rb-name > .mm-rb-right { grid-row: 1; grid-column: 3; }
 .mm-ribbon:not(.mm-rb-names) .mm-rb-name > span { display: none; }
-.mm-rb-col { display: flex; flex-direction: column; justify-content: center; }
+.mm-rb-col { display: flex; flex-direction: column; justify-content: flex-start; }   /* one or two: at the top */
+/* A large button with a small one above or under it: a row shorter, its label on one line. */
+.mm-rb-col-large > .mm-rb-large { height: calc(var(--rb-row) * 2); }
+.mm-rb-col-large > .mm-rb-large .mm-rb-label { -webkit-line-clamp: 1; max-width: var(--rb-ch); }
 .mm-rb-div { width: 1px; margin: 4px 3px; background: var(--border); }
 .mm-rb-btn { position: relative; display: flex; align-items: center; gap: 5px; padding: 0 6px; border-radius: 4px; white-space: nowrap; }
 .mm-rb-small { height: var(--rb-row); }

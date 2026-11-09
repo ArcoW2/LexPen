@@ -7,13 +7,19 @@ const RB_STACK = 3;   // small buttons in one column at most
 // ---------- The model: plain functions (the tests run them under Jint) ----------
 // A group's items as its columns, in order: { kind: 'large', items: [{ item, i }] }, { kind: 'small', items: [up to
 // three] }, { kind: 'divider', i }. A small item with stack goes under the small column before it while that has room;
-// else, and without stack, it starts a column of its own.
+// else, and without stack, it starts a column of its own. A large one and one small one can share a column (the large
+// one a row shorter), items top to bottom: a small one with stack under a large one alone, a large one with stack
+// under a small one alone.
 function ribbonColumns(items) {
   const cols = [];
   (items ?? []).forEach((item, i) => {
     if (item === 'divider') return cols.push({ kind: 'divider', i });
-    if (item?.size === 'large') return cols.push({ kind: 'large', items: [{ item, i }] });
-    const last = cols.at(-1);
+    const last = cols.at(-1), large = item?.size === 'large';
+    if (item?.stack && last?.items?.length === 1 && last.kind === (large ? 'small' : 'large')) {
+      last.kind = 'large';
+      return last.items.push({ item, i });
+    }
+    if (large) return cols.push({ kind: 'large', items: [{ item, i }] });
     if (item?.stack && last?.kind === 'small' && last.items.length < RB_STACK) last.items.push({ item, i });
     else cols.push({ kind: 'small', items: [{ item, i }] });
   });
