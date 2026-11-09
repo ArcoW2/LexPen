@@ -21,8 +21,8 @@ moving pinned tabs work as now; only where they are shown changes.
 ### 3.1 The setting
 
 - `pinnedTabs` (Settings, Tabs): "regular" (as now, the default), "grouped" (one tab), "row" (a row of their own).
-  One for all panes and windows, as the tab bar setting is. Also in the tab bar's own menu and a pinned tab's
-  right-click ("Pinned tabs: Regular / Grouped / Own row").
+  One for all panes, windows and projects, as the tab bar setting is (an app setting, not a project's). Also in the
+  tab bar's own menu and a pinned tab's right-click ("Pinned tabs: Regular / Grouped / Own row").
 
 ### 3.2 Grouped
 
@@ -71,4 +71,4 @@ moving pinned tabs work as now; only where they are shown changes.
 
 ## 4. Open questions
 
-1. **Per pane or for all**: one setting for every pane and window (suggestion, as the tab bar setting), or per pane?
+None.
