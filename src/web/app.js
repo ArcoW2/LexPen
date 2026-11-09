@@ -3157,9 +3157,14 @@ async function runSearch() {
   let docsHere = scope === 'selection' ? [within.doc] : scope === 'file' ? [activeDoc()].filter(Boolean) : [...docs];
   if (folder) docsHere = docsHere.filter(d => d.path && d.path.toLowerCase().startsWith(folder.toLowerCase().replace(/\\$/, '') + '\\') &&
     (!knownOnly || knownFile(d.path)));
-  const groups = docsHere.map(doc => ({ path: doc.path, draft: doc.draft,
-    matches: within ? searchText(docText(doc), regex, scopeRanges(within)) : searchText(docText(doc), regex) }))
-    .filter(g => g.matches.length);
+  // A PDF: its pages' texts (pdffind.js), read-only (no Replace).
+  const groups = [];
+  for (const doc of docsHere) {
+    const matches = doc.pdf ? await pdfSearchMatches(doc, regex)
+      : within ? searchText(docText(doc), regex, scopeRanges(within)) : searchText(docText(doc), regex);
+    if (matches.length) groups.push({ path: doc.path, draft: doc.draft, matches, ...(doc.pdf && { skip: 'a PDF is read-only', pdf: true }) });
+  }
+  if (run !== searchRun) return;   // a newer search started meanwhile (a PDF read)
   let truncated = false;
   if (folder) {
     // While it runs the floating Search panel stays with this window (plan 22; panechannel.js), its bar says so.
@@ -3210,13 +3215,13 @@ function drawSearchResults() {
     list.className = 'mm-result-list';
     for (const m of group.matches) {
       const row = document.createElement('div');
-      row.className = 'mm-result' + (m.done ? ' mm-done' : '') + (group.skip ? ' mm-skip' : '');
+      row.className = 'mm-result' + (m.done ? ' mm-done' : '') + (group.skip && !group.pdf ? ' mm-skip' : '');   // a PDF: read-only, not a warning
       row.dataset.hit = searchHits.push({ ...m, path: group.path, draft: group.draft, group: g }) - 1;
       const end = m.endLine === m.line ? m.endCol : m.text.length;
       // Long lines: start a little before the match.
       const from = Math.max(0, m.col - 30);
       const found = m.done ? `<del>${escapeHtml(m.done.old)}</del><ins>${escapeHtml(m.done.new)}</ins>` : `<mark>${escapeHtml(m.text.slice(m.col, end))}</mark>`;
-      row.innerHTML = `<span class="mm-result-line">${m.line + 1}</span><span class="mm-result-text">` +
+      row.innerHTML = `<span class="mm-result-line">${m.page ? 'p. ' + m.page : m.line + 1}</span><span class="mm-result-text">` +
         (from ? '...' : '') + escapeHtml(m.text.slice(from, m.col)) + found + escapeHtml(m.text.slice(end, end + 200)) + '</span>' +
         (m.done || group.skip ? '' : rep);
       list.append(row);
@@ -3234,6 +3239,11 @@ function drawSearchResults() {
 // unless that tab's document has unsaved changes. Ctrl+click and Shift+click as in the Folder pane (openFromTree): the
 // other pane, a new tab.
 async function goToSearchHit(hit, here, { ctrlKey, shiftKey } = {}) {
+  if (hit.page) {   // a PDF's: shown there as the find bar shows a match (pdffind.js)
+    const pdf = await openFile(hit.path);
+    if (pdf?.pdf) pdfSend(pdf, { kind: 'findShow', page: hit.page, from: hit.s, to: hit.e });
+    return;
+  }
   let tab, how = 'found';
   const active = activeTab();
   if (here && !hit.draft && active?.doc.path && !samePath(active.doc.path, hit.path) && !active.doc.dirty && !active.doc.pdf) {

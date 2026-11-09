@@ -199,7 +199,8 @@ every action with its key.
   the selection"; F3 keeps to it until the next Ctrl+F or Ctrl+R. In the replacement `^p` is a line break (with the
   file's line end), `^t` a tab, `^^` a caret; with a regular expression `\n`, `\t`, `$1`, `$&`. The `?` button lists
   every code, the same list as F1. A click on the count ("3 of 13", an icon after it): the same search, with its
-  switches, in the Search pane on this file, every match in a list there.
+  switches, in the Search pane on this file, every match in a list there. Also on a PDF:
+  its matches per page ("p. 12"), a click shows the match there (read-only: no Replace).
 - **Search** (Ctrl+Shift+F): in the current file, the open files (unsaved edits included) or the files in the
   folder (the open folder, otherwise the folder of the current file), with match case, whole word, regular
   expressions and Known (known file types only: a language LexPen knows, not .bak copies and the like; Find
