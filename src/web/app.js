@@ -3527,6 +3527,7 @@ function fromSearch(m) {
       f3Take('search');
       return goToSearchHit(searchHits[m.hit], m.here, m);
     case 'f3': return f3Take('search');   // its F3 tag clicked
+    case 'step': f3Take('search'); return searchStep(m.dir);   // its Previous / Next
     case 'replaceFile': return replaceFile(m.group);   // searchreplace.js
     case 'replaceMatch': return searchHits[m.hit] && replaceMatch(searchHits[m.hit]);
     case 'replaceAll': return replaceAllResults();

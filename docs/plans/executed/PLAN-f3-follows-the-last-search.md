@@ -86,6 +86,9 @@ Differs from the plan:
 - **The find bar's blink** is an accent edge around the bar (one 0.25 s blink); the Search pane's is its page's flash,
   once.
 - **A result clicked** takes F3 and is where F3 goes on from; a new search starts from the cursor again.
+- **The Search pane's bar** (asked after the build): Previous and Next before its F3 tag, as the find bar has them
+  (they step through the results and take F3), the tag always shown; Known only with the scope Files in folder (it
+  only filters a folder's files); the bar on two lines when the pane is narrow.
 
 Tested in the test copy by script, with real F3 and Shift+F3 keys: the find bar's F3 on its matches; a search of the open
 files, F3 from the cursor's result to the next ones, into the other file (opened), Shift+F3 back, the list marking the

@@ -206,8 +206,9 @@ every action with its key.
   taking over flashes once.
 - **Search** (Ctrl+Shift+F): in the current file, the open files (unsaved edits included) or the files in the
   folder (the open folder, otherwise the folder of the current file), with match case, whole word, regular
-  expressions and Known (known file types only: a language LexPen knows, not .bak copies and the like; Find
-  references turns it on). Codes: `^p` line break (CR, LF or CRLF), `^t` tab, `^?` any character, `^#` digit, `^$` letter,
+  expressions and, for the files in the folder, Known (known file types only: a language LexPen knows, not .bak
+  copies and the like; Find references turns it on). Previous, Next and an F3 tag as in the find bar.
+  Codes: `^p` line break (CR, LF or CRLF), `^t` tab, `^?` any character, `^#` digit, `^$` letter,
   `^w` spaces or tabs, `^^` the `^` itself. Click a result to go there (in its file's tab, else a new one; Alt+click:
   in the active tab, unless it has unsaved changes, and Back returns; Ctrl+click and Shift+click as in the Folder
   pane: the other pane, a new tab). The Search pane can float in a window of its

@@ -435,7 +435,7 @@ body[data-dock-tab-bar=scroll] .mm-dock-tabs { flex-wrap: nowrap; overflow: auto
   border: 1px solid var(--border); border-radius: 4px; outline: none;
 }
 .mm-search-input:focus { border-color: var(--accent); }
-.mm-search-bar { display: flex; align-items: center; gap: 2px; padding: 0 8px 4px; }
+.mm-search-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; padding: 0 8px 4px; }   /* narrow: on two lines */
 .mm-search-bar [data-opt] { padding: 2px 7px; font-size: calc(12px * var(--ui-scale)); font-family: Consolas, monospace; }
 .mm-search-bar [data-opt].mm-on { background: var(--active); color: var(--accent); border-color: var(--accent); }
 .mm-search-scope { margin-left: auto; font: inherit; font-size: calc(12px * var(--ui-scale)); color: var(--fg); background: var(--bg-side); border: 1px solid var(--border); border-radius: 4px; }
@@ -459,11 +459,9 @@ body[data-search-replace] .mm-result.mm-on .mm-result-rep { display: block; }
 .mm-search-status { padding: 2px 12px 6px; font-size: calc(12px * var(--ui-scale)); color: var(--fg-dim); }
 /* F3 (plan 47): a tag in the find bar and the Search pane, lit where F3 goes (as an active ribbon button), dimmed on the
    other; a click: F3 there. */
-.mm-search-status-row { display: flex; align-items: flex-start; }
-.mm-search-status-row .mm-search-status { flex: 1; min-width: 0; }
 .mm-find-f3, .mm-search-f3 { flex: none; padding: 0 5px; border: 0; border-radius: 3px; font-size: calc(11px * var(--ui-scale)); font-weight: 600;
   line-height: 1.6; color: var(--fg-dim); background: none; opacity: .5; cursor: pointer; }
-.mm-search-f3 { margin: 1px 8px 0 0; }
+.mm-search-bar [hidden] { display: none; }   /* Known: with the folder scope only (search-pane.js) */
 .mm-find-f3.mm-on, .mm-search-f3.mm-on { opacity: 1; color: var(--accent); background: var(--active); }
 .mm-find-f3:hover, .mm-search-f3:hover { opacity: 1; }
 /* F3 come to the find bar from the Search pane: one blink (app.js f3Step). */

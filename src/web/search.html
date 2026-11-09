@@ -14,7 +14,12 @@
     <button data-opt="case" title="Match case">Aa</button>
     <button data-opt="word" title="Whole word only">W</button>
     <button data-opt="regex" title="Regular expression (then the ^ codes do not apply)">.*</button>
-    <button data-opt="known" title="Known file types only: files of a language LexPen knows (not .bak and the like); for the files in the folder and the open files">Known</button>
+    <!-- Previous / Next result, and F3 (plan 47): as the find bar's; the tag lit while F3 comes here, a click: F3 here. -->
+    <button class="mm-search-step" data-step="-1" title="Previous result (Shift+F3 while F3 is here)"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10l4-4 4 4"/></svg></button>
+    <button class="mm-search-step" data-step="1" title="Next result (F3 while F3 is here)"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg></button>
+    <button class="mm-search-f3" title="F3 / Shift+F3: the next / previous result here (a click: F3 here)">F3</button>
+    <!-- Only for the files in a folder: of a language LexPen knows. -->
+    <button data-opt="known" title="Known file types only: files of a language LexPen knows (not .bak and the like) in the folder">Known</button>
     <button class="mm-search-toggle" title="Replace (Ctrl+Shift+R)">Replace</button>
     <select class="mm-search-scope" title="Where to search">
       <option value="selection">In selection</option>
@@ -32,7 +37,7 @@
       <button class="mm-search-codes" title="The codes of Find and Replace with">?</button>
     </div>
   </div>
-  <div class="mm-search-status-row"><div class="mm-search-status"></div><button class="mm-search-f3" title="F3 / Shift+F3: the next / previous result here (a click: F3 here)" hidden>F3</button></div>
+  <div class="mm-search-status"></div>
   <div class="mm-search-results"></div>
 </div>
 <script src="pane.js"></script>
