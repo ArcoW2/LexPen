@@ -505,6 +505,7 @@ async function hexSet(tab, on, mode) {
   if (!on && tab.doc.binary) return toast(`${docName(tab.doc)} is not text: it is shown as its bytes only.`, true);
   const pane = paneOf(tab);
   tab.hex = on;
+  tab.hexChosen = on;   // chosen: it stays when the tab takes another file (app.js); not chosen, only a binary file is in Hex
   if (!on && mode && !tab.doc.pdf) tab.mode = mode;
   await showActive(pane);
   if (pane.active === tab) focusPane(pane);
@@ -512,7 +513,11 @@ async function hexSet(tab, on, mode) {
 }
 
 // What the tab is worked on as: Text, Column (column mode on) or Hex; one at a time.
-const hexEditMode = () => activeTab()?.hex ? 'hex' : column.on ? 'column' : 'text';
+// A file shown in its own way only (a PDF; bytes LexPen does not know): no text to work on, so no Text or Column mode.
+const notText = doc => !!(doc?.pdf || doc?.binary);
+const hexEditMode = () => activeTab()?.hex ? 'hex' : notText(activeTab()?.doc) ? null : column.on ? 'column' : 'text';
+// In Hex not by choice: a file LexPen does not know (the ribbon marks the Hex button with a dotted line, not lit).
+const hexAuto = () => { const t = activeTab(); return !!t?.hex && !t.hexChosen; };
 
 // ---------- Actions (F1, the menus, the ribbon) ----------
 const hexTab = () => { const t = activeTab(); return t?.hex && t.doc.hexData ? t : null; };
@@ -520,16 +525,17 @@ const hexEditable = () => { const t = hexTab(); return !!t && editable(t); };
 const hexHasSel = () => { const t = hexTab(); return !!t && hexState(t).anchor !== null && editable(t); };
 
 appAction('hex.toggle', { title: 'Hex mode', hint: 'The tab as its bytes: offset, hex and characters, edited in either part (again: back to the text)',
-  group: 'view', checked: () => !!activeTab()?.hex, enabled: () => !!activeTab() && !activeTab().doc.binary,
+  group: 'view', checked: () => !!activeTab()?.hex, auto: () => hexAuto(), enabled: () => !!activeTab() && !activeTab().doc.binary,
   run: () => { const t = activeTab(); if (t) hexSet(t, !t.hex); } });
 appAction('editMode.set', { title: 'Work on the tab as', hint: 'Text, Column (column mode) or Hex (its bytes): one at a time', group: 'edit',
   variants: [['text'], ['column'], ['hex']], variantTitles: { text: 'Text mode', column: 'Column mode', hex: 'Hex mode' },
   checked: ([m]) => !!activeTab() && hexEditMode() === m,
-  enabled: ([m]) => !!activeTab() && (m === 'hex' || !activeTab().doc.binary),
+  auto: ([m]) => m === 'hex' && hexAuto(),
+  enabled: ([m]) => !!activeTab() && (m === 'hex' || !notText(activeTab().doc)),
   run: async ([m]) => {
     const t = activeTab();
     if (!t) return;
-    if (m === 'hex') return t.hex || hexSet(t, true);
+    if (m === 'hex') return t.hex && t.hexChosen || hexSet(t, true);   // in Hex by itself (a binary file): now chosen
     if (t.hex) await hexSet(t, false);
     if (column.on !== (m === 'column')) setColumnMode(m === 'column');
   } });

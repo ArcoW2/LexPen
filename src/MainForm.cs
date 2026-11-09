@@ -1249,6 +1249,9 @@ sealed class MainForm : Form
             case "toolWindowsOpen":   // View > Panels: the floating panes whose window is open (plan 24 stage 9)
                 return app.ToolWindowsOpen(this);
 
+            case "toolWindowRects":   // a dialog of the page out from under them (app.js avoidToolWindows)
+                return app.ToolWindowRects(this, web.PointToScreen(Point.Empty));
+
             case "closeToolWindow":
                 app.CloseToolWindow(this, Arg("kind"));
                 return null;

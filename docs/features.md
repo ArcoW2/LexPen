@@ -197,9 +197,10 @@ every action with its key.
   Previous (Shift+F3). Each Replace is its own undo step. Text selected in the editor when the bar opens is where it
   finds and replaces (several selections, a column block per line), marked while the bar is open; the count says "in
   the selection"; F3 keeps to it until the next Ctrl+F or Ctrl+R. In the replacement `^p` is a line break (with the
-  file's line end), `^t` a tab, `^^` a caret; with a regular expression `
-`, `	`, `$1`, `$&`. The `?` button lists
-  every code, the same list as F1.
+  file's line end), `^t` a tab, `^^` a caret; with a regular expression `\n`, `\t`, `$1`, `$&`. The `?` button lists
+  every code, the same list as F1. A click on the count ("3 of 13", an icon after it): the same search, with its
+  switches, in the Search pane on this file, every match in a list there. Also on a PDF:
+  its matches per page ("p. 12"), a click shows the match there (read-only: no Replace).
 - **Search** (Ctrl+Shift+F): in the current file, the open files (unsaved edits included) or the files in the
   folder (the open folder, otherwise the folder of the current file), with match case, whole word, regular
   expressions and Known (known file types only: a language LexPen knows, not .bak copies and the like; Find
@@ -467,9 +468,12 @@ every action with its key.
   offset, the bytes in hex and the same bytes as characters (one byte, one character: Windows-1252; a control or
   undefined byte a dimmed dot). Settings, Editor view > Hex: the bytes on a line (16) and an extra space after every
   so many (8; 0: none). A file that is neither text nor a kind LexPen knows opens in Hex only (up to 64 MB; "Bytes" in
-  the bottom bar) and is saved as its bytes. A text file in Hex shows its text as the next save writes it (encoding,
-  BOM, line ends, unsaved changes included); a change goes back into the text as one undo step, a byte its encoding
-  cannot read showing as 0xAB there and saved back as it was. Editing, in either part (Tab between them): a hex digit
+  the bottom bar) and is saved as its bytes; also in a tab that had another file, which then goes back to Text for a
+  text file, unless Hex was chosen for that tab (the ribbon: Hex not chosen has a dotted line). A PDF has no Text or
+  Column mode, Hex it has; Editor is greyed out for it (the ribbon and the top bar). A text file in Hex
+  shows its text as the next save writes it (encoding, BOM, line ends, unsaved changes included); a change goes back
+  into the text as one undo step, a byte its encoding cannot read showing as 0xAB there and saved back as it was.
+  Editing, in either part (Tab between them): a hex digit
   (either case) or a character overwrites; the cursor's byte is coloured in its part, underlined in the other. Delete
   and Backspace never remove a byte: in the hex part they remove one digit (the other stays where it is, the gone one
   counting as 0 when the cursor leaves: 3F becomes 0F or 30), in the text part they set a byte to 00. Typing never
@@ -851,6 +855,8 @@ every action with its key.
   A button or corner whose action shows a window with a list (Manage clipboards..., Manage bookmarks..., Highlights
   window, Manage macros...) can open that list under it instead (right-click > Opens: Drop-down; a small arrow down
   on a corner); Clipboard, Bookmarks and Highlights have the window in the left corner and the drop-down in the right.
+  The File tab: File (with Recent and Favourites, the files, as drop-downs), Print, Folder (with its recent and
+  favourite folders) and Document tabs (with Recently closed).
   Its height: drag the strip under the group names (lower: the spacing first, then the text down to 3/4; from 90 to
   50 px for the three rows; a double click: the full height). Shown always or only when wanted (Settings: Show the
   ribbon, Ctrl+F1, the button at its right end, or dragging the strip up past its lowest): then only its tab names
@@ -860,6 +866,7 @@ every action with its key.
   Done or Esc ends it): drag commands from F1 onto it (an action, or one of its variants: Paste from clipboard 3),
   move buttons, groups (by their grip) and tabs, drop an action on a group's corner, drag anything off to remove it,
   "New..." for a tab or a group, right-click for size, stacking, label, key tip, parameter, divider; Ctrl+Z undoes.
+  A label can have a line break of its own (Shift+Enter when renaming): a large button shows it.
   Customize... does the same by list. Your `ribbon.json` in `%LOCALAPPDATA%\LexPen` (the shipped one:
   `defaults\ribbon.json`); Reset goes back to the shipped ribbon.
 - **Questions** come in LexPen's own window: in the app theme of the window that asks (its colours, the app font),

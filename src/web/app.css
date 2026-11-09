@@ -91,6 +91,7 @@ body[data-dirty] .mm-save { visibility: visible; }
 .mm-switches { display: flex; margin: 0 6px; border: 1px solid var(--border); border-radius: 5px; overflow: hidden; }
 .mm-switches button { border-radius: 0; border: 0; }
 .mm-switches button.mm-on { background: var(--active); color: var(--accent); }
+.mm-switches button:disabled { opacity: .45; cursor: default; background: none; }   /* not possible for this file (updateChrome) */
 
 /* The menu bar (menus.js) and its menus, placed at the menu title or the item they open from. */
 .mm-menubar { display: flex; margin-left: 4px; }
@@ -293,9 +294,11 @@ body[data-show-eol] .CodeMirror[data-eol=cr] .CodeMirror-line:not(.mm-last-line)
 .mm-name-dialog { min-width: 26em; }
 /* Messages (app.js, showMessages): time, message, document; errors in the caution colour. */
 .mm-name-dialog label { display: block; margin-bottom: 8px; }
-.mm-name-dialog input { width: 100%; box-sizing: border-box; padding: 4px 6px; font: inherit; color: var(--fg);
+.mm-name-dialog input, .mm-name-dialog textarea { width: 100%; box-sizing: border-box; padding: 4px 6px; font: inherit; color: var(--fg);
   background: var(--bg); border: 1px solid var(--border); border-radius: 4px; }
 .mm-name-dialog .mm-name-buttons { display: flex; justify-content: flex-end; gap: 6px; margin-top: 12px; }
+.mm-name-dialog textarea { display: block; resize: none; text-align: left; }   /* a label with lines (askName lines) */
+.mm-name-dialog [hidden] { display: none; }
 /* Macros > Manage (macros.js) */
 /* A macro's window and Manage (macros.js, plan 36): not modal, over the window at its right, moved by its title. */
 /* A macro's mistakes as you type (macros.js): underlined, their line numbers marked; the message as a tooltip. */
@@ -1106,6 +1109,14 @@ body { --col-guide: color-mix(in srgb, var(--col-guide-colour, var(--border)) va
 .mm-codes-row small { display: block; color: var(--fg-dim); }
 .mm-find-count { flex: none; min-width: 70px; padding: 0 6px; color: var(--fg-dim); font-size: calc(12px * var(--ui-scale)); white-space: nowrap; }
 .mm-find-count.mm-none { color: var(--bar-removed); }
+/* The count as a button (find.js findToSearch): the same search in the Search pane; an icon after it, a divider before
+   the switches. */
+.mm-find-tosearch { flex: none; display: inline-flex; align-items: center; gap: 2px; padding: 2px 4px 2px 0; border-radius: 4px; color: var(--fg-dim); }
+.mm-find-tosearch .mm-find-count { min-width: 64px; }
+.mm-find-tosearch svg { flex: none; opacity: .75; }
+.mm-find-tosearch:hover { background: var(--hover); }
+.mm-find-tosearch:hover svg { opacity: 1; }
+.mm-find-div { flex: none; width: 1px; height: 16px; margin: 0 4px; background: var(--border); }
 .mm-find-close::before { content: "\2715"; font-size: calc(11px * var(--ui-scale)); }
 /* Occurrences (occurrences.js): before Find's rules, so a find match on the same text is drawn over them (in the
    preview by a lower highlight priority). occurrences.mark (body[data-occ-mark]): a background, a box (--occurrence-box)
@@ -1521,7 +1532,8 @@ body[data-highlight=underline] .CodeMirror .mm-hl { background: none; box-shadow
   border-left: 2px solid var(--accent); border-right: 2px solid var(--accent); }
 /* The preview's scroll bar (previewoverview.js): the editor's strip in place of the browser's bar; the content keeps
    clear of it. */
-.mm-preview-pane { scrollbar-width: none; padding-right: var(--mm-overview-w, 20px); box-sizing: border-box; }
+.mm-preview-pane { scrollbar-width: none; padding-right: var(--mm-overview-w, 20px); box-sizing: border-box;
+  clip-path: inset(0 var(--mm-overview-w, 20px) 0 0); }   /* what scrolls sideways (a wide table) not under the strip */
 .mm-pv-overview, .mm-pv-overview-view { position: absolute; }
 
 /* During a splitter's drag (docks.js dockDrag): over everything, so a pane's frame does not take the moves. */
@@ -1567,7 +1579,7 @@ body.mm-rb-menus .mm-rb-tabs-top { display: none; }
 .mm-rb-large { flex-direction: column; justify-content: flex-start; gap: 1px; padding: calc(3px * var(--rb-sp, 1)) 6px; text-align: center; white-space: normal; }
 .mm-rb-small .mm-rb-label { max-width: var(--rb-ch); overflow: hidden; text-overflow: ellipsis; }
 .mm-rb-large .mm-rb-label { max-width: calc(var(--rb-ch) / 2); line-height: var(--rb-lh, 1.3); overflow: hidden; display: -webkit-box;
-  -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  -webkit-line-clamp: 2; -webkit-box-orient: vertical; white-space: pre-line; }   /* a line break of its own (a label renamed with Shift+Enter); a small one: a space */
 .mm-rb-icon { position: relative; display: inline-flex; flex: none; }
 .mm-rb-letter { display: inline-grid; place-items: center; width: calc(14px * var(--rb-f, 1)); height: calc(14px * var(--rb-f, 1)); border: 1.4px solid currentColor; border-radius: 3px;
   font-size: 9px; font-weight: 700; }
@@ -1599,6 +1611,7 @@ body.mm-rb-menus .mm-rb-tabs-top { display: none; }
 .mm-rb-small:has([data-arrow]) { --rb-main-w: calc(100% - 18px); }
 .mm-rb-large:has([data-arrow]) { --rb-main-h: calc(100% - (var(--rb-ar, 16) + 1) * 1px); }
 .mm-rb-btn.mm-on { background: var(--active); color: var(--accent); }
+.mm-rb-btn.mm-auto { outline: 1px dashed var(--accent); outline-offset: -1px; }   /* on by itself, not chosen (Hex for a binary file) */
 .mm-rb-btn.mm-off { opacity: .45; }
 .mm-rb-btn.mm-off:hover { background: none; }
 /* 22 x 18 to hit, into the group's padding and down to its edge; the mark a small corner at the outside */

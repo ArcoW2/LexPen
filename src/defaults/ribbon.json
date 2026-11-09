@@ -10,9 +10,16 @@
   "tabs": [
     { "name": "File", "groups": [
       { "name": "File", "items": [
-        { "action": "save", "size": "large" },
-        { "action": "saveAs" }, { "action": "newFile", "stack": true }, { "action": "openFile", "stack": true },
-        { "action": "print" }, { "action": "closeTab", "stack": true } ] } ] },
+        { "action": "newFile", "size": "large", "label": "New\nfile" }, { "action": "openFile", "size": "large", "label": "Open\nfile..." },
+        { "action": "recent.list", "params": ["files"], "label": "Recent" }, { "action": "favourites.list", "params": ["files"], "label": "Favourites", "stack": true },
+        { "action": "save", "size": "large", "label": "Save file" }, { "action": "saveAs", "stack": true } ] },
+      { "name": "Print", "items": [
+        { "action": "print", "size": "large" } ] },
+      { "name": "Folder", "items": [
+        { "action": "openFolder", "size": "large", "label": "Open\nfolder" },
+        { "action": "recent.list", "params": ["folders"], "label": "Recent" }, { "action": "favourites.list", "params": ["folders"], "label": "Favourites", "stack": true } ] },
+      { "name": "Document tabs", "items": [
+        { "action": "closeTab" }, { "action": "reopenTab", "stack": true }, { "action": "recent.list", "params": ["closed"], "stack": true } ] } ] },
 
     { "name": "Home", "groups": [
       { "name": "Edit", "items": [

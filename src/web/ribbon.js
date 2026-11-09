@@ -71,6 +71,8 @@ function rbElements() {
 // ---------- Drawing ----------
 function renderRibbon() {
   const mode = rbMode();
+  // Menu only while changing it: change mode ends (every change is written at once: nothing to keep).
+  if (mode === 'menu' && rb.changing) return rbChangeMode(false);
   document.body.dataset.commandBar = mode;
   if (!rb.model) return;
   const { top, el, row, bodies } = rbElements();
@@ -151,7 +153,10 @@ function rbRefresh() {
   const body = rb.els.bodies.querySelector(`[data-body="${rbTabIndex()}"]`);
   for (const b of body?.querySelectorAll('.mm-rb-btn[data-call]') ?? []) {
     const [name, ...params] = JSON.parse(b.dataset.call), def = appActions.get(name);
-    b.classList.toggle('mm-on', !!def?.checked?.(params));
+    // On by itself (auto: Hex for a binary file), not chosen: a dotted line, not lit.
+    const auto = !!def?.auto?.(params);
+    b.classList.toggle('mm-on', !auto && !!def?.checked?.(params));
+    b.classList.toggle('mm-auto', auto);
     b.classList.toggle('mm-off', !rb.changing && !actionAvailable(name, params) && !rbListOnly({ action: name, params }));
     const badge = b.querySelector('.mm-rb-badge');
     const n = name === 'paste' && !params.length ? clips.active : 0;
@@ -308,14 +313,16 @@ async function rbOpenList(button, item) {
 
 // Drop-down (docs/plans/executed/PLAN-ribbon-drop-down-lists.md): a button or corner with "open": "dropDown" whose action has a
 // short form (its dropDown(), actions.js) opens that list under it; the list ends with the action itself (its window).
-const rbDropDown = (action, open) => open === 'dropDown' && typeof actionDef(action)?.dropDown === 'function';
+// An action that is its list (dropDownOnly: Recent, Favourites) opens it so always, and its list does not end with it.
+const rbDropDown = (action, open) => (open === 'dropDown' || !!actionDef(action)?.dropDownOnly) && typeof actionDef(action)?.dropDown === 'function';
 async function rbDropDownItems([action, ...params]) {
   const items = await actionDef(action).dropDown(params);
+  if (actionDef(action).dropDownOnly) return items;
   return [...items, ...(items.length ? ['-'] : []), { label: actionTitle(action, params).replace(/&/g, '&&'), action, params, key: keyText(action, ...params) }];
 }
 // The right-click's choice for an action with a short form: what a click opens (`set`: "dropDown", or undefined: its
 // window or pane).
-const rbOpensItems = (action, open, set) => typeof actionDef(action)?.dropDown !== 'function' ? [] : [{ label: '&Opens', sub: [
+const rbOpensItems = (action, open, set) => typeof actionDef(action)?.dropDown !== 'function' || actionDef(action).dropDownOnly ? [] : [{ label: '&Opens', sub: [
   { label: '&Window or pane', checked: open !== 'dropDown', run: () => set(undefined) },
   { label: '&Drop-down', checked: open === 'dropDown', run: () => set('dropDown') }] }];
 const rbCornerAt = el => { const [t, g, side] = rbPath(el.dataset.corner); return ribbonCorner(rb.model.tabs[t]?.groups[g]?.corners?.[side]); };
@@ -783,7 +790,7 @@ function rbEditMenu(e) {
       ...(variants.length ? [{ label: '&Parameter', sub: [
         { label: '&None (the action itself, its list)', checked: !item.params?.length, run: set(it => { delete it.params; }) },
         ...variants.map(p => ({ label: actionTitle(item.action, p).replace(/&/g, '&&'), checked: JSON.stringify(item.params ?? []) === JSON.stringify(p), run: set(it => { it.params = p; }) }))] }] : []),
-      { label: 'Rena&me...', run: async () => { const v = await askName('Label (empty: the action\'s title)', item.label ?? '', actionTitle(item.action, item.params ?? [])); if (v !== null) set(it => { if (v.trim()) it.label = v.trim(); else delete it.label; })(); } },
+      { label: 'Rena&me...', run: async () => { const v = await askName('Label (empty: the action\'s title)', item.label ?? '', actionTitle(item.action, item.params ?? []), undefined, true); if (v !== null) set(it => { if (v.trim()) it.label = v.trim(); else delete it.label; })(); } },
       { label: '&Key tip...', run: async () => {
         const v = await askName('Key tip (one or two letters; empty: from the label)', item.tip ?? '', 'A letter');
         if (v === null) return;
@@ -992,7 +999,7 @@ async function rbcDo(dlg, what) {
   if (what === 'dropDown') {   // a button or a corner: its action's list under it, or its window (plan 46)
     rbChange(m => {
       const grp = m.tabs[t].groups[g], it = line.kind === 'corner' ? ribbonItemOf(grp.corners?.[i]) : line.kind === 'item' ? grp.items[i] : null;
-      if (!it || it === 'divider' || typeof actionDef(it.action)?.dropDown !== 'function') return false;
+      if (!it || it === 'divider' || typeof actionDef(it.action)?.dropDown !== 'function' || actionDef(it.action).dropDownOnly) return false;
       if (it.open) delete it.open; else it.open = 'dropDown';
       if (line.kind === 'corner') grp.corners[i] = ribbonCornerOf(it);
     });
@@ -1004,7 +1011,7 @@ async function rbcDo(dlg, what) {
   if (what === 'stack') rbChange(m => { const it = m.tabs[t].groups[g].items[i]; it.stack = !it.stack; });
   if (what === 'rename') {   // a button's name is its label (a long macro name made short)
     const it = rb.model.tabs[t].groups[g].items[i];
-    const v = await askName('Label (empty: the action\'s title)', it.label ?? '', actionTitle(it.action, it.params ?? []));
+    const v = await askName('Label (empty: the action\'s title)', it.label ?? '', actionTitle(it.action, it.params ?? []), undefined, true);
     if (v !== null) rbChange(m => { const x = m.tabs[t].groups[g].items[i]; if (v.trim()) x.label = v.trim(); else delete x.label; });
   }
   pick(line.path);

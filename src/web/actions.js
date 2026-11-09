@@ -35,8 +35,10 @@ function actionGroup(name, def) {
 // { title, hint, group, run(params, ctx), editor: works on the editor, move: Shift selects,
 //   variants: the parameter lists F1 offers: [[1], [2]], variantTitles: { "1": "..." },
 //   checked(params): a tick in the menu, enabled(params): greyed out when false,
+//   auto(params): on by itself, not chosen (the ribbon: a dotted line instead of lit; Hex for a binary file),
 //   dropDown(params): its short form, the items of a list of what its window shows (a ribbon button or corner with
-//   "open": "dropDown" opens it under itself; ribbon.js, docs/plans/executed/PLAN-ribbon-drop-down-lists.md) }
+//   "open": "dropDown" opens it under itself; ribbon.js, docs/plans/executed/PLAN-ribbon-drop-down-lists.md),
+//   dropDownOnly: the action is that list (Recent, Favourites): on the ribbon always a drop-down }
 const appActions = new Map();
 const appAction = (name, def) => appActions.set(name, { name, ...def });
 
@@ -250,11 +252,11 @@ appAction('positionBack', { title: 'Position back', hint: 'The cursor back to wh
 appAction('positionForward', { title: 'Position forward', hint: 'Again forward after Position back; also the mouse forward button', group: 'edit', run: () => stepPlace(1) });
 
 toggleAction('split', { title: 'Editor and preview', hint: 'The editor and the preview both (the preview at its place), or the editor alone', group: 'view',
-  enabled: () => !!activeTab() }, () => activeTab()?.mode === 'split', () => togglePreview());
+  enabled: () => !!activeTab() && !notText(activeTab().doc) }, () => activeTab()?.mode === 'split', () => togglePreview());
 toggleAction('editor', { title: 'Editor', hint: 'Show or hide the editor (at least one of editor and preview stays)', group: 'view',
-  enabled: () => !!activeTab() }, () => !!activeTab() && activeTab().mode !== 'preview', () => setSwitch('editor'), ['show', 'hide']);
+  enabled: () => !!activeTab() && !notText(activeTab().doc) }, () => !!activeTab() && activeTab().mode !== 'preview', () => setSwitch('editor'), ['show', 'hide']);
 toggleAction('preview', { title: 'Preview', hint: 'Show or hide the preview (at least one of editor and preview stays)', group: 'view',
-  enabled: () => !!activeTab() }, () => !!activeTab() && activeTab().mode !== 'edit', () => setSwitch('preview'), ['show', 'hide']);
+  enabled: () => !!activeTab() && !activeTab().doc.binary }, () => !!activeTab() && activeTab().mode !== 'edit', () => setSwitch('preview'), ['show', 'hide']);
 // The preview's place in its editor pane (docs/plans/executed/PLAN-docking.md 3.4c): per editor pane, kept in the window's
 // layout (previewPlace, previewPlace2); the active pane's (the splitter's right-click menu: its own pane's, app.js).
 const PREVIEW_PLACES = [['right', 'Preview at the right'], ['left', 'Preview at the left'], ['top', 'Preview above'], ['bottom', 'Preview below']];

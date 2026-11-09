@@ -1780,13 +1780,16 @@ function updateChrome() {
   $('.mm-switch-editor').classList.toggle('mm-on', !!tab && !tab.hex && tab.mode !== 'preview');
   $('.mm-switch-preview').classList.toggle('mm-on', !!tab && !tab.hex && tab.mode !== 'edit');
   $('.mm-switch-hex').classList.toggle('mm-on', !!tab?.hex);
+  // Not possible for this file (a PDF has no editor, bytes neither preview): greyed out, as on the ribbon.
+  $('.mm-switch-editor').disabled = !tab || notText(doc);
+  $('.mm-switch-preview').disabled = !tab || !!doc?.binary;
   markTreeActive();
 }
 
 async function setMode(mode) {
   const pane = panes[state.activePane], tab = pane.active;
   if (!tab || tab.doc.pdf || tab.doc.binary) return;   // a PDF is only its preview, a file of bytes only Hex
-  tab.hex = false;   // a mode chosen: out of Hex (hexview.js)
+  tab.hex = tab.hexChosen = false;   // a mode chosen: out of Hex (hexview.js)
   if (tab.mode === 'preview') tab.previewTop = pane.previewEl.scrollTop;
   // The preview opens: its cursor starts at the top of the view again (previewcursor.js).
   if (tab.mode === 'edit' && mode !== 'edit' && typeof resetPreviewCursor === 'function') resetPreviewCursor(tab);
@@ -2042,6 +2045,8 @@ async function navigate(tab, path, anchor, restoring) {
   tab.stale = true;
   tab.previewTop = 0;
   tab.mode = openMode(doc);
+  // Hex: a file LexPen does not know always; another file only when Hex was chosen for this tab (hexview.js hexSet).
+  tab.hex = !!doc.binary || !!tab.hexChosen;
   if (last) dropDoc(old);
   syncWatchFiles();
   noteOpened('files', path);
@@ -3152,9 +3157,14 @@ async function runSearch() {
   let docsHere = scope === 'selection' ? [within.doc] : scope === 'file' ? [activeDoc()].filter(Boolean) : [...docs];
   if (folder) docsHere = docsHere.filter(d => d.path && d.path.toLowerCase().startsWith(folder.toLowerCase().replace(/\\$/, '') + '\\') &&
     (!knownOnly || knownFile(d.path)));
-  const groups = docsHere.map(doc => ({ path: doc.path, draft: doc.draft,
-    matches: within ? searchText(docText(doc), regex, scopeRanges(within)) : searchText(docText(doc), regex) }))
-    .filter(g => g.matches.length);
+  // A PDF: its pages' texts (pdffind.js), read-only (no Replace).
+  const groups = [];
+  for (const doc of docsHere) {
+    const matches = doc.pdf ? await pdfSearchMatches(doc, regex)
+      : within ? searchText(docText(doc), regex, scopeRanges(within)) : searchText(docText(doc), regex);
+    if (matches.length) groups.push({ path: doc.path, draft: doc.draft, matches, ...(doc.pdf && { skip: 'a PDF is read-only', pdf: true }) });
+  }
+  if (run !== searchRun) return;   // a newer search started meanwhile (a PDF read)
   let truncated = false;
   if (folder) {
     // While it runs the floating Search panel stays with this window (plan 22; panechannel.js), its bar says so.
@@ -3205,13 +3215,13 @@ function drawSearchResults() {
     list.className = 'mm-result-list';
     for (const m of group.matches) {
       const row = document.createElement('div');
-      row.className = 'mm-result' + (m.done ? ' mm-done' : '') + (group.skip ? ' mm-skip' : '');
+      row.className = 'mm-result' + (m.done ? ' mm-done' : '') + (group.skip && !group.pdf ? ' mm-skip' : '');   // a PDF: read-only, not a warning
       row.dataset.hit = searchHits.push({ ...m, path: group.path, draft: group.draft, group: g }) - 1;
       const end = m.endLine === m.line ? m.endCol : m.text.length;
       // Long lines: start a little before the match.
       const from = Math.max(0, m.col - 30);
       const found = m.done ? `<del>${escapeHtml(m.done.old)}</del><ins>${escapeHtml(m.done.new)}</ins>` : `<mark>${escapeHtml(m.text.slice(m.col, end))}</mark>`;
-      row.innerHTML = `<span class="mm-result-line">${m.line + 1}</span><span class="mm-result-text">` +
+      row.innerHTML = `<span class="mm-result-line">${m.page ? 'p. ' + m.page : m.line + 1}</span><span class="mm-result-text">` +
         (from ? '...' : '') + escapeHtml(m.text.slice(from, m.col)) + found + escapeHtml(m.text.slice(end, end + 200)) + '</span>' +
         (m.done || group.skip ? '' : rep);
       list.append(row);
@@ -3229,6 +3239,11 @@ function drawSearchResults() {
 // unless that tab's document has unsaved changes. Ctrl+click and Shift+click as in the Folder pane (openFromTree): the
 // other pane, a new tab.
 async function goToSearchHit(hit, here, { ctrlKey, shiftKey } = {}) {
+  if (hit.page) {   // a PDF's: shown there as the find bar shows a match (pdffind.js)
+    const pdf = await openFile(hit.path);
+    if (pdf?.pdf) pdfSend(pdf, { kind: 'findShow', page: hit.page, from: hit.s, to: hit.e });
+    return;
+  }
   let tab, how = 'found';
   const active = activeTab();
   if (here && !hit.draft && active?.doc.path && !samePath(active.doc.path, hit.path) && !active.doc.dirty && !active.doc.pdf) {
@@ -4484,7 +4499,7 @@ function sessionData() {
       tabs: kept(pane).map(tab => ({
         path: tab.doc.path, draft: tab.doc.draft, mode: c.modes?.get(tab) ?? tab.mode,
         top: pane.active === tab && !pane.el.hidden ? pane.previewEl.scrollTop : tab.previewTop,
-        ...(tab.pinned && { pinned: true }), ...(tab.readOnly && { readOnly: true }), ...(tab.hex && { hex: true }),
+        ...(tab.pinned && { pinned: true }), ...(tab.readOnly && { readOnly: true }), ...(tab.hex && { hex: true }), ...(tab.hexChosen && { hexChosen: true }),
         ...(tab.doc.draft && tab.doc.languageChosen && { language: languageOf(tab.doc) }),   // a file's choice: the host keeps it
         ...tabCursor(tab),
       })),
@@ -4530,6 +4545,7 @@ async function restore(session, drafts) {
       tab.pinned = !!t.pinned;
       tab.readOnly = !!t.readOnly;
       tab.hex ||= !!t.hex;
+      tab.hexChosen = !!t.hexChosen;
       if (Array.isArray(t.cursor)) tab.restoreCursor = { line: t.cursor[0] | 0, ch: t.cursor[1] | 0, top: t.editorTop | 0 };
       if (doc.draft && t.language && packs[t.language]) {
         doc.language = t.language === 'markdown' ? undefined : t.language;
@@ -4787,9 +4803,13 @@ async function deleteEntry(path) {
 // Asks a name: the text, or null for Cancel / Esc.
 // `placeholder`: the hint in the empty field (a project name: a number when left empty).
 // select: the part of the value selected, [from, to] (from == to: only the caret there); default all of it.
-function askName(title, value, placeholder = 'Empty: a number', select = [0, value.length]) {
-  const dialog = $('.mm-name-dialog'), input = dialog.querySelector('.mm-name-input');
-  dialog.querySelector('.mm-name-label').textContent = title;
+// lines: a text that may have line breaks (a ribbon button's label): Shift+Enter makes one, Enter is OK.
+function askName(title, value, placeholder = 'Empty: a number', select = [0, value.length], lines = false) {
+  const dialog = $('.mm-name-dialog'), one = dialog.querySelector('.mm-name-input'), more = dialog.querySelector('.mm-name-text');
+  const input = lines ? more : one;
+  one.hidden = lines;
+  more.hidden = !lines;
+  dialog.querySelector('.mm-name-label').textContent = title + (lines ? ' (Shift+Enter: a new line)' : '');
   input.placeholder = placeholder;
   input.value = value;
   dialog.returnValue = '';
@@ -4803,6 +4823,38 @@ function askName(title, value, placeholder = 'Empty: a number', select = [0, val
   });
 }
 $('.mm-name-dialog .mm-name-cancel').addEventListener('click', () => $('.mm-name-dialog').close('cancel'));
+$('.mm-name-dialog .mm-name-text').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('.mm-name-dialog').close('ok'); }   // Shift+Enter: the line break
+});
+
+// A dialog of this page (a name asked, Customize, ...) under one of LexPen's floating windows (F1 and the other panes
+// in a window of their own: owned by this window, so always above it) moves out from under it: to the place in the
+// window they cover least, nearest to where it was. Back where it was when it closes.
+const showModalPlain = HTMLDialogElement.prototype.showModal;
+HTMLDialogElement.prototype.showModal = function () {
+  showModalPlain.call(this);
+  avoidToolWindows(this);
+};
+async function avoidToolWindows(dialog) {
+  const px = devicePixelRatio || 1;
+  const rects = (await host('toolWindowRects').catch(() => [])).map(r => ({ l: r.x / px, t: r.y / px, r: (r.x + r.w) / px, b: (r.y + r.h) / px }));
+  if (!rects.length || !dialog.open) return;
+  const box = dialog.getBoundingClientRect(), w = box.width, h = box.height, m = 8;
+  // The part of the dialog at x, y that the windows cover (they may overlap each other: an upper bound is enough).
+  const covered = (x, y) => rects.reduce((a, r) => a + Math.max(0, Math.min(x + w, r.r) - Math.max(x, r.l)) * Math.max(0, Math.min(y + h, r.b) - Math.max(y, r.t)), 0);
+  let best = [box.left, box.top], bestArea = covered(box.left, box.top), bestDist = 0;
+  if (!bestArea) return;
+  for (let y = m; y + h <= innerHeight - m; y += 8)
+    for (let x = m; x + w <= innerWidth - m; x += 8) {
+      const area = covered(x, y), dist = Math.hypot(x - box.left, y - box.top);
+      if (area < bestArea || area === bestArea && dist < bestDist) [best, bestArea, bestDist] = [[x, y], area, dist];
+    }
+  const free = best;
+  if (free[0] === box.left && free[1] === box.top) return;
+  const was = dialog.style.cssText;
+  Object.assign(dialog.style, { margin: '0', inset: `${Math.round(free[1])}px auto auto ${Math.round(free[0])}px` });
+  dialog.addEventListener('close', () => { dialog.style.cssText = was; }, { once: true });
+}
 
 // ---------- Window role, theme ----------
 function setRole({ primary, index }) {

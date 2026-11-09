@@ -202,6 +202,14 @@ Differs from the plan:
   in the hex part: `hexParseBytes`).
 - **The Hex icon** has its digits as text in the drawing (as the F1 icon), not strokes. The icon sheet's source
   (`executed/PLAN-ribbon.md.images/ribbon-icons.js`) has the new drawings; its PNGs were not drawn again.
+- **Hex chosen or not** (added after the build): a tab in Hex because its file is not text (not chosen) leaves Hex
+  when it takes a text file (a link followed, the Folder pane's single click); Hex chosen for a tab (`tab.hexChosen`,
+  kept with the session) stays for the files it takes next, until Text, Column or a view mode is chosen. A tab
+  taking a binary file goes to Hex (it did not before). On the ribbon Hex not chosen has a dotted line, not lit
+  (an action's `auto`).
+- **A file that is not text** (a PDF; bytes LexPen does not know; added after the build, `notText`): no Text or Column
+  mode (greyed out, neither lit), Hex possible; Editor and Editor and preview greyed out, on the ribbon and the top
+  bar's switches (a file of bytes: Preview too).
 - **A file of bytes** shows "Bytes" in the bottom bar (no line ends, no language list); removed on disk, its bar has
   no Keep as draft.
 

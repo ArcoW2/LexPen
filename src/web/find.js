@@ -18,7 +18,9 @@ const FIND_HTML =
   '<div class="mm-find-row">' +
   '<span class="mm-find-label">Find</span>' +
   '<input class="mm-find-input" type="text" spellcheck="false" title="Enter / F3: next; Shift+Enter / Shift+F3: previous; Esc: close. Codes: ^p line break, ^t tab, ... (the ? button)">' +
-  '<span class="mm-find-count"></span>' +
+  // The count, a button: the same search in the Search pane, on this file (findToSearch); a divider before the switches.
+  '<button data-find="toSearch" class="mm-find-tosearch" title="Search this file in the Search pane, with these switches (every match in a list)">' +
+  '<span class="mm-find-count"></span>' + chevron('M2.5 3.5h11v9h-11zM9.5 3.5v9M4.5 6l1.5 2-1.5 2') + '</button><span class="mm-find-div"></span>' +
   // A CSV (csvfind.js): in which column, and in which order.
   '<select class="mm-find-csvcol" title="Find in this column, or in all columns" hidden></select>' +
   '<button data-find="csvOrder" class="mm-find-csvorder" hidden></button>' +
@@ -76,6 +78,7 @@ function findBar(pane) {
     else if (action === 'skip') findGo(pane, 1);
     else if (action === 'replaceOne') replaceOne(pane);
     else if (action === 'replaceAll') replaceAll(pane);
+    else if (action === 'toSearch') findToSearch(pane);
     else if (action === 'codes') showSearchCodes(e.target.closest('button'), bar.replaceRow.hidden ? bar.input : bar.with);
   });
   // Alt+A: Replace all, only while the bar has the focus (the menus' Alt letters elsewhere stay as they are).
@@ -222,6 +225,21 @@ function showBar(pane, focus) {
     bar.input.select();
   }
   refresh(pane, false);
+}
+
+// The count clicked: the same search (its text, case, whole word, regular expression) in the Search pane on this file, every
+// match in a list there; the bar stays as it is.
+function findToSearch(pane) {
+  const f = findOf(pane);
+  if (!f.query) return;
+  Object.assign(searchOptions, { case: !!f.case, word: !!f.word, regex: !!f.regex });
+  toSearch({ kind: 'options', options: { ...searchOptions } });
+  searchUi.input.value = f.query;
+  searchUi.scope.value = 'file';
+  keepLayout('searchScope', 'file');
+  if (!dockPaneVisible('search')) searchReturn = dockSnapshot('search');   // Esc there: the area as it was (app.js)
+  showDockPane('search');
+  runSearch();
 }
 
 function closeFind(pane, focusBack) {

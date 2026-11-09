@@ -323,6 +323,13 @@ differences:
 - **Rename** (Customize and a button's right-click) renames a tab, a group or a button; a button's name is its label.
 - **Columns** (added after the build): one or two small buttons sit at the top of their column, not centred; a large
   button can share its column with one small button above or under it.
+- **A label's own line break** (added after the build): renaming a button (its right-click, Customize), Shift+Enter
+  makes a line break (the label in ribbon.json with "\n"); a large button shows it, a small one has a space there.
+- **The File tab** (added after the build, laid out by hand): File (New file and Open file large, Recent files with
+  Favourite files under it, Save file large with Save as under it), Print, Folder (Open folder large, Recent folders
+  with Favourite folders under it) and Document tabs (Close tab, Reopen closed tab, Recently closed). The lists are the actions `recent.list` (files, folders, closed) and `favourites.list` (files, folders):
+  an action that is its list (`dropDownOnly`) is always a drop-down on the ribbon, and from F1 or a key opens it at
+  the cursor.
 - **A list action on the ribbon** (added after the build; `RB_LIST_ACTIONS`): Clipboards (`clipboardList`) as a button
   or a corner opens its list under it, as a split button's arrow does, instead of the list at the bottom bar; the
   shipped Clipboard group's corner is Clipboards (it was Manage clipboards..., now the list's last item).

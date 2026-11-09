@@ -34,6 +34,20 @@ function pdfMatches(tab, regex) {
   return matches;
 }
 
+// The Search pane on a PDF (app.js runSearch): its pages' texts as the find bar has them, each match with its page
+// (its line and column within that page's text). The first time the texts are read meanwhile (a long PDF: a while).
+// None: no tab shows the PDF (no frame to read it).
+async function pdfSearchMatches(doc, regex) {
+  const tab = tabsOf(doc).find(t => t.pdf);
+  if (!tab) return [];
+  let texts = pdfTexts(tab);
+  for (let i = 0; !texts && i < 600; i++) { await new Promise(r => setTimeout(r, 100)); texts = pdfTexts(tab); }
+  if (!texts) return [];
+  const matches = [];
+  texts.forEach((text, i) => { if (matches.length < 2000) for (const m of searchText(text, regex)) matches.push({ ...m, page: i + 1 }); });
+  return matches.slice(0, 2000);
+}
+
 // The find bar's colours, resolved in the preview (its theme), for the frame.
 function pdfFindColours(tab) {
   const el = paneOf(tab)?.previewEl ?? document.body, probe = document.createElement('span');
