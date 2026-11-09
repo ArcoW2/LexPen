@@ -3,7 +3,6 @@
 // file gone) and acts on what is done here: open, rename, the right-click menu, up a folder. This page shows the tree
 // and keeps which folders are open, the cursor row and the scroll; it tells the window those, for its session.
 const tree = document.querySelector('.mm-tree');
-const titleEl = document.querySelector('.mm-tree-title'), sortEl = document.querySelector('.mm-sort');
 const PATH_TYPE = 'application/x-lexpen-path';   // as app.js: a tree row dragged onto a pane or the editor
 let root = null, parentPath = null;
 let expanded = new Set();
@@ -24,47 +23,49 @@ function list(path) {
 }
 paneHandlers.listed = m => { asked.get(m.id)?.(m.items ?? []); asked.delete(m.id); };
 
-// The head: the folder's name, the sort, the filters, the sizes shown.
-const headEl = document.querySelector('.mm-tree-head');
+// The head (docs/plans/executed/PLAN-folder-pane-head.md): drop-downs for the sort (its button shows the order and the
+// direction), the filters (marked while one is on), the recent folders (the roots opened lately) and what the rows show.
+const ORDERS = [['Modified', 'modified'], ['Name', 'name'], ['Extension', 'extension'], ['Size', 'size']];
 let head = {};
 paneHandlers.head = m => {
   head = m;
-  titleEl.textContent = titleEl.title = m.title;
-  sortEl.value = m.sort;
+  document.querySelector('.mm-tree-sort-label').textContent = ORDERS.find(([, v]) => v === m.sort)?.[0] ?? m.sort;
   document.body.toggleAttribute('data-sort-desc', !!m.desc);
   document.body.dataset.tree = m.known ? 'known' : 'all';
   document.body.toggleAttribute('data-sizes', !!m.size);
-  document.querySelector('.mm-known-only').classList.toggle('mm-on', !!m.known);
-  document.querySelector('.mm-hidden-files').classList.toggle('mm-on', !!m.hidden);
-  document.querySelector('.mm-file-sizes').classList.toggle('mm-on', !!m.size);
-  fitHead();
+  document.querySelector('.mm-tree-filter').classList.toggle('mm-on', !!(m.known || m.hidden));
 };
-sortEl.addEventListener('change', () => toWindow({ kind: 'sort', value: sortEl.value }));
 for (const b of document.querySelectorAll('.mm-tree-head [data-cmd]')) b.addEventListener('click', () => toWindow({ kind: 'cmd', name: b.dataset.cmd }));
 
-// The sort, the direction and the toggles when they fit beside the folder's name; else View, a menu with the same.
-function fitHead() {
-  headEl.classList.remove('mm-compact');
-  headEl.classList.toggle('mm-compact', headEl.scrollWidth > headEl.clientWidth);
-}
-new ResizeObserver(fitHead).observe(headEl);
 const cmd = name => () => toWindow({ kind: 'cmd', name });
-document.querySelector('.mm-tree-view').addEventListener('click', e => {
+// A button's menu, under it.
+const dropDown = (sel, items) => document.querySelector(sel).addEventListener('click', e => {
   const r = e.currentTarget.getBoundingClientRect();
-  const order = [['Modified', 'modified'], ['Name', 'name'], ['Extension', 'extension'], ['Size', 'size']];
-  paneMenu({ x: r.left, y: r.bottom + 2, items: [
-    { header: 'Filter' },
-    { label: 'Known files', checked: head.known, run: cmd('knownOnly') },
-    { label: 'Hidden folders / files', checked: head.hidden, run: cmd('hiddenFiles') },
-    { header: 'View' },
-    { label: 'Size', checked: head.size, run: cmd('fileSizes') },
-    { header: 'Order' },
-    ...order.map(([label, value]) => ({ label, checked: head.sort === value, run: () => toWindow({ kind: 'sort', value }) })),
-    '-',
-    { label: 'Up', checked: !head.desc, run: () => head.desc && cmd('sortDir')() },
-    { label: 'Down', checked: !!head.desc, run: () => !head.desc && cmd('sortDir')() },
-  ] });
+  paneMenu({ x: r.left, y: r.bottom + 2, above: r.top - 2, items: items() });
 });
+// The current order again turns the direction round (as a column header in Explorer).
+dropDown('.mm-tree-sort', () => [
+  ...ORDERS.map(([label, value]) => ({ label, checked: head.sort === value, run: value === head.sort ? cmd('sortDir') : () => toWindow({ kind: 'sort', value }) })),
+  '-',
+  { label: 'Up', checked: !head.desc, run: () => head.desc && cmd('sortDir')() },
+  { label: 'Down', checked: !!head.desc, run: () => !head.desc && cmd('sortDir')() },
+]);
+dropDown('.mm-tree-filter', () => [
+  { label: 'Known files', checked: head.known, run: cmd('knownOnly') },
+  { label: 'Hidden folders / files', checked: head.hidden, run: cmd('hiddenFiles') },
+]);
+dropDown('.mm-tree-view', () => [{ label: 'Size', checked: head.size, run: cmd('fileSizes') }]);
+
+// Recent: the recent folders (File > Recent folders), asked of the window; a choice becomes the root (one gone: removed
+// from the list, as there).
+const recentButton = document.querySelector('.mm-tree-recent');
+recentButton.addEventListener('click', () => toWindow({ kind: 'recent' }));
+paneHandlers.recent = m => {
+  const r = recentButton.getBoundingClientRect();
+  paneMenu({ x: r.left, y: r.bottom + 2, above: r.top - 2, items: m.items.length ? m.items.map(f => ({
+    label: f.name, key: f.dir, title: f.exists ? f.path : f.path + '\nNo longer exists; click to remove it from the list', dim: !f.exists,
+    checked: same(f.path, root), run: () => toWindow({ kind: 'openRecent', path: f.path, missing: !f.exists }) })) : [{ label: '(none yet)', disabled: true }] });
+};
 
 // A file's size as the Explorer shows it: bytes, then KB, MB, GB.
 function sizeText(n) {

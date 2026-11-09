@@ -2776,9 +2776,9 @@ function showSort() {
   sendFolderHead();
 }
 
-// The Folder pane's head: the folder's name, the sort, the filters (known file types, hidden ones), the sizes shown.
+// The Folder pane's head: the sort, the filters (known file types, hidden ones), the sizes shown.
 function folderHead() {
-  return { kind: 'head', title: state.root ? nameOf(state.root) || state.root : 'No folder open',
+  return { kind: 'head',
     sort: treeSort(), desc: !!setting('sortDesc'), known: document.body.dataset.tree === 'known',
     hidden: !!setting('treeHidden'), size: !!setting('treeSize') };
 }
@@ -2828,6 +2828,10 @@ async function fromFolder(m, from) {
     case 'dragStart': return startFolderDrag(m.path);
     case 'dragMove': return folderDragFrom(m);
     case 'dragEnd': return folderDragFrom(m, m.drop);
+    // Its Recent button: the recent folders (File > Recent folders), a choice the root (menus.js, openRecent).
+    case 'recent': return toFolder({ kind: 'recent', items: ((await host('recent').catch(() => null))?.folders ?? [])
+      .map(({ path, exists }) => ({ path, exists, name: nameOf(path) || path, dir: dirOf(path) })) });
+    case 'openRecent': return openRecent('folders', m.path, m.missing);
     case 'notListed': return toast(`${nameOf(m.path)} is not listed in the folder pane.`);
     case 'menu': {
       folderMenuSubject = true;

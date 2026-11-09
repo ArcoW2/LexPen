@@ -41,8 +41,9 @@ function applyPaneLook({ css, theme, mode }) {
 
 // Floating, the window's page cannot draw here: a menu it sends ({ x, y, items: [{ label, checked, id } | '-'] }) is
 // drawn by the pane; a choice goes back as menuPick. The pane's own menus (sort-pane.js) give an item `run` (done
-// here instead) and `disabled`. `above`: where it ends when it does not fit below y (a button's
-// menu: above the button, not over it); `closed`: a message kind for the pane's own page once it closes.
+// here instead), `disabled`, `key` (dimmed text after the label: a folder's path), `dim` (one that no longer exists)
+// and `title`. `above`: where it ends when it does not fit below y (a button's menu: above the button, not over it);
+// `closed`: a message kind for the pane's own page once it closes.
 // It takes the keys (Up / Down, Home / End, Enter, Right / Left for a submenu, Esc), the focus going back where it was
 // after. Its item marked is the one with the focus, set by the pointer moving over it or the keys; none as it opens
 // (the menu itself has the focus). Not :hover: the page keeps the pointer's last place over a menu.
@@ -62,6 +63,9 @@ function paneMenu({ x, y, above, closed, items }) {
       b.type = 'button';
       b.disabled = !!item.disabled;
       b.textContent = (item.checked ? '\u2713 ' : '\u2003') + item.label + (item.sub ? '  \u203a' : '');
+      if (item.key) b.append(Object.assign(document.createElement('span'), { className: 'mm-pane-menu-key', textContent: item.key }));
+      if (item.dim) b.classList.add('mm-dim');
+      if (item.title) b.title = item.title;
       if (item.sub) {
         b.onclick = () => openSub(b, item.sub);
         b.onmousemove = () => { b.focus(); openSub(b, item.sub); };

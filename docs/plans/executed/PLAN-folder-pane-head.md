@@ -1,6 +1,6 @@
 # Plan: The Folder pane's head of drop-downs, with its recent roots
 
-Status: draft 2026-11-09, revised 2026-11-09; not started. The number in the file name is the priority; rename to reorder.
+Status: draft 2026-11-09, revised 2026-11-09; executed (2026-11-09); see As built.
 
 ## 1. What this is about
 
@@ -83,3 +83,23 @@ narrowest dock width they must fit in.]
 ## 4. Open questions
 
 None.
+
+## 5. As built
+
+- **Page** (folder.html, folder-pane.js): the head is Sort, Filter, Recent (a clock icon), a gap, View and Refresh;
+  each a menu under its button (paneMenu). The folder's name, the sort select, the toggle buttons and the narrow mode
+  (fitHead, `mm-compact`) are gone; the window no longer sends a title in the head.
+- **Narrow** (not in the plan as such; the drop-downs did not fit on one line in a narrow dock): a container query on the
+  head turns Filter and View into icons (a funnel, an eye; no caret), then the sort shows its arrow only; the tooltips
+  say what they are. Measured with the page's width set by script: the head fits down to 160 px; below that (a dock
+  can be 120 px) it is cut off at the right, Refresh first.
+- **Recent**: the page asks the window (`recent`), which answers with File > Recent folders (host `recent`); a choice
+  goes back as `openRecent` and runs the File menu's openRecent (a folder that no longer exists: removed, with its
+  message). The current root is checked.
+- **paneMenu** (pane.js) got `key` (dimmed text after the label, here the folder's path, cut off with an ellipsis in a
+  narrow pane), `dim` and `title` for an item; the menu is at most the page's width.
+- **Tests**: `dotnet test` 449 passed. In the test copy, real clicks in the Folder pane's page: the head's buttons;
+  Recent listing the roots opened (the current one checked, a deleted one dimmed); choosing one makes it the root;
+  choosing the deleted one removes it from the list; Sort's list, Name chosen, chosen again turning the direction
+  round; Filter's list, Known files on marks the button; View holds Size only; screenshots of the head and the Recent
+  list; the head at 245, 220, 200, 160 and 140 px (screenshots at 220 and 160). Not checked: the head floating.

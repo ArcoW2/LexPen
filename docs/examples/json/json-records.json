@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  {
+    "record": 1,
+    "data": "abcd"
+  },
+  {
+    "record": 2,
+    "data": "abcd",
+    {
+      "record": 20,
+      "nesteddata": "abcd"
+    }
+  },
+  {
+    "record": 3,
+    "data": "abcd",
+    {
+      "record": 30,
+      "nesteddata": "efgh"
+    },
+    {
+      "record": 31,
+      "nesteddata": "ijkl"
+    }
+  },
+  {
+    "record": 4,
+    "data": "dcba"
+  },
+}

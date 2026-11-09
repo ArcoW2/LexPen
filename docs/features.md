@@ -618,9 +618,11 @@ every action with its key.
   the document (hidden files, dot folders and `node_modules` are skipped; **Hidden** shows the hidden and dot ones,
   `node_modules` still not), with git status markers (modified,
   added, untracked, deleted, renamed, conflict) when the folder is in a repository. File types no language pack
-  knows are dimmed; the **Known** button in the sidebar header hides them (folders stay). **Size** shows each file's
-  size after its name. In a narrow pane these are in **View**, a menu: Filter (Known files, Hidden folders / files),
-  View (Size), Order (Modified, Name, Extension, Size; Up, Down).
+  knows are dimmed. Its head has drop-downs: **Sort** (its button shows the order and an arrow for the direction;
+  choosing the current order again turns it round), **Filter** (Known files hides the dimmed ones, folders stay; Hidden
+  folders / files; the button is marked while one is on), **Recent** (a clock: the recent folders, as File > Recent
+  folders; a click makes one the root, so a folder left by Show the file in the folder pane is a click away) and
+  **View** (Size: each file's size after its name).
   Right-click a file or folder to copy its absolute path, or its path relative to the open folder. Right-click >
   Float the folder pane in a window of its own: the same tree in a window of its own (another monitor too), titled
   with its folder (also from its tab's right-click menu); Back in the window (its right-click menu) or closing it puts

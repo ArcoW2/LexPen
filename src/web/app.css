@@ -425,7 +425,7 @@ body[data-dock-tab-bar=scroll] .mm-dock-tabs { flex-wrap: nowrap; overflow: auto
 .mm-dock-views { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
 .mm-dock-views > [hidden] { display: none !important; }
 
-.mm-tree-head { display: flex; align-items: center; padding: 6px 4px 6px 12px; }
+.mm-tree-head { display: flex; align-items: center; gap: 2px; padding: 6px 4px 6px 8px; }
 
 /* A pane's view (the Folder pane, the Search pane): its page's frame fills it. */
 .mm-folder-view, .mm-search-view, .mm-chars-view, .mm-tool-view, .mm-macros-view, .mm-messages-view, .mm-clips-view, .mm-commands-view { flex: 1; display: flex; flex-direction: column; min-height: 0; }
@@ -479,10 +479,6 @@ body[data-search-replace] .mm-result.mm-on .mm-result-rep { display: block; }
 .mm-result-line { flex: none; min-width: 28px; text-align: right; color: var(--fg-dim); font-size: calc(11px * var(--ui-scale)); padding-top: 1px; }
 .mm-result-text { overflow: hidden; text-overflow: ellipsis; }
 .mm-result-text mark { background: rgba(255, 200, 0, .45); color: inherit; border-radius: 2px; }
-.mm-tree-title {
-  flex: 1; font-size: calc(11px * var(--ui-scale)); font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
-  color: var(--fg-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
 .mm-tree { flex: 1; overflow: auto; padding-bottom: 12px; }
 .mm-row { display: flex; padding: 3px 8px; white-space: nowrap; overflow: hidden; cursor: pointer; }
 .mm-row:hover { background: var(--hover); }
@@ -501,15 +497,25 @@ body[data-search-replace] .mm-result.mm-on .mm-result-rep { display: block; }
 .mm-row::before { content: ""; flex: none; width: 14px; color: var(--fg-dim); }
 .mm-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 
-/* Sort by name or modified time; folders stay first. */
-.mm-sort {
-  font: inherit; font-size: calc(11px * var(--ui-scale)); color: var(--fg-dim); background: var(--bg-side);
-  border: 1px solid transparent; border-radius: 4px; padding: 1px 2px;
+/* The head (folder-pane.js; docs/plans/executed/PLAN-folder-pane-head.md): the drop-downs Sort (the order and an arrow
+   for the direction), Filter (marked while a filter is on), Recent (an icon), View, and Refresh at the right. */
+.mm-tree-head button { flex: none; font-size: calc(11px * var(--ui-scale)); white-space: nowrap; padding-left: 5px; padding-right: 5px; }
+/* Narrow (a container query on the head): Filter and View become icons (no caret), then the sort shows its arrow only; their
+   tooltips say what they are. Narrower still (a dock can be), the head is cut off at the right. */
+.mm-tree-head { overflow: hidden; container-type: inline-size; }
+.mm-tree-head .mm-tree-drop { display: inline-flex; align-items: center; }
+.mm-tree-head .mm-tree-caret { margin-left: 3px; }
+.mm-tree-head .mm-tree-icon { display: none; }
+@container (max-width: 230px) {
+  .mm-tree-filter .mm-tree-label, .mm-tree-view .mm-tree-label, .mm-tree-filter .mm-tree-caret, .mm-tree-view .mm-tree-caret { display: none; }
+  .mm-tree-filter .mm-tree-icon, .mm-tree-view .mm-tree-icon { display: block; }
 }
-.mm-sort:hover { border-color: var(--border); }
-.mm-sort-dir { padding: 3px 6px; }
-.mm-sort-dir::before { content: "\2191"; }
-body[data-sort-desc] .mm-sort-dir::before { content: "\2193"; }
+@container (max-width: 215px) { .mm-tree-sort .mm-tree-label { display: none; } }
+.mm-tree-head .mm-tree-gap { flex: 1; min-width: 4px; }
+.mm-tree-head .mm-tree-recent { display: inline-flex; align-items: center; }
+.mm-tree-head .mm-tree-filter.mm-on { background: var(--active); color: var(--accent); }
+.mm-tree-sort-dir::before { content: " \2191"; }
+body[data-sort-desc] .mm-tree-sort-dir::before { content: " \2193"; }
 
 /* Changed on disk while the window was not active, until opened. */
 .mm-row.mm-fresh, .mm-row.mm-fresh-dir { box-shadow: inset 3px 0 var(--accent); }
@@ -519,15 +525,6 @@ body[data-sort-desc] .mm-sort-dir::before { content: "\2193"; }
    hidden with the Known toggle. */
 .mm-other { color: var(--fg-dim); }
 body[data-tree=known] .mm-other { display: none; }
-.mm-tree-toggle { font-size: calc(11px * var(--ui-scale)); font-weight: 600; }
-.mm-tree-toggle.mm-on { background: var(--active); color: var(--accent); }
-/* The head: the sort and the toggles beside the folder's name while they fit (it keeps a few letters), else View, a
-   menu with the same (folder-pane.js fitHead). */
-.mm-tree-wide { display: flex; align-items: center; flex: none; }
-.mm-tree-head:not(.mm-compact) .mm-tree-title { min-width: 10ch; }
-.mm-tree-view { display: none; flex: none; font-size: calc(11px * var(--ui-scale)); }
-.mm-tree-head.mm-compact .mm-tree-wide { display: none; }
-.mm-tree-head.mm-compact .mm-tree-view { display: inline-block; }
 /* View > Size: each file's size after its name. */
 .mm-size { display: none; flex: none; margin-left: 8px; color: var(--fg-dim); font-size: calc(11px * var(--ui-scale)); padding-top: 1px; }
 body[data-sizes] .mm-size { display: inline; }
@@ -754,6 +751,11 @@ body[data-tab-bar=menu] .mm-tabs { overflow-x: hidden; }
 .mm-pane-menu { position: fixed; z-index: 100; display: flex; flex-direction: column; min-width: 180px; padding: 4px 0;
   background: var(--bg-side); border: 1px solid var(--border); box-shadow: 0 4px 16px rgba(0, 0, 0, .3); }
 .mm-pane-menu button { text-align: left; border-radius: 0; padding: 4px 12px; white-space: nowrap; }
+/* An item's dimmed text after its label (a folder's path), and an item dimmed (a folder that no longer exists). */
+.mm-pane-menu { max-width: calc(100vw - 4px); }
+.mm-pane-menu button { overflow: hidden; text-overflow: ellipsis; }
+.mm-pane-menu-key { margin-left: 16px; color: var(--fg-dim); font-size: calc(11px * var(--ui-scale)); }
+.mm-pane-menu button.mm-dim { color: var(--fg-dim); }
 /* Its item marked: the one with the focus (pane.js paneMenu), not :hover. */
 .mm-pane-menu:focus, .mm-pane-menu button:focus { outline: none; }
 .mm-pane-menu button:hover { background: none; }
