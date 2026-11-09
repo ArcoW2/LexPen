@@ -1,6 +1,6 @@
 # Plan: Bookmarks in a PDF
 
-Status: draft 2026-11-09; not started. The number in the file name is the priority; rename to reorder.
+Status: draft 2026-11-09, revised 2026-11-09; not started. The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
 
@@ -14,10 +14,11 @@ show them in.
 
 The bookmark actions work in a PDF at its place: where it was clicked last (the caret a click shows), else the top
 of the page shown. A bookmark there is a page and a place in that page's text, numbered 1 to 9 or unnumbered as in a
-text file, kept per file in the same store, so it is there again when the PDF is opened again. The PDF shows them as
-small icons at the far left of its view (it has no gutter), at the height of their line, a numbered one with its
-number; the scroll strip marks them as it does for a text file. Go to, next / previous, the list, the Bookmarks pane
-and the ribbon's drop-down list them with their page and the start of their text.
+text file, kept per file in the same store, so it is there again when the PDF is opened again. The PDF gets a narrow
+gutter of its own at the left of its view (no line numbers), showing them at the height of their line, a numbered
+one with its number; a click there toggles a bookmark as in the editor's gutter; the scroll strip marks them as it
+does for a text file. Go to, next / previous, the list, the Bookmarks pane and the ribbon's drop-down list them with
+their page and the start of their text.
 
 ## 3. Details
 
@@ -36,14 +37,16 @@ and the ribbon's drop-down list them with their page and the start of their text
 
 ### 3.2 Shown
 
-- **In the PDF**: a strip at the far left of the PDF's view (over the PDF's background, not over its page), fixed
-  sideways (zoomed in and scrolled to the right it stays at the left edge of the view), going along up and down with
-  the pages. Each bookmark an icon in it at the height of its line: the bookmark shape as in the editor's gutter, a
-  numbered one with its number on it. Drawn by the frame (pdf-pane.js) from the list the window sends, as the
-  highlights are.
+- **A gutter in the PDF**: a narrow column of its own at the left of the PDF's view, beside its scroll area (the
+  pages a little narrower for it), as the editor's bookmark column without the line numbers. It does not scroll
+  sideways (zoomed in and scrolled to the right it stays at the left); up and down it follows the pages. Each
+  bookmark an icon in it at the height of its line: the bookmark shape as in the editor's gutter, a numbered one with
+  its number on it. Drawn by the frame (pdf-pane.js) from the list the window sends, as the highlights are.
 - **The scroll strip** (previewoverview.js, pdfOverviewMarks): a mark per bookmark, in the bookmarks' lane, as for a
   text file.
-- **A click on an icon**: open question 1.
+- **A click in the gutter**: as in the editor's bookmark column (app.js gutterClick): on a bookmark it goes; beside one
+  an unnumbered bookmark comes on the line at that height (the first text of that line on the page there; beside
+  the text, the nearest line).
 
 ### 3.3 The actions in a PDF
 
@@ -59,8 +62,8 @@ and the ribbon's drop-down list them with their page and the start of their text
 
 - Unit (C#, BookmarkStore): a PDF's list { n, page, offset, text } written, read back and renamed with the file.
 - In the test copy, with a long PDF: a click and Ctrl+K, 1 (bookmark 1 at the caret); Toggle bookmark with no click
-  (at the top of the view); the icons at the left edge at the right height, zoomed in and scrolled sideways still at
-  the left edge; Go to bookmark 1 from far away; next / previous through them in order; Clear; the Bookmarks pane and
+  (at the top of the view); the icons in the gutter at the right height, zoomed in and scrolled sideways still in view; a
+  click in the gutter beside text (a bookmark there) and on an icon (gone); Go to bookmark 1 from far away; next / previous through them in order; Clear; the Bookmarks pane and
   the ribbon's drop-down list them with their page; a restart and the PDF opened again: the bookmarks back; the scroll
   strip's marks.
 
@@ -73,11 +76,7 @@ and the ribbon's drop-down list them with their page and the start of their text
 
 ## 4. Open questions
 
-1. **A click in the strip at the far left**: in the editor a click in the bookmark column toggles an unnumbered
-   bookmark on that line (app.js gutterClick: on a bookmark it goes, elsewhere one comes). The same in the PDF
-   (on an icon: removed; beside one: an unnumbered bookmark on the line at that height), or only show the icons?
-   Suggestion: the same as the editor, so the strip works as the gutter does.
-2. **A PDF changed on disk** (another version of the same file): its bookmarks stay at their page and offset (they
+1. **A PDF changed on disk** (another version of the same file): its bookmarks stay at their page and offset (they
    may then point at other text), or are they looked up again by their text, as a text file's are (BookmarkStore
    Resolve)? Suggestion: looked up by their text on the same page and the pages around it; not found: kept where they
    were.
