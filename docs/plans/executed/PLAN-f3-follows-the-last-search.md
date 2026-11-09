@@ -1,6 +1,6 @@
 # Plan: F3 follows the search used last (the find bar or the Search pane)
 
-Status: draft 2026-11-09, revised 2026-11-09; not started. The number in the file name is the priority; rename to reorder.
+Status: draft 2026-11-09, revised 2026-11-09; executed (2026-11-09); see As built.
 
 ## 1. What this is about
 
@@ -71,3 +71,26 @@ click on a tag gives F3 to that one. When F3 or Shift+F3 goes to the other one t
 ## 4. Open questions
 
 None.
+
+## 5. As built
+
+Built on branch `f3-follows-search` (2026-11-09): in app.js `f3`, `f3Target`, `f3Take`, `showF3`, `f3Step`, `searchStep`
+and `searchAt` (next to the Search pane's results), `findNext` and `findPrevious` (actions.js) through `f3Step`; the
+find bar's F3 tag and its hooks (find.js: opened to type, typed in, Enter, its arrows, the tag); the Search pane's tag
+and the marked result (search.html, search-pane.js); one blink of a pane's flash (pane.js, app.css).
+
+Differs from the plan:
+
+- **The Search pane holds F3 only with results**: without them, or with the results all replaced, F3 is the find bar's
+  whatever was used last; the Search pane's tag is hidden then.
+- **The find bar's blink** is an accent edge around the bar (one 0.25 s blink); the Search pane's is its page's flash,
+  once.
+- **A result clicked** takes F3 and is where F3 goes on from; a new search starts from the cursor again.
+
+Tested in the test copy by script, with real F3 and Shift+F3 keys: the find bar's F3 on its matches; a search of the open
+files, F3 from the cursor's result to the next ones, into the other file (opened), Shift+F3 back, the list marking the
+result and its tag lit, the find bar's dimmed; typing in the find bar gives F3 back to it (its tag lit, the Search
+pane's dimmed); a click on the Search pane's tag moves F3 there without a step; the flash once on each switch (the
+Search pane's and the find bar's) and not on the next press; the end of the list with findWrap end (the message) and
+around (round to the first); a replaced result passed; with the find bar closed and results there, F3 the Search
+pane's. Screenshots of both tags. All unit tests pass.

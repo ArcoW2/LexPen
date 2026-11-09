@@ -30,6 +30,17 @@ paneHandlers.replace = m => {
   document.body.toggleAttribute('data-search-replace', m.on);
 };
 paneHandlers.status = m => { statusEl.textContent = m.text; };
+// F3 (the window's f3Take; plan 47): the tag lit while F3 comes here, shown while there are results; the result F3 went
+// to marked and in view (quiet: the list drawn again, the mark back).
+const f3El = $('.mm-search-f3');
+paneHandlers.f3 = m => { f3El.hidden = !m.shown; f3El.classList.toggle('mm-on', !!m.on); };
+f3El.addEventListener('click', () => toWindow({ kind: 'f3' }));
+paneHandlers.current = m => {
+  for (const on of results.querySelectorAll('.mm-result.mm-on')) on.classList.remove('mm-on');
+  const hit = results.querySelector(`.mm-result[data-hit="${m.hit}"]`);
+  hit?.classList.add('mm-on');
+  if (!m.quiet) { hit?.closest('.mm-result-list')?.previousElementSibling?.classList.remove('mm-closed'); hit?.scrollIntoView({ block: 'nearest' }); }
+};
 paneHandlers.results = m => { results.innerHTML = m.html; };   // made by the window's page, its texts escaped
 paneHandlers.history = m => Object.assign(findHistory, m.lists);
 

@@ -3194,7 +3194,9 @@ function showSearchResults(groups, truncated, folder) {
     `${total} match${total === 1 ? '' : 'es'} in ${groups.length} file${groups.length === 1 ? '' : 's'}` +
     (truncated ? ' (stopped at 2000)' : '') + (folder ? ` - ${folder}` : '') +
     (lastSearch?.scope === 'selection' ? ' (in the selection)' : '');
+  searchAt = null;   // F3 starts again from the cursor (plan 47)
   drawSearchResults();
+  if (total) f3Take('search');   // a search run: F3 goes through its results
 }
 
 // The results as searchGroups has them now. A replaced match (searchreplace.js) shows its old text crossed out and the
@@ -3232,6 +3234,8 @@ function drawSearchResults() {
   box.append(...parts);
   searchPage.html = box.innerHTML;
   toSearch({ kind: 'results', html: searchPage.html });
+  if (searchAt != null) toSearch({ kind: 'current', hit: searchAt, quiet: true });   // still marked (plan 47)
+  showF3();
 }
 
 // A match clicked in the results: there in the window, selected (and in the preview's view): in the pane's tab of its
@@ -3273,6 +3277,69 @@ async function goToSearchHit(hit, here, { ctrlKey, shiftKey } = {}) {
     asFound(pane, () => pane.cm.setSelection({ line: hit.line, ch: hit.col }, { line: hit.endLine, ch: hit.endCol }), how);   // places.js
     revealFound(pane.cm, { line: hit.line, ch: 0 }, { line: hit.endLine, ch: hit.endCol });
   }
+}
+
+// ---------- F3: the search used last (docs/plans/executed/PLAN-f3-follows-the-last-search.md) ----------
+// F3 and Shift+F3 go to the find bar ('find') or the Search pane ('search'): the one used last (typed in, run, a match or
+// result chosen, its F3 tag clicked). The Search pane only with results; with the find bar closed and results there,
+// the Search pane. Each shows an F3 tag, lit on the one F3 goes to. A press going to the other one than the press
+// before flashes that one once. searchAt: the result chosen last (clicked or stepped to), an index of searchHits.
+const f3 = { holder: 'find', last: null };
+let searchAt = null;
+const searchSteppable = () => searchHits.some(h => !h.done);
+function f3Target() {
+  if (!searchSteppable()) return 'find';
+  const bar = panes[state.activePane]?.find;
+  return f3.holder === 'search' || !bar || bar.el.hidden ? 'search' : 'find';
+}
+function f3Take(holder) {
+  f3.holder = holder;
+  showF3();
+}
+function showF3() {
+  const to = f3Target();
+  for (const p of panes) p.find?.el.querySelector('.mm-find-f3')?.classList.toggle('mm-on', to === 'find');
+  toSearch({ kind: 'f3', on: to === 'search', shown: searchSteppable() });
+}
+function f3Step(dir) {
+  const to = f3Target();
+  if (f3.last && f3.last !== to) {   // F3 went elsewhere the press before: this one flashes once
+    if (to === 'search') searchPane.send({ kind: 'flash', once: true });
+    else {
+      const el = panes[state.activePane]?.find?.el;
+      el?.classList.remove('mm-find-flash');
+      void el?.offsetWidth;
+      el?.classList.add('mm-find-flash');
+      setTimeout(() => el?.classList.remove('mm-find-flash'), 400);
+    }
+  }
+  f3.last = to;
+  if (to === 'search') return searchStep(dir);
+  return findKey(dir > 0 ? 'next' : 'prev');
+}
+
+// The next or previous result: after the one chosen last; none chosen yet, from the cursor in the active file when that
+// file has results, else the first (the last). Replaced ones are passed. At the end: as the find bar (findWrap).
+async function searchStep(dir) {
+  const live = searchHits.map((h, i) => [h, i]).filter(([h]) => !h.done);
+  if (!live.length) return;
+  let k;
+  if (searchAt != null) k = dir > 0 ? live.findIndex(([, i]) => i > searchAt) : live.findLastIndex(([, i]) => i < searchAt);
+  else {
+    const tab = activeTab(), doc = tab?.doc, at = tab && !doc.pdf ? paneOf(tab).cm?.getCursor() : null;
+    const mine = ([h]) => doc && (h.path ? samePath(h.path, doc.path) : h.draft === doc.draft);
+    const after = ([h]) => h.line > at.line || h.line === at.line && h.col >= at.ch;
+    if (at && live.some(mine)) k = dir > 0 ? live.findIndex(x => mine(x) && after(x)) : live.findLastIndex(x => mine(x) && !after(x));
+    else k = dir > 0 ? 0 : live.length - 1;
+  }
+  if (k < 0) {
+    if ((setting('findWrap') || 'end') === 'end') return toast(dir > 0 ? 'No more results below.' : 'No more results above.', true);
+    k = dir > 0 ? 0 : live.length - 1;
+  }
+  const [hit, i] = live[k];
+  searchAt = i;
+  toSearch({ kind: 'current', hit: i });
+  await goToSearchHit(hit);
 }
 
 // ---------- The Search pane's page (docs/plans/executed/PLAN-docking.md 3.3, 3.5) ----------
@@ -3442,7 +3509,7 @@ function searchPaneState() {
     ['text:with', { kind: 'text', key: 'text:with', field: 'with', value: searchPage.values.with }],
     ['options', { kind: 'options', options: { ...searchOptions } }], ['scope', { kind: 'scope', value: searchPage.scope }],
     ['replace', { kind: 'replace', on: searchPage.replace }], ['status', { kind: 'status', text: searchPage.status }],
-    ['results', { kind: 'results', html: searchPage.html }], ['history', { kind: 'history', lists: findHistory }]]);
+    ['results', { kind: 'results', html: searchPage.html }], ['history', { kind: 'history', lists: findHistory }], ['f3', { kind: 'f3', on: f3Target() === 'search', shown: searchSteppable() }]]);
 }
 
 // From the Search pane's page.
@@ -3454,7 +3521,12 @@ function fromSearch(m) {
       Object.assign(searchOptions, m.options);
       return m.run && runSearch();
     case 'scope': searchPage.scope = m.value; keepLayout('searchScope', m.value); return runSearch();
-    case 'goto': return searchHits[m.hit] && goToSearchHit(searchHits[m.hit], m.here, m);
+    case 'goto':   // a result clicked: F3 goes on from it (plan 47)
+      if (!searchHits[m.hit]) return;
+      searchAt = m.hit;
+      f3Take('search');
+      return goToSearchHit(searchHits[m.hit], m.here, m);
+    case 'f3': return f3Take('search');   // its F3 tag clicked
     case 'replaceFile': return replaceFile(m.group);   // searchreplace.js
     case 'replaceMatch': return searchHits[m.hit] && replaceMatch(searchHits[m.hit]);
     case 'replaceAll': return replaceAllResults();

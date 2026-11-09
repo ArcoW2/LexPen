@@ -29,6 +29,8 @@ const FIND_HTML =
   '<button data-find="regex" class="mm-find-opt" title="Regular expression (then the ^ codes do not apply)">.*</button>' +
   `<button data-find="prev" title="${withKey('Previous', 'findPrevious')}">` + chevron('M4 10l4-4 4 4') + '</button>' +
   `<button data-find="next" title="${withKey('Next', 'findNext')}">` + chevron('M4 6l4 4 4-4') + '</button>' +
+  // Lit while F3 comes here, dimmed while it goes to the Search pane (app.js f3Take; plan 47); a click: F3 here.
+  '<button data-find="f3" class="mm-find-f3" title="F3 / Shift+F3: the next / previous match here (a click: F3 here)">F3</button>' +
   `<button class="mm-find-toggle" data-find="replaceRow" title="${REPLACE_TIP}">Replace</button>` +
   '<button data-find="codes" class="mm-find-codes" title="The codes of the find and replace fields">?</button>' +
   '<button data-find="close" class="mm-find-close" title="Close (Esc)"></button>' +
@@ -73,9 +75,10 @@ function findBar(pane) {
       refresh(pane, true);
     } else if (action === 'replaceRow') showReplace(pane, bar.replaceRow.hidden);
     else if (action === 'close') closeFind(pane);
-    else if (action === 'next') findGo(pane, 1);
-    else if (action === 'prev') findGo(pane, -1);
-    else if (action === 'skip') findGo(pane, 1);
+    else if (action === 'f3') f3Take('find');
+    else if (action === 'next') { f3Take('find'); findGo(pane, 1); }
+    else if (action === 'prev') { f3Take('find'); findGo(pane, -1); }
+    else if (action === 'skip') { f3Take('find'); findGo(pane, 1); }
     else if (action === 'replaceOne') replaceOne(pane);
     else if (action === 'replaceAll') replaceAll(pane);
     else if (action === 'toSearch') findToSearch(pane);
@@ -94,6 +97,7 @@ function findBar(pane) {
   // the letters keep coming while a first letter is found on thousands of lines.
   bar.input.addEventListener('input', () => {
     findOf(pane).query = bar.input.value;
+    f3Take('find');   // typed in: F3 goes here (plan 47)
     clearTimeout(pane.findTypeTimer);
     if ((pane.cm?.lineCount() ?? 0) < FIND_TYPE_LINES) return refresh(pane, true);
     pane.findTypeTimer = setTimeout(() => refresh(pane, true), FIND_TYPE_DELAY);
@@ -113,6 +117,7 @@ function findBar(pane) {
     if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeFind(pane, true); }
     else if (e.key === 'Enter') {
       e.preventDefault();
+      f3Take('find');
       if (input === bar.with && !e.shiftKey) replaceOne(pane); else findGo(pane, e.shiftKey ? -1 : 1);
     }
     // Tab from Find to Replace with (the row open), Shift+Tab back; else Tab goes on to the buttons.
@@ -217,6 +222,7 @@ function showBar(pane, focus) {
   if (selected) f.query = selected;
   bar.el.hidden = false;
   bar.origin = bar.lap = bar.csvOrigin = null;
+  if (focus) f3Take('find'); else showF3();   // opened to type in: F3 here (plan 47)
   syncBar(pane);
   syncReplaceButton(pane);
   pane.cm?.refresh();

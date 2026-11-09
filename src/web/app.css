@@ -392,6 +392,7 @@ body[data-dock-bottom=open] .mm-main > .mm-dock-split[data-side=bottom] { displa
 .mm-pane-flash::after { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 1000;
   border: 2px solid var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); opacity: 0;
   animation: mm-dock-flash .25s ease-in-out 3; }
+.mm-pane-flash.mm-flash-once::after { animation-iteration-count: 1; }   /* one blink: F3 come here (plan 47) */
 .mm-dock-group.mm-rolled .mm-dock-views { display: none; }
 .mm-dock-roll { align-self: center; padding: 2px 4px; color: var(--fg-dim); margin-bottom: 3px; }
 .mm-dock-roll:hover { color: var(--fg); }
@@ -456,6 +457,18 @@ body[data-search-replace] .mm-result.mm-on .mm-result-rep { display: block; }
 .mm-result.mm-done .mm-result-text ins { background: rgba(80, 200, 80, .3); color: inherit; text-decoration: none; }
 .mm-result.mm-skip .mm-result-line::after { content: ' !'; color: var(--caution); }
 .mm-search-status { padding: 2px 12px 6px; font-size: calc(12px * var(--ui-scale)); color: var(--fg-dim); }
+/* F3 (plan 47): a tag in the find bar and the Search pane, lit where F3 goes (as an active ribbon button), dimmed on the
+   other; a click: F3 there. */
+.mm-search-status-row { display: flex; align-items: flex-start; }
+.mm-search-status-row .mm-search-status { flex: 1; min-width: 0; }
+.mm-find-f3, .mm-search-f3 { flex: none; padding: 0 5px; border: 0; border-radius: 3px; font-size: calc(11px * var(--ui-scale)); font-weight: 600;
+  line-height: 1.6; color: var(--fg-dim); background: none; opacity: .5; cursor: pointer; }
+.mm-search-f3 { margin: 1px 8px 0 0; }
+.mm-find-f3.mm-on, .mm-search-f3.mm-on { opacity: 1; color: var(--accent); background: var(--active); }
+.mm-find-f3:hover, .mm-search-f3:hover { opacity: 1; }
+/* F3 come to the find bar from the Search pane: one blink (app.js f3Step). */
+.mm-find.mm-find-flash { animation: mm-find-flash .25s ease-in-out 1; }
+@keyframes mm-find-flash { 50% { box-shadow: inset 0 0 0 2px var(--accent); } }
 .mm-search-results { flex: 1; overflow: auto; padding-bottom: 12px; user-select: none; }
 .mm-result-file { display: flex; gap: 6px; padding: 4px 8px; cursor: pointer; white-space: nowrap; overflow: hidden; }
 .mm-result-file:hover { background: var(--hover); }

@@ -437,8 +437,8 @@ appAction('indentMore', { title: 'Indent', hint: 'The lines of the cursor or sel
 appAction('indentLess', { title: 'Outdent', hint: 'The lines of the cursor or selection one indent step left', group: 'edit', editor: true,
   run: (_, { pane }) => { pane.cm.execCommand('indentLess'); pane.cm.focus(); } });
 appAction('find', { title: 'Find', hint: 'In this pane: the editor or the preview; with text selected in the editor, only within it', group: 'edit', run: () => findKey('open') });
-appAction('findNext', { title: 'Find next', hint: 'With an empty or hidden find bar: show it', group: 'edit', run: () => findKey('next') });
-appAction('findPrevious', { title: 'Find previous', hint: 'The match before', group: 'edit', run: () => findKey('prev') });
+appAction('findNext', { title: 'Find next', hint: 'The next match of the find bar, or the next result of the Search pane: whichever was used last (its F3 tag lit); with an empty or hidden find bar: show it', group: 'edit', run: () => f3Step(1) });
+appAction('findPrevious', { title: 'Find previous', hint: 'The match before, or the result before: as Find next', group: 'edit', run: () => f3Step(-1) });
 appAction('replace', { title: 'Replace', hint: 'The find bar with its replace row, in the editor; with text selected, only within it', group: 'edit', run: () => findKey('replace') });
 // The find bar's Replace all (docs/plans/executed/PLAN-find-bar-replace.md): Alt+A while the bar has the focus; no key elsewhere.
 appAction('replaceAll', { title: 'Replace all', hint: 'In the find bar: all matches in the selection or the file, one undo step (Alt+A in the bar)', group: 'edit', run: () => findKey('replaceAll') });
