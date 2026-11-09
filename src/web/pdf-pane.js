@@ -238,6 +238,17 @@ addEventListener('focus', () => { if (document.activeElement === document.body) 
 // The window's keys (a key with Ctrl or Alt, F1 to F12, Esc); the arrows, PgUp / PgDn, Home / End and typing stay here.
 addEventListener('keydown', e => {
   if (['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) return;
+  // As in the editor: Ctrl+Home / Ctrl+End the start / end of the PDF; Home / End, and Ctrl+Left / Ctrl+Right, the view
+  // to its left / right edge (zoomed in), not the scroll area's own (Home / End went to the start / end).
+  const edge = !e.altKey && !e.metaKey && !e.shiftKey && (e.key === 'Home' || e.key === 'End' ? (e.ctrlKey ? 'vertical' : 'horizontal')
+    : e.ctrlKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight') ? 'horizontal' : null);
+  if (edge) {
+    const s = document.getElementById('pdf-scroll'), end = e.key === 'End' || e.key === 'ArrowRight';
+    e.preventDefault();
+    if (edge === 'vertical') s.scrollTop = end ? s.scrollHeight : 0;
+    else s.scrollLeft = end ? s.scrollWidth : 0;
+    return;
+  }
   if (!(e.ctrlKey || e.altKey || e.metaKey || /^F\d+$/.test(e.key) || e.key === 'Escape')) return;
   if (e.ctrlKey && !e.altKey && ['c', 'a'].includes(e.key.toLowerCase())) return;   // copy, select all: the PDF's text
   e.preventDefault();
