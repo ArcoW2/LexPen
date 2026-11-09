@@ -34,7 +34,9 @@ function actionGroup(name, def) {
 // ---------- App actions ----------
 // { title, hint, group, run(params, ctx), editor: works on the editor, move: Shift selects,
 //   variants: the parameter lists F1 offers: [[1], [2]], variantTitles: { "1": "..." },
-//   checked(params): a tick in the menu, enabled(params): greyed out when false }
+//   checked(params): a tick in the menu, enabled(params): greyed out when false,
+//   dropDown(params): its short form, the items of a list of what its window shows (a ribbon button or corner with
+//   "open": "dropDown" opens it under itself; ribbon.js, docs/plans/executed/PLAN-ribbon-drop-down-lists.md) }
 const appActions = new Map();
 const appAction = (name, def) => appActions.set(name, { name, ...def });
 
@@ -543,6 +545,7 @@ appAction('clipboardClear', { title: 'Clear clipboard', hint: 'The active clipbo
 appAction('clipboardList', { title: 'Clipboards', hint: 'The list of clipboards with the start of their text; choose one', group: 'clipboard',
   run: () => showClipboardList() });
 appAction('clipboards.pane', { title: 'Manage clipboards...', hint: 'The clipboards with the start of their text, the active one marked; a click makes one active', group: 'clipboard',
+  dropDown: () => clipboardItems(),   // on the ribbon as a drop-down (ribbon.js): the clipboards to choose from
   run: () => openClipboardsPane() });   // app.js
 appAction('pasteImage', { title: 'Paste image', hint: 'A picture or image files on the Windows clipboard; asks how to link them', group: 'edit',
   editor: true, enabled: () => !!editorPane() && !activeDoc()?.language, run: async (_, { pane }) => {
@@ -1081,6 +1084,8 @@ appAction('highlight.keep', { title: 'Keep the adjusted highlight', hint: 'A hig
 appAction('highlight.next', { title: 'Highlight', hint: 'The next / previous highlight, selected (in a preview: scrolled to)', group: 'highlights',
   variants: [[1], [-1]], variantTitles: { 1: 'Next highlight', '-1': 'Previous highlight' }, run: ([dir = 1]) => goHighlight(hlPane(), +dir) });
 appAction('highlight.list', { title: 'Highlights window', hint: 'A window with the highlights and their notes, to search and go to', group: 'highlights',
+  // On the ribbon as a drop-down (ribbon.js): the document's highlights, a click going there (highlights.js).
+  dropDown: async () => { const items = await highlightItems(); return items.length ? items : [{ label: '(no highlights)', enabled: false }]; },
   run: () => openToolPane('hls', 'openHighlights') });   // its window, or docked (app.js)
 appAction('highlight.moveAll', { title: 'Move all highlights to where the setting says', hint: 'Files > Highlights: into LexPen\'s store, or next to their files (.lph)', group: 'highlights',
   run: async () => { const n = await host('highlightsMoveAll', { beside: setting('highlightsStore') === 'beside' }); toast(`The highlights of ${n} file${n === 1 ? '' : 's'} moved.`, true); } });

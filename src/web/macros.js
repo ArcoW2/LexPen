@@ -400,6 +400,8 @@ appAction('macro.playTimes', { title: 'Play X times...', hint: 'The macro played
 appAction('macro.playToEnd', { title: 'Play to the end of the file', hint: 'Again and again while the cursor moves on, up to the end of the file', group: 'macros',
   run: () => playStoredMacro(undefined, { times: 0 }) });
 appAction('macro.manage', { title: 'Manage macros...', hint: 'The stored macros, each with what can be done with it; a new macro or recording', group: 'macros',
+  // On the ribbon as a drop-down (ribbon.js): the stored macros, a click playing one.
+  dropDown: async () => { const names = await loadMacroNames(); return names.length ? names.map(n => ({ label: n.replace(/&/g, '&&'), action: 'macroRun', params: [n], key: keyText('macroRun', n) })) : [{ label: '(no macros yet)', enabled: false }]; },
   run: () => openMacroWindow(null) });
 appAction('macro.window', { title: 'Macro...', hint: 'A macro\'s window: play it, step by step, record more onto it, edit, a name, a key, delete', group: 'macros',
   run: ([name]) => openMacroWindow(name ?? null) });

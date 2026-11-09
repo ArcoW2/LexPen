@@ -460,13 +460,13 @@ async function clipboardItems() {
   Object.assign(clips, await host('clipState'));
   return Array.from({ length: 10 }, (_, n) => ({
     label: n === 0 ? '&Windows clipboard' : `Clipboard &${n}`, action: 'clipboardSelect', params: [n],
-    key: (clips.columns?.[n] ? '[block] ' : '') + (clips.previews[n] || '(empty)'), title: keyText('clipboardSelect', n),
+    key: (clips.columns?.[n] ? '[block] ' : '') + (clips.previews[n] || '(empty)'), title: keyText('clipboardSelect', n), checked: clips.active === n,
   }));
 }
 
 async function showClipboardList() {
   const r = statusUi.clip.getBoundingClientRect();
-  openPopupMenu(await clipboardItems(), r.left, r.top);
+  openPopupMenu([...await clipboardItems(), '-', ['&Manage clipboards...', 'clipboards.pane']], r.left, r.top);   // as the ribbon's drop-down
 }
 
 // ---------- Fonts (F1: the font settings without a value) ----------

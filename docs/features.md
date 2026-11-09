@@ -848,6 +848,9 @@ every action with its key.
   Bookmarks, Sort, Highlights, Macros). Paste, Copy and Cut have an arrow with the clipboards (Paste: Active
   clipboard, Clear clipboard); Paste shows the active clipboard's number. Labels longer than Longest button label
   are cut off with "..."; group names on or off. Too narrow: the groups that do not fit go under ">>".
+  A button or corner whose action shows a window with a list (Manage clipboards..., Manage bookmarks..., Highlights
+  window, Manage macros...) can open that list under it instead (right-click > Opens: Drop-down; a small arrow down
+  on a corner); Clipboard, Bookmarks and Highlights have the window in the left corner and the drop-down in the right.
 - **Your ribbon**: change it in its change mode (the ribbon's right-click > Change the ribbon, or the button in F1;
   Done or Esc ends it): drag commands from F1 onto it (an action, or one of its variants: Paste from clipboard 3),
   move buttons, groups (by their grip) and tabs, drop an action on a group's corner, drag anything off to remove it,

@@ -1602,6 +1602,9 @@ body.mm-rb-menus .mm-rb-tabs-top { display: none; }
 .mm-rb-corner.mm-rb-left::after { right: auto; left: 4px; border-right: 0; border-left: 1.4px solid var(--fg-dim); }
 .mm-rb-corner.mm-rb-empty { outline: 1px dashed var(--border); }
 .mm-rb-corner.mm-rb-empty::after { display: none; }
+/* A corner that opens a drop-down (plan 46): a small arrow down, not the launcher mark. */
+.mm-rb-corner.mm-rb-drop-down::after { width: 0; height: 0; bottom: 5px; right: 6px; border: 4px solid transparent; border-top-color: var(--fg-dim); border-bottom: 0; }
+.mm-rb-corner.mm-rb-left.mm-rb-drop-down::after { right: auto; left: 6px; border-left: 4px solid transparent; }
 .mm-rb-more { flex: none; align-self: center; margin-left: auto; }
 .mm-rb-tip { position: absolute; z-index: 20; left: 50%; bottom: -4px; transform: translateX(-50%); padding: 0 4px; border-radius: 3px;
   font: 600 10px/14px var(--app-font); color: var(--bg); background: var(--fg); box-shadow: 0 1px 3px rgba(0, 0, 0, .35); pointer-events: none; }

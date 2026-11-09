@@ -26,6 +26,28 @@ function ribbonColumns(items) {
   return cols;
 }
 
+// ---------- Corners ----------
+// A group's corner as kept in ribbon.json: an action, [action, ...params], or { action, params, open } (open:
+// "dropDown", docs/plans/executed/PLAN-ribbon-drop-down-lists.md). As one shape: { call: [action, ...params], open };
+// null: none.
+function ribbonCorner(c) {
+  if (typeof c === 'string') return c ? { call: [c] } : null;
+  if (Array.isArray(c)) return c.length ? { call: c } : null;
+  if (!c?.action) return null;
+  return { call: [c.action, ...(c.params ?? [])], ...(c.open ? { open: c.open } : {}) };
+}
+// A button's item as a corner, in the plainest form that keeps it: no `open`, an action or [action, ...params].
+function ribbonCornerOf(item) {
+  const params = item.params ?? [];
+  if (item.open) return { action: item.action, ...(params.length ? { params } : {}), open: item.open };
+  return params.length ? [item.action, ...params] : item.action;
+}
+// A corner as a button's item; null: none.
+function ribbonItemOf(corner) {
+  const c = ribbonCorner(corner);
+  return c && { action: c.call[0], ...(c.call.length > 1 ? { params: c.call.slice(1) } : {}), ...(c.open ? { open: c.open } : {}) };
+}
+
 // The key tips of one level (the tab names; a tab's buttons and corners): per name a letter no other one at that level
 // has: its own tip first (when free), else the first letter of its words, else any letter of it, else two letters.
 // Upper case. No tip starts another (a "P" beside a "PF" would run at the P), so a letter typed never waits.

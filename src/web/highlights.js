@@ -330,6 +330,17 @@ function goToHighlight(pane, h) {
   setTimeout(() => CSS.highlights.delete('mm-hl-blink'), 700);
 }
 
+// The document's highlights in their order, each going there: Highlights window as a drop-down on the ribbon (ribbon.js).
+// Its line and the start of its text, the start of its note at the right. A PDF: none here (its window has them).
+async function highlightItems(pane = previewOrEditor()?.pane) {
+  const doc = pane?.active?.doc;
+  if (!doc || doc.pdf) return [];
+  await loadHighlights(doc);
+  const text = docText(doc), short = (s, n) => { s = String(s ?? '').replace(/\s+/g, ' ').trim(); return s.length > n ? s.slice(0, n - 3) + '...' : s; };
+  return placedHls(doc).map(h => ({ h, r: hlRange(doc, h) })).filter(x => x.r).sort((x, y) => hlOffset(text, x.r.from) - hlOffset(text, y.r.from))
+    .map(({ h, r }) => ({ label: `${r.from[0] + 1}: ${short(h.text, 40)}`.replace(/&/g, '&&'), key: short(h.note, 30), run: () => goToHighlight(pane, h) }));
+}
+
 // The source offset at the top of what a preview shows.
 function previewTopOffset(pane) {
   const tab = pane.active, view = pane.previewEl.getBoundingClientRect();
