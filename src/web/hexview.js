@@ -513,7 +513,9 @@ async function hexSet(tab, on, mode) {
 }
 
 // What the tab is worked on as: Text, Column (column mode on) or Hex; one at a time.
-const hexEditMode = () => activeTab()?.hex ? 'hex' : column.on ? 'column' : 'text';
+// A file shown in its own way only (a PDF; bytes LexPen does not know): no text to work on, so no Text or Column mode.
+const notText = doc => !!(doc?.pdf || doc?.binary);
+const hexEditMode = () => activeTab()?.hex ? 'hex' : notText(activeTab()?.doc) ? null : column.on ? 'column' : 'text';
 // In Hex not by choice: a file LexPen does not know (the ribbon marks the Hex button with a dotted line, not lit).
 const hexAuto = () => { const t = activeTab(); return !!t?.hex && !t.hexChosen; };
 
@@ -529,7 +531,7 @@ appAction('editMode.set', { title: 'Work on the tab as', hint: 'Text, Column (co
   variants: [['text'], ['column'], ['hex']], variantTitles: { text: 'Text mode', column: 'Column mode', hex: 'Hex mode' },
   checked: ([m]) => !!activeTab() && hexEditMode() === m,
   auto: ([m]) => m === 'hex' && hexAuto(),
-  enabled: ([m]) => !!activeTab() && (m === 'hex' || !activeTab().doc.binary),
+  enabled: ([m]) => !!activeTab() && (m === 'hex' || !notText(activeTab().doc)),
   run: async ([m]) => {
     const t = activeTab();
     if (!t) return;

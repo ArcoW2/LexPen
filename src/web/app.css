@@ -91,6 +91,7 @@ body[data-dirty] .mm-save { visibility: visible; }
 .mm-switches { display: flex; margin: 0 6px; border: 1px solid var(--border); border-radius: 5px; overflow: hidden; }
 .mm-switches button { border-radius: 0; border: 0; }
 .mm-switches button.mm-on { background: var(--active); color: var(--accent); }
+.mm-switches button:disabled { opacity: .45; cursor: default; background: none; }   /* not possible for this file (updateChrome) */
 
 /* The menu bar (menus.js) and its menus, placed at the menu title or the item they open from. */
 .mm-menubar { display: flex; margin-left: 4px; }

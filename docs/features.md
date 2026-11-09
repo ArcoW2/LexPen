@@ -468,7 +468,8 @@ every action with its key.
   undefined byte a dimmed dot). Settings, Editor view > Hex: the bytes on a line (16) and an extra space after every
   so many (8; 0: none). A file that is neither text nor a kind LexPen knows opens in Hex only (up to 64 MB; "Bytes" in
   the bottom bar) and is saved as its bytes; also in a tab that had another file, which then goes back to Text for a
-  text file, unless Hex was chosen for that tab (the ribbon: Hex not chosen has a dotted line). A text file in Hex
+  text file, unless Hex was chosen for that tab (the ribbon: Hex not chosen has a dotted line). A PDF has no Text or
+  Column mode, Hex it has; Editor is greyed out for it (the ribbon and the top bar). A text file in Hex
   shows its text as the next save writes it (encoding, BOM, line ends, unsaved changes included); a change goes back
   into the text as one undo step, a byte its encoding cannot read showing as 0xAB there and saved back as it was.
   Editing, in either part (Tab between them): a hex digit

@@ -1780,6 +1780,9 @@ function updateChrome() {
   $('.mm-switch-editor').classList.toggle('mm-on', !!tab && !tab.hex && tab.mode !== 'preview');
   $('.mm-switch-preview').classList.toggle('mm-on', !!tab && !tab.hex && tab.mode !== 'edit');
   $('.mm-switch-hex').classList.toggle('mm-on', !!tab?.hex);
+  // Not possible for this file (a PDF has no editor, bytes neither preview): greyed out, as on the ribbon.
+  $('.mm-switch-editor').disabled = !tab || notText(doc);
+  $('.mm-switch-preview').disabled = !tab || !!doc?.binary;
   markTreeActive();
 }
 
