@@ -1961,7 +1961,7 @@ sealed class AppHost : ApplicationContext
     {
         foreach (var (_, f) in ToolWindows(w).Where(t => t.Kind == kind))
         {
-            var info = new FLASHWINFO { cbSize = (uint)Marshal.SizeOf<FLASHWINFO>(), hwnd = f.Handle, dwFlags = FLASHW_ALL, uCount = 3 };
+            var info = new FLASHWINFO { cbSize = (uint)Marshal.SizeOf<FLASHWINFO>(), hwnd = f.Handle, dwFlags = FLASHW_ALL, uCount = 3, dwTimeout = 250 };   // 250 ms a flash, as the page's (app.css mm-dock-flash)
             FlashWindowEx(ref info);
         }
     }

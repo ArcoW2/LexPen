@@ -382,12 +382,12 @@ body[data-dock-bottom=open] .mm-main > .mm-dock-split[data-side=bottom] { displa
 /* Shown from Window > Panels: the group flashes a few times (docks.js flashPanel). */
 .mm-dock-group.mm-flash::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 5;
   border: 2px solid var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); opacity: 0;
-  animation: mm-dock-flash .4s ease-in-out 3; }
+  animation: mm-dock-flash .25s ease-in-out 3; }
 @keyframes mm-dock-flash { 50% { opacity: 1; } }   /* its own name: mm-flash is the folder row's */
 /* A floating pane shown by an action: its page the same (pane.js). */
 .mm-pane-flash::after { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 1000;
   border: 2px solid var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); opacity: 0;
-  animation: mm-dock-flash .4s ease-in-out 3; }
+  animation: mm-dock-flash .25s ease-in-out 3; }
 .mm-dock-group.mm-rolled .mm-dock-views { display: none; }
 .mm-dock-roll { align-self: center; padding: 2px 4px; color: var(--fg-dim); margin-bottom: 3px; }
 .mm-dock-roll:hover { color: var(--fg); }
