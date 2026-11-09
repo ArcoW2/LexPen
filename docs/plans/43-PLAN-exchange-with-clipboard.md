@@ -1,6 +1,6 @@
 # Plan: Exchange the selection with the clipboard
 
-Status: draft 2026-11-08; not started. The number in the file name is the priority; rename to reorder.
+Status: draft 2026-11-08, revised 2026-11-09 (twice); not started. The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
 
@@ -13,8 +13,8 @@ two pieces of text (two arguments, two names) is a common edit that LexPen has n
 A command Exchange with clipboard: the clipboard's text takes the selection's place, and the selection goes onto
 the clipboard, in one step and one undo. It works on the active clipboard, as Paste and Cut do, or on a numbered one;
 the pasted text stays selected, so the same command again puts everything back. It is on the ribbon (Home >
-Clipboard, stacked with Cut and Copy, Paste made small beside Paste image) with an icon of its own, beside the menus
-and a key.
+Clipboard, stacked under Copy) with an icon of its own, beside the menus and the key Ctrl+Alt+X. Nothing selected or an
+empty clipboard: nothing happens, with a message.
 
 ## 3. Details
 
@@ -31,14 +31,17 @@ and a key.
 - **Blocks and several cursors**: as Cut and Paste each do now. A block selection goes onto the clipboard as a block
   (the column mark); a block on the clipboard pastes as a block. Several selections: Cut's joined text onto the
   clipboard, and the clipboard's text pasted as Paste does with several cursors.
-- **Not possible**: open question 2 (nothing selected, an empty clipboard, a read-only document).
+- **When it cannot exchange**: nothing happens in either case, with a message, so the command never does half of its
+  work: nothing selected ("Select text to exchange with the clipboard."), an empty clipboard ("The clipboard is
+  empty."). A read-only document: nothing, as Cut.
 
 ### 3.2 Where
 
 - The action `clipboard.exchange` (with its variants), in F1 under Edit.
 - Edit menu: Exchange with clipboard, after Paste; the editor's right-click: the same, when there is a selection.
-- **On the shipped ribbon**: Home > Clipboard becomes two columns of small buttons: Paste and Paste image (Paste no
-  longer large), then Cut, Copy and Exchange stacked. Exchange's label "Exchange"; a split button as Paste: the button exchanges with the active
+- **On the shipped ribbon**: Home > Clipboard is Paste large with Paste image ("Image") small under it, then Cut and
+  Copy stacked; Exchange goes stacked under Copy, so that column is Cut, Copy, Exchange. Exchange's label "Exchange";
+  a split button as Paste: the button exchanges with the active
   clipboard, its arrow lists the clipboards to exchange with (Windows clipboard, 1 to 9). In `defaults/ribbon.json`;
   a ribbon.json of your own gets it by Customize or change mode (it is not changed for you).
 - **Its icon**: Paste's clipboard with two curved arrows round it, one going in and one coming out (the exchange),
@@ -46,7 +49,9 @@ and a key.
   16 px with lines of 1.4 and large 32 px with lines of 1.0, a drawing of its own at 16 px if the arrows do not read
   at that size; added to `ribbonicons.js` (and the icon sheet in the ribbon plan's images) under
   `clipboard.exchange`. F1 and the menus show no icons, so it is the ribbon's only.
-- Key: open question 1.
+- **Key**: Ctrl+Alt+X (free in LexPen's default keys, checked in keys.json and the editor's keymap). Not Ctrl+Z (Undo),
+  not Ctrl+Shift+X (Strikethrough), not Ctrl+Shift+V (taken outside LexPen by tools that paste in other ways, such as
+  PowerToys).
 
 - **The clipboard history** is a plan of its own (44-PLAN-clipboard-history.md); once built, Exchange's arrow lists
   its texts too, as Paste's does.
@@ -57,12 +62,12 @@ and a key.
   restores both the document and the clipboard; one Ctrl+Z restores the document.
 - In the test copy: with the Windows clipboard and with clipboard 3 (the active one staying); a block selection with
   a normal clipboard text and the other way round; two selections; a read-only document; nothing selected and an
-  empty clipboard (open question 2); the ribbon's Exchange button (the active clipboard) and its arrow's list
+  empty clipboard (nothing changed, the message shown); the ribbon's Exchange button (the active clipboard) and its arrow's list
   (clipboard 3); its icon at both sizes in a light and a dark theme.
 - Unit (C#): the shipped ribbon.json has `clipboard.exchange` in Home > Clipboard (RibbonTests); Jint: that group's
-  columns are "S2 S3" (Paste and Paste image; Cut, Copy and Exchange).
-- In the test copy: the Clipboard group no larger than before (it loses the large Paste); Paste's badge (the active
-  clipboard's number) still readable on the small icon.
+  columns are Paste with Paste image in one column, then Cut, Copy and Exchange stacked.
+- In the test copy: the Clipboard group no wider than before (Exchange fills the third row of the Cut and Copy
+  column).
 
 ### 3.4 Alternatives
 
@@ -71,10 +76,4 @@ and a key.
 
 ## 4. Open questions
 
-1. **Key**: Ctrl+Z cannot be used: it is Undo (the editor's own keys, as Ctrl+Shift+Z and Ctrl+Y are Redo);
-   Ctrl+Shift+X is Strikethrough (it would have to move, and Ctrl+Shift+X for strikethrough is common elsewhere). Free
-   in LexPen's default keys (checked in keys.json and the editor's keymap): Ctrl+Shift+V (elsewhere often paste as
-   plain text), Ctrl+Alt+V, Ctrl+Alt+X, Ctrl+Alt+Z. Suggestion: Ctrl+Shift+V.
-2. **When it cannot exchange**: nothing selected (paste only, or nothing), an empty clipboard (cut only, or
-   nothing)? Suggestion: nothing in either case, with a message ("Select text to exchange with the clipboard." /
-   "The clipboard is empty."), so the command never does half of its work. A read-only document: nothing, as Cut.
+None.

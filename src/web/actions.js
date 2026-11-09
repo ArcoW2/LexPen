@@ -76,9 +76,9 @@ function actionAvailable(name, params = []) {
 // The pane whose editor an action works on. From a key: the editor that has the focus. From a menu, the
 // format bar or F1: the active pane's editor, which then gets the focus back.
 function editorPane(ctx = {}) {
-  if (ctx.from === 'key') return panes.find(p => p.cm?.hasFocus() && p.active && p.el.dataset.mode !== 'preview') ?? null;
+  if (ctx.from === 'key') return panes.find(p => p.cm?.hasFocus() && p.active && !p.active.hex && p.el.dataset.mode !== 'preview') ?? null;
   const pane = panes[state.activePane];
-  if (!pane.cm || !pane.active || pane.el.dataset.mode === 'preview') return null;
+  if (!pane.cm || !pane.active || pane.active.hex || pane.el.dataset.mode === 'preview') return null;   // Hex: no editor (hexview.js)
   if (ctx.from) pane.cm.focus();
   return pane;
 }
@@ -94,7 +94,7 @@ function previewOrEditor(ctx = {}) {
     return pane ? { pane, preview: true } : null;
   }
   const pane = panes[state.activePane], tab = pane.active;
-  if (!tab) return null;
+  if (!tab || tab.hex) return null;   // Hex: neither (hexview.js)
   if (tab.mode === 'preview' || (tab.mode === 'split' && tab.focusPart === 'preview')) {
     if (ctx.from) pane.previewEl.focus({ preventScroll: true });
     return { pane, preview: true };
@@ -650,6 +650,11 @@ const SETTING_ROWS = [
   { name: 'ribbonLabelWidth', group: 'Editor view', sub: 'Menu and ribbon', kind: 'range', range: [8, 60, 1], unit: ' characters', title: 'Longest button label',
     hint: 'In characters: a longer label is cut off with "..." (a large button\'s after two lines of half this); the tooltip has it whole',
   },
+  // Hex (hexview.js, docs/plans/executed/PLAN-hex-view.md).
+  { name: 'hexBytesPerLine', group: 'Editor view', sub: 'Hex', kind: 'range', range: [4, 64, 1], unit: ' bytes', title: 'Bytes on a line',
+    hint: 'Hex: how many bytes each line shows (the offset, their hex digits and their characters)' },
+  { name: 'hexGroup', group: 'Editor view', sub: 'Hex', kind: 'range', range: [0, 32, 1], unit: ' bytes', title: 'Extra space after every',
+    hint: 'Hex: an extra space after every so many bytes, in the hex digits and the characters alike; 0: none' },
   { name: 'formatBar', group: 'Editor view', kind: 'toggle',
     hint: 'The bar with bold, headings, lists, tables, ... is shown above the editor (also View > Formatting bar)',
     hintOff: 'No formatting bar above the editor; its commands stay in the menus and on their keys (View > Formatting bar shows it)' },

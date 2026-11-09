@@ -1,6 +1,6 @@
 # Plan: Hex view
 
-Status: draft 2026-10-21, revised 2026-11-08 (five times); not started. From the list "what UltraEdit or Visual
+Status: draft 2026-10-21, revised 2026-11-08; executed (2026-11-08); see As built. From the list "what UltraEdit or Visual
 Studio has and LexPen does not". The number in the file name is the priority; rename to reorder.
 
 ## 1. What this is about
@@ -53,7 +53,7 @@ LexPen does not know (today refused) opens in Hex by default.
   while that mode is the one in use, so only one is ever checked. Hex is per tab; column mode stays what it is now (on
   or off for the window), so a text tab shows Column or Text by it, a tab in Hex shows Hex. `columnMode.toggle` and
   `hex.toggle` stay for their keys; `hex.toggle` switches between Hex and the mode the tab had before.
-- **On the ribbon**: Arrange > Select, where the large Column mode button is now: three small buttons stacked, Text,
+- **On the ribbon**: Arrange > Mode, a group of its own after Select (where the large Column mode button was): three small buttons stacked, Text,
   Column and Hex (`editMode.set` with each variant), radio buttons by how the ribbon already shows a checked
   variant: the one in use lit, a click on another switches, a click on the lit one changes nothing. In
   `defaults/ribbon.json`; a ribbon.json of your own keeps its Column mode button until changed by Customize or change
@@ -103,13 +103,16 @@ LexPen does not know (today refused) opens in Hex by default.
     that many). The right-click has both as well. Esc: nothing.
   - Paste over stops at the end of the file: it never makes the file longer; the bytes left over are not pasted, and a
     message says how many.
-  - The clipboard's bytes: in the hex part its text read as hex digits (spaces and line ends ignored; anything else
-    and nothing is pasted, with a message); in the text part its characters as Windows-1252 bytes (a character
-    without one: nothing is pasted, with a message).
+  - The clipboard's bytes: a copy from Hex (either part) pastes as the bytes copied, in either part, while the
+    clipboard still holds that text; else in the hex part its text read as hex, in any of the usual ways ("3F 00 A1",
+    "3F00A1", "0x3F, 0x00", "$3F", "\x3F", "#3F00A1", "&H3F", "%3F", "3Fh", "3F:00:A1", "3F-00-A1"; anything else and
+    nothing is pasted, with a message); in the text part its characters as Windows-1252 bytes (a character without
+    one: nothing is pasted, with a message).
 - **Undo / redo** (Ctrl+Z / Ctrl+Y) per change; a changed byte stands out (the changed colour) until saved.
 - **Save** of a file opened in Hex writes the bytes exactly as they are: no encoding, no line ends, no BOM added or
   removed. A text file edited in Hex is saved as text, as always (3.1).
-- **Find in Hex**: bytes (hex digits, spaces allowed) or text.
+- **Find in Hex**: by the part the cursor is in: in the hex part bytes written as hex in any of the usual ways (as
+  pasted, 3.2), or text in quotes; in the text part text, its ASCII letters in either case.
 
 ### 3.3 How
 
@@ -125,7 +128,7 @@ LexPen does not know (today refused) opens in Hex by default.
 - Unit (C#): `hexRead` of a range, at the start, the end and past it; `hexWrite` changing bytes and leaving the rest
   exactly as it was; a text encoded for Hex equals the bytes a save writes (UTF-8 with and without BOM, UTF-16, ANSI;
   CR LF and LF), and decodes back to the same text.
-- Unit (C#): the shipped ribbon.json has `editMode.set` text, column and hex stacked in Arrange > Select, and no
+- Unit (C#): the shipped ribbon.json has `editMode.set` text, column and hex stacked in Arrange > Mode, and no
   `columnMode.toggle` there (RibbonTests).
 - Unit (Jint): a byte's digits edited (one removed at the left or the right, the empty half filled with 0 on
   leaving, both removed giving 00, a-f in either case); a line's layout for several `hexBytesPerLine` and `hexGroup`
@@ -170,3 +173,50 @@ LexPen does not know (today refused) opens in Hex by default.
 ## 4. Open questions
 
 None.
+
+## 5. As built
+
+Built on branch `hex-view` (2026-11-08): `HexFile.cs` (whether a file is binary, its bytes), `TextFile.DecodeAs`, the
+host's `hexRead`, `hexWrite`, `hexEncode`, `hexDecode`, `web/hexmodel.js` (one byte one character, a line, a byte's
+digits), `web/hexview.js` (the view, editing, the actions `hex.toggle`, `editMode.set`, `hex.insert`, `hex.fill`,
+`hex.delete`, `hex.pasteOver`, `hex.pasteIn`), the settings `hexBytesPerLine` and `hexGroup`, View > Hex, the top
+bar's Hex switch, the ribbon's Arrange > Mode (Text mode / Column mode / Hex mode).
+
+Differs from the plan:
+
+- **The bytes travel whole**, not in pieces: the host reads the file and the page holds it, so editing, inserting and
+  deleting are simple and a save writes it whole. The limit is 64 MB (`HexFile.MaxSize`). Measured in the test copy
+  (random bytes): 10 MB opened in 586 ms, a digit typed in 66 ms, saved in 371 ms; 60 MB opened in 3049 ms, a digit
+  typed in 57 ms, saved in 1536 ms.
+- **Hex is a flag of the tab** (`tab.hex`), not a fourth mode beside edit, preview and split: the tab keeps its mode,
+  so leaving Hex goes back to it, and the editor's actions are off while it shows (no editor for them). A mode chosen
+  (Editor, Preview, Editor and preview) leaves Hex; Text / Column / Hex on the ribbon are `editMode.set`'s variants.
+- **Find in Hex** asks what to find in a small window (Ctrl+F; in the hex part hex, in the text part text) and F3 / Shift+F3 go on;
+  the find bar and the Occurrences bar are the editor's and do not show in Hex.
+- **A text tab in Hex**: the bytes are made from the text as `diskText` gives it, before the trimming a save may do
+  (Settings: trim on save). The editor holds lines, so line-end bytes changed in Hex come back as the file's line end.
+  Bytes are marked as changed only for changes made in Hex.
+- **A PDF in Hex** shows its bytes read-only, as the PDF tab is.
+- **Copy from the text part**: a byte without a character is copied as "."; pasted back while the clipboard still
+  holds that copy, the bytes copied come back, in either part (added after the build, with hex in the usual notations
+  in the hex part: `hexParseBytes`).
+- **The Hex icon** has its digits as text in the drawing (as the F1 icon), not strokes. The icon sheet's source
+  (`executed/PLAN-ribbon.md.images/ribbon-icons.js`) has the new drawings; its PNGs were not drawn again.
+- **A file of bytes** shows "Bytes" in the bottom bar (no line ends, no language list); removed on disk, its bar has
+  no Keep as draft.
+
+Tested: unit (C#, `HexTests`): a zero byte makes a file binary, UTF-16 and empty files not; the bytes read whole, over
+the limit refused; a text encoded as a save writes it and decoded back the same, for UTF-8, UTF-8 BOM, UTF-16 LE / BE
+and ANSI; a byte UTF-8 cannot read kept as the stand-in and written back; the shipped ribbon has Text, Column and Hex
+stacked in Arrange > Mode (`RibbonTests`). Unit (Jint): a line for 16 / 8, 8 / 0 and 32 / 4; Windows-1252
+characters, the dot for control and undefined bytes, the byte of a character typed; the offset's width; a digit gone
+counting as 0; hex in each usual notation read, other text refused. All tests pass.
+In the test copy by script: a binary file opens in Hex; typing digits (either case);
+Delete on the high digit of 3F gives 0F, Backspace after its low digit 30, both removed 00; in the text part Delete
+and Backspace give 00, a character without a byte refused, e acute types E9; the length never changes by typing;
+Insert bytes (4), Fill with 00 and Delete bytes on a selection of 3; Paste over two bytes before the end (one left
+over, said), Paste in, the Ctrl+V and Ctrl+X menus, text that is no hex refused; undo and redo; save, the file equal
+to the bytes shown; a UTF-8 file with a BOM shows EF BB BF and 0D 0A, E9 typed reaches the editor as the stand-in,
+undo and redo through the editor, saved as E9; an LF file with unsaved changes shows them and 0A; the Editor switch
+leaves Hex; Text / Column / Hex one checked at a time; the settings change the layout at once; Find; a Hex tab comes
+back in Hex after a restart.

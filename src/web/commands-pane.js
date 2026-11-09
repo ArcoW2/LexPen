@@ -23,6 +23,7 @@ paneHandlers.commands = ({ html, sections, foot, q, ribbon }) => {
   const top = cp.list.scrollTop;
   // Where your own keys are: above the table, so it scrolls away with it.
   cp.list.innerHTML = `<p class="mm-pal-foot">${escapeHtml(foot)}</p>` + html;
+  if (!floating) for (const el of cp.list.querySelectorAll('[draggable]')) el.draggable = false;   // docked: the pointer drag below
   cp.jump.innerHTML = '<option value="">Go to section...</option>' + sections.map((s, i) => `<option value="${i}">${escapeHtml(s)}</option>`).join('');
   // The same search again (a family opened, the focus back): the place stays; a new one starts at the top.
   if (searched) { cp.list.scrollTop = 0; select(firstRow(), 0); }
@@ -94,8 +95,9 @@ addEventListener('keydown', e => {
   if (e.key === 'ArrowDown' || e.key === 'ArrowUp') select(cp.selected, e.key === 'ArrowDown' ? 1 : -1);
   else if (e.key === 'PageDown' || e.key === 'PageUp') for (let n = 0; n < 10; n++) select(cp.selected, e.key === 'PageDown' ? 1 : -1);
   else if (e.key === 'Enter') run(cp.selected);
-  else if (e.key === 'Escape') {   // first the search goes, then the window
-    if (cp.input.value) { cp.input.value = ''; toWindow({ kind: 'search', q: '' }); }
+  else if (e.key === 'Escape') {   // a row's drag ends first, then the search goes, then the window
+    if (rowDrag?.dragging()) rowDrag.cancel();
+    else if (cp.input.value) { cp.input.value = ''; toWindow({ kind: 'search', q: '' }); }
     else toWindow({ kind: 'close' });
   } else return;
   e.preventDefault();
@@ -113,9 +115,51 @@ cp.list.addEventListener('dblclick', e => {
 addEventListener('focus', () => toWindow({ kind: 'refresh' }));
 // The ribbon (docs/plans/executed/PLAN-ribbon.md): its change mode on or off; while on, a row dragged onto it adds its command.
 cp.ribbon.addEventListener('click', () => toWindow({ kind: 'ribbonChange' }));
+// Floating: the browser's drag, between windows.
 cp.list.addEventListener('dragstart', e => {
   const row = e.target.closest('[data-call]');
-  if (!row) return e.preventDefault();
+  if (!row || !floating) return e.preventDefault();
   e.dataTransfer.setData('text/plain', 'lexpen-call:' + row.dataset.call);
   e.dataTransfer.effectAllowed = 'copyMove';
 });
+// Docked (a frame of another site): the browser lets no drag from here drop in the window around it, so a row goes to
+// the ribbon with the pointer, as the Folder pane's file (folder-pane.js): it starts here (ribbonDragStart); the moves
+// and the release over this frame are told from here (ribbonDragMove, ribbonDragEnd: the point in this frame), those
+// over the rest of the window the window sees itself (ribbon.js, rbCallDragStart). Esc: it ends, nothing added.
+let rowDrag = null;
+if (!floating) cp.list.addEventListener('pointerdown', e => {
+  rowDrag?.end();
+  const row = e.target.closest('[data-call]');
+  if (e.button !== 0 || !row) return;
+  const x0 = e.clientX, y0 = e.clientY, call = JSON.parse(row.dataset.call);
+  let dragging = false;
+  const move = ev => {
+    if (!(ev.buttons & 1)) return rowDrag.end();   // let go outside this frame: the window ended it
+    if (!dragging) {
+      if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 6) return;
+      dragging = true;
+      document.body.style.cursor = 'copy';
+      document.body.style.userSelect = 'none';   // no selection made along the way
+      getSelection().removeAllRanges();
+      toWindow({ kind: 'ribbonDragStart', call });
+    }
+    toWindow({ kind: 'ribbonDragMove', x: ev.clientX, y: ev.clientY });
+  };
+  const up = ev => {
+    if (dragging) toWindow({ kind: 'ribbonDragEnd', drop: true, x: ev.clientX, y: ev.clientY });
+    rowDrag.end();
+  };
+  rowDrag = {
+    dragging: () => dragging,
+    cancel: () => { toWindow({ kind: 'ribbonDragEnd', drop: false }); rowDrag.end(); },
+    end: () => {
+      removeEventListener('pointermove', move);
+      removeEventListener('pointerup', up);
+      document.body.style.cursor = document.body.style.userSelect = '';
+      rowDrag = null;
+    },
+  };
+  addEventListener('pointermove', move);
+  addEventListener('pointerup', up);
+});
+paneHandlers.ribbonDragDone = () => rowDrag?.end();   // the window ended it (let go there, or Esc)

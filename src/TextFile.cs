@@ -31,6 +31,17 @@ static class TextFile
         return (Read(new UTF8Encoding(false), bytes, 0), Utf8);
     }
 
+    /// <summary>The bytes read in a known encoding (a text tab changed in Hex, docs/plans/executed/PLAN-hex-view.md): its byte
+    /// order mark left out when there; a byte it cannot read kept as a stand-in, as <see cref="Decode"/> does.</summary>
+    public static string DecodeAs(byte[] bytes, string encoding) => encoding switch
+    {
+        Utf8Bom => Read(new UTF8Encoding(false), bytes, bytes is [0xEF, 0xBB, 0xBF, ..] ? 3 : 0),
+        Utf16Le => Read(new UnicodeEncoding(false, false), bytes, bytes is [0xFF, 0xFE, ..] ? 2 : 0),
+        Utf16Be => Read(new UnicodeEncoding(true, false), bytes, bytes is [0xFE, 0xFF, ..] ? 2 : 0),
+        Ansi => Read(AnsiEncoding(false), bytes, 0),
+        _ => Read(new UTF8Encoding(false), bytes, 0),
+    };
+
     // A byte that cannot be read becomes the stand-in StandIn + the byte, a private-use character (U+F780 to
     // U+F87F; the page shows it as 0xAB), and Encode writes the byte back: reading and saving an untouched file
     // gives the same bytes. A real character in that range is kept the same way, as the stand-ins of its own bytes,

@@ -637,6 +637,7 @@ function showLanguageList() {
   const doc = activeDoc();
   if (!doc) return;
   if (doc.pdf) return toast(`${docName(doc)} is a ${languageTitle(doc)} file, not text: its language stays.`, true);
+  if (doc.binary) return toast(`${docName(doc)} is not text: it has no language.`, true);   // bytes (hexview.js)
   const r = statusUi.lang.getBoundingClientRect();
   // The kinds that are not text (PDF): last, dimmed; a file is one by its bytes, not by a choice.
   const names = [...PACK_NAMES.filter(n => !packs[n].binary), ...PACK_NAMES.filter(n => packs[n].binary)];

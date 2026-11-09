@@ -444,7 +444,7 @@ every action with its key.
 - **PDF**: a PDF opens in a tab of its own on the preview side, read-only, drawn by pdf.js. It is a PDF by what it
   holds, not its name (a PDF named `.bin` opens as one; a text file named `.pdf` opens as text, said so); its language
   stays PDF (dimmed in the bottom bar), and PDF cannot be chosen for a text file. A file that is neither text nor a
-  kind LexPen knows: "x is a file type LexPen does not know". It follows the mode:
+  kind LexPen knows opens in Hex (below). It follows the mode:
   a page that does not suit it (a light page in dark mode, a dark one in light mode, by its brightness against a
   threshold, 50 %) is turned round with its colours kept, its paper the preview's background; a page that suits it
   stays as it is. The bar above it (where other files have theirs): follow the theme / the original (kept per file),
@@ -457,6 +457,23 @@ every action with its key.
   elsewhere they are marked as the PDF's and stay as they are. The find bar (Ctrl+F, F3) searches its text. Its
   scroll bar is the preview's strip, with marks for find matches, highlights and chapters. Opened again, it is where
   it was read last (its page, the place on it, its zoom; the last 100 PDFs).
+- **Hex** (View > Hex, the top bar's Hex, the ribbon's Arrange > Mode): a tab as its bytes, per line the
+  offset, the bytes in hex and the same bytes as characters (one byte, one character: Windows-1252; a control or
+  undefined byte a dimmed dot). Settings, Editor view > Hex: the bytes on a line (16) and an extra space after every
+  so many (8; 0: none). A file that is neither text nor a kind LexPen knows opens in Hex only (up to 64 MB; "Bytes" in
+  the bottom bar) and is saved as its bytes. A text file in Hex shows its text as the next save writes it (encoding,
+  BOM, line ends, unsaved changes included); a change goes back into the text as one undo step, a byte its encoding
+  cannot read showing as 0xAB there and saved back as it was. Editing, in either part (Tab between them): a hex digit
+  (either case) or a character overwrites; the cursor's byte is coloured in its part, underlined in the other. Delete
+  and Backspace never remove a byte: in the hex part they remove one digit (the other stays where it is, the gone one
+  counting as 0 when the cursor leaves: 3F becomes 0F or 30), in the text part they set a byte to 00. Typing never
+  changes the length; that is a choice each time: the right-click's Insert bytes... (zeros), Fill with 00 and Delete
+  bytes on a selection (Shift+arrows, dragging), Ctrl+X (Cut and fill with 00, or Cut) and Ctrl+V (Paste over, the
+  same length, stopping at the end; or Paste in). Copy gives hex digits from the hex part, text from the text part;
+  that copy pastes back as the same bytes in either part. The hex part takes hex in the usual notations (3F 00 A1,
+  0x3F, $3F, \x3F, #3F00A1, &H3F, %3F, 3Fh, 3F:00:A1), the text part any text.
+  Changed bytes are coloured until saved; Ctrl+Z / Ctrl+Y; Ctrl+F, F3 find hex (the usual notations) from the hex part,
+  text (either case) from the text part.
 - **Preview zoom**: Ctrl+= / Ctrl+- / Ctrl+mouse wheel over a preview. The level shows at the right of the top
   bar (click it for 100%) and is kept.
 - **Safe by default**: a Content Security Policy blocks scripts embedded in a document's raw HTML.

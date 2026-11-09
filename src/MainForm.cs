@@ -529,7 +529,7 @@ sealed class MainForm : Form
     }
 
     // Requests that may carry a whole file: their answer is turned into text off the UI thread as well.
-    static readonly HashSet<string> LargeAnswers = ["read", "gitHead", "search", "folderList", "format", "listFiles"];
+    static readonly HashSet<string> LargeAnswers = ["read", "gitHead", "search", "folderList", "format", "listFiles", "hexRead", "hexEncode", "hexDecode"];
 
     async void OnMessage(string json, string[]? files)
     {
@@ -565,6 +565,14 @@ sealed class MainForm : Form
                 "format" => await Task.Run(() => Format(msg)),
                 "read" => await ReadFile(msg["path"]!.GetValue<string>()),
                 "write" => await WriteFile(msg),
+                // Hex (docs/plans/executed/PLAN-hex-view.md): a file's bytes read and written whole, as base64; a text tab's
+                // text as it would be saved (encoded as a save does), and bytes changed in Hex read back as its text.
+                "hexRead" => await Task.Run(() => new JsonObject { ["data"] = Convert.ToBase64String(HexFile.Read(msg["path"]!.GetValue<string>())) }),
+                "hexWrite" => await HexWrite(msg),
+                "hexEncode" => await Task.Run(() => new JsonObject { ["data"] = Convert.ToBase64String(TextFile.Encode(msg["text"]!.GetValue<string>(),
+                    msg["encoding"]!.GetValue<string>(), msg["name"]?.GetValue<string>() ?? "")) }),
+                "hexDecode" => await Task.Run(() => new JsonObject { ["text"] = TextFile.DecodeAs(Convert.FromBase64String(msg["data"]!.GetValue<string>()),
+                    msg["encoding"]!.GetValue<string>()) }),
                 _ => DispatchMarked(msg, files, op),
             };
         }
@@ -1719,6 +1727,9 @@ sealed class MainForm : Form
         var languages = app.Languages;
         var kind = await Task.Run(() => LanguagePacks.KindOf(languages, path, Head(path)));
         if (kind is not null) return new JsonObject { ["kind"] = kind };
+        // Neither text nor a kind LexPen knows: its bytes, in Hex (docs/plans/executed/PLAN-hex-view.md; hexRead reads them).
+        if (await Task.Run(() => HexFile.IsBinary(path)))
+            return new JsonObject { ["binary"] = true, ["readOnly"] = (File.GetAttributes(path) & FileAttributes.ReadOnly) != 0 };
         var (text, encoding, readOnly) = await Task.Run(() =>
         {
             var (t, e) = ReadText(path);
@@ -1749,6 +1760,17 @@ sealed class MainForm : Form
         var backup = msg["backup"]?.GetValue<bool>() == true;
         ownWrites[path] = DateTime.UtcNow;
         await Task.Run(() => TextFile.Write(path, text, encoding, backup));
+        return true;
+    }
+
+    // A file's bytes written as they are (Hex), as WriteFile writes text: noted as our own write, `backup` kept.
+    async Task<JsonNode?> HexWrite(JsonNode msg)
+    {
+        var path = msg["path"]!.GetValue<string>();
+        var bytes = Convert.FromBase64String(msg["data"]!.GetValue<string>());
+        var backup = msg["backup"]?.GetValue<bool>() == true;
+        ownWrites[path] = DateTime.UtcNow;
+        await Task.Run(() => TextFile.WriteBytes(path, bytes, backup));
         return true;
     }
 

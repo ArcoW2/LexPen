@@ -465,7 +465,7 @@ function setLineEnd(doc, eol) {
 
 function showLineEndList() {
   const doc = activeDoc();
-  if (!doc) return;
+  if (!doc || doc.pdf || doc.binary) return;   // not text: no line ends
   const r = statusUi.eol.getBoundingClientRect();
   openPopupMenu([['crlf', 'CRLF (Windows)'], ['lf', 'LF (Unix, macOS)'], ['cr', 'CR (old Mac)']].map(([kind, label]) => ({
     label, plain: true, checked: () => doc.eol === EOLS[kind] && !doc.mixed, run: () => setLineEnd(doc, EOLS[kind]),
@@ -500,6 +500,7 @@ async function loadDoc(path) {
   const got = await host('read', { path });
   // Not text, a kind a pack knows by its first bytes, whatever the file's name (docs/plans/executed/PLAN-non-text-files.md).
   if (got.kind) return loadKindDoc(path, got.kind);
+  if (got.binary) return loadBinaryDoc(path, got.readOnly);
   const { text, encoding, readOnly, language, ranges, notKind } = got;
   const found = findDoc(path), doc = found ?? makeDoc({ path, text, encoding });
   // Named as such a kind (x.pdf) but text: opened as text, said so (its language is found by its text, never that kind).
@@ -524,6 +525,17 @@ async function loadKindDoc(path, kind) {
   doc.pdf = doc.diskReadOnly = true;
   doc.language = kind;   // also when its name says otherwise (x.bin)
   if (!found) { await loadPdfLook(doc); pdfHlLoad(doc); }   // its look; its highlights (pdfhighlights.js)
+  doc.lock = await host('lock', { path });
+  unfresh(path);
+  syncWatchFiles();
+  return doc;
+}
+
+// A file that is neither text nor a kind LexPen knows: its bytes, in Hex only (hexview.js reads them; saved as they are).
+async function loadBinaryDoc(path, readOnly) {
+  const found = findDoc(path), doc = found ?? makeDoc({ path, text: '', encoding: '' });
+  doc.binary = true;
+  doc.diskReadOnly = readOnly;
   doc.lock = await host('lock', { path });
   unfresh(path);
   syncWatchFiles();
@@ -557,6 +569,7 @@ function makeTab(doc, mode) {
     renderId: 0,
     pinned: false,       // closing it alone asks first; closing several leaves it open (tab menu: Pin tab)
     readOnly: false,     // set by the user (tab menu: Read-only)
+    hex: !!doc.binary,   // shown as its bytes (hexview.js); a file LexPen does not know only so
   };
   // Images and diagrams change the heights the line map was built from.
   article.addEventListener('load', () => { tab.lines = null; if (typeof markPreviewCursors === 'function') markPreviewCursors(); }, true);
@@ -933,6 +946,7 @@ function onDocChange(doc) {
     if (paneOf(tab).active === tab && tab.mode === 'split') scheduleRender(tab);
   }
   doc.version++;
+  if (doc.hexData) hexDocChanged(doc);   // a tab of it in Hex shows the new bytes (hexview.js)
   scheduleOutline();
   if (doc.shared && doc.lock) {
     clearTimeout(doc.pushTimer);
@@ -1392,10 +1406,16 @@ async function showActive(pane) {
   if (typeof schedulePreviewOverviews === 'function') schedulePreviewOverviews();
   const tab = pane.active;
   if (typeof pdfShowBar === 'function') pdfShowBar(pane);   // a PDF's bar, in the pane's bars (pdfview.js)
+  pane.el.toggleAttribute('data-hex', !!tab?.hex);   // its bytes instead of editor and preview (hexview.js)
   if (!tab) {
     pane.el.dataset.mode = 'preview';
     if (pane.index === 0) pane.previewEl.replaceChildren(welcomeArticle());
     pane.barEl.hidden = true;
+  } else if (tab.hex) {
+    pane.el.dataset.mode = tab.mode;
+    await hexShow(pane);
+    if (pane.active !== tab) return;
+    updateBar(pane);
   } else {
     pane.el.dataset.mode = tab.mode;
     if (typeof loadHighlights === 'function') { loadHighlights(tab.doc); tellHighlightsWindow(); }   // highlights.js
@@ -1757,14 +1777,16 @@ function updateChrome() {
   showDocName();
   // A draft can always be saved as a file.
   document.body.toggleAttribute('data-dirty', !!doc && (doc.dirty || !!doc.draft));
-  $('.mm-switch-editor').classList.toggle('mm-on', !!tab && tab.mode !== 'preview');
-  $('.mm-switch-preview').classList.toggle('mm-on', !!tab && tab.mode !== 'edit');
+  $('.mm-switch-editor').classList.toggle('mm-on', !!tab && !tab.hex && tab.mode !== 'preview');
+  $('.mm-switch-preview').classList.toggle('mm-on', !!tab && !tab.hex && tab.mode !== 'edit');
+  $('.mm-switch-hex').classList.toggle('mm-on', !!tab?.hex);
   markTreeActive();
 }
 
 async function setMode(mode) {
   const pane = panes[state.activePane], tab = pane.active;
-  if (!tab || tab.doc.pdf) return;   // a PDF is only its preview
+  if (!tab || tab.doc.pdf || tab.doc.binary) return;   // a PDF is only its preview, a file of bytes only Hex
+  tab.hex = false;   // a mode chosen: out of Hex (hexview.js)
   if (tab.mode === 'preview') tab.previewTop = pane.previewEl.scrollTop;
   // The preview opens: its cursor starts at the top of the view again (previewcursor.js).
   if (tab.mode === 'edit' && mode !== 'edit' && typeof resetPreviewCursor === 'function') resetPreviewCursor(tab);
@@ -1784,6 +1806,7 @@ function togglePreview() {
 function setSwitch(part) {
   const tab = activeTab();
   if (!tab) return;
+  if (tab.hex) return hexSet(tab, false, part === 'editor' ? 'edit' : 'preview');   // out of Hex, to the part clicked
   const editor = tab.mode !== 'preview', preview = tab.mode !== 'edit';
   const [e, p] = part === 'editor' ? [!editor, preview || editor] : [editor || preview, !preview];
   setMode(e && p ? 'split' : e ? 'edit' : 'preview');
@@ -1856,8 +1879,8 @@ function updateStatus() {
   if (typeof colsDoc === 'function' && colsDoc() !== colsPane.doc) tellColumnsPane();   // another document (columnspane.js)
   if (typeof tellSortPane === 'function') tellSortPane();   // what is sorted follows the selection (sort.js)
   const pane = panes[state.activePane], tab = pane.active, doc = tab?.doc;
-  const cm = tab && pane.cm && pane.el.dataset.mode !== 'preview' ? pane.cm : null;
-  let pos = '';
+  const cm = tab && !tab.hex && pane.cm && pane.el.dataset.mode !== 'preview' ? pane.cm : null;
+  let pos = tab?.hex ? hexStatus(pane) : '';
   if (cm) {
     const head = cm.getCursor('head'), selected = cm.getSelection(), block = blockSize(cm);
     // Past the end of the line (virtual.js), or a block's head (also past a line's end): that column.
@@ -1883,7 +1906,7 @@ function updateStatus() {
   statusUi.col.hidden = !column.on;
   statusUi.ins.classList.toggle('mm-on', !!cm?.state.overwrite);
   statusUi.enc.textContent = doc ? doc.encoding : '';
-  statusUi.eol.textContent = doc && !doc.pdf ? (doc.mixed ? 'Mixed' : EOL_NAMES[doc.eol]) : '';   // a PDF has no line ends
+  statusUi.eol.textContent = doc && !doc.pdf && !doc.binary ? (doc.mixed ? 'Mixed' : EOL_NAMES[doc.eol]) : '';   // a PDF, bytes: no line ends
   statusUi.eol.title = doc?.mixed ? `Line ends: mixed; saved as ${EOL_NAMES[doc.eol]} (click: choose)` : 'Line ends (click: choose)';
   // The line end each editor shows (showLineEnds): its own document's.
   for (const p of panes) if (p.cm && p.active) p.cm.getWrapperElement().dataset.eol = { '\r\n': 'crlf', '\n': 'lf', '\r': 'cr' }[p.active.doc.eol];
@@ -1891,10 +1914,10 @@ function updateStatus() {
   // click still changes the file's language.
   const inner = cm && doc && typeof lineLanguage === 'function' ? lineLanguage(cm, cm.getCursor().line) : null;
   const innerShown = inner && inner !== languageOf(doc) && packs[inner] ? packs[inner].name : null;
-  statusUi.lang.textContent = doc ? languageTitle(doc) + (innerShown ? ' -> ' + innerShown : '') : '';
+  statusUi.lang.textContent = doc?.binary ? 'Bytes' : doc ? languageTitle(doc) + (innerShown ? ' -> ' + innerShown : '') : '';
   statusUi.lang.title = innerShown ? `Language: ${languageTitle(doc)}, the cursor in a block of ${innerShown} (click: choose another for the file)`
-    : doc?.pdf ? `${languageTitle(doc)}: not text, so its language stays` : 'Language (click: choose another)';
-  statusUi.lang.classList.toggle('mm-fixed', !!doc?.pdf);   // a kind that is not text: dimmed (app.css), no list
+    : doc?.binary ? 'Not text: shown as its bytes (Hex)' : doc?.pdf ? `${languageTitle(doc)}: not text, so its language stays` : 'Language (click: choose another)';
+  statusUi.lang.classList.toggle('mm-fixed', !!doc?.pdf || !!doc?.binary);   // a kind that is not text: dimmed (app.css), no list
   statusUi.long.hidden = !(cm && longLineIn(doc));
   statusUi.clip.textContent = 'Clip: ' + (clips.active === 0 ? 'Win' : clips.active);
   statusUi.clip.classList.toggle('mm-on', clips.active !== 0);
@@ -2117,6 +2140,7 @@ function draftSaveName(doc) {
 
 // Returns false when nothing was saved (dialog cancelled, or the file is edited elsewhere).
 async function saveDoc(doc, saveAs) {
+  if (doc.binary) return hexSave(doc, saveAs);   // its bytes as they are (hexview.js)
   if (doc.pdf) {   // a PDF: written only with its highlights, when they are kept inside it (pdfhighlights.js)
     if (!doc.dirty) { toast('Nothing to save: LexPen writes a PDF only for its highlights kept inside it.', true); return true; }
     return pdfSave(doc);
@@ -2211,6 +2235,13 @@ async function diskChange(doc, kind, retry = true) {
   if (doc.pdf) {   // a PDF: drawn again from the file (pdfview.js); nothing to keep, it is never edited
     doc.disk = kind === 'removed' ? 'removed' : 'ok';
     if (kind !== 'removed') pdfChanged(doc);
+    if (doc.hexData) { doc.hexData = null; await hexRedraw(doc); }   // shown in Hex: read again
+    for (const pane of panes) updateBar(pane);
+    return refreshTabs();
+  }
+  if (doc.binary) {   // bytes (hexview.js): read again when nothing is unsaved, else asked as a text file is
+    doc.disk = kind === 'removed' ? 'removed' : doc.dirty ? 'changed' : 'ok';
+    if (kind !== 'removed' && !doc.dirty) await hexReload(doc).catch(() => {});
     for (const pane of panes) updateBar(pane);
     return refreshTabs();
   }
@@ -2263,7 +2294,7 @@ function updateBar(pane) {
   }[kind];
   const buttons = {
     changed: [['reload', 'Reload'], ['keep', 'Keep mine']],
-    removed: [['close', 'Close'], ['save', 'Save it again'], ['draft', 'Keep as draft']],
+    removed: [['close', 'Close'], ['save', 'Save it again'], ...(doc.binary ? [] : [['draft', 'Keep as draft']])],   // bytes: no draft
     reloaded: [],
   }[kind];
   pane.barEl.replaceChildren(text, ...buttons.map(([action, label]) => {
@@ -2277,7 +2308,8 @@ function updateBar(pane) {
 async function onBarClick(pane, e) {
   const action = e.target.closest('[data-bar]')?.dataset.bar, doc = pane.active?.doc;
   if (!action || !doc) return;
-  if (action === 'reload') {
+  if (action === 'reload' && doc.binary) await hexReload(doc);
+  else if (action === 'reload') {
     const { text, encoding, readOnly } = await host('read', { path: doc.path });
     doc.diskReadOnly = readOnly;
     await reloadDoc(doc, text, encoding);
@@ -2454,6 +2486,7 @@ async function goUp() {
 // The keys go to the pane's file: the editor, or the preview (arrows scroll it).
 // The editor or the preview, as the tab had it last (both are shown in split; the editor at first).
 function focusPane(pane) {
+  if (pane.active?.hex && pane.hexEl) return pane.hexEl.focus();
   const mode = pane.el.dataset.mode, part = pane.active?.focusPart;
   if (pane.cm && mode !== 'preview' && (mode !== 'split' || part !== 'preview')) pane.cm.focus(); else pane.previewEl.focus();
 }
@@ -4446,7 +4479,7 @@ function sessionData() {
       tabs: kept(pane).map(tab => ({
         path: tab.doc.path, draft: tab.doc.draft, mode: c.modes?.get(tab) ?? tab.mode,
         top: pane.active === tab && !pane.el.hidden ? pane.previewEl.scrollTop : tab.previewTop,
-        ...(tab.pinned && { pinned: true }), ...(tab.readOnly && { readOnly: true }),
+        ...(tab.pinned && { pinned: true }), ...(tab.readOnly && { readOnly: true }), ...(tab.hex && { hex: true }),
         ...(tab.doc.draft && tab.doc.languageChosen && { language: languageOf(tab.doc) }),   // a file's choice: the host keeps it
         ...tabCursor(tab),
       })),
@@ -4491,6 +4524,7 @@ async function restore(session, drafts) {
       tab.previewTop = t.top || 0;
       tab.pinned = !!t.pinned;
       tab.readOnly = !!t.readOnly;
+      tab.hex ||= !!t.hex;
       if (Array.isArray(t.cursor)) tab.restoreCursor = { line: t.cursor[0] | 0, ch: t.cursor[1] | 0, top: t.editorTop | 0 };
       if (doc.draft && t.language && packs[t.language]) {
         doc.language = t.language === 'markdown' ? undefined : t.language;
@@ -5318,6 +5352,7 @@ function applySettings() {
   if (changed('showBackupFiles') && 'showBackupFiles' in was) refreshTree(false);
   if (changed('tabBar')) applyTabBar(now.tabBar);
   if (['commandBar', 'ribbonGroupNames', 'ribbonLabelWidth', 'altOpens'].some(changed) && typeof renderRibbon === 'function') renderRibbon();
+  if (['hexBytesPerLine', 'hexGroup'].some(changed) && typeof hexRedrawAll === 'function') hexRedrawAll();
   if (changed('dockTabBar')) document.body.dataset.dockTabBar = now.dockTabBar;
   if (changed('previewPlace') || changed('previewPlace2')) applyPreviewPlace();
   if (changed('dockTabIntensity')) applyDockTabs();

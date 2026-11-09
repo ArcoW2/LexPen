@@ -138,7 +138,8 @@ Sort, Highlights and Macros); Home also in the light theme:
 - **Sizes**: large: the icon above the label, the full height. Small: the icon with its label beside it, a third of
   the height. A small button marked "stacked" goes under the small button before it in the same column; at most
   three per column. A small button not stacked starts a new column; a column of one or two small buttons has them
-  centred in the height.
+  at the top. A large button and one small button can share a column, the large one a row shorter (its label on one
+  line): the small one stacked under the large one, or the large one stacked under a small one alone.
 - **Tooltips**: every button and corner icon shows its action's title and key when the mouse is over it (a button
   with a short label: the full title, Go to line for Line).
 - **Long labels**: a label longer than the setting ribbonLabelWidth ("Longest button label", in characters of the
@@ -320,6 +321,8 @@ differences:
   a divider, each part lit on its own; on a large button a row under the label as wide as the button, on a small one
   a strip at its right. The rows are 30 px, so a large button holds its icon, two lines of label and that row.
 - **Rename** (Customize and a button's right-click) renames a tab, a group or a button; a button's name is its label.
+- **Columns** (added after the build): one or two small buttons sit at the top of their column, not centred; a large
+  button can share its column with one small button above or under it.
 - **Show all occurrences** never opens the Occurrences bar (`showOccurrences(..., open)`); the corner's Occurrences
   field opens it.
 
