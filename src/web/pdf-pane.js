@@ -137,7 +137,7 @@ async function open() {
   const container = document.getElementById('pdf-scroll'), eventBus = new EventBus(), linkService = new PDFLinkService({ eventBus });
   pdf.viewer = new PDFViewer({ container, eventBus, linkService, textLayerMode: 1 });
   linkService.setViewer(pdf.viewer);
-  eventBus.on('textlayerrendered', ({ pageNumber }) => { drawHighlights(pageNumber); drawFind(pageNumber); });   // its highlights and matches over its text
+  eventBus.on('textlayerrendered', ({ pageNumber }) => { drawHighlights(pageNumber); drawFind(pageNumber); laterBookmarks(); });   // its highlights and matches over its text, its bookmarks beside it
   eventBus.on('pagerendered', ({ source, pageNumber }) => {
     pdf.firstPage ??= performance.now() - pdf.started;
     const canvas = source.div.querySelector('canvas');
@@ -155,11 +155,13 @@ async function open() {
     const v = pdf.viewer;
     if (v?.pagesCount && /^(page-width|page-fit|auto)$/.test(v.currentScaleValue)) v.currentScaleValue = v.currentScaleValue;
     laterLayout();
+    laterBookmarks();
   }).observe(document.getElementById('pdf-scroll'));
   // The scroll: to the window's strip at once (a frame at a time), the state a moment later.
   document.getElementById('pdf-scroll').addEventListener('scroll', () => {
     clearTimeout(pdf.scrollTimer);
     pdf.scrollTimer = setTimeout(tellState, 200);
+    laterBookmarks();   // the gutter follows the pages up and down
     if (!pdf.scrollFrame) pdf.scrollFrame = requestAnimationFrame(() => { pdf.scrollFrame = 0; toWindow({ kind: 'scroll', top: document.getElementById('pdf-scroll').scrollTop }); });
   });
   eventBus.on('pagechanging', tellState);
@@ -204,6 +206,15 @@ addEventListener('message', e => {
   if (m.kind === 'texts') return void tellTexts();
   if (m.kind === 'findMarks') return findMarks(m);
   if (m.kind === 'findShow') return void findShow(m);
+  if (m.kind === 'where') return void where().then(value => toWindow({ kind: 'answer', id: m.id, value }));   // the bookmark actions' place
+  if (m.kind === 'bookmarks') {   // the ones to draw, in the editor's bookmark colours
+    bm.list = m.list ?? [];
+    if (m.fill) document.documentElement.style.setProperty('--pdf-bm', m.fill);
+    if (m.fg) document.documentElement.style.setProperty('--pdf-bm-fg', m.fg);
+    return laterBookmarks();
+  }
+  if (m.kind === 'bookmarkShow') return void showBookmark(m);
+  if (m.kind === 'chord') return void (pdf.chord = m.on);   // the window waits for a chord's second key
   if (m.kind === 'save') return void save(m).catch(e => toWindow({ kind: 'saved', error: String(e?.message ?? e) }));
   if (m.kind === 'dest') return void (pdf.dests?.[m.i] && pdf.linkService?.goToDestination(pdf.dests[m.i]));
   if (m.kind === 'restore') return m.top === undefined && !m.page ? (pdf.restoring = false, tellState()) : restore(m);
@@ -230,7 +241,9 @@ addEventListener('contextmenu', e => { e.preventDefault(); toWindow({ kind: 'men
 // the text, the start of that page.
 addEventListener('pointerdown', e => {
   const page = e.button === 0 ? pageOfNode(e.target) : null;
-  toWindow({ kind: 'activate', at: page ? offsetAt(e.clientX, e.clientY) ?? { page: +page.dataset.pageNumber, offset: 0 } : null });
+  const at = page ? offsetAt(e.clientX, e.clientY) ?? { page: +page.dataset.pageNumber, offset: 0 } : null;
+  if (at) bm.caret = at;   // the bookmark actions too
+  toWindow({ kind: 'activate', at });
   if (page) showPressCaret(page, e.clientX, e.clientY);
   if (!e.target.closest?.('input, textarea, select')) setTimeout(() => document.getElementById('pdf-scroll').focus({ preventScroll: true }));
 }, true);
@@ -238,6 +251,12 @@ addEventListener('focus', () => { if (document.activeElement === document.body) 
 // The window's keys (a key with Ctrl or Alt, F1 to F12, Esc); the arrows, PgUp / PgDn, Home / End and typing stay here.
 addEventListener('keydown', e => {
   if (['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) return;
+  if (pdf.chord) {   // the second key of a chord (Ctrl+K, 1): the window's, whatever it is
+    pdf.chord = false;
+    e.preventDefault();
+    const { key, code, ctrlKey, shiftKey, altKey, metaKey } = e;
+    return toWindow({ kind: 'key', key, code, ctrlKey, shiftKey, altKey, metaKey });
+  }
   // As in the editor: Ctrl+Home / Ctrl+End the start / end of the PDF; Home / End, and Ctrl+Left / Ctrl+Right, the view
   // to its left / right edge (zoomed in), not the scroll area's own (Home / End went to the start / end).
   const edge = !e.altKey && !e.metaKey && !e.shiftKey && (e.key === 'Home' || e.key === 'End' ? (e.ctrlKey ? 'vertical' : 'horizontal')
@@ -474,7 +493,6 @@ function hidePressCaret() {
   pressCaret = null;
 }
 function showPressCaret(pageDiv, x, y) {
-  hidePressCaret();
   const caret = document.caretPositionFromPoint?.(x, y);
   let r = null;
   if (caret?.offsetNode?.nodeType === 3 && pageDiv.contains(caret.offsetNode)) {
@@ -483,9 +501,15 @@ function showPressCaret(pageDiv, x, y) {
     range.collapse(true);
     r = range.getClientRects()[0] ?? null;
   }
-  const p = pageDiv.getBoundingClientRect(), h = r?.height || 16;
+  const h = r?.height || 16;
+  putCaret(pageDiv, r ? r.left : x, r ? r.top : y - h / 2, h);
+}
+// The caret at a point of the window (also a bookmark gone to).
+function putCaret(pageDiv, left, top, height) {
+  hidePressCaret();
+  const p = pageDiv.getBoundingClientRect();
   pressCaret = Object.assign(document.createElement('div'), { className: 'pdf-press-caret' });
-  Object.assign(pressCaret.style, { left: (r ? r.left : x) - p.left + 'px', top: (r ? r.top : y - h / 2) - p.top + 'px', height: h + 'px' });
+  Object.assign(pressCaret.style, { left: left - p.left + 'px', top: top - p.top + 'px', height: height + 'px' });
   pageDiv.append(pressCaret);
 }
 
@@ -493,6 +517,7 @@ async function findShow({ page, from, to }) {
   const v = pdf.viewer;
   if (!v?.pagesCount) return;
   hidePressCaret();
+  bm.caret = { page, offset: from };   // the bookmark actions act there now
   const before = found.current?.page;
   found.current = { page, from, to };
   if (before && before !== page) drawFind(before);   // the one before: a plain match again
@@ -505,6 +530,129 @@ async function findShow({ page, from, to }) {
   if (top == null) return;
   const y = pageDiv.offsetTop + top;
   if (y < scroll.scrollTop + 20 || y > scroll.scrollTop + scroll.clientHeight - 40) scroll.scrollTop = y - scroll.clientHeight / 3;
+}
+
+// ---------- Bookmarks (the window's pdfbookmarks.js; docs/plans/executed/PLAN-pdf-bookmarks.md) ----------
+// The window keeps them and sends the ones to draw ({ n, page, offset }): each an icon in the gutter at the left of the
+// scroll area, at the height of its line, a numbered one with its number (one icon per line). The place the bookmark
+// actions act at (`bm.caret`): where the PDF was clicked last, a bookmark gone to or a match shown; out of view, the
+// top of the view.
+const bm = { list: [], caret: null, frame: 0 };
+const gutter = document.getElementById('pdf-gutter');
+
+// The line of a page's text around an offset: its start and end there.
+async function lineAround(page, offset) {
+  const { text } = await pageText(page), end = text.indexOf('\n', offset);
+  return { line: text.lastIndexOf('\n', offset - 1) + 1, lineEnd: end < 0 ? text.length : end, text };
+}
+
+// The box of the character at an offset in a drawn text layer (on a line break: the one before), or null.
+function charRect(layer, offset) {
+  const parts = layerParts(layer).filter(p => p.node.nodeType === 3 && p.len);
+  const p = parts.find(p => offset >= p.start && offset < p.start + p.len) ?? parts.findLast(p => p.start <= offset) ?? parts[0];
+  if (!p) return null;
+  const r = document.createRange(), i = Math.max(0, Math.min(p.len - 1, offset - p.start));
+  r.setStart(p.node, i);
+  r.setEnd(p.node, i + 1);
+  return r.getClientRects()[0] ?? r.getBoundingClientRect();
+}
+const nodeRect = node => { const r = document.createRange(); r.selectNodeContents(node); return r.getBoundingClientRect(); };
+const drawnLayer = div => { const layer = layerOf(div); return layer?.childElementCount ? layer : null; };
+const inView = (r, box) => r.bottom > box.top && r.top < box.bottom;
+
+function drawBookmarks() {
+  bm.frame = 0;
+  const v = pdf.viewer, box = gutter.getBoundingClientRect(), lines = new Map();
+  for (const b of bm.list) {
+    const div = v?.getPageView(b.page - 1)?.div;
+    if (!div || !inView(div.getBoundingClientRect(), box)) continue;
+    const layer = drawnLayer(div), r = layer && charRect(layer, b.offset);
+    if (!r) continue;   // drawn once its text layer is (textlayerrendered)
+    const text = hl.texts.get(b.page)?.text;
+    if (text === undefined) pageText(b.page).then(laterBookmarks);   // its line known the next time
+    const key = b.page + ':' + (text === undefined ? Math.round(r.top) : text.lastIndexOf('\n', b.offset - 1) + 1);
+    if (!lines.has(key)) lines.set(key, { b, r, ns: [] });
+    lines.get(key).ns.push(b.n);
+  }
+  gutter.replaceChildren(...[...lines.values()].map(({ b, r, ns }) => {
+    const numbers = ns.filter(Boolean).sort(), el = document.createElement('div');
+    el.className = numbers.length ? 'pdf-bm' : 'pdf-bm pdf-bm-free';
+    el.textContent = numbers.join('');
+    el.title = (numbers.length ? 'Bookmark ' + numbers.join(', ') : 'Bookmark') + ' (click: toggle an unnumbered one)';
+    Object.assign(el.dataset, { page: b.page, offset: b.offset });
+    el.style.top = r.top + r.height / 2 - (numbers.length ? 7 : 5) - box.top + 'px';
+    return el;
+  }));
+}
+const laterBookmarks = () => { if (!bm.frame) bm.frame = requestAnimationFrame(drawBookmarks); };
+
+// The first text at a height of the view (the nearest line to it), as { page, offset }; null beside every page's text.
+function lineAtHeight(y) {
+  const v = pdf.viewer, box = document.getElementById('pdf-scroll').getBoundingClientRect();
+  let best = null;
+  for (let i = 0; i < (v?.pagesCount ?? 0); i++) {
+    const div = v.getPageView(i).div, layer = inView(div.getBoundingClientRect(), box) && drawnLayer(div);
+    if (!layer) continue;
+    for (const p of layerParts(layer)) {
+      if (p.node.nodeType !== 3 || !p.node.data.trim()) continue;
+      const q = nodeRect(p.node), d = y < q.top ? q.top - y : y > q.bottom ? y - q.bottom : 0;
+      if (!best || d < best.d) best = { d, page: i + 1, offset: p.start };
+      if (!d) return best;
+    }
+  }
+  return best;
+}
+
+// A click in the gutter: on an icon its line, else the line at that height; to the window, which toggles an unnumbered
+// bookmark there (at the line's start).
+gutter.addEventListener('click', async e => {
+  const icon = e.target.closest('.pdf-bm'), at = icon ? { page: +icon.dataset.page, offset: +icon.dataset.offset } : lineAtHeight(e.clientY);
+  if (!at) return;
+  const l = await lineAround(at.page, at.offset);
+  toWindow({ kind: 'gutter', page: at.page, offset: l.line, line: l.line, lineEnd: l.lineEnd, text: l.text.slice(l.line, l.line + 60) });
+});
+
+// The first text at the top of the view: { page, offset } (a page not drawn yet: its start).
+function topOfView(box) {
+  const v = pdf.viewer;
+  for (let i = Math.max(0, v.currentPageNumber - 2); i < v.pagesCount; i++) {
+    const div = v.getPageView(i).div, p = div.getBoundingClientRect();
+    if (p.bottom <= box.top) continue;
+    const layer = drawnLayer(div);
+    if (!layer) return { page: i + 1, offset: 0 };
+    for (const part of layerParts(layer)) if (part.node.nodeType === 3 && part.node.data.trim() && nodeRect(part.node).bottom > box.top) return { page: i + 1, offset: part.start };
+    if (p.bottom >= box.bottom) break;
+  }
+  return { page: v.currentPageNumber, offset: 0 };
+}
+
+// Where the bookmark actions act (`where`): the caret when it is in view, else the top of the view; with that line's
+// start and end, the text from there (to find it again in another version of the file) and where it is in the frame.
+async function where() {
+  const v = pdf.viewer, box = document.getElementById('pdf-scroll').getBoundingClientRect();
+  if (!v?.pagesCount) return null;
+  const rectOf = at => { const div = v.getPageView(at.page - 1)?.div, layer = div && drawnLayer(div); return layer ? charRect(layer, at.offset) : div?.getBoundingClientRect() ?? null; };
+  let at = bm.caret, r = at && rectOf(at);
+  if (!r || !inView(r, box)) { at = topOfView(box); r = rectOf(at); }
+  const l = await lineAround(at.page, at.offset);
+  return { page: at.page, offset: at.offset, line: l.line, lineEnd: l.lineEnd, text: l.text.slice(at.offset, at.offset + 60),
+    x: r ? Math.max(box.left, r.left) : box.left + 40, y: r ? Math.max(box.top, Math.min(box.bottom - 20, r.bottom)) : box.top + 40 };
+}
+
+// To a bookmark: its line in view (a third down when it was not), the caret there.
+async function showBookmark({ page, offset }) {
+  const v = pdf.viewer, scroll = document.getElementById('pdf-scroll');
+  const pageDiv = v?.getPageView(page - 1)?.div;
+  if (!pageDiv) return;
+  bm.caret = { page, offset };
+  if (pageDiv.offsetTop + pageDiv.offsetHeight < scroll.scrollTop || pageDiv.offsetTop > scroll.scrollTop + scroll.clientHeight) v.scrollPageIntoView({ pageNumber: page });
+  for (let k = 0; k < 40 && !drawnLayer(pageDiv); k++) await new Promise(r => setTimeout(r, 50));
+  if (bm.caret?.page !== page || bm.caret.offset !== offset) return;   // another place asked for meanwhile
+  const layer = drawnLayer(pageDiv), box = scroll.getBoundingClientRect();
+  let r = layer && charRect(layer, offset);
+  if (!r) return;
+  if (r.top < box.top + 20 || r.bottom > box.bottom - 40) { scroll.scrollTop += r.top - box.top - scroll.clientHeight / 3; r = charRect(layer, offset); }
+  putCaret(pageDiv, r.left, r.top, r.height || 16);
 }
 
 // ---------- The PDF's own highlight annotations ----------

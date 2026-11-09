@@ -16,6 +16,10 @@ function bmServed(id) {
 
 function bmState(id) {
   const { doc } = bmServed(id);
+  if (doc?.pdf) {   // a PDF's: each with its page (pdfbookmarks.js); loaded first the first time
+    if (!doc.pdfMarks) pdfLoadMarks(doc).then(tellBookmarksPanes);
+    return { kind: 'bookmarks', name: docName(doc), list: (doc.pdfMarks ?? []).map(b => ({ n: b.n, page: b.page, offset: b.offset, text: String(b.text ?? '').replace(/\s+/g, ' ').slice(0, 300) })) };
+  }
   const list = doc && typeof bookmarkList === 'function' ? bookmarkList(doc) : doc?.bmList ?? [];
   return { kind: 'bookmarks', name: doc ? docName(doc) : null,
     list: list.map(b => ({ n: b.n, line: b.line, ch: b.ch, text: String(b.text ?? '').slice(0, 300) })) };
@@ -45,6 +49,7 @@ function fromBookmarksPane(id, m) {
   if (m.kind === 'escape') return events.toolEscape({ pane: pane?.index });   // that pane active, its document the keys (app.js)
   if (m.kind !== 'go' || !pane?.active) return;
   setActivePane(pane.index);
+  if (m.page) return pane.active.doc.pdf && pdfShowMark(pane.active, m);   // a PDF's (pdfbookmarks.js)
   moveTo(pane, { line: m.line, ch: m.ch }, false, pane.el.dataset.mode === 'preview');   // bookmarks.js
 }
 

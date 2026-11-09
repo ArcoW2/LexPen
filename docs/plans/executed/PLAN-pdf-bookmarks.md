@@ -1,6 +1,6 @@
 # Plan: Bookmarks in a PDF
 
-Status: draft 2026-11-09, revised 2026-11-09; not started. The number in the file name is the priority; rename to reorder.
+Status: draft 2026-11-09, revised 2026-11-09; executed (2026-11-09); see As built.
 
 ## 1. What this is about
 
@@ -80,3 +80,29 @@ their page and the start of their text.
 ## 4. Open questions
 
 None.
+
+## 5. As built
+
+- **Window**: web/pdfbookmarks.js (loaded after pdffind.js) keeps a PDF's list in `doc.pdfMarks` ({ n, page, offset,
+  text }, in page and offset order) and stores it with bookmarksGet / bookmarksSet under the PDF's path; the store
+  (BookmarkStore.cs) needed no change. bookmarks.js hands each action to it when the document is a PDF; the Bookmarks
+  pane (bookmarkspane.js, bookmarks-pane.js) shows "p. 12" in place of the line number and goes there.
+- **The place**: the frame answers `where` (a question with an answer, `pdfAsk`): the caret when it is in view, else
+  the first text at the top of the view, with that line's start and end in the page's text (for Toggle: "on the
+  line") and the text from there. The caret is set by a click, a bookmark gone to and also a find match shown.
+- **Gutter**: `#pdf-gutter` in pdf.html, the scroll area moved right by its width; icons drawn from the text layer's
+  character boxes, one per line, again on scroll, a drawn text layer and a resize. A click on an icon or beside text
+  toggles an unnumbered bookmark at the start of that line, as the editor's gutter does.
+- **Found again**: when the pages' texts are read (asked on open when the PDF has bookmarks), each bookmark whose text
+  is no longer at its place goes to the nearest place with that text: its own page first, then outward page by page
+  (the earlier page wins a tie), over the whole file; not found, it stays. `pdfResolveMarks`, a pure function.
+- **Not in the plan**: the second key of a chord typed in a PDF (the 1 of Ctrl+K, 1) stayed in its frame; the window
+  now tells the frames a chord is pending (keys.js setPending, pdfview.js pdfChord) and the frame passes the next key
+  on. There is no Clear all bookmarks action (not for a text file either), so none was added.
+- **Tests**: unit: BookmarkStoreTests (a PDF's list kept and renamed with the file; pdfResolveMarks under Jint: stays,
+  moved a page down found, text gone kept, nearest of two pages); `dotnet test` 449 passed. In the test copy with
+  D:\SQL-Anywhere-Server-SQL-Reference-en.pdf, real clicks and keys: a click and Ctrl+K, 1 (bookmark at the word, icon
+  at its line); Ctrl+K, K without a click (at the first text of the view); Ctrl+Q, 1 from far away (page, caret); F2
+  and Shift+F2 in page order and around; zoomed in and scrolled right, the icon still in view; a gutter click beside
+  text (added) and on its icon (removed); the ribbon drop-down, the Bookmarks pane (and a click on a row) and Ctrl+K, L
+  list them with their page; the scroll strip's marks; Ctrl+3, C; after a restart, the bookmarks and icons back.

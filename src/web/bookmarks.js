@@ -3,7 +3,8 @@
 // bookmarks on the document's own Doc, shared with the tabs' linked Docs, so they follow inserted and
 // removed text (a line inserted above moves them down, one removed above moves them up). While a file is
 // closed the host keeps them (BookmarkStore.cs). In the editor, and in the preview at the preview's cursor
-// (previewcursor.js, docs/plans/executed/PLAN-preview-bookmarks.md): each action's `preview` says which. Loaded with the editor.
+// (previewcursor.js, docs/plans/executed/PLAN-preview-bookmarks.md): each action's `preview` says which; in a PDF at its place
+// (pdfbookmarks.js, docs/plans/executed/PLAN-pdf-bookmarks.md). Loaded with the editor.
 
 const BM_GUTTER = 'mm-bookmarks';
 const Pos5 = CodeMirror.Pos;
@@ -104,6 +105,7 @@ function cursorOf(pane, preview) {
 }
 
 async function storeBookmark(pane, n, preview) {
+  if (pane.active.doc.pdf) return pdfStoreBookmark(pane.active, n);   // a PDF: pdfbookmarks.js, as below
   const doc = pane.active.doc;
   await loadBookmarks(doc);
   doc.marks[n]?.clear();
@@ -114,6 +116,7 @@ async function storeBookmark(pane, n, preview) {
 
 // Looks at the line only: bookmark n on the cursor line goes, wherever its column; else it is stored here.
 async function toggleBookmark(pane, n, preview) {
+  if (pane.active.doc.pdf) return pdfToggleBookmark(pane.active, n);
   const doc = pane.active.doc;
   await loadBookmarks(doc);
   const pos = markerPos(doc.marks[n]);
@@ -122,6 +125,7 @@ async function toggleBookmark(pane, n, preview) {
 }
 
 async function clearBookmark(pane, n) {
+  if (pane.active.doc.pdf) return pdfClearBookmark(pane.active, n);
   const doc = pane.active.doc;
   await loadBookmarks(doc);
   if (!doc.marks[n]) return;
@@ -132,6 +136,7 @@ async function clearBookmark(pane, n) {
 }
 
 async function toggleFreeBookmark(pane, line, ch, preview) {
+  if (pane.active.doc.pdf) return pdfToggleFree(pane.active);
   const doc = pane.active.doc;
   await loadBookmarks(doc);
   line ??= cursorOf(pane, preview).line;
@@ -155,6 +160,7 @@ function moveTo(pane, pos, extend, preview) {
 }
 
 async function goToBookmark(pane, n, extend, preview) {
+  if (pane.active.doc.pdf) return pdfGoToBookmark(pane.active, n);
   await loadBookmarks(pane.active.doc);
   const pos = markerPos(pane.active.doc.marks[n]);
   if (!pos) return toast(`Bookmark ${n} is not set in this file.`);
@@ -163,6 +169,7 @@ async function goToBookmark(pane, n, extend, preview) {
 
 // The next (dir 1) or previous (-1) bookmark of any kind, around to the first / last at the end.
 async function nextBookmark(pane, dir, extend, preview) {
+  if (pane.active.doc.pdf) return pdfNextBookmark(pane.active, dir);
   const doc = pane.active.doc;
   await loadBookmarks(doc);
   const list = bookmarkList(doc);
@@ -179,16 +186,16 @@ const bookmarkText = b => `${b.line + 1}:${b.ch + 1}  ${b.text.slice(b.ch).trim(
 async function bookmarkItems(kind) {
   const pane = previewOrEditor()?.pane;   // actions.js
   if (!pane) return [];
-  await loadBookmarks(pane.active.doc);
-  const list = bookmarkList(pane.active.doc);
+  const pdf = pane.active.doc.pdf, list = pdf ? await pdfLoadMarks(pane.active.doc) : (await loadBookmarks(pane.active.doc), bookmarkList(pane.active.doc));
   return Array.from({ length: 9 }, (_, i) => {
     const n = i + 1, b = list.find(x => x.n === n);
     return { label: `Bookmark &${n}`, action: { go: 'bookmarkGo', store: 'bookmarkStore', toggle: 'bookmarkToggle', clear: 'bookmarkClear' }[kind],
-      params: [n], key: b ? bookmarkText(b) : '(not set)', enabled: kind === 'store' || kind === 'toggle' || !!b };
+      params: [n], key: b ? (pdf ? pdfBookmarkText(b) : bookmarkText(b)) : '(not set)', enabled: kind === 'store' || kind === 'toggle' || !!b };
   });
 }
 
 async function showBookmarkList(pane, preview) {
+  if (pane.active.doc.pdf) return pdfShowBookmarkList(pane.active);
   const items = await bookmarkGoItems(pane, preview);
   if (!items.length) return toast('This file has no bookmarks.');
   const at = preview ? previewCursorCoords(pane) : pane.cm.cursorCoords(null, 'window');
@@ -199,6 +206,7 @@ async function showBookmarkList(pane, preview) {
 // (bookmarkspane.js). No document: none.
 async function bookmarkGoItems(pane = previewOrEditor()?.pane, preview = pane?.active?.mode === 'preview') {
   if (!pane?.active) return [];
+  if (pane.active.doc.pdf) return pdfBookmarkGoItems(pane.active);
   await loadBookmarks(pane.active.doc);
   return bookmarkList(pane.active.doc).map(b => ({
     label: b.n ? `Bookmark &${b.n}` : 'Bookmark', key: bookmarkText(b), run: () => moveTo(pane, Pos5(b.line, b.ch), false, preview),

@@ -258,6 +258,8 @@ every action with its key.
   WordStar and Delphi; Ctrl+K, K / N / P / L for unnumbered ones, next, previous and the list. They follow
   inserted and removed lines, and are found again by their line text when the file changed outside LexPen.
   They work in the preview too, at the preview's cursor, and the preview shows them at the far left of its text.
+  In a PDF too, where it was clicked last (else the top of the view), with a narrow gutter of its own at the left of
+  its pages showing them; a click there toggles an unnumbered one on that line. The lists show its page (p. 12).
 - **Next / previous block**: Alt+PgDn goes to the next block at the cursor's level; with none left at that level, a
   level out. Alt+PgUp goes to the header of the cursor's block, and from a header to the previous header at its
   indent (none: the header around it). A block is a line with the lines indented under it (and
@@ -465,7 +467,9 @@ every action with its key.
   the threshold, fit the width / the page, zoom (also Ctrl+mouse wheel), the page and previous / next; the right-click
   has the same. The mouse wheel and the keys scroll it (Ctrl+Home / Ctrl+End its start / end; Home / End and Ctrl+Left /
   Ctrl+Right its left / right edge, zoomed in); it keeps its place when its tab is shown again. Its bookmarks
-  (chapters and their parts) are in the Outline pane. Highlights with notes on its text (Ctrl+F8, Edit > Highlights,
+  (chapters and their parts) are in the Outline pane. Your own bookmarks (Ctrl+K, 1, Ctrl+K, K, F2, ...) work in it as in a
+  text file, shown in a narrow gutter at its left and on the scroll strip, found again by their text when the PDF
+  changed. Highlights with notes on its text (Ctrl+F8, Edit > Highlights,
   the right-click), listed in the Highlights pane by page; kept in LexPen, next to the file (`name.pdf.lph`) or inside
   the PDF as its highlight annotations (other PDF readers show them; moving them in or out asks first, and Save
   writes the PDF, a .bak first); the bar's Highlights list chooses where. A PDF's own highlights are listed too; kept

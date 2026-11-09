@@ -199,9 +199,12 @@ addEventListener('message', e => {
     pdfSend(tab, { ...(tab.pdf.state ?? tab.doc.pdfPrefs?.place ?? {}), kind: 'restore' });
     pdfHlSend(tab);
     pdfFindAgain(tab);
+    pdfMarksReady(tab);   // its bookmarks (pdfbookmarks.js)
   }
   else if (m.kind === 'texts') pdfGotTexts(tab, m.texts);   // its pages' texts, for the find bar (pdffind.js)
   else if (m.kind === 'menu') pdfMenu(tab, m.x, m.y, m);
+  else if (m.kind === 'answer') pdfAnswer(m);   // to a question asked (pdfbookmarks.js pdfAsk)
+  else if (m.kind === 'gutter') pdfGutterClick(tab, m);   // a click in its bookmark gutter (pdfbookmarks.js)
   else if (m.kind === 'selection') tab.pdf.selection = m.parts;   // for Highlight from the keys (pdfhighlights.js)
   else if (m.kind === 'annotations') pdfHlAnnotations(tab.doc, m);
   else if (m.kind === 'saved') { for (const resolve of pdfHl.saving.values()) resolve(m); }
@@ -217,6 +220,12 @@ addEventListener('message', e => {
   else if (m.kind === 'key') document.dispatchEvent(new KeyboardEvent('keydown', { key: m.key, code: m.code, ctrlKey: m.ctrlKey,
     shiftKey: m.shiftKey, altKey: m.altKey, metaKey: m.metaKey, bubbles: true, cancelable: true }));
 });
+
+// A chord begun (keys.js setPending): the frames pass the next key on as well, whatever it is (Ctrl+K, 1), and stop
+// when it is over.
+function pdfChord(on) {
+  for (const tab of allTabs()) if (tab.pdf?.frame.isConnected) pdfSend(tab, { kind: 'chord', on });
+}
 
 // Its bookmarks as the document's outline (app.js showOutline, languages.js outlineOf): an entry's line is its page
 // (0-based) and its ch its number in the frame's list, so a click goes to its own place (pdfOutlineGo).
@@ -255,7 +264,8 @@ function pdfScroller(tab) {
   } };
 }
 
-// Its marks on the strip: chapters (the bookmarks at the first level with more than one), highlights and find matches,
+// Its marks on the strip: chapters (the bookmarks at the first level with more than one), highlights, its reader's
+// bookmarks (pdfbookmarks.js) and find matches,
 // each at its page and, with the page's text known, its share of the way down the page.
 function pdfOverviewMarks(tab) {
   const l = tab.pdf?.layout, doc = tab.doc, out = [];
@@ -271,6 +281,7 @@ function pdfOverviewMarks(tab) {
     for (const e of doc.pdfOutline) if (e.level === level) { const s = at(e.line + 1, 0); if (s) out.push({ kind: 'chapters', ...s, title: e.text }); }
   }
   if (pvKind('highlights')) for (const h of pdfHlsOf(doc).list) { const s = at(h.page, h.from); if (s) out.push({ kind: 'highlights', ...s }); }
+  if (pvKind('bookmarks')) for (const b of doc.pdfMarks ?? []) { const s = at(b.page, b.offset); if (s) out.push({ kind: 'bookmarks', ...s }); }
   if (pvKind('find')) for (const f of tab.pdf.findMarks ?? []) { const s = at(f.page, f.from); if (s) out.push({ kind: 'find', ...s }); }
   return out;
 }

@@ -70,4 +70,45 @@ public class BookmarkStoreTests : IDisposable
         var resolved = BookmarkStore.Resolve([Mark(3, 40, 1, "gone")], "one\ntwo");
         Assert.Equal("3:1:1", Place(resolved[0]));
     }
+
+    // ---------- A PDF's (web/pdfbookmarks.js; docs/plans/executed/PLAN-pdf-bookmarks.md) ----------
+    static JsonObject PdfMark(int n, int page, int offset, string text) => new() { ["n"] = n, ["page"] = page, ["offset"] = offset, ["text"] = text };
+
+    [Fact]
+    public void APdfsListIsKeptAndRenamedWithTheFile()
+    {
+        var store = new BookmarkStore(FilePath);
+        store.Set(BookmarkStore.Key(@"C:\Docs\Ref.pdf", null), [PdfMark(1, 12, 340, "SELECT statement"), PdfMark(0, 3, 0, "Contents")]);
+        store.Rename(@"C:\Docs\Ref.pdf", @"C:\Docs\Reference.pdf");
+        var again = new BookmarkStore(FilePath);
+        Assert.Empty(again.Get(BookmarkStore.Key(@"C:\Docs\Ref.pdf", null)));
+        var list = again.Get(BookmarkStore.Key(@"C:\Docs\Reference.pdf", null));
+        Assert.Equal("1:12:340:SELECT statement|0:3:0:Contents", string.Join("|", list.Select(m => $"{(int)m!["n"]!}:{(int)m["page"]!}:{(int)m["offset"]!}:{(string)m["text"]!}")));
+    }
+
+    static readonly string PdfModel = File.ReadAllText(Path.Combine(AppHost.FindProjectFolder(AppContext.BaseDirectory, "web")!, "pdfbookmarks.js"));
+
+    // pdfResolveMarks under Jint, given the pages' texts of another version of the file.
+    static string ResolvePdf(string list, string texts)
+    {
+        var engine = new Jint.Engine();
+        engine.Execute(PdfModel);
+        return engine.Evaluate($"(() => {{ const r = pdfResolveMarks({list}, {texts}); return r.list.map(b => b.n + ':' + b.page + ':' + b.offset).join('|') + (r.changed ? ' changed' : ''); }})()").ToString();
+    }
+
+    [Fact]
+    public void APdfBookmarkStaysWhereItsTextStillIs()
+        => Assert.Equal("1:2:6", ResolvePdf("[{ n: 1, page: 2, offset: 6, text: 'SELECT statement' }]", @"['one', 'Intro\nSELECT statement']"));
+
+    [Fact]
+    public void APdfBookmarkMovedAPageDownIsFoundByItsText()
+        => Assert.Equal("1:3:4 changed", ResolvePdf("[{ n: 1, page: 2, offset: 6, text: 'SELECT statement' }]", @"['one', 'a new page', 'See\nSELECT statement']"));
+
+    [Fact]
+    public void APdfBookmarkWhoseTextIsGoneStaysWhereItWas()
+        => Assert.Equal("0:2:6", ResolvePdf("[{ n: 0, page: 2, offset: 6, text: 'SELECT statement' }]", @"['one', 'Intro\nUPDATE statement', 'three']"));
+
+    [Fact]
+    public void OfTwoPagesWithItsTextTheNearestWins()
+        => Assert.Equal("2:4:0 changed", ResolvePdf("[{ n: 2, page: 5, offset: 0, text: 'Index' }]", "['Index', 'x', 'x', 'Index', 'x', 'x']"));
 }

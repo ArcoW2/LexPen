@@ -74,6 +74,7 @@ const withKey = (title, name, ...params) => keyText(name, ...params) ? `${title}
 function setPending(stroke) {
   keys.pending = stroke;
   showChord(stroke);   // the bottom bar, see app.js
+  if (typeof pdfChord === 'function') pdfChord(!!stroke);   // a PDF's frame passes the second key on too (pdfview.js)
 }
 
 document.addEventListener('keydown', e => {

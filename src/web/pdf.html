@@ -6,7 +6,14 @@
 <link rel="stylesheet" href="vendor/pdfjs/pdf_viewer.css">
 <style>
   html, body { margin: 0; height: 100%; overflow: hidden; background: var(--pdf-bg, #525659); }
-  #pdf-scroll { position: absolute; inset: 0; overflow: auto; }
+  #pdf-scroll { position: absolute; inset: 0 0 0 18px; overflow: auto; }
+  /* The bookmarks' gutter at the left of the scroll area (pdf-pane.js): it does not scroll sideways; its icons as the
+     editor's (app.css .mm-bm), each at the height of its line. */
+  #pdf-gutter { position: absolute; left: 0; top: 0; bottom: 0; width: 18px; overflow: hidden; cursor: pointer; }
+  .pdf-bm { position: absolute; left: 3px; min-width: 9px; box-sizing: border-box; padding: 0 2px; border-radius: 3px; text-align: center;
+    font: 600 10px/14px "Segoe UI", sans-serif; color: var(--pdf-bm-fg, #fff); background: var(--pdf-bm, #0969da); }
+  .pdf-bm.pdf-bm-free { left: 6px; min-width: 6px; width: 6px; height: 10px; padding: 0; border-radius: 1px 1px 0 0;
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 70%, 0 100%); }
   .pdfViewer .page { margin: 8px auto; border: 0; box-shadow: 0 1px 4px rgb(0 0 0 / .4); }
   /* A page that does not suit the mode (pdf-pane.js): its lightness turned round, its hues kept. */
   .pdfViewer .page.pdf-inverted .canvasWrapper { filter: invert(var(--pdf-invert, 1)) hue-rotate(180deg); }
@@ -39,6 +46,7 @@
 </head>
 <body>
 <div id="pdf-scroll" tabindex="0"><div id="pdf-pages" class="pdfViewer"></div></div>
+<div id="pdf-gutter" title="Bookmarks (click: toggle an unnumbered one on that line)"></div>
 <div id="pdf-error" hidden></div>
 <script type="module" src="pdf-pane.js"></script>
 </body></html>
