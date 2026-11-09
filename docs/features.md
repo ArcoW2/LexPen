@@ -152,7 +152,8 @@ every action with its key.
 - **Clipboards**: next to the Windows clipboard, LexPen has clipboards 1 to 9 (their texts shared by all windows,
   kept across restarts). Ctrl+Shift+1 to 9 selects one, Ctrl+Shift+` the Windows clipboard; Ctrl+C, Ctrl+X and
   Ctrl+V then work on the active one, which is each window's own (every window starts with the Windows clipboard). The bottom bar shows it (Clip: Win, Clip: 3); a click there or Ctrl+Shift+C lists them
-  with the start of their text.
+  with the start of their text; so does the ribbon's Clipboard corner, under it. The Clipboards pane follows the
+  Windows clipboard, also when another program copies.
 - **Exchange with clipboard** (Ctrl+Alt+X, Edit > Exchange with clipboard, the editor's right-click on a selection,
   the ribbon's Home > Clipboard): the clipboard's text takes the selection's place and the selection goes onto the
   clipboard, in one undo step; the pasted text stays selected, so the same again swaps back. On the active clipboard,
@@ -562,6 +563,8 @@ every action with its key.
 - **View > Panels**: every panel with a check when it is shown; choosing one shows it as it was last (it flashes a few times where it opened: docked its group, floating its
   window's title bar) or hides it. The panels in groups under a dimmed heading: Files and finding, The document,
   Editing, Macros, LexPen; then the dock areas open or closed; Reset docking. View > Document panels: Editor and Preview.
+  Any panel or window an action shows (its key, a menu, the ribbon, F1) flashes the same way, also when it was open
+  already.
 - **Dock tab bars**: tabs that do not fit wrap over several rows or scroll in one row (setting dockTabBar); a tab
   dragged onto a head goes between the tabs where it is let go; the setting dockTabIntensity sets the contrast of the
   tab bars' colours.

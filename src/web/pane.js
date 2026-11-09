@@ -18,6 +18,14 @@ function fromWindow(m) {
   if (m.kind === 'menu') return paneMenu(m);
   paneHandlers[m.kind]?.(m);
 }
+// Shown by an action while floating (docks.js flashDock): the page flashes as a docked pane's group does.
+paneHandlers.flash = () => {
+  const body = document.body;
+  body.classList.remove('mm-pane-flash');
+  void body.offsetWidth;   // the animation again when it was still running
+  body.classList.add('mm-pane-flash');
+  setTimeout(() => body.classList.remove('mm-pane-flash'), 1300);
+};
 addEventListener('message', e => { if (e.origin === APP_ORIGIN && e.data?.toPane) fromWindow(e.data.toPane); });
 if (floating) chrome.webview.addEventListener('message', e => { if (e.data?.toPane) fromWindow(e.data.toPane); });
 
