@@ -1094,6 +1094,10 @@ async function renderNow(tab) {
   if (typeof markPreviewCursors === 'function') markPreviewCursors();
   if (typeof drawPreviewHighlights === 'function') for (const pane of panes) if (pane.active === tab) drawPreviewHighlights(pane);   // highlights.js
   if (typeof refreshOccurrencesPreview === 'function') refreshOccurrencesPreview(tab);   // occurrences.js
+  // The find bar's matches in this preview: found again in the new content (the old ones' boxes stood where the text
+  // was before; find.js).
+  if (typeof findRegex === 'function') for (const pane of panes)
+    if (pane.active === tab && pane.find && !pane.find.el.hidden && pane.find.marked === 'preview' + tab.id) refresh(pane, false);
   if (typeof schedulePreviewOverviews === 'function') schedulePreviewOverviews();   // the preview's scroll bar (previewoverview.js)
 }
 
