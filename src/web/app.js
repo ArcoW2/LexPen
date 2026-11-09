@@ -4804,6 +4804,35 @@ function askName(title, value, placeholder = 'Empty: a number', select = [0, val
 }
 $('.mm-name-dialog .mm-name-cancel').addEventListener('click', () => $('.mm-name-dialog').close('cancel'));
 
+// A dialog of this page (a name asked, Customize, ...) under one of LexPen's floating windows (F1 and the other panes
+// in a window of their own: owned by this window, so always above it) moves out from under it: to the place in the
+// window they cover least, nearest to where it was. Back where it was when it closes.
+const showModalPlain = HTMLDialogElement.prototype.showModal;
+HTMLDialogElement.prototype.showModal = function () {
+  showModalPlain.call(this);
+  avoidToolWindows(this);
+};
+async function avoidToolWindows(dialog) {
+  const px = devicePixelRatio || 1;
+  const rects = (await host('toolWindowRects').catch(() => [])).map(r => ({ l: r.x / px, t: r.y / px, r: (r.x + r.w) / px, b: (r.y + r.h) / px }));
+  if (!rects.length || !dialog.open) return;
+  const box = dialog.getBoundingClientRect(), w = box.width, h = box.height, m = 8;
+  // The part of the dialog at x, y that the windows cover (they may overlap each other: an upper bound is enough).
+  const covered = (x, y) => rects.reduce((a, r) => a + Math.max(0, Math.min(x + w, r.r) - Math.max(x, r.l)) * Math.max(0, Math.min(y + h, r.b) - Math.max(y, r.t)), 0);
+  let best = [box.left, box.top], bestArea = covered(box.left, box.top), bestDist = 0;
+  if (!bestArea) return;
+  for (let y = m; y + h <= innerHeight - m; y += 8)
+    for (let x = m; x + w <= innerWidth - m; x += 8) {
+      const area = covered(x, y), dist = Math.hypot(x - box.left, y - box.top);
+      if (area < bestArea || area === bestArea && dist < bestDist) [best, bestArea, bestDist] = [[x, y], area, dist];
+    }
+  const free = best;
+  if (free[0] === box.left && free[1] === box.top) return;
+  const was = dialog.style.cssText;
+  Object.assign(dialog.style, { margin: '0', inset: `${Math.round(free[1])}px auto auto ${Math.round(free[0])}px` });
+  dialog.addEventListener('close', () => { dialog.style.cssText = was; }, { once: true });
+}
+
 // ---------- Window role, theme ----------
 function setRole({ primary, index }) {
   state.primary = primary;   // all windows look the same; the primary is the one a closing window's tab may go to

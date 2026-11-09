@@ -1952,6 +1952,11 @@ sealed class AppHost : ApplicationContext
 
     public JsonArray ToolWindowsOpen(MainForm w) => new(ToolWindows(w).Select(t => (JsonNode?)t.Kind).ToArray());
 
+    /// <summary>Where window w's tool windows are, in pixels from a point on the screen (its page's top left): a dialog of its
+    /// page moves out from under them (the owned ones are always above it).</summary>
+    public JsonArray ToolWindowRects(MainForm w, Point origin) => new(ToolWindows(w).Select(t => (JsonNode?)new JsonObject {
+        ["x"] = t.Form.Left - origin.X, ["y"] = t.Form.Top - origin.Y, ["w"] = t.Form.Width, ["h"] = t.Form.Height }).ToArray());
+
     /// <summary>A floating pane's window closed, as by hand (the pane stays floating, or its page decides).</summary>
     public void CloseToolWindow(MainForm w, string kind) { foreach (var (_, f) in ToolWindows(w).Where(t => t.Kind == kind).ToList()) f.Close(); }
 
