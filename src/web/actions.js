@@ -942,6 +942,10 @@ const SETTING_ROWS = [
   { name: 'scrollTogether', group: 'Tabs', sub: 'Two panes', kind: 'choice', title: 'Align scrolling by',
     hint: 'Keeping the line distance: Scroll together scrolls the documents as they are aligned now, without putting them on the same line number first (Level does that; Alt + mouse wheel scrolls one pane alone). The same line number: Scroll together always puts the other pane on the same line number',
     options: () => [['distance', 'keeping the line distance'], ['line', 'the same line number']] },
+  // docs/plans/executed/PLAN-pinned-tabs-grouped-or-own-row.md
+  { name: 'pinnedTabs', group: 'Tabs', kind: 'choice', title: 'Pinned tabs',
+    hint: 'Among the others (first), in one tab "Pinned (n)" whose click lists them, or on a row of their own above the others; also in a tab\'s right-click',
+    options: () => [['regular', 'Among the others'], ['grouped', 'In one tab'], ['row', 'A row of their own']] },
   { name: 'movePinned', group: 'Tabs', kind: 'toggle',
     hint: 'Closing a pane moves its pinned tabs to the main pane; closing a window moves them to another open window of the same project',
     hintOff: 'Pinned tabs keep their pane open, and close with their window' },

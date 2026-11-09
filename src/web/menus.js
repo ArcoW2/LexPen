@@ -200,7 +200,7 @@ async function openMenuLevel(items, x, y, select, above, leftX) {
     if (it.title) button.title = it.title;
     if (it.font) button.querySelector('.mm-key').style.fontFamily = `"${it.font.replace(/["\\]/g, '')}"`;
     button.disabled = !enabled;
-    if (it.cls) button.classList.add(it.cls);
+    if (it.cls) button.classList.add(...String(it.cls).split(' ').filter(Boolean));   // one or more, by spaces
     const entry = { item: it, button, letter, enabled, isSub };
     level.items.push(entry);
     button.addEventListener('mousedown', e => e.preventDefault());

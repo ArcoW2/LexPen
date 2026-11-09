@@ -612,8 +612,24 @@ body[data-orient=h] .mm-cmp-swap svg { transform: rotate(90deg); }
 
 /* The tab strip, with the pane button (hide / close / show hidden pane) at its right end. */
 .mm-tabs-row { flex: none; display: flex; align-items: stretch; background: var(--bg-side); border-bottom: 1px solid var(--border); }
-.mm-tabs-row:has(.mm-tabs:empty) { display: none; }
+.mm-tabs-row:has(.mm-tabs:empty):not(:has(.mm-tabs-pinned > *)) { display: none; }
 .mm-tabs { flex: 1; min-width: 0; display: flex; overflow-x: auto; scrollbar-width: thin; user-select: none; }
+/* Pinned tabs (plan 49, refreshTabs): a row of their own above the others (setting pinnedTabs "row"), all of them
+   (more rows when they do not fit), a line under it; "grouped": one tab "Pinned (n)" with an arrow, its list in the
+   tabs' colours. */
+.mm-tabs-stack { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.mm-tabs-stack > .mm-tabs { flex: none; }
+.mm-tabs-pinned { display: flex; flex-wrap: wrap; user-select: none; border-bottom: 1px solid var(--border); }
+.mm-tabs-pinned:empty { display: none; }
+.mm-tabs-pinned .mm-tab { border-bottom: 1px solid var(--border); margin-bottom: -1px; }
+.mm-tab-group .mm-tab-arrow::after { content: "\25BE"; font-size: calc(10px * var(--ui-scale)); }
+.mm-tab-group.mm-off { opacity: .5; cursor: default; }
+.mm-tab.mm-insert-group { box-shadow: inset 0 0 0 2px var(--accent); }
+.mm-dropdown button.mm-tab-entry { background-color: var(--tab-bg, transparent); color: var(--tab-fg, inherit); font-weight: var(--tab-weight, normal); }
+.mm-dropdown button.mm-tab-entry.mm-on { box-shadow: inset 3px 0 var(--tab-line, var(--accent)); }
+.mm-dropdown button.mm-tab-entry.mm-sel { background-color: var(--tab-bg, transparent); background-image: linear-gradient(var(--hover), var(--hover)); }   /* chosen: over its colour */
+.mm-dropdown button.mm-tab-entry.mm-dirty .mm-label::after { content: " \25CF"; }   /* unsaved, as on its tab */
+.mm-dropdown button.mm-tab-entry.mm-ro .mm-label { font-style: italic; }   /* read-only */
 .mm-pane-button { display: none; flex: none; align-self: flex-start; margin: 3px 4px; padding: 3px 5px; color: var(--fg-dim); }
 body[data-two] .mm-pane-button, body[data-pane-hidden] .mm-pane-button { display: block; }
 .mm-pane-button svg { display: block; }

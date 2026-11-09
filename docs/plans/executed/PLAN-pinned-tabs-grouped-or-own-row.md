@@ -1,6 +1,6 @@
 # Plan: Pinned tabs as they are, in one tab, or on a row of their own
 
-Status: draft 2026-11-09, revised 2026-11-09; not started. The number in the file name is the priority; rename to reorder.
+Status: draft 2026-11-09, revised 2026-11-09; executed (2026-11-09); see As built.
 
 ## 1. What this is about
 
@@ -72,3 +72,33 @@ moving pinned tabs work as now; only where they are shown changes.
 ## 4. Open questions
 
 None.
+
+## 5. As built
+
+Built on branch `pinned-tabs` (2026-11-09): the setting `pinnedTabs` (defaults/settings.json, the Settings row under
+Tabs, three checked choices in a tab's and the tab bar's right-click); in app.js `pinnedTabsMode`, `refreshTabs` (the
+pinned row, the group tab), `pinnedGroupElement`, `showPinnedList`, `startTabDrag`, `showTabMenu` (the tab menu as a
+function, for a tab, a list entry and the group tab), `setPinned` (pinned tabs first in the pane's order), `stripAt`
+(where a drop lands and what it becomes, in place of stripIndex); the tab bar as two rows (`.mm-tabs-stack`: the
+pinned row and the others); app.css; menus.js (an item's `cls` may hold several classes).
+
+Differs from the plan:
+
+- **Pinning keeps pinned tabs first** in every setting: a tab pinned goes after the pinned ones, one unpinned before
+  the others unless dropped among them. In Regular a tab can still be dragged before the pinned ones, as before.
+- **The group tab's right-click** (asked during the build): the tab menu of the pinned document shown; none shown: the
+  tab bar's menu.
+- **Close before / after / except** (asked during the build): the tab menu has Close all tabs before this tab (new),
+  after this tab (was Close tabs to the right) and except this tab (was Close other tabs); pinned tabs stay, as they
+  did for these.
+- **A read-only entry** in the list is in italics; an unsaved one has the dot after its name.
+
+Tested in the test copy by script: ten tabs, four pinned (one with spaces in its name, two .sql with a tab colour rule);
+Regular as before; Own row: the pinned ones on their row, the others below; Grouped: "Pinned (4)" first, a real click
+lists them in their rule colours (the chosen row too), a choice shows it and the tab reads "Pinned (4)-Alle
+Procedures.sql" in that document's active colours, a second click closes the list; pinning and unpinning change the
+number; none pinned: "Pinned (0)" dimmed, a click lists nothing; a real right-click on the group tab: the tab menu of
+the shown document (Unpin there unpins it), with none shown the bar's menu; drops (fired): a tab onto the group pinned,
+a list entry onto the bar unpinned at the drop place, Own row: onto the pinned row pinned, onto the other unpinned; Close
+before / after a tab leaves the pinned ones open. Screenshots of Own row, the group tab and its list. All unit tests
+pass.

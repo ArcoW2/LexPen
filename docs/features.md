@@ -695,13 +695,18 @@ every action with its key.
   in the other pane, Ctrl+Shift+click opens a new tab there.
   The same file can be open in both panes, both editing it (a split): View > **Split into the other pane**
   (Ctrl+Alt+S) opens it there at the same place, with its own cursor and scroll position. Drag a
-  tab along the tab bar to reorder it. Right-click a tab for Close, Close other tabs, Close tabs to the right;
+  tab along the tab bar to reorder it. Right-click a tab for Close, Close all tabs before this tab, after this tab,
+  except this tab;
   View > **Tab bar**: one row that scrolls, one row with a menu for the tabs out of view, or several rows.
   The arrows button at the left of each tab bar shows the pane's file in the folder pane (opening its folder
   when it lies outside the open one), as Visual Studio's Sync with active document.
-- **Pinned tabs** (right-click a tab > Pin tab): a pin before the name. Closing it alone asks first; Close other
-  tabs, Close tabs to the right, Close all tabs (tab menu, the tab bar's own menu and File menu; one pane) and closing a pane leave it
-  open. Closing the second pane, or a window while another window of its project stays open, moves pinned tabs to
+- **Pinned tabs** (right-click a tab > Pin tab): a pin before the name, first in the tab bar. Closing it alone asks
+  first; closing several (before, after or except a tab, Close all tabs: the tab menu, the tab bar's own menu and File
+  menu; one pane) and closing a pane leave it open. Shown (Settings > Tabs > Pinned tabs, also in the right-click):
+  among the others; in one tab "Pinned (n)" whose click lists them in their tab colours (one of them shown: "Pinned
+  (n)-name" in its colours; its right-click that document's tab menu; a tab dropped on it pinned, one dragged out of the
+  list unpinned); or on a row of their own above the others (a tab dropped there pinned, on the other row unpinned).
+  Closing the second pane, or a window while another window of its project stays open, moves pinned tabs to
   the main pane / that window (a setting, on by default). A pinned tab never takes another file: a file from the Folder
   pane or a search result, or a link followed, opens in a new tab beside it. Kept in the session.
 - **Read-only tabs** (right-click a tab > Read-only): the tab cannot change the file; switching it off is
