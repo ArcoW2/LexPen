@@ -253,6 +253,7 @@ function showDockPane(id, open = true) {
   if (open && at.key !== 'left') dockArea(m, at.key).open = true;
   saveDocks(m);
   if (open && at.key === 'left' && document.body.dataset.sidebar !== 'on') setSidebar(true);
+  flashDockSoon(id);
   return true;
 }
 const dockPaneVisible = id => { const m = dockModel(), at = dockGroupOf(m, id); return !!at && dockShown(m, id) && dockOpen(m, at.key) && at.g.active === id; };
@@ -549,15 +550,27 @@ async function togglePanel(kind, run, open) {
 // (the host flashes its title bar).
 async function flashPanel(kind) {
   const open = await host('toolWindowsOpen').catch(() => []);
-  for (const id of panelIds(kind)) {
-    if (dockInFront(id)) {
-      const group = dockPanes.get(id).view.closest('.mm-dock-group');
-      group?.classList.remove('mm-flash');
-      void group?.offsetWidth;   // the animation again when it was still running
-      group?.classList.add('mm-flash');
-      setTimeout(() => group?.classList.remove('mm-flash'), 1300);
-    } else if (dockModel().state[id] === 'floating' && open.includes(panelHost(id))) host('flashToolWindow', { kind: panelHost(id) }).catch(() => {});
-  }
+  for (const id of panelIds(kind)) flashDock(id, open);
+}
+function flashDock(id, open) {
+  if (dockInFront(id)) {
+    const group = dockPanes.get(id).view.closest('.mm-dock-group');
+    group?.classList.remove('mm-flash');
+    void group?.offsetWidth;   // the animation again when it was still running
+    group?.classList.add('mm-flash');
+    setTimeout(() => group?.classList.remove('mm-flash'), 1300);
+  } else if (dockModel().state[id] === 'floating' && open.includes(panelHost(id))) host('flashToolWindow', { kind: panelHost(id) }).catch(() => {});
+}
+// Any pane an action shows (its key, a menu, the ribbon, F1) flashes the same way, also when it was open already:
+// showDockPane and a channel's float call this; right after an action (runAction notes when), once per pane.
+const flashingSoon = new Set();
+function flashDockSoon(id) {
+  if (Date.now() - lastActionAt > 1500 || flashingSoon.has(id) || !dockPanes.has(id)) return;
+  flashingSoon.add(id);
+  setTimeout(async () => {
+    flashingSoon.delete(id);
+    flashDock(id, await host('toolWindowsOpen').catch(() => []));
+  }, 400);
 }
 // Step by step has no action of its own (a step by step shows it): the window's as it was, else the active editor pane's.
 function showStepPane() {

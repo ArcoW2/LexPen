@@ -109,9 +109,11 @@ const inTextField = ctx => ctx.from === 'key' && !!document.activeElement?.match
   && !document.activeElement.closest('.CodeMirror');
 
 let lastAction = null;   // the last action run, for the stall log (app.js)
+let lastActionAt = 0;    // when: a pane shown right after it flashes (docks.js, flashDockSoon)
 
 function runAction(name, params = [], ctx = {}) {
   lastAction = name;
+  lastActionAt = Date.now();
   if (typeof recordAction === 'function') recordAction(name, params, ctx);   // a macro being recorded (macros.js)
   const app = appActions.get(name);
   if (app) {

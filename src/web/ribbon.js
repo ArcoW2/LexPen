@@ -208,12 +208,24 @@ async function rbOpenList(button, item) {
   openMenuBelow(await rbListItems(item), button);
 }
 
+// Actions that are a list (Clipboards): on the ribbon, as a button or a corner, a click opens that list under it
+// instead of running the action (which shows it elsewhere: at the bottom bar).
+const RB_LIST_ACTIONS = {
+  clipboardList: async () => [...await clipboardItems(), '-', ['&Manage clipboards...', 'clipboards.pane']],
+};
+const rbCornerCall = el => {
+  const [t, g, side] = rbPath(el.dataset.corner), c = rb.model.tabs[t]?.groups[g]?.corners?.[side];
+  return c ? (Array.isArray(c) ? c : [c]) : null;
+};
+
 // What opens a list: a split button's arrow, a button that is only a list, ">>". Pressed again while its list shows,
 // the list only closes (menus.js closes it on mousedown; pointerdown comes first, so the click after it is skipped).
 let rbListFrom = null, rbSkipClick = null;
 const rbOpener = t => t.closest('.mm-ribbon [data-arrow], .mm-rb-more') ?? (() => {
+  const corner = t.closest('.mm-ribbon [data-corner]');
+  if (corner) return RB_LIST_ACTIONS[rbCornerCall(corner)?.[0]] ? corner : null;
   const b = t.closest('.mm-ribbon .mm-rb-btn[data-path]'), item = b && rbItemAt(rbPath(b.dataset.path));
-  return item && rbListOnly(item) ? b : null;
+  return item && (rbListOnly(item) || RB_LIST_ACTIONS[item.action]) ? b : null;
 })();
 addEventListener('pointerdown', e => {
   const o = e.target instanceof Element ? rbOpener(e.target) : null;
@@ -248,15 +260,16 @@ async function rbClick(e) {
   if (el.matches('.mm-rb-more')) return openMenuBelow(rbOverflowItems(), el);
   if (rb.changing) return;   // in change mode the buttons do not run
   if (el.matches('[data-corner]')) {
-    const [t, g, side] = rbPath(el.dataset.corner), c = rb.model.tabs[t].groups[g].corners?.[side];
-    const call = Array.isArray(c) ? c : [c];
-    if (c) runAction(call[0], call.slice(1), { from: 'ribbon' });
+    const call = rbCornerCall(el);
+    if (call && RB_LIST_ACTIONS[call[0]]) return openMenuBelow(await RB_LIST_ACTIONS[call[0]](), el);
+    if (call) runAction(call[0], call.slice(1), { from: 'ribbon' });
     return rbRefreshSoon();
   }
   if (el.matches('[data-path]')) {
     const item = rbItemAt(rbPath(el.dataset.path));
     if (!item || el.classList.contains('mm-off')) return;
     if (e.target.closest('[data-arrow]') || rbListOnly(item)) return rbOpenList(el, item);
+    if (RB_LIST_ACTIONS[item.action]) return openMenuBelow(await RB_LIST_ACTIONS[item.action](), el);
     await runAction(item.action, item.params ?? [], { from: 'ribbon' });
     rbRefreshSoon();
   }

@@ -20,7 +20,7 @@
       { "name": "Lines", "items": [
         { "action": "duplicateLines", "label": "Duplicate" }, { "action": "deleteLines", "label": "Delete", "stack": true },
         { "action": "joinLines", "label": "Join", "stack": true } ] },
-      { "name": "Clipboard", "corners": { "right": "clipboards.pane" }, "items": [
+      { "name": "Clipboard", "corners": { "right": "clipboardList" }, "items": [
         { "action": "paste", "size": "large" },
         { "action": "pasteImage", "label": "Image", "stack": true }, { "action": "cut", "stack": true }, { "action": "copy", "stack": true },
         { "action": "clipboard.exchange", "label": "Exchange", "stack": true } ] },

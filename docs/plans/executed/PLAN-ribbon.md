@@ -323,6 +323,9 @@ differences:
 - **Rename** (Customize and a button's right-click) renames a tab, a group or a button; a button's name is its label.
 - **Columns** (added after the build): one or two small buttons sit at the top of their column, not centred; a large
   button can share its column with one small button above or under it.
+- **A list action on the ribbon** (added after the build; `RB_LIST_ACTIONS`): Clipboards (`clipboardList`) as a button
+  or a corner opens its list under it, as a split button's arrow does, instead of the list at the bottom bar; the
+  shipped Clipboard group's corner is Clipboards (it was Manage clipboards..., now the list's last item).
 - **Show all occurrences** never opens the Occurrences bar (`showOccurrences(..., open)`); the corner's Occurrences
   field opens it.
 

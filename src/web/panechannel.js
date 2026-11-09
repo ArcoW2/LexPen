@@ -50,6 +50,7 @@ function paneChannel({ id, page, title, view, state, receive, onFloat, onDock })
   // the focus: the window there already serves this one now ("open": sent all it shows), or stays with the window
   // holding it ("elsewhere").
   ch.float = ({ atCursor = false } = {}) => {
+    if (typeof flashDockSoon === 'function') flashDockSoon(id);   // shown by an action: its window flashes (docks.js)
     if (ch.floating && ch.owner) return;
     if (!ch.floating) {
       ch.floating = true;

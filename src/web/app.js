@@ -1980,7 +1980,12 @@ function showChord(stroke) {
 statusUi.ins.addEventListener('click', () => runAction('overwrite.toggle', [], { from: 'bar' }));
 statusUi.col.addEventListener('mousedown', e => e.preventDefault());   // the focus stays in the editor
 statusUi.col.addEventListener('click', () => setColumnMode(false));
-events.clipboardColumn = ({ column: marked }) => { clips.windowsColumn = marked; };
+// The Windows clipboard changed (here or in another program): also its start in the Clipboards pane, when that shows.
+events.clipboardColumn = ({ column: marked }) => {
+  clips.windowsColumn = marked;
+  if (clipsPane.frame || clipsPane.floating)
+    host('clipState').then(s => { Object.assign(clips, s); clipsPane.send(clipsState()); }).catch(() => {});
+};
 statusUi.clip.addEventListener('mousedown', e => e.preventDefault());   // the focus stays in the editor
 statusUi.clip.addEventListener('click', () => showClipboardList());
 
