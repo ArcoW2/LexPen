@@ -1,20 +1,22 @@
-# Plan: The ribbon's height, and collapsing it
+# Plan: The ribbon's height, and showing it only when wanted
 
-Status: draft 2026-11-09; not started. The number in the file name is the priority; rename to reorder.
+Status: draft 2026-11-09, revised 2026-11-09; not started. The number in the file name is the priority; rename to
+reorder.
 
 ## 1. What this is about
 
 The ribbon has one height: three rows of 30 px (times the UI scale), whatever the window or the screen. On a small
-screen it takes room from the document, and there is no quick way to put it away for a while and get it back: only
+screen it takes room from the document, and there is no quick way to put it away and get it back when needed: only
 View > Ribbon (the setting commandBar), which removes it altogether.
 
 ## 2. The solution, in brief
 
 The ribbon's bottom edge can be dragged: up makes it lower, the space between the rows and around the labels going
-first and the text getting smaller after that; down makes it higher again, up to the height it has now. Dragged up
-past its lowest height, or with a button at its bottom right, it collapses to its tab names only; dragging down from
-the tab names (in their own row or in the top bar) or that button brings it back at the height it had. Ctrl+F1
-collapses and shows it as well. Height and collapsed are kept per window, as commandBar is.
+first and the text getting smaller after that; down makes it higher again, up to the height it has now. The ribbon
+is shown always, or only when wanted (a setting, per window): then only its tab names stay, and Alt, a drag down
+from the tab names or a click on one slides the ribbon down over the document, which does not move; it slides away
+again when an action is run, on Esc or a click elsewhere. A button at the ribbon's bottom right, a drag of its edge
+up past the lowest height, and Ctrl+F1 switch between the two.
 
 ## 3. Details
 
@@ -30,50 +32,66 @@ collapses and shows it as well. Height and collapsed are kept per window, as com
   (`clamp()` / `calc()`), so every part follows the same value and nothing else has to know about it. The large
   button's icon (32 px) follows the height too; the small icon stays 16 px until the text shrinks.
 - **The highest** is the present height (30 px rows): dragging down never makes the ribbon taller than now.
+- **The same height** when the ribbon slides over the document (3.2).
 - **Kept** per window in the Layout settings (`ribbonRow`, beside `commandBar` and `ribbonTab`); a new window gets the
   last one used, as the other Layout settings.
 
-### 3.2 Collapsing
+### 3.2 Always, or only when wanted
 
-- **Collapse**: a small button at the ribbon's bottom right (a chevron pointing up, the tooltip "Collapse the ribbon
-  (Ctrl+F1)"), or dragging the grip up past the lowest height. Collapsed: only the tab names show, in their row
-  (commandBar "both") or in the top bar (commandBar "ribbon"); the document gets the room.
-- **Show again**: drag down from the tab names (a press on a tab name or the row, moved down a few pixels: the ribbon
-  follows the pointer down and stays at the height it had), or the chevron (now pointing down) at the right end of
-  the tab names, or Ctrl+F1. It comes back at the height it had before it collapsed.
-- **A click on a tab name while collapsed**: open question 1.
-- **Key tips while collapsed** (Alt with commandBar "ribbon"): the tab names get their tips as now; choosing a tab
-  shows its buttons as a click on the tab name does (open question 1), so the keyboard still reaches every button.
-- **Change mode** shows the ribbon (it cannot be changed while collapsed) and collapses it again when it ends, if it
-  was.
-- **Kept** per window in the Layout settings (`ribbonCollapsed`).
+- **The setting** `ribbonShow`, per window in the Layout settings beside commandBar, and in Settings (Editor view >
+  Menu and ribbon, shown when commandBar is "ribbon" or "both"): "always" (as now) or "onDemand" (only when wanted).
+- **Only when wanted**: the tab names stay where they are (their own row with commandBar "both", the top bar with
+  "ribbon"); the buttons are hidden and the document has the room.
+- **Showing it** (only when wanted): it slides down over the document from under the tab names, with a shadow at
+  its lower edge; the document does not move. By:
+  - **Alt** (commandBar "ribbon", with altOpens "tips"): the ribbon slides down with its key tips; a tip typed runs
+    the button and the ribbon slides away again. With altOpens "menu", Alt opens the menus as now.
+  - **A drag down** from the tab names (a press on a tab name or the row, moved down a few pixels): the ribbon
+    follows the pointer down.
+  - **A click on a tab name**: that tab's buttons slide down.
+- **Hiding it again**: when an action is run from it (a button, a corner, an item of a split button's list), on Esc,
+  a click outside it, or the keyboard going back to the document. Opening a split button's list, switching tabs in it
+  and hovering do not hide it.
+- **Switching** between always and only when wanted: the button at the ribbon's bottom right (a chevron pointing up:
+  "Show the ribbon only when wanted (Ctrl+F1)"; on the slid-down ribbon a pin: "Always show the ribbon (Ctrl+F1)"),
+  dragging the grip up past the lowest height (to only when wanted), Ctrl+F1, and the setting.
+- **Change mode** shows the ribbon always while it lasts (it cannot be changed while it slides away) and goes back
+  to only when wanted when it ends, if it was.
+- **Customize** opens under the ribbon as now; with only when wanted the ribbon stays down while Customize is open.
 
 ### 3.3 Actions
 
-- `ribbon.collapse` (a toggle, checked when collapsed): Ctrl+F1 (free: no Ctrl+F1 in keys.json or in the page's own
-  keys), View menu after Ribbon, F1.
+- `ribbon.onDemand` (a toggle, checked when only when wanted): Ctrl+F1 (free: no Ctrl+F1 in keys.json or in the
+  page's own keys), View menu after Ribbon, F1.
 
 ### 3.4 Tests
 
 - Jint or the test copy: the spacing and the font size for a row height (full, the spacing at its minimum, the
   smallest); the ribbon's height following a drag of the grip; a double click back to full.
-- In the test copy: drag up past the lowest height collapses, the chevron and Ctrl+F1 collapse and show; a drag down
-  from the tab names shows it at the old height, with commandBar "both" and "ribbon"; a click on a tab name while
-  collapsed (as open question 1 is answered); key tips while collapsed; change mode while collapsed; a restart keeps
-  the height and collapsed per window; screenshots at the full, a middle and the smallest height.
+- In the test copy, only when wanted: the document's top the same with the ribbon down and up; Alt slides it down
+  with key tips and a tip runs its button and hides it; a drag down from the tab names and a click on a tab name
+  slide it down; a button run, Esc, a click in the document hide it; a split button's list and a tab switch do not;
+  with commandBar "both" and "ribbon".
+- In the test copy: the chevron, the pin, Ctrl+F1, the setting, and the grip dragged up past the lowest height switch
+  between always and only when wanted; change mode and Customize while only when wanted; a restart keeps the height
+  and the choice per window; screenshots at the full, a middle and the smallest height, and slid down over a
+  document.
 
 ### 3.5 Alternatives
 
-- **Fixed sizes** (large / compact / collapsed, a choice in Settings): simpler, but the drag asked for gives any
-  height and is found where the ribbon is.
+- **Fixed sizes** (large / compact / hidden, a choice in Settings): simpler, but the drag gives any height and is
+  found where the ribbon is.
 - **Scaling the whole ribbon** (CSS zoom): text and spacing shrink together; the spacing going first keeps the text
   readable longer.
+- **Pushing the document down** when the ribbon shows only when wanted: the text jumps each time it shows and hides;
+  sliding over it keeps the document still.
 
 ## 4. Open questions
 
-1. **A click on a tab name while collapsed**: show that tab's buttons over the document for a moment (as Office: they
-  close again after a button is used, a click elsewhere or Esc; the document does not move), or show the ribbon
-  again for good? Suggestion: over the document for a moment; a drag down, the chevron or Ctrl+F1 show it for good.
+1. **Alt with commandBar "both"**: Alt now goes to the menus (the menu bar is there). With only when wanted, should
+   Alt there slide the ribbon down (with key tips), the menus then reached by their own Alt+letter keys, or keep going
+   to the menus, the ribbon shown by a drag or a click on a tab name? Suggestion: keep going to the menus; with
+   "both" the menu bar is the keyboard's way in.
 2. **Text before spacing?** The order asked: the spacing gets shorter first, the text smaller only after. Should the
-  text shrink at all, or should the ribbon stop at the height where the spacing is at its minimum (the text always
-  the size it has now)? Suggestion: the text shrinks too, but not below [not yet checked] (the smallest that reads).
+   text shrink at all, or should the ribbon stop at the height where the spacing is at its minimum (the text always
+   the size it has now)? Suggestion: the text shrinks too, but not below [not yet checked] (the smallest that reads).
