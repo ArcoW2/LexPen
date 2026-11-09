@@ -1108,6 +1108,14 @@ body { --col-guide: color-mix(in srgb, var(--col-guide-colour, var(--border)) va
 .mm-codes-row small { display: block; color: var(--fg-dim); }
 .mm-find-count { flex: none; min-width: 70px; padding: 0 6px; color: var(--fg-dim); font-size: calc(12px * var(--ui-scale)); white-space: nowrap; }
 .mm-find-count.mm-none { color: var(--bar-removed); }
+/* The count as a button (find.js findToSearch): the same search in the Search pane; an icon after it, a divider before
+   the switches. */
+.mm-find-tosearch { flex: none; display: inline-flex; align-items: center; gap: 2px; padding: 2px 4px 2px 0; border-radius: 4px; color: var(--fg-dim); }
+.mm-find-tosearch .mm-find-count { min-width: 64px; }
+.mm-find-tosearch svg { flex: none; opacity: .75; }
+.mm-find-tosearch:hover { background: var(--hover); }
+.mm-find-tosearch:hover svg { opacity: 1; }
+.mm-find-div { flex: none; width: 1px; height: 16px; margin: 0 4px; background: var(--border); }
 .mm-find-close::before { content: "\2715"; font-size: calc(11px * var(--ui-scale)); }
 /* Occurrences (occurrences.js): before Find's rules, so a find match on the same text is drawn over them (in the
    preview by a lower highlight priority). occurrences.mark (body[data-occ-mark]): a background, a box (--occurrence-box)
