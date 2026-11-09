@@ -559,7 +559,10 @@ function flashDock(id, open) {
     void group?.offsetWidth;   // the animation again when it was still running
     group?.classList.add('mm-flash');
     setTimeout(() => group?.classList.remove('mm-flash'), 1300);
-  } else if (dockModel().state[id] === 'floating' && open.includes(panelHost(id))) host('flashToolWindow', { kind: panelHost(id) }).catch(() => {});
+  } else if (dockModel().state[id] === 'floating' && open.includes(panelHost(id))) {
+    host('flashToolWindow', { kind: panelHost(id) }).catch(() => {});
+    (paneChannels.get(id) ?? dockPanes.get(id).channel)?.send({ kind: 'flash' });   // its page too: a title bar alone is hardly seen (pane.js)
+  }
 }
 // Any pane an action shows (its key, a menu, the ribbon, F1) flashes the same way, also when it was open already:
 // showDockPane and a channel's float call this; right after an action (runAction notes when), once per pane.
