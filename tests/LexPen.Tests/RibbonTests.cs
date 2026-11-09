@@ -83,6 +83,41 @@ public class RibbonTests : IDisposable
         Assert.Equal("macro.manage", Corner("Tools", "Macros").GetValue<string>());   // its window, as before
     }
 
+    // ---------- The height (docs/plans/executed/PLAN-ribbon-height-and-collapse.md) ----------
+
+    [Fact]
+    public void LowerTheSpacingGoesFirstThenTheTextDownToThreeQuarters()
+    {
+        JsonElement S(double row) => Js($"ribbonSizes({row.ToString(System.Globalization.CultureInfo.InvariantCulture)})");
+        var full = S(30);
+        Assert.Equal(1, full.GetProperty("sp").GetDouble());
+        Assert.Equal(1, full.GetProperty("f").GetDouble());
+        Assert.Equal(32, full.GetProperty("largeIcon").GetInt32());
+        Assert.Equal(16, full.GetProperty("arrowRow").GetInt32());
+        Assert.Equal(6, S(50.0 / 3).GetProperty("arrowRow").GetInt32());
+        var spaced = S(22);   // the spacing at its minimum, the text still its size
+        Assert.Equal(0, spaced.GetProperty("sp").GetDouble());
+        Assert.Equal(1, spaced.GetProperty("f").GetDouble());
+        var lowest = S(50.0 / 3);   // 50 px for the three rows: the text at 3/4
+        Assert.Equal(0.75, lowest.GetProperty("f").GetDouble());
+        Assert.Equal(16.667, lowest.GetProperty("row").GetDouble());
+        // Out of range: the full height and the lowest, never more or less.
+        Assert.Equal(30, S(45).GetProperty("row").GetDouble());
+        Assert.Equal(0.75, S(5).GetProperty("f").GetDouble());
+        Assert.Equal(30, Js("ribbonSizes(undefined)").GetProperty("row").GetDouble());
+        // A large button's icon, two label lines and a split's arrow row fit in three rows at every height.
+        foreach (var row in new[] { 30.0, 26, 22, 19, 50.0 / 3 })
+        {
+            var s = S(row);
+            var used = s.GetProperty("largeIcon").GetInt32() + 2 * 13 * s.GetProperty("f").GetDouble() * s.GetProperty("lineHeight").GetDouble()
+                + 6 * s.GetProperty("sp").GetDouble() + 5 - 3 * s.GetProperty("sp").GetDouble() + s.GetProperty("arrowRow").GetInt32();
+            Assert.True(used <= 3 * s.GetProperty("row").GetDouble() + 0.01, $"row {row}: {used}");
+            var shared = s.GetProperty("sharedIcon").GetInt32() + 13 * s.GetProperty("f").GetDouble() * s.GetProperty("lineHeight").GetDouble()
+                + 6 * s.GetProperty("sp").GetDouble() + 5 - 3 * s.GetProperty("sp").GetDouble() + s.GetProperty("arrowRow").GetInt32();   // sharing its column: two rows, one line
+            Assert.True(shared <= 2 * s.GetProperty("row").GetDouble() + 0.01, $"row {row}, shared: {shared}");
+        }
+    }
+
     [Fact]
     public void ACornerInEachFormAndBackToAButton()
     {

@@ -46,9 +46,14 @@ function rbElements() {
   const top = Object.assign(document.createElement('nav'), { className: 'mm-rb-tabs mm-rb-tabs-top' });
   header.querySelector('.mm-menubar').after(top);
   const el = Object.assign(document.createElement('div'), { className: 'mm-ribbon' });
-  el.innerHTML = '<nav class="mm-rb-tabs mm-rb-tabs-row"></nav><div class="mm-rb-bodies"></div>';
+  el.innerHTML = '<nav class="mm-rb-tabs mm-rb-tabs-row"></nav><div class="mm-rb-bodies"></div>' +
+    '<div class="mm-rb-grip-h" title="Drag: the ribbon lower or higher (up past its lowest: only when wanted); double click: the full height"></div>';
   header.after(el);
   rb.els = { top, el, row: el.querySelector('.mm-rb-tabs-row'), bodies: el.querySelector('.mm-rb-bodies') };
+  const grip = el.querySelector('.mm-rb-grip-h');
+  grip.addEventListener('pointerdown', rbGripDown);
+  grip.addEventListener('dblclick', () => setSetting('ribbonRow', RB_ROW_FULL));
+  for (const tabs of [top, el.querySelector('.mm-rb-tabs-row')]) tabs.addEventListener('pointerdown', rbTabsDown);
   for (const box of [top, el]) {
     box.addEventListener('mousedown', e => { if (!rb.changing && e.target.closest('button')) e.preventDefault(); });   // the focus stays in the document
     box.addEventListener('click', rbClick);
@@ -87,7 +92,10 @@ function renderRibbon() {
     (rb.changing ? `<div class="mm-rb-group mm-rb-new-group" data-new-group="${ti}"><div class="mm-rb-cols"><i>New...</i></div></div>` : '') +
     '</div>').join('') +
     `<button class="mm-rb-more" hidden tabindex="-1" title="The groups that do not fit">&gt;&gt;</button>` +
-    (rb.changing ? '<button class="mm-rb-done" tabindex="-1" title="End changing the ribbon (Esc); Ctrl+Z takes the last change back">Done</button>' : '');
+    (rb.changing ? '<button class="mm-rb-done" tabindex="-1" title="End changing the ribbon (Esc); Ctrl+Z takes the last change back">Done</button>' : '') +
+    '<button class="mm-rb-collapse" tabindex="-1"></button>';
+  rbApplyHeight();
+  rbApplyShow();
   if (rb.tips) rbShowTips();
   rbRefresh();
   rbOverflow();
@@ -155,6 +163,92 @@ for (const type of ['focusin', 'mouseup', 'keyup']) addEventListener(type, rbRef
 // The panels' checks need the windows of their own (docks.js), asked now and then.
 setInterval(() => { if (rbShown() && typeof refreshPanelsOpen === 'function') refreshPanelsOpen().then(rbRefreshSoon); }, 2000);
 
+// ---------- The height, and only when wanted (docs/plans/executed/PLAN-ribbon-height-and-collapse.md) -------
+// The row height (Layout: ribbonRow, per window) as the sizes CSS reads (ribbonmodel.js ribbonSizes).
+function rbApplyHeight(row = setting('ribbonRow')) {
+  const s = ribbonSizes(row), st = rb.els.el.style;
+  for (const [k, v] of [['--rb-r', s.row], ['--rb-sp', s.sp], ['--rb-f', s.f], ['--rb-lh', s.lineHeight], ['--rb-ar', s.arrowRow], ['--rb-li', s.largeIcon], ['--rb-li2', s.sharedIcon]])
+    st.setProperty(k, v);
+}
+// The grip dragged: the height live, kept when let go; up past the lowest (20 px more): only when wanted, the height
+// as it was before the drag.
+function rbGripDown(e) {
+  if (e.button !== 0) return;
+  e.preventDefault();
+  const grip = e.currentTarget, y0 = e.clientY, row0 = ribbonSizes(setting('ribbonRow')).row;
+  const scale = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ui-scale')) || 1;
+  let row = row0, past = false;
+  grip.setPointerCapture(e.pointerId);
+  grip.classList.add('mm-on');
+  const move = ev => {
+    const want = row0 + (ev.clientY - y0) / (3 * scale);
+    past = want < RB_ROW_LOWEST - 20 / 3;
+    row = ribbonSizes(want).row;
+    rbApplyHeight(row);
+    rbOverflow();
+  };
+  const up = () => {
+    for (const [t, f] of [['pointermove', move], ['pointerup', up], ['pointercancel', up]]) grip.removeEventListener(t, f);
+    grip.classList.remove('mm-on');
+    if (past) { rbApplyHeight(row0); setSetting('ribbonShow', 'onDemand'); }
+    else if (row !== row0) setSetting('ribbonRow', row);
+  };
+  for (const [t, f] of [['pointermove', move], ['pointerup', up], ['pointercancel', up]]) grip.addEventListener(t, f);
+}
+
+// Only when wanted (Layout: ribbonShow "onDemand"): the tab names stay, the buttons slide down over the document when
+// wanted (rbSlide). Not while the ribbon is changed (change mode, Customize): then always.
+const rbOnDemand = () => setting('ribbonShow') === 'onDemand' && !rb.changing && !rb.customizing;
+const RB_CHEVRON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10l4.5-4.5 4.5 4.5"/></svg>';
+const RB_PIN = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h4M7 2v4.5L4.5 9.5h7L9 6.5V2M8 9.5V14"/></svg>';
+function rbApplyShow() {
+  const on = rbOnDemand();
+  if (!on) rb.down = false;
+  rb.els.el.classList.toggle('mm-rb-on-demand', on);
+  rb.els.el.classList.toggle('mm-rb-down', on && !!rb.down);
+  const b = rb.els.bodies.querySelector('.mm-rb-collapse');
+  if (b) {
+    b.innerHTML = on ? RB_PIN : RB_CHEVRON;
+    b.title = withKey(on ? 'Always show the ribbon' : 'Show the ribbon only when wanted', 'ribbon.onDemand');
+  }
+}
+function rbSlide(down) {
+  if (!rbOnDemand() || !!rb.down === down) return;
+  rb.down = down;
+  rbApplyShow();
+  if (down) { rbRefresh(); rbOverflow(); }
+}
+// A drag down from the tab names: that tab (or the one shown) slides down; the click that ends the press is not a
+// click on the tab then.
+function rbTabsDown(e) {
+  rb.skipTabClick = false;
+  if (e.button !== 0 || !rbOnDemand() || rb.down) return;
+  const y0 = e.clientY, tab = e.target.closest('[data-tab]');
+  const move = ev => {
+    if (ev.clientY - y0 < 6) return;
+    off();
+    if (tab) rbShowTab(+tab.dataset.tab);
+    rbSlide(true);
+    rb.skipTabClick = true;
+  };
+  const off = () => { removeEventListener('pointermove', move, true); removeEventListener('pointerup', off, true); };
+  addEventListener('pointermove', move, true);
+  addEventListener('pointerup', off, true);
+}
+// Slid down, it goes up again: a choice made in a list from it, Esc, a press outside it, a key in the document.
+addEventListener('pointerdown', e => {
+  if (rb.down && e.target instanceof Element && !e.target.closest('.mm-ribbon, .mm-rb-tabs-top, .mm-dropdown, dialog')) rbSlide(false);
+}, true);
+addEventListener('click', e => {
+  if (rb.down && e.target instanceof Element && e.target.closest('.mm-dropdown button'))
+    setTimeout(() => { if (!menuBar.levels.length) rbSlide(false); }, 50);   // a submenu opened: still choosing
+}, true);
+addEventListener('keydown', e => {
+  if (!rb.down || rb.tips || menuBar.levels.length || ['Alt', 'Control', 'Shift', 'Meta'].includes(e.key)) return;
+  if (e.key === 'Escape' && e.defaultPrevented) return;   // Esc closed a list from it (menus.js): the ribbon stays
+  rbSlide(false);
+}, true);
+
 // ---------- Overflow: the groups that do not fit go into ">>" ----------
 function rbOverflow() {
   if (!rbShown() || rb.changing) return;
@@ -163,7 +257,8 @@ function rbOverflow() {
   const groups = [...body.querySelectorAll('.mm-rb-group')];
   for (const g of groups) g.hidden = false;
   more.hidden = true;
-  const room = () => rb.els.bodies.clientWidth - (more.hidden ? 0 : more.offsetWidth + 4);
+  const collapse = rb.els.bodies.querySelector('.mm-rb-collapse');
+  const room = () => rb.els.bodies.clientWidth - (more.hidden ? 0 : more.offsetWidth + 4) - (collapse ? collapse.offsetWidth + 8 : 0);
   const used = () => groups.filter(g => !g.hidden).reduce((w, g) => w + g.offsetWidth, 0);
   for (let i = groups.length - 1; i > 0 && used() > room(); i--) { groups[i].hidden = true; more.hidden = false; }
 }
@@ -257,11 +352,18 @@ function rbShowTab(ti) {
 async function rbClick(e) {
   const el = e.target.closest('button');
   if (!el) return;
-  rbTipsOff();
+  rbTipsOff(false);   // slid down by Alt: it stays for what this click does
   const opener = rbOpener(e.target);
   if (opener && opener === rbSkipClick) { rbSkipClick = rbListFrom = null; return; }   // its list was open: now closed
   rbListFrom = opener;
-  if (el.matches('[data-tab]')) return rbShowTab(+el.dataset.tab);
+  if (el.matches('[data-tab]')) {
+    if (rb.skipTabClick) { rb.skipTabClick = false; return; }   // the end of a drag down from it
+    // Only when wanted: a click slides that tab down; on the tab shown while down, up again.
+    if (rbOnDemand() && rb.down && rbTabIndex() === +el.dataset.tab) return rbSlide(false);
+    rbShowTab(+el.dataset.tab);
+    return rbSlide(true);
+  }
+  if (el.matches('.mm-rb-collapse')) return runAction('ribbon.onDemand', [], { from: 'ribbon' });
   if (el.matches('[data-new-tab]')) return rbNewTab();
   if (el.matches('.mm-rb-done')) return rbChangeMode(false);
   if (el.matches('.mm-rb-more')) return openMenuBelow(rbOverflowItems(), el);
@@ -270,6 +372,7 @@ async function rbClick(e) {
     const c = rbCornerAt(el), call = c?.call;
     if (call && rbDropDown(call[0], c.open)) return openMenuBelow(await rbDropDownItems(call), el);
     if (call) runAction(call[0], call.slice(1), { from: 'ribbon' });
+    rbSlide(false);
     return rbRefreshSoon();
   }
   if (el.matches('[data-path]')) {
@@ -277,6 +380,7 @@ async function rbClick(e) {
     if (!item || el.classList.contains('mm-off')) return;
     if (e.target.closest('[data-arrow]') || rbListOnly(item)) return rbOpenList(el, item);
     await runAction(item.action, item.params ?? [], { from: 'ribbon' });
+    rbSlide(false);
     rbRefreshSoon();
   }
 }
@@ -313,14 +417,17 @@ function rbTipTargets() {
 function rbShowTips() {
   for (const t of document.querySelectorAll('.mm-rb-tip')) t.remove();
   if (!rb.tips) return;
+  rbSlide(true);   // only when wanted: down with its tips
   const { els, tips } = rbTipTargets();
   els.forEach((el, i) => el.append(Object.assign(document.createElement('span'), { className: 'mm-rb-tip', textContent: tips[i] })));
 }
-function rbTipsOff() {
+// slideUp false: a tip or a click on the ribbon goes on with it (only when wanted: it stays down for that).
+function rbTipsOff(slideUp = true) {
   if (!rb.tips) return;
   rb.tips = 0;
   rb.typed = '';
   rbShowTips();
+  if (slideUp) rbSlide(false);
 }
 
 addEventListener('keydown', e => {
@@ -351,7 +458,7 @@ addEventListener('keyup', e => {
   if (rbTipsWanted()) { e.preventDefault(); rb.tips = 1; rbShowTips(); }
   else if (rbMode() === 'ribbon' && !rb.changing) { rbShowMenus(true); openTopMenu(0, true); }
 }, true);
-addEventListener('mousedown', e => { if (rb.tips && !e.target.closest('.mm-rb-tip')) rbTipsOff(); }, true);
+addEventListener('mousedown', e => { if (rb.tips && !e.target.closest('.mm-rb-tip')) rbTipsOff(!e.target.closest('.mm-ribbon, .mm-rb-tabs-top')); }, true);
 addEventListener('blur', rbTipsOff);
 
 // A letter typed while the tips show: a tab opened (its buttons' tips then), a button run; two-letter tips wait for
@@ -366,7 +473,7 @@ function rbTipKey(c) {
   rb.typed = '';
   const el = els[hit];
   if (rb.tips === 1) { rbShowTab(+el.dataset.tab); rb.tips = 2; rbShowTips(); return true; }
-  rbTipsOff();
+  rbTipsOff(false);
   el.click();
   return true;
 }
@@ -728,6 +835,9 @@ appAction('commandBar.set', { title: 'Menu and ribbon', hint: 'What the top bar 
 appAction('ribbon.change', { title: 'Change the ribbon', hint: 'Its change mode: drag actions from F1 onto it, buttons, groups and tabs around and off it; right-click a button for its size, label and more; Esc or Done ends it',
   group: 'view', checked: () => rb.changing, run: () => rbChangeMode(!rb.changing) });
 appAction('ribbon.reset', { title: 'Reset the ribbon', hint: 'Back to the ribbon LexPen ships (your ribbon.json removed)', group: 'view', run: () => rbReset() });
+appAction('ribbon.onDemand', { title: 'Ribbon only when wanted', hint: 'Only its tab names stay; Alt (the ribbon only), a drag down from the tab names or a click on one slides it down over the document, and it goes away after a button',
+  group: 'view', checked: () => setting('ribbonShow') === 'onDemand', enabled: () => rbMode() !== 'menu',
+  run: () => setSetting('ribbonShow', setting('ribbonShow') === 'onDemand' ? 'always' : 'onDemand') });
 
 // ---------- The Customize window (the ribbon's right-click > Customize...) ----------
 // The same changes by list and by keyboard: at the left every command (F1's, with its search), at the right the
@@ -768,6 +878,9 @@ function rbCustomize() {
   }
   rbcFillActions(dlg);
   if (rbMode() === 'menu') setSetting('commandBar', 'both');   // as change mode: a ribbon to see the changes on
+  rb.customizing = true;   // only when wanted: shown always while it is open
+  rbApplyShow();
+  dlg.addEventListener('close', () => { rb.customizing = false; rbApplyShow(); }, { once: true });
   dlg.style.margin = `${Math.round(document.querySelector('.mm-ribbon')?.getBoundingClientRect().bottom ?? 0) + 8}px auto auto`;   // under the ribbon
   dlg.showModal();
   rbcFillRibbon(dlg, 0);

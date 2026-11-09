@@ -71,6 +71,7 @@
   "Ctrl+Alt+Shift+=": "positionForward",
   "Ctrl+Alt+NumPlus": "positionForward",
   "F1": "commands",
+  "Ctrl+F1": "ribbon.onDemand",       // the ribbon only when wanted, or always (its tab names stay)
 
   // ---------- Edit and find ----------
   "Ctrl+F": "find",

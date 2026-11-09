@@ -851,6 +851,11 @@ every action with its key.
   A button or corner whose action shows a window with a list (Manage clipboards..., Manage bookmarks..., Highlights
   window, Manage macros...) can open that list under it instead (right-click > Opens: Drop-down; a small arrow down
   on a corner); Clipboard, Bookmarks and Highlights have the window in the left corner and the drop-down in the right.
+  Its height: drag the strip under the group names (lower: the spacing first, then the text down to 3/4; from 90 to
+  50 px for the three rows; a double click: the full height). Shown always or only when wanted (Settings: Show the
+  ribbon, Ctrl+F1, the button at its right end, or dragging the strip up past its lowest): then only its tab names
+  stay, and a click on one, a drag down from them or Alt (the ribbon only) slides it down over the document, which
+  does not move; it slides away after a button, on Esc or a click elsewhere. Per window.
 - **Your ribbon**: change it in its change mode (the ribbon's right-click > Change the ribbon, or the button in F1;
   Done or Esc ends it): drag commands from F1 onto it (an action, or one of its variants: Paste from clipboard 3),
   move buttons, groups (by their grip) and tabs, drop an action on a group's corner, drag anything off to remove it,

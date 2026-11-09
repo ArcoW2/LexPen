@@ -1,7 +1,6 @@
 # Plan: The ribbon's height, and showing it only when wanted
 
-Status: draft 2026-11-09, revised 2026-11-09 (three times); not started. The number in the file name is the priority;
-rename to reorder.
+Status: draft 2026-11-09, revised 2026-11-09; executed (2026-11-09); see As built.
 
 ## 1. What this is about
 
@@ -102,3 +101,36 @@ right, a drag of its edge up past the lowest height, and Ctrl+F1 switch between 
 ## 4. Open questions
 
 None.
+
+## 5. As built
+
+Built on branch `ribbon-height-build` (2026-11-09): `ribbonSizes` in ribbonmodel.js (the sizes for a row height); in
+ribbon.js the grip, `rbApplyHeight`, only when wanted (`rbOnDemand`, `rbApplyShow`, `rbSlide`, the drag down from the
+tab names, the hiding), the button at the right end, the action `ribbon.onDemand`; the variables in app.css; the
+Layout settings `ribbonShow` and `ribbonRow` (defaults/settings.json), the Settings row Show the ribbon, Ctrl+F1
+(keys.json), View > Ribbon only when wanted.
+
+Differs from the plan:
+
+- **The sizes**: the spacing goes between 30 and 22 px rows, the text and the icons between 22 px and the lowest
+  (50 / 3 px), down to 3/4. A large button's icon is what three rows leave after its two label lines, the arrow row
+  (16 px at the full height, 6 at the lowest) and the button's border and gaps; one sharing its column with a small
+  button gets what two rows leave; one without an arrow row has that room for its icon too (up to 32). At the full
+  height everything is as before.
+- **The setting is named "Show the ribbon"** (Always / Only when wanted), shown in Settings with commandBar "ribbon" or
+  "both" (`showWhen` takes several values now).
+- **Hiding**: also on a key typed in the document; Esc that closes a list from the ribbon closes only the list.
+- **The ribbon's row height** is kept as `ribbonRow` (px at UI scale 1); dragging the grip past the lowest height by
+  20 px switches to only when wanted and keeps the height it had.
+
+Tested: unit (Jint, `RibbonTests`): the sizes at the full height, with the spacing at its minimum and at the lowest
+(the text at 3/4, not less), out of range clamped; a large button's parts fit in three rows (two when sharing its
+column) at several heights. All tests pass. In the test copy by script: the rows 90, 66 and 50 px with the labels at
+13, 13 and 9.75 px; on every tab at five heights no part of a button outside it; the grip dragged with the real
+mouse (lower, kept), its double click (full), dragged past the lowest (only when wanted, the height kept);
+screenshots at the full, a middle and the lowest height, and slid down over a document. Only when wanted, with real
+clicks and keys: the button at the right end, a click on a tab name (down, the document not moved), a split button's
+list and Esc on it (the ribbon stays), another tab (stays), a button run (up), Esc, a click in the document, a drag
+down from a tab name; with the menus shown Alt does not slide it, with the ribbon only Alt slides it down with its
+tips and a tip typed runs the button and slides it up; Ctrl+F1 both ways, the pin; change mode and Customize show it
+always while open; a restart keeps the height and the choice.

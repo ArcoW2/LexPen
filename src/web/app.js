@@ -5356,7 +5356,7 @@ function applySettings() {
   if (changed('previewWrap')) document.body.toggleAttribute('data-preview-nowrap', now.previewWrap === false);
   if (changed('showBackupFiles') && 'showBackupFiles' in was) refreshTree(false);
   if (changed('tabBar')) applyTabBar(now.tabBar);
-  if (['commandBar', 'ribbonGroupNames', 'ribbonLabelWidth', 'altOpens'].some(changed) && typeof renderRibbon === 'function') renderRibbon();
+  if (['commandBar', 'ribbonGroupNames', 'ribbonLabelWidth', 'altOpens', 'ribbonShow', 'ribbonRow'].some(changed) && typeof renderRibbon === 'function') renderRibbon();
   if (['hexBytesPerLine', 'hexGroup'].some(changed) && typeof hexRedrawAll === 'function') hexRedrawAll();
   if (changed('dockTabBar')) document.body.dataset.dockTabBar = now.dockTabBar;
   if (changed('previewPlace') || changed('previewPlace2')) applyPreviewPlace();
