@@ -621,7 +621,7 @@ body[data-orient=h] .mm-cmp-swap svg { transform: rotate(90deg); }
 .mm-tabs-stack > .mm-tabs { flex: none; }
 /* The pinned part a band of its own tint, and a strip of the same tint under it: the split is seen also when the
    pinned tabs fill the band. */
-.mm-tabs-pinned { display: flex; flex-wrap: wrap; user-select: none; --pinned-band: color-mix(in srgb, var(--accent) 22%, var(--bg-side));
+.mm-tabs-pinned { display: flex; flex-wrap: wrap; user-select: none; --pinned-band: color-mix(in srgb, var(--accent) 10%, var(--bg-side));
   background: var(--pinned-band); border-bottom: 4px solid var(--pinned-band); }
 .mm-tabs-pinned:empty { display: none; }
 .mm-tabs-pinned .mm-tab { border-bottom: 1px solid var(--border); margin-bottom: -1px; }

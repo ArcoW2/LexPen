@@ -92,7 +92,7 @@ Differs from the plan:
   after this tab (was Close tabs to the right) and except this tab (was Close other tabs); pinned tabs stay, as they
   did for these.
 - **A read-only entry** in the list is in italics; an unsaved one has the dot after its name.
-- **Own row's split** (asked during the build): the pinned part a band of its own tint (the accent mixed into the tab
+- **Own row's split** (asked during the build): the pinned part a band of its own tint (10% of the accent mixed into the tab
   bar's colour) with a 4 px strip of that tint under it, so the split shows also when the pinned tabs fill the band.
 
 Tested in the test copy by script: ten tabs, four pinned (one with spaces in its name, two .sql with a tab colour rule);
