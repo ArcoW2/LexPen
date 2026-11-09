@@ -101,7 +101,8 @@ body[data-dirty] .mm-save { visibility: visible; }
 body[data-recording] .mm-record-stop { display: inline-flex; }
 .mm-menutitle { padding: 3px 8px; }
 .mm-menutitle.mm-on { background: var(--active); color: var(--accent); }
-.mm-menu.mm-dropdown { position: fixed; right: auto; top: 0; min-width: 240px; max-height: 80vh; overflow-y: auto; }
+.mm-menu.mm-dropdown { position: fixed; right: auto; top: 0; min-width: 240px; max-height: 80vh; overflow-y: auto;
+  z-index: 70; }   /* above the ribbon slid down over the document (60) */
 .mm-dropdown button { display: flex; align-items: baseline; gap: 4px; }
 .mm-dropdown button:hover { background: none; }   /* marked by the pointer moving or the keys (menus.js), not :hover */
 .mm-dropdown button.mm-sel:not(:disabled) { background: var(--hover); }
@@ -1544,13 +1545,14 @@ body.mm-rb-menus .mm-rb-tabs-top { display: none; }
 .mm-rb-tabs-row { padding: 2px 8px 0; background: var(--bg-bar); }
 .mm-rb-new { font-style: italic; color: var(--fg-dim); }
 .mm-ribbon { flex: none; background: var(--bg-bar); border-bottom: 1px solid var(--border); user-select: none; position: relative;
-  --rb-row: calc(30px * var(--ui-scale)); }   /* three: a large button's icon, two lines of label and a split's arrow row */
-.mm-rb-bodies { display: flex; align-items: stretch; overflow: hidden; padding: 3px 4px 0; }
+  --rb-row: calc(var(--rb-r, 30) * 1px * var(--ui-scale)); }   /* three: a large button's icon, two lines of label and a split's arrow row;
+   lower by the grip (ribbon.js rbApplyHeight, ribbonmodel.js ribbonSizes: --rb-r, --rb-sp spacing, --rb-f text) */
+.mm-rb-bodies { display: flex; align-items: stretch; overflow: hidden; padding: calc(3px * var(--rb-sp, 1)) 4px 0; font-size: calc(100% * var(--rb-f, 1)); }
 .mm-rb-body { display: flex; align-items: stretch; flex: none; }
 .mm-rb-group { position: relative; display: flex; flex-direction: column; padding: 0 5px; border-right: 1px solid var(--border); }
 .mm-rb-cols { display: flex; align-items: stretch; gap: 1px; height: calc(var(--rb-row) * 3); }
-.mm-rb-name { display: grid; grid-template-columns: 18px 1fr 18px; align-items: center; gap: 4px; min-height: calc(14px * var(--ui-scale));
-  font-size: .85em; color: var(--fg-dim); padding: 1px 0 2px; }   /* the corners in the group's corners, the name centred */
+.mm-rb-name { display: grid; grid-template-columns: 18px 1fr 18px; align-items: center; gap: 4px; min-height: calc(14px * var(--ui-scale) * var(--rb-f, 1));
+  font-size: .85em; color: var(--fg-dim); padding: calc(1px * var(--rb-sp, 1)) 0 calc(2px * var(--rb-sp, 1)); }   /* the corners in the group's corners, the name centred */
 .mm-rb-name > span { grid-row: 1; grid-column: 2; text-align: center; }
 .mm-rb-name > .mm-rb-left { grid-row: 1; grid-column: 1; }
 .mm-rb-name > .mm-rb-right { grid-row: 1; grid-column: 3; }
@@ -1562,14 +1564,20 @@ body.mm-rb-menus .mm-rb-tabs-top { display: none; }
 .mm-rb-div { width: 1px; margin: 4px 3px; background: var(--border); }
 .mm-rb-btn { position: relative; display: flex; align-items: center; gap: 5px; padding: 0 6px; border-radius: 4px; white-space: nowrap; }
 .mm-rb-small { height: var(--rb-row); }
-.mm-rb-large { flex-direction: column; justify-content: flex-start; gap: 1px; padding: 3px 6px; text-align: center; white-space: normal; }
+.mm-rb-large { flex-direction: column; justify-content: flex-start; gap: 1px; padding: calc(3px * var(--rb-sp, 1)) 6px; text-align: center; white-space: normal; }
 .mm-rb-small .mm-rb-label { max-width: var(--rb-ch); overflow: hidden; text-overflow: ellipsis; }
-.mm-rb-large .mm-rb-label { max-width: calc(var(--rb-ch) / 2); line-height: 1.3; overflow: hidden; display: -webkit-box;
+.mm-rb-large .mm-rb-label { max-width: calc(var(--rb-ch) / 2); line-height: var(--rb-lh, 1.3); overflow: hidden; display: -webkit-box;
   -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .mm-rb-icon { position: relative; display: inline-flex; flex: none; }
-.mm-rb-letter { display: inline-grid; place-items: center; width: 14px; height: 14px; border: 1.4px solid currentColor; border-radius: 3px;
+.mm-rb-letter { display: inline-grid; place-items: center; width: calc(14px * var(--rb-f, 1)); height: calc(14px * var(--rb-f, 1)); border: 1.4px solid currentColor; border-radius: 3px;
   font-size: 9px; font-weight: 700; }
-.mm-rb-large .mm-rb-letter { width: 28px; height: 28px; font-size: 13px; }
+.mm-rb-large .mm-rb-letter { width: calc((var(--rb-li, 32) - 4) * 1px); height: calc((var(--rb-li, 32) - 4) * 1px); font-size: 13px; }
+.mm-rb-small .mm-rb-svg { width: calc(16px * var(--rb-f, 1)); height: calc(16px * var(--rb-f, 1)); }
+.mm-rb-large .mm-rb-svg { width: calc(var(--rb-li, 32) * 1px); height: calc(var(--rb-li, 32) * 1px); }
+.mm-rb-col-large > .mm-rb-large .mm-rb-svg { width: calc(var(--rb-li2, 19) * 1px); height: calc(var(--rb-li2, 19) * 1px); }
+/* Without an arrow row: that room for the icon too, up to 32. */
+.mm-rb-large:not(:has([data-arrow])) .mm-rb-svg { width: min(32px, calc((var(--rb-li, 32) + var(--rb-ar, 16) + 1) * 1px)); height: min(32px, calc((var(--rb-li, 32) + var(--rb-ar, 16) + 1) * 1px)); }
+.mm-rb-col-large > .mm-rb-large:not(:has([data-arrow])) .mm-rb-svg { width: min(32px, calc((var(--rb-li2, 19) + var(--rb-ar, 16) + 1) * 1px)); height: min(32px, calc((var(--rb-li2, 19) + var(--rb-ar, 16) + 1) * 1px)); }
 .mm-rb-badge, .mm-rb-mark { position: absolute; right: -6px; top: -4px; min-width: 9px; padding: 0 3px; border-radius: 7px; font-size: 9px;
   font-weight: 700; line-height: 13px; text-align: center; color: var(--bookmark-fg); background: var(--accent); }
 .mm-rb-mark { background: var(--fg-dim); color: var(--bg); top: auto; bottom: -3px; }
@@ -1581,7 +1589,7 @@ body.mm-rb-menus .mm-rb-tabs-top { display: none; }
   background: linear-gradient(var(--border), var(--border)) left center / 1px 12px no-repeat; }   /* lower than the text: stacked ones' do not join */
 .mm-rb-small:has(.mm-rb-arrow[data-arrow]) .mm-rb-text { align-self: stretch; flex: 1; }   /* the arrow at the button's right end */
 .mm-rb-small:has(.mm-rb-arrow[data-arrow]) .mm-rb-label { padding-right: 4px; }
-.mm-rb-large > .mm-rb-arrow[data-arrow] { align-self: stretch; height: 16px; margin: auto -6px -3px; border-top: 1px solid var(--border);
+.mm-rb-large > .mm-rb-arrow[data-arrow] { align-self: stretch; height: calc(var(--rb-ar, 16) * 1px); margin: auto -6px calc(-3px * var(--rb-sp, 1)); border-top: 1px solid var(--border);
   border-radius: 0 0 4px 4px; }
 .mm-rb-large > .mm-rb-arrow::after { margin-top: 4px; }
 .mm-rb-btn:has([data-arrow]):hover { background: none; }
@@ -1589,12 +1597,12 @@ body.mm-rb-menus .mm-rb-tabs-top { display: none; }
 .mm-rb-btn:has([data-arrow]):hover:not(:has([data-arrow]:hover)) { background: linear-gradient(var(--hover), var(--hover)) no-repeat;
   background-size: var(--rb-main-w, 100%) var(--rb-main-h, 100%); }
 .mm-rb-small:has([data-arrow]) { --rb-main-w: calc(100% - 18px); }
-.mm-rb-large:has([data-arrow]) { --rb-main-h: calc(100% - 17px); }
+.mm-rb-large:has([data-arrow]) { --rb-main-h: calc(100% - (var(--rb-ar, 16) + 1) * 1px); }
 .mm-rb-btn.mm-on { background: var(--active); color: var(--accent); }
 .mm-rb-btn.mm-off { opacity: .45; }
 .mm-rb-btn.mm-off:hover { background: none; }
 /* 22 x 18 to hit, into the group's padding and down to its edge; the mark a small corner at the outside */
-.mm-rb-corner { width: 22px; height: 18px; padding: 0; margin-bottom: -2px; border-radius: 2px; flex: none; position: relative; }
+.mm-rb-corner { width: 22px; height: calc(18px * var(--rb-f, 1)); padding: 0; margin-bottom: -2px; border-radius: 2px; flex: none; position: relative; }
 .mm-rb-corner.mm-rb-right { margin-right: -4px; justify-self: end; }
 .mm-rb-corner.mm-rb-left { margin-left: -4px; }
 .mm-rb-corner::after { content: ""; position: absolute; right: 4px; bottom: 4px; width: 6px; height: 6px;
@@ -1627,6 +1635,25 @@ body.mm-rb-changing .mm-rb-bodies { overflow-x: auto; }
 .mm-rb-large .mm-rb-text { align-items: flex-end; }
 
 .mm-rb-small > .mm-rb-tip { left: 1px; bottom: -2px; transform: none; }
+
+/* The height and showing it only when wanted (docs/plans/executed/PLAN-ribbon-height-and-collapse.md). The grip:
+   a strip of its own under the group names (the corners keep their hitbox), dragged up or down; a double click:
+   the full height. */
+.mm-rb-grip-h { height: calc(5px * var(--ui-scale)); cursor: ns-resize; }
+.mm-rb-grip-h:hover, .mm-rb-grip-h.mm-on { background: linear-gradient(var(--accent), var(--accent)) center / 40px 2px no-repeat; }
+/* The button at the ribbon's right end, after the last group: a chevron up (only when wanted) or, slid down, a pin
+   (always). */
+.mm-rb-collapse { flex: none; align-self: flex-end; width: 22px; height: 18px; padding: 0; margin: 0 0 2px 4px; color: var(--fg-dim); }
+.mm-rb-more + .mm-rb-collapse, .mm-rb-done + .mm-rb-collapse { margin-left: 4px; }
+.mm-rb-more[hidden] + .mm-rb-collapse { margin-left: auto; }
+.mm-rb-collapse svg { width: 14px; height: 14px; }
+/* Only when wanted: the tab names stay, the buttons are hidden; shown, they slide down over the document (which does
+   not move), with a shadow at their lower edge. */
+.mm-ribbon.mm-rb-on-demand:not(.mm-rb-down) .mm-rb-bodies, .mm-ribbon.mm-rb-on-demand .mm-rb-grip-h { display: none; }
+.mm-ribbon.mm-rb-on-demand.mm-rb-down .mm-rb-bodies { position: absolute; left: 0; right: 0; top: 100%; z-index: 60;
+  padding-bottom: 2px; background: var(--bg-bar); border-bottom: 1px solid var(--border); box-shadow: 0 6px 14px rgba(0, 0, 0, .25);
+  animation: mm-rb-slide .12s ease-out; }
+@keyframes mm-rb-slide { from { transform: translateY(-8px); opacity: 0; } }
 
 /* The Customize window (ribbon.js rbCustomize). */
 .mm-rb-customize { padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--fg);

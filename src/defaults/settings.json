@@ -210,6 +210,10 @@
     "commandBar": "menu",         // the top bar's menus ("menu"), the ribbon's tab names there and its buttons under it
                                   // ("ribbon"), or the menus and the ribbon under them ("both"); View > Ribbon
     "ribbonTab": "Home",          // the ribbon's tab shown last
+    "ribbonShow": "always",       // the ribbon "always", or "onDemand": only when wanted (its tab names stay; Alt, a drag
+                                  // down from them or a click on one slides it over the document); Ctrl+F1
+    "ribbonRow": 30,              // the height of a ribbon row in px (three rows): 30 down to 16.7 (50 px for the three),
+                                  // by the grip under the group names
     "formatBar": true,            // the bar with bold, headings, lists, ... above the editor
     "ruler": false,               // the ruler above the editor: columns, the cursor's column, guides; a click on it
                                   // sets a tab stop (Tab goes there, Shift+Tab back) or a helper line (only shows),

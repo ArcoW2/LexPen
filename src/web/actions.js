@@ -665,6 +665,11 @@ const SETTING_ROWS = [
   { name: 'altOpens', group: 'Editor view', sub: 'Menu and ribbon', kind: 'choice', title: 'Alt opens',
     hint: 'With the ribbon only: Alt shows the ribbon\'s key tips (a letter per tab, then per button), or the menus in the tab names\' place',
     options: () => [['tips', 'Ribbon key tips'], ['menu', 'Menu']], showWhen: { name: 'commandBar', value: 'ribbon' } },
+  // docs/plans/executed/PLAN-ribbon-height-and-collapse.md; its height: the grip under the group names
+  // (Layout: ribbonRow).
+  { name: 'ribbonShow', group: 'Editor view', sub: 'Menu and ribbon', kind: 'choice', title: 'Show the ribbon',
+    hint: 'Only when wanted: its tab names stay; Alt (the ribbon only), a drag down from the tab names or a click on one slides it over the document, and it goes away after a button. Also Ctrl+F1 and the button at the ribbon\'s right end',
+    options: () => [['always', 'Always'], ['onDemand', 'Only when wanted']], showWhen: { name: 'commandBar', value: ['ribbon', 'both'] } },
   { name: 'ribbonGroupNames', group: 'Editor view', sub: 'Menu and ribbon', kind: 'toggle', title: 'Group names on the ribbon',
     hint: 'Each group\'s name under it (the ribbon a line taller)', hintOff: 'No group names: dividers only, the name as their tooltip' },
   { name: 'ribbonLabelWidth', group: 'Editor view', sub: 'Menu and ribbon', kind: 'range', range: [8, 60, 1], unit: ' characters', title: 'Longest button label',
@@ -1029,7 +1034,7 @@ function settingDefs() {
       range: r.range ?? null, unit: r.unit ?? '', buttons: r.buttons ?? null,
       none: r.none ?? null, more: r.more ?? null,   // a project row: what 0 is, choices before the projects
       keywords: r.keywords ?? '',   // more words the settings window's search finds the row by
-      showWhen: r.showWhen ?? null,   // { name, value }: the row only shown while that setting has that value
+      showWhen: r.showWhen ?? null,   // { name, value }: the row only shown while that setting has that value (or one of them)
       layer: LAYOUT.has(r.name) ? 'window' : THEME_SET_NAMES.has(r.name) ? 'set' : 'global',   // executed/PLAN-settings-layers.md
     };
   });

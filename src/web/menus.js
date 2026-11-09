@@ -84,7 +84,7 @@ const MENUS = [
   ['&View', [
     ['&Editor', 'editor.toggle'], ['&Preview', 'preview.toggle'], ['Editor &and preview', 'split.toggle'], ['&Hex mode', 'hex.toggle'], '-',
     { label: 'Preview pla&ce', sub: [['At the &right', 'preview.right'], ['At the &left', 'preview.left'], ['&Above', 'preview.top'], ['&Below', 'preview.bottom']] }, '-',
-    ['&Wrap long lines', 'wrap.toggle'], ['R&uler', 'ruler.toggle'], ['For&matting bar', 'formatBar.toggle'], ['&Ribbon', 'ribbon.toggle'], '-',
+    ['&Wrap long lines', 'wrap.toggle'], ['R&uler', 'ruler.toggle'], ['For&matting bar', 'formatBar.toggle'], ['&Ribbon', 'ribbon.toggle'], ['Ribbon only when wan&ted', 'ribbon.onDemand'], '-',
     { label: '&Gutter', sub: GUTTER_ITEMS },
     { label: 'Scroll &bar marks', sub: [['&Find matches', 'overviewMark.toggle', 'find'], ['&Occurrences', 'overviewMark.toggle', 'occurrences'],
       ['&Unsaved changes', 'overviewMark.toggle', 'changes'], ['&Git changes', 'overviewMark.toggle', 'git'],

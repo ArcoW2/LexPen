@@ -69,3 +69,23 @@ function ribbonTips(names, own = []) {
   });
   return tips;
 }
+
+// ---------- Height (docs/plans/executed/PLAN-ribbon-height-and-collapse.md) ----------
+// A row's height (px at UI scale 1; three rows of buttons): 30 as LexPen ships it, down to 50 / 3 (50 px for the three).
+// Lower, the spacing goes first (sp from 1 to 0 between 30 and 22 px), then the text and the icons with it (f from 1 to
+// 3/4 between 22 px and the lowest). A large button's icon takes what its two label lines, a split's arrow row and the
+// padding leave of three rows (32 at the full height); one sharing its column with a small button what two rows leave.
+const RB_ROW_FULL = 30, RB_ROW_SPACED = 22, RB_ROW_LOWEST = 50 / 3;
+function ribbonSizes(row) {
+  row = Math.min(RB_ROW_FULL, Math.max(RB_ROW_LOWEST, Number(row) || RB_ROW_FULL));
+  const sp = Math.min(1, Math.max(0, (row - RB_ROW_SPACED) / (RB_ROW_FULL - RB_ROW_SPACED)));
+  const f = Math.min(1, Math.max(0.75, 0.75 + 0.25 * (row - RB_ROW_LOWEST) / (RB_ROW_SPACED - RB_ROW_LOWEST)));
+  const lineHeight = 1.05 + 0.25 * sp, arrowRow = Math.round(6 + 10 * sp);
+  // 5: the button's border, two gaps and the arrow row's line; 3 of them back at the full height (32, as LexPen ships
+  // it). A large button without an arrow has the arrow row's room for its icon too (app.css).
+  const largeIcon = Math.min(32, Math.floor(3 * row - 2 * 13 * f * lineHeight - 6 * sp - 5 + 3 * sp - arrowRow));
+  // One sharing its column with a small one: two rows, one line of label.
+  const sharedIcon = Math.min(largeIcon, Math.floor(2 * row - 13 * f * lineHeight - 6 * sp - 5 + 3 * sp - arrowRow));
+  const r3 = x => Math.round(x * 1000) / 1000;
+  return { row: r3(row), sp: r3(sp), f: r3(f), lineHeight: r3(lineHeight), arrowRow, largeIcon, sharedIcon };
+}
