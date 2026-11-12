@@ -8,20 +8,11 @@
 </head>
 <body class="mm-folder-page">
 <div class="mm-tree-head">
-  <span class="mm-tree-title">No folder open</span>
-  <span class="mm-tree-wide">
-    <select class="mm-sort" title="Sort by">
-      <option value="modified">Modified</option>
-      <option value="name">Name</option>
-      <option value="extension">Extension</option>
-      <option value="size">Size</option>
-    </select>
-    <button data-cmd="sortDir" class="mm-sort-dir" title="Ascending / descending"></button>
-    <button data-cmd="knownOnly" class="mm-known-only mm-tree-toggle" title="Show known file types only (the extensions of the language packs)">Known</button>
-    <button data-cmd="hiddenFiles" class="mm-hidden-files mm-tree-toggle" title="Also the hidden files and folders, and those starting with a dot">Hidden</button>
-    <button data-cmd="fileSizes" class="mm-file-sizes mm-tree-toggle" title="Each file's size after its name">Size</button>
-  </span>
-  <button class="mm-tree-view" title="Filter, view and order">View &#9662;</button>
+  <button class="mm-tree-sort mm-tree-drop" title="Sort: Modified, Name, Extension or Size, up or down (folders first)"><span class="mm-tree-label mm-tree-sort-label">Modified</span><span class="mm-tree-sort-dir"></span><span class="mm-tree-caret">&#9662;</span></button>
+  <button class="mm-tree-filter mm-tree-drop" title="Filter: known file types only, the hidden folders and files"><svg class="mm-tree-icon" viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M2 3h12L9.5 8.5V13l-3-1.5v-3z"/></svg><span class="mm-tree-label">Filter</span><span class="mm-tree-caret">&#9662;</span></button>
+  <button class="mm-tree-recent" title="Recent folders"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.5"/></svg></button>
+  <span class="mm-tree-gap"></span>
+  <button class="mm-tree-view mm-tree-drop" title="What the rows show"><svg class="mm-tree-icon" viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1.5 8s2.5-4.5 6.5-4.5S14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z"/><circle cx="8" cy="8" r="2"/></svg><span class="mm-tree-label">View</span><span class="mm-tree-caret">&#9662;</span></button>
   <button data-cmd="refresh" title="Refresh">&#10227;</button>
 </div>
 <div class="mm-tree" tabindex="0"></div>

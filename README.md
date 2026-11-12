@@ -20,6 +20,8 @@ The short list, by group. Every feature in detail: [docs/features.md](docs/featu
 - **Word completion** (Ctrl+Space): keywords, the document's words and snippets.
 - **Reformat** the selection or the file by each language's own rules; only whitespace changes.
 - **Conversions**: UPPER, lower, smart capitals, snake_case, camelCase, tabs to spaces and more (Ctrl+Alt+C).
+- **Macros**: record and play, or write one as a small script (finds, procedures, functions, goto / gosub);
+  examples in [docs/macro_examples.md](docs/macro_examples.md).
 - **Indentation while typing**, and **tab stops** you set on the ruler.
 - **Nine clipboards** next to the Windows one, shared by all windows and kept across restarts.
 - **Character picker** (Ctrl+Alt+U): every character of the font, searchable by code, entity or name.

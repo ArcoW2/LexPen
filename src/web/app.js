@@ -1094,6 +1094,10 @@ async function renderNow(tab) {
   if (typeof markPreviewCursors === 'function') markPreviewCursors();
   if (typeof drawPreviewHighlights === 'function') for (const pane of panes) if (pane.active === tab) drawPreviewHighlights(pane);   // highlights.js
   if (typeof refreshOccurrencesPreview === 'function') refreshOccurrencesPreview(tab);   // occurrences.js
+  // The find bar's matches in this preview: found again in the new content (the old ones' boxes stood where the text
+  // was before; find.js).
+  if (typeof findRegex === 'function') for (const pane of panes)
+    if (pane.active === tab && pane.find && !pane.find.el.hidden && pane.find.marked === 'preview' + tab.id) refresh(pane, false);
   if (typeof schedulePreviewOverviews === 'function') schedulePreviewOverviews();   // the preview's scroll bar (previewoverview.js)
 }
 
@@ -2772,9 +2776,9 @@ function showSort() {
   sendFolderHead();
 }
 
-// The Folder pane's head: the folder's name, the sort, the filters (known file types, hidden ones), the sizes shown.
+// The Folder pane's head: the sort, the filters (known file types, hidden ones), the sizes shown.
 function folderHead() {
-  return { kind: 'head', title: state.root ? nameOf(state.root) || state.root : 'No folder open',
+  return { kind: 'head',
     sort: treeSort(), desc: !!setting('sortDesc'), known: document.body.dataset.tree === 'known',
     hidden: !!setting('treeHidden'), size: !!setting('treeSize') };
 }
@@ -2824,6 +2828,10 @@ async function fromFolder(m, from) {
     case 'dragStart': return startFolderDrag(m.path);
     case 'dragMove': return folderDragFrom(m);
     case 'dragEnd': return folderDragFrom(m, m.drop);
+    // Its Recent button: the recent folders (File > Recent folders), a choice the root (menus.js, openRecent).
+    case 'recent': return toFolder({ kind: 'recent', items: ((await host('recent').catch(() => null))?.folders ?? [])
+      .map(({ path, exists }) => ({ path, exists, name: nameOf(path) || path, dir: dirOf(path) })) });
+    case 'openRecent': return openRecent('folders', m.path, m.missing);
     case 'notListed': return toast(`${nameOf(m.path)} is not listed in the folder pane.`);
     case 'menu': {
       folderMenuSubject = true;
@@ -5362,7 +5370,7 @@ function openTreeMenu(row, x, y, keys = true) {
   }, keys);
 }
 document.addEventListener('contextmenu', e => {
-  if (!e.target.closest('.mm-tabs, .mm-divider, .mm-fcmp')) hideMenus();   // those open their own menu
+  if (!e.target.closest('.mm-tabs, .mm-tabs-pinned, .mm-divider, .mm-fcmp')) hideMenus();   // those open their own menu
 });
 
 // The backups LexPen made (plan 33, Backups.cs): a file's own (no question), or a folder's after the question (here,

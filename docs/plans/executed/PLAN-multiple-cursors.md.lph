@@ -1,0 +1,23 @@
+{
+  "path": "D:\\prive\\SynologyDrive\\Projects\\LexPen\\docs\\plans\\executed\\PLAN-multiple-cursors.md",
+  "size": 10678,
+  "time": "639282451622339156",
+  "list": [
+    {
+      "from": [
+        5,
+        6
+      ],
+      "to": [
+        5,
+        10
+      ],
+      "text": "What",
+      "before": "the priority; rename to reorder.\n\n## 1. ",
+      "after": " this is about\n\nLexPen has blocks (colum",
+      "note": "Indeed, what ...",
+      "state": "",
+      "was": null
+    }
+  ]
+}
