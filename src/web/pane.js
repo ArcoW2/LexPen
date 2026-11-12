@@ -43,11 +43,12 @@ function applyPaneLook({ css, theme, mode }) {
 // drawn by the pane; a choice goes back as menuPick. The pane's own menus (sort-pane.js) give an item `run` (done
 // here instead), `disabled`, `key` (dimmed text after the label: a folder's path), `dim` (one that no longer exists)
 // and `title`. `above`: where it ends when it does not fit below y (a button's menu: above the button, not over it);
-// `closed`: a message kind for the pane's own page once it closes.
+// `closed`: a message kind for the pane's own page once it closes; `button`: the pane's button that opened it, a press
+// on which closes it (not opened again by the click that follows).
 // It takes the keys (Up / Down, Home / End, Enter, Right / Left for a submenu, Esc), the focus going back where it was
 // after. Its item marked is the one with the focus, set by the pointer moving over it or the keys; none as it opens
 // (the menu itself has the focus). Not :hover: the page keeps the pointer's last place over a menu.
-function paneMenu({ x, y, above, closed, items }) {
+function paneMenu({ x, y, above, closed, button, items }) {
   document.querySelectorAll('.mm-pane-menu').forEach(m => m.remove());
   const from = document.activeElement;
   const menu = document.createElement('div');
@@ -93,7 +94,15 @@ function paneMenu({ x, y, above, closed, items }) {
     if (focus) subMenu.querySelector('button')?.focus();
   }
   fill(menu, items);
-  const outside = e => { if (!menu.contains(e.target) && !subMenu?.contains(e.target)) close(); };
+  const outside = e => {
+    if (menu.contains(e.target) || subMenu?.contains(e.target)) return;
+    close();
+    if (!button?.contains(e.target)) return;
+    // Its button's click (this press's): stopped before it reaches the button; the next press drops the stop.
+    const stop = ev => { if (button.contains(ev.target)) ev.stopPropagation(); };
+    addEventListener('click', stop, { capture: true, once: true });
+    setTimeout(() => addEventListener('pointerdown', () => removeEventListener('click', stop, true), { capture: true, once: true }));
+  };
   menu.onmouseleave = () => { if (!subMenu) menu.focus(); };
   // The focus gone elsewhere (the window, another pane, another program): it closes, the focus staying there. Once
   // the focus has settled: Esc or Left in the submenu puts it back in the menu.

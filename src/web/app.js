@@ -5370,7 +5370,7 @@ function openTreeMenu(row, x, y, keys = true) {
   }, keys);
 }
 document.addEventListener('contextmenu', e => {
-  if (!e.target.closest('.mm-tabs, .mm-divider, .mm-fcmp')) hideMenus();   // those open their own menu
+  if (!e.target.closest('.mm-tabs, .mm-tabs-pinned, .mm-divider, .mm-fcmp')) hideMenus();   // those open their own menu
 });
 
 // The backups LexPen made (plan 33, Backups.cs): a file's own (no question), or a folder's after the question (here,

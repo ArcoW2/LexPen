@@ -138,7 +138,7 @@ document.addEventListener('click', e => {
   const b = e.target.closest('[data-manage]');
   if (!b) return;
   const r = b.getBoundingClientRect();
-  paneMenu({ x: r.left, y: r.bottom, above: r.top, items: MANAGE.map(m => m === '-' ? m
+  paneMenu({ x: r.left, y: r.bottom, above: r.top, button: b, items: MANAGE.map(m => m === '-' ? m
     : { label: m.label, disabled: !m.on(sp.st), run: () => toWindow({ kind: m.id }) }) });
 });
 

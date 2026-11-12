@@ -41,7 +41,7 @@ const cmd = name => () => toWindow({ kind: 'cmd', name });
 // A button's menu, under it.
 const dropDown = (sel, items) => document.querySelector(sel).addEventListener('click', e => {
   const r = e.currentTarget.getBoundingClientRect();
-  paneMenu({ x: r.left, y: r.bottom + 2, above: r.top - 2, items: items() });
+  paneMenu({ x: r.left, y: r.bottom + 2, above: r.top - 2, button: e.currentTarget, items: items() });
 });
 // The current order again turns the direction round (as a column header in Explorer).
 dropDown('.mm-tree-sort', () => [
@@ -62,7 +62,7 @@ const recentButton = document.querySelector('.mm-tree-recent');
 recentButton.addEventListener('click', () => toWindow({ kind: 'recent' }));
 paneHandlers.recent = m => {
   const r = recentButton.getBoundingClientRect();
-  paneMenu({ x: r.left, y: r.bottom + 2, above: r.top - 2, items: m.items.length ? m.items.map(f => ({
+  paneMenu({ x: r.left, y: r.bottom + 2, above: r.top - 2, button: recentButton, items: m.items.length ? m.items.map(f => ({
     label: f.name, key: f.dir, title: f.exists ? f.path : f.path + '\nNo longer exists; click to remove it from the list', dim: !f.exists,
     checked: same(f.path, root), run: () => toWindow({ kind: 'openRecent', path: f.path, missing: !f.exists }) })) : [{ label: '(none yet)', disabled: true }] });
 };
