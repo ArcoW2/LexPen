@@ -27,6 +27,13 @@ static class Program
             if (at + 1 < args.Length) ExplorerMenu.SelectLeft(Path.GetFullPath(args[at + 1]));
             return;
         }
+        // --write-elevated (docs/plans/PLAN-elevated-save.md): started as administrator by LexPen for a save where the
+        // user may not write; writes what LexPen sends over its pipe, no window, until LexPen closes the pipe.
+        if (Array.IndexOf(args, ElevatedWriter.Arg) is var ew and >= 0)
+        {
+            if (ew + 2 < args.Length && int.TryParse(args[ew + 2], out var pid)) ElevatedWriter.Serve(args[ew + 1], pid);
+            return;
+        }
         var (newWindow, compare, view, edit, rest) = ParseArgs(args);
         var shift = newWindow || (Control.ModifierKeys & Keys.Shift) != 0;
         var paths = rest.Select(Path.GetFullPath).ToArray();   // against this process's current folder

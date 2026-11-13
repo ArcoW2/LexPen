@@ -220,7 +220,7 @@ async function pdfSave(doc) {
   pdfHl.saving.delete(id);
   if (got.error) { toast(`${docName(doc)} could not be saved: ${got.error}`); return false; }
   try {
-    await host('writePdf', { path: doc.path, data: pdfBase64(got.data), backup: !!setting('backup') });
+    if (!await hostWrite('writePdf', { path: doc.path, data: pdfBase64(got.data), backup: !!setting('backup') })) return false;
   } catch (e) { toast(`${docName(doc)} could not be saved: ${e.message ?? e}`); return false; }
   // In the file now: LexPen's new ones come back as the PDF's own once it is read again (kept elsewhere, LexPen's stay).
   if (hls.place === 'pdf') hls.list = hls.list.filter(h => h.own);

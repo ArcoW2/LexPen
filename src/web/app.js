@@ -488,6 +488,7 @@ function makeDoc({ path = null, draft = null, text = '', encoding = 'UTF-8' }) {
     disk: 'ok',            // ok | changed | removed: what happened to the file on disk
     editTab: null,         // the tab that may edit it
     diskReadOnly: false,   // the file has the read-only attribute: every tab of it is read-only
+    diskReadOnlyOff: false,   // ...unless the user turned Read-only off (saving asks first; PLAN-elevated-save.md)
     draftTimer: 0, pushTimer: 0,
     version: 0,            // counts text changes, for the outline cache
   };
@@ -585,7 +586,9 @@ const activeTab = () => panes[state.activePane].active;
 const twoPanes = () => panes[1].tabs.length > 0;
 const bothShown = () => twoPanes() && state.hidden === null;   // two panes, neither hidden
 // Every tab of a file in this window edits it (the split, plan 13), unless set read-only; another window: the lock.
-const editable = tab => tab.doc.lock && !tab.readOnly && !tab.doc.diskReadOnly;
+const editable = tab => tab.doc.lock && !tab.readOnly && (!tab.doc.diskReadOnly || tab.doc.diskReadOnlyOff);
+// Read-only as the tab menu and the action show it: set by the user, or the file's mark not turned off.
+const readOnlyShown = tab => !!tab.readOnly || (tab.doc.diskReadOnly && !tab.doc.diskReadOnlyOff);
 
 function makePane(index) {
   const el = document.createElement('section');
@@ -1681,7 +1684,7 @@ function showTabMenu(pane, tab, e) {
     pinnedTabsChecks(ui.tabMenu);
     favouriteItem(ui.tabMenu, tab.doc.path);
     ui.tabMenu.querySelector('[data-cmd=tabPin]').textContent = tab.pinned ? 'Unpin tab' : 'Pin tab';
-    ui.tabMenu.querySelector('[data-cmd=tabReadOnly]').classList.toggle('mm-on', tab.readOnly || tab.doc.diskReadOnly);
+    ui.tabMenu.querySelector('[data-cmd=tabReadOnly]').classList.toggle('mm-on', readOnlyShown(tab));
     ui.tabMenu.querySelector('[data-cmd=tabShowInTree]').hidden = !tab.doc.path;
     ui.tabMenu.querySelector('.mm-copy-name').disabled = !tab.doc.path;   // a draft never saved: greyed out
     copyNameFor = () => copyNameItems(tab.doc.path, false);
@@ -1705,7 +1708,8 @@ function tabElement(pane, tab) {
   el.dataset.tab = tab.id;
   el.draggable = true;
   el.title = (doc.path || labelText(doc) || `Draft ${doc.draftName ? `${doc.draftName} (${doc.draft})` : doc.draft}, not saved as a file yet`) + (tab.pinned ? '\nPinned: asks before closing' : '') +
-    (editable(tab) ? '' : tab.readOnly ? '\nRead-only (set by you)' : doc.diskReadOnly ? '\nRead-only file on disk'
+    (editable(tab) ? (doc.diskReadOnly ? '\nRead-only file on disk, editing allowed by you: saving asks first' : '')
+      : tab.readOnly ? '\nRead-only (set by you)' : doc.diskReadOnly ? '\nRead-only file on disk'
       : doc.lock ? '\nRead-only: edited in the other pane' : '\nRead-only: edited in another window');
   if (tab.pinned) el.classList.add('mm-pinned');
   applyTabStyle(el, doc, tab === pane.active);
@@ -1717,6 +1721,7 @@ function tabElement(pane, tab) {
   close.title = withKey('Close', 'closeTab');
   if (tab.pinned) el.insertAdjacentHTML('beforeend', PIN_ICON);
   if (!editable(tab)) el.insertAdjacentHTML('beforeend', tab.readOnly ? LOCK_ICON_MINE : LOCK_ICON);
+  else if (doc.diskReadOnly) el.insertAdjacentHTML('beforeend', LOCK_ICON_OPEN);
   el.append(name, close);
   return el;
 }
@@ -1733,6 +1738,10 @@ const LOCK_ICON = '<svg class="mm-lock" viewBox="0 0 16 16" width="12" height="1
 const LOCK_ICON_MINE = '<svg class="mm-lock" viewBox="0 0 16 16" width="12" height="12" aria-label="Read-only (set by you)">' +
   '<path d="M5 5.5V4a3 3 0 0 1 6 0v1.5" fill="none" stroke="currentColor" stroke-width="1.6"/>' +
   '<rect x="3" y="5.5" width="10" height="6.5" rx="1.5" fill="currentColor"/><rect x="1.5" y="14" width="13" height="1.6" fill="currentColor"/></svg>';
+// Read-only on disk, editing allowed by you (Read-only turned off): the padlock open.
+const LOCK_ICON_OPEN = '<svg class="mm-lock" viewBox="0 0 16 16" width="12" height="12" aria-label="Read-only file on disk, editing allowed">' +
+  '<path d="M11 7V5a3 3 0 0 0-6 0" fill="none" stroke="currentColor" stroke-width="1.6"/>' +
+  '<rect x="3" y="7" width="10" height="7.5" rx="1.5" fill="currentColor"/></svg>';
 
 // ---------- Tab colours ----------
 // Rules from tab-colours.json in the data folder (the host reads it and sends changes; the format is
@@ -1939,7 +1948,7 @@ addEventListener('blur', endTabWalk);
 // The active pane's file: cursor, insert / overwrite, encoding, line endings, language, a pending chord.
 const statusUi = {
   chord: $('.mm-st-chord'), pos: $('.mm-st-pos'), ins: $('.mm-st-ins'), enc: $('.mm-st-enc'),
-  eol: $('.mm-st-eol'), lang: $('.mm-st-lang'), col: $('.mm-st-col'), char: $('.mm-st-char'), clip: $('.mm-st-clip'), alive: $('.mm-st-alive'), long: $('.mm-st-long'),
+  eol: $('.mm-st-eol'), lang: $('.mm-st-lang'), col: $('.mm-st-col'), elev: $('.mm-st-elev'), char: $('.mm-st-char'), clip: $('.mm-st-clip'), alive: $('.mm-st-alive'), long: $('.mm-st-long'),
 };
 
 // The heartbeat at the right of the bottom bar: turned by the page itself, so it stands still exactly
@@ -2064,6 +2073,11 @@ function showChord(stroke) {
 statusUi.ins.addEventListener('click', () => runAction('overwrite.toggle', [], { from: 'bar' }));
 statusUi.col.addEventListener('mousedown', e => e.preventDefault());   // the focus stays in the editor
 statusUi.col.addEventListener('click', () => setColumnMode(false));
+// Saving as administrator (docs/plans/PLAN-elevated-save.md): shown while LexPen's elevated helper runs (in every
+// window); a click ends it.
+statusUi.elev.addEventListener('mousedown', e => e.preventDefault());
+statusUi.elev.addEventListener('click', () => host('elevationStop'));
+events.elevated = ({ on }) => { statusUi.elev.hidden = !on; };
 // The Windows clipboard changed (here or in another program): also its start in the Clipboards pane, when that shows.
 events.clipboardColumn = ({ column: marked }) => {
   clips.windowsColumn = marked;
@@ -2229,6 +2243,28 @@ function draftSaveName(doc) {
   return ext ? name + (ext.startsWith('.') ? ext : '.' + ext) : name;
 }
 
+// A save's write through the host ('write', 'hexWrite', 'writePdf'; docs/plans/PLAN-elevated-save.md). A read-only
+// file: a warning first, then written with its mark set again. A folder that needs administrator rights: by the setting
+// "elevation" asked about (Windows' UAC prompt after it), or refused at once ("never"). False: not written (No, or the
+// UAC prompt cancelled). Other failures throw, as before.
+async function hostWrite(op, args) {
+  const name = nameOf(args.path), mode = setting('elevation');
+  args = { ...args, never: mode === 'never' };
+  let r = await host(op, args);
+  if (r?.refused === 'readOnly') {
+    if (!await host('askSaveRefused', { kind: 'readOnly', name })) return false;
+    args.keepReadOnly = true;
+    r = await host(op, args);
+  }
+  if (r?.refused === 'rights') {
+    if (mode === 'never')
+      throw new Error(`Access denied: ${name} is in a folder that needs administrator rights, and LexPen is set never to ask for them (Settings > Files).`);
+    if (!await host('askSaveRefused', { kind: 'rights', name, closing: !!r.closing })) return false;
+    r = await host(op, { ...args, elevated: true, keep: mode === 'keep' });
+  }
+  return !r?.refused;
+}
+
 // Returns false when nothing was saved (dialog cancelled, or the file is edited elsewhere).
 async function saveDoc(doc, saveAs) {
   if (doc.binary) return hexSave(doc, saveAs);   // its bytes as they are (hexview.js)
@@ -2252,7 +2288,7 @@ async function saveDoc(doc, saveAs) {
   // Save as another name turns an ANSI file into UTF-8 (the way out when it cannot hold a character).
   const encoding = !samePath(path, doc.path) && doc.encoding === 'ANSI' ? 'UTF-8' : doc.encoding;
   trimOnSave(doc);   // the whitespace at line ends (convert.js)
-  await host('write', { path, text: diskText(doc), encoding, backup: setting('backup') });
+  if (!await hostWrite('write', { path, text: diskText(doc), encoding, backup: setting('backup') })) return false;
   doc.encoding = encoding;
   if (doc.cmDoc) doc.savedGeneration = doc.cmDoc.changeGeneration(true);
   if (doc.draft) {
@@ -5494,11 +5530,14 @@ function setPinned(tab, on) {
 }
 
 // Read-only on: another tab of the file may edit it; with every tab of it here read-only and another window
-// showing it, that window gets the editing. Off: only when no other tab or window edits it, and the file is
-// not read-only on disk.
+// showing it, that window gets the editing. Off: only when no other tab or window edits it. A file read-only on disk
+// (not a PDF) can then be edited too, said so; saving it asks first (PLAN-elevated-save.md). On again: the file's
+// own mark locks it again.
 async function setReadOnly(tab, on) {
   const doc = tab.doc;
-  if (on) {
+  if (on && doc.diskReadOnly && doc.diskReadOnlyOff && !tab.readOnly) {
+    doc.diskReadOnlyOff = false;
+  } else if (on) {
     tab.readOnly = true;
     if (doc.editTab === tab) doc.editTab = tabsOf(doc).find(t => !t.readOnly) ?? tab;
     if (doc.path && doc.lock && doc.shared && !doc.dirty && tabsOf(doc).every(t => t.readOnly)) {
@@ -5506,8 +5545,12 @@ async function setReadOnly(tab, on) {
       doc.lock = await host('lock', { path: doc.path });   // back in line, after the window that edits it now
     }
   } else {
-    if (doc.diskReadOnly) return toast(`${docName(doc)} is read-only on disk.`);
+    if (doc.diskReadOnly && doc.pdf) return toast(`${docName(doc)} is read-only on disk.`);
     if (!doc.lock) return toast(`${docName(doc)} is edited in another window; set that one read-only first.`);
+    if (doc.diskReadOnly && !doc.diskReadOnlyOff && !tab.readOnly) {   // the toggle, not the viewReadOnly setting
+      doc.diskReadOnlyOff = true;
+      toast(`${docName(doc)} is read-only on disk. You can edit it; saving asks first.`);
+    }
     tab.readOnly = false;
     doc.editTab = tab;
   }
@@ -5835,7 +5878,7 @@ const commands = {
   tabCloseLeft: () => menuTab && closeTabs(paneOf(menuTab).tabs.slice(0, paneOf(menuTab).tabs.indexOf(menuTab))),   // pinned ones stay
   tabCloseAll: () => menuTab && closeTabs([...paneOf(menuTab).tabs]),
   tabPin: () => menuTab && togglePin(menuTab),
-  tabReadOnly: () => menuTab && setReadOnly(menuTab, !menuTab.readOnly),
+  tabReadOnly: () => menuTab && setReadOnly(menuTab, !readOnlyShown(menuTab)),
   tabRevert: () => menuTab && revertDoc(menuTab.doc),
   formatBar: () => setSetting('formatBar', !setting('formatBar')),
   findShared: () => setSetting('findShared', !setting('findShared')),
@@ -5966,6 +6009,7 @@ track((async () => {
   buildMenuBar();
   showKeys();
   state.win = start.id;
+  statusUi.elev.hidden = !start.elevated;
   setRole(start);
   setProject(start.project);
   setTabColours(start.tabColours);

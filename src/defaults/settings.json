@@ -127,6 +127,8 @@
   "previewThemeDark": "",         // the preview in dark mode (as "light": a light preview next to a dark editor)
 
   // ---------- Files ----------
+  "elevation": "short",           // a save where administrator rights are needed: "short" (ask at every save),
+                                  // "keep" (ask once, stay elevated until stopped in the status bar), "never"
   "backup": true,                 // saving keeps the old file as name.ext.bak
   "showBackupFiles": false,       // the folder pane lists the .bak files too
   "trimTrailing": true,           // saving removes the spaces and tabs at the line ends of the whole file (a language

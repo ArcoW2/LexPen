@@ -147,7 +147,10 @@ async function applyReplace(jobs, kept) {
     } else {
       let text = job.text;
       for (const m of [...doing].reverse()) text = text.slice(0, m.s) + m.new + text.slice(m.e);
-      try { await host('write', { path: job.group.path, text, encoding: job.encoding, backup: false }); }
+      try {   // a read-only file, or one in a folder that needs administrator rights: skipped, unasked
+        const r = await host('write', { path: job.group.path, text, encoding: job.encoding, backup: false, never: true });
+        if (r?.refused) throw new Error(r.refused === 'readOnly' ? 'the file is read-only' : 'access denied (administrator rights needed)');
+      }
       catch (e) { job.group.skip = e.message; result.skipped.push(job.group); continue; }
       after = text;
     }

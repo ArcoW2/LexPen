@@ -193,7 +193,7 @@ function toggleAction(name, def, get, flip, words = ['on', 'off']) {
 toggleAction('pin', { title: 'Pin tab', hint: 'Closing it asks first; closing several tabs leaves it open', group: 'tabs',
   enabled: () => !!activeTab() }, () => !!activeTab()?.pinned, () => activeTab() && togglePin(activeTab()));
 toggleAction('readOnly', { title: 'Read-only', hint: 'This tab cannot change the file', group: 'tabs', enabled: () => !!activeTab() },
-  () => !!activeTab()?.readOnly || !!activeDoc()?.diskReadOnly, () => activeTab() && setReadOnly(activeTab(), !activeTab().readOnly));
+  () => !!activeTab() && readOnlyShown(activeTab()), () => activeTab() && setReadOnly(activeTab(), !readOnlyShown(activeTab())));
 appAction('projects', { title: 'Projects...', hint: 'Every project and its windows: open one, a new project, rename, move this window', group: 'files',
   run: () => openProjectMenu() });
 appAction('fileTypes', { title: 'File types...', hint: 'Which file types a double-click in Explorer opens in LexPen (Settings > App > Windows Explorer)', group: 'files',
@@ -912,6 +912,13 @@ const SETTING_ROWS = [
     options: () => [['', 'Same as the app'], ...themeOptions()] },
   { name: 'zoom', group: 'Preview', kind: 'choice', title: 'Preview zoom', hint: 'Also Ctrl+mouse wheel over a preview',
     options: () => Array.from({ length: 26 }, (_, i) => (5 + i) / 10).map(z => [z, Math.round(z * 100) + '%']) },
+  // docs/plans/PLAN-elevated-save.md: a save where the user may not write.
+  { name: 'elevation', group: 'Files', kind: 'choice', title: 'Saving where administrator rights are needed',
+    hint: 'A file in a folder that needs administrator rights (Program Files, Windows): LexPen asks, then Windows asks for the rights. While LexPen closes, one question covers every such file',
+    keywords: 'elevated elevation elevate administrator admin permission permissions rights access denied UAC save saving protected',
+    options: () => [['short', 'Ask at every save, elevated for that save only'],
+      ['keep', 'Ask once, then stay elevated until stopped (Elevated in the status bar; click it to stop)'],
+      ['never', 'Never: such a save fails with access denied']] },
   { name: 'backup', group: 'Files', kind: 'toggle',
     hint: 'When saving, the old file becomes name.ext.bak (overwritten at the next save)',
     hintOff: 'Saving overwrites the file; no backup is made' },

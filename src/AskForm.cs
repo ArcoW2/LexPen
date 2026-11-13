@@ -27,6 +27,8 @@ sealed class AskForm : Form
         public IReadOnlyList<(string Value, string Text, bool Checked)> Choices { get; init; } = [];
         public IReadOnlyList<(string? Value, string Text, string? Note)> Buttons { get; init; } = [];
         public string? Default { get; init; }
+        /// <summary>Cancel is the default button: Enter does not go ahead (a question about overriding something).</summary>
+        public bool CancelDefault { get; init; }
         public string? Details { get; init; }
         public Point? Near { get; init; }
     }
@@ -60,7 +62,7 @@ sealed class AskForm : Form
         Font = app.AppFont(w);
         Padding = new Padding(20, 16, 20, 16);
         var width = LogicalToDeviceUnits(480);
-        var defaultValue = q.Default ?? q.Buttons.FirstOrDefault().Value;
+        var defaultValue = q.CancelDefault ? null : q.Default ?? q.Buttons.FirstOrDefault().Value;
 
         // The sign at the left of all the rest, as Windows' boxes.
         var outer = new TableLayoutPanel { AutoSize = true, ColumnCount = 2, Location = new Point(Padding.Left, Padding.Top), Margin = Padding.Empty };
@@ -95,7 +97,7 @@ sealed class AskForm : Form
 
         Button Make(string? value, string label, string? note)
         {
-            var main = value is not null && value == defaultValue;
+            var main = value == defaultValue && (value is not null || q.CancelDefault);
             // A command link: its name in the accent, its note under it, as wide as the text; the default one framed in
             // the accent. The others: the default one filled with the accent.
             Button button = note is null
