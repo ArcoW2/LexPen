@@ -1,0 +1,257 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+:root { --bg:#0e1726; --sky:#82c0ff; --navy:#1f3a5f; --green:#2e8b47; --amber:#e0a82e; --coral:#ff8f87; --fg:#eef4fb; --dim:#9fb3c8; }
+html,body { margin:0; width:1920px; height:1080px; overflow:hidden; background:var(--bg); }
+body { font-family:"Segoe UI", sans-serif; color:var(--fg); }
+#glow { position:absolute; inset:0; background:radial-gradient(1100px 700px at 50% 62%, rgba(130,192,255,.16), transparent 70%); }
+.scene { position:absolute; inset:0; opacity:0; }
+.cap { position:absolute; left:0; right:0; top:58px; text-align:center; font-weight:600; font-size:68px; letter-spacing:-1px; white-space:nowrap; }
+.acc { color:var(--sky); }
+.win { position:absolute; left:210px; top:196px; width:1500px; height:844px; border-radius:14px; overflow:hidden;
+  box-shadow:0 40px 90px rgba(0,0,0,.55), 0 0 0 1px rgba(130,192,255,.22); background:#1e1e1e; transform-origin:50% 50%; }
+.cam { position:absolute; left:0; top:0; width:1500px; height:844px; transform-origin:0 0; }
+.cam img { position:absolute; left:0; top:0; width:1500px; height:844px; opacity:0; }
+.logo { position:absolute; }
+.word { position:absolute; left:0; right:0; text-align:center; font-weight:700; letter-spacing:-3px; }
+.sub { position:absolute; left:0; right:0; text-align:center; color:var(--dim); font-size:44px; font-weight:400; }
+.url { position:absolute; left:0; right:0; text-align:center; font-family:"Cascadia Mono", Consolas, monospace; font-size:40px; color:var(--sky); }
+.pill { position:absolute; left:50%; top:968px; padding:12px 30px; border-radius:40px; background:rgba(14,23,38,.86);
+  box-shadow:0 0 0 2px rgba(130,192,255,.45), 0 12px 30px rgba(0,0,0,.45); font-size:40px; font-weight:600; color:var(--fg); opacity:0; white-space:nowrap; }
+.card { position:absolute; left:1000px; top:236px; width:861px; height:722px; border-radius:12px; overflow:hidden; transform-origin:50% 50%;
+  box-shadow:0 40px 90px rgba(0,0,0,.6), 0 0 0 1px rgba(130,192,255,.35); background:#1e1f22; opacity:0; }
+.card img { position:absolute; inset:0; width:100%; height:100%; opacity:0; }
+.ring { position:absolute; border:3px solid var(--amber); border-radius:8px; opacity:0; }
+#chips { position:absolute; left:160px; right:160px; top:330px; display:grid; grid-template-columns:repeat(5, 1fr); gap:26px 26px; }
+.chip { height:96px; border-radius:16px; background:rgba(130,192,255,.08); box-shadow:inset 0 0 0 2px rgba(130,192,255,.28);
+  display:flex; align-items:center; justify-content:center; font-family:"Cascadia Mono", Consolas, monospace; font-size:34px; color:var(--fg); opacity:0; }
+.chip:nth-child(7n+3) { color:var(--amber); } .chip:nth-child(7n+5) { color:var(--coral); } .chip:nth-child(7n+6) { color:#7fd49a; }
+</style></head>
+<body>
+<div id="glow"></div>
+
+<!-- reveal, languages and outro are type; every other scene is the real app in a window, built from SCENES below -->
+<div class="scene" id="s-reveal">
+  <svg class="logo" id="logo2" viewBox="0 0 256 256" width="220" height="220" style="left:850px;top:230px">
+    <defs><clipPath id="f2"><rect x="57" y="190" width="155" height="26" rx="1.6"/></clipPath></defs>
+    <rect width="256" height="256" rx="56" fill="#82c0ff"/>
+    <g fill="#1f3a5f" id="l2L"><rect x="57" y="40" width="70" height="26" rx="1.6"/><path d="M79 53 H105 V185.3 A4.7 4.7 0 0 0 109.7 190 V191 H79 Z"/></g>
+    <g clip-path="url(#f2)"><g id="l2s"><rect x="0" y="190" width="256" height="26" fill="#1f3a5f"/><rect x="140" y="190" width="24" height="26" fill="#2e8b47"/><rect x="164" y="190" width="24" height="26" fill="#e0a82e"/><rect x="188" y="190" width="24" height="26" fill="#ff8f87"/></g></g>
+  </svg>
+  <div class="word" id="word2" style="top:480px;font-size:150px">LexPen</div>
+  <div class="sub" id="sub2a" style="top:700px">A text and code editor for Windows,</div>
+  <div class="sub" id="sub2b" style="top:760px">with a built-in viewer.</div>
+</div>
+
+<div class="scene" id="s-langs">
+  <div class="cap">Language packs built in. <span class="acc">Add your own.</span></div>
+  <div id="chips"></div>
+</div>
+
+<div class="scene" id="s-settings">
+  <div class="cap" id="setcap0">Every setting, <span class="acc">searchable.</span></div>
+  <div class="cap" id="setcap1">A change applies <span class="acc">at once.</span></div>
+  <div class="win" id="setwin" style="left:110px"><div class="cam"><img src="../capN/main0.png"><img src="../capN/main1.png"></div><div class="ring" id="setring2"></div></div>
+  <div class="card" id="setcard"></div>
+  <div class="ring" id="setring1"></div>
+</div>
+
+<div class="scene" id="s-outro">
+  <svg class="logo" viewBox="0 0 256 256" width="170" height="170" style="left:875px;top:215px">
+    <defs><clipPath id="f6"><rect x="57" y="190" width="155" height="26" rx="1.6"/></clipPath></defs>
+    <rect width="256" height="256" rx="56" fill="#82c0ff"/>
+    <g fill="#1f3a5f"><rect x="57" y="40" width="70" height="26" rx="1.6"/><path d="M79 53 H105 V185.3 A4.7 4.7 0 0 0 109.7 190 V191 H79 Z"/></g>
+    <g clip-path="url(#f6)"><rect x="0" y="190" width="256" height="26" fill="#1f3a5f"/><rect x="140" y="190" width="24" height="26" fill="#2e8b47"/><rect x="164" y="190" width="24" height="26" fill="#e0a82e"/><rect x="188" y="190" width="24" height="26" fill="#ff8f87"/></g>
+  </svg>
+  <div class="word" id="word6" style="top:405px;font-size:130px">LexPen</div>
+  <div class="sub" id="sub6" style="top:590px;color:var(--fg)">Fast, intuitive and flexible.</div>
+  <div class="sub" id="sub6b" style="top:665px;font-size:36px">Open source. For Windows.</div>
+  <div class="url" id="url6" style="top:790px">github.com/ArcoW2/LexPen</div>
+</div>
+
+<script>
+const seq = (dir, n) => Array.from({ length: n }, (_, i) => `../${dir}/${String(i).padStart(3, '0')}.png`);
+const steps = (a, n, d) => Array.from({ length: n }, (_, i) => a + i * d);
+
+// The language packs in src/defaults/languages, besides Markdown, Plain text, PDF and the template.
+const LANGS = ['C#', 'SQL', 'Delphi / Pascal', 'PowerShell', 'JSON', 'YAML', 'XML', 'KQL (Kusto)', 'Python', 'JavaScript',
+  'HTML', 'CSS', 'C / C++', 'Java', 'Visual Basic', 'VBScript', 'Batch', 'Shell', 'Perl', 'PHP', 'Ruby', 'AutoHotkey',
+  'CSV', 'Sybase ASA SQL', 'LexPen macro'];
+
+// Window scenes: a..b on screen; frames shown from their times; the camera zooms to z around (x, y) in window px.
+const SCENES = [
+  { id: 'hook', a: 0, b: 4, frames: seq('capA', 20), times: steps(.5, 20, .125), drift: .03,
+    caps: [{ html: 'Type markdown.', a: .1, b: 1.95 }, { html: 'Get <span class="acc">the page.</span>', a: 2.0, b: 4 }] },
+  { id: 'typing', a: 12, b: 16,
+    frames: [...seq('capF', 10), ...seq('capG', 15)],
+    times: [12, 12.375, 12.5, 12.625, 12.875, 13.125, 13.375, 13.5, 13.75, 13.875, ...steps(14.0, 15, .125)],
+    zoom: [{ t: 12.2, z: 2.0, x: 470, y: 200 }, { t: 14.0, z: 1.9, x: 470, y: 230 }],
+    caps: [{ html: 'Typing that <span class="acc">knows the language.</span>', a: 12.1, b: 16 }] },
+  { id: 'f12', a: 16, b: 19.5, frames: seq('capL', 2), times: [16, 17.5],
+    zoom: [{ t: 16.1, z: 1.8, x: 480, y: 250 }, { t: 17.3, z: 1.28, x: 920, y: 300 }],
+    rings: [{ a: 16.5, b: 17.45, box: [553, 221, 592, 241] }, { a: 17.5, b: 19.2, box: [972, 220, 1165, 241] }],
+    caps: [{ html: 'F12: the definition, <span class="acc">even in another file.</span>', a: 16.1, b: 19.5 }] },
+  { id: 'goline', a: 19.5, b: 22.5, frames: seq('capP', 4), times: [19.5, 20.0, 20.5, 21.25],
+    zoom: [{ t: 19.6, z: 1.35, x: 700, y: 400 }, { t: 21.2, z: 1.45, x: 640, y: 560 }],
+    rings: [{ a: 21.3, b: 22.3, box: [275, 705, 1475, 727] }],
+    caps: [{ html: 'Go to line. <span class="acc">Ctrl+G.</span>', a: 19.6, b: 22.5 }] },
+  { id: 'nextblock', a: 22.5, b: 25.5, frames: seq('capQ', 4), times: [22.5, 23.25, 24.0, 24.75],
+    zoom: [{ t: 22.6, z: 1.35, x: 650, y: 360 }],
+    caps: [{ html: 'Block to block. <span class="acc">Alt+PgDn.</span>', a: 22.6, b: 25.5 }] },
+  { id: 'moveblock', a: 25.5, b: 29.5, frames: seq('capR', 8), times: [25.5, 26.0, 26.75, 27.0, 27.25, 27.5, 27.75, 28.25],
+    zoom: [{ t: 25.6, z: 1.5, x: 600, y: 430 }],
+    caps: [{ html: 'Move a block <span class="acc">into another one.</span>', a: 25.6, b: 29.5 }] },
+  { id: 'reformat', a: 29.5, b: 33, frames: seq('capS', 2), times: [29.5, 30.75],
+    zoom: [{ t: 29.6, z: 1.5, x: 600, y: 380 }], rings: [{ a: 30.0, b: 30.75, box: [697, 103, 725, 127] }],
+    caps: [{ html: 'Reformat the mess. <span class="acc">Indents, breaks, aligns.</span>', a: 29.6, b: 33 }] },
+  { id: 'sqlfmt', a: 33, b: 37, frames: seq('capX', 2), times: [33, 34.75],
+    zoom: [{ t: 33.1, z: 2.2, x: 600, y: 260 }], rings: [{ a: 34.0, b: 34.75, box: [466, 104, 494, 128] }],
+    caps: [{ html: 'SQL too: <span class="acc">clauses, joins, conditions lined up.</span>', a: 33.1, b: 37 }] },
+  { id: 'embedded', a: 37, b: 41, frames: seq('capY', 1), times: [37],
+    zoom: [{ t: 37.1, z: 1.2, x: 750, y: 330 }, { t: 38.8, z: 1.2, x: 750, y: 560 }],
+    caps: [{ html: 'Fenced code, <span class="acc">coloured as its own language.</span>', a: 37.1, b: 41 }] },
+  { id: 'occur', a: 41, b: 44.5, frames: seq('capT', 2), times: [41, 42],
+    zoom: [{ t: 41.1, z: 1.3, x: 750, y: 330 }],
+    caps: [{ html: 'Every occurrence, <span class="acc">editor and preview.</span>', a: 41.1, b: 44.5 }] },
+  { id: 'find', a: 44.5, b: 48, frames: seq('capU', 8), times: [44.5, 45, 45.25, 45.375, 45.5, 45.625, 46.25, 46.75],
+    zoom: [{ t: 44.6, z: 1.4, x: 600, y: 330 }],
+    caps: [{ html: 'Find. <span class="acc">F3 for the next.</span>', a: 44.6, b: 48 }] },
+  { id: 'highlight', a: 48, b: 52.5, frames: seq('capV', 8), times: [48, 48.5, 48.75, 49, 49.25, 49.5, 50, 51.25],
+    zoom: [{ t: 48.1, z: 1.25, x: 750, y: 380 }],
+    caps: [{ html: 'Highlight it. <span class="acc">Add a note.</span>', a: 48.1, b: 52.5 }] },
+  { id: 'print', a: 52.5, b: 57.5, frames: seq('capW', 5), times: [52.5, 53.25, 54, 54.75, 55.25],
+    zoom: [{ t: 55.4, z: 2.1, x: 560, y: 330 }],
+    caps: [{ html: 'Print <span class="acc">the preview.</span>', a: 52.6, b: 54.7 }, { html: 'With the notes <span class="acc">in the margin.</span>', a: 54.75, b: 57.5 }] },
+  { id: 'cursors', a: 57.5, b: 61, frames: seq('capC', 9), times: [57.5, 58.25, 58.5, 58.75, 59, 59.25, 59.5, 60, 60.25],
+    zoom: [{ t: 57.8, z: 1.75, x: 560, y: 215 }],
+    caps: [{ html: 'Every occurrence. <span class="acc">One edit.</span>', a: 57.6, b: 61 }] },
+  { id: 'column', a: 61, b: 64, frames: seq('capH', 9), times: [61, 61.5, 61.75, 61.875, 62, 62.125, 62.5, 62.625, 62.75],
+    zoom: [{ t: 61.2, z: 2.0, x: 430, y: 205 }],
+    caps: [{ html: 'Column mode. <span class="acc">Alt+C.</span>', a: 61.1, b: 64 }] },
+  { id: 'csv', a: 64, b: 68, frames: seq('capK', 7), times: [64, 65, 65.75, 66, 66.125, 66.25, 66.375],
+    zoom: [{ t: 64.3, z: 1.35, x: 905, y: 300 }],
+    rings: [{ a: 64.75, b: 65.7, box: [951, 180, 1012, 202] }],
+    caps: [{ html: 'CSV as <span class="acc">columns.</span>', a: 64.1, b: 65.9 }, { html: 'Edit the text. <span class="acc">The table follows.</span>', a: 66, b: 68 }] },
+  { id: 'macro', a: 68, b: 72, frames: seq('capI', 2), times: [68, 70],
+    zoom: [{ t: 68.3, z: 1.5, x: 700, y: 300 }], rings: [{ a: 69.25, b: 70.25, box: [1150, 103, 1198, 128] }],
+    caps: [{ html: 'Macros: <span class="acc">record one, or write one.</span>', a: 68.1, b: 72 }] },
+  { id: 'ribbon', a: 72, b: 78, frames: seq('capO', 8), times: [72, 73, 74, 75, 76, 76.25, 76.5, 77],
+    zoom: [{ t: 72.2, z: 1.3, x: 750, y: 260 }, { t: 74.8, z: 1.0, x: 750, y: 422 }, { t: 77.1, z: 1.7, x: 1000, y: 160 }],
+    rings: [{ a: 76.5, b: 77.9, box: [1102, 40, 1241, 71] }],
+    caps: [{ html: 'Menus, a ribbon, <span class="acc">or both.</span>', a: 72.1, b: 74.95 },
+           { html: 'Your ribbon. <span class="acc">Even your macros on it.</span>', a: 75, b: 78 }] },
+  { id: 'compare', a: 78, b: 81.5, frames: ['../capD/000.png', '../capD/001.png'], times: [78, 79.5],
+    zoom: [{ t: 78.3, z: 1.45, x: 750, y: 255 }], rings: [{ a: 79.5, b: 81.1, box: [345, 196, 880, 219] }],
+    caps: [{ html: 'Compare two files. <span class="acc">Copy across.</span>', a: 78.1, b: 81.5 }] },
+  { id: 'pdfhex', a: 81.5, b: 85.5, frames: seq('capJ', 3), times: [81.5, 83.5, 84],
+    zoom: [{ t: 84.1, z: 1.55, x: 600, y: 230 }],
+    caps: [{ html: 'Read <span class="acc">PDFs.</span>', a: 81.6, b: 83.45 }, { html: 'Or every byte, <span class="acc">in hex.</span>', a: 83.5, b: 85.5 }] },
+  { id: 'themes', a: 91.5, b: 97.5, frames: seq('capM', 6), times: steps(91.5, 6, 1), drift: .05,
+    labels: ['Light parchment', 'Light blossom', 'Dark pistachio', 'Dark wine', 'Dark (neutral grey)', 'Dark ink and aged paper'],
+    caps: [{ html: 'Themes, <span class="acc">light to dark.</span>', a: 91.6, b: 97.5 }] },
+];
+
+const $ = id => document.getElementById(id);
+for (const s of SCENES) {
+  const el = document.createElement('div'); el.className = 'scene'; el.id = 's-' + s.id;
+  el.innerHTML = s.caps.map((c, i) => `<div class="cap" data-cap="${i}">${c.html}</div>`).join('') +
+    `<div class="win"><div class="cam"></div>${(s.rings ?? []).map(() => '<div class="ring"></div>').join('')}</div>` +
+    (s.labels ?? []).map(l => `<div class="pill">${l}</div>`).join('');
+  for (const src of s.frames) { const im = new Image(); im.src = src; el.querySelector('.cam').append(im); }
+  document.body.insertBefore(el, $('s-outro'));
+  s.el = el;
+}
+for (const name of LANGS) { const c = document.createElement('div'); c.className = 'chip'; c.textContent = name; $('chips').append(c); }
+for (let i = 0; i < 13; i++) { const im = new Image(); im.src = `../capN/${String(i).padStart(3, '0')}.png`; $('setcard').append(im); }
+window.ready = Promise.all([...document.images].map(im => im.decode())).then(() => document.fonts.ready);
+
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const ease = x => { x = clamp(x); return 1 - Math.pow(1 - x, 3); };
+const inout = x => { x = clamp(x); return x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+const ramp = (t, a, b) => clamp((t - a) / (b - a));
+const win = (t, a, b, d = .3) => Math.min(ease(ramp(t, a, a + d)), 1 - ramp(t, b - d * .8, b));
+const idxAt = (t, times) => { let k = 0; for (let i = 0; i < times.length; i++) if (t >= times[i]) k = i; return k; };
+function rise(el, t, a, dy = 40) { const e = ease(ramp(t, a, a + .45)); el.style.opacity = e; el.style.transform = `translateY(${(1 - e) * dy}px)`; }
+
+// camera at time t: from the whole window into each zoom target in turn (0.6 s moves)
+function camAt(s, t) {
+  let z = 1, x = 750, y = 422;
+  for (const k of s.zoom ?? []) { const m = inout(ramp(t, k.t, k.t + .6)); z += (k.z - z) * m; x += (k.x - x) * m; y += (k.y - y) * m; }
+  if (s.drift) z *= 1 + s.drift * ramp(t, s.a, s.b);
+  return { z, x, y };
+}
+
+function render(t) {
+  for (const s of SCENES) {
+    const o = win(t, s.a, s.b, .3); s.el.style.opacity = o;
+    if (o <= 0) continue;
+    const w = s.el.querySelector('.win');
+    if (s.id === 'hook') { const e = ease(ramp(t, 0, .7)); w.style.transform = `translateY(${(1 - e) * 70}px) scale(${.94 + .06 * e})`; }
+    else rise(w, t, s.a, 50);
+    const k = idxAt(t, s.times);
+    [...s.el.querySelectorAll('.cam img')].forEach((im, i) => im.style.opacity = i === k ? 1 : 0);
+    const c = camAt(s, t);
+    s.el.querySelector('.cam').style.transform = `translate(${750 - c.x * c.z}px, ${422 - c.y * c.z}px) scale(${c.z})`;
+    s.caps.forEach((cp, i) => {
+      const el = s.el.querySelector(`[data-cap="${i}"]`), op = cp.b >= s.b ? ease(ramp(t, cp.a, cp.a + .3)) : win(t, cp.a, cp.b, .3);
+      el.style.opacity = op; el.style.transform = `translateY(${(1 - ease(ramp(t, cp.a, cp.a + .35))) * 30}px)`;
+    });
+    [...s.el.querySelectorAll('.pill')].forEach((el, i) => {
+      const a = s.times[i], b = s.times[i + 1] ?? s.b, e = win(t, a, b, .2);
+      el.style.opacity = e; el.style.transform = `translateX(-50%) translateY(${(1 - ease(ramp(t, a, a + .25))) * 16}px)`;
+    });
+    [...s.el.querySelectorAll('.ring')].forEach((r, i) => {
+      const g = s.rings[i], [x0, y0, x1, y1] = g.box, X = v => 750 - c.x * c.z + v * c.z, Y = v => 422 - c.y * c.z + v * c.z;
+      Object.assign(r.style, { left: X(x0) + 'px', top: Y(y0) + 'px', width: (X(x1) - X(x0)) + 'px', height: (Y(y1) - Y(y0)) + 'px',
+        opacity: win(t, g.a, g.b, .2) });
+    });
+  }
+  // reveal 4-8
+  const o2 = win(t, 4.0, 8.0, .3); $('s-reveal').style.opacity = o2;
+  if (o2 > 0) {
+    const L = ease(ramp(t, 4.05, 4.5));
+    $('logo2').style.transform = `scale(${.6 + .4 * L}) rotate(${(1 - L) * -8}deg)`; $('logo2').style.opacity = L;
+    $('l2L').style.transform = `translateY(${(1 - ease(ramp(t, 4.2, 4.6))) * -60}px)`; $('l2L').style.opacity = ramp(t, 4.2, 4.4);
+    $('l2s').setAttribute('transform', `translate(${(ease(ramp(t, 4.45, 4.9)) - 1) * 160} 0)`);
+    rise($('word2'), t, 4.6); rise($('sub2a'), t, 5.0, 24); rise($('sub2b'), t, 5.15, 24);
+  }
+  // languages 8-12: a chip every 32nd note from 8.5
+  const o3 = win(t, 8.0, 12.0, .3); $('s-langs').style.opacity = o3;
+  if (o3 > 0) {
+    $('s-langs').querySelector('.cap').style.opacity = ease(ramp(t, 8.05, 8.4));
+    [...$('chips').children].forEach((ch, i) => { const a = 8.5 + i * .0625, e = ease(ramp(t, a, a + .3));
+      ch.style.opacity = e; ch.style.transform = `translateY(${(1 - e) * 26}px) scale(${.92 + .08 * e})`; });
+  }
+  late(t - 38);
+  $('glow').style.opacity = .7 + .3 * Math.sin(t * Math.PI);
+}
+// settings and outro, timed as they were before the four editing scenes came in
+function late(t) {
+  // settings 47.5-53.5: the main window, the settings window over it; tabs, a search, the ruler on, the main window shows it
+  const o7 = win(t, 47.5, 53.5, .3); $('s-settings').style.opacity = o7;
+  if (o7 > 0) {
+    rise($('setwin'), t, 47.5, 50);
+    const lit = ease(ramp(t, 51.9, 52.2));
+    $('setwin').style.filter = `brightness(${.55 + .45 * lit})`;
+    [...$('setwin').querySelectorAll('img')].forEach((im, i) => im.style.opacity = (t >= 52.0 ? 1 : 0) === i ? 1 : 0);
+    const c = $('setcard'), e = ease(ramp(t, 47.7, 48.15));
+    c.style.opacity = e; c.style.transform = `translateY(${(1 - e) * 60}px) scale(${.96 + .04 * e})`;
+    const k = idxAt(t, [47.7, 48.25, 48.75, 49.25, 49.75, 50.25, 50.375, 50.5, 50.625, 50.75, 51.0, 51.75, 52.25]);
+    [...c.children].forEach((im, i) => im.style.opacity = i === k ? 1 : 0);
+    const c0 = $('setcap0'), c1 = $('setcap1');
+    c0.style.opacity = win(t, 47.6, 50.95, .3); c0.style.transform = `translateY(${(1 - ease(ramp(t, 47.6, 47.95))) * 30}px)`;
+    c1.style.opacity = ease(ramp(t, 51.0, 51.3)); c1.style.transform = `translateY(${(1 - ease(ramp(t, 51.0, 51.35))) * 30}px)`;
+    // the checkbox of "The ruler above the editor" (settings css px; the card is the window at 861/904)
+    const f = 861 / 904, r1 = $('setring1');
+    Object.assign(r1.style, { left: 1000 + 754 * f + 'px', top: 236 + 143 * f + 'px', width: 32 * f + 'px', height: 32 * f + 'px', opacity: win(t, 51.4, 52.3, .15) });
+    // the ruler in the main window (window px)
+    Object.assign($('setring2').style, { left: '268px', top: '128px', width: '622px', height: '24px', opacity: win(t, 52.3, 53.3, .15) });
+  }
+  // outro 59.5-63
+  $('s-outro').style.opacity = ease(ramp(t, 59.5, 59.85));
+  rise($('word6'), t, 59.6); rise($('sub6'), t, 59.9, 24); rise($('sub6b'), t, 60.15, 24); rise($('url6'), t, 60.5, 24);
+}
+window.render = render;
+window.ready.then(() => render(0));
+</script>
+</body></html>

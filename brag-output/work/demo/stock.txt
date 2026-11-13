@@ -1,0 +1,6 @@
+bin     item        qty
+A-01    pallet      12
+A-02    carton      40
+B-07    crate        6
+B-09    carton      18
+C-11    pallet       3
