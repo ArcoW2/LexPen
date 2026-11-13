@@ -260,7 +260,8 @@ body[data-orient=h] .mm-orient::before { content: "Above each other"; }
 .mm-st-long { color: var(--warning); }
 .mm-st-lang.mm-fixed { color: var(--fg-dim); cursor: default; }   /* a kind that is not text (a PDF): its language stays */
 .mm-st-alive { width: 1ch; font-family: Consolas, monospace; color: var(--fg-dim); text-align: center; }
-.mm-st-clip.mm-on { color: #fff; background: var(--accent); font-weight: 600; }   /* not the Windows clipboard */
+.mm-st-clip.mm-on {   /* not the Windows clipboard: a soft tint of the accent, framed in it, the theme's text colour */
+  color: var(--fg); background: color-mix(in srgb, var(--accent) 25%, transparent); box-shadow: inset 0 0 0 1px var(--accent); font-weight: 600; }
 /* Spaces, tabs and line ends shown in the editor (settings showWhitespace, showLineEnds). A space: a dot in the
    middle of each character cell; a tab: an arrow (CodeMirror draws a tab as .cm-tab); a line end: a sign after the
    text of every line but the last (pilcrow for CRLF, the LF sign for LF). */
