@@ -34,6 +34,7 @@ sealed class AskForm : Form
     }
 
     readonly List<ButtonBase> picks = [];
+    readonly List<(Button Button, Action<bool> Mark)> rowButtons = [];   // the buttons in the row, and how the focus marks one
     readonly Point? near;
     string? answer;
 
@@ -99,8 +100,9 @@ sealed class AskForm : Form
         {
             var main = value == defaultValue && (value is not null || q.CancelDefault);
             // A command link: its name in the accent, its note under it, as wide as the text; the default one framed in
-            // the accent. The others: the default one framed in the accent on a soft tint of it, its text in the theme's
-            // text colour (a full accent fill with a fixed text colour is unreadable on a light accent).
+            // the accent. The others: the default one on a soft tint of the accent, the focused one framed in the accent;
+            // the text in the theme's text colour (a full accent fill with a fixed text colour is unreadable on a light
+            // accent).
             Button button = note is null
                 ? new KeyButton
                 {
@@ -114,8 +116,13 @@ sealed class AskForm : Form
                 };
             if (note is null)
             {
-                button.FlatAppearance.BorderColor = main ? accent : border;
                 button.FlatAppearance.MouseOverBackColor = main ? Mix(bar, accent, .3) : Mix(bar, fg, .1);
+                void Mark(bool focused) => button.FlatAppearance.BorderColor = focused ? accent : border;
+                Mark(main);
+                rowButtons.Add((button, Mark));
+                // The arrow keys and Tab move the focus (Enter presses the focused button): the outline goes with it.
+                button.Enter += (_, _) => MarkRow(button);
+                button.Leave += (_, _) => { if (IsHandleCreated && !IsDisposed && !Disposing) BeginInvoke(() => MarkRow(ActiveControl as Button)); };
             }
             button.Click += (_, _) => { answer = value; Close(); };
             if (main) AcceptButton = button;
@@ -189,6 +196,12 @@ sealed class AskForm : Form
         var x = Math.Min(at.X + LogicalToDeviceUnits(24), area.Right - Width);
         var y = Math.Min(at.Y + LogicalToDeviceUnits(12), area.Bottom - Height);
         Location = new Point(Math.Max(area.Left, x), Math.Max(area.Top, y));
+    }
+
+    // The row's buttons: the focused one outlined (none while the focus is elsewhere: a checkbox, a choice).
+    void MarkRow(Button? focused)
+    {
+        foreach (var (button, mark) in rowButtons) mark(button == focused);
     }
 
     protected override void OnShown(EventArgs e)
