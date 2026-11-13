@@ -1,0 +1,11 @@
+# Made again by the scripts in work/ (see work/README.md)
+*.mp4
+*.wav
+*.png
+*.jpg
+__pycache__/
+work/app/
+work/data/
+work/cap*/
+work/stills/
+work/demo/pick-list-wave-14.pdf

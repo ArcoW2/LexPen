@@ -1,0 +1,15 @@
+# The lines (one code each) as an SQL IN list at the end: IN ('A1', 'O''Brien', ...)
+function quoted($s)
+  return "'" & replace($s, "'", "''") & "'"
+endfunction
+
+moveto start
+:next
+  set $v = trim($$lineText)
+  if $v <> "" then append $list quoted($v)
+  if $$line < $$lines then
+    moveto +1, 0
+    goto :next
+  endif
+moveto end
+type "\n\nIN (" & $list & ")"
