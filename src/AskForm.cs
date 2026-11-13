@@ -99,12 +99,13 @@ sealed class AskForm : Form
         {
             var main = value == defaultValue && (value is not null || q.CancelDefault);
             // A command link: its name in the accent, its note under it, as wide as the text; the default one framed in
-            // the accent. The others: the default one filled with the accent.
+            // the accent. The others: the default one framed in the accent on a soft tint of it, its text in the theme's
+            // text colour (a full accent fill with a fixed text colour is unreadable on a light accent).
             Button button = note is null
                 ? new KeyButton
                 {
                     Text = label, AutoSize = true, FlatStyle = FlatStyle.Flat, UseVisualStyleBackColor = false,
-                    BackColor = main ? accent : bar, ForeColor = main ? Color.White : fg,
+                    BackColor = main ? Mix(bar, accent, .18) : bar, ForeColor = fg,
                     MinimumSize = new Size(LogicalToDeviceUnits(80), 0), Padding = new Padding(8, 2, 8, 2), Margin = new Padding(8, 0, 0, 0),
                 }
                 : new Link(label, note, accent, Mix(bg, fg, .7), main ? accent : border, Mix(bar, fg, .1))
@@ -114,7 +115,7 @@ sealed class AskForm : Form
             if (note is null)
             {
                 button.FlatAppearance.BorderColor = main ? accent : border;
-                button.FlatAppearance.MouseOverBackColor = main ? Mix(accent, Color.White, .15) : Mix(bar, fg, .1);
+                button.FlatAppearance.MouseOverBackColor = main ? Mix(bar, accent, .3) : Mix(bar, fg, .1);
             }
             button.Click += (_, _) => { answer = value; Close(); };
             if (main) AcceptButton = button;
@@ -227,8 +228,9 @@ sealed class AskForm : Form
         protected override bool ShowKeyboardCues => true;
     }
 
-    // A checkbox drawn as Settings' are (18 px, the accent colour): a rounded box in the border colour; checked, filled with the
-    // accent and a white tick. Hovered, the border gets `hover`; with the focus, a dotted line around the text.
+    // A checkbox drawn as Settings' are (18 px, the accent colour): a rounded box in the border colour; checked, framed in the
+    // accent on a soft tint of it, the tick in the text colour (theme colours only). Hovered, the border gets `hover`; with
+    // the focus, a dotted line around the text.
     sealed class Box(Color border, Color accent, Color hover) : CheckBox
     {
         bool over;
@@ -252,9 +254,12 @@ sealed class AskForm : Form
             using var path = Rounded(r, LogicalToDeviceUnits(2));
             if (Checked)
             {
-                using var fill = new SolidBrush(accent);
+                var back = Parent?.BackColor ?? BackColor;
+                using var fill = new SolidBrush(Color.FromArgb((int)(back.R + (accent.R - back.R) * .25), (int)(back.G + (accent.G - back.G) * .25), (int)(back.B + (accent.B - back.B) * .25)));
                 g.FillPath(fill, path);
-                using var tick = new Pen(Color.White, Math.Max(1.5f, side / 8f)) { StartCap = System.Drawing.Drawing2D.LineCap.Round, EndCap = System.Drawing.Drawing2D.LineCap.Round, LineJoin = System.Drawing.Drawing2D.LineJoin.Round };
+                using var frame = new Pen(accent, LogicalToDeviceUnits(1));
+                g.DrawPath(frame, path);
+                using var tick = new Pen(ForeColor, Math.Max(1.5f, side / 8f)) { StartCap = System.Drawing.Drawing2D.LineCap.Round, EndCap = System.Drawing.Drawing2D.LineCap.Round, LineJoin = System.Drawing.Drawing2D.LineJoin.Round };
                 g.DrawLines(tick, [new PointF(r.X + r.Width * .24f, r.Y + r.Height * .52f), new PointF(r.X + r.Width * .43f, r.Y + r.Height * .71f), new PointF(r.X + r.Width * .77f, r.Y + r.Height * .31f)]);
             }
             else
