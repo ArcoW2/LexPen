@@ -120,7 +120,7 @@ async function hexSave(doc, saveAs) {
     if (!path) return false;
   }
   if (!doc.lock && samePath(path, doc.path)) { toast('This file is being edited in another window; save it there.'); return false; }
-  await host('hexWrite', { path, data: hexB64(d.bytes), backup: setting('backup') });
+  if (!await hostWrite('hexWrite', { path, data: hexB64(d.bytes), backup: setting('backup') })) return false;
   if (!samePath(path, doc.path)) {
     if (doc.path) host('unlock', { path: doc.path });
     doc.path = path;

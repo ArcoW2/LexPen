@@ -577,6 +577,9 @@ sealed class MainForm : Form
                 // text as it would be saved (encoded as a save does), and bytes changed in Hex read back as its text.
                 "hexRead" => await Task.Run(() => new JsonObject { ["data"] = Convert.ToBase64String(HexFile.Read(msg["path"]!.GetValue<string>())) }),
                 "hexWrite" => await HexWrite(msg),
+                // A PDF written with its highlight annotations (plan 38; pdf.js made the bytes): as a save, a .bak first
+                // when backups are on.
+                "writePdf" => await HexWrite(msg),
                 "hexEncode" => await Task.Run(() => new JsonObject { ["data"] = Convert.ToBase64String(TextFile.Encode(msg["text"]!.GetValue<string>(),
                     msg["encoding"]!.GetValue<string>(), msg["name"]?.GetValue<string>() ?? "")) }),
                 "hexDecode" => await Task.Run(() => new JsonObject { ["text"] = TextFile.DecodeAs(Convert.FromBase64String(msg["data"]!.GetValue<string>()),
@@ -664,6 +667,7 @@ sealed class MainForm : Form
                     ["files"] = new JsonArray(start.Files.Select(f => (JsonNode?)f).ToArray()),
                     ["view"] = start.View,
                     ["edit"] = start.Edit,
+                    ["elevated"] = app.Elevated.Running,
                 };
                 if (start.Compare is [var left, var right])
                     init["compare"] = new JsonObject { ["left"] = left, ["right"] = right, ["folders"] = Directory.Exists(left) };
@@ -941,12 +945,6 @@ sealed class MainForm : Form
                 return null;
             }
 
-            // A PDF written with its highlight annotations (plan 38; pdf.js made the bytes): as a save, a .bak first
-            // when backups are on.
-            case "writePdf":
-                TextFile.WriteBytes(Arg("path"), Convert.FromBase64String(Arg("data")), msg["backup"]?.GetValue<bool>() == true);
-                return null;
-
             // Written next to the file: the path it went to.
             case "columnsSaveBeside":
                 return ColumnStore.SaveBeside(Arg("path"), msg["table"]!.AsObject());
@@ -1103,6 +1101,11 @@ sealed class MainForm : Form
             case "about":
                 return About();
 
+            // The status bar's Elevated clicked: the kept elevated helper ends (docs/plans/PLAN-elevated-save.md).
+            case "elevationStop":
+                app.Elevated.Stop();
+                return null;
+
             case "exit":
                 BeginInvoke(() => Close());   // later, so this reply still reaches the page
                 return null;
@@ -1117,6 +1120,33 @@ sealed class MainForm : Form
                     Sign = AskForm.Sign.Warning,
                     Buttons = ok is null ? [("yes", "Yes", null), (null, "No", null)] : [("yes", ok, null), (null, "Cancel", null)],
                 }) == "yes";
+            }
+
+            // A save refused (docs/plans/PLAN-elevated-save.md): `kind` "readOnly" (the file's mark: save anyway, Cancel the
+            // default) or "rights" (administrator rights; `closing`: for the rest of LexPen's close too). True: go ahead.
+            case "askSaveRefused":
+            {
+                var name = Arg("name");
+                var readOnly = Arg("kind") == "readOnly";
+                return AskForm.Answer(app, this, readOnly
+                    ? new AskForm.Question
+                    {
+                        Heading = $"{name} is marked read-only",
+                        Text = "Someone or some program set this mark, usually so that the file is not changed.\n\n" +
+                            "Save anyway? LexPen removes the read-only mark, saves, and marks the file read-only again.",
+                        Sign = AskForm.Sign.Warning,
+                        Buttons = [("save", "Save anyway", null), (null, "Cancel", null)],
+                        CancelDefault = true,
+                    }
+                    : new AskForm.Question
+                    {
+                        Heading = "Administrator rights needed",
+                        Text = msg["closing"]?.GetValue<bool>() == true
+                            ? $"{name} is in a folder that needs administrator rights.\n\nSave it, and any other such file while LexPen closes, as administrator? Windows asks for the rights once."
+                            : $"{name} is in a folder that needs administrator rights.\n\nSave it as administrator? Windows asks for the rights.",
+                        Sign = AskForm.Sign.Question,
+                        Buttons = [("save", "Save as administrator", null), (null, "Cancel", null)],
+                    }) == "save";
             }
 
             // File > Print... (PrintForm, docs/plans/executed/PLAN-printing.md): the Print window on what the page made to print.
@@ -1374,6 +1404,7 @@ sealed class MainForm : Form
 
             case "closeCancel":
                 closeAsked = false;
+                app.Elevated.SetClosing(this, false);
                 CloseCancelled?.Invoke();
                 CloseCancelled = null;
                 return null;
@@ -1763,26 +1794,47 @@ sealed class MainForm : Form
 
     // A file written off the UI thread, in the encoding it was read in; `backup`: the old file becomes name.bak. Noted
     // as our own write first, so the watcher does not report it as changed elsewhere.
-    async Task<JsonNode?> WriteFile(JsonNode msg)
+    Task<JsonNode?> WriteFile(JsonNode msg)
     {
-        var path = msg["path"]!.GetValue<string>();
         var text = msg["text"]!.GetValue<string>();
         var encoding = msg["encoding"]?.GetValue<string>() ?? TextFile.Utf8;
-        var backup = msg["backup"]?.GetValue<bool>() == true;
-        ownWrites[path] = DateTime.UtcNow;
-        await Task.Run(() => TextFile.Write(path, text, encoding, backup));
-        return true;
+        var path = msg["path"]!.GetValue<string>();
+        return SaveBytes(msg, () => TextFile.Encode(text, encoding, Path.GetFileName(path)));
     }
 
     // A file's bytes written as they are (Hex), as WriteFile writes text: noted as our own write, `backup` kept.
-    async Task<JsonNode?> HexWrite(JsonNode msg)
+    Task<JsonNode?> HexWrite(JsonNode msg) => SaveBytes(msg, () => Convert.FromBase64String(msg["data"]!.GetValue<string>()));
+
+    // A save's bytes written (docs/plans/PLAN-elevated-save.md). Not written, with { refused }: "readOnly" (the file
+    // has the attribute; `keepReadOnly` writes it anyway, the mark set again after), "rights" (the user may not write
+    // there; `closing`: LexPen is closing, the question covers the rest of the close), "cancelled" (`elevated`: written
+    // by the elevated helper, and its UAC prompt was cancelled). While a helper runs (a close's, or kept: `keep`, the
+    // setting "elevation" at "keep"), a refused file goes to it unasked; `never` (that setting at "never"): it does not.
+    async Task<JsonNode?> SaveBytes(JsonNode msg, Func<byte[]> encode)
     {
         var path = msg["path"]!.GetValue<string>();
-        var bytes = Convert.FromBase64String(msg["data"]!.GetValue<string>());
         var backup = msg["backup"]?.GetValue<bool>() == true;
-        ownWrites[path] = DateTime.UtcNow;
-        await Task.Run(() => TextFile.WriteBytes(path, bytes, backup));
-        return true;
+        var keepReadOnly = msg["keepReadOnly"]?.GetValue<bool>() == true;
+        var bytes = await Task.Run(encode);   // encoded before anything on disk changes (an ANSI file fails here)
+        if (!keepReadOnly && File.Exists(path) && File.GetAttributes(path).HasFlag(FileAttributes.ReadOnly))
+            return new JsonObject { ["refused"] = "readOnly" };
+        if (msg["elevated"]?.GetValue<bool>() != true)
+        {
+            ownWrites[path] = DateTime.UtcNow;
+            try
+            {
+                await Task.Run(() => ElevatedWriter.Write(path, bytes, backup, keepReadOnly));
+                return true;
+            }
+            catch (UnauthorizedAccessException) when (!app.Elevated.Running || msg["never"]?.GetValue<bool>() == true)
+            {
+                return new JsonObject { ["refused"] = "rights", ["closing"] = app.Elevated.Closing };
+            }
+            catch (UnauthorizedAccessException) { }   // a close's helper runs: it writes this one too
+        }
+        var keep = msg["keep"]?.GetValue<bool>() == true;
+        return await app.Elevated.Write(Handle, path, bytes, backup, keepReadOnly, keep, () => ownWrites[path] = DateTime.UtcNow)
+            ? true : new JsonObject { ["refused"] = "cancelled" };
     }
 
     // A file's highlights written (off the UI thread), then the other windows told.
@@ -1899,6 +1951,7 @@ sealed class MainForm : Form
                 return;
             }
             closeAsked = true;
+            app.Elevated.SetClosing(this, true);   // its saves share one UAC prompt with the other closes
             // Pinned tabs go to another open window of this project, if there is one (the page decides, per setting);
             // closing with the project, they stay (the whole project closes) and the answer is given.
             Post(CloseAnswer is null
@@ -1908,6 +1961,7 @@ sealed class MainForm : Form
         }
 
         app.ReleaseOwned(this);
+        app.Elevated.SetClosing(this, false);
 
         if (Primary)
             app.SaveBounds(WindowState == FormWindowState.Normal ? Bounds : RestoreBounds,

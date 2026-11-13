@@ -69,6 +69,13 @@ sealed class AppHost : ApplicationContext
     /// <summary>Where each PDF was read (its page, the way down it, its zoom): the last 100 PDFs, apart from their looks.</summary>
     public ColumnStore PdfPlaces { get; } = new(DataFolder.StatePath(DataDir, "file-pdf-places.json"));
     public HighlightStore Highlights { get; } = new(DataFolder.StatePath(DataDir, "highlights.json"));
+    // Saves where the user may not write: the elevated helper (docs/plans/PLAN-elevated-save.md); every window's status
+    // bar shows while it runs.
+    public ElevatedWriter Elevated => elevated ??= new(on =>
+    {
+        foreach (var w in windows) w.Post(new JsonObject { ["event"] = "elevated", ["on"] = on });
+    });
+    ElevatedWriter? elevated;
     /// <summary>The stored sorts (plan 3, sort.js): yours, so at the top of the data folder.</summary>
     public SortStore Sorts { get; } = new(Path.Combine(DataDir, SortStore.FileName));
     public PrintStore Prints { get; } = new(Path.Combine(DataDir, PrintStore.FileName));
@@ -2872,7 +2879,9 @@ sealed class AppHost : ApplicationContext
         var answer = unsaved.Any(u => u.Documents.Count > 0 || u.Silent) ? CloseQuestion(owner, unsaved) : "save";
         if (answer is null) return;
         KeepOneWindow(list);
-        foreach (var u in unsaved.Where(u => !u.Silent)) await CloseAll(u.Project, answer);
+        Elevated.SetClosing(list, true);   // one UAC prompt for the windows that close one after another
+        try { foreach (var u in unsaved.Where(u => !u.Silent)) await CloseAll(u.Project, answer); }
+        finally { Elevated.SetClosing(list, false); }
         ProjectsChanged();
     }
 
@@ -2886,13 +2895,18 @@ sealed class AppHost : ApplicationContext
         if (DeleteQuestion(owner, unsaved) is not { } answer) return;
         KeepOneWindow(list);
         List<string> keep = [], drop = [];
-        foreach (var u in unsaved.Where(u => !u.Silent))
+        Elevated.SetClosing(list, true);   // one UAC prompt for the windows that close one after another
+        try
         {
-            if (!await CloseAll(u.Project, answer == "none" ? "discard" : "save")) continue;
-            if (projects.Get(u.Project.Id) is { } p) projects.Delete(p);   // closing may have dropped it already
-            drop.AddRange(u.Empty);
-            (answer == "keep" ? keep : drop).AddRange(u.Drafts.Select(d => d.Id));
+            foreach (var u in unsaved.Where(u => !u.Silent))
+            {
+                if (!await CloseAll(u.Project, answer == "none" ? "discard" : "save")) continue;
+                if (projects.Get(u.Project.Id) is { } p) projects.Delete(p);   // closing may have dropped it already
+                drop.AddRange(u.Empty);
+                (answer == "keep" ? keep : drop).AddRange(u.Drafts.Select(d => d.Id));
+            }
         }
+        finally { Elevated.SetClosing(list, false); }
         Drafts.Flush();   // the closed windows wrote their drafts
         foreach (var id in drop)
         {

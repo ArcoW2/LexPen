@@ -255,6 +255,8 @@ body[data-orient=h] .mm-orient::before { content: "Above each other"; }
 .mm-st-ins.mm-on { color: var(--accent); font-weight: 600; }
 .mm-st-col { color: var(--accent); font-weight: 600; }
 .mm-st-col[hidden] { display: none; }
+.mm-st-elev { color: var(--warning); font-weight: 600; }
+.mm-st-elev[hidden] { display: none; }
 .mm-st-long { color: var(--warning); }
 .mm-st-lang.mm-fixed { color: var(--fg-dim); cursor: default; }   /* a kind that is not text (a PDF): its language stays */
 .mm-st-alive { width: 1ch; font-family: Consolas, monospace; color: var(--fg-dim); text-align: center; }
