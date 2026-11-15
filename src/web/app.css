@@ -177,6 +177,8 @@ body[data-orient=h] .mm-orient::before { content: "Above each other"; }
 .mm-about .mm-about-line { margin-bottom: 12px; font-size: calc(12px * var(--ui-scale)); }
 .mm-about .mm-about-created { color: var(--fg); }
 .mm-about .mm-about-by { margin-bottom: 14px; }
+.mm-about-coffee a { color: var(--accent); text-decoration: none; }   /* opens in the browser: MainForm.NewWindowRequested */
+.mm-about-coffee a:hover, .mm-about-coffee a:focus-visible { text-decoration: underline; }
 .mm-about table { width: 100%; border-collapse: collapse; }
 .mm-about th {
   padding: 12px 0 4px; text-align: left; font-size: calc(11px * var(--ui-scale)); font-weight: 600;
