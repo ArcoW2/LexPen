@@ -249,6 +249,7 @@ function changedHighlights(doc) {
   saveHighlights(doc);
   drawHighlightsOf(doc);
   tellHighlightsWindow();
+  if (doc.stream) updateStatus();   // a previewer's stream: its notice that they are not kept (app.js)
 }
 
 // ---------- Kept ----------

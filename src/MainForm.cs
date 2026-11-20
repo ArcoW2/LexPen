@@ -1440,6 +1440,14 @@ sealed class MainForm : Form
                 app.ProjectCommand(this, Arg("kind"), msg);
                 return null;
 
+            // A previewer's Open in LexPen: the file as Explorer's Open gives it (File types: edit or view).
+            case "previewerOpen":
+            {
+                var path = Arg("path");
+                app.Launch([path], shift: false, view: FileTypes.ModeOf(Path.GetExtension(path)) == "view");
+                return null;
+            }
+
             // A previewer never edits: it takes no lock, so it never keeps a window of LexPen from editing a file.
             case "lock":
                 return !IsPreviewer && app.Lock(Arg("path"), this);

@@ -1949,6 +1949,7 @@ addEventListener('blur', endTabWalk);
 const statusUi = {
   chord: $('.mm-st-chord'), pos: $('.mm-st-pos'), ins: $('.mm-st-ins'), enc: $('.mm-st-enc'),
   eol: $('.mm-st-eol'), lang: $('.mm-st-lang'), col: $('.mm-st-col'), elev: $('.mm-st-elev'), char: $('.mm-st-char'), clip: $('.mm-st-clip'), alive: $('.mm-st-alive'), long: $('.mm-st-long'),
+  unstored: $('.mm-st-unstored'),
 };
 
 // The heartbeat at the right of the bottom bar: turned by the page itself, so it stands still exactly
@@ -2012,6 +2013,8 @@ function updateStatus() {
     : doc?.binary ? 'Not text: shown as its bytes (Hex)' : doc?.pdf ? `${languageTitle(doc)}: not text, so its language stays` : 'Language (click: choose another)';
   statusUi.lang.classList.toggle('mm-fixed', !!doc?.pdf || !!doc?.binary);   // a kind that is not text: dimmed (app.css), no list
   statusUi.long.hidden = !(cm && longLineIn(doc));
+  // A previewer's stream (docs/plans/PLAN-preview-handler.md 3.10): said once it has highlights, which are not kept.
+  statusUi.unstored.hidden = !(doc?.stream && typeof hlsOf === 'function' && hlsOf(doc).list.length);
   statusUi.clip.textContent = 'Clip: ' + (clips.active === 0 ? 'Win' : clips.active);
   statusUi.clip.classList.toggle('mm-on', clips.active !== 0);
   statusUi.clip.title = clips.active === 0 ? 'The Windows clipboard is active (click: the clipboards)'
@@ -5188,14 +5191,22 @@ events.preview = async ({ path, name, text }) => {
     if (tab && !tab.readOnly) await setReadOnly(tab, true);
   } else {
     const doc = makeDoc({ text: text ?? '' });
-    Object.assign(doc, { temp: true, stream: true, label: name || 'Preview', language: codeLang(name || '', text ?? '') });
+    // Its language by its name's extension, else by its first line (languageFor), as a file's; markdown is undefined.
+    const language = languageFor(name || '', text ?? '');
+    Object.assign(doc, { temp: true, stream: true, label: name || 'Preview', language: language === 'markdown' ? undefined : language });
     const tab = makeTab(doc, 'preview');
     tab.readOnly = true;
     insertTab(pane, tab);
     await activate(pane, tab);
   }
   await showAll();
+  showPreviewerOpen();
 };
+
+// Open in LexPen: the file as Explorer's Open gives it (edit, or view: File types). A stream has no file to open.
+appAction('previewer.open', { title: 'Open in LexPen', hint: 'The file shown here in LexPen, as opening it from Explorer would',
+  group: 'files', enabled: () => !!activeDoc()?.path, run: () => { const path = activeDoc()?.path; if (path) host('previewerOpen', { path }); } });
+const showPreviewerOpen = () => $('.mm-previewer-open').toggleAttribute('data-none', !activeDoc()?.path);
 
 // The host let go of the file: nothing shown, the file not held.
 events.previewClear = async () => {
