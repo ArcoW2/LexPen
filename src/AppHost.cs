@@ -100,6 +100,7 @@ sealed class AppHost : ApplicationContext
     JsonObject Values(MainForm? w)
     {
         var values = settings["values"] as JsonObject ?? [];
+        if (w?.IsPreviewer == true) return PreviewerValues(values);
         return SetOf(w) is var set && set != ThemeSetFile.Default ? ThemeSetFile.Apply(values, themeSets.Get(set)) : values;
     }
 
@@ -142,7 +143,7 @@ sealed class AppHost : ApplicationContext
     /// <summary>The settings to every window, each its own (its set's values), when they changed for it.</summary>
     void SendSettings()
     {
-        foreach (var w in windows)
+        foreach (var w in windows.Concat(previewers))
             if (SettingsFor(w) is var s && Changed(w, "settings", s)) w.Post(new JsonObject { ["event"] = "settings", ["settings"] = s });
         foreach (var (owner, s) in SettingsPages())
             if (SettingsFor(owner) is var o && Changed(s, "settings", o)) s.Post(new JsonObject { ["event"] = "settings", ["settings"] = o });
@@ -629,6 +630,39 @@ sealed class AppHost : ApplicationContext
     /// <summary>light or dark: as Windows is (Follow Windows), else the setting "theme".</summary>
     public string Mode => SettingFlag("followWindows") ? modeOverride ?? windowsMode : SettingText("theme") == "dark" ? "dark" : "light";
 
+    /// <summary>A window's mode: LexPen's, or a previewer's own (PreviewerMode).</summary>
+    public string ModeOf(MainForm? w) => w?.IsPreviewer == true ? PreviewerMode : Mode;
+
+    // ---------- The previewers' day and night (docs/plans/PLAN-preview-handler.md 3.5) ----------
+    // previewerMode: "windows" (as Windows is), "light" or "dark"; their Day / Night switches every previewer to the other
+    // mode: with "windows" until Windows changes, else until LexPen ends. previewerThemeLight / Dark: a theme for the whole
+    // previewer (its bar and its preview); empty: as LexPen's own windows show that mode. No theme set applies.
+    string? previewerOverride;
+
+    public string PreviewerMode => previewerOverride ?? SettingText("previewerMode") switch
+    {
+        "light" => "light",
+        "dark" => "dark",
+        _ => windowsMode,
+    };
+
+    public void SwitchPreviewerMode()
+    {
+        previewerOverride = PreviewerMode == "dark" ? "light" : "dark";
+        SendLook();
+    }
+
+    JsonObject PreviewerValues(JsonObject values)
+    {
+        var own = SettingText("previewerThemeLight") is { Length: > 0 } light ? light : null;
+        var ownDark = SettingText("previewerThemeDark") is { Length: > 0 } dark ? dark : null;
+        if (own is null && ownDark is null) return values;
+        var copy = (JsonObject)values.DeepClone();
+        if (own is not null) { copy["themeLight"] = own; copy["previewThemeLight"] = ""; }
+        if (ownDark is not null) { copy["themeDark"] = ownDark; copy["previewThemeDark"] = ""; }
+        return copy;
+    }
+
     /// <summary>A theme's colours, complete with its own mode's fallback (a dark theme: the dark one's), for the Print
     /// window's colour choice (docs/plans/executed/PLAN-printing.md 3.4); null: no such theme.</summary>
     public JsonObject? ThemeVars(string id) =>
@@ -644,11 +678,15 @@ sealed class AppHost : ApplicationContext
     string? ThemeId(string setting, JsonObject values) =>
         ThemeFile.Current(values[setting]?.GetValueKind() == JsonValueKind.String ? values[setting]!.GetValue<string>() : null, id => themes.Any(t => t.Id == id));
 
-    ThemeFile.Theme AppTheme(JsonObject values) => ThemeFor(ThemeId(Mode == "dark" ? "themeDark" : "themeLight", values), Mode);
+    ThemeFile.Theme AppTheme(JsonObject values, string? mode = null)
+    {
+        mode ??= Mode;
+        return ThemeFor(ThemeId(mode == "dark" ? "themeDark" : "themeLight", values), mode);
+    }
 
     /// <summary>Every colour of a window's app theme (its set's), for the current mode (the mode's fallback for what
     /// it lacks). No window: the window last worked in (the tool windows follow it).</summary>
-    public Dictionary<string, string> AppColours(MainForm? w) => ThemeFile.Complete(AppTheme(Values(w)), Mode == "dark" ? fallbackDark : fallbackLight);
+    public Dictionary<string, string> AppColours(MainForm? w) => ThemeFile.Complete(AppTheme(Values(w), ModeOf(w)), ModeOf(w) == "dark" ? fallbackDark : fallbackLight);
 
     /// <summary>The app font of window `w` (settings appFont, appSize; Segoe UI 9.75 pt, the pages' 13 px), for LexPen's
     /// own windows (AskForm).</summary>
@@ -663,14 +701,14 @@ sealed class AppHost : ApplicationContext
     /// <summary>The app's theme background: the window before the page draws.</summary>
     public Color AppBackground(MainForm? w) =>
         ThemeFile.Rgb(AppColours(w).GetValueOrDefault("--bg") ?? "") is var (r, g, b) ? Color.FromArgb(r, g, b)
-        : Mode == "dark" ? Color.FromArgb(0x1e, 0x1f, 0x22) : Color.White;
+        : ModeOf(w) == "dark" ? Color.FromArgb(0x1e, 0x1f, 0x22) : Color.White;
 
     /// <summary>A script that runs before the page's own scripts and its first paint: the mode and the app's
     /// theme colours on the page, so it never shows other colours first.</summary>
     public string FirstPaintScript(MainForm? w)
     {
         var vars = new JsonObject(AppColours(w).Select(v => KeyValuePair.Create(v.Key, (JsonNode?)v.Value)));
-        var mode = JsonValue.Create(Mode).ToJsonString();
+        var mode = JsonValue.Create(ModeOf(w)).ToJsonString();
         // It runs before <html> exists: an observer sets them on <html> as it appears (a microtask: before the
         // parser runs a page script, and before any paint).
         return $"(() => {{ const set = r => {{ r.dataset.theme = r.dataset.mode = {mode}; " +
@@ -686,24 +724,25 @@ sealed class AppHost : ApplicationContext
     public JsonObject Look(MainForm? w)
     {
         var values = Values(w);
-        var fallback = Mode == "dark" ? fallbackDark : fallbackLight;
+        var mode = ModeOf(w);
+        var fallback = mode == "dark" ? fallbackDark : fallbackLight;
         JsonObject Json(ThemeFile.Theme t) => new()
         {
             ["id"] = t.Id, ["name"] = t.Name, ["base"] = t.BaseId,
             ["chain"] = new JsonArray(t.Chain.Select(c => (JsonNode?)c).ToArray()),
             ["vars"] = new JsonObject(ThemeFile.Complete(t, fallback).Select(v => KeyValuePair.Create(v.Key, (JsonNode?)v.Value))),
         };
-        var app = AppTheme(values);
+        var app = AppTheme(values, mode);
         // A theme of its own, or null: none set, or no such theme (reported below).
-        JsonObject? Own(string setting) => ThemeId(setting, values) is { Length: > 0 } id && themes.Any(t => t.Id == id) ? Json(ThemeFor(id, Mode)) : null;
-        var dark = Mode == "dark";
+        JsonObject? Own(string setting) => ThemeId(setting, values) is { Length: > 0 } id && themes.Any(t => t.Id == id) ? Json(ThemeFor(id, mode)) : null;
+        var dark = mode == "dark";
         var problems = new JsonArray(themeProblems.Select(p => (JsonNode?)p).ToArray());
         foreach (var name in new[] { "themeLight", "themeDark", "editorThemeLight", "editorThemeDark", "previewThemeLight", "previewThemeDark", "sneakTheme" })
             if (ThemeId(name, values) is { Length: > 0 } id && themes.All(t => t.Id != id))
                 problems.Add($"{(SetOf(w) is var set && set != ThemeSetFile.Default ? $"Theme set \"{set}\"" : "settings.json")}: \"{name}\": there is no theme \"{id}\".");
         return new JsonObject
         {
-            ["mode"] = Mode,
+            ["mode"] = mode,
             ["app"] = Json(app),
             ["editor"] = Own(dark ? "editorThemeDark" : "editorThemeLight"),
             ["preview"] = Own(dark ? "previewThemeDark" : "previewThemeLight"),
@@ -761,7 +800,7 @@ sealed class AppHost : ApplicationContext
     // Each window its own (its set's); a window whose look did not change is left alone.
     void SendLook()
     {
-        foreach (var w in windows)
+        foreach (var w in windows.Concat(previewers))
             if (Look(w) is var look && Changed(w, "look", look))
             {
                 w.ApplyTheme();
@@ -812,7 +851,8 @@ sealed class AppHost : ApplicationContext
         if (now == windowsMode) return;
         windowsMode = now;
         modeOverride = null;
-        if (SettingFlag("followWindows")) SendLook();
+        if (SettingText("previewerMode") is not ("light" or "dark")) previewerOverride = null;
+        SendLook();   // only the windows whose look changed
     }
 
     // Your themes folder changed (a theme edited, added or removed), or in a debug build the project's: read the
@@ -1846,7 +1886,7 @@ sealed class AppHost : ApplicationContext
     /// <summary>Your keys.json was written (a key for a macro): the other windows read their keys again.</summary>
     public void KeysChanged(MainForm from)
     {
-        foreach (var w in windows) if (w != from) w.Post(new JsonObject { ["event"] = "keys" });
+        foreach (var w in windows.Concat(previewers)) if (w != from) w.Post(new JsonObject { ["event"] = "keys" });
     }
 
     /// <summary>A file's highlights were written: the other windows showing it read them again; the highlights window

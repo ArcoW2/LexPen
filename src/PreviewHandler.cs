@@ -85,13 +85,74 @@ static class Previewer
         catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or IOException) { }
     }
 
-    /// <summary>The class and its listing taken off (Settings: Remove LexPen's previewer).</summary>
-    public static void Unregister()
+    /// <summary>The class and its listing taken off (Settings: Remove LexPen's previewer), every extension of
+    /// `extensions` bound to it first (each one's handler before it back).</summary>
+    public static void Unregister(IEnumerable<string> extensions)
     {
+        foreach (var e in extensions) Unbind(e);
         Registry.CurrentUser.DeleteSubKeyTree(ClassKey, throwOnMissingSubKey: false);
         using var key = Registry.CurrentUser.OpenSubKey(HandlersKey, writable: true);
         key?.DeleteValue(Clsid.ToString("B"), throwOnMissingValue: false);
     }
+
+    // ---------- Binding an extension for Explorer (the File types dialog's Preview column) ----------
+    // `.ext\shellex\{IPreviewHandler}` = LexPen's class. A handler of yours that was there before (in HKCU) is kept under
+    // LexPen's class (Previous, per extension) and put back when LexPen is taken off; one of the machine's (HKLM) shows
+    // again by itself once LexPen's is gone.
+    const string HandlerIid = "{8895b1c6-b41f-4c1c-a562-0d564250836f}";
+    static string ShellexKey(string extension) => $@"{FileTypes.Classes}\{extension}\shellex\{HandlerIid}";
+    static string PreviousKey => ClassKey + @"\Previous";
+
+    /// <summary>Whether Explorer previews the extension in LexPen, as far as LexPen set it (your own key).</summary>
+    public static bool IsBound(string extension)
+    {
+        using var key = Registry.CurrentUser.OpenSubKey(ShellexKey(extension));
+        return key?.GetValue(null) is string clsid && Guid.TryParse(clsid, out var g) && g == Clsid;
+    }
+
+    public static void Bind(string extension)
+    {
+        if (IsBound(extension)) return;
+        using (var key = Registry.CurrentUser.OpenSubKey(ShellexKey(extension)))
+            if (key?.GetValue(null) is string before && before.Length > 0)
+                using (var previous = Registry.CurrentUser.CreateSubKey(PreviousKey))
+                    previous.SetValue(extension, before);
+        using (var key = Registry.CurrentUser.CreateSubKey(ShellexKey(extension)))
+            key.SetValue(null, Clsid.ToString("B"));
+    }
+
+    public static void Unbind(string extension)
+    {
+        if (!IsBound(extension)) return;
+        string? before;
+        using (var previous = Registry.CurrentUser.OpenSubKey(PreviousKey, writable: true))
+        {
+            before = previous?.GetValue(extension) as string;
+            previous?.DeleteValue(extension, throwOnMissingValue: false);
+        }
+        if (before is not null)
+        {
+            using var key = Registry.CurrentUser.CreateSubKey(ShellexKey(extension));
+            key.SetValue(null, before);
+        }
+        else Registry.CurrentUser.DeleteSubKeyTree(ShellexKey(extension), throwOnMissingSubKey: false);
+    }
+
+    /// <summary>The preview handler Windows uses now for an extension: its name, and whether it is LexPen's; null for
+    /// none. Asks Windows itself (AssocQueryString), so the machine's handlers and the file type's count too.</summary>
+    public static (string? Name, bool Ours) PreviewsWith(string extension)
+    {
+        var size = 64u;
+        var result = new StringBuilder((int)size);
+        if (AssocQueryString(0, 16 /* ASSOCSTR_SHELLEXTENSION */, extension, HandlerIid, result, ref size) != 0
+            || !Guid.TryParse(result.ToString(), out var clsid)) return (null, false);
+        if (clsid == Clsid) return (Name, true);
+        using var key = Registry.ClassesRoot.OpenSubKey($@"CLSID\{clsid:B}");
+        return (key?.GetValue(null) as string is { Length: > 0 } name ? name : clsid.ToString("B"), false);
+    }
+
+    [DllImport("shlwapi.dll", CharSet = CharSet.Unicode)]
+    static extern int AssocQueryString(int flags, int what, string assoc, string? extra, StringBuilder result, ref uint size);
 
     /// <summary>Started by COM for a host (no LexPen ran): "-Embedding" (or "/Embedding").</summary>
     public static bool IsEmbedding(string[] args) => args.Any(a => a.Equals("-Embedding", StringComparison.OrdinalIgnoreCase) || a.Equals("/Embedding", StringComparison.OrdinalIgnoreCase));

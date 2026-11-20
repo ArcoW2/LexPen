@@ -659,14 +659,21 @@ function ftDraw() {
   }
   ftBody.replaceChildren(...rows.map(r => {
     const tr = document.createElement('tr');
-    tr.innerHTML = '<td><input type="checkbox"></td><td></td><td></td><td><select><option value="edit">Edit</option><option value="view">View</option></select></td><td></td>';
-    const [check, ext, language, , now] = tr.children, box = check.firstChild, select = tr.querySelector('select');
+    tr.innerHTML = '<td><input type="checkbox"></td><td></td><td></td><td><select><option value="edit">Edit</option><option value="view">View</option></select></td><td></td>' +
+      '<td><input type="checkbox" class="st-ft-preview"></td><td></td>';
+    const [check, ext, language, , now, previewCell, previewNow] = tr.children, box = check.firstChild, select = tr.querySelector('select');
+    const preview = previewCell.firstChild;
     box.checked = r.checked;
     ext.textContent = r.extension;
     language.textContent = r.languageName;
     select.value = r.as;
     now.textContent = r.opensWith ?? '-';
     now.className = r.lexpen ? 'st-ft-lexpen' : r.opensWith ? '' : 'st-ft-dim';
+    // Explorer's preview in LexPen (docs/plans/PLAN-preview-handler.md 3.8): apart from how the file opens.
+    preview.checked = r.previewOn;
+    previewNow.textContent = r.previewsWith ?? '-';
+    previewNow.className = r.previewLexPen ? 'st-ft-lexpen' : r.previewsWith ? '' : 'st-ft-dim';
+    preview.addEventListener('change', () => { r.previewOn = preview.checked; ftChanged(); });
     box.addEventListener('change', () => { r.checked = box.checked; ftChanged(); });
     select.addEventListener('change', () => { r.as = select.value; r.checked = box.checked = true; ftChanged(); });   // one click less
     return tr;
@@ -676,13 +683,13 @@ function ftDraw() {
 
 // Nothing changed since the dialog opened: the last button is Close; else Cancel (closing it throws the changes away).
 function ftChanged() {
-  const changed = ft.rows.some(r => r.checked !== !!r.mode || r.checked && r.as !== (r.mode ?? 'edit'));
+  const changed = ft.rows.some(r => r.checked !== !!r.mode || r.checked && r.as !== (r.mode ?? 'edit') || r.previewOn !== !!r.preview);
   ftDialog.querySelector('[data-ft=cancel]').textContent = changed ? 'Cancel' : 'Close';
 }
 
 async function ftLoad() {
   const list = await host('fileTypes');
-  ft.rows = list.map(r => ({ ...r, checked: !!r.mode, as: r.mode ?? 'edit' }));
+  ft.rows = list.map(r => ({ ...r, checked: !!r.mode, as: r.mode ?? 'edit', previewOn: !!r.preview }));
   ftDraw();
 }
 
@@ -711,7 +718,8 @@ ftDialog.querySelector('.st-ft-buttons').addEventListener('click', async e => {
     ftDraw();
     ftNote.classList.remove('st-error');
     try {
-      const done = await host('assignFileTypes', { chosen: ft.rows.filter(r => r.checked).map(r => ({ extension: r.extension, mode: r.as })) });
+      const done = await host('assignFileTypes', { chosen: ft.rows.filter(r => r.checked).map(r => ({ extension: r.extension, mode: r.as })),
+        previews: ft.rows.filter(r => r.previewOn).map(r => r.extension) });
       if (done.cancelled) return;
       ftDialog.close();   // assigned (what Windows keeps for another app the host has said already)
     } catch (error) {

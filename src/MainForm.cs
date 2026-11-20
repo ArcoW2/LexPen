@@ -322,7 +322,7 @@ sealed class MainForm : Form
     // border Windows' own or the theme's (AppHost.ApplyCaption).
     public void ApplyTheme()
     {
-        var dark = app.Mode == "dark";
+        var dark = app.ModeOf(this) == "dark";
         BackColor = web.DefaultBackgroundColor = app.AppBackground(this);
         UpdateFirstPaint();
         var on = dark ? 1 : 0;
@@ -670,7 +670,7 @@ sealed class MainForm : Form
                     ["id"] = Id,
                     ["primary"] = Primary,
                     ["index"] = app.IndexOf(this),
-                    ["theme"] = app.Mode,
+                    ["theme"] = app.ModeOf(this),
                     ["tabColours"] = app.TabColours(),
                     ["folder"] = start.Folder,
                     ["files"] = new JsonArray(start.Files.Select(f => (JsonNode?)f).ToArray()),
@@ -1387,7 +1387,7 @@ sealed class MainForm : Form
                 return null;
 
             case "switchMode":
-                app.SwitchMode();
+                if (IsPreviewer) app.SwitchPreviewerMode(); else app.SwitchMode();
                 return null;
 
             case "openSettings":   // its window of its own (the action settings decides: AppHost.OpenSettings)

@@ -52,11 +52,34 @@ public class PreviewerTests : IDisposable
         Assert.Equal([".cs", ".md"], (string[])Value(Class, "Extensions")!);
     }
 
+    const string Shellex = @"shellex\{8895b1c6-b41f-4c1c-a562-0d564250836f}";
+
+    [Fact]
+    public void BindingAnExtensionKeepsTheHandlerBeforeAndPutsItBack()
+    {
+        const string theirs = "{11111111-2222-3333-4444-555555555555}";
+        using (var key = Registry.CurrentUser.CreateSubKey($@"{testKey}\Classes\.md\{Shellex}")) key.SetValue(null, theirs);
+        Previewer.Register(Exe, [".md", ".cs"]);
+
+        Previewer.Bind(".md");
+        Previewer.Bind(".cs");
+        Assert.True(Previewer.IsBound(".md"));
+        Assert.Equal(Previewer.Clsid.ToString("B"), Value($@"Classes\.md\{Shellex}"));
+
+        Previewer.Unbind(".md");   // theirs again
+        Previewer.Unbind(".cs");   // none before: none again
+        Assert.False(Previewer.IsBound(".md"));
+        Assert.Equal(theirs, Value($@"Classes\.md\{Shellex}"));
+        Assert.Null(Value($@"Classes\.cs\{Shellex}"));
+    }
+
     [Fact]
     public void UnregisterTakesTheClassAndItsListingOff()
     {
         Previewer.Register(Exe, [".md"]);
-        Previewer.Unregister();
+        Previewer.Bind(".md");
+        Previewer.Unregister([".md"]);
+        Assert.Null(Value($@"Classes\.md\{Shellex}"));   // unbound first
         Assert.Null(Value(Class));
         Assert.Null(Value(@"Microsoft\Windows\CurrentVersion\PreviewHandlers", Previewer.Clsid.ToString("B")));
         Assert.Null(Previewer.RegisteredExe);

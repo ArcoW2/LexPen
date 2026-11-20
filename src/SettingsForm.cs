@@ -199,13 +199,27 @@ sealed class SettingsForm : Form, IWebPost
                 window.BeginInvoke(() => app.ResetViewLayout(owner));   // after this reply: it asks first
                 return null;
 
+            // Remove LexPen's previewer (docs/plans/PLAN-preview-handler.md 3.8): asked first; every extension unbound.
+            case "previewerRemove":
+                window.BeginInvoke(() =>
+                {
+                    if (AskForm.Answer(app, owner, new AskForm.Question
+                        {
+                            Text = "Remove LexPen as a previewer? Explorer then previews every file type with what it had before.",
+                            Sign = AskForm.Sign.Question,
+                            Buttons = [("yes", "Remove", null), (null, "Cancel", null)],
+                        }) == "yes")
+                        Previewer.Unregister((app.Languages["extensions"] as JsonObject ?? []).Select(e => e.Key));
+                });
+                return null;
+
             // File types (docs/plans/executed/PLAN-file-types.md): every extension of the language packs, how LexPen opens it and
             // what Windows starts now; Assign asks first, then registers, and names what Windows keeps for another app.
             case "fileTypes":
                 return FileTypes.List(app.Languages, Environment.ProcessPath ?? Application.ExecutablePath);
 
             case "assignFileTypes":
-                return AssignFileTypes(app, owner, msg["chosen"]?.AsArray() ?? []);
+                return AssignFileTypes(app, owner, msg["chosen"]?.AsArray() ?? [], msg["previews"]?.AsArray() ?? []);
 
             // An action of the main window this one belongs to, without bringing it to the front (Reset to default).
             case "runInWindow":
@@ -223,7 +237,9 @@ sealed class SettingsForm : Form, IWebPost
     }
 
     // Assign of the File types dialog: the extensions checked, each "edit" or "view"; the others LexPen had are taken off.
-    static JsonObject AssignFileTypes(AppHost app, IWin32Window owner, JsonArray chosen)
+    // `previews`: the extensions Explorer previews in LexPen (docs/plans/PLAN-preview-handler.md 3.8); the others LexPen's
+    // preview is taken off.
+    static JsonObject AssignFileTypes(AppHost app, IWin32Window owner, JsonArray chosen, JsonArray previews)
     {
 #if DEBUG
         throw new InvalidOperationException("Assign registers the LexPen that runs it: a debug build does not. Use the published LexPen.");
@@ -248,6 +264,11 @@ sealed class SettingsForm : Form, IWebPost
         if (list.Any(c => c.Mode == "edit")) question.Add("Open in LexPen to edit: " + Some(list.Where(c => c.Mode == "edit").Select(c => c.Extension)));
         if (list.Any(c => c.Mode == "view")) question.Add("Open in LexPen to view: " + Some(list.Where(c => c.Mode == "view").Select(c => c.Extension)));
         if (off.Count > 0) question.Add("Take LexPen off: " + Some(off));
+        var preview = previews.Select(p => p?.GetValue<string>()).OfType<string>().Where(extensions.ContainsKey).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var bind = extensions.Select(e => e.Key).Where(e => preview.Contains(e) && !Previewer.IsBound(e)).ToList();
+        var unbind = extensions.Select(e => e.Key).Where(e => !preview.Contains(e) && Previewer.IsBound(e)).ToList();
+        if (bind.Count > 0) question.Add("Preview in LexPen (Explorer's preview pane): " + Some(bind));
+        if (unbind.Count > 0) question.Add("Take LexPen's preview off: " + Some(unbind));
         if (question.Count == 0) question.Add("No extension opens in LexPen.");
         if (AskForm.Answer(app, owner, new AskForm.Question
             {
@@ -255,7 +276,9 @@ sealed class SettingsForm : Form, IWebPost
                 Sign = AskForm.Sign.Question,
                 Buttons = [("yes", "Yes", null), (null, "No", null)],
             }) != "yes") return new JsonObject { ["cancelled"] = true };
-        FileTypes.Assign(exe, list, extensions.Select(e => e.Key));
+        foreach (var e in bind) Previewer.Bind(e);
+        foreach (var e in unbind) Previewer.Unbind(e);
+        FileTypes.Assign(exe, list, extensions.Select(e => e.Key));   // also tells Explorer the associations changed
         // What Windows starts now: an association it protects stays with another app; Default apps for those.
         var kept = list.Where(c => !FileTypes.OpensWith(c.Extension, exe).Ours).Select(c => c.Extension).ToList();
         if (kept.Count > 0)
@@ -266,6 +289,15 @@ sealed class SettingsForm : Form, IWebPost
                 "Windows has no setting for it.");
             System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("ms-settings:defaultapps?registeredAppUser=LexPen") { UseShellExecute = true });
         }
+        // A preview Windows still takes from elsewhere (the file type's own handler comes first): said, not forced.
+        var otherPreview = preview.Where(e => !Previewer.PreviewsWith(e).Ours).ToList();
+        if (otherPreview.Count > 0)
+            AskForm.Tell(app, owner, AskForm.Sign.Information, $"Windows still previews these with another previewer:
+
+{Some(otherPreview)}
+
+" +
+                "Their file type names a previewer of its own, which comes before LexPen's.");
         return new JsonObject { ["assigned"] = list.Count, ["off"] = off.Count, ["kept"] = new JsonArray(kept.Select(k => (JsonNode?)k).ToArray()) };
 #endif
     }

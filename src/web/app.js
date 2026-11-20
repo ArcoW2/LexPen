@@ -5968,7 +5968,8 @@ const commands = {
   about: showAbout,
   exit: () => host('exit'),   // the window still asks about unsaved changes
   // Day / night: following Windows, the other mode until Windows changes mode; else the other mode, kept.
-  theme: () => setting('followWindows') ? host('switchMode') : setSetting('theme', look?.mode === 'dark' ? 'light' : 'dark'),
+  // A previewer: its own mode, switched for every previewer (docs/plans/PLAN-preview-handler.md 3.5), never LexPen's.
+  theme: () => previewer || setting('followWindows') ? host('switchMode') : setSetting('theme', look?.mode === 'dark' ? 'light' : 'dark'),
 };
 
 document.addEventListener('click', e => {

@@ -12,6 +12,9 @@
   "compareProject": 0,            // the project a compare from Explorer (Compare to, --compare) opens in: its id
                                   // (Manage projects); 0 is the project named "Compare" (made on the first compare),
                                   // -1 the project for viewing
+  "previewerMode": "windows",     // LexPen as a previewer (Explorer's preview pane): "windows" (as Windows), "light" or "dark"
+  "previewerThemeLight": "",      // the previewer's theme in day mode, bar and preview: "" is as LexPen's windows
+  "previewerThemeDark": "",       // the previewer's theme in night mode
   "viewReadOnly": true,           // View in LexPen opens a file read-only (the tab menu's Read-only takes that off);
                                   // false: it can be edited at once
   "keepUnnamedProjects": true,    // a project you did not name, with files, when its last window closes: kept as

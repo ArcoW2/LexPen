@@ -167,11 +167,14 @@ static class FileTypes
         {
             var language = e.Value?.GetValue<string>() ?? "";
             var (name, ours) = OpensWith(e.Key, exe);
+            var (previewer, ourPreview) = Previewer.PreviewsWith(e.Key);
             return (JsonNode?)new JsonObject
             {
                 ["extension"] = e.Key, ["language"] = language,
                 ["languageName"] = packs?[language]?["name"]?.GetValue<string>() ?? language,
                 ["mode"] = ModeOf(e.Key), ["opensWith"] = name, ["lexpen"] = ours,
+                // The preview handler (docs/plans/PLAN-preview-handler.md 3.8): LexPen's set by LexPen, what Windows uses now.
+                ["preview"] = Previewer.IsBound(e.Key), ["previewsWith"] = previewer, ["previewLexPen"] = ourPreview,
             };
         }).ToArray());
     }
