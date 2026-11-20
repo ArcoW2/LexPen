@@ -42,6 +42,13 @@ async function startCompare(left, right) {
     cmp.sides = sides;
     return stopCompare();
   }
+  // Bytes (Hex) have no editor to compare in (a compare of bytes: docs/plans/PLAN-hex-compare.md).
+  const hex = sides.find(s => s.tab.hex);
+  if (hex) {
+    toast(`${docName(hex.tab.doc)} is shown as bytes (Hex); Compare works on text only.`);
+    cmp.sides = sides;
+    return stopCompare();
+  }
   cmp.sides = sides;
   cmp.on = true;
   cmp.ties = [];
