@@ -1796,6 +1796,12 @@ sealed class AppHost : ApplicationContext
     JsonObject? HighlightsShownIn(MainForm window, int? pane) =>
         highlightsIn.GetValueOrDefault((window, pane ?? highlightsActive.GetValueOrDefault(window)));
 
+    /// <summary>Your keys.json was written (a key for a macro): the other windows read their keys again.</summary>
+    public void KeysChanged(MainForm from)
+    {
+        foreach (var w in windows) if (w != from) w.Post(new JsonObject { ["event"] = "keys" });
+    }
+
     /// <summary>A file's highlights were written: the other windows showing it read them again; the highlights window
     /// and the docked ones refresh their list of all files.</summary>
     public void HighlightsChanged(MainForm from, string? path, string? draft)

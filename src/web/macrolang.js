@@ -73,7 +73,8 @@ function macroArithmetic(op, a, b, line) {
 }
 
 // ---------- Reading: a line into tokens ----------
-// Tokens: { t: 'str' | 'num' | 'var' | 'sys' | 'label' | 'word' | 'op', v, col, type? (a var's :type) }.
+// Tokens: { t: 'str' | 'num' | 'var' | 'sys' | 'label' | 'word' | 'op', v, col, type? (a var's :type) }. A \ at the end
+// of the line (outside text and comments): `cont`, its column (the line goes on on the next, macroProgram).
 function macroTokens(text, line) {
   const out = [];
   let i = 0;
@@ -157,6 +158,7 @@ function macroTokens(text, line) {
     const two = text.slice(i, i + 2);
     if (['<=', '>=', '<>'].includes(two)) { out.push({ t: 'op', v: two, col }); i += 2; continue; }
     if ('=<>+-*/&(),'.includes(c)) { out.push({ t: 'op', v: c, col }); i++; continue; }
+    if (c === '\\' && !text.slice(i + 1).trim()) { out.cont = col; break; }
     fail(`"${c}" is not part of the macro language`, col);
   }
   return out;
@@ -225,6 +227,7 @@ function macroPrimary(tokens, p, line, full) {
 // One statement per line: { k, line, ... }. Block statements (if, switch, procedure, function) are matched later.
 function macroStatement(text, line) {
   const tokens = macroTokens(text, line);
+  if (tokens.cont !== undefined) throw new MacroError('this line goes on (\\ at its end), but no line follows', line, tokens.cont);
   if (!tokens.length) return null;
   const p = { at: 1 }, first = tokens[0], word = first.t === 'word' ? first.v.toLowerCase() : null;
   const fail = (message, tok = tokens[p.at]) => { throw new MacroError(message, line, tok?.col); };
@@ -432,10 +435,23 @@ function macroProgram(text, ctx = {}) {
   const problems = [], lines = String(text).split(/\r?\n/);
   const problem = (severity, message, line, col = 0) => problems.push({ severity, message, line, col });
   const statements = [];
-  lines.forEach((t, i) => {
-    try { const s = macroStatement(t, i + 1); if (s) statements.push(s); }
-    catch (e) { if (e instanceof MacroError) problem('error', e.message, e.line ?? i + 1, e.col ?? 0); else throw e; }
-  });
+  // A line ending in \ goes on on the next: one statement, at its first line. `parts`: where each line starts in it.
+  const goesOn = t => { try { return macroTokens(t, 0).cont !== undefined; } catch { return false; } };
+  for (let i = 0; i < lines.length; i++) {
+    let t = lines[i];
+    const parts = [{ at: 0, line: i + 1 }];
+    while (i + 1 < lines.length && goesOn(t)) {
+      t = t.replace(/\\\s*$/, ' ');
+      parts.push({ at: t.length, line: i + 2 });
+      t += lines[++i];
+    }
+    try { const s = macroStatement(t, parts[0].line); if (s) statements.push(s); }
+    catch (e) {
+      if (!(e instanceof MacroError)) throw e;
+      const part = parts.findLast(q => q.at <= (e.col ?? 0));
+      problem('error', e.message, part.line, (e.col ?? 0) - part.at);
+    }
+  }
   const program = { main: macroScope('main'), procs: new Map(), uses: [], problems };
   let scope = program.main, current = null;
   const blocks = [];   // open if / switch blocks of the current scope
@@ -760,8 +776,9 @@ async function runMacro(program, env, options = {}) {
         if (jumped?.to !== undefined) { pc = jumped.to; continue; }
         if (['do', 'type', 'paste', 'moveto', 'find', 'replace', 'new', 'show', 'open', 'copy'].includes(step.op)) { state.error = false; state.errorText = ''; }
       } catch (e) {
+        if (e instanceof MacroStop) throw e;
+        if (e && typeof e === 'object') e.line ??= step.line;   // also when it stops the macro (the innermost step's)
         if (!(e instanceof MacroError) || state.onerror === 'stop') throw e;
-        e.line ??= step.line;
         state.error = true;
         state.errorText = e.message;
       }
@@ -840,7 +857,7 @@ async function runMacro(program, env, options = {}) {
   } catch (e) {
     if (e instanceof MacroStop) return { ok: true, stopped: true, reason: e.reason, detail: e.detail, vars: main.vars };
     if (e instanceof MacroError) return { ok: false, reason: 'error', error: { line: e.line, message: e.message }, vars: main.vars };
-    return { ok: false, reason: 'error', error: { line: null, message: String(e?.message ?? e) }, vars: main.vars };
+    return { ok: false, reason: 'error', error: { line: e?.line ?? null, message: String(e?.message ?? e) }, vars: main.vars };
   }
 }
 

@@ -5,7 +5,7 @@
 // is one undo step per document it changed; the screen follows every step (on), only at the end (off), or every few
 // seconds; Esc stops a macro. Loaded after macrolang.js.
 
-const macroPlay = { running: false, stop: false, docs: new Map(), cms: new Set(), mode: 'on', every: 0, lastPaint: 0 };
+const macroPlay = { running: false, stop: false, docs: new Map(), cms: new Set(), mode: 'on', every: 0, lastPaint: 0, lastBreak: 0 };
 
 // What the check knows of LexPen: its actions (with how many values each takes) and its system variables.
 const MACRO_SYSTEM = ['found', 'error', 'errortext', 'bof', 'eof', 'line', 'column', 'linetext', 'word', 'selection',
@@ -184,14 +184,20 @@ const macroEnv = {
     if (mark !== macroPlay.guardMark) Object.assign(macroPlay, { guardMark: mark, guardSince: now });
     else if (now - macroPlay.guardSince > MACRO_GUARD_MS) return askMacroGuard();
     const wait = macroPlay.mode === 'on' ? 30 : macroPlay.mode === 'every' ? macroPlay.every * 1000 : 200;
-    if (now - macroPlay.lastPaint < wait) return false;
-    macroPlay.lastPaint = now;
+    if (now - macroPlay.lastPaint < wait) {
+      // Not painted yet (screen every N: for seconds): a break all the same, so Esc gets in.
+      if (now - macroPlay.lastBreak < MACRO_BREAK_MS) return false;
+      macroPlay.lastBreak = now;
+      return new Promise(r => setTimeout(() => r(macroPlay.stop), 0));
+    }
+    macroPlay.lastPaint = macroPlay.lastBreak = now;
     const paint = macroPlay.mode !== 'off';
     if (paint) macroEndOperations();
     return new Promise(r => (paint ? requestAnimationFrame : f => setTimeout(f, 0))(() => r(macroPlay.stop)));
   },
 };
 
+const MACRO_BREAK_MS = 200;   // the time between two breaks of a playing macro (Esc gets in)
 const MACRO_GUARD_MS = 10000;   // how long a macro may run without the text or the cursor changing before it asks
 async function askMacroGuard() {
   macroEndOperations();
@@ -221,7 +227,7 @@ async function playMacro(text, { times = 1, notfound, onerror, screen = 'on', ev
   const program = macroProgram(text, macroContext());
   const error = program.problems.find(p => p.severity === 'error');
   if (error) { toast(`${name} has an error, line ${error.line}: ${error.message}`); return { ok: false, reason: 'invalid', error }; }
-  Object.assign(macroPlay, { running: true, stop: false, mode: screen, every, lastPaint: performance.now(), guardMark: null });
+  Object.assign(macroPlay, { running: true, stop: false, mode: screen, every, lastPaint: performance.now(), lastBreak: performance.now(), guardMark: null });
   document.body.toggleAttribute('data-macro-running', true);
   holdPane('macros', 'playing');   // the floating Macros panel stays with this window meanwhile (plan 22; panechannel.js)
   toast(`${name} runs; Esc stops it.`, true);
@@ -512,6 +518,8 @@ async function fromMacrosPane(m) {
 
 // The macros folder changed (AppHost.WatchMacros): the list again, the chosen macro kept when it is still there.
 events.macros = () => fillMacroWindow(macroWindowName());
+// Another window gave a macro a key (your keys.json): this one reads its keys again.
+events.keys = async () => setKeys(await host('keys'));   // keys.js
 
 // Shown since the start (docked at a restart): Manage, with the list.
 loadMacroNames().then(names => {
