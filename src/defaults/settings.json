@@ -136,7 +136,7 @@
   "newFileEol": "crlf",           // line ends of a new file (and of one without a line break): "crlf", "lf" or "cr"
   "newFileLanguageFrom": "given", // a new file's language: "active" (the active document's) or "given" (newFileLanguage)
   "newFileLanguage": "markdown",  // a new file's language when given, or when no document is active
-  "askSaveDrafts": true,          // closing LexPen asks to save changed drafts too (false: they stay drafts, unasked)
+  "changedDrafts": "ask",         // closing LexPen with changed drafts: "ask" (save or keep as draft), "keep" (stay drafts, unasked) or "delete" (gone, unasked)
 
   // ---------- Tabs ----------
   "tabOrder": "recent",           // Document order (Ctrl+PgDn): "recent" (recently used) or "tabs" (the tab bar)

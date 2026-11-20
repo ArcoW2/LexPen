@@ -208,7 +208,7 @@ function control(def) {
   }
   // The chosen text as a tooltip: a list narrower than its text cuts it off.
   const tip = () => select.title = select.selectedOptions[0]?.textContent ?? '';
-  select.addEventListener('change', () => { tip(); set(def.name, JSON.parse(select.value)); });
+  select.addEventListener('change', () => { tip(); set(def.name, JSON.parse(select.value)); if (def.hints) show(); });
   box.append(...(sample ? [sample, select] : [select]));
   return {
     box, focus: select,
@@ -409,6 +409,7 @@ function show() {
     const value = valueOf(def.name);
     c.show(value);
     if (def.hintOff) el.querySelector('.st-hint').textContent = value ? def.hint : def.hintOff;
+    if (def.hints) el.querySelector('.st-hint').textContent = def.hints[value] ?? def.hint;
     el.classList.toggle('st-changed', def.layer === 'window' ? JSON.stringify(value) !== JSON.stringify(defaultOf(def)) : settings.user.includes(def.name));
   }
   showScreenZoom();
@@ -556,7 +557,7 @@ function filter(typing = false) {
     if (r.def.showWhen && ![].concat(r.def.showWhen.value).includes(valueOf(r.def.showWhen.name))) return false;
     // This screen: the rows with a line of this screen's zoom (the editor font size, the preview zoom).
     if (layerShown && (r.def.layer ?? 'global') !== layerShown && !(layerShown === 'screen' && r.el.querySelector('.st-screen'))) return false;
-    const text = (r.def.title + ' ' + r.def.hint + ' ' + (r.def.hintOff ?? '') + ' ' + r.def.group + ' ' + (r.def.sub ?? '') + ' ' +
+    const text = (r.def.title + ' ' + r.def.hint + ' ' + (r.def.hintOff ?? '') + ' ' + Object.values(r.def.hints ?? {}).join(' ') + ' ' + r.def.group + ' ' + (r.def.sub ?? '') + ' ' +
       (r.def.keywords ?? '')).toLowerCase();
     return words.every(w => text.includes(w));
   };
