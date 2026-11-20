@@ -69,6 +69,7 @@ static class Program
         app.WatchLanguages();
         app.WatchMacros();
         if (owner) app.RefreshExplorerMenu();   // a new version over the old one: Explorer's entries its way
+        if (owner) app.RefreshPreviewer();   // the preview handler: its class and the extensions it shows
         if (embedding) app.EndWhenIdle();   // ends a while after the last preview, unless a window opens
         else app.Launch(paths, shift, compare, view, edit);
         if (owner) app.Listen(name);

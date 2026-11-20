@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
 using System.Text;
+using Microsoft.Win32;
 
 namespace LexPen;
 
@@ -36,6 +37,60 @@ static class Previewer
         if (cookie == 0) return;
         CoRevokeClassObject(cookie);
         cookie = 0;
+    }
+
+    // ---------- Registration (for the current user; below LEXPEN_REGISTRY_ROOT in the tests, as FileTypes) ----------
+    static string ClassKey => $@"{FileTypes.Classes}\CLSID\{Clsid:B}";
+    static string HandlersKey => $@"{FileTypes.Software}\Microsoft\Windows\CurrentVersion\PreviewHandlers";
+
+    /// <summary>The exe the class is registered with; null when it is not.</summary>
+    public static string? RegisteredExe
+    {
+        get
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(ClassKey + @"\LocalServer32");
+            return key?.GetValue(null) is string command ? command.Trim().Trim('"') : null;
+        }
+    }
+
+    /// <summary>The class (served by `exe`), listed as a preview handler, with the extensions LexPen shows: a list that
+    /// binds nothing, the same for every host that reads it (a host choosing its previewers itself, as Foldex). Binding an
+    /// extension for Explorer is the File types dialog's.</summary>
+    public static void Register(string exe, IEnumerable<string> extensions)
+    {
+        using (var key = Registry.CurrentUser.CreateSubKey(ClassKey))
+        {
+            key.SetValue(null, Name);
+            key.SetValue("DisplayName", Name);
+            key.SetValue("Extensions", extensions.Order(StringComparer.OrdinalIgnoreCase).ToArray(), RegistryValueKind.MultiString);
+        }
+        using (var key = Registry.CurrentUser.CreateSubKey(ClassKey + @"\LocalServer32"))
+            key.SetValue(null, $"\"{exe}\"");
+        using (var key = Registry.CurrentUser.CreateSubKey(HandlersKey))
+            key.SetValue(Clsid.ToString("B"), Name);
+    }
+
+    /// <summary>At the start: registered when it is not yet, again when it names this exe (a new list of extensions) or an
+    /// exe that is gone (LexPen moved). Another LexPen's (a debug build, another folder) stays. A debug build never
+    /// registers itself where none is: it would take the previews from the LexPen you use.</summary>
+    public static void Refresh(string exe, IEnumerable<string> extensions)
+    {
+        var registered = RegisteredExe;
+        if (registered is not null && !string.Equals(registered, exe, StringComparison.OrdinalIgnoreCase) && File.Exists(registered))
+            return;
+#if DEBUG
+        if (registered is null) return;
+#endif
+        try { Register(exe, extensions); }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or IOException) { }
+    }
+
+    /// <summary>The class and its listing taken off (Settings: Remove LexPen's previewer).</summary>
+    public static void Unregister()
+    {
+        Registry.CurrentUser.DeleteSubKeyTree(ClassKey, throwOnMissingSubKey: false);
+        using var key = Registry.CurrentUser.OpenSubKey(HandlersKey, writable: true);
+        key?.DeleteValue(Clsid.ToString("B"), throwOnMissingValue: false);
     }
 
     /// <summary>Started by COM for a host (no LexPen ran): "-Embedding" (or "/Embedding").</summary>

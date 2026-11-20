@@ -858,6 +858,11 @@ sealed class AppHost : ApplicationContext
             ExplorerMenu.Apply(exe, ExplorerChoice());
     }
 
+    /// <summary>At the start: LexPen's preview handler registered, with every extension its language packs give
+    /// (docs/plans/PLAN-preview-handler.md 3.8; Previewer.Refresh says when).</summary>
+    public void RefreshPreviewer() =>
+        Previewer.Refresh(Environment.ProcessPath ?? Application.ExecutablePath, (languages["extensions"] as JsonObject ?? []).Select(e => e.Key));
+
     public void WatchMacros()
     {
         var dir = MacroStore.Dir(DataDir);

@@ -18,8 +18,8 @@ static class FileTypes
     const string Prefix = "LexPen.";
     const string OldType = "LexPen.Document";   // register.ps1's file type for .md, before this
 
-    static string Classes => Environment.GetEnvironmentVariable("LEXPEN_REGISTRY_ROOT") is { Length: > 0 } root ? root : @"Software\Classes";
-    static string Software => Classes.EndsWith(@"\Classes", StringComparison.OrdinalIgnoreCase) ? Classes[..^@"\Classes".Length] : @"Software";
+    internal static string Classes => Environment.GetEnvironmentVariable("LEXPEN_REGISTRY_ROOT") is { Length: > 0 } root ? root : @"Software\Classes";
+    internal static string Software => Classes.EndsWith(@"\Classes", StringComparison.OrdinalIgnoreCase) ? Classes[..^@"\Classes".Length] : @"Software";
     static string Capabilities => $@"{Software}\LexPen\Capabilities";
     static string RegisteredApplications => $@"{Software}\RegisteredApplications";
     static string FileExts => Environment.GetEnvironmentVariable("LEXPEN_REGISTRY_ROOT") is { Length: > 0 }
