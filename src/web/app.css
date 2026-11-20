@@ -1751,4 +1751,5 @@ body.mm-rb-changing .mm-rb-bodies { overflow-x: auto; }
    above it and the status bar under it; no menus, tabs, docks or editing. */
 body:not([data-role=previewer]) .mm-previewer-only, body[data-role=previewer] .mm-previewer-open[data-none] { display: none; }
 body[data-role=previewer] :is(.mm-menubar, .mm-record-stop, .mm-save, .mm-orient, .mm-switches, .mm-dock, .mm-dock-split,
-  .mm-tabs-row, .mm-st-project, .mm-st-set, .mm-st-panes, .mm-st-pane, .mm-st-ins, .mm-st-clip, .mm-st-elev, .mm-st-eol) { display: none !important; }
+  .mm-tabs-row, .mm-st-project, .mm-st-set, .mm-st-panes, .mm-st-pane, .mm-st-ins, .mm-st-clip, .mm-st-elev, .mm-st-eol,
+  .mm-find-toggle) { display: none !important; }

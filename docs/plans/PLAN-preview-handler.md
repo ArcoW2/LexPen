@@ -1,6 +1,7 @@
 # Plan: LexPen as a previewer (a Windows preview handler)
 
-Status: draft 2026-11-20, revised 2026-11-21; not started. Asked for by Foldex's plan 33
+Status: draft 2026-11-20, revised 2026-11-21; in progress on the branch `preview-handler` (2026-11-21), see As
+built. Asked for by Foldex's plan 33
 (`foldex\docs\plans\33-PLAN-preview-plugins.md`, 3.3), which leaves the handler, its class and its registration to this plan.
 
 ## 1. What this is about
@@ -230,3 +231,49 @@ All of it by the file's path (`BookmarkStore.Key`), so LexPen and the previewer 
 ## 4. Open questions
 
 None.
+
+## 5. As built
+
+In progress on the branch `preview-handler`; not merged. Not yet tried in Explorer itself (see Not yet built).
+
+### Built
+
+- **The handler** (`src/PreviewHandler.cs`): the class `{5A311364-459D-4F66-8434-18A69C5691AC}` served by LexPen.exe
+  as a local server, with COM source generation (`[GeneratedComInterface]`, `StrategyBasedComWrappers`): no native
+  shim was needed. `IInitializeWithFile`, `IInitializeWithStream`, `IPreviewHandler`, `IObjectWithSite`,
+  `IOleWindow`. Every first LexPen registers the class object at its start; `-Embedding` starts LexPen without a
+  window.
+- **The previewer** is a MainForm in a mode of its own (`Start.Previewer`, `IsPreviewer`), not one of the app's
+  windows: no project, session, drafts, recent files or edit lock; it closes without asking. Its page has the role
+  `previewer` (CSS hides the menus, tabs, docks, the editor switches, Replace and the status bar parts about
+  editing). The file is opened in the preview, read-only. WebView2 took a parent window in another process as is.
+- **Lifetime**: LexPen stays while a preview is open; with no window and no preview it ends after 120 seconds
+  (`PreviewIdleMs`, decided during the build).
+- **Find** (Ctrl+F, F3), bookmarks, highlights and notes, jumps: the page's own, unchanged; find checked in the test
+  host ("1 of 8").
+- **Day and night** (3.5): `previewerMode`, `previewerThemeLight`, `previewerThemeDark`, the Day / Night button; the
+  mode is per window now (`AppHost.ModeOf`).
+- **Print** and **Open in LexPen** in the previewer's bar; the Print window is placed over the preview on the screen.
+- **Streams** (3.10): read whole on Initialize, the language by the name's extension, else the first line; highlights
+  and notes kept while shown; the status bar notice "Highlights and notes cannot be stored for this file (no path)"
+  from the first one.
+- **Registration** (3.8): the class, `PreviewHandlers`, and the extensions as a multi-string value `Extensions` under
+  the class. Written at start when none is registered, when it names this exe, or one that is gone; a debug build
+  never registers where none is (it would take the previews from the LexPen in use). The File types dialog's Preview
+  and Previews now with columns; binding keeps the handler before it (`Previous` under the class) and puts it back;
+  Settings > General > Previewer: Remove LexPen's previewer.
+- **Tests**: `PreviewerTests` (registration, binding with the handler before kept and put back, removal). The rest
+  was tried with a test host (a small exe that creates the handler as Explorer does and captures its window),
+  through WebView2's debugging port.
+
+### Not yet built
+
+- **Hex in the language list** (3.4): the editor switches (Editor, Preview, Hex) are hidden in the previewer, and the
+  status bar's language list has no Hex entry; a binary file still opens in Hex by itself.
+- **The place in the file** (3.6): the previewer does not keep the scroll position and cursor per file.
+- **Keys to the host** (3.7): `TranslateAccelerator` answers S_FALSE; keys the page does not use are not passed to
+  `IPreviewHandlerFrame`, so Explorer's own keys may not work with the focus in the preview.
+- **Explorer itself**: needs a published (release) LexPen, which registers the class at its start, and an extension
+  checked under Preview in the File types dialog. Whether Explorer takes a per-user local-server handler without more
+  keys is still [not yet checked].
+- **The Print window as a modal of the host**: placed over it, not tried with a printer from a host.
