@@ -940,9 +940,14 @@ const SETTING_ROWS = [
   { name: 'newFileLanguage', group: 'Files', kind: 'choice', title: 'Language of a new file: the given one',
     hint: 'Used when the setting above says so, or when no document is open',
     options: () => PACK_NAMES.map(name => [name, packs[name].name]) },
-  { name: 'askSaveDrafts', group: 'Files', kind: 'toggle', title: 'Ask to save changed drafts when closing LexPen',
-    hint: 'Closing LexPen with changed drafts asks whether to save them (closing a draft tab always asks)',
-    hintOff: 'Closing LexPen keeps changed drafts as drafts without a question (closing a draft tab always asks)' },
+  { name: 'changedDrafts', group: 'Files', kind: 'choice', title: 'Changed drafts when closing LexPen',
+    hint: 'What closing LexPen does with drafts changed since they were opened (closing a draft tab always asks)',
+    hints: {
+      ask: 'Closing LexPen with changed drafts asks whether to save them as a file or keep them as drafts (closing a draft tab always asks)',
+      keep: 'Closing LexPen keeps changed drafts as drafts without a question (closing a draft tab always asks)',
+      delete: 'Warning: closing LexPen deletes changed drafts without a question; they cannot be retrieved (closing a draft tab always asks)',
+    },
+    options: () => [['ask', 'Ask: save or keep as draft'], ['keep', 'Keep as draft'], ['delete', 'Delete (no way back)']] },
   { name: 'tabOrder', group: 'Tabs', kind: 'choice', options: () => [['recent', 'Recently used'], ['tabs', 'Tab bar order']] },
   { name: 'tabBar', group: 'Tabs', kind: 'choice', title: 'Tab bar', hint: 'When the tabs do not fit in one row',
     options: () => [['scroll', 'One row that scrolls'], ['menu', 'One row, a menu for the tabs out of view'], ['rows', 'Several rows']] },
@@ -1042,6 +1047,7 @@ function settingDefs() {
       name: r.name, group: r.group, sub: r.sub ?? null, kind: r.kind, default: r.default,
       title: r.title ?? action?.title ?? r.name, hint: r.hint ?? action?.hint ?? '',
       hintOff: r.hintOff ?? null,   // a toggle whose hint says what happens: hint when on, hintOff when off
+      hints: r.hints ?? null,   // a choice whose hint says what happens: one per value
       options: r.options?.() ?? (r.kind === 'size' ? [[0, `Default (${r.base()})`], ...FONT_SIZES.map(pt => [pt, pt + ' pt'])] : null),
       monoFirst: r.name === 'editorFont',
       range: r.range ?? null, unit: r.unit ?? '', buttons: r.buttons ?? null,

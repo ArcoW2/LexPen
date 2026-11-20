@@ -1070,7 +1070,11 @@ sealed class MainForm : Form
                 return MacroStore.Refusal(Arg("name"));
 
             case "macroKey":
-                return KeysFile.AddMacroKey(AppHost.DataDir, Arg("key"), Arg("name"));
+            {
+                var added = KeysFile.AddMacroKey(AppHost.DataDir, Arg("key"), Arg("name"));
+                if (added["error"] is null) app.KeysChanged(this);
+                return added;
+            }
 
             // The backups LexPen made (Backups, plan 33): a folder has some (below it too); which to delete; deleted to
             // the Recycle Bin, a file's own or a folder's (with its subfolders or not).

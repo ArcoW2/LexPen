@@ -44,12 +44,6 @@ Already split today (commit 43ac196), with your texts.
 - On: On save, spaces and tabs at line ends are removed from the whole file, just before it is written (Ctrl+Z after the save gives them back). A language can keep some (markdown: 2) or never trim (trimTrailing)
 - Off: On save, spaces and tabs at line ends are kept
 
-### askSaveDrafts: Ask to save changed drafts when closing LexPen
-
-- Current: Off: changed drafts stay drafts without a question (closing a draft tab always asks)
-- On: Closing LexPen with changed drafts asks whether to save them (closing a draft tab always asks)
-- Off: Closing LexPen keeps changed drafts as drafts without a question (closing a draft tab always asks)
-
 ## Editor
 
 ### wrap: Wrap long lines

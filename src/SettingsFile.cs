@@ -74,6 +74,8 @@ static class SettingsFile
         ("openMarkdownIn", "openIn.markdown", null),
         // The first occurrence underlined (on / off) became a choice of how it is marked (plan 34).
         ("occurrences.markFirst", "occurrences.first", v => v?.GetValueKind() == JsonValueKind.False ? "same" : "underline"),
+        // Ask to save changed drafts (on / off) became a choice that can also delete them.
+        ("askSaveDrafts", "changedDrafts", v => v?.GetValueKind() == JsonValueKind.False ? "keep" : "ask"),
     ];
 
     // Settings that went (their part is done by another): removed from your file, once, when it is read.

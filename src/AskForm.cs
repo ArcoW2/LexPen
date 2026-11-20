@@ -135,8 +135,14 @@ sealed class AskForm : Form
             layout.Controls.Add(Make(value, label, note));
         // The other buttons at the right, in their order.
         var row = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.RightToLeft, Anchor = AnchorStyles.Right, Margin = new Padding(0, 10, 0, 0), WrapContents = false };
-        foreach (var (value, label, _) in buttons.Where(b => b.Note is null).Reverse())
-            row.Controls.Add(Make(value, label, null));
+        // Added right to left (the flow), Tab still goes left to right: in their order.
+        var rowItems = buttons.Where(b => b.Note is null).ToList();
+        for (var i = rowItems.Count - 1; i >= 0; i--)
+        {
+            var button = Make(rowItems[i].Value, rowItems[i].Text, null);
+            button.TabIndex = i;
+            row.Controls.Add(button);
+        }
         if (q.Details is not null)
         {
             // Show details: the text under the buttons, at the left of their row.

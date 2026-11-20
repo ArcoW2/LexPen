@@ -4779,8 +4779,9 @@ events.closeRequest = async ({ peer, answer } = {}) => {
     if (peer && setting('movePinned'))
       for (const tab of allTabs().filter(t => t.pinned)) if (paneOf(tab)) await moveTab(tab, peer, { closing: true });
     const dirty = [...docs].filter(d => d.path && d.dirty && d.lock);
-    // Changed drafts are asked about only with the setting; otherwise they stay drafts, unasked.
-    const drafts = !answer && setting('askSaveDrafts') ? [...docs].filter(d => d.draft && d.draftChanged && docText(d).trim()) : [];
+    // Changed drafts by the setting: asked about ("ask"), kept unasked ("keep") or deleted unasked ("delete").
+    const changedDrafts = answer ? [] : [...docs].filter(d => d.draft && d.draftChanged && docText(d).trim());
+    const drafts = setting('changedDrafts') === 'ask' ? changedDrafts : [];
     if (answer === 'save') {
       for (const doc of dirty) if (!await saveDoc(doc)) return host('closeCancel');
     } else if (!answer && (dirty.length || drafts.length)) {
@@ -4791,6 +4792,16 @@ events.closeRequest = async ({ peer, answer } = {}) => {
         for (const doc of drafts) await saveDoc(doc);   // cancelling "Save as" keeps it as a draft
       }
     }
+    if (setting('changedDrafts') === 'delete')
+      for (const doc of changedDrafts) {
+        clearTimeout(doc.draftTimer);
+        doc.draftTimer = 0;
+        clearTimeout(doc.mmTabsTimer);   // the host drops its ruler lines with it
+        doc.mmTabsTimer = 0;
+        host('draftDelete', { draft: doc.draft });
+        for (const tab of tabsOf(doc)) { detachTab(tab); releaseTabDoc(tab); }   // not in the session
+        dropDoc(doc);
+      }
     await flushDrafts();
     await Promise.all([...docs].filter(d => d.mmTabsTimer).map(storeRulerLines));   // ruler.js
     await Promise.all([...docs].filter(d => d.marks).map(d => saveBookmarks(d)));

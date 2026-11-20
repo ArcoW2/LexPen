@@ -1,7 +1,8 @@
 # The macro language
 
 A macro is a small script: one step per line. A step is a LexPen action (every key and menu item is one), or a
-statement below. `#` starts a comment. Macros are kept in `macros\` of the data folder, one `.lpm` file each
+statement below. `#` starts a comment. A `\` at the end of a line (not in text or a comment) goes on on the next
+line: one step over several lines. Macros are kept in `macros\` of the data folder, one `.lpm` file each
 (View > Macros > Manage). In the macro editor the bar has Action..., Statement... and Variable... to insert one,
 Check to list the mistakes, Run and Step; Ctrl+Space completes, F1 on a word shows it here.
 

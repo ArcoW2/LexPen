@@ -126,6 +126,17 @@ public class SettingsFileTests
         Assert.Equal(now, own["occurrences.first"]!.GetValue<string>());
     }
 
+    // askSaveDrafts (on / off) became changedDrafts (a choice): on asks, off keeps them as drafts.
+    [Theory]
+    [InlineData("true", "ask")]
+    [InlineData("false", "keep")]
+    public void TheAskSaveDraftsSettingMovesOver(string old, string now)
+    {
+        var own = JsonNode.Parse(SettingsFile.Upgrade("{ \"askSaveDrafts\": " + old + " }")!)!.AsObject();
+        Assert.Equal(["changedDrafts"], own.Select(p => p.Key));
+        Assert.Equal(now, own["changedDrafts"]!.GetValue<string>());
+    }
+
     [Fact]
     public void TheShippedDefaultsAreReadable()
     {
