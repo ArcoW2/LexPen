@@ -4719,6 +4719,9 @@ function tabCursor(tab) {
 }
 
 let started = false;
+// A preview handler's view (docs/plans/PLAN-preview-handler.md): the file a host gives in the preview, read-only; no
+// project, session, folder or other tabs (MainForm IsPreviewer).
+let previewer = false;
 function saveSession() {
   if (!started) return;
   clearTimeout(saveSession.timer);
@@ -5172,6 +5175,33 @@ async function viewFile(path, last = false) {
   if (!!tab.readOnly !== !!setting('viewReadOnly')) await setReadOnly(tab, !!setting('viewReadOnly'));
   return tab;
 }
+
+// ---------- A previewer (docs/plans/PLAN-preview-handler.md) ----------
+// The host's file in the preview, read-only, the one before closed; or a stream's content (no path: nothing of it is
+// kept; its language from its name, else guessed).
+events.preview = async ({ path, name, text }) => {
+  while (!started) await new Promise(r => setTimeout(r, 50));
+  for (const tab of allTabs()) await closeTab(tab, true);
+  const pane = panes[0];
+  if (path) {
+    const tab = await openFile(path, { pane, mode: 'preview' }).catch(e => { toast(e.message); return null; });
+    if (tab && !tab.readOnly) await setReadOnly(tab, true);
+  } else {
+    const doc = makeDoc({ text: text ?? '' });
+    Object.assign(doc, { temp: true, stream: true, label: name || 'Preview', language: codeLang(name || '', text ?? '') });
+    const tab = makeTab(doc, 'preview');
+    tab.readOnly = true;
+    insertTab(pane, tab);
+    await activate(pane, tab);
+  }
+  await showAll();
+};
+
+// The host let go of the file: nothing shown, the file not held.
+events.previewClear = async () => {
+  for (const tab of allTabs()) await closeTab(tab, true);
+  await showAll();
+};
 
 // A compare from Explorer in this window (the project for comparing, docs/plans/executed/PLAN-compare-project.md): as
 // starting one here, a compare already running ends first; the files of the old one stay as tabs.
@@ -5792,7 +5822,8 @@ async function openRecent(list, path, missing) {
 }
 
 // Opened by the user (not restored): on top of the recent list.
-const noteOpened = (kind, path) => host('recentAdd', { kind, path }).catch(() => {});
+// A previewer keeps no recent files: what a host shows is not what you opened in LexPen.
+const noteOpened = (kind, path) => previewer ? undefined : host('recentAdd', { kind, path }).catch(() => {});
 
 // ---------- About ----------
 async function showAbout() {
@@ -6010,6 +6041,8 @@ track((async () => {
 
   // A window of a project opened again restores its session; folder and files on the command line come on top.
   const start = await host('init');
+  previewer = !!start.previewer;
+  if (previewer) document.body.dataset.role = 'previewer';
   await loadLanguages();   // first: the keys name their actions
   setKeys(await host('keys'));
   loadRibbon();   // ribbon.js: shown as the window's layout says (commandBar)

@@ -888,6 +888,46 @@ sealed class AppHost : ApplicationContext
     readonly Dictionary<string, List<MainForm>> locks = new(StringComparer.OrdinalIgnoreCase);
 
     public IReadOnlyList<MainForm> Windows => windows;
+
+    // ---------- Previewers (docs/plans/PLAN-preview-handler.md) ----------
+    // A preview handler's view: a MainForm without a project, in a host's window, not one of `windows` (no session, no
+    // [n], no primary). LexPen stays while one is open; with no window and no preview it ends a while later
+    // (PreviewIdleMs), so a series of previews does not start LexPen again for each.
+    readonly List<MainForm> previewers = [];
+    const int PreviewIdleMs = 120_000;
+    System.Windows.Forms.Timer? idleTimer;
+
+    public MainForm OpenPreviewer()
+    {
+        idleTimer?.Stop();
+        var w = new MainForm(this, ++lastId, new MainForm.Start(null, [], Previewer: true));
+        previewers.Add(w);
+        w.FormClosed += (_, _) =>
+        {
+            previewers.Remove(w);
+            EndWhenIdle();
+        };
+        return w;
+    }
+
+    /// <summary>No window and no preview: LexPen ends after PreviewIdleMs, unless one comes meanwhile.</summary>
+    public void EndWhenIdle()
+    {
+        if (windows.Count > 0 || previewers.Count > 0) return;
+        if (idleTimer is null)
+        {
+            idleTimer = new System.Windows.Forms.Timer { Interval = PreviewIdleMs };
+            idleTimer.Tick += (_, _) =>
+            {
+                idleTimer.Stop();
+                if (windows.Count > 0 || previewers.Count > 0) return;
+                Drafts.Flush();
+                ExitThread();
+            };
+        }
+        idleTimer.Stop();
+        idleTimer.Start();
+    }
     public bool IsPrimary(MainForm w) => w == primary;
     public int IndexOf(MainForm w) => windows.IndexOf(w) + 1;
     public MainForm? Find(int id) => windows.FirstOrDefault(w => w.Id == id);
@@ -1095,6 +1135,7 @@ sealed class AppHost : ApplicationContext
             w.Place(bounds, false);
         }
 
+        idleTimer?.Stop();
         windows.Add(w);
         recent.Add(w);
         w.Activated += (_, _) => WindowActivated(w);
@@ -1223,6 +1264,7 @@ sealed class AppHost : ApplicationContext
             themeSetsWindow?.Close();
             themeColoursWindow?.Close();
             Drafts.Flush();
+            if (previewers.Count > 0) return;   // previews still shown: LexPen ends after the last (EndWhenIdle)
             ExitThread();
         }
     }

@@ -1747,3 +1747,7 @@ body.mm-rb-changing .mm-rb-bodies { overflow-x: auto; }
 .mm-hx-ul { text-decoration: underline; text-underline-offset: 3px; }   /* the same byte in the other part */
 .mm-hx-caret { box-shadow: inset 2px 0 0 var(--accent); }   /* before the digit or character typed next */
 .mm-hx-empty { color: var(--fg-dim); padding: 8px 0; }
+/* A previewer (docs/plans/PLAN-preview-handler.md): the preview only, with the document's name, Day / Night and the zoom
+   above it and the status bar under it; no menus, tabs, docks or editing. */
+body[data-role=previewer] :is(.mm-menubar, .mm-record-stop, .mm-save, .mm-orient, .mm-switches, .mm-dock, .mm-dock-split,
+  .mm-tabs-row, .mm-st-project, .mm-st-set, .mm-st-panes, .mm-st-pane, .mm-st-ins, .mm-st-clip, .mm-st-elev, .mm-st-eol) { display: none !important; }

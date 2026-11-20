@@ -58,6 +58,7 @@ function bookmarkList(doc) {
 // To the host: after a change of the bookmarks at once; their positions again when the file is saved or closed.
 function saveBookmarks(doc, key = { path: doc.path, draft: doc.draft }) {
   if (!doc.marks && !doc.bmList) return;
+  if (!key.path && !key.draft) return;   // no file and no draft (a previewer's stream): kept while shown only
   return host('bookmarksSet', { ...key, list: bookmarkList(doc) }).catch(() => {});
 }
 
