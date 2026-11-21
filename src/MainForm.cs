@@ -1448,6 +1448,13 @@ sealed class MainForm : Form
                 return null;
             }
 
+            // A previewer's place in a file (PreviewPlaces): the one kept, and the one to keep.
+            case "previewPlace":
+                return app.PreviewPlaces.Get(Arg("path"));
+            case "previewPlaceSet":
+                if (msg["place"] is JsonObject previewPlace) app.PreviewPlaces.Set(Arg("path"), previewPlace);
+                return null;
+
             // A previewer's key it does not use itself: its host's (Explorer's Alt+P, F5, ...).
             case "previewKey":
                 return HostKey?.Invoke(msg["vk"]!.GetValue<int>(), msg["alt"]?.GetValue<bool>() == true) == true;
