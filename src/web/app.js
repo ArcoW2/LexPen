@@ -1102,6 +1102,16 @@ async function renderNow(tab) {
   if (typeof findRegex === 'function') for (const pane of panes)
     if (pane.active === tab && pane.find && !pane.find.el.hidden && pane.find.marked === 'preview' + tab.id) refresh(pane, false);
   if (typeof schedulePreviewOverviews === 'function') schedulePreviewOverviews();   // the preview's scroll bar (previewoverview.js)
+  warmEditor(doc);
+}
+
+// After a preview is drawn, when the page has time: the editor's library and the document's own Doc, so what goes
+// through the editor works in the preview at once (position back / forward, bookmarks, the outline's steps) and the
+// editor opens fast. The preview comes first; this never holds it up.
+function warmEditor(doc) {
+  if (doc.cmDoc || doc.pdf) return;
+  const later = window.requestIdleCallback ?? (f => setTimeout(f, 200));
+  later(() => loadEditor().then(() => { if (!doc.cmDoc && allTabs().some(t => t.doc === doc)) materialize(doc); }), { timeout: 2000 });
 }
 
 // A rendered document's parts made right (the preview, and printing: print.js): the images by their path next to the

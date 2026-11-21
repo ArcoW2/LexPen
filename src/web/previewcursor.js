@@ -266,8 +266,11 @@ function movePreviewCursor(pane, key, ctrl) {
 }
 
 // A bookmark gone to: the cursor there, in view.
+// A jump (a block, an outline entry, a bookmark, an occurrence): where the cursor was is a position for Position back /
+// forward (places.js), as an editor's jump is; not while stepping through them.
 function previewCursorTo(pane, pos) {
-  const tab = pane.active;
+  const tab = pane.active, from = previewCursorPos(tab);
+  if (from && !pane.placeGoing) recordPreviewPlace(tab.doc, from);
   placePreviewCursor(tab, pos);
   const at = pcDomOf(tab);
   if (at) {
