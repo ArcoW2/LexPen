@@ -40,8 +40,11 @@ is one) can offer LexPen without LexPen taking any type from another program.
   - `IPreviewHandler`: `SetWindow` (the host's window and the rectangle), `SetRect`, `DoPreview`, `Unload`,
     `SetFocus`, `QueryFocus`, `TranslateAccelerator`;
   - `IInitializeWithFile`: the file's path. The path is what makes the marks findable (3.6);
-  - `IInitializeWithStream`: for hosts that give only the content (3.10). Which of the two each host uses:
-    [not yet checked];
+  - `IInitializeWithStream`: for hosts that give only the content (3.10). The host chooses which of the two it
+    uses when a handler has both. Foldex takes the stream first, also for a file on disk (`PreviewHost.Initialize`:
+    stream, then file, then item); Explorer: [not yet checked]. A stream made on a file (`SHCreateStreamOnFileEx`)
+    names only the file in its `Stat` ("demo.md"), not its folder, so with a stream LexPen has no path: nothing is
+    remembered for the file and Edit... is off (see Open questions);
   - `IObjectWithSite`, `IOleWindow`: the host and its frame (keys LexPen does not use go back to the host through
     `IPreviewHandlerFrame.TranslateAccelerator`);
   - `IPreviewHandlerVisuals`: taken note of, not followed. The previewer has its own day and night themes (3.5).
@@ -292,7 +295,12 @@ All of it by the file's path (`BookmarkStore.Key`), so LexPen and the previewer 
 
 ## 4. Open questions
 
-None.
+1. **A host that gives a stream for a file on disk** (3.1): LexPen then cannot know the file, so its marks, its
+   language and Edit... are lost there. The host chooses; LexPen cannot ask for the path in a standard way. Ways out:
+   the host takes the file (path) first when it has one and the stream only for content without a file (Foldex's
+   order to change, no LexPen-only arrangement: every handler with both gets its path); or LexPen offers no stream at
+   all, so every host gives the path, and Outlook's attachments get no LexPen preview. Which one, once Explorer's
+   order is known?
 
 ## 5. As built
 
