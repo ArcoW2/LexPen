@@ -231,8 +231,11 @@ All of it by the file's path (`BookmarkStore.Key`), so LexPen and the previewer 
     corner), Highlights (previous and next first, icons only; Highlight, Note, Remove, Remove all; the list from the
     corner). Selection to highlight and Keep the adjusted highlight are left off (Highlight does the first and more;
     the second is rare in a previewer); both can be added.
-  - **View and file**: View (Source, Preview, Hex, Language, Day, Night, zoom) and File (Print, Open in LexPen, Copy,
-    Copy name).
+  - **View and file**: View (Language over Zoom 100%, Zoom in over Zoom out; Source, Preview, Hex and Day / Night
+    are in the top bar) and File (Print, Open in LexPen, Copy, Copy name).
+  - **The top bar**, one line: the preview tabs' names at the left (only with two or more), then at the right the
+    switches (the editor's called Source here), Open in LexPen, Day / Night and the zoom. No file name (the host shows
+    it) and no Print button (it is on View and file).
   - The lists are drop-downs (highlights: as now; bookmarks: `bookmarkList` gets the same drop-down form as
     `highlight.list`). A button without a label has the label "
 " (its icon only; its tooltip names it).
@@ -240,8 +243,8 @@ All of it by the file's path (`BookmarkStore.Key`), so LexPen and the previewer 
     and kept with the tab in ribbon.json. One or two rows take small buttons only; three rows, as every other tab,
     also large ones. LexPen ships them with two rows. The setting for the ribbon's height (ribbonRow, the grip)
     scales their rows as it does the others'.
-  - **In the previewer**: only the preview tabs, whatever commandBar says; their names in a row of their own when
-    there are two or more, none with one. The tab it shows is its own (not the tab LexPen's windows remember).
+  - **In the previewer**: only the preview tabs, whatever commandBar says; their names in the top bar when there are
+    two or more, none with one. The tab it shows is its own (not the tab LexPen's windows remember).
   - **In LexPen's windows**: the preview tabs are not shown, except in the ribbon's change mode, so they can be
     changed as any other tab; they are kept in ribbon.json with the others. Changed there, the previewer shows them as
     changed. The last preview tab cannot be removed.

@@ -123,10 +123,8 @@
 
     { "name": "View and file", "previewer": true, "rows": 2, "groups": [
       { "name": "View", "items": [
-        { "action": "editor.toggle", "label": "Source" }, { "action": "preview.toggle", "label": "Preview", "stack": true },
-        { "action": "hex.toggle", "label": "Hex" }, { "action": "chooseLanguage", "label": "Language", "stack": true },
-        { "action": "theme.day", "label": "Day" }, { "action": "theme.night", "label": "Night", "stack": true },
-        { "action": "zoomIn" }, { "action": "zoomOut", "stack": true }, { "action": "zoomReset" } ] },
+        { "action": "chooseLanguage", "label": "Language" }, { "action": "zoomReset", "stack": true },
+        { "action": "zoomIn" }, { "action": "zoomOut", "stack": true } ] },
       { "name": "File", "items": [
         { "action": "print" }, { "action": "previewer.open", "stack": true },
         { "action": "copy" }, { "action": "file.copy", "label": "Copy name", "stack": true } ] } ] }

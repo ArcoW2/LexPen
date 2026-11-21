@@ -29,6 +29,7 @@ const rbCall = item => [item.action, ...(item.params ?? [])];
 const rbPreviewer = () => typeof previewer !== 'undefined' && !!previewer;
 const rbTabShown = t => rbPreviewer() ? !!t.previewer : !t.previewer || rb.changing;
 const rbMode = () => rbPreviewer() ? 'previewer' : ['ribbon', 'both'].includes(setting('commandBar')) ? setting('commandBar') : 'menu';
+const rbNamesInTop = () => ['ribbon', 'previewer'].includes(rbMode());   // the tab names in the top bar, else a row of their own
 const rbShown = () => rbMode() !== 'menu' && !!rb.model;
 const rbTabIndex = () => Math.max(0, rb.model?.tabs.findIndex(t => t.name === rb.tab) ?? 0);
 const ribbonChanging = () => rb.changing;
@@ -81,9 +82,9 @@ function renderRibbon() {
   if (!rb.model) return;
   const { top, el, row, bodies } = rbElements();
   el.hidden = mode === 'menu';
-  top.hidden = mode !== 'ribbon';
-  // A previewer: its tab names only when it has more than one preview tab.
-  row.hidden = mode === 'previewer' ? rb.model.tabs.filter(t => t.previewer).length < 2 : mode !== 'both';
+  // A previewer: its tab names in the top bar, as with the ribbon only, when it has more than one preview tab.
+  top.hidden = mode === 'previewer' ? rb.model.tabs.filter(t => t.previewer).length < 2 : mode !== 'ribbon';
+  row.hidden = mode !== 'both';
   document.body.classList.toggle('mm-rb-changing', rb.changing);
   el.classList.toggle('mm-rb-names', setting('ribbonGroupNames') !== false);
   el.style.setProperty('--rb-ch', (Number(setting('ribbonLabelWidth')) || 24) + 'ch');
@@ -93,8 +94,8 @@ function renderRibbon() {
   const tabsHtml = tabs.map((t, ti) => !rbTabShown(t) ? '' : `<button class="mm-rb-tab${t.name === rb.tab ? ' mm-on' : ''}${t.previewer ? ' mm-rb-tab-previewer' : ''}" data-tab="${ti}"` +
     `${rb.changing ? ' draggable="true"' : ''}${t.previewer ? ' title="A preview tab: only in the previewer (Explorer\'s preview pane). Right-click: its height"' : ''} tabindex="-1">${escapeHtml(t.name)}</button>`).join('') +
     (rb.changing ? '<button class="mm-rb-tab mm-rb-new" data-new-tab tabindex="-1">New...</button>' : '');
-  (mode === 'ribbon' ? top : row).innerHTML = tabsHtml;
-  (mode === 'ribbon' ? row : top).innerHTML = '';
+  (rbNamesInTop() ? top : row).innerHTML = tabsHtml;
+  (rbNamesInTop() ? row : top).innerHTML = '';
   // Every tab's groups (one shown): a tab name dragged over shows its tab without taking away the dragged button. A tab
   // not shown here (the Preview tab, the others in a previewer): no groups.
   bodies.innerHTML = tabs.map((t, ti) => `<div class="mm-rb-body" data-body="${ti}" data-rows="${ribbonRows(t)}"${t.name === rb.tab ? '' : ' hidden'}>` +
@@ -358,7 +359,7 @@ function rbShowTab(ti) {
   if (!tab) return;
   rb.tab = tab.name;
   if (!rb.changing && !rbPreviewer()) setSetting('ribbonTab', tab.name);   // a previewer's tab: not LexPen's
-  for (const b of (rbMode() === 'ribbon' ? rb.els.top : rb.els.row).querySelectorAll('[data-tab]')) b.classList.toggle('mm-on', +b.dataset.tab === ti);
+  for (const b of (rbNamesInTop() ? rb.els.top : rb.els.row).querySelectorAll('[data-tab]')) b.classList.toggle('mm-on', +b.dataset.tab === ti);
   for (const body of rb.els.bodies.querySelectorAll('[data-body]')) body.hidden = +body.dataset.body !== ti;
   rbRefresh();
   rbOverflow();

@@ -1757,4 +1757,7 @@ body.mm-rb-changing .mm-rb-bodies { overflow-x: auto; }
 body:not([data-role=previewer]) .mm-previewer-only, body[data-role=previewer] .mm-previewer-open[data-none] { display: none; }
 body[data-role=previewer] :is(.mm-menubar, .mm-record-stop, .mm-save, .mm-orient, .mm-dock, .mm-dock-split,
   .mm-tabs-row, .mm-st-project, .mm-st-set, .mm-st-panes, .mm-st-pane, .mm-st-ins, .mm-st-clip, .mm-st-elev, .mm-st-eol,
-  .mm-find-toggle, .mm-rb-grip-h, .mm-rb-collapse, .mm-format) { display: none !important; }   /* .mm-format: its source is read-only */
+  .mm-find-toggle, .mm-rb-grip-h, .mm-rb-collapse, .mm-format, .mm-doc-name) { display: none !important; }   /* .mm-format: its source is read-only; the name: the host shows it */
+/* One line: the preview tabs' names at the left, the switches (Source, Preview, Hex), Day / Night and the zoom at the
+   right. */
+body[data-role=previewer] .mm-switches { margin-left: auto; }

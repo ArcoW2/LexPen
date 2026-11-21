@@ -68,6 +68,10 @@ public class RibbonTests : IDisposable
             Assert.DoesNotContain(its, i => i!["action"]!.GetValue<string>() == list);
         }
         Assert.All(Group("Go to")["items"]!.AsArray(), i => Assert.Equal("\n", i!["label"]!.GetValue<string>()));
+        // View: Language over Zoom 100%, then Zoom in over Zoom out (the switches and Day / Night are in the top bar).
+        var view = tabs[1]["groups"]!.AsArray().First(g => g!["name"]!.GetValue<string>() == "View")!["items"]!;
+        Assert.Equal(["chooseLanguage zoomReset", "zoomIn zoomOut"],
+            Js($"ribbonColumns({view.ToJsonString()}).map(c => c.items.map(x => x.item.action).join(' '))").EnumerateArray().Select(e => e.GetString()));
     }
 
     [Fact]

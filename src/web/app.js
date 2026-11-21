@@ -5215,6 +5215,13 @@ events.preview = async ({ path, name, text }) => {
   showPreviewerOpen();
 };
 
+// The page as a previewer (CSS: body[data-role=previewer]). Its editor is the source of what it shows (read-only): the
+// switch says so.
+function setPreviewerRole() {
+  document.body.dataset.role = 'previewer';
+  Object.assign($('.mm-switch-editor'), { textContent: 'Source' }).dataset.title = 'Show / hide the source';
+}
+
 // Keys for the host (docs/plans/PLAN-preview-handler.md 3.7): a key the previewer does not use goes to the program it
 // shows in (Explorer's Alt+P, F5, ...), which takes it or not. Used: an action ran (keys.js stops it), the find bar's
 // Esc, a menu or dialog open when it came. In a text field only F-keys and Alt+key go (Ctrl+key and AltGr are the
@@ -6096,7 +6103,7 @@ track((async () => {
   // A window of a project opened again restores its session; folder and files on the command line come on top.
   const start = await host('init');
   previewer = !!start.previewer;
-  if (previewer) document.body.dataset.role = 'previewer';
+  if (previewer) setPreviewerRole();
   await loadLanguages();   // first: the keys name their actions
   setKeys(await host('keys'));
   loadRibbon();   // ribbon.js: shown as the window's layout says (commandBar)
