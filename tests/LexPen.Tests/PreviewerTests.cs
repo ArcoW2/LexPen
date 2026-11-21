@@ -73,6 +73,48 @@ public class PreviewerTests : IDisposable
         Assert.Null(Value($@"Classes\.cs\{Shellex}"));
     }
 
+    // IInitializeWithItem (3.1): a shell item of a file on disk gives its path; one that is no file on disk (in a zip)
+    // its content and name, as a stream does.
+    [Fact]
+    public void AShellItemGivesItsFilesPathElseItsContent()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "lexpen-item-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var file = Path.Combine(dir, "note.md");
+            File.WriteAllText(file, "# Hello");
+            var item = ParsingName(file);
+            try { Assert.Equal(file, ShellItem.FileSystemPath(item), ignoreCase: true); }
+            finally { System.Runtime.InteropServices.Marshal.Release(item); }
+
+            var zip = Path.Combine(dir, "pack.zip");
+            using (var archive = System.IO.Compression.ZipFile.Open(zip, System.IO.Compression.ZipArchiveMode.Create))
+            using (var w = new StreamWriter(archive.CreateEntry("inner.md").Open())) w.Write("# Inside");
+            var inner = ParsingName(Path.Combine(zip, "inner.md"));
+            try
+            {
+                Assert.Null(ShellItem.FileSystemPath(inner));
+                var read = ShellItem.Read(inner);
+                Assert.NotNull(read);
+                Assert.Equal("# Inside", read.Value.Text);
+                Assert.StartsWith("inner", read.Value.Name);
+            }
+            finally { System.Runtime.InteropServices.Marshal.Release(inner); }
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    static nint ParsingName(string path)
+    {
+        var iid = new Guid("43826d1e-e718-42ee-bc55-a1e261c37bfe");   // IShellItem
+        Assert.Equal(0, SHCreateItemFromParsingName(path, 0, ref iid, out var item));
+        return item;
+    }
+
+    [System.Runtime.InteropServices.DllImport("shell32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+    static extern int SHCreateItemFromParsingName(string path, nint bindContext, ref Guid iid, out nint item);
+
     [Fact]
     public void UnregisterTakesTheClassAndItsListingOff()
     {

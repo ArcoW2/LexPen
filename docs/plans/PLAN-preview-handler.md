@@ -40,6 +40,8 @@ is one) can offer LexPen without LexPen taking any type from another program.
   - `IPreviewHandler`: `SetWindow` (the host's window and the rectangle), `SetRect`, `DoPreview`, `Unload`,
     `SetFocus`, `QueryFocus`, `TranslateAccelerator`;
   - `IInitializeWithFile`: the file's path. The path is what makes the marks findable (3.6);
+  - `IInitializeWithItem`: a shell item; its file system path (`SIGDN_FILESYSPATH`), as `IInitializeWithFile` gives
+    it; an item that is no file on disk (in a zip) its content and name, as a stream's;
   - `IInitializeWithStream`: for hosts that give only the content (3.10). The host chooses which of the two it
     uses when a handler has both. Foldex takes the stream first, also for a file on disk (`PreviewHost.Initialize`:
     stream, then file, then item); Explorer: [not yet checked]. A stream made on a file (`SHCreateStreamOnFileEx`)
@@ -296,11 +298,10 @@ All of it by the file's path (`BookmarkStore.Key`), so LexPen and the previewer 
 ## 4. Open questions
 
 1. **A host that gives a stream for a file on disk** (3.1): LexPen then cannot know the file, so its marks, its
-   language and Edit... are lost there. The host chooses; LexPen cannot ask for the path in a standard way. Ways out:
-   the host takes the file (path) first when it has one and the stream only for content without a file (Foldex's
-   order to change, no LexPen-only arrangement: every handler with both gets its path); or LexPen offers no stream at
-   all, so every host gives the path, and Outlook's attachments get no LexPen preview. Which one, once Explorer's
-   order is known?
+   language, the images next to a markdown file and Edit... are lost there. The host chooses; LexPen offers file,
+   item and stream, so a host that takes the item or the file first (Foldex can, for every handler alike) gives the
+   path. What Explorer takes first: [not yet checked]; if the stream, whether LexPen should offer it is to decide then
+   (Outlook's attachments may need it).
 
 ## 5. As built
 
@@ -354,6 +355,8 @@ In progress on the branch `preview-handler`; not merged. Not yet tried in Explor
   on the page with real key presses (each key above, Ctrl+F, F3, F8, Ctrl+C, the find box's keys); the call to the
   frame itself needs a host that gives one (Explorer): not yet tried. Foldex's host gives no site, so it gets no keys
   until it does (its side, the same standard).
+- **`IInitializeWithItem`** (3.1): added; the path from the item, else (an item in a zip) its content. Tested with
+  shell items made for a file and for a file in a zip (`PreviewerTests`).
 - **Right-click on a highlight in a preview**: Remove highlight and Highlight act where the right-click was; they used
   the preview's cursor, which a right-click does not move, so they removed nothing.
 - **Tests**: `PreviewerTests` (registration, binding with the handler before kept and put back, removal);

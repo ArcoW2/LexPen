@@ -191,6 +191,12 @@ partial interface IInitializeWithStream
     void Initialize(nint stream, uint mode);
 }
 
+[GeneratedComInterface, Guid("7f73be3f-fb79-493c-a6c7-7ee14e245841")]
+partial interface IInitializeWithItem
+{
+    void Initialize(nint item, uint mode);
+}
+
 [GeneratedComInterface, Guid("8895b1c6-b41f-4c1c-a562-0d564250836f")]
 partial interface IPreviewHandler
 {
@@ -247,7 +253,7 @@ sealed partial class PreviewClassFactory(AppHost app) : IClassFactory
 /// <summary>One preview of a host: the file (or the stream's content) it was given, its window and place; the
 /// previewer it shows them in, made on the first DoPreview and kept for the next file of the same host.</summary>
 [GeneratedComClass]
-sealed partial class PreviewHandler(AppHost app) : IInitializeWithFile, IInitializeWithStream, IPreviewHandler, IObjectWithSite, IOleWindow
+sealed partial class PreviewHandler(AppHost app) : IInitializeWithFile, IInitializeWithItem, IInitializeWithStream, IPreviewHandler, IObjectWithSite, IOleWindow
 {
     string? path;
     (string Name, string Text)? stream;
@@ -261,6 +267,15 @@ sealed partial class PreviewHandler(AppHost app) : IInitializeWithFile, IInitial
     {
         this.path = path;
         stream = null;
+    }
+
+    // A shell item (a host that gives the item): its file's path, as IInitializeWithFile gives it; an item that is no
+    // file on disk (in a zip, a library's) its content, as a stream's.
+    void IInitializeWithItem.Initialize(nint item, uint mode)
+    {
+        stream = null;
+        path = ShellItem.FileSystemPath(item);
+        if (path is null) stream = ShellItem.Read(item);
     }
 
     // A stream (a host without a path: an attachment): read whole now, a stream may not be read twice.
@@ -359,6 +374,43 @@ sealed partial class PreviewHandler(AppHost app) : IInitializeWithFile, IInitial
 
     [DllImport("user32.dll")]
     static extern nint GetFocus();
+}
+
+/// <summary>A shell item (IShellItem): its file system path, or null when it is no file on disk; else its content.</summary>
+static class ShellItem
+{
+    const uint SigdnFileSysPath = 0x80058000, SigdnNormalDisplay = 0;
+    static readonly Guid BhidStream = new("1cebb3ab-7c10-499a-a417-92ca16c4cb83");
+
+    public static string? FileSystemPath(nint item) => Name(item, SigdnFileSysPath) is { Length: > 0 } p && File.Exists(p) ? p : null;
+
+    // Its content through its stream (BHID_Stream), with its display name: as a host's stream.
+    public static (string Name, string Text)? Read(nint item)
+    {
+        unsafe
+        {
+            // IShellItem: QueryInterface, AddRef, Release, BindToHandler (3), GetParent, GetDisplayName (5), ...
+            var bind = (delegate* unmanaged[Stdcall]<nint, nint, Guid*, Guid*, nint*, int>)(*(nint**)item)[3];
+            var bhid = BhidStream;
+            var iid = new Guid("0000000c-0000-0000-C000-000000000046");   // IStream
+            nint stream;
+            if (bind(item, 0, &bhid, &iid, &stream) != 0 || stream == 0) return null;
+            try { return (Name(item, SigdnNormalDisplay) ?? "", ComStream.Read(stream).Text); }
+            finally { Marshal.Release(stream); }
+        }
+    }
+
+    static string? Name(nint item, uint sigdn)
+    {
+        unsafe
+        {
+            var get = (delegate* unmanaged[Stdcall]<nint, uint, nint*, int>)(*(nint**)item)[5];
+            nint name;
+            if (get(item, sigdn, &name) != 0 || name == 0) return null;
+            try { return Marshal.PtrToStringUni(name); }
+            finally { Marshal.FreeCoTaskMem(name); }
+        }
+    }
 }
 
 /// <summary>An IStream read to its end, with the name it gives (STATSTG.pwcsName; "" when none), as text.</summary>
