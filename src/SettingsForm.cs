@@ -292,11 +292,7 @@ sealed class SettingsForm : Form, IWebPost
         // A preview Windows still takes from elsewhere (the file type's own handler comes first): said, not forced.
         var otherPreview = preview.Where(e => !Previewer.PreviewsWith(e).Ours).ToList();
         if (otherPreview.Count > 0)
-            AskForm.Tell(app, owner, AskForm.Sign.Information, $"Windows still previews these with another previewer:
-
-{Some(otherPreview)}
-
-" +
+            AskForm.Tell(app, owner, AskForm.Sign.Information, $"Windows still previews these with another previewer:\n\n{Some(otherPreview)}\n\n" +
                 "Their file type names a previewer of its own, which comes before LexPen's.");
         return new JsonObject { ["assigned"] = list.Count, ["off"] = off.Count, ["kept"] = new JsonArray(kept.Select(k => (JsonNode?)k).ToArray()) };
 #endif
