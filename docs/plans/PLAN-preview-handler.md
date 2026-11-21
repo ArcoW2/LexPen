@@ -182,7 +182,8 @@ All of it by the file's path (`BookmarkStore.Key`), so LexPen and the previewer 
   `...\CurrentVersion\PreviewHandlers`; its Trust Center list showed only those, none of the user's: LexPen's and
   PowerToys' missing). For everyone on this computer lists LexPen's class there; leaving it takes it off; both ask
   for administrator rights (LexPen started elevated, `--previewer-machine add | remove`). The class and the bindings
-  stay the user's; whether Outlook also needs the class under HKLM: [not yet checked].
+  stay the user's; Outlook needs no more: with the listing it previews a `.md` attachment in LexPen (tried
+  2026-11-21, Outlook x64).
 - Whether Explorer accepts a per-user, local-server preview handler without more keys (an AppID, a low-IL setting as
   in-process handlers in prevhost.exe need): [not yet checked].
 
@@ -376,7 +377,7 @@ In progress on the branch `preview-handler`; not merged. Not yet tried in Explor
   liveSet; not in settings.json); it replaces Remove LexPen's previewer. Before it, LexPen's start registered the
   previewer again after a Remove; `previewerOff` keeps Not registered. The elevated LexPen writes only the HKLM listing
   and ends; a message says when it is not as asked. Reading the choice tried in a test LexPen ("For everyone on this
-  computer", as the registry is); changing it not tried here (it changes the machine): to try with Outlook.
+  computer", as the registry is); Outlook previews a `.md` attachment in LexPen with the listing for everyone (tried by the user).
 - **Right-click on a highlight in a preview**: Remove highlight and Highlight act where the right-click was; they used
   the preview's cursor, which a right-click does not move, so they removed nothing.
 - **Tests**: `PreviewerTests` (registration, binding with the handler before kept and put back, removal);
