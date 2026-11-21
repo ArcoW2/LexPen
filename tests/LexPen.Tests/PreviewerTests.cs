@@ -105,6 +105,36 @@ public class PreviewerTests : IDisposable
         finally { Directory.Delete(dir, true); }
     }
 
+    // The settings previewerFile, previewerItem, previewerStream (3.1): the handler offers a host only the ways checked,
+    // and always the handler itself; none checked: no handler.
+    [Theory]
+    [InlineData(true, true, true)]
+    [InlineData(true, false, true)]
+    [InlineData(false, true, false)]
+    [InlineData(false, false, true)]
+    public void TheHandlerOffersOnlyTheWaysChecked(bool file, bool item, bool stream)
+    {
+        var handler = PreviewHandler.Make(null!, file, item, stream)!;
+        var unknown = Previewer.Wrappers.GetOrCreateComInterfaceForObject(handler, System.Runtime.InteropServices.CreateComInterfaceFlags.None);
+        try
+        {
+            bool Offers(string iid)
+            {
+                var g = new Guid(iid);
+                if (System.Runtime.InteropServices.Marshal.QueryInterface(unknown, in g, out var p) != 0) return false;
+                System.Runtime.InteropServices.Marshal.Release(p);
+                return true;
+            }
+            Assert.Equal(file, Offers("b7d14566-0509-4cce-a71f-0a554233bd9b"));     // IInitializeWithFile
+            Assert.Equal(item, Offers("7f73be3f-fb79-493c-a6c7-7ee14e245841"));     // IInitializeWithItem
+            Assert.Equal(stream, Offers("b824b49d-22ac-4161-ac8a-9916e8fa3f7f"));   // IInitializeWithStream
+            Assert.True(Offers("8895b1c6-b41f-4c1c-a562-0d564250836f"));            // IPreviewHandler
+            Assert.True(Offers("FC4801A3-2BA9-11CF-A229-00AA003D7352"));            // IObjectWithSite
+        }
+        finally { System.Runtime.InteropServices.Marshal.Release(unknown); }
+        Assert.Null(PreviewHandler.Make(null!, false, false, false));
+    }
+
     static nint ParsingName(string path)
     {
         var iid = new Guid("43826d1e-e718-42ee-bc55-a1e261c37bfe");   // IShellItem

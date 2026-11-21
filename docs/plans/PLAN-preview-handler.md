@@ -47,6 +47,9 @@ is one) can offer LexPen without LexPen taking any type from another program.
     stream, then file, then item); Explorer: [not yet checked]. A stream made on a file (`SHCreateStreamOnFileEx`)
     names only the file in its `Stat` ("demo.md"), not its folder, so with a stream LexPen has no path: nothing is
     remembered for the file and Edit... is off (see Open questions);
+  - **Which of the three are offered** is a setting each (previewerFile, previewerItem, previewerStream; all on): a
+    host chooses among those offered, in its own order, so switching the stream off makes a host that prefers it give
+    the path or the item. LexPen cannot set the host's order. None on: no LexPen preview;
   - `IObjectWithSite`, `IOleWindow`: the host and its frame (keys LexPen does not use go back to the host through
     `IPreviewHandlerFrame.TranslateAccelerator`);
   - `IPreviewHandlerVisuals`: taken note of, not followed. The previewer has its own day and night themes (3.5).
@@ -355,6 +358,9 @@ In progress on the branch `preview-handler`; not merged. Not yet tried in Explor
   on the page with real key presses (each key above, Ctrl+F, F3, F8, Ctrl+C, the find box's keys); the call to the
   frame itself needs a host that gives one (Explorer): not yet tried. Foldex's host gives no site, so it gets no keys
   until it does (its side, the same standard).
+- **The three ways as settings** (3.1): General > Previewer, a toggle each, under a note of 20 words; the class factory
+  makes a handler that offers only those (a class per combination: a COM object offers the interfaces of its class).
+  `PreviewerTests` checks what each combination offers. A row's `note` (a line above it) is new in the settings window.
 - **`IInitializeWithItem`** (3.1): added; the path from the item, else (an item in a zip) its content. Tested with
   shell items made for a file and for a file in a zip (`PreviewerTests`).
 - **Right-click on a highlight in a preview**: Remove highlight and Highlight act where the right-click was; they used

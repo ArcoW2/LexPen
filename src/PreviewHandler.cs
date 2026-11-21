@@ -241,7 +241,8 @@ sealed partial class PreviewClassFactory(AppHost app) : IClassFactory
     {
         instance = 0;
         if (outer != 0) return unchecked((int)0x80040110);   // CLASS_E_NOAGGREGATION
-        var unknown = Previewer.Wrappers.GetOrCreateComInterfaceForObject(new PreviewHandler(app), CreateComInterfaceFlags.None);
+        if (PreviewHandler.Make(app, app.PreviewerOffers("File"), app.PreviewerOffers("Item"), app.PreviewerOffers("Stream")) is not { } handler) return unchecked((int)0x80004005);   // E_FAIL: none offered (settings)
+        var unknown = Previewer.Wrappers.GetOrCreateComInterfaceForObject(handler, CreateComInterfaceFlags.None);
         var hr = Marshal.QueryInterface(unknown, Marshal.PtrToStructure<Guid>(iid), out instance);
         Marshal.Release(unknown);
         return hr;
@@ -251,9 +252,11 @@ sealed partial class PreviewClassFactory(AppHost app) : IClassFactory
 }
 
 /// <summary>One preview of a host: the file (or the stream's content) it was given, its window and place; the
-/// previewer it shows them in, made on the first DoPreview and kept for the next file of the same host.</summary>
-[GeneratedComClass]
-sealed partial class PreviewHandler(AppHost app) : IInitializeWithFile, IInitializeWithItem, IInitializeWithStream, IPreviewHandler, IObjectWithSite, IOleWindow
+/// previewer it shows them in, made on the first DoPreview and kept for the next file of the same host. How a host
+/// may give the file (IInitializeWithFile, IInitializeWithItem, IInitializeWithStream) is what the settings offer
+/// (previewerFile, previewerItem, previewerStream; 3.1): the host chooses among those, in its own order. A COM object
+/// offers the interfaces its class has, so each combination is a class of its own below.</summary>
+abstract partial class PreviewHandler(AppHost app) : IPreviewHandler, IObjectWithSite, IOleWindow
 {
     string? path;
     (string Name, string Text)? stream;
@@ -263,7 +266,20 @@ sealed partial class PreviewHandler(AppHost app) : IInitializeWithFile, IInitial
     IPreviewHandlerFrame? frame;   // the host's, when its site has one (Explorer's has; a host may give none)
     MainForm? form;
 
-    public void Initialize(string path, uint mode)
+    /// <summary>A handler offering the ways the settings say (a file's path, a shell item, a stream); null: none.</summary>
+    public static PreviewHandler? Make(AppHost app, bool file, bool item, bool stream) => (file, item, stream) switch
+    {
+        (true, true, true) => new FileItemStream(app),
+        (true, true, false) => new FileItem(app),
+        (true, false, true) => new FileAndStream(app),
+        (false, true, true) => new ItemStream(app),
+        (true, false, false) => new FileOnly(app),
+        (false, true, false) => new ItemOnly(app),
+        (false, false, true) => new StreamOnly(app),
+        _ => null,
+    };
+
+    protected void FromFile(string path)
     {
         this.path = path;
         stream = null;
@@ -271,7 +287,7 @@ sealed partial class PreviewHandler(AppHost app) : IInitializeWithFile, IInitial
 
     // A shell item (a host that gives the item): its file's path, as IInitializeWithFile gives it; an item that is no
     // file on disk (in a zip, a library's) its content, as a stream's.
-    void IInitializeWithItem.Initialize(nint item, uint mode)
+    protected void FromItem(nint item)
     {
         stream = null;
         path = ShellItem.FileSystemPath(item);
@@ -279,10 +295,57 @@ sealed partial class PreviewHandler(AppHost app) : IInitializeWithFile, IInitial
     }
 
     // A stream (a host without a path: an attachment): read whole now, a stream may not be read twice.
-    void IInitializeWithStream.Initialize(nint stream, uint mode)
+    protected void FromStream(nint stream)
     {
         path = null;
         this.stream = ComStream.Read(stream);
+    }
+
+    [GeneratedComClass]
+    sealed partial class FileItemStream(AppHost app) : PreviewHandler(app), IInitializeWithFile, IInitializeWithItem, IInitializeWithStream
+    {
+        void IInitializeWithFile.Initialize(string path, uint mode) => FromFile(path);
+        void IInitializeWithItem.Initialize(nint item, uint mode) => FromItem(item);
+        void IInitializeWithStream.Initialize(nint stream, uint mode) => FromStream(stream);
+    }
+
+    [GeneratedComClass]
+    sealed partial class FileItem(AppHost app) : PreviewHandler(app), IInitializeWithFile, IInitializeWithItem
+    {
+        void IInitializeWithFile.Initialize(string path, uint mode) => FromFile(path);
+        void IInitializeWithItem.Initialize(nint item, uint mode) => FromItem(item);
+    }
+
+    [GeneratedComClass]
+    sealed partial class FileAndStream(AppHost app) : PreviewHandler(app), IInitializeWithFile, IInitializeWithStream
+    {
+        void IInitializeWithFile.Initialize(string path, uint mode) => FromFile(path);
+        void IInitializeWithStream.Initialize(nint stream, uint mode) => FromStream(stream);
+    }
+
+    [GeneratedComClass]
+    sealed partial class ItemStream(AppHost app) : PreviewHandler(app), IInitializeWithItem, IInitializeWithStream
+    {
+        void IInitializeWithItem.Initialize(nint item, uint mode) => FromItem(item);
+        void IInitializeWithStream.Initialize(nint stream, uint mode) => FromStream(stream);
+    }
+
+    [GeneratedComClass]
+    sealed partial class FileOnly(AppHost app) : PreviewHandler(app), IInitializeWithFile
+    {
+        void IInitializeWithFile.Initialize(string path, uint mode) => FromFile(path);
+    }
+
+    [GeneratedComClass]
+    sealed partial class ItemOnly(AppHost app) : PreviewHandler(app), IInitializeWithItem
+    {
+        void IInitializeWithItem.Initialize(nint item, uint mode) => FromItem(item);
+    }
+
+    [GeneratedComClass]
+    sealed partial class StreamOnly(AppHost app) : PreviewHandler(app), IInitializeWithStream
+    {
+        void IInitializeWithStream.Initialize(nint stream, uint mode) => FromStream(stream);
     }
 
     public void SetWindow(nint hwnd, in NativeRect rect)

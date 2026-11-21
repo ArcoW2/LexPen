@@ -329,6 +329,8 @@ function buildGroup(group) {
         section.append(box);
       }
     }
+    // A note above a row (def.note): what the rows from there on are for.
+    if (def.note) box.append(Object.assign(document.createElement('div'), { className: 'st-note', textContent: def.note }));
     const el = document.createElement('div');
     el.className = 'st-row';
     el.dataset.name = def.name;
@@ -562,7 +564,7 @@ function filter(typing = false) {
     if (r.def.showWhen && ![].concat(r.def.showWhen.value).includes(valueOf(r.def.showWhen.name))) return false;
     // This screen: the rows with a line of this screen's zoom (the editor font size, the preview zoom).
     if (layerShown && (r.def.layer ?? 'global') !== layerShown && !(layerShown === 'screen' && r.el.querySelector('.st-screen'))) return false;
-    const text = (r.def.title + ' ' + r.def.hint + ' ' + (r.def.hintOff ?? '') + ' ' + Object.values(r.def.hints ?? {}).join(' ') + ' ' + r.def.group + ' ' + (r.def.sub ?? '') + ' ' +
+    const text = (r.def.title + ' ' + r.def.hint + ' ' + (r.def.hintOff ?? '') + ' ' + (r.def.note ?? '') + ' ' + Object.values(r.def.hints ?? {}).join(' ') + ' ' + r.def.group + ' ' + (r.def.sub ?? '') + ' ' +
       (r.def.keywords ?? '')).toLowerCase();
     return words.every(w => text.includes(w));
   };

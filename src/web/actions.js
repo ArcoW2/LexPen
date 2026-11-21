@@ -651,6 +651,17 @@ const SETTING_ROWS = [
   { name: 'previewerThemeDark', group: 'General', sub: 'Previewer', kind: 'choice', title: 'Theme of the previewer in night mode',
     hint: 'For the whole previewer, its bar and its preview. As LexPen: the theme LexPen\'s own windows have in night mode',
     options: () => [['', 'As LexPen'], ...themeOptions()] },
+  // How a host may give the previewer its file (3.1): the host chooses among those offered, in its own order.
+  { name: 'previewerFile', group: 'General', sub: 'Previewer', kind: 'toggle', title: 'Take a file by its path',
+    note: 'How programs may hand the previewer a file; each picks among those checked. A stream keeps no marks, no Edit...',
+    hint: 'A program that shows previews may give the file by its path (IInitializeWithFile): its bookmarks, highlights and language are kept, Edit... works',
+    hintOff: 'Not offered: a program gives the file another way (item or stream), or LexPen shows no preview there' },
+  { name: 'previewerItem', group: 'General', sub: 'Previewer', kind: 'toggle', title: 'Take a file as a shell item',
+    hint: 'A program may give the file as a shell item (IInitializeWithItem): a file on disk by its path, as above; one in a zip by its content',
+    hintOff: 'Not offered: a program gives the file another way (path or stream), or LexPen shows no preview there' },
+  { name: 'previewerStream', group: 'General', sub: 'Previewer', kind: 'toggle', title: 'Take a file as a stream',
+    hint: 'A program may give only the content (IInitializeWithStream; Outlook\'s attachments): shown, but nothing is kept and Edit... is off. Programs that prefer a stream take it before the path: switch this off to get the path there',
+    hintOff: 'Not offered: a program that has only the content (Outlook\'s attachments) shows no LexPen preview; one that prefers a stream gives the path or the item instead. None of the three offered: no LexPen preview anywhere' },
   { name: 'previewerRemove', group: 'General', sub: 'Previewer', kind: 'buttons', title: 'Remove LexPen\'s previewer',
     hint: 'Takes LexPen off as a previewer: Explorer previews every file type with what it had before. Which file types Explorer previews in LexPen: File types (App > Windows Explorer)',
     buttons: [['Remove LexPen\'s previewer', 'previewerRemove']] },
@@ -1061,6 +1072,7 @@ function settingDefs() {
       title: r.title ?? action?.title ?? r.name, hint: r.hint ?? action?.hint ?? '',
       hintOff: r.hintOff ?? null,   // a toggle whose hint says what happens: hint when on, hintOff when off
       hints: r.hints ?? null,   // a choice whose hint says what happens: one per value
+      note: r.note ?? null,     // a line above the row: what the rows from there on are for
       options: r.options?.() ?? (r.kind === 'size' ? [[0, `Default (${r.base()})`], ...FONT_SIZES.map(pt => [pt, pt + ' pt'])] : null),
       monoFirst: r.name === 'editorFont',
       range: r.range ?? null, unit: r.unit ?? '', buttons: r.buttons ?? null,

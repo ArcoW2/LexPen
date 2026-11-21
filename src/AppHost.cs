@@ -475,6 +475,10 @@ sealed class AppHost : ApplicationContext
     /// <summary>A document's right-click menu offers WebView2's Voice typing (the setting voiceTyping).</summary>
     public bool VoiceTyping => SettingFlag("voiceTyping");
 
+    /// <summary>The preview handler offers a host this way to give it the file ("File", "Item", "Stream": the settings
+    /// previewerFile, previewerItem, previewerStream; docs/plans/PLAN-preview-handler.md 3.1).</summary>
+    public bool PreviewerOffers(string how) => SettingFlag("previewer" + how);
+
     // ---------- Language packs (LanguagePacks) ----------
     static string UserLanguagesDir => Path.Combine(DataDir, LanguagePacks.FolderName);
     static string ShippedLanguagesDir => ShippedDir(LanguagePacks.FolderName);

@@ -54,6 +54,7 @@
 .st-text { flex: 1; min-width: 0; }
 .st-title { font-weight: 600; }
 .st-hint { margin-top: 2px; color: var(--fg-dim); font-size: calc(12px * var(--ui-scale)); }
+.st-note { margin: 10px 10px 2px 13px; color: var(--fg-dim); font-style: italic; }   /* above a row: what the rows from there on are for */
 .st-control { flex: none; display: flex; align-items: center; gap: 8px; }
 /* A list as wide as its longest text, between a minimum and a maximum that grows with the window (and both with
    the app's font scale): a wider window shows more of a long text. */
