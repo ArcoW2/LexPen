@@ -34,6 +34,15 @@ static class Program
             if (ew + 2 < args.Length && int.TryParse(args[ew + 2], out var pid)) ElevatedWriter.Serve(args[ew + 1], pid);
             return;
         }
+        // --previewer-machine add | remove (docs/plans/PLAN-preview-handler.md 3.8): started as administrator by LexPen to
+        // list its previewer for the whole machine (Outlook offers only those) or take it off; no window.
+        if (Array.IndexOf(args, Previewer.MachineArg) is var pm and >= 0)
+        {
+            // Failed (not administrator after all): the LexPen that asked sees the listing unchanged and says so.
+            try { if (pm + 1 < args.Length) Previewer.ListForMachine(args[pm + 1] == "add"); }
+            catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or IOException) { }
+            return;
+        }
         // -Embedding: started by COM for a preview (docs/plans/PLAN-preview-handler.md): no window; the previews only.
         var embedding = Previewer.IsEmbedding(args);
         if (embedding) args = [];

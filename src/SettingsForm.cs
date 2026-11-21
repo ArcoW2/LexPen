@@ -209,9 +209,34 @@ sealed class SettingsForm : Form, IWebPost
                             Sign = AskForm.Sign.Question,
                             Buttons = [("yes", "Remove", null), (null, "Cancel", null)],
                         }) == "yes")
+                    {
                         Previewer.Unregister((app.Languages["extensions"] as JsonObject ?? []).Select(e => e.Key));
+                        // Listed for everyone on this computer too: that off as well, as administrator.
+                        if (Previewer.ListedForMachine && !Previewer.AskListForMachine(false, owner.Handle))
+                            AskForm.Tell(app, owner, AskForm.Sign.Information, "LexPen's previewer is removed for you, but it is still listed for everyone on this computer: taking it off that list needs administrator rights.");
+                    }
                 });
                 return null;
+
+            // For everyone on this computer (docs/plans/PLAN-preview-handler.md 3.8): the previewer listed for the machine
+            // (programs such as Outlook take only those), or taken off; Windows asks for administrator rights.
+            case "previewerMachineAdd":
+            case "previewerMachineRemove":
+            {
+                var add = Arg("op") == "previewerMachineAdd";
+                window.BeginInvoke(() =>
+                {
+                    var done = Previewer.AskListForMachine(add, owner.Handle);
+                    AskForm.Tell(app, owner, done ? AskForm.Sign.Information : AskForm.Sign.Warning, (add, done) switch
+                    {
+                        (true, true) => "LexPen's previewer is listed for everyone on this computer now. Programs that only take those (Outlook) show it after a restart, for the file types previewed in LexPen (File types).",
+                        (true, false) => "LexPen's previewer is not listed for everyone on this computer: that needs administrator rights.",
+                        (false, true) => "LexPen's previewer is no longer listed for everyone on this computer.",
+                        _ => "LexPen's previewer is still listed for everyone on this computer: taking it off needs administrator rights.",
+                    });
+                });
+                return null;
+            }
 
             // File types (docs/plans/executed/PLAN-file-types.md): every extension of the language packs, how LexPen opens it and
             // what Windows starts now; Assign asks first, then registers, and names what Windows keeps for another app.

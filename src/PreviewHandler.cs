@@ -95,6 +95,48 @@ static class Previewer
         key?.DeleteValue(Clsid.ToString("B"), throwOnMissingValue: false);
     }
 
+    // ---------- Listed for everyone on this computer (3.8) ----------
+    // Some hosts (Outlook) offer only the preview handlers listed for the whole machine (HKLM ...\PreviewHandlers), not
+    // a user's. Listing LexPen's class there takes administrator rights once (a LexPen started elevated, MachineArg);
+    // the class and the bindings stay the user's.
+    public const string MachineArg = "--previewer-machine";
+    const string MachineHandlersKey = @"Software\Microsoft\Windows\CurrentVersion\PreviewHandlers";
+
+    /// <summary>Whether LexPen's class is listed for the machine (Outlook sees it).</summary>
+    public static bool ListedForMachine
+    {
+        get
+        {
+            using var key = Registry.LocalMachine.OpenSubKey(MachineHandlersKey);
+            return key?.GetValue(Clsid.ToString("B")) is string;
+        }
+    }
+
+    /// <summary>The elevated LexPen's work ("add" or "remove"): the machine's listing written or taken off.</summary>
+    public static void ListForMachine(bool add)
+    {
+        using var key = Registry.LocalMachine.CreateSubKey(MachineHandlersKey);
+        if (add) key.SetValue(Clsid.ToString("B"), Name);
+        else key.DeleteValue(Clsid.ToString("B"), throwOnMissingValue: false);
+    }
+
+    /// <summary>LexPen started as administrator (Windows asks) to list or unlist the class for the machine; true when the
+    /// listing is as asked afterwards, false when the question was declined or it failed.</summary>
+    public static bool AskListForMachine(bool add, nint owner)
+    {
+        try
+        {
+            using var helper = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(Environment.ProcessPath!)
+            {
+                UseShellExecute = true, Verb = "runas", Arguments = $"{MachineArg} {(add ? "add" : "remove")}",
+                ErrorDialog = true, ErrorDialogParentHandle = owner,
+            });
+            helper?.WaitForExit(30000);
+        }
+        catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 1223) { }   // ERROR_CANCELLED: the question said No
+        return ListedForMachine == add;
+    }
+
     // ---------- Binding an extension for Explorer (the File types dialog's Preview column) ----------
     // `.ext\shellex\{IPreviewHandler}` = LexPen's class. A handler of yours that was there before (in HKCU) is kept under
     // LexPen's class (Previous, per extension) and put back when LexPen is taken off; one of the machine's (HKLM) shows
