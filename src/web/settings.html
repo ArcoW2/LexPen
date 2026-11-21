@@ -29,22 +29,31 @@
         <th data-sort="as">Opens as</th><th data-sort="opensWith">Opens now with</th>
         <th data-sort="previewOn" title="Explorer's preview pane shows it in LexPen">Preview</th><th data-sort="previewsWith">Previews now with</th></tr></thead>
       <tbody></tbody>
-      <tfoot><tr>
-        <td><select class="st-ft-change" data-for="checked" title="LexPen opens it: keep it per row, or change it"><option value="">Keep</option><option value="1">Change</option></select>
+    </table>
+  </div>
+  <div class="st-ft-bulk">
+    <div class="st-ft-explain">
+      <span>Change several rows at once: select them (click a row; Ctrl+click adds or removes one, Shift+click a range,
+        Ctrl+A all rows shown). Below each setting: <b>Keep</b> does not touch that setting in the selected rows,
+        <b>Change</b> sets it to the value under it. Then Apply to selected.</span>
+      <button class="st-ft-apply" disabled>Apply to selected</button>
+    </div>
+    <div class="st-ft-linebox">
+      <table class="st-ft-line"><colgroup><col><col><col><col><col><col><col></colgroup><tbody><tr>
+        <td><select class="st-ft-change" data-for="checked" title="LexPen opens it"><option value="">Keep</option><option value="1">Change</option></select>
           <input type="checkbox" data-value="checked" disabled></td>
         <td></td><td></td>
-        <td><select class="st-ft-change" data-for="as" title="Opens as: keep it per row, or change it"><option value="">Keep</option><option value="1">Change</option></select>
+        <td><select class="st-ft-change" data-for="as" title="Opens as"><option value="">Keep</option><option value="1">Change</option></select>
           <select data-value="as" disabled><option value="edit">Edit</option><option value="view">View</option></select></td>
         <td></td>
-        <td><select class="st-ft-change" data-for="previewOn" title="Preview: keep it per row, or change it"><option value="">Keep</option><option value="1">Change</option></select>
+        <td><select class="st-ft-change" data-for="previewOn" title="Preview"><option value="">Keep</option><option value="1">Change</option></select>
           <input type="checkbox" data-value="previewOn" disabled></td>
         <td></td>
-      </tr></tfoot>
-    </table>
+      </tr></tbody></table>
+    </div>
   </div>
   <div class="st-ft-note"></div>
   <div class="st-ft-buttons">
-    <button class="st-ft-apply" title="Puts the settings on Change in the line below the table into the selected rows. Select a row by clicking it; Ctrl+click adds or removes one, Shift+click a range, Ctrl+A all rows shown" disabled>Apply to selected</button>
     <span class="st-ft-gap"></span>
     <button data-ft="assign" title="Every row, also the ones the filter hides: asks first">Assign</button>
     <button data-ft="cancel">Close</button>

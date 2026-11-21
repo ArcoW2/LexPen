@@ -644,7 +644,8 @@ $('.st-foot [data-open]').addEventListener('click', e => host('openFile', { file
 // Shift+click, Ctrl+A for the rows shown); the line below the table puts each setting on Change into the selected rows
 // shown. Assign on every row: it clears the filter and the host asks first. A debug build refuses Assign (the host says so).
 const ftDialog = $('.st-ft'), ftFilter = $('.st-ft-filter'), ftBody = ftDialog.querySelector('tbody'), ftNote = $('.st-ft-note');
-const ftFoot = ftDialog.querySelector('tfoot'), ftApply = ftDialog.querySelector('.st-ft-apply');
+const ftFoot = ftDialog.querySelector('.st-ft-line'), ftApply = ftDialog.querySelector('.st-ft-apply');
+const ftScroll = ftDialog.querySelector('.st-ft-scroll'), ftTable = ftDialog.querySelector('.st-ft-table');
 const ft = { rows: [], sort: 'extension', desc: false, drawn: [], selected: new Set(), anchor: null };
 
 function ftShown() {
@@ -708,6 +709,24 @@ function ftMarkSelected() {
   ftApply.textContent = count ? `Apply to selected (${count})` : 'Apply to selected';
   ftApply.disabled = !count || !ftFoot.querySelector('.st-ft-change option[value="1"]:checked');
 }
+
+// The line below the table is not in it (it does not scroll with the rows): its columns take the widths of the table's,
+// a column with a control of the line made at least as wide as that control, and it follows the table sideways.
+function ftAlign() {
+  const heads = [...ftTable.querySelectorAll('thead th')], cells = [...ftFoot.querySelectorAll('td')], cols = ftFoot.querySelectorAll('col');
+  heads.forEach((th, i) => {
+    const need = Math.max(0, ...[...cells[i].children].map(c => c.offsetWidth));
+    if (need) th.style.width = need + 'px';
+  });
+  heads.forEach((th, i) => cols[i].style.width = th.getBoundingClientRect().width + 'px');
+  ftFoot.style.width = ftTable.getBoundingClientRect().width + 'px';
+  ftFoot.parentElement.style.width = ftScroll.clientWidth + 'px';   // not under the table's scroll bar: as far sideways
+  ftFoot.parentElement.scrollLeft = ftScroll.scrollLeft;
+}
+const ftResized = new ResizeObserver(ftAlign);
+ftResized.observe(ftTable);
+ftResized.observe(ftScroll);
+ftScroll.addEventListener('scroll', () => ftFoot.parentElement.scrollLeft = ftScroll.scrollLeft);
 
 // The line below the table: a setting on Change can be set, on Keep each row keeps its own. Setting how it opens checks
 // the rows too (as choosing it in one row does), unless "LexPen opens it" is on Change itself.
