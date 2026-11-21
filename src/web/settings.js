@@ -198,6 +198,11 @@ function control(def) {
     sample = document.createElement('span');
     sample.className = 'st-sample';
     sample.textContent = 'AaBb 0O 1lI';
+    const more = document.createElement('button');
+    more.textContent = '...';
+    more.title = 'Choose in a window: every font in its own font, a preview, the size';
+    more.addEventListener('click', () => openFontWindow(def));
+    box.append(more);
   } else {
     for (const [value, label] of def.options ?? []) {
       const o = document.createElement('option');
@@ -209,7 +214,7 @@ function control(def) {
   // The chosen text as a tooltip: a list narrower than its text cuts it off.
   const tip = () => select.title = select.selectedOptions[0]?.textContent ?? '';
   select.addEventListener('change', () => { tip(); set(def.name, JSON.parse(select.value)); if (def.hints) show(); });
-  box.append(...(sample ? [sample, select] : [select]));
+  box.prepend(...(sample ? [sample, select] : [select]));   // before a font's "..."
   return {
     box, focus: select,
     show: v => {
@@ -605,7 +610,7 @@ function restoreView() {
 const visibleRows = () => rows.filter(r => !r.el.hidden);
 
 addEventListener('keydown', e => {
-  if (ftDialog.open) return;   // the File types dialog has its own keys (Esc closes it, not the window)
+  if (ftDialog.open || fpDialog.open) return;   // the File types and font dialogs have their own keys (Esc closes them, not the window)
   if (e.ctrlKey && !e.altKey && (e.key === 'Tab' || e.key === 'PageDown' || e.key === 'PageUp') && settings?.defs) {
     e.preventDefault();
     return stepTab(e.key === 'PageUp' || e.key === 'Tab' && e.shiftKey ? -1 : 1);
@@ -761,6 +766,120 @@ layoutBar.querySelector('[data-layout="save"]').addEventListener('click', async 
   });
 });
 layoutBar.querySelector('[data-layout="reset"]').addEventListener('click', () => host('runInWindow', { name: 'layoutResetDefault' }));
+
+// ---------- The font window (a font row's "...") ----------
+// The installed fonts (fontlist.js) each in its own font, Default first; a filter on the name, Monospaced only (on at the
+// start for the editor font). The preview shows the font chosen at the size chosen, with text you can type (kept while the
+// settings window is open). OK sets the font and its size setting (editorFont: editorSize, ...); Cancel and Esc nothing.
+const fpDialog = $('.st-fp'), fpFilter = $('.st-fp-filter'), fpMono = $('.st-fp-mono'), fpList = $('.st-fp-list');
+const fpPreview = $('.st-fp-preview'), fpSize = $('.st-fp-size');
+const FP_TEXT = {
+  editor: 'function greet(name) {\n  // Zero and O, one, l and I: 0O 1lI\n  const text = `Hello, ${name}!`;\n  return [1, 2, 3].map(n => n * 2) || {};\n}\n',
+  app: 'The quick brown fox jumps over the lazy dog.\nTHE QUICK BROWN FOX JUMPS OVER THE LAZY DOG.\n0123456789 AaBb 0O 1lI ( ) [ ] { } < > & @ # %\n',
+};
+const fp = { def: null, font: '', text: {} };
+
+function fpDefault() {   // the default's name, its size in points when the size setting is 0
+  return fp.def.name === 'editorFont' ? 'Consolas' : fp.def.name === 'statusFont' ? valueOf('appFont') || 'Segoe UI' : 'Segoe UI';
+}
+
+function fpDraw() {
+  const words = fpFilter.value.toLowerCase().split(/\s+/).filter(Boolean);
+  const fonts = (installedFonts ?? []).filter(f => (!fpMono.checked || f.mono) && words.every(w => f.name.toLowerCase().includes(w)));
+  const label = fp.def.name === 'statusFont' ? 'Default (the app font)' : `Default (${fpDefault()})`;
+  const items = [...(words.length ? [] : [['', label]]), ...fonts.map(f => [f.name, f.name])].map(([name, text]) => {
+    const item = document.createElement('div'), title = document.createElement('span'), sample = document.createElement('span');
+    item.className = 'st-fp-item';
+    item.dataset.font = name;
+    item.classList.toggle('st-on', name === fp.font);
+    title.className = 'st-fp-name';
+    title.textContent = text;
+    sample.className = 'st-fp-sample';
+    sample.textContent = 'AaBb 0O 1lI';
+    sample.style.fontFamily = `${quote(name || fpDefault())}, ${fp.def.monoFirst ? 'monospace' : 'sans-serif'}`;
+    item.append(title, sample);
+    return item;
+  });
+  if (!items.length) {
+    const none = document.createElement('div');
+    none.className = 'st-fp-none';
+    none.textContent = 'No font has that name.';
+    items.push(none);
+  }
+  fpList.replaceChildren(...items);
+  fpList.querySelector('.st-on')?.scrollIntoView({ block: 'nearest' });
+}
+
+function fpShow() {
+  const size = JSON.parse(fpSize.value);
+  const base = /([\d.]+) pt/.exec(fpSize.options[0]?.textContent ?? '')?.[1];   // "Default (10.5 pt)": the size 0 is
+  const pt = size || +base || valueOf('appSize') || 9.75;
+  fpPreview.style.fontFamily = `${quote(fp.font || fpDefault())}, ${fp.def.monoFirst ? 'monospace' : 'sans-serif'}`;
+  fpPreview.style.fontSize = pt * 96 / 72 + 'px';
+}
+
+function fpChoose(name) {
+  fp.font = name;
+  for (const item of fpList.querySelectorAll('.st-fp-item')) item.classList.toggle('st-on', item.dataset.font === name);
+  fpList.querySelector('.st-on')?.scrollIntoView({ block: 'nearest' });
+  fpShow();
+}
+
+function openFontWindow(def) {
+  fp.def = def;
+  fp.font = valueOf(def.name) || '';
+  const sizeDef = settings.defs.find(d => d.name === def.name.replace(/Font$/, 'Size'));
+  fpSize.replaceChildren(...(sizeDef?.options ?? [[0, 'Default']]).map(([value, label]) => {
+    const o = document.createElement('option');
+    o.value = JSON.stringify(value);
+    o.textContent = label;
+    return o;
+  }));
+  fpSize.value = JSON.stringify(valueOf(sizeDef?.name) ?? 0);
+  if (fpSize.selectedIndex < 0) fpSize.selectedIndex = 0;
+  $('.st-fp-title').textContent = def.title;
+  fpFilter.value = '';
+  // On for the editor font, unless the font in use is not monospaced (then it would not be in the list).
+  fpMono.checked = !!def.monoFirst && (installedFonts ?? []).find(f => f.name === fp.font)?.mono !== false;
+  const kind = def.monoFirst ? 'editor' : 'app';
+  fpPreview.value = fp.text[kind] ?? FP_TEXT[kind];
+  fpPreview.oninput = () => fp.text[kind] = fpPreview.value;
+  fpDraw();
+  fpShow();
+  fpDialog.showModal();
+  fpList.focus();
+  fpList.querySelector('.st-on')?.scrollIntoView({ block: 'center' });
+}
+
+function fpClose(ok) {
+  if (ok) {
+    if (fp.font !== (valueOf(fp.def.name) || '')) set(fp.def.name, fp.font);
+    const sizeName = fp.def.name.replace(/Font$/, 'Size'), size = JSON.parse(fpSize.value);
+    if (settings.defs.some(d => d.name === sizeName) && size !== (valueOf(sizeName) ?? 0)) set(sizeName, size);
+  }
+  fpDialog.close();
+}
+
+fpFilter.addEventListener('input', fpDraw);
+fpMono.addEventListener('change', fpDraw);
+fpSize.addEventListener('change', fpShow);
+fpList.addEventListener('click', e => { const item = e.target.closest('.st-fp-item'); if (item) fpChoose(item.dataset.font); });
+fpList.addEventListener('dblclick', e => { if (e.target.closest('.st-fp-item')) fpClose(true); });
+// Up / Down (Home / End) through the fonts shown, Enter is OK; from the filter too.
+fpDialog.addEventListener('keydown', e => {
+  if (e.target === fpPreview) return;
+  if (e.key === 'Enter' && e.target.tagName !== 'BUTTON') { e.preventDefault(); return fpClose(true); }
+  const items = [...fpList.querySelectorAll('.st-fp-item')], at = items.findIndex(i => i.classList.contains('st-on'));
+  const step = { ArrowDown: 1, ArrowUp: -1, PageDown: 10, PageUp: -10 }[e.key];
+  if (!items.length || (step == null && e.key !== 'Home' && e.key !== 'End') || (e.target === fpFilter && (e.key === 'Home' || e.key === 'End'))) return;
+  e.preventDefault();
+  const next = e.key === 'Home' ? 0 : e.key === 'End' ? items.length - 1 : Math.max(0, Math.min(items.length - 1, (at < 0 ? -1 : at) + step));
+  fpChoose(items[next].dataset.font);
+});
+fpDialog.querySelector('.st-fp-buttons').addEventListener('click', e => {
+  const what = e.target.closest('[data-fp]')?.dataset.fp;
+  if (what) fpClose(what === 'ok');
+});
 
 // ---------- Start ----------
 (async () => {
