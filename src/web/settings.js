@@ -712,7 +712,7 @@ function ftMarkSelected() {
   ft.drawn.forEach((r, i) => ftBody.children[i].classList.toggle('st-sel', ft.selected.has(r.extension)));
   const count = ft.drawn.filter(r => ft.selected.has(r.extension)).length;
   ftApply.textContent = count ? `Apply to selected (${count})` : 'Apply to selected';
-  ftApply.disabled = !count || !ftFoot.querySelector('.st-ft-change option[value="1"]:checked');
+  ftApply.disabled = !count || !ftFoot.querySelector('.st-ft-change[aria-pressed=true]');
 }
 
 // The line below the table is not in it (it does not scroll with the rows): its columns take the widths of the table's,
@@ -721,7 +721,7 @@ function ftAlign() {
   const heads = [...ftTable.querySelectorAll('thead th')], cells = [...ftFoot.querySelectorAll('td')], cols = ftFoot.querySelectorAll('col');
   heads.forEach((th, i) => {
     const need = Math.max(0, ...[...cells[i].children].map(c => c.offsetWidth));
-    if (need) th.style.width = need + 'px';
+    if (need) th.style.width = th.style.minWidth = need + 'px';   // also a narrow window does not make it narrower
   });
   heads.forEach((th, i) => cols[i].style.width = th.getBoundingClientRect().width + 'px');
   ftFoot.style.width = ftTable.getBoundingClientRect().width + 'px';
@@ -733,14 +733,20 @@ ftResized.observe(ftTable);
 ftResized.observe(ftScroll);
 ftScroll.addEventListener('scroll', () => ftFoot.parentElement.scrollLeft = ftScroll.scrollLeft);
 
-// The line below the table: a setting on Change can be set, on Keep each row keeps its own. Setting how it opens checks
-// the rows too (as choosing it in one row does), unless "LexPen opens it" is on Change itself.
-for (const change of ftFoot.querySelectorAll('.st-ft-change')) change.addEventListener('change', () => {
-  ftFoot.querySelector(`[data-value="${change.dataset.for}"]`).disabled = !change.value;
+// The line below the table: a setting whose Change is pressed can be set (the button and its cell highlighted); not
+// pressed, each row keeps its own. Setting how it opens checks the rows too (as choosing it in one row does), unless
+// "LexPen opens it" is pressed itself.
+function ftPress(change, on) {
+  change.setAttribute('aria-pressed', on);
+  change.parentElement.classList.toggle('st-on', on);
+  ftFoot.querySelector(`[data-value="${change.dataset.for}"]`).disabled = !on;
+}
+for (const change of ftFoot.querySelectorAll('.st-ft-change')) change.addEventListener('click', () => {
+  ftPress(change, change.getAttribute('aria-pressed') !== 'true');
   ftMarkSelected();
 });
 ftApply.addEventListener('click', () => {
-  const on = name => ftFoot.querySelector(`.st-ft-change[data-for="${name}"]`).value;
+  const on = name => ftFoot.querySelector(`.st-ft-change[data-for="${name}"]`).getAttribute('aria-pressed') === 'true';
   const value = name => { const v = ftFoot.querySelector(`[data-value="${name}"]`); return v.type === 'checkbox' ? v.checked : v.value; };
   for (const r of ft.drawn.filter(r => ft.selected.has(r.extension))) {
     if (on('as')) { r.as = value('as'); r.checked = true; }
@@ -775,10 +781,7 @@ async function openFileTypes() {
   ftNote.classList.remove('st-error');
   ft.selected.clear();
   ft.anchor = null;
-  for (const change of ftFoot.querySelectorAll('.st-ft-change')) {
-    change.value = '';
-    ftFoot.querySelector(`[data-value="${change.dataset.for}"]`).disabled = true;
-  }
+  for (const change of ftFoot.querySelectorAll('.st-ft-change')) ftPress(change, false);
   ftDialog.showModal();
   ftFilter.focus();
   await ftLoad();

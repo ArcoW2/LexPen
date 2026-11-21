@@ -109,12 +109,17 @@
 .st-ft-line { table-layout: fixed; border-collapse: collapse; }
 .st-ft-line td { padding: 6px 10px; white-space: nowrap; overflow: hidden; vertical-align: top; }
 .st-ft-line select { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 1px 4px; }
-.st-ft-line :is(select, input) { display: block; }
-.st-ft-line :is(select, input) + :is(select, input) { margin-top: 4px; }
+.st-ft-line :is(button, select, input) { display: block; }
+.st-ft-line :is(button, select, input) + :is(select, input) { margin-top: 4px; }
+.st-ft-line td.st-on { background: color-mix(in srgb, var(--accent) 22%, transparent); }   /* Change pressed: this setting is set */
+.st-ft-change { padding: 2px 10px; font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 4px; cursor: pointer; }
+.st-ft-change:hover { border-color: var(--accent); }
+.st-ft-change[aria-pressed=true] { color: var(--bg); background: var(--accent); border-color: var(--accent); }
 .st-ft-line :disabled, .st-ft-bulk button:disabled { opacity: .5; }
 .st-ft-lexpen { color: var(--accent); }
 .st-ft-dim { color: var(--fg-dim); }
 .st-ft-note { padding: 6px 14px; min-height: 1.3em; color: var(--fg-dim); border-top: 1px solid var(--border); }
+.st-ft-note:empty { display: none; }   /* only there with something to say (what Assign could not do) */
 .st-ft-note.st-error { color: var(--caution); }
 .st-ft-buttons { display: flex; align-items: center; gap: 6px; padding: 8px 14px; background: var(--bg-bar); border-top: 1px solid var(--border); }
 .st-ft-gap { flex: 1; }

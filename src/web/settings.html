@@ -34,19 +34,19 @@
   <div class="st-ft-bulk">
     <div class="st-ft-explain">
       <span>Change several rows at once: select them (click a row; Ctrl+click adds or removes one, Shift+click a range,
-        Ctrl+A all rows shown). Below each setting: <b>Keep</b> does not touch that setting in the selected rows,
-        <b>Change</b> sets it to the value under it. Then Apply to selected.</span>
+        Ctrl+A all rows shown). Below each setting: press <b>Change</b> to set that setting in the selected rows to the
+        value under it; a setting whose Change is not pressed is not touched. Then Apply to selected.</span>
       <button class="st-ft-apply" disabled>Apply to selected</button>
     </div>
     <div class="st-ft-linebox">
       <table class="st-ft-line"><colgroup><col><col><col><col><col><col><col></colgroup><tbody><tr>
-        <td><select class="st-ft-change" data-for="checked" title="LexPen opens it"><option value="">Keep</option><option value="1">Change</option></select>
+        <td><button class="st-ft-change" data-for="checked" aria-pressed="false" title="LexPen opens it: pressed, the selected rows get the value under it">Change</button>
           <input type="checkbox" data-value="checked" disabled></td>
         <td></td><td></td>
-        <td><select class="st-ft-change" data-for="as" title="Opens as"><option value="">Keep</option><option value="1">Change</option></select>
+        <td><button class="st-ft-change" data-for="as" aria-pressed="false" title="Opens as: pressed, the selected rows get the value under it">Change</button>
           <select data-value="as" disabled><option value="edit">Edit</option><option value="view">View</option></select></td>
         <td></td>
-        <td><select class="st-ft-change" data-for="previewOn" title="Preview"><option value="">Keep</option><option value="1">Change</option></select>
+        <td><button class="st-ft-change" data-for="previewOn" aria-pressed="false" title="Preview: pressed, the selected rows get the value under it">Change</button>
           <input type="checkbox" data-value="previewOn" disabled></td>
         <td></td>
       </tr></tbody></table>
