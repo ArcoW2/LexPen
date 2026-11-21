@@ -34,7 +34,60 @@ public class RibbonTests : IDisposable
         Assert.False(r["user"]!.GetValue<bool>());
         Assert.Empty(r["problems"]!.AsArray());
         var tabs = r["ribbon"]!["tabs"]!.AsArray().Select(t => t!["name"]!.GetValue<string>());
-        Assert.Equal(["File", "Home", "Arrange", "Review", "View", "Tools"], tabs);
+        Assert.Equal(["File", "Home", "Arrange", "Review", "View", "Tools", "Preview"], tabs);
+    }
+
+    // ---------- The previewer's Preview tab (docs/plans/PLAN-preview-handler.md 3.11) ----------
+
+    static JsonNode PreviewTab(JsonObject loaded) => loaded["ribbon"]!["tabs"]!.AsArray().Single(t => t!["previewer"]?.GetValue<bool>() == true)!;
+
+    [Fact]
+    public void TheShippedPreviewTabIsThePreviewersInTwoRowsOfSmallButtons()
+    {
+        var tab = PreviewTab(RibbonFile.Load(dir, Shipped));
+        Assert.Equal("Preview", tab["name"]!.GetValue<string>());
+        Assert.Equal(2, tab["rows"]!.GetValue<int>());
+        Assert.Equal(["Find", "Go to", "Bookmarks", "Highlights", "View", "File"], tab["groups"]!.AsArray().Select(g => g!["name"]!.GetValue<string>()));
+        var items = tab["groups"]!.AsArray().SelectMany(g => g!["items"]!.AsArray()).OfType<JsonObject>().ToList();
+        Assert.DoesNotContain(items, i => i["size"]?.GetValue<string>() == "large");
+        // No editing, saving or files on it.
+        Assert.DoesNotContain(items, i => i["action"]!.GetValue<string>() is "save" or "replace" or "paste" or "cut" or "undo" or "openFile");
+        // The two lists as drop-downs.
+        Assert.All(items.Where(i => i["action"]!.GetValue<string>() is "bookmarkList" or "highlight.list"), i => Assert.Equal("dropDown", i["open"]!.GetValue<string>()));
+    }
+
+    [Fact]
+    public void YourRibbonWithoutAPreviewTabGetsTheShippedOneAndOneOfYourOwnIsKept()
+    {
+        RibbonFile.Save(dir, JsonNode.Parse("""{ "tabs": [ { "name": "Mine", "groups": [ { "name": "G", "items": [ { "action": "save" } ] } ] } ] }""")!);
+        var r = RibbonFile.Load(dir, Shipped);
+        Assert.Equal(["Mine", "Preview"], r["ribbon"]!["tabs"]!.AsArray().Select(t => t!["name"]!.GetValue<string>()));
+        Assert.Equal(2, PreviewTab(r)["rows"]!.GetValue<int>());
+
+        RibbonFile.Save(dir, JsonNode.Parse("""{ "tabs": [ { "name": "Peek", "previewer": true, "rows": 1, "groups": [ { "name": "G", "items": [ { "action": "find" } ] } ] } ] }""")!);
+        r = RibbonFile.Load(dir, Shipped);
+        Assert.Single(r["ribbon"]!["tabs"]!.AsArray());   // yours: none added
+        Assert.Equal("Peek", PreviewTab(r)["name"]!.GetValue<string>());
+        Assert.Equal(1, PreviewTab(r)["rows"]!.GetValue<int>());
+    }
+
+    [Fact]
+    public void RowsOtherThanOneTwoOrThreeAreLeftOut()
+    {
+        var problems = new JsonArray();
+        var r = RibbonFile.Parse("""{ "tabs": [ { "name": "A", "rows": 4, "groups": [] }, { "name": "B", "rows": "2", "groups": [] }, { "name": "C", "rows": 3, "groups": [] } ] }""", problems, "test")!;
+        Assert.Equal([null, null, 3], r["tabs"]!.AsArray().Select(t => t!["rows"]?.GetValue<int>()));
+        Assert.Equal([3, 3, 1], Js("[ribbonRows({ rows: 4 }), ribbonRows({}), ribbonRows({ rows: 1 })]").EnumerateArray().Select(e => e.GetInt32()));
+    }
+
+    [Fact]
+    public void InOneOrTwoRowsALargeOneIsSmallAndAColumnHoldsThatMany()
+    {
+        const string items = """[{ action: 'a', size: 'large' }, { action: 'b', stack: true }, { action: 'c', stack: true }, { action: 'd' }]""";
+        string ShapeIn(int rows) => string.Join(" ", Js($"ribbonColumns({items}, {rows}).map(c => c.kind === 'large' ? 'L' : 'S' + c.items.length)").EnumerateArray().Select(e => e.GetString()));
+        Assert.Equal("S2 S1 S1", ShapeIn(2));
+        Assert.Equal("S1 S1 S1 S1", ShapeIn(1));
+        Assert.Equal("L S1 S1", ShapeIn(3));   // as a tab of three rows: b under a, c and d alone
     }
 
     [Fact]

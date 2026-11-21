@@ -5184,17 +5184,19 @@ async function viewFile(path, last = false) {
 // kept; its language from its name, else guessed).
 events.preview = async ({ path, name, text }) => {
   while (!started) await new Promise(r => setTimeout(r, 50));
+  // The source, the preview or both (3.11): as the file before it was switched to; the first one in the preview.
+  const was = panes[0].active?.mode, mode = ['edit', 'split'].includes(was) ? was : 'preview';
   for (const tab of allTabs()) await closeTab(tab, true);
   const pane = panes[0];
   if (path) {
-    const tab = await openFile(path, { pane, mode: 'preview' }).catch(e => { toast(e.message); return null; });
+    const tab = await openFile(path, { pane, mode }).catch(e => { toast(e.message); return null; });
     if (tab && !tab.readOnly) await setReadOnly(tab, true);
   } else {
     const doc = makeDoc({ text: text ?? '' });
     // Its language by its name's extension, else by its first line (languageFor), as a file's; markdown is undefined.
     const language = languageFor(name || '', text ?? '');
     Object.assign(doc, { temp: true, stream: true, label: name || 'Preview', language: language === 'markdown' ? undefined : language });
-    const tab = makeTab(doc, 'preview');
+    const tab = makeTab(doc, mode);
     tab.readOnly = true;
     insertTab(pane, tab);
     await activate(pane, tab);

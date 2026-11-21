@@ -9,22 +9,26 @@ const RB_STACK = 3;   // small buttons in one column at most
 // three] }, { kind: 'divider', i }. A small item with stack goes under the small column before it while that has room;
 // else, and without stack, it starts a column of its own. A large one and one small one can share a column (the large
 // one a row shorter), items top to bottom: a small one with stack under a large one alone, a large one with stack
-// under a small one alone.
-function ribbonColumns(items) {
-  const cols = [];
+// under a small one alone. A tab of fewer rows (`rows`, the previewer's Preview tab): its large ones as small ones, at
+// most that many in a column.
+function ribbonColumns(items, rows = RB_STACK) {
+  const cols = [], full = rows >= RB_STACK;
   (items ?? []).forEach((item, i) => {
     if (item === 'divider') return cols.push({ kind: 'divider', i });
-    const last = cols.at(-1), large = item?.size === 'large';
-    if (item?.stack && last?.items?.length === 1 && last.kind === (large ? 'small' : 'large')) {
+    const last = cols.at(-1), large = full && item?.size === 'large';
+    if (full && item?.stack && last?.items?.length === 1 && last.kind === (large ? 'small' : 'large')) {
       last.kind = 'large';
       return last.items.push({ item, i });
     }
     if (large) return cols.push({ kind: 'large', items: [{ item, i }] });
-    if (item?.stack && last?.kind === 'small' && last.items.length < RB_STACK) last.items.push({ item, i });
+    if (item?.stack && last?.kind === 'small' && last.items.length < Math.min(rows, RB_STACK)) last.items.push({ item, i });
     else cols.push({ kind: 'small', items: [{ item, i }] });
   });
   return cols;
 }
+
+// A tab's rows of buttons: its own (1, 2 or 3; the Preview tab, docs/plans/PLAN-preview-handler.md 3.11), else three.
+const ribbonRows = tab => [1, 2, 3].includes(tab?.rows) ? tab.rows : RB_STACK;
 
 // ---------- Corners ----------
 // A group's corner as kept in ribbon.json: an action, [action, ...params], or { action, params, open } (open:

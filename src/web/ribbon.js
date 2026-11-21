@@ -24,7 +24,11 @@ const rb = {
 };
 
 const rbCall = item => [item.action, ...(item.params ?? [])];
-const rbMode = () => ['ribbon', 'both'].includes(setting('commandBar')) ? setting('commandBar') : 'menu';
+// A previewer (docs/plans/PLAN-preview-handler.md 3.11) shows the ribbon's Preview tab alone, without tab names,
+// whatever commandBar says; LexPen's windows show that tab only while the ribbon is changed.
+const rbPreviewer = () => typeof previewer !== 'undefined' && !!previewer;
+const rbTabShown = t => rbPreviewer() ? !!t.previewer : !t.previewer || rb.changing;
+const rbMode = () => rbPreviewer() ? 'previewer' : ['ribbon', 'both'].includes(setting('commandBar')) ? setting('commandBar') : 'menu';
 const rbShown = () => rbMode() !== 'menu' && !!rb.model;
 const rbTabIndex = () => Math.max(0, rb.model?.tabs.findIndex(t => t.name === rb.tab) ?? 0);
 const ribbonChanging = () => rb.changing;
@@ -83,14 +87,17 @@ function renderRibbon() {
   el.classList.toggle('mm-rb-names', setting('ribbonGroupNames') !== false);
   el.style.setProperty('--rb-ch', (Number(setting('ribbonLabelWidth')) || 24) + 'ch');
   const tabs = rb.model.tabs;
-  if (!tabs.some(t => t.name === rb.tab)) rb.tab = tabs.some(t => t.name === setting('ribbonTab')) ? setting('ribbonTab') : tabs[0]?.name ?? null;
-  const tabsHtml = tabs.map((t, ti) => `<button class="mm-rb-tab${t.name === rb.tab ? ' mm-on' : ''}" data-tab="${ti}"${rb.changing ? ' draggable="true"' : ''} tabindex="-1">${escapeHtml(t.name)}</button>`).join('') +
+  if (!tabs.some(t => t.name === rb.tab && rbTabShown(t)))
+    rb.tab = (tabs.find(t => t.name === setting('ribbonTab') && rbTabShown(t)) ?? tabs.find(rbTabShown))?.name ?? null;
+  const tabsHtml = tabs.map((t, ti) => !rbTabShown(t) ? '' : `<button class="mm-rb-tab${t.name === rb.tab ? ' mm-on' : ''}${t.previewer ? ' mm-rb-tab-previewer' : ''}" data-tab="${ti}"` +
+    `${rb.changing ? ' draggable="true"' : ''}${t.previewer ? ' title="Only in the previewer (Explorer\'s preview pane): its only tab. Right-click: its height"' : ''} tabindex="-1">${escapeHtml(t.name)}</button>`).join('') +
     (rb.changing ? '<button class="mm-rb-tab mm-rb-new" data-new-tab tabindex="-1">New...</button>' : '');
   (mode === 'ribbon' ? top : row).innerHTML = tabsHtml;
   (mode === 'ribbon' ? row : top).innerHTML = '';
-  // Every tab's groups (one shown): a tab name dragged over shows its tab without taking away the dragged button.
-  bodies.innerHTML = tabs.map((t, ti) => `<div class="mm-rb-body" data-body="${ti}"${t.name === rb.tab ? '' : ' hidden'}>` +
-    t.groups.map((g, gi) => rbGroupHtml(ti, gi, g)).join('') +
+  // Every tab's groups (one shown): a tab name dragged over shows its tab without taking away the dragged button. A tab
+  // not shown here (the Preview tab, the others in a previewer): no groups.
+  bodies.innerHTML = tabs.map((t, ti) => `<div class="mm-rb-body" data-body="${ti}" data-rows="${ribbonRows(t)}"${t.name === rb.tab ? '' : ' hidden'}>` +
+    (rbTabShown(t) ? t.groups.map((g, gi) => rbGroupHtml(ti, gi, g, ribbonRows(t))).join('') : '') +
     (rb.changing ? `<div class="mm-rb-group mm-rb-new-group" data-new-group="${ti}"><div class="mm-rb-cols"><i>New...</i></div></div>` : '') +
     '</div>').join('') +
     `<button class="mm-rb-more" hidden tabindex="-1" title="The groups that do not fit">&gt;&gt;</button>` +
@@ -103,8 +110,8 @@ function renderRibbon() {
   rbOverflow();
 }
 
-function rbGroupHtml(ti, gi, g) {
-  const cols = ribbonColumns(g.items).map(c => {
+function rbGroupHtml(ti, gi, g, rows) {
+  const cols = ribbonColumns(g.items, rows).map(c => {
     if (c.kind === 'divider') return `<div class="mm-rb-div" data-path="${ti}.${gi}.${c.i}"${rb.changing ? ' draggable="true"' : ''}></div>`;
     if (c.kind === 'large') {   // alone, or with a small one above or under it
       const html = c.items.map(({ item, i }) => rbButtonHtml(`${ti}.${gi}.${i}`, item, item.size === 'large' ? 'large' : 'small')).join('');
@@ -203,7 +210,7 @@ function rbGripDown(e) {
 
 // Only when wanted (Layout: ribbonShow "onDemand"): the tab names stay, the buttons slide down over the document when
 // wanted (rbSlide). Not while the ribbon is changed (change mode, Customize): then always.
-const rbOnDemand = () => setting('ribbonShow') === 'onDemand' && !rb.changing && !rb.customizing;
+const rbOnDemand = () => setting('ribbonShow') === 'onDemand' && !rb.changing && !rb.customizing && !rbPreviewer();   // a previewer: no tab names to bring it down
 const RB_CHEVRON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10l4.5-4.5 4.5 4.5"/></svg>';
 const RB_PIN = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h4M7 2v4.5L4.5 9.5h7L9 6.5V2M8 9.5V14"/></svg>';
 function rbApplyShow() {
@@ -399,6 +406,7 @@ function rbContext(e) {
   const el = e.target.closest('.mm-rb-btn[data-path]');
   const item = el && rbItemAt(rbPath(el.dataset.path));
   if (item && rbHasList(item)) return rbOpenList(el, item);
+  if (rbPreviewer()) return;   // its ribbon is changed in LexPen (its change mode), not here
   openContextMenu(rbMenuItems(), e.clientX, e.clientY);
 }
 
@@ -768,6 +776,8 @@ function rbDragEnd(e) {
   rbRemove(what);
 }
 function rbRemove(what) {
+  if (what.kind === 'tab' && rb.model.tabs[what.path[0]]?.previewer)
+    return toast('The Preview tab stays: it is all the previewer (Explorer\'s preview pane) has. Remove its buttons instead.', true);
   rbChange(m => {
     if (what.kind === 'tab') { m.tabs.splice(what.path[0], 1); return; }
     if (what.kind === 'group') { m.tabs[what.path[0]].groups.splice(what.path[1], 1); return; }
@@ -827,8 +837,13 @@ function rbEditMenu(e) {
     items = [{ label: '&Rename the tab...', run: async () => { const v = await askName('Tab name', tab.name, 'Its name'); if (v?.trim()) rbChange(m => { if (rb.tab === m.tabs[t].name) rb.tab = v.trim(); m.tabs[t].name = v.trim(); }); } },
       { label: 'Move &left', enabled: t > 0, run: () => rbChange(m => { m.tabs.splice(t - 1, 0, ...m.tabs.splice(t, 1)); }) },
       { label: 'Move ri&ght', enabled: t < rb.model.tabs.length - 1, run: () => rbChange(m => { m.tabs.splice(t + 1, 0, ...m.tabs.splice(t, 1)); }) },
-      { label: 'R&emove the tab', run: () => rbRemove({ kind: 'tab', path: [t] }) }];
+      { label: 'R&emove the tab', enabled: !tab.previewer, run: () => rbRemove({ kind: 'tab', path: [t] }) }];
   }
+  // The Preview tab (the previewer's): its height, wherever its right-click is while it shows.
+  const shown = rb.model.tabs[rbTabIndex()];
+  if (shown?.previewer) items.push(...(items.length ? ['-'] : []), { label: 'Height of the Preview tab', sub: [1, 2, 3].map(n => ({
+    label: `&${n} row${n === 1 ? '' : 's'}${n < 3 ? ' (small buttons)' : ''}`, checked: ribbonRows(shown) === n,
+    run: () => rbChange(m => { m.tabs[rbTabIndex()].rows = n; }) })) });
   items.push(...(items.length ? ['-'] : []), ['C&ustomize...', 'ribbon.customize'], ['Reset to the &shipped ribbon', 'ribbon.reset'], { label: '&Done', run: () => rbChangeMode(false) });
   openContextMenu(items, e.clientX, e.clientY);
 }

@@ -1127,6 +1127,8 @@ appAction('highlight.list', { title: 'Highlights window', hint: 'A window with t
 appAction('highlight.moveAll', { title: 'Move all highlights to where the setting says', hint: 'Files > Highlights: into LexPen\'s store, or next to their files (.lph)', group: 'highlights',
   run: async () => { const n = await host('highlightsMoveAll', { beside: setting('highlightsStore') === 'beside' }); toast(`The highlights of ${n} file${n === 1 ? '' : 's'} moved.`, true); } });
 appAction('bookmarkList', { title: 'Bookmarks of this file', hint: 'A list to choose from', group: 'bookmarks',
+  // On the ribbon as a drop-down (ribbon.js; the previewer's Preview tab): the document's bookmarks, a click going there.
+  dropDown: () => loadEditor().then(async () => { const items = await bookmarkGoItems(); return items.length ? items : [{ label: '(no bookmarks)', enabled: false }]; }),
   preview: true, run: withBookmarks((_, { pane, preview }) => showBookmarkList(pane, preview)) });
 
 // ---------- The gutter (gutter.js): View > Gutter ----------

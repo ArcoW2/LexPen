@@ -1600,6 +1600,10 @@ body.mm-rb-menus .mm-rb-tabs-top { display: none; }
 .mm-rb-body { display: flex; align-items: stretch; flex: none; }
 .mm-rb-group { position: relative; display: flex; flex-direction: column; padding: 0 5px; border-right: 1px solid var(--border); }
 .mm-rb-cols { display: flex; align-items: stretch; gap: 1px; height: calc(var(--rb-row) * 3); }
+/* A tab of its own height (the Preview tab, docs/plans/PLAN-preview-handler.md 3.11): one or two rows. */
+.mm-rb-body[data-rows="1"] .mm-rb-cols { height: var(--rb-row); }
+.mm-rb-body[data-rows="2"] .mm-rb-cols { height: calc(var(--rb-row) * 2); }
+.mm-rb-tab-previewer { font-style: italic; }
 .mm-rb-name { display: grid; grid-template-columns: 18px 1fr 18px; align-items: center; gap: 4px; min-height: calc(14px * var(--ui-scale) * var(--rb-f, 1));
   font-size: .85em; color: var(--fg-dim); padding: calc(1px * var(--rb-sp, 1)) 0 calc(2px * var(--rb-sp, 1)); }   /* the corners in the group's corners, the name centred */
 .mm-rb-name > span { grid-row: 1; grid-column: 2; text-align: center; }
@@ -1747,9 +1751,10 @@ body.mm-rb-changing .mm-rb-bodies { overflow-x: auto; }
 .mm-hx-ul { text-decoration: underline; text-underline-offset: 3px; }   /* the same byte in the other part */
 .mm-hx-caret { box-shadow: inset 2px 0 0 var(--accent); }   /* before the digit or character typed next */
 .mm-hx-empty { color: var(--fg-dim); padding: 8px 0; }
-/* A previewer (docs/plans/PLAN-preview-handler.md): the preview only, with the document's name, Day / Night and the zoom
-   above it and the status bar under it; no menus, tabs, docks or editing. */
+/* A previewer (docs/plans/PLAN-preview-handler.md): the preview (or its source, read-only), with the document's name,
+   the switches, Day / Night and the zoom above it, the ribbon's Preview tab under that (3.11), the status bar under it;
+   no menus, tabs, docks or editing. Its ribbon keeps the height its tab says: no grip, no "only when wanted". */
 body:not([data-role=previewer]) .mm-previewer-only, body[data-role=previewer] .mm-previewer-open[data-none] { display: none; }
-body[data-role=previewer] :is(.mm-menubar, .mm-record-stop, .mm-save, .mm-orient, .mm-switches, .mm-dock, .mm-dock-split,
+body[data-role=previewer] :is(.mm-menubar, .mm-record-stop, .mm-save, .mm-orient, .mm-dock, .mm-dock-split,
   .mm-tabs-row, .mm-st-project, .mm-st-set, .mm-st-panes, .mm-st-pane, .mm-st-ins, .mm-st-clip, .mm-st-elev, .mm-st-eol,
-  .mm-find-toggle) { display: none !important; }
+  .mm-find-toggle, .mm-rb-grip-h, .mm-rb-collapse, .mm-format) { display: none !important; }   /* .mm-format: its source is read-only */

@@ -212,7 +212,7 @@ All of it by the file's path (`BookmarkStore.Key`), so LexPen and the previewer 
   | Go to | Back / forward (`positionBack`, `positionForward`), next / previous block (`block.next`) and outline entry (`outline.next`) |
   | Bookmarks | Store, toggle, clear, go to (1-9), free bookmark (`bookmarkToggleFree`), next / previous (`bookmarkNext`), the list of this file's bookmarks (`bookmarkList`) |
   | Highlights | Highlight, selection to highlight, note, remove, remove all in this file, keep the adjusted one, next / previous, the list of this file's highlights (`highlight.list`: a drop-down on the ribbon, its window on a click) |
-  | View | The source or the preview: Editor, Preview, Split, Hex (`editor.show`, `preview.show`, `split.on`, `hex.toggle`); day / night (`theme.toggle`, `theme.day`, `theme.night`), zoom in / out / reset, the language (`chooseLanguage`) |
+  | View | The source or the preview: Source, Preview (both on: split), Hex (`editor.toggle`, `preview.toggle`, `hex.toggle`); day / night (`theme.toggle`, `theme.day`, `theme.night`), zoom in / out / reset, the language (`chooseLanguage`) |
   | File | Print, Open in LexPen (`previewer.open`), copy the selection (`copy`), copy the file's name or path (`file.copy`; not for a stream) |
 
   Not in it: saving, files, projects, tabs, docks and panels, compare, macros, replace, sort, the settings, the
@@ -305,14 +305,30 @@ In progress on the branch `preview-handler`; not merged. Not yet tried in Explor
   never registers where none is (it would take the previews from the LexPen in use). The File types dialog's Preview
   and Previews now with columns; binding keeps the handler before it (`Previous` under the class) and puts it back;
   Settings > General > Previewer: Remove LexPen's previewer.
-- **Tests**: `PreviewerTests` (registration, binding with the handler before kept and put back, removal). The rest
-  was tried with a test host (a small exe that creates the handler as Explorer does and captures its window),
-  through WebView2's debugging port.
+- **The Preview tab** (3.11): shipped in ribbon.json as a tab with `"previewer": true` and `"rows": 2`; a ribbon.json of
+  your own without such a tab gets the shipped one at its end when read (`RibbonFile.Load`), so a ribbon changed
+  before this tab existed still gives the previewer its commands. The previewer shows it whatever commandBar says,
+  without tab names, grip or "only when wanted", and no ribbon right-click menu (the ribbon is changed in LexPen).
+  LexPen's windows show it only in change mode (its name in italics), where its right-click (and any right-click while
+  it is shown) has Height of the Preview tab: 1, 2 or 3 rows; under three rows large buttons are drawn small. It
+  cannot be removed (a toast says why). `bookmarkList` got a drop-down as `highlight.list` has. Icons were drawn for
+  the actions on it that had none (back, forward, block, section, the bookmarks list, the Occurrences bar, language,
+  Open in LexPen, copy name, highlight from selection / keep / remove all / previous / next).
+- **The source** (3.11): the switches show in the previewer; the source is read-only (typing changes nothing) and the
+  format bar stays hidden; Source, Preview or both carry over to the next file (Hex does not: it depends on the file).
+- **Right-click on a highlight in a preview**: Remove highlight and Highlight act where the right-click was; they used
+  the preview's cursor, which a right-click does not move, so they removed nothing.
+- **Tests**: `PreviewerTests` (registration, binding with the handler before kept and put back, removal);
+  `RibbonTests` for the Preview tab (shipped, added to your ribbon.json, rows, the columns in one and two rows). The
+  rest was tried with a test host (a small exe that creates the handler as Explorer does and captures its window),
+  through WebView2's debugging port. The Preview tab, the source and the highlight right-click were tried in a test
+  LexPen window acting as a previewer (`previewer` set, the file given as the handler gives it): with a LexPen
+  registered as the handler running, Windows hands the test host's preview to that LexPen, not to the test one.
 
 ### Not yet built
 
-- **Hex in the language list** (3.4): the editor switches (Editor, Preview, Hex) are hidden in the previewer, and the
-  status bar's language list has no Hex entry; a binary file still opens in Hex by itself.
+- **Hex in the language list** (3.4): Hex is in the switches and on the Preview tab now (3.11); the status bar's
+  language list still has no Hex entry.
 - **The place in the file** (3.6): the previewer does not keep the scroll position and cursor per file.
 - **Keys to the host** (3.7): `TranslateAccelerator` answers S_FALSE; keys the page does not use are not passed to
   `IPreviewHandlerFrame`, so Explorer's own keys may not work with the focus in the preview.

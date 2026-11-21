@@ -72,6 +72,16 @@ const RIBBON_ICONS = (() => {
     bookmarkToggleFree: ['Toggle bookmark', p('M4 1.5h8v13l-4-3-4 3z')],
     'bookmarkNext -1': ['Previous', p('M2.5 3h5v10.5l-2.5-2-2.5 2zM12 13.5v-10M9.5 6L12 3.5 14.5 6')],
     'bookmarkNext 1': ['Next', p('M2.5 3h5v10.5l-2.5-2-2.5 2zM12 3.5v10M9.5 11L12 13.5 14.5 11')],
+    bookmarkList: ['Bookmarks of this file', p('M2.5 2h4.5v10l-2.25-1.8L2.5 12zM9.5 4h5M9.5 7.5h5M9.5 11h5')],
+    // Going about in the document (the Preview tab)
+    positionBack: ['Back', p('M13.5 8H2.5M6.5 4l-4 4 4 4')],
+    positionForward: ['Forward', p('M2.5 8h11M9.5 4l4 4-4 4')],
+    'block.next': ['Next block', p('M2 2.5h7M2 5h7') + dim('M2 9h7M2 11.5h7') + p('M12.5 3v9M10.5 10l2 2 2-2')],
+    'outline.next': ['Next outline entry', t(1, 7, 6, 'H', 700) + dim('M2 10h7M2 13h5') + p('M12.5 3v9M10.5 10l2 2 2-2')],
+    'occurrences.bar': ['Occurrences bar', marked],
+    chooseLanguage: ['Language', p('M5.5 2.5c-1.6 0-1.6 1.2-1.6 2.6S3.7 7.6 3 8c.7.4.9 1.4.9 2.9s0 2.6 1.6 2.6M10.5 2.5c1.6 0 1.6 1.2 1.6 2.6s.2 2.5.9 2.9c-.7.4-.9 1.4-.9 2.9s0 2.6-1.6 2.6')],
+    'previewer.open': ['Open in LexPen', p(page + 'M9 12.5h5.5M12.5 10.5l2 2-2 2')],
+    'file.copy': ['Copy name', p(page) + '<rect x="9" y="9" width="5.5" height="5.5" rx="1"/>'],
     // Select & Sort
     selectAll: ['Select all', '<rect x="1.5" y="1.5" width="13" height="13" rx="1" stroke-dasharray="2 1.7"/>' + p('M4.5 5.5h7M4.5 8h7M4.5 10.5h5')],
     selectLine: ['Line', dim('M2 3h12M2 13h12') + '<rect x="1.5" y="5.5" width="13" height="5" rx="1"/>' + p('M3.5 8h9')],
@@ -93,6 +103,13 @@ const RIBBON_ICONS = (() => {
     'highlight.toggle': ['Highlight', p(mark + 'M2 14.5h8')],
     'highlight.note': ['Highlight note', p('M2 2.5h12v8.5H7.5L4.5 14v-3H2zM4.5 5.5h7M4.5 8h4.5')],
     'highlight.remove': ['Remove highlight', p(mark + 'M2 2l12 12')],
+    // The previewer's Preview tab (docs/plans/PLAN-preview-handler.md 3.11): a small marker at the left, as the bookmark
+    // of bookmarkNext, an arrow at the right.
+    'highlight.next -1': ['Previous highlight', p('M5.5 3l3 3-4 4H2.5l-1-1V7zM1.5 13h6M12 13.5v-10M9.5 6L12 3.5 14.5 6')],
+    'highlight.next 1': ['Next highlight', p('M5.5 3l3 3-4 4H2.5l-1-1V7zM1.5 13h6M12 3.5v10M9.5 11L12 13.5 14.5 11')],
+    'highlight.fromSelection': ['Selection to highlight', '<rect x="1.5" y="4.5" width="13" height="7" rx="1" stroke-dasharray="2 1.7"/><path d="M4 8h8" stroke-width="2.6"/>'],
+    'highlight.keep': ['Keep the adjusted highlight', p(mark + 'M1.5 12.5l1.8 1.8 3.2-3.5')],
+    'highlight.clear': ['Remove all highlights', p('M6.5 2.5l3 3-4 4H3.5l-1-1V7zM11 6.5l3 3-4 4H8l-1-1V11M1.5 1.5l13 13')],
     // View
     'editor.toggle': ['Editor', p('M2 3h12M2 6.5h8M2 10h11M2 13.5h5M12.5 11.5v3.5M11.5 11.5h2M11.5 15h2')],
     'preview.toggle': ['Preview', p('M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z') + '<circle cx="8" cy="8" r="2"/>'],
