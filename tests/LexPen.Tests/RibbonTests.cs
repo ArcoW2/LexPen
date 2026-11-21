@@ -34,41 +34,55 @@ public class RibbonTests : IDisposable
         Assert.False(r["user"]!.GetValue<bool>());
         Assert.Empty(r["problems"]!.AsArray());
         var tabs = r["ribbon"]!["tabs"]!.AsArray().Select(t => t!["name"]!.GetValue<string>());
-        Assert.Equal(["File", "Home", "Arrange", "Review", "View", "Tools", "Preview"], tabs);
+        Assert.Equal(["File", "Home", "Arrange", "Review", "View", "Tools", "Preview", "View and file"], tabs);
     }
 
-    // ---------- The previewer's Preview tab (docs/plans/PLAN-preview-handler.md 3.11) ----------
+    // ---------- The previewer's tabs (docs/plans/PLAN-preview-handler.md 3.11) ----------
 
-    static JsonNode PreviewTab(JsonObject loaded) => loaded["ribbon"]!["tabs"]!.AsArray().Single(t => t!["previewer"]?.GetValue<bool>() == true)!;
+    static List<JsonNode> PreviewTabs(JsonObject loaded) => loaded["ribbon"]!["tabs"]!.AsArray().Where(t => t!["previewer"]?.GetValue<bool>() == true).Select(t => t!).ToList();
 
     [Fact]
-    public void TheShippedPreviewTabIsThePreviewersInTwoRowsOfSmallButtons()
+    public void TheShippedPreviewTabsAreThePreviewersInTwoRowsOfSmallButtons()
     {
-        var tab = PreviewTab(RibbonFile.Load(dir, Shipped));
-        Assert.Equal("Preview", tab["name"]!.GetValue<string>());
-        Assert.Equal(2, tab["rows"]!.GetValue<int>());
-        Assert.Equal(["Find", "Go to", "Bookmarks", "Highlights", "View", "File"], tab["groups"]!.AsArray().Select(g => g!["name"]!.GetValue<string>()));
-        var items = tab["groups"]!.AsArray().SelectMany(g => g!["items"]!.AsArray()).OfType<JsonObject>().ToList();
+        var tabs = PreviewTabs(RibbonFile.Load(dir, Shipped));
+        Assert.Equal(["Preview", "View and file"], tabs.Select(t => t["name"]!.GetValue<string>()));
+        Assert.All(tabs, t => Assert.Equal(2, t["rows"]!.GetValue<int>()));
+        string[] Groups(JsonNode t) => t["groups"]!.AsArray().Select(g => g!["name"]!.GetValue<string>()).ToArray();
+        Assert.Equal(["Find", "Go to", "Bookmarks", "Highlights"], Groups(tabs[0]));
+        Assert.Equal(["View", "File"], Groups(tabs[1]));
+        var items = tabs.SelectMany(t => t["groups"]!.AsArray()).SelectMany(g => g!["items"]!.AsArray()).OfType<JsonObject>().ToList();
         Assert.DoesNotContain(items, i => i["size"]?.GetValue<string>() == "large");
-        // No editing, saving or files on it.
+        // No editing, saving or files on them.
         Assert.DoesNotContain(items, i => i["action"]!.GetValue<string>() is "save" or "replace" or "paste" or "cut" or "undo" or "openFile");
-        // The two lists as drop-downs.
-        Assert.All(items.Where(i => i["action"]!.GetValue<string>() is "bookmarkList" or "highlight.list"), i => Assert.Equal("dropDown", i["open"]!.GetValue<string>()));
+        JsonNode Group(string name) => tabs[0]["groups"]!.AsArray().First(g => g!["name"]!.GetValue<string>() == name)!;
+        // Find: Find with Occurrences under it, then Previous above Next.
+        Assert.Equal(["find", "occurrences.bar", "findPrevious", "findNext"], Group("Find")["items"]!.AsArray().Select(i => i!["action"]!.GetValue<string>()));
+        // Bookmarks and Highlights: Previous above Next first, no labels; their lists from the group's right corner.
+        foreach (var (name, next, list) in new[] { ("Bookmarks", "bookmarkNext", "bookmarkList"), ("Highlights", "highlight.next", "highlight.list") })
+        {
+            var its = Group(name)["items"]!.AsArray();
+            Assert.Equal($"{next}:-1 {next}:1", string.Join(" ", its.Take(2).Select(i => i!["action"]!.GetValue<string>() + ":" + i["params"]![0])));
+            Assert.All(its.Take(2), i => Assert.Equal("\n", i!["label"]!.GetValue<string>()));
+            Assert.Equal(list, Group(name)["corners"]!["right"]!["action"]!.GetValue<string>());
+            Assert.Equal("dropDown", Group(name)["corners"]!["right"]!["open"]!.GetValue<string>());
+            Assert.DoesNotContain(its, i => i!["action"]!.GetValue<string>() == list);
+        }
+        Assert.All(Group("Go to")["items"]!.AsArray(), i => Assert.Equal("\n", i!["label"]!.GetValue<string>()));
     }
 
     [Fact]
-    public void YourRibbonWithoutAPreviewTabGetsTheShippedOneAndOneOfYourOwnIsKept()
+    public void YourRibbonWithoutAPreviewTabGetsTheShippedOnesAndOneOfYourOwnIsKept()
     {
         RibbonFile.Save(dir, JsonNode.Parse("""{ "tabs": [ { "name": "Mine", "groups": [ { "name": "G", "items": [ { "action": "save" } ] } ] } ] }""")!);
         var r = RibbonFile.Load(dir, Shipped);
-        Assert.Equal(["Mine", "Preview"], r["ribbon"]!["tabs"]!.AsArray().Select(t => t!["name"]!.GetValue<string>()));
-        Assert.Equal(2, PreviewTab(r)["rows"]!.GetValue<int>());
+        Assert.Equal(["Mine", "Preview", "View and file"], r["ribbon"]!["tabs"]!.AsArray().Select(t => t!["name"]!.GetValue<string>()));
+        Assert.Equal(2, PreviewTabs(r)[0]["rows"]!.GetValue<int>());
 
         RibbonFile.Save(dir, JsonNode.Parse("""{ "tabs": [ { "name": "Peek", "previewer": true, "rows": 1, "groups": [ { "name": "G", "items": [ { "action": "find" } ] } ] } ] }""")!);
         r = RibbonFile.Load(dir, Shipped);
         Assert.Single(r["ribbon"]!["tabs"]!.AsArray());   // yours: none added
-        Assert.Equal("Peek", PreviewTab(r)["name"]!.GetValue<string>());
-        Assert.Equal(1, PreviewTab(r)["rows"]!.GetValue<int>());
+        Assert.Equal("Peek", PreviewTabs(r)[0]["name"]!.GetValue<string>());
+        Assert.Equal(1, PreviewTabs(r)[0]["rows"]!.GetValue<int>());
     }
 
     [Fact]

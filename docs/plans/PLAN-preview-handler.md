@@ -15,8 +15,8 @@ LexPen window instead of showing the file inside the program you are in.
 
 LexPen becomes a Windows preview handler, served by LexPen.exe itself. Its view is a single LexPen preview pane, read
 only: no editor, no tabs, no side panes. Everything that works in a preview works there, with the same keys: find,
-the preview's cursor, bookmarks, highlights, jumps by section, the language chosen, printing. Its commands are on a
-ribbon tab of their own, Preview, the only one it shows. A PDF shows in
+the preview's cursor, bookmarks, highlights, jumps by section, the language chosen, printing. Its commands are on
+ribbon tabs of its own, preview tabs, the only ones it shows. A PDF shows in
 LexPen's PDF viewer and a file that is not text in Hex, and the language list can show any file as any language
 instead. What you mark is kept where LexPen
 keeps it now (bookmarks in LexPen's store, highlights in the store or next to the file, as the setting says), so the
@@ -197,7 +197,7 @@ All of it by the file's path (`BookmarkStore.Key`), so LexPen and the previewer 
 - **Read once**: the content is read whole from the stream when it comes (a stream may not be read twice); there is
   no file to watch for changes.
 
-### 3.11 The previewer's commands: a Preview tab on the ribbon
+### 3.11 The previewer's commands: preview tabs on the ribbon
 
 - **The problem**: the previewer hides the menu bar, but not the ribbon. With the ribbon on (commandBar "ribbon" or
   "both") it shows every tab, and most of their buttons do nothing in a read-only preview without tabs, project or
@@ -222,15 +222,27 @@ All of it by the file's path (`BookmarkStore.Key`), so LexPen and the previewer 
   editor is made the first time you switch to it, read-only as the whole previewer is: no typing, no replace, no
   format; what reads works there too (find, the cursor, bookmarks, highlights, copy, folding). A previewer starts in
   the preview; what you switch to holds for the next files in that host's window, until you switch back.
-- **A Preview tab**: the shipped ribbon gets a tab "Preview" with the actions above, in the groups above, the lists as
-  drop-downs (highlights: as now; bookmarks: `bookmarkList` gets the same drop-down form as `highlight.list`).
-  - **Its height is its own**: one, two or three rows of buttons, chosen in the ribbon's change mode on the Preview
-    tab and kept with the tab in ribbon.json. One or two rows take small buttons only; three rows, as every other
-    tab, also large ones. LexPen ships it with two rows. The setting for the ribbon's height (ribbonRow, the grip)
-    scales its rows as it does the others'.
-  - **In the previewer**: only that tab, its name not shown (no tab row), whatever commandBar says.
-  - **In LexPen's windows**: the tab is not shown, except in the ribbon's change mode, so it can be changed as any
-    other tab; it is kept in ribbon.json with the others. Changed there, the previewer shows it as changed.
+- **Preview tabs**: a tab of the ribbon is an editor tab (LexPen's windows) or a preview tab (the previewer); New...
+  in change mode asks which. LexPen ships two preview tabs, the actions above split over them so each fits:
+  - **Preview**: Find (Find with Occurrences under it; Previous above Next), Go to (back, forward, block, section;
+    icons only), Bookmarks (previous and next first, icons only; Toggle; the list from the group's bottom-right
+    corner), Highlights (previous and next first, icons only; Highlight, Note, Remove, Remove all; the list from the
+    corner). Selection to highlight and Keep the adjusted highlight are left off (Highlight does the first and more;
+    the second is rare in a previewer); both can be added.
+  - **View and file**: View (Source, Preview, Hex, Language, Day, Night, zoom) and File (Print, Open in LexPen, Copy,
+    Copy name).
+  - The lists are drop-downs (highlights: as now; bookmarks: `bookmarkList` gets the same drop-down form as
+    `highlight.list`). A button without a label has the label "
+" (its icon only; its tooltip names it).
+  - **Its height is its own**: one, two or three rows of buttons per preview tab, chosen in the ribbon's change mode
+    and kept with the tab in ribbon.json. One or two rows take small buttons only; three rows, as every other tab,
+    also large ones. LexPen ships them with two rows. The setting for the ribbon's height (ribbonRow, the grip)
+    scales their rows as it does the others'.
+  - **In the previewer**: only the preview tabs, whatever commandBar says; their names in a row of their own when
+    there are two or more, none with one. The tab it shows is its own (not the tab LexPen's windows remember).
+  - **In LexPen's windows**: the preview tabs are not shown, except in the ribbon's change mode, so they can be
+    changed as any other tab; they are kept in ribbon.json with the others. Changed there, the previewer shows them as
+    changed. The last preview tab cannot be removed.
   - The menu bar stays hidden in the previewer.
 - **Tests**: the tab shown alone in the previewer with the ribbon and with the menus as commandBar; not shown in a
   LexPen window, shown in change mode; each button in a previewer of a file and of a stream (the actions for a path
@@ -305,13 +317,15 @@ In progress on the branch `preview-handler`; not merged. Not yet tried in Explor
   never registers where none is (it would take the previews from the LexPen in use). The File types dialog's Preview
   and Previews now with columns; binding keeps the handler before it (`Previous` under the class) and puts it back;
   Settings > General > Previewer: Remove LexPen's previewer.
-- **The Preview tab** (3.11): shipped in ribbon.json as a tab with `"previewer": true` and `"rows": 2`; a ribbon.json of
-  your own without such a tab gets the shipped one at its end when read (`RibbonFile.Load`), so a ribbon changed
-  before this tab existed still gives the previewer its commands. The previewer shows it whatever commandBar says,
-  without tab names, grip or "only when wanted", and no ribbon right-click menu (the ribbon is changed in LexPen).
-  LexPen's windows show it only in change mode (its name in italics), where its right-click (and any right-click while
-  it is shown) has Height of the Preview tab: 1, 2 or 3 rows; under three rows large buttons are drawn small. It
-  cannot be removed (a toast says why). `bookmarkList` got a drop-down as `highlight.list` has. Icons were drawn for
+- **The preview tabs** (3.11): shipped in ribbon.json as tabs with `"previewer": true` and `"rows": 2` (Preview, View
+  and file); a ribbon.json of your own without any gets the shipped ones at its end when read (`RibbonFile.Load`), so
+  a ribbon changed before they existed still gives the previewer its commands. One of your own with a preview tab
+  gets none added: a ribbon.json changed while there was one Preview tab keeps that one (Reset, or New... > Preview
+  tab and the buttons moved, gives the two). The previewer shows them whatever commandBar says, their names only with
+  two or more, without grip or "only when wanted", and no ribbon right-click menu (the ribbon is changed in LexPen).
+  LexPen's windows show them only in change mode (their names in italics), where a right-click while one is shown has
+  Height of the preview tab: 1, 2 or 3 rows; under three rows large buttons are drawn small. New... asks Editor tab
+  or Preview tab. The last preview tab cannot be removed (a toast says why). `bookmarkList` got a drop-down as `highlight.list` has. Icons were drawn for
   the actions on it that had none (back, forward, block, section, the bookmarks list, the Occurrences bar, language,
   Open in LexPen, copy name, highlight from selection / keep / remove all / previous / next).
 - **The source** (3.11): the switches show in the previewer; the source is read-only (typing changes nothing) and the

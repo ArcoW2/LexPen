@@ -1,9 +1,9 @@
 // The ribbon LexPen ships (docs/plans/executed/PLAN-ribbon.md). Yours is ribbon.json in the data folder, made when you change
 // the ribbon (its right-click: Change the ribbon); Reset goes back to this one.
-// A tab: { name, groups }, and for the tab the previewer shows (Explorer's preview pane, docs/plans/PLAN-preview-handler.md
-// 3.11) "previewer": true, "rows": 1, 2 or 3 (its height in rows of buttons; under three: small buttons only). That tab
-// shows in LexPen's windows only while the ribbon is changed. A group: { name, corners: { left, right }, items }; a
-// corner: an action, [action, params], or { action, params, open }.
+// A tab: { name, groups }, and for a tab of the previewer (Explorer's preview pane, docs/plans/PLAN-preview-handler.md
+// 3.11) "previewer": true, "rows": 1, 2 or 3 (its height in rows of buttons; under three: small buttons only). Those
+// tabs show in LexPen's windows only while the ribbon is changed. A group: { name, corners: { left, right }, items };
+// a corner: an action, [action, params], or { action, params, open }. A label "\n": a button without one (its icon).
 // An item: "divider", or { action, params, size: "large" or "small" (the default), stack: true (under the small one
 // before it, at most three in a column; or one small and one large in a column, either on top), label (shorter
 // than the action's title), tip (its key tip letter), open: "dropDown" (an action with a list, such as Manage
@@ -108,20 +108,20 @@
 
     { "name": "Preview", "previewer": true, "rows": 2, "groups": [
       { "name": "Find", "items": [
-        { "action": "find" }, { "action": "findNext", "label": "Next", "stack": true },
-        { "action": "findPrevious", "label": "Previous" }, { "action": "occurrences.bar", "label": "Occurrences", "stack": true } ] },
+        { "action": "find" }, { "action": "occurrences.bar", "label": "Occurrences", "stack": true },
+        { "action": "findPrevious", "label": "Previous" }, { "action": "findNext", "label": "Next", "stack": true } ] },
       { "name": "Go to", "items": [
-        { "action": "positionBack", "label": "Back" }, { "action": "positionForward", "label": "Forward", "stack": true },
-        { "action": "block.next", "label": "Block" }, { "action": "outline.next", "label": "Section", "stack": true } ] },
-      { "name": "Bookmarks", "items": [
-        { "action": "bookmarkToggleFree", "label": "Toggle" }, { "action": "bookmarkList", "label": "List", "open": "dropDown", "stack": true },
-        { "action": "bookmarkNext", "params": [-1], "label": "Previous" }, { "action": "bookmarkNext", "params": [1], "label": "Next", "stack": true } ] },
-      { "name": "Highlights", "items": [
-        { "action": "highlight.toggle" }, { "action": "highlight.fromSelection", "label": "From selection", "stack": true },
-        { "action": "highlight.note", "label": "Note" }, { "action": "highlight.remove", "label": "Remove", "stack": true },
-        { "action": "highlight.next", "params": [-1], "label": "Previous" }, { "action": "highlight.next", "params": [1], "label": "Next", "stack": true },
-        { "action": "highlight.list", "label": "List", "open": "dropDown" }, { "action": "highlight.keep", "label": "Keep adjusted", "stack": true },
-        { "action": "highlight.clear", "label": "Remove all" } ] },
+        { "action": "positionBack", "label": "\n" }, { "action": "positionForward", "label": "\n", "stack": true },
+        { "action": "block.next", "label": "\n" }, { "action": "outline.next", "label": "\n", "stack": true } ] },
+      { "name": "Bookmarks", "corners": { "right": { "action": "bookmarkList", "open": "dropDown" } }, "items": [
+        { "action": "bookmarkNext", "params": [-1], "label": "\n" }, { "action": "bookmarkNext", "params": [1], "label": "\n", "stack": true },
+        { "action": "bookmarkToggleFree", "label": "Toggle" } ] },
+      { "name": "Highlights", "corners": { "right": { "action": "highlight.list", "open": "dropDown" } }, "items": [
+        { "action": "highlight.next", "params": [-1], "label": "\n" }, { "action": "highlight.next", "params": [1], "label": "\n", "stack": true },
+        { "action": "highlight.toggle" }, { "action": "highlight.note", "label": "Note", "stack": true },
+        { "action": "highlight.remove", "label": "Remove" }, { "action": "highlight.clear", "label": "Remove all", "stack": true } ] } ] },
+
+    { "name": "View and file", "previewer": true, "rows": 2, "groups": [
       { "name": "View", "items": [
         { "action": "editor.toggle", "label": "Source" }, { "action": "preview.toggle", "label": "Preview", "stack": true },
         { "action": "hex.toggle", "label": "Hex" }, { "action": "chooseLanguage", "label": "Language", "stack": true },

@@ -82,7 +82,8 @@ function renderRibbon() {
   const { top, el, row, bodies } = rbElements();
   el.hidden = mode === 'menu';
   top.hidden = mode !== 'ribbon';
-  row.hidden = mode !== 'both';
+  // A previewer: its tab names only when it has more than one preview tab.
+  row.hidden = mode === 'previewer' ? rb.model.tabs.filter(t => t.previewer).length < 2 : mode !== 'both';
   document.body.classList.toggle('mm-rb-changing', rb.changing);
   el.classList.toggle('mm-rb-names', setting('ribbonGroupNames') !== false);
   el.style.setProperty('--rb-ch', (Number(setting('ribbonLabelWidth')) || 24) + 'ch');
@@ -90,7 +91,7 @@ function renderRibbon() {
   if (!tabs.some(t => t.name === rb.tab && rbTabShown(t)))
     rb.tab = (tabs.find(t => t.name === setting('ribbonTab') && rbTabShown(t)) ?? tabs.find(rbTabShown))?.name ?? null;
   const tabsHtml = tabs.map((t, ti) => !rbTabShown(t) ? '' : `<button class="mm-rb-tab${t.name === rb.tab ? ' mm-on' : ''}${t.previewer ? ' mm-rb-tab-previewer' : ''}" data-tab="${ti}"` +
-    `${rb.changing ? ' draggable="true"' : ''}${t.previewer ? ' title="Only in the previewer (Explorer\'s preview pane): its only tab. Right-click: its height"' : ''} tabindex="-1">${escapeHtml(t.name)}</button>`).join('') +
+    `${rb.changing ? ' draggable="true"' : ''}${t.previewer ? ' title="A preview tab: only in the previewer (Explorer\'s preview pane). Right-click: its height"' : ''} tabindex="-1">${escapeHtml(t.name)}</button>`).join('') +
     (rb.changing ? '<button class="mm-rb-tab mm-rb-new" data-new-tab tabindex="-1">New...</button>' : '');
   (mode === 'ribbon' ? top : row).innerHTML = tabsHtml;
   (mode === 'ribbon' ? row : top).innerHTML = '';
@@ -356,7 +357,7 @@ function rbShowTab(ti) {
   const tab = rb.model.tabs[ti];
   if (!tab) return;
   rb.tab = tab.name;
-  if (!rb.changing) setSetting('ribbonTab', tab.name);
+  if (!rb.changing && !rbPreviewer()) setSetting('ribbonTab', tab.name);   // a previewer's tab: not LexPen's
   for (const b of (rbMode() === 'ribbon' ? rb.els.top : rb.els.row).querySelectorAll('[data-tab]')) b.classList.toggle('mm-on', +b.dataset.tab === ti);
   for (const body of rb.els.bodies.querySelectorAll('[data-body]')) body.hidden = +body.dataset.body !== ti;
   rbRefresh();
@@ -378,7 +379,7 @@ async function rbClick(e) {
     return rbSlide(true);
   }
   if (el.matches('.mm-rb-collapse')) return runAction('ribbon.onDemand', [], { from: 'ribbon' });
-  if (el.matches('[data-new-tab]')) return rbNewTab();
+  if (el.matches('[data-new-tab]')) return rbNewTab(el);
   if (el.matches('.mm-rb-done')) return rbChangeMode(false);
   if (el.matches('.mm-rb-more')) return openMenuBelow(rbOverflowItems(), el);
   if (rb.changing) return;   // in change mode the buttons do not run
@@ -546,11 +547,17 @@ async function rbReset() {
   toast('The shipped ribbon' + (rb.changing ? ' (Ctrl+Z takes it back).' : '.'), true);
 }
 
-async function rbNewTab() {
-  const name = await askName('New tab', '', 'Its name');
-  if (!name?.trim()) return;
-  rbChange(m => { m.tabs.push({ name: name.trim(), groups: [] }); });
-  rbShowTab(rb.model.tabs.length - 1);
+// New...: first its kind, a tab of LexPen's windows or of the previewer (docs/plans/PLAN-preview-handler.md 3.11; two
+// rows, as the shipped ones), then its name.
+function rbNewTab(button) {
+  const make = previewerTab => async () => {
+    const name = await askName(previewerTab ? 'New preview tab' : 'New tab', '', 'Its name');
+    if (!name?.trim()) return;
+    rbChange(m => { m.tabs.push({ name: name.trim(), ...(previewerTab ? { previewer: true, rows: 2 } : {}), groups: [] }); });
+    rbShowTab(rb.model.tabs.length - 1);
+  };
+  openMenuBelow([{ label: '&Editor tab (LexPen\'s windows)', run: make(false) },
+    { label: '&Preview tab (the previewer: Explorer\'s preview pane)', run: make(true) }], button);
 }
 async function rbNewGroup(ti, item) {
   const name = await askName('New group', '', 'Its name');
@@ -775,9 +782,10 @@ function rbDragEnd(e) {
   if (inside) return;
   rbRemove(what);
 }
+const rbLastPreviewTab = t => !!rb.model.tabs[t]?.previewer && rb.model.tabs.filter(x => x.previewer).length === 1;
 function rbRemove(what) {
-  if (what.kind === 'tab' && rb.model.tabs[what.path[0]]?.previewer)
-    return toast('The Preview tab stays: it is all the previewer (Explorer\'s preview pane) has. Remove its buttons instead.', true);
+  if (what.kind === 'tab' && rbLastPreviewTab(what.path[0]))
+    return toast('The last preview tab stays: it is all the previewer (Explorer\'s preview pane) has. Remove its buttons instead.', true);
   rbChange(m => {
     if (what.kind === 'tab') { m.tabs.splice(what.path[0], 1); return; }
     if (what.kind === 'group') { m.tabs[what.path[0]].groups.splice(what.path[1], 1); return; }
@@ -837,11 +845,11 @@ function rbEditMenu(e) {
     items = [{ label: '&Rename the tab...', run: async () => { const v = await askName('Tab name', tab.name, 'Its name'); if (v?.trim()) rbChange(m => { if (rb.tab === m.tabs[t].name) rb.tab = v.trim(); m.tabs[t].name = v.trim(); }); } },
       { label: 'Move &left', enabled: t > 0, run: () => rbChange(m => { m.tabs.splice(t - 1, 0, ...m.tabs.splice(t, 1)); }) },
       { label: 'Move ri&ght', enabled: t < rb.model.tabs.length - 1, run: () => rbChange(m => { m.tabs.splice(t + 1, 0, ...m.tabs.splice(t, 1)); }) },
-      { label: 'R&emove the tab', enabled: !tab.previewer, run: () => rbRemove({ kind: 'tab', path: [t] }) }];
+      { label: 'R&emove the tab', enabled: !rbLastPreviewTab(t), run: () => rbRemove({ kind: 'tab', path: [t] }) }];
   }
-  // The Preview tab (the previewer's): its height, wherever its right-click is while it shows.
+  // A preview tab (the previewer's): its height, wherever its right-click is while it shows.
   const shown = rb.model.tabs[rbTabIndex()];
-  if (shown?.previewer) items.push(...(items.length ? ['-'] : []), { label: 'Height of the Preview tab', sub: [1, 2, 3].map(n => ({
+  if (shown?.previewer) items.push(...(items.length ? ['-'] : []), { label: `Height of the preview tab "${shown.name.replace(/&/g, '&&')}"`, sub: [1, 2, 3].map(n => ({
     label: `&${n} row${n === 1 ? '' : 's'}${n < 3 ? ' (small buttons)' : ''}`, checked: ribbonRows(shown) === n,
     run: () => rbChange(m => { m.tabs[rbTabIndex()].rows = n; }) })) });
   items.push(...(items.length ? ['-'] : []), ['C&ustomize...', 'ribbon.customize'], ['Reset to the &shipped ribbon', 'ribbon.reset'], { label: '&Done', run: () => rbChangeMode(false) });
