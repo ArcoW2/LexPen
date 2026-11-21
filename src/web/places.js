@@ -78,12 +78,22 @@ function linkStep(dir) {
   return true;
 }
 
-// One step back (dir -1) or forward (1) in the active tab's document; past its places (or in the preview), the file a
-// link came from (back) or went to (forward).
+// The preview's cursor jumped (previewcursor.js): where it was, as a found item's place. Its places are marks in the
+// document's main Doc, so they need the editor's library; until it is loaded (in the background, warmEditor) none.
+function recordPreviewPlace(doc, pos) {
+  if (typeof CodeMirror === 'undefined' || doc.pdf) return;
+  const cmDoc = materialize(doc), line = Math.min(pos.line, cmDoc.lastLine());
+  recordPlace(doc, CodeMirror.Pos(line, Math.min(pos.ch, cmDoc.getLine(line).length)), true);
+}
+
+// One step back (dir -1) or forward (1) in the active tab's document, at the cursor in use: the editor's, or the
+// preview's (the preview alone, or the part of a split last in use); past its places, the file a link came from (back)
+// or went to (forward).
 function stepPlace(dir) {
   const pane = panes[state.activePane], tab = pane?.active;
   if (!tab) return;
-  if (tab.mode === 'preview' || !pane.cm) return linkStep(dir) || toast('No positions in the preview.', true);
+  if (tab.mode === 'preview' || tab.mode === 'split' && tab.focusPart === 'preview') return stepPreviewPlace(pane, dir);
+  if (!pane.cm) return linkStep(dir) || toast('No positions here.', true);
   const doc = tab.doc, cm = pane.cm, here = cm.getCursor('head');
   const from = (dir < 0 ? doc.placesBack : doc.placesForward) ?? [];
   let to;
@@ -102,4 +112,24 @@ function stepPlace(dir) {
     cm.scrollIntoView(to, cm.getScrollInfo().clientHeight / 2);
   } finally { pane.placeGoing = false; }
   cm.focus();
+}
+
+// The same in the preview: its cursor goes to the place, and where it was becomes a place the other way.
+function stepPreviewPlace(pane, dir) {
+  const doc = pane.active.doc, here = ensurePreviewCursor(pane);
+  const from = (dir < 0 ? doc.placesBack : doc.placesForward) ?? [];
+  if (!doc.cmDoc || !here || !from.length) return linkStep(dir) || toast(dir < 0 ? 'No position to go back to.' : 'No position to go forward to.', true);
+  let to;
+  while (from.length) {
+    const place = from.pop(), pos = placePos(doc.cmDoc, place);
+    place.mark.clear();
+    if (pos && (pos.line !== here.line || pos.ch !== here.ch)) { to = pos; break; }
+  }
+  if (!to) return linkStep(dir) || toast(dir < 0 ? 'No position to go back to.' : 'No position to go forward to.', true);
+  const line = Math.min(here.line, doc.cmDoc.lastLine());
+  const other = dir < 0 ? (doc.placesForward ??= []) : (doc.placesBack ??= []);
+  other.push(makePlace(doc.cmDoc, CodeMirror.Pos(line, Math.min(here.ch, doc.cmDoc.getLine(line).length))));
+  if (other.length > PLACES_MAX) other.shift().mark.clear();
+  pane.placeGoing = true;
+  try { previewCursorTo(pane, { line: to.line, ch: to.ch }); } finally { pane.placeGoing = false; }
 }

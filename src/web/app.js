@@ -1102,6 +1102,16 @@ async function renderNow(tab) {
   if (typeof findRegex === 'function') for (const pane of panes)
     if (pane.active === tab && pane.find && !pane.find.el.hidden && pane.find.marked === 'preview' + tab.id) refresh(pane, false);
   if (typeof schedulePreviewOverviews === 'function') schedulePreviewOverviews();   // the preview's scroll bar (previewoverview.js)
+  warmEditor(doc);
+}
+
+// After a preview is drawn, when the page has time: the editor's library and the document's own Doc, so what goes
+// through the editor works in the preview at once (position back / forward, bookmarks, the outline's steps) and the
+// editor opens fast. The preview comes first; this never holds it up.
+function warmEditor(doc) {
+  if (doc.cmDoc || doc.pdf) return;
+  const later = window.requestIdleCallback ?? (f => setTimeout(f, 200));
+  later(() => loadEditor().then(() => { if (!doc.cmDoc && allTabs().some(t => t.doc === doc)) materialize(doc); }), { timeout: 2000 });
 }
 
 // A rendered document's parts made right (the preview, and printing: print.js): the images by their path next to the
@@ -1949,6 +1959,7 @@ addEventListener('blur', endTabWalk);
 const statusUi = {
   chord: $('.mm-st-chord'), pos: $('.mm-st-pos'), ins: $('.mm-st-ins'), enc: $('.mm-st-enc'),
   eol: $('.mm-st-eol'), lang: $('.mm-st-lang'), col: $('.mm-st-col'), elev: $('.mm-st-elev'), char: $('.mm-st-char'), clip: $('.mm-st-clip'), alive: $('.mm-st-alive'), long: $('.mm-st-long'),
+  unstored: $('.mm-st-unstored'),
 };
 
 // The heartbeat at the right of the bottom bar: turned by the page itself, so it stands still exactly
@@ -2012,6 +2023,8 @@ function updateStatus() {
     : doc?.binary ? 'Not text: shown as its bytes (Hex)' : doc?.pdf ? `${languageTitle(doc)}: not text, so its language stays` : 'Language (click: choose another)';
   statusUi.lang.classList.toggle('mm-fixed', !!doc?.pdf || !!doc?.binary);   // a kind that is not text: dimmed (app.css), no list
   statusUi.long.hidden = !(cm && longLineIn(doc));
+  // A previewer's stream (docs/plans/PLAN-preview-handler.md 3.10): said once it has highlights, which are not kept.
+  statusUi.unstored.hidden = !(doc?.stream && typeof hlsOf === 'function' && hlsOf(doc).list.length);
   statusUi.clip.textContent = 'Clip: ' + (clips.active === 0 ? 'Win' : clips.active);
   statusUi.clip.classList.toggle('mm-on', clips.active !== 0);
   statusUi.clip.title = clips.active === 0 ? 'The Windows clipboard is active (click: the clipboards)'
@@ -4719,6 +4732,9 @@ function tabCursor(tab) {
 }
 
 let started = false;
+// A preview handler's view (docs/plans/PLAN-preview-handler.md): the file a host gives in the preview, read-only; no
+// project, session, folder or other tabs (MainForm IsPreviewer).
+let previewer = false;
 function saveSession() {
   if (!started) return;
   clearTimeout(saveSession.timer);
@@ -5172,6 +5188,78 @@ async function viewFile(path, last = false) {
   if (!!tab.readOnly !== !!setting('viewReadOnly')) await setReadOnly(tab, !!setting('viewReadOnly'));
   return tab;
 }
+
+// ---------- A previewer (docs/plans/PLAN-preview-handler.md) ----------
+// The host's file in the preview, read-only, the one before closed; or a stream's content (no path: nothing of it is
+// kept; its language from its name, else guessed).
+events.preview = async ({ path, name, text }) => {
+  while (!started) await new Promise(r => setTimeout(r, 50));
+  // The source, the preview or both (3.11): as the file before it was switched to; the first one in the preview.
+  const was = panes[0].active?.mode, mode = ['edit', 'split'].includes(was) ? was : 'preview';
+  for (const tab of allTabs()) await closeTab(tab, true);
+  const pane = panes[0];
+  if (path) {
+    const tab = await openFile(path, { pane, mode }).catch(e => { toast(e.message); return null; });
+    if (tab && !tab.readOnly) await setReadOnly(tab, true);
+  } else {
+    const doc = makeDoc({ text: text ?? '' });
+    // Its language by its name's extension, else by its first line (languageFor), as a file's; markdown is undefined.
+    const language = languageFor(name || '', text ?? '');
+    Object.assign(doc, { temp: true, stream: true, label: name || 'Preview', language: language === 'markdown' ? undefined : language });
+    const tab = makeTab(doc, mode);
+    tab.readOnly = true;
+    insertTab(pane, tab);
+    await activate(pane, tab);
+  }
+  await showAll();
+};
+
+// The page as a previewer (CSS: body[data-role=previewer]). Its editor is the source of what it shows (read-only): the
+// switch says so.
+function setPreviewerRole() {
+  document.body.dataset.role = 'previewer';
+  Object.assign($('.mm-switch-editor'), { textContent: 'Source' }).dataset.title = 'Show / hide the source';
+}
+
+// Keys for the host (docs/plans/PLAN-preview-handler.md 3.7): a key the previewer does not use goes to the program it
+// shows in (Explorer's Alt+P, F5, ...), which takes it or not. Used: an action ran (keys.js stops it), the find bar's
+// Esc, a menu or dialog open when it came. In a text field only F-keys and Alt+key go (Ctrl+key and AltGr are the
+// field's); never the editing keys (Ctrl+A, C, V, X, Y, Z, Insert). F5 is held back from the page (no reload) but is
+// the host's.
+// What a previewer's keys do (3.11): these, the buttons and corners of the preview tabs, and the cursor's moves (its
+// source view); a key of anything else is not LexPen's there (Save, a macro: F5) and goes to the host.
+const PREVIEWER_ACTIONS = new Set(['find', 'findNext', 'findPrevious', 'copy', 'selectAll', 'focusPart', 'positionBack',
+  'positionForward', 'block.next', 'outline.next', 'bookmarkStore', 'bookmarkToggle', 'bookmarkClear', 'bookmarkGo',
+  'bookmarkToggleFree', 'bookmarkNext', 'bookmarkList', 'highlight.toggle', 'highlight.fromSelection', 'highlight.note',
+  'highlight.remove', 'highlight.clear', 'highlight.keep', 'highlight.next', 'highlight.list', 'occurrences.show',
+  'occurrences.field', 'occurrences.clear', 'occurrences.bar', 'zoomIn', 'zoomOut', 'zoomReset', 'theme.toggle', 'theme.day',
+  'theme.night', 'print', 'previewer.open', 'editor.toggle', 'preview.toggle', 'hex.toggle', 'chooseLanguage', 'file.copy']);
+function previewerAction(name) {
+  if (PREVIEWER_ACTIONS.has(name) || actionDef(name)?.move) return true;
+  const call = c => typeof c === 'string' ? c : Array.isArray(c) ? c[0] : c?.action;
+  return !!rb.model?.tabs.some(t => t.previewer && t.groups.some(g => [...g.items, ...Object.values(g.corners ?? {})].some(i => call(i) === name)));
+}
+let hostKeyBusy = false;
+addEventListener('keydown', () => { hostKeyBusy = !!menuBar.levels.length || !!document.querySelector('dialog[open]'); }, true);
+addEventListener('keydown', e => {
+  if (!previewer || hostKeyBusy || e.isComposing || ['Control', 'Shift', 'Alt', 'Meta', 'AltGraph'].includes(e.key)) return;
+  if (e.defaultPrevented && e.key !== 'F5') return;
+  const field = !!e.target.closest?.('input, textarea, select, [contenteditable]:not([contenteditable=false])');
+  const fKey = /^F\d{1,2}$/.test(e.key);
+  const wanted = field ? fKey || e.altKey && !e.ctrlKey
+    : fKey || e.key === 'Escape' || e.altKey && !e.ctrlKey || e.ctrlKey && !e.altKey && !/^([acvxyz]|insert)$/i.test(e.key);
+  if (wanted) host('previewKey', { vk: e.keyCode, alt: e.altKey }).catch(() => {});
+});
+
+// Edit...: the file in LexPen, as Explorer's Open gives it (edit, or view: File types). A stream has no file to open.
+appAction('previewer.open', { title: 'Edit...', hint: 'The file shown here in LexPen, as opening it from Explorer would (to edit, or to view as File types says)',
+  group: 'files', enabled: () => !!activeDoc()?.path, run: () => { const path = activeDoc()?.path; if (path) host('previewerOpen', { path }); } });
+
+// The host let go of the file: nothing shown, the file not held.
+events.previewClear = async () => {
+  for (const tab of allTabs()) await closeTab(tab, true);
+  await showAll();
+};
 
 // A compare from Explorer in this window (the project for comparing, docs/plans/executed/PLAN-compare-project.md): as
 // starting one here, a compare already running ends first; the files of the old one stay as tabs.
@@ -5792,7 +5880,8 @@ async function openRecent(list, path, missing) {
 }
 
 // Opened by the user (not restored): on top of the recent list.
-const noteOpened = (kind, path) => host('recentAdd', { kind, path }).catch(() => {});
+// A previewer keeps no recent files: what a host shows is not what you opened in LexPen.
+const noteOpened = (kind, path) => previewer ? undefined : host('recentAdd', { kind, path }).catch(() => {});
 
 // ---------- About ----------
 async function showAbout() {
@@ -5937,7 +6026,8 @@ const commands = {
   about: showAbout,
   exit: () => host('exit'),   // the window still asks about unsaved changes
   // Day / night: following Windows, the other mode until Windows changes mode; else the other mode, kept.
-  theme: () => setting('followWindows') ? host('switchMode') : setSetting('theme', look?.mode === 'dark' ? 'light' : 'dark'),
+  // A previewer: its own mode, switched for every previewer (docs/plans/PLAN-preview-handler.md 3.5), never LexPen's.
+  theme: () => previewer || setting('followWindows') ? host('switchMode') : setSetting('theme', look?.mode === 'dark' ? 'light' : 'dark'),
 };
 
 document.addEventListener('click', e => {
@@ -6010,6 +6100,8 @@ track((async () => {
 
   // A window of a project opened again restores its session; folder and files on the command line come on top.
   const start = await host('init');
+  previewer = !!start.previewer;
+  if (previewer) setPreviewerRole();
   await loadLanguages();   // first: the keys name their actions
   setKeys(await host('keys'));
   loadRibbon();   // ribbon.js: shown as the window's layout says (commandBar)

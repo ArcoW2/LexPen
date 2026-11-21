@@ -18,8 +18,8 @@ static class FileTypes
     const string Prefix = "LexPen.";
     const string OldType = "LexPen.Document";   // register.ps1's file type for .md, before this
 
-    static string Classes => Environment.GetEnvironmentVariable("LEXPEN_REGISTRY_ROOT") is { Length: > 0 } root ? root : @"Software\Classes";
-    static string Software => Classes.EndsWith(@"\Classes", StringComparison.OrdinalIgnoreCase) ? Classes[..^@"\Classes".Length] : @"Software";
+    internal static string Classes => Environment.GetEnvironmentVariable("LEXPEN_REGISTRY_ROOT") is { Length: > 0 } root ? root : @"Software\Classes";
+    internal static string Software => Classes.EndsWith(@"\Classes", StringComparison.OrdinalIgnoreCase) ? Classes[..^@"\Classes".Length] : @"Software";
     static string Capabilities => $@"{Software}\LexPen\Capabilities";
     static string RegisteredApplications => $@"{Software}\RegisteredApplications";
     static string FileExts => Environment.GetEnvironmentVariable("LEXPEN_REGISTRY_ROOT") is { Length: > 0 }
@@ -167,11 +167,14 @@ static class FileTypes
         {
             var language = e.Value?.GetValue<string>() ?? "";
             var (name, ours) = OpensWith(e.Key, exe);
+            var (previewer, ourPreview) = Previewer.PreviewsWith(e.Key);
             return (JsonNode?)new JsonObject
             {
                 ["extension"] = e.Key, ["language"] = language,
                 ["languageName"] = packs?[language]?["name"]?.GetValue<string>() ?? language,
                 ["mode"] = ModeOf(e.Key), ["opensWith"] = name, ["lexpen"] = ours,
+                // The preview handler (docs/plans/PLAN-preview-handler.md 3.8): LexPen's set by LexPen, what Windows uses now.
+                ["preview"] = Previewer.IsBound(e.Key), ["previewsWith"] = previewer, ["previewLexPen"] = ourPreview,
             };
         }).ToArray());
     }

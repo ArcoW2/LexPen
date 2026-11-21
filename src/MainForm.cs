@@ -38,8 +38,9 @@ sealed class MainForm : Form
     /// <see cref="ToDesktop"/>: back on the virtual desktop it was on (at start).</summary>
     // Compare: two files or two folders to compare (--compare), the page starts it. View: the files and the folder come
     // from View in LexPen (the files in Preview, the folder in the Folder pane). Edit: the files come from Edit in LexPen (in
-    // the editor).
-    public sealed record Start(string? Folder, List<string> Files, int Key = 0, bool ToDesktop = false, string[]? Compare = null, bool View = false, bool Edit = false);
+    // the editor). Previewer: a preview handler's view (docs/plans/PLAN-preview-handler.md): no project, a child of the
+    // host's window, one file in the preview, read-only.
+    public sealed record Start(string? Folder, List<string> Files, int Key = 0, bool ToDesktop = false, string[]? Compare = null, bool View = false, bool Edit = false, bool Previewer = false);
 
     readonly AppHost app;
     Start start;
@@ -59,6 +60,9 @@ sealed class MainForm : Form
 
     /// <summary>A window opened at start: back on the desktop it was on (AppHost.WindowShown).</summary>
     public bool ToDesktop => start.ToDesktop;
+
+    /// <summary>A preview handler's view (PreviewHandler): in a host's window, in no project.</summary>
+    public bool IsPreviewer => start.Previewer;
 
     /// <summary>Set by AppHost: a new window that may become the project closed last on its desktop.</summary>
     [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
@@ -134,6 +138,11 @@ sealed class MainForm : Form
         Text = "LexPen";
         Icon = new Icon(typeof(MainForm).Assembly.GetManifestResourceStream("app.ico")!);
         Size = new Size(1280, 820);
+        if (IsPreviewer)
+        {
+            FormBorderStyle = FormBorderStyle.None;
+            ShowInTaskbar = false;
+        }
 
         Controls.Add(web);
         Controls.Add(loading);
@@ -313,7 +322,7 @@ sealed class MainForm : Form
     // border Windows' own or the theme's (AppHost.ApplyCaption).
     public void ApplyTheme()
     {
-        var dark = app.Mode == "dark";
+        var dark = app.ModeOf(this) == "dark";
         BackColor = web.DefaultBackgroundColor = app.AppBackground(this);
         UpdateFirstPaint();
         var on = dark ? 1 : 0;
@@ -661,7 +670,7 @@ sealed class MainForm : Form
                     ["id"] = Id,
                     ["primary"] = Primary,
                     ["index"] = app.IndexOf(this),
-                    ["theme"] = app.Mode,
+                    ["theme"] = app.ModeOf(this),
                     ["tabColours"] = app.TabColours(),
                     ["folder"] = start.Folder,
                     ["files"] = new JsonArray(start.Files.Select(f => (JsonNode?)f).ToArray()),
@@ -671,6 +680,13 @@ sealed class MainForm : Form
                 };
                 if (start.Compare is [var left, var right])
                     init["compare"] = new JsonObject { ["left"] = left, ["right"] = right, ["folders"] = Directory.Exists(left) };
+                // A previewer: no session, no drafts, no project; the file comes with "preview".
+                if (IsPreviewer)
+                {
+                    init["previewer"] = true;
+                    init["project"] = app.ProjectInfo(this);
+                    return init;
+                }
                 // Its session (a window of a project opened again) and its drafts.
                 var (session, drafts) = app.StartOf(this);
                 if (session is not null) init["restore"] = session;
@@ -1371,7 +1387,7 @@ sealed class MainForm : Form
                 return null;
 
             case "switchMode":
-                app.SwitchMode();
+                if (IsPreviewer) app.SwitchPreviewerMode(); else app.SwitchMode();
                 return null;
 
             case "openSettings":   // its window of its own (the action settings decides: AppHost.OpenSettings)
@@ -1424,11 +1440,24 @@ sealed class MainForm : Form
                 app.ProjectCommand(this, Arg("kind"), msg);
                 return null;
 
+            // A previewer's Open in LexPen: the file as Explorer's Open gives it (File types: edit or view).
+            case "previewerOpen":
+            {
+                var path = Arg("path");
+                app.Launch([path], shift: false, view: FileTypes.ModeOf(Path.GetExtension(path)) == "view");
+                return null;
+            }
+
+            // A previewer's key it does not use itself: its host's (Explorer's Alt+P, F5, ...).
+            case "previewKey":
+                return HostKey?.Invoke(msg["vk"]!.GetValue<int>(), msg["alt"]?.GetValue<bool>() == true) == true;
+
+            // A previewer never edits: it takes no lock, so it never keeps a window of LexPen from editing a file.
             case "lock":
-                return app.Lock(Arg("path"), this);
+                return !IsPreviewer && app.Lock(Arg("path"), this);
 
             case "unlock":
-                app.Unlock(Arg("path"), this);
+                if (!IsPreviewer) app.Unlock(Arg("path"), this);
                 return null;
 
             case "docText":
@@ -1936,6 +1965,11 @@ sealed class MainForm : Form
     protected override void OnShown(EventArgs e)
     {
         base.OnShown(e);
+        if (IsPreviewer)
+        {
+            Settled.TrySetResult();   // no desktop, no project to wait for
+            return;
+        }
         Move += (_, _) => app.WindowPlaceChanged(this);
         Resize += (_, _) => app.WindowPlaceChanged(this);
         app.WindowShown(this);
@@ -1943,6 +1977,12 @@ sealed class MainForm : Form
 
     protected override void OnFormClosing(FormClosingEventArgs e)
     {
+        // A previewer has nothing to save: it closes as the host lets go.
+        if (IsPreviewer)
+        {
+            base.OnFormClosing(e);
+            return;
+        }
         // The page decides first: it may ask to save, and answers with "closeNow".
         if (!closeApproved && pageReady && e.CloseReason is not (CloseReason.WindowsShutDown or CloseReason.TaskManagerClosing))
         {
@@ -1972,6 +2012,49 @@ sealed class MainForm : Form
                 WindowState == FormWindowState.Maximized);
         base.OnFormClosing(e);
     }
+
+    // ---------- A previewer (docs/plans/PLAN-preview-handler.md) ----------
+
+    /// <summary>A child of the host's window at `bounds` (in its client area); shown the first time.</summary>
+    public void EmbedIn(nint parent, Rectangle bounds)
+    {
+        if (GetParent(Handle) != parent)
+        {
+            SetWindowLongPtr(Handle, GwlStyle, WsChild | WsClipChildren | (Visible ? WsVisible : 0));
+            SetParent(Handle, parent);
+        }
+        SetWindowPos(Handle, 0, bounds.X, bounds.Y, bounds.Width, bounds.Height, SwpNoZOrder | SwpNoActivate);
+        if (!Visible) Show();
+    }
+
+    /// <summary>The file to show (`path`), or a stream's content (`name`, `text`: no path, nothing kept).</summary>
+    public void ShowPreview(string? path, string? name, string? text) =>
+        Post(new JsonObject { ["event"] = "preview", ["path"] = path, ["name"] = name, ["text"] = text });
+
+    /// <summary>The host let go of the file: nothing shown, nothing held.</summary>
+    public void ClearPreview() => Post(new JsonObject { ["event"] = "previewClear" });
+
+    public void FocusPreview() => web.Focus();
+
+    /// <summary>A key the previewer's page did not use, for its host (3.7: the preview handler passes it on to the
+    /// host's frame): the virtual key and whether Alt was down. True: the host took it.</summary>
+    public Func<int, bool, bool>? HostKey;
+
+    const int GwlStyle = -16;
+    const nint WsChild = 0x40000000, WsVisible = 0x10000000, WsClipChildren = 0x02000000;
+    const uint SwpNoZOrder = 0x0004, SwpNoActivate = 0x0010;
+
+    [DllImport("user32.dll")]
+    static extern nint GetParent(nint hwnd);
+
+    [DllImport("user32.dll")]
+    static extern nint SetParent(nint child, nint parent);
+
+    [DllImport("user32.dll")]
+    static extern nint SetWindowLongPtr(nint hwnd, int index, nint value);
+
+    [DllImport("user32.dll")]
+    static extern bool SetWindowPos(nint hwnd, nint after, int x, int y, int width, int height, uint flags);
 
     protected override void Dispose(bool disposing)
     {

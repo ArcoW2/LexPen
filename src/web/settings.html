@@ -26,16 +26,33 @@
   <div class="st-ft-scroll">
     <table class="st-ft-table">
       <thead><tr><th></th><th data-sort="extension">Extension</th><th data-sort="languageName">Language</th>
-        <th data-sort="as">Opens as</th><th data-sort="opensWith">Opens now with</th></tr></thead>
+        <th data-sort="as">Opens as</th><th data-sort="opensWith">Opens now with</th>
+        <th data-sort="previewOn" title="Explorer's preview pane shows it in LexPen">Preview</th><th data-sort="previewsWith">Previews now with</th></tr></thead>
       <tbody></tbody>
     </table>
   </div>
+  <div class="st-ft-bulk">
+    <div class="st-ft-explain">
+      <span>Change settings: select rows (multi-select with Ctrl+click, Shift+click a range, Ctrl+A all rows).
+        <b>Change</b>: when enabled, change the setting under it. Apply only applies the enabled settings to the selected rows.</span>
+      <button class="st-ft-apply" disabled>Apply to selected</button>
+    </div>
+    <div class="st-ft-linebox">
+      <table class="st-ft-line"><colgroup><col><col><col><col><col><col><col></colgroup><tbody><tr>
+        <td><button class="st-ft-change" data-for="checked" aria-pressed="false" title="LexPen opens it: pressed, the selected rows get the value under it">Change</button>
+          <input type="checkbox" data-value="checked" disabled></td>
+        <td></td><td></td>
+        <td><button class="st-ft-change" data-for="as" aria-pressed="false" title="Opens as: pressed, the selected rows get the value under it">Change</button>
+          <select data-value="as" disabled><option value="edit">Edit</option><option value="view">View</option></select></td>
+        <td></td>
+        <td><button class="st-ft-change" data-for="previewOn" aria-pressed="false" title="Preview: pressed, the selected rows get the value under it">Change</button>
+          <input type="checkbox" data-value="previewOn" disabled></td>
+        <td></td>
+      </tr></tbody></table>
+    </div>
+  </div>
   <div class="st-ft-note"></div>
   <div class="st-ft-buttons">
-    <button data-ft="all" title="Checks the rows shown">Check all</button>
-    <button data-ft="none" title="Unchecks the rows shown">Check none</button>
-    <button data-ft="edit" title="The rows shown: opened to edit, and checked">All edit</button>
-    <button data-ft="view" title="The rows shown: opened to view (the project for viewing), and checked">All view</button>
     <span class="st-ft-gap"></span>
     <button data-ft="assign" title="Every row, also the ones the filter hides: asks first">Assign</button>
     <button data-ft="cancel">Close</button>

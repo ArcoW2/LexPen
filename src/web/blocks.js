@@ -116,7 +116,9 @@ function blockStart(doc, line, preview) {
 // not; the cursor to the start of the entry's line text (with Shift: selected to it), or the preview's cursor.
 function goOutlineEntry(pane, dir, extend, preview) {
   const doc = pane.active.doc, entries = hasOutline(doc) ? outlineOf(doc) ?? [] : [];
-  const here = cursorOf(pane, preview), cmp = (a, b) => a.line - b.line || a.ch - b.ch;
+  // The preview's own cursor: no editor needed (cursorOf, bookmarks.js, comes with the editor).
+  const here = preview ? ensurePreviewCursor(pane) : pane.cm.getCursor('head'), cmp = (a, b) => a.line - b.line || a.ch - b.ch;
+  if (!here) return;
   const starts = [...new Set(entries.map(e => e.line))].sort((a, b) => a - b).map(line => blockStart(doc, line, preview));
   const to = dir > 0 ? starts.find(p => cmp(p, here) > 0) : starts.findLast(p => cmp(p, here) < 0);
   if (!to) return toast(dir > 0 ? 'No next outline entry.' : 'No previous outline entry.', true);

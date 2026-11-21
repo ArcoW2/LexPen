@@ -54,6 +54,7 @@
 .st-text { flex: 1; min-width: 0; }
 .st-title { font-weight: 600; }
 .st-hint { margin-top: 2px; color: var(--fg-dim); font-size: calc(12px * var(--ui-scale)); }
+.st-note { margin: 10px 10px 2px 13px; color: var(--fg-dim); font-style: italic; }   /* above a row: what the rows from there on are for */
 .st-control { flex: none; display: flex; align-items: center; gap: 8px; }
 /* A list as wide as its longest text, between a minimum and a maximum that grows with the window (and both with
    the app's font scale): a wider window shows more of a long text. */
@@ -74,8 +75,9 @@
 .st-changed .st-reset { visibility: visible; }
 .st-reset:hover { text-decoration: underline; }
 .st-none { padding: 24px 10px; color: var(--fg-dim); }
-/* File types (docs/plans/executed/PLAN-file-types.md): a dialog over the settings, a table of the extensions. */
-.st-ft { width: min(760px, 92vw); height: min(560px, 86vh); padding: 0; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; }
+/* File types (docs/plans/executed/PLAN-file-types.md): a dialog over the settings, a table of the extensions. It fills
+   the settings window, so sizing that window sizes it. */
+.st-ft { width: calc(100vw - 24px); height: calc(100vh - 24px); max-width: none; max-height: none; padding: 0; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; }
 .st-ft[open] { display: flex; flex-direction: column; }
 .st-ft::backdrop { background: rgba(0, 0, 0, .35); }
 .st-ft-top { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--bg-bar); border-bottom: 1px solid var(--border); }
@@ -93,9 +95,32 @@
 .st-ft-table td { padding: 3px 10px; border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent); white-space: nowrap; }
 .st-ft-table tr:hover td { background: var(--hover); }
 .st-ft-table select { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 1px 4px; }
+.st-ft-table tbody tr { cursor: default; user-select: none; }
+.st-ft-table tbody td:is(:nth-child(5), :nth-child(7)) { white-space: normal; }   /* the app names wrap when the window is narrow */
+.st-ft-table tbody tr.st-sel td { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+/* Several rows at once: a bar under the table (not in its scroll), what it does with Apply to selected, then the line,
+   its columns as wide as the table's (ftAlign) and scrolled sideways with it. */
+.st-ft-bulk { flex: none; background: var(--bg-bar); border-top: 1px solid var(--border); }
+.st-ft-explain { display: flex; align-items: center; gap: 12px; padding: 6px 14px 2px; color: var(--fg-dim); }
+.st-ft-explain span { flex: 1; }
+.st-ft-explain b { color: var(--fg); font-weight: 600; }
+.st-ft-explain button, .st-ft-buttons button { padding: 3px 12px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--fg); white-space: nowrap; }
+.st-ft-explain button:hover:not(:disabled) { border-color: var(--accent); }
+.st-ft-linebox { overflow: hidden; }
+.st-ft-line { table-layout: fixed; border-collapse: collapse; }
+.st-ft-line td { padding: 6px 10px; white-space: nowrap; overflow: hidden; vertical-align: top; }
+.st-ft-line select { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 1px 4px; }
+.st-ft-line :is(button, select, input) { display: block; }
+.st-ft-line :is(button, select, input) + :is(select, input) { margin-top: 4px; }
+.st-ft-line td.st-on { background: color-mix(in srgb, var(--accent) 22%, transparent); }   /* Change pressed: this setting is set */
+.st-ft-change { padding: 2px 10px; font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 4px; cursor: pointer; }
+.st-ft-change:hover { border-color: var(--accent); }
+.st-ft-change[aria-pressed=true] { color: var(--bg); background: var(--accent); border-color: var(--accent); }
+.st-ft-line :disabled, .st-ft-bulk button:disabled { opacity: .5; }
 .st-ft-lexpen { color: var(--accent); }
 .st-ft-dim { color: var(--fg-dim); }
 .st-ft-note { padding: 6px 14px; min-height: 1.3em; color: var(--fg-dim); border-top: 1px solid var(--border); }
+.st-ft-note:empty { display: none; }   /* only there with something to say (what Assign could not do) */
 .st-ft-note.st-error { color: var(--caution); }
 .st-ft-buttons { display: flex; align-items: center; gap: 6px; padding: 8px 14px; background: var(--bg-bar); border-top: 1px solid var(--border); }
 .st-ft-gap { flex: 1; }

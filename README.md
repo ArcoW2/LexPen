@@ -186,8 +186,9 @@ are shown under **Options > About LexPen**.
 
 **Options > Settings > App > Windows Explorer > File types...** (also F1 > File types): every extension the language
 packs know, with a checkbox, its language, how it opens (Edit, or View in the project for viewing) and the app
-Windows opens it with now; sortable by each column, a filter on extension or language. Check all, Check none, All
-edit and All view act on the rows shown; Assign on all of them, after a question. It registers the published LexPen
+Windows opens it with now, whether Explorer previews it in LexPen and what it previews with now; sortable by each
+column, a filter on extension or language. Select rows (click, Ctrl+click, Shift+click, Ctrl+A); the line below the
+table sets each setting on Change in the selected rows (Apply to selected). Assign on all rows, after a question. It registers the published LexPen
 for the current user (no admin needed), and takes a choice you made for another app off those extensions. One Windows
 keeps for another app (Windows protects a few) is named, and **Settings > Default apps** opens at LexPen to choose
 it there. A debug build does not assign.

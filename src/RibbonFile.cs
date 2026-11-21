@@ -17,19 +17,30 @@ static class RibbonFile
     static readonly JsonDocumentOptions Options = new() { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true };
 
     /// <summary>{ ribbon: { tabs }, user: the user's own file is in use, problems: [...] }. A user file that cannot be
-    /// read gives the shipped ribbon and says so.</summary>
+    /// read gives the shipped ribbon and says so. Yours without the previewer's tab (written before it was shipped, or
+    /// it taken off by hand) gets the shipped one at its end: the previewer has no other commands
+    /// (docs/plans/PLAN-preview-handler.md 3.11).</summary>
     public static JsonObject Load(string dataDir, string shippedPath)
     {
         var problems = new JsonArray();
         var userPath = Path.Combine(dataDir, Name);
+        var shipped = File.Exists(shippedPath) ? Parse(ReadText(shippedPath), problems, "the shipped " + Name) : null;
         if (File.Exists(userPath))
         {
             var mine = Parse(ReadText(userPath), problems, "your " + Name);
-            if (mine is not null) return new JsonObject { ["ribbon"] = mine, ["user"] = true, ["problems"] = problems };
+            if (mine is not null)
+            {
+                var tabs = mine["tabs"]!.AsArray();
+                if (!tabs.Any(IsPreviewerTab))
+                    foreach (var tab in shipped?["tabs"]!.AsArray().Where(IsPreviewerTab) ?? []) tabs.Add(tab!.DeepClone());
+                return new JsonObject { ["ribbon"] = mine, ["user"] = true, ["problems"] = problems };
+            }
         }
-        var shipped = File.Exists(shippedPath) ? Parse(ReadText(shippedPath), problems, "the shipped " + Name) : null;
         return new JsonObject { ["ribbon"] = shipped ?? new JsonObject { ["tabs"] = new JsonArray() }, ["user"] = false, ["problems"] = problems };
     }
+
+    /// <summary>The tab the previewer shows, and only it ("previewer": true).</summary>
+    static bool IsPreviewerTab(JsonNode? tab) => tab?["previewer"]?.GetValueKind() == JsonValueKind.True;
 
     static string ReadText(string path)
     {
@@ -83,7 +94,10 @@ static class RibbonFile
                 if (group["corners"] is JsonObject corners) g["corners"] = corners.DeepClone();
                 cleanGroups.Add(g);
             }
-            clean.Add(new JsonObject { ["name"] = name, ["groups"] = cleanGroups });
+            var cleanTab = new JsonObject { ["name"] = name, ["groups"] = cleanGroups };
+            if (IsPreviewerTab(tab)) cleanTab["previewer"] = true;
+            if (tab["rows"]?.GetValueKind() == JsonValueKind.Number && tab["rows"]!.GetValue<double>() is 1 or 2 or 3) cleanTab["rows"] = (int)tab["rows"]!.GetValue<double>();
+            clean.Add(cleanTab);
         }
         return new JsonObject { ["tabs"] = clean };
     }

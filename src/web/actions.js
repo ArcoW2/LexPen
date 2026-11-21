@@ -641,6 +641,34 @@ const SETTING_ROWS = [
   { name: 'viewReset', group: 'General', sub: 'Viewing', kind: 'buttons', title: 'Reset to view layout',
     hint: 'The project for viewing gets the view layout again: one window, one pane, no sidebar, outline, formatting bar or ruler, every tab in the preview. Its tabs stay',
     buttons: [['Reset to view layout', 'viewReset']] },
+  // LexPen as a Windows preview handler (docs/plans/PLAN-preview-handler.md 3.5, 3.8): registered how (how it is now, read
+  // from Windows: a live row), its day and night, apart from LexPen's.
+  { name: 'previewer', group: 'General', sub: 'Previewer', kind: 'choice', live: true, title: 'LexPen as a previewer',
+    hint: 'Programs that show previews (Explorer\'s preview pane) may show files in LexPen. Which file types: File types (App > Windows Explorer)',
+    hints: { none: 'Not registered: no program shows files in LexPen, and LexPen\'s start leaves it so',
+      user: 'Registered for you: Explorer and other programs show files in LexPen; programs that only take previewers for everyone (Outlook) do not',
+      all: 'Registered for you and listed for everyone on this computer, as Outlook needs; changing that asks for administrator rights. The file types stay each user\'s own' },
+    options: () => [['none', 'Not registered'], ['user', 'For the current user only'], ['all', 'For everyone on this computer']] },
+  { name: 'previewerMode', group: 'General', sub: 'Previewer', kind: 'choice', title: 'Day / night of the previewer',
+    hint: 'LexPen in Explorer\'s preview pane (and other programs that show previews): as Windows is, or always day or night. Its Day / Night button switches until Windows changes (always day or night: until LexPen ends)',
+    options: () => [['windows', 'As Windows'], ['light', 'Always day'], ['dark', 'Always night']] },
+  { name: 'previewerThemeLight', group: 'General', sub: 'Previewer', kind: 'choice', title: 'Theme of the previewer in day mode',
+    hint: 'For the whole previewer, its bar and its preview. As LexPen: the theme LexPen\'s own windows have in day mode',
+    options: () => [['', 'As LexPen'], ...themeOptions()] },
+  { name: 'previewerThemeDark', group: 'General', sub: 'Previewer', kind: 'choice', title: 'Theme of the previewer in night mode',
+    hint: 'For the whole previewer, its bar and its preview. As LexPen: the theme LexPen\'s own windows have in night mode',
+    options: () => [['', 'As LexPen'], ...themeOptions()] },
+  // How a host may give the previewer its file (3.1): the host chooses among those offered, in its own order.
+  { name: 'previewerFile', group: 'General', sub: 'Previewer', kind: 'toggle', title: 'Take a file by its path',
+    note: 'How programs may hand the previewer a file; each picks among those checked. A stream keeps no marks, no Edit...',
+    hint: 'A program that shows previews may give the file by its path (IInitializeWithFile): its bookmarks, highlights and language are kept, Edit... works',
+    hintOff: 'Not offered: a program gives the file another way (item or stream), or LexPen shows no preview there' },
+  { name: 'previewerItem', group: 'General', sub: 'Previewer', kind: 'toggle', title: 'Take a file as a shell item',
+    hint: 'A program may give the file as a shell item (IInitializeWithItem): a file on disk by its path, as above; one in a zip by its content',
+    hintOff: 'Not offered: a program gives the file another way (path or stream), or LexPen shows no preview there' },
+  { name: 'previewerStream', group: 'General', sub: 'Previewer', kind: 'toggle', title: 'Take a file as a stream',
+    hint: 'A program may give only the content (IInitializeWithStream; Outlook\'s attachments): shown, but nothing is kept and Edit... is off. Programs that prefer a stream take it before the path: switch this off to get the path there',
+    hintOff: 'Not offered: a program that has only the content (Outlook\'s attachments) shows no LexPen preview; one that prefers a stream gives the path or the item instead. None of the three offered: no LexPen preview anywhere' },
   { name: 'followWindows', group: 'General', sub: 'Theme', kind: 'toggle', title: 'Follow Windows',
     hint: 'Light or dark follows Windows (Settings > Personalization > Colors); the Day / Night button switches until Windows changes',
     hintOff: 'A change between light and dark in Windows does not switch the mode of LexPen' },
@@ -1048,6 +1076,8 @@ function settingDefs() {
       title: r.title ?? action?.title ?? r.name, hint: r.hint ?? action?.hint ?? '',
       hintOff: r.hintOff ?? null,   // a toggle whose hint says what happens: hint when on, hintOff when off
       hints: r.hints ?? null,   // a choice whose hint says what happens: one per value
+      note: r.note ?? null,     // a line above the row: what the rows from there on are for
+      live: !!r.live,           // its value is how things are now, from the host, not settings.json (settings.js)
       options: r.options?.() ?? (r.kind === 'size' ? [[0, `Default (${r.base()})`], ...FONT_SIZES.map(pt => [pt, pt + ' pt'])] : null),
       monoFirst: r.name === 'editorFont',
       range: r.range ?? null, unit: r.unit ?? '', buttons: r.buttons ?? null,
@@ -1114,6 +1144,8 @@ appAction('highlight.list', { title: 'Highlights window', hint: 'A window with t
 appAction('highlight.moveAll', { title: 'Move all highlights to where the setting says', hint: 'Files > Highlights: into LexPen\'s store, or next to their files (.lph)', group: 'highlights',
   run: async () => { const n = await host('highlightsMoveAll', { beside: setting('highlightsStore') === 'beside' }); toast(`The highlights of ${n} file${n === 1 ? '' : 's'} moved.`, true); } });
 appAction('bookmarkList', { title: 'Bookmarks of this file', hint: 'A list to choose from', group: 'bookmarks',
+  // On the ribbon as a drop-down (ribbon.js; the previewer's Preview tab): the document's bookmarks, a click going there.
+  dropDown: () => loadEditor().then(async () => { const items = await bookmarkGoItems(); return items.length ? items : [{ label: '(no bookmarks)', enabled: false }]; }),
   preview: true, run: withBookmarks((_, { pane, preview }) => showBookmarkList(pane, preview)) });
 
 // ---------- The gutter (gutter.js): View > Gutter ----------

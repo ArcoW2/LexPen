@@ -36,7 +36,9 @@ sealed class PrintForm : Form
         ShowInTaskbar = false;
         MinimumSize = new Size(760, 480);
         StartPosition = FormStartPosition.Manual;
-        var at = owner.WindowState == FormWindowState.Normal ? owner.Bounds : owner.RestoreBounds;
+        // A previewer is a child of a host's window: its place on the screen, not in that window.
+        var at = owner.IsPreviewer ? owner.RectangleToScreen(owner.ClientRectangle)
+            : owner.WindowState == FormWindowState.Normal ? owner.Bounds : owner.RestoreBounds;
         var size = new Size(Math.Max(760, at.Width * 9 / 10), Math.Max(480, at.Height * 9 / 10));
         Bounds = new Rectangle(at.X + (at.Width - size.Width) / 2, at.Y + (at.Height - size.Height) / 2, size.Width, size.Height);
         Controls.Add(web);

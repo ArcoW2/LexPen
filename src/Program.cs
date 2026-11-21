@@ -34,6 +34,18 @@ static class Program
             if (ew + 2 < args.Length && int.TryParse(args[ew + 2], out var pid)) ElevatedWriter.Serve(args[ew + 1], pid);
             return;
         }
+        // --previewer-machine add | remove (docs/plans/PLAN-preview-handler.md 3.8): started as administrator by LexPen to
+        // list its previewer for the whole machine (Outlook offers only those) or take it off; no window.
+        if (Array.IndexOf(args, Previewer.MachineArg) is var pm and >= 0)
+        {
+            // Failed (not administrator after all): the LexPen that asked sees the listing unchanged and says so.
+            try { if (pm + 1 < args.Length) Previewer.ListForMachine(args[pm + 1] == "add"); }
+            catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or IOException) { }
+            return;
+        }
+        // -Embedding: started by COM for a preview (docs/plans/PLAN-preview-handler.md): no window; the previews only.
+        var embedding = Previewer.IsEmbedding(args);
+        if (embedding) args = [];
         var (newWindow, compare, view, edit, rest) = ParseArgs(args);
         var shift = newWindow || (Control.ModifierKeys & Keys.Shift) != 0;
         var paths = rest.Select(Path.GetFullPath).ToArray();   // against this process's current folder
@@ -46,6 +58,7 @@ static class Program
         using var mutex = new Mutex(true, @"Local\" + name, out var owner);
         if (!owner)
         {
+            if (embedding) return;   // the running LexPen serves the previews itself
             if (Send(name, paths, shift, compare, view, edit)) return;
             // The running instance is closing: wait for it, then take over.
             try { owner = mutex.WaitOne(TimeSpan.FromSeconds(5)); }
@@ -65,11 +78,15 @@ static class Program
         app.WatchLanguages();
         app.WatchMacros();
         if (owner) app.RefreshExplorerMenu();   // a new version over the old one: Explorer's entries its way
-        app.Launch(paths, shift, compare, view, edit);
+        if (owner) app.RefreshPreviewer();   // the preview handler: its class and the extensions it shows
+        if (embedding) app.EndWhenIdle();   // ends a while after the last preview, unless a window opens
+        else app.Launch(paths, shift, compare, view, edit);
         if (owner) app.Listen(name);
+        if (owner) Previewer.Serve(app);   // hosts' previews come to this LexPen
         Application.EnterThreadModal += ShowPointer;
         Application.LeaveThreadModal += RestorePointer;
         Application.Run(app);
+        Previewer.Revoke();
         if (owner) mutex.ReleaseMutex();
     }
 

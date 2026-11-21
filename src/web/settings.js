@@ -30,7 +30,10 @@ let settings = null;   // { values, defaults, user, problems, defs, layout }
 // A row of "this window" (def.layer): its value is in the main window's layout, not in settings.json
 // (docs/plans/executed/PLAN-settings-layers.md); a change goes to that window.
 const ofWindow = name => Object.hasOwn(settings.defaults.defaultLayout ?? {}, name);
-const valueOf = name => ofWindow(name)
+// A live row (def.live): its value is not in settings.json but how things are now, asked from the host (liveGet) and
+// changed through it (liveSet; the host says the outcome as the event liveValue).
+const live = {};
+const valueOf = name => Object.hasOwn(live, name) ? live[name] : ofWindow(name)
   ? settings.layout?.[name] ?? settings.values.defaultLayout?.[name] ?? settings.defaults.defaultLayout?.[name] : settings.values[name];
 const defaultOf = def => def.layer === 'window' ? settings.defaults.defaultLayout?.[def.name] : def.default ?? settings.defaults[def.name];
 const rows = [];       // { def, el, control }
@@ -329,6 +332,8 @@ function buildGroup(group) {
         section.append(box);
       }
     }
+    // A note above a row (def.note): what the rows from there on are for.
+    if (def.note) box.append(Object.assign(document.createElement('div'), { className: 'st-note', textContent: def.note }));
     const el = document.createElement('div');
     el.className = 'st-row';
     el.dataset.name = def.name;
@@ -454,6 +459,11 @@ events.screen = s => {
 const unconfirmed = new Map();
 
 function set(name, value, quiet) {
+  if (rows.find(r => r.def.name === name)?.def.live) {
+    live[name] = value;   // as clicked, until the host says how it went (liveValue)
+    host('liveSet', { name, value }).catch(e => { ui.problems.hidden = false; ui.problems.textContent = e.message; });
+    return;
+  }
   // A setting of the theme set: stored in the set the main window shows; the bar says where, with Undo.
   if (rows.find(r => r.def.name === name)?.def.layer === 'set' && !quiet) {
     const before = settings.values[name];
@@ -479,6 +489,7 @@ function set(name, value, quiet) {
   });
 }
 
+events.liveValue = ({ name, value }) => { live[name] = value; show(); };
 events.settings = ({ settings: s }) => {
   const mine = Object.fromEntries([...unconfirmed.keys()].map(n => [n, settings.values[n]]));
   settings = { ...s, defs: settings.defs, look: settings.look, languageProblems: settings.languageProblems, layout: settings.layout,
@@ -540,8 +551,9 @@ events.look = ({ look }) => {
   show();
 };
 // A main window described the rows again (another list of themes).
-events.defs = ({ defs }) => {
+events.defs = async ({ defs }) => {
   settings.defs = defs;
+  for (const def of defs.filter(d => d.live && !Object.hasOwn(live, d.name))) live[def.name] = await host('liveGet', { name: def.name }).catch(() => null);
   const search = ui.search.value, focused = document.activeElement?.closest('.st-row')?.dataset.name;
   build();
   ui.search.value = search;
@@ -562,7 +574,7 @@ function filter(typing = false) {
     if (r.def.showWhen && ![].concat(r.def.showWhen.value).includes(valueOf(r.def.showWhen.name))) return false;
     // This screen: the rows with a line of this screen's zoom (the editor font size, the preview zoom).
     if (layerShown && (r.def.layer ?? 'global') !== layerShown && !(layerShown === 'screen' && r.el.querySelector('.st-screen'))) return false;
-    const text = (r.def.title + ' ' + r.def.hint + ' ' + (r.def.hintOff ?? '') + ' ' + Object.values(r.def.hints ?? {}).join(' ') + ' ' + r.def.group + ' ' + (r.def.sub ?? '') + ' ' +
+    const text = (r.def.title + ' ' + r.def.hint + ' ' + (r.def.hintOff ?? '') + ' ' + (r.def.note ?? '') + ' ' + Object.values(r.def.hints ?? {}).join(' ') + ' ' + r.def.group + ' ' + (r.def.sub ?? '') + ' ' +
       (r.def.keywords ?? '')).toLowerCase();
     return words.every(w => text.includes(w));
   };
@@ -645,10 +657,13 @@ $('.st-foot [data-open]').addEventListener('click', e => host('openFile', { file
 
 // ---------- File types (docs/plans/executed/PLAN-file-types.md) ----------
 // Every extension of the language packs: checked when LexPen opens it, how (edit or view; choosing one checks the row),
-// the app Windows starts now. The filter narrows the rows; Check all / none and All edit / view act on the rows shown;
-// Assign on every row: it clears the filter and the host asks first. A debug build refuses Assign (the host says so).
+// the app Windows starts now. The filter narrows the rows. Rows are selected apart from their checkbox (click, Ctrl+click,
+// Shift+click, Ctrl+A for the rows shown); the line below the table puts each setting on Change into the selected rows
+// shown. Assign on every row: it clears the filter and the host asks first. A debug build refuses Assign (the host says so).
 const ftDialog = $('.st-ft'), ftFilter = $('.st-ft-filter'), ftBody = ftDialog.querySelector('tbody'), ftNote = $('.st-ft-note');
-const ft = { rows: [], sort: 'extension', desc: false };
+const ftFoot = ftDialog.querySelector('.st-ft-line'), ftApply = ftDialog.querySelector('.st-ft-apply');
+const ftScroll = ftDialog.querySelector('.st-ft-scroll'), ftTable = ftDialog.querySelector('.st-ft-table');
+const ft = { rows: [], sort: 'extension', desc: false, drawn: [], selected: new Set(), anchor: null };
 
 function ftShown() {
   const words = ftFilter.value.toLowerCase().split(/\s+/).filter(Boolean);
@@ -662,32 +677,113 @@ function ftDraw() {
     th.classList.toggle('st-on', th.dataset.sort === ft.sort);
     th.classList.toggle('st-desc', th.dataset.sort === ft.sort && ft.desc);
   }
+  ft.drawn = rows;
   ftBody.replaceChildren(...rows.map(r => {
     const tr = document.createElement('tr');
-    tr.innerHTML = '<td><input type="checkbox"></td><td></td><td></td><td><select><option value="edit">Edit</option><option value="view">View</option></select></td><td></td>';
-    const [check, ext, language, , now] = tr.children, box = check.firstChild, select = tr.querySelector('select');
+    tr.classList.toggle('st-sel', ft.selected.has(r.extension));
+    tr.addEventListener('click', e => { if (!e.target.closest('input, select')) ftSelect(r, e); });
+    tr.innerHTML = '<td><input type="checkbox"></td><td></td><td></td><td><select><option value="edit">Edit</option><option value="view">View</option></select></td><td></td>' +
+      '<td><input type="checkbox" class="st-ft-preview"></td><td></td>';
+    const [check, ext, language, , now, previewCell, previewNow] = tr.children, box = check.firstChild, select = tr.querySelector('select');
+    const preview = previewCell.firstChild;
     box.checked = r.checked;
     ext.textContent = r.extension;
     language.textContent = r.languageName;
     select.value = r.as;
     now.textContent = r.opensWith ?? '-';
     now.className = r.lexpen ? 'st-ft-lexpen' : r.opensWith ? '' : 'st-ft-dim';
+    // Explorer's preview in LexPen (docs/plans/PLAN-preview-handler.md 3.8): apart from how the file opens.
+    preview.checked = r.previewOn;
+    previewNow.textContent = r.previewsWith ?? '-';
+    previewNow.className = r.previewLexPen ? 'st-ft-lexpen' : r.previewsWith ? '' : 'st-ft-dim';
+    preview.addEventListener('change', () => { r.previewOn = preview.checked; ftChanged(); });
     box.addEventListener('change', () => { r.checked = box.checked; ftChanged(); });
     select.addEventListener('change', () => { r.as = select.value; r.checked = box.checked = true; ftChanged(); });   // one click less
     return tr;
   }));
   ftChanged();
+  ftMarkSelected();
 }
+
+// A click selects the row alone, Ctrl+click adds or removes it, Shift+click the rows from the last one clicked.
+function ftSelect(r, e) {
+  const at = ft.drawn.indexOf(r), from = ft.drawn.findIndex(x => x.extension === ft.anchor);
+  if (e.shiftKey && from >= 0) {
+    if (!e.ctrlKey) ft.selected.clear();
+    for (const x of ft.drawn.slice(Math.min(at, from), Math.max(at, from) + 1)) ft.selected.add(x.extension);
+  } else {
+    if (!e.ctrlKey) ft.selected.clear();
+    if (e.ctrlKey && ft.selected.has(r.extension)) ft.selected.delete(r.extension);
+    else ft.selected.add(r.extension);
+    ft.anchor = r.extension;
+  }
+  ftMarkSelected();
+}
+
+function ftMarkSelected() {
+  ft.drawn.forEach((r, i) => ftBody.children[i].classList.toggle('st-sel', ft.selected.has(r.extension)));
+  const count = ft.drawn.filter(r => ft.selected.has(r.extension)).length;
+  ftApply.textContent = count ? `Apply to selected (${count})` : 'Apply to selected';
+  ftApply.disabled = !count || !ftFoot.querySelector('.st-ft-change[aria-pressed=true]');
+}
+
+// The line below the table is not in it (it does not scroll with the rows): its columns take the widths of the table's,
+// a column with a control of the line made at least as wide as that control, and it follows the table sideways.
+function ftAlign() {
+  const heads = [...ftTable.querySelectorAll('thead th')], cells = [...ftFoot.querySelectorAll('td')], cols = ftFoot.querySelectorAll('col');
+  heads.forEach((th, i) => {
+    const need = Math.max(0, ...[...cells[i].children].map(c => c.offsetWidth));
+    if (need) th.style.width = th.style.minWidth = need + 'px';   // also a narrow window does not make it narrower
+  });
+  heads.forEach((th, i) => cols[i].style.width = th.getBoundingClientRect().width + 'px');
+  ftFoot.style.width = ftTable.getBoundingClientRect().width + 'px';
+  ftFoot.parentElement.style.width = ftScroll.clientWidth + 'px';   // not under the table's scroll bar: as far sideways
+  ftFoot.parentElement.scrollLeft = ftScroll.scrollLeft;
+}
+const ftResized = new ResizeObserver(ftAlign);
+ftResized.observe(ftTable);
+ftResized.observe(ftScroll);
+ftScroll.addEventListener('scroll', () => ftFoot.parentElement.scrollLeft = ftScroll.scrollLeft);
+
+// The line below the table: a setting whose Change is pressed can be set (the button and its cell highlighted); not
+// pressed, each row keeps its own. Setting how it opens checks the rows too (as choosing it in one row does), unless
+// "LexPen opens it" is pressed itself.
+function ftPress(change, on) {
+  change.setAttribute('aria-pressed', on);
+  change.parentElement.classList.toggle('st-on', on);
+  ftFoot.querySelector(`[data-value="${change.dataset.for}"]`).disabled = !on;
+}
+for (const change of ftFoot.querySelectorAll('.st-ft-change')) change.addEventListener('click', () => {
+  ftPress(change, change.getAttribute('aria-pressed') !== 'true');
+  ftMarkSelected();
+});
+ftApply.addEventListener('click', () => {
+  const on = name => ftFoot.querySelector(`.st-ft-change[data-for="${name}"]`).getAttribute('aria-pressed') === 'true';
+  const value = name => { const v = ftFoot.querySelector(`[data-value="${name}"]`); return v.type === 'checkbox' ? v.checked : v.value; };
+  for (const r of ft.drawn.filter(r => ft.selected.has(r.extension))) {
+    if (on('as')) { r.as = value('as'); r.checked = true; }
+    if (on('checked')) r.checked = value('checked');
+    if (on('previewOn')) r.previewOn = value('previewOn');
+  }
+  ftDraw();
+});
+ftDialog.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.key.toLowerCase() === 'a' && !e.target.closest('input[type=search]')) {
+    e.preventDefault();
+    for (const r of ft.drawn) ft.selected.add(r.extension);
+    ftMarkSelected();
+  }
+});
 
 // Nothing changed since the dialog opened: the last button is Close; else Cancel (closing it throws the changes away).
 function ftChanged() {
-  const changed = ft.rows.some(r => r.checked !== !!r.mode || r.checked && r.as !== (r.mode ?? 'edit'));
+  const changed = ft.rows.some(r => r.checked !== !!r.mode || r.checked && r.as !== (r.mode ?? 'edit') || r.previewOn !== !!r.preview);
   ftDialog.querySelector('[data-ft=cancel]').textContent = changed ? 'Cancel' : 'Close';
 }
 
 async function ftLoad() {
   const list = await host('fileTypes');
-  ft.rows = list.map(r => ({ ...r, checked: !!r.mode, as: r.mode ?? 'edit' }));
+  ft.rows = list.map(r => ({ ...r, checked: !!r.mode, as: r.mode ?? 'edit', previewOn: !!r.preview }));
   ftDraw();
 }
 
@@ -695,6 +791,9 @@ async function openFileTypes() {
   ftFilter.value = '';
   ftNote.textContent = '';
   ftNote.classList.remove('st-error');
+  ft.selected.clear();
+  ft.anchor = null;
+  for (const change of ftFoot.querySelectorAll('.st-ft-change')) ftPress(change, false);
   ftDialog.showModal();
   ftFilter.focus();
   await ftLoad();
@@ -716,7 +815,8 @@ ftDialog.querySelector('.st-ft-buttons').addEventListener('click', async e => {
     ftDraw();
     ftNote.classList.remove('st-error');
     try {
-      const done = await host('assignFileTypes', { chosen: ft.rows.filter(r => r.checked).map(r => ({ extension: r.extension, mode: r.as })) });
+      const done = await host('assignFileTypes', { chosen: ft.rows.filter(r => r.checked).map(r => ({ extension: r.extension, mode: r.as })),
+        previews: ft.rows.filter(r => r.previewOn).map(r => r.extension) });
       if (done.cancelled) return;
       ftDialog.close();   // assigned (what Windows keeps for another app the host has said already)
     } catch (error) {
@@ -725,11 +825,6 @@ ftDialog.querySelector('.st-ft-buttons').addEventListener('click', async e => {
     }
     return;
   }
-  for (const r of ftShown()) {
-    if (what === 'all' || what === 'none') r.checked = what === 'all';
-    else { r.as = what; r.checked = true; }
-  }
-  ftDraw();
 });
 
 // ---------- This window's layout: Save as default, Reset to default ----------
@@ -886,6 +981,8 @@ fpDialog.querySelector('.st-fp-buttons').addEventListener('click', e => {
   settings = await host('init');
   await usableFonts().catch(() => []);
   buildLegend();
+  // The live rows' values first: a list shows a value it does not know as an entry of its own.
+  for (const def of settings.defs?.filter(d => d.live) ?? []) live[def.name] = await host('liveGet', { name: def.name }).catch(() => null);
   build();
   if (!settingShown) { restoreView(); ui.search.focus(); ui.search.select(); }   // typing replaces the last search
 })();
