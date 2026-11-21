@@ -125,6 +125,32 @@
 .st-names { width: 26em; padding: 3px 6px; font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 4px; }
 .st-swatch { width: 16px; height: 16px; border-radius: 3px; border: 1px solid var(--border); }
 .st-picker { position: absolute; width: 0; height: 0; padding: 0; border: 0; opacity: 0; }   /* the colour dialog, opened from the list */
+/* The font window (a font row's "..."): a dialog over the settings that fills the window, the fonts each in its own font
+   at the left, a preview with text of your own at the right, the size below. */
+.st-fp { width: calc(100vw - 24px); height: calc(100vh - 24px); max-width: none; max-height: none; padding: 0; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; }
+.st-fp[open] { display: flex; flex-direction: column; }
+.st-fp::backdrop { background: rgba(0, 0, 0, .35); }
+.st-fp-top, .st-fp-buttons { flex: none; display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--bg-bar); }
+.st-fp-top { border-bottom: 1px solid var(--border); }
+.st-fp-buttons { gap: 6px; border-top: 1px solid var(--border); }
+.st-fp-title { font-weight: 600; white-space: nowrap; }
+.st-fp-filter { flex: 1; min-width: 0; padding: 4px 8px; font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 4px; }
+.st-fp-filter:focus, .st-fp-list:focus, .st-fp-preview:focus { outline: none; border-color: var(--accent); }
+.st-fp-top label, .st-fp-buttons label { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.st-fp-mono { accent-color: var(--accent); }
+.st-fp-body { flex: 1; min-height: 0; display: flex; gap: 10px; padding: 10px 14px; }
+.st-fp-list { flex: 0 1 46%; min-width: 0; overflow: auto; border: 1px solid var(--border); border-radius: 4px; }
+.st-fp-item { display: flex; align-items: baseline; gap: 12px; padding: 4px 10px; white-space: nowrap; cursor: default; user-select: none; }
+.st-fp-item:hover { background: var(--hover); }
+.st-fp-item.st-on { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+.st-fp-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.st-fp-sample { flex: none; color: var(--fg-dim); font-size: 1.15em; }
+.st-fp-none { padding: 12px 10px; color: var(--fg-dim); }
+.st-fp-preview { flex: 1; min-width: 0; resize: none; padding: 8px 10px; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 4px; white-space: pre; overflow: auto; }
+.st-fp-size { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 2px 4px; }
+.st-fp-gap { flex: 1; }
+.st-fp-buttons button { padding: 3px 12px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--fg); }
+.st-fp-buttons button:hover { border-color: var(--accent); }
 
 
 /* Narrow (docked at a side, docs/plans/executed/PLAN-docking.md 7b): a row's control under its text, the bars wrap. */

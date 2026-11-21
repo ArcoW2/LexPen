@@ -60,6 +60,24 @@
   A change applies at once in every LexPen window. Your settings file holds only what you changed:
   <button class="st-link" data-open="settings">open settings.json</button>
 </footer>
+<!-- The font window (a font row's "..."): every font in its own font, a preview with text of your own, the size. -->
+<dialog class="st-fp">
+  <div class="st-fp-top">
+    <span class="st-fp-title"></span>
+    <input class="st-fp-filter" type="search" placeholder="Filter on font name" spellcheck="false">
+    <label title="Only the fonts whose letters are all as wide"><input class="st-fp-mono" type="checkbox"> Monospaced only</label>
+  </div>
+  <div class="st-fp-body">
+    <div class="st-fp-list" tabindex="0"></div>
+    <textarea class="st-fp-preview" spellcheck="false" title="The preview: type your own text"></textarea>
+  </div>
+  <div class="st-fp-buttons">
+    <label>Size <select class="st-fp-size"></select></label>
+    <span class="st-fp-gap"></span>
+    <button data-fp="ok">OK</button>
+    <button data-fp="cancel">Cancel</button>
+  </div>
+</dialog>
 <script src="fontlist.js"></script>
 <script src="settings.js"></script>
 </body>
