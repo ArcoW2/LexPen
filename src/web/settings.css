@@ -74,8 +74,9 @@
 .st-changed .st-reset { visibility: visible; }
 .st-reset:hover { text-decoration: underline; }
 .st-none { padding: 24px 10px; color: var(--fg-dim); }
-/* File types (docs/plans/executed/PLAN-file-types.md): a dialog over the settings, a table of the extensions. */
-.st-ft { width: min(760px, 92vw); height: min(560px, 86vh); padding: 0; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; }
+/* File types (docs/plans/executed/PLAN-file-types.md): a dialog over the settings, a table of the extensions. It fills
+   the settings window, so sizing that window sizes it. */
+.st-ft { width: calc(100vw - 24px); height: calc(100vh - 24px); max-width: none; max-height: none; padding: 0; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; }
 .st-ft[open] { display: flex; flex-direction: column; }
 .st-ft::backdrop { background: rgba(0, 0, 0, .35); }
 .st-ft-top { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--bg-bar); border-bottom: 1px solid var(--border); }
