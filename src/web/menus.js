@@ -172,6 +172,7 @@ async function openMenuLevel(items, x, y, select, above, leftX) {
   el.className = 'mm-menu mm-dropdown';
   const level = { el, items: [], index: -1 };
   menuBar.levels.push(level);
+  if (menuBar.levels.length === 1) takeMenuOpener();   // a menu of its own (not a submenu): the button that opened it
   const icons = items.some(i => i?.icon);   // a menu with icons (Format): every item gets the place of one
   for (const item of items) {
     if (item === '-') { el.append(document.createElement('hr')); continue; }
@@ -266,6 +267,7 @@ function closeMenus() {
   for (const level of menuBar.levels) level.el.remove();
   menuBar.levels = [];
   menuBar.fromContext = false;
+  menuBar.opener = null;
   if (menuBar.top >= 0) menuBar.el.children[menuBar.top]?.classList.remove('mm-on');
   menuBar.top = -1;
   if (typeof rbShowMenus === 'function') rbShowMenus(false);   // the ribbon only: its tab names back in the menus' place
@@ -322,9 +324,22 @@ addEventListener('keydown', e => {
   if (at >= 0) chooseMenuItem(level, at);
 }, true);
 
-// A click outside the menus closes them.
+// A click outside the menus closes them. A menu a button opened closes with a second click on that button, and stays
+// closed: the click after the press is not the button's (it would open the menu again). The button: the one clicked
+// just before the menu opened (its list may take a moment). The ribbon's buttons and the menu bar do this themselves.
+const MENU_OPENER_MS = 1500;
+let menuClick = null, menuSkipClick = null;
+addEventListener('click', e => {
+  const b = e.target instanceof Element ? e.target.closest('button, [role=button]') : null;
+  if (b && b === menuSkipClick) { menuSkipClick = null; e.preventDefault(); e.stopImmediatePropagation(); return; }
+  menuSkipClick = null;
+  menuClick = b && !b.closest('.mm-dropdown, .mm-menubar, .mm-ribbon, .mm-rb-tabs') ? { el: b, at: Date.now() } : null;
+}, true);
 addEventListener('mousedown', e => {
-  if (menuBar.levels.length && !e.target.closest('.mm-dropdown, .mm-menubar')) closeMenus();
+  if (!menuBar.levels.length || e.target.closest('.mm-dropdown, .mm-menubar')) return;
+  const opener = menuBar.opener;
+  closeMenus();
+  if (opener && e.button === 0 && opener.contains(e.target)) menuSkipClick = opener;
 }, true);
 addEventListener('blur', closeMenus);
 
@@ -335,11 +350,18 @@ function openPopupMenu(items, x, y, select = true) {
   openMenuLevel(items, x, y, select, true);
 }
 
+// The button just clicked opened this menu (see the clicks above; openMenuLevel): a second click on it closes it.
+function takeMenuOpener() {
+  menuBar.opener = menuClick && Date.now() - menuClick.at < MENU_OPENER_MS && menuBar.levels.length ? menuClick.el : null;
+  menuClick = null;
+}
+
 // A right-click menu (a dock tab's, the gutter's, the outline's, ...), as openPopupMenu, but no item marked as it opens
 // and it takes the focus, out of a pane's frame too, so the keys go to it; the focus back where it was after. The
 // focus gone elsewhere (another pane, docked or floating; another program) closes it, the focus staying there.
 function openContextMenu(items, x, y) {
   openPopupMenu(items, x, y, false);
+  menuBar.opener = null;   // a right-click's: no button
   const el = menuBar.levels[0]?.el;
   if (!el) return;
   menuBar.focusFrom = document.activeElement;
