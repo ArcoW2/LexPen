@@ -234,8 +234,8 @@ All of it by the file's path (`BookmarkStore.Key`), so LexPen and the previewer 
   - **View and file**: View (Language over Zoom 100%, Zoom in over Zoom out; Source, Preview, Hex and Day / Night
     are in the top bar) and File (Print, Edit..., Copy, Copy name).
   - **The top bar**, one line: the preview tabs' names at the left (only with two or more), then at the right the
-    switches (the editor's called Source here), Edit... (the file in LexPen), Day / Night and the zoom. No file name (the host shows
-    it) and no Print button (it is on View and file). In a narrow preview pane it wraps to a second line.
+    switches (the editor's called Source here), Day / Night and the zoom. No file name (the host shows it), no Print
+    and no Edit... (both on View and file > File). A narrow preview pane cuts off its right end.
   - A button without a label (its label only spaces and line breaks) is named by its action's title wherever it shows
     as text: the list of groups that do not fit (">>"), Customize.
   - The lists are drop-downs (highlights: as now; bookmarks: `bookmarkList` gets the same drop-down form as
@@ -315,7 +315,7 @@ In progress on the branch `preview-handler`; not merged. Not yet tried in Explor
   host ("1 of 8").
 - **Day and night** (3.5): `previewerMode`, `previewerThemeLight`, `previewerThemeDark`, the Day / Night button; the
   mode is per window now (`AppHost.ModeOf`).
-- **Print** and **Edit...** (first called Open in LexPen) in the previewer's bar (Print later moved to the View and file tab); the Print window is placed over the preview on the screen.
+- **Print** and **Edit...** (first called Open in LexPen; first in the previewer's bar, now on View and file > File); the Print window is placed over the preview on the screen.
 - **Streams** (3.10): read whole on Initialize, the language by the name's extension, else the first line; highlights
   and notes kept while shown; the status bar notice "Highlights and notes cannot be stored for this file (no path)"
   from the first one.

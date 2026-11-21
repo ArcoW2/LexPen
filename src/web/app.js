@@ -5212,7 +5212,6 @@ events.preview = async ({ path, name, text }) => {
     await activate(pane, tab);
   }
   await showAll();
-  showPreviewerOpen();
 };
 
 // The page as a previewer (CSS: body[data-role=previewer]). Its editor is the source of what it shows (read-only): the
@@ -5255,7 +5254,6 @@ addEventListener('keydown', e => {
 // Edit...: the file in LexPen, as Explorer's Open gives it (edit, or view: File types). A stream has no file to open.
 appAction('previewer.open', { title: 'Edit...', hint: 'The file shown here in LexPen, as opening it from Explorer would (to edit, or to view as File types says)',
   group: 'files', enabled: () => !!activeDoc()?.path, run: () => { const path = activeDoc()?.path; if (path) host('previewerOpen', { path }); } });
-const showPreviewerOpen = () => $('.mm-previewer-open').toggleAttribute('data-none', !activeDoc()?.path);
 
 // The host let go of the file: nothing shown, the file not held.
 events.previewClear = async () => {
