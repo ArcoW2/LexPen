@@ -7,6 +7,7 @@ every action with its key.
 - [Finding and moving around](#finding-and-moving-around)
 - [How the text looks](#how-the-text-looks)
 - [Preview](#preview)
+- [LexPen as a previewer](#lexpen-as-a-previewer)
 - [Compare](#compare)
 - [Files and folders](#files-and-folders)
 - [Tabs, panes, windows and projects](#tabs-panes-windows-and-projects)
@@ -396,7 +397,8 @@ every action with its key.
   unsaved and git changes at the height their text is shown at, and the editor's cursor line; a click on a mark brings
   it to the middle of the view.
 - **Fonts** (settings window, F1): the editor font and the app font, each with a size in points, and the
-  editor's line height; every window follows a change. In the editor Ctrl+= / Ctrl+- / Ctrl+mouse wheel change
+  editor's line height; every window follows a change. A font's "..." opens the font window: every font in its own
+  font, a filter, Monospaced only, a preview with text of your own, and the size. In the editor Ctrl+= / Ctrl+- / Ctrl+mouse wheel change
   the editor font size, Ctrl+0 sets it back to the default. The preview keeps its own look.
 - **Zoom per screen**: the zoom (Ctrl+= / Ctrl+- / Ctrl+mouse wheel: the editor font size in the editor, else
   the preview) is kept per monitor, on top of the font sizes in the settings.
@@ -516,6 +518,39 @@ every action with its key.
 - **No browser menu**: where LexPen has no right-click menu of its own, there is none; the browser's (Cut, Copy,
   Paste) only on a text field or a selection. The editor's and the preview's keep their Highlight items, panels never
   show them.
+
+## LexPen as a previewer
+
+Programs that show previews (Explorer's preview pane, Outlook's attachments, file managers such as Foldex and
+Xplorer2) can show a file in LexPen, inside their own window. LexPen is a Windows preview handler, served by
+LexPen.exe itself (a LexPen that runs serves the previews; with none running, Windows starts one without a window,
+which ends a while after the last preview).
+
+- **Registered how**: Settings > General > Previewer > LexPen as a previewer: Not registered, For the current user
+  only (the start's default; no administrator rights), or For everyone on this computer (Outlook offers only those;
+  changing it asks for administrator rights). The setting shows how it is now.
+- **Which file types**: File types, the Preview column: checked, Explorer previews that extension in LexPen; the
+  previewer that was there before is kept and comes back when you uncheck it. "Previews now with" says what Windows
+  uses now.
+- **How a program may give the file**: by its path, as a shell item, or as a stream of its content (three settings,
+  all on). With the path or the item, bookmarks, highlights, the language and the place are kept for the file and
+  Edit... works; a stream (Outlook's attachments) is shown with nothing kept, and the status bar says so once you make
+  a highlight.
+- **What it shows**: the file in LexPen's preview, read-only: markdown rendered, code coloured. The switches above it
+  show the source (read-only), the preview, both, or Hex; the language can be changed in the status bar.
+- **What works there**: find (Ctrl+F, F3), the occurrences bar, the preview's cursor, bookmarks, highlights and notes,
+  position back / forward, next / previous block and outline entry, zoom, copy, print, day and night.
+- **Its ribbon**: preview tabs of their own (Preview; View and file), shown only in the previewer and in LexPen's
+  ribbon change mode, where they are changed as any tab (New... makes an editor tab or a preview tab; each preview
+  tab has its own height of one, two or three rows). The menus are not shown there.
+- **Its look**: day / night as Windows, always day or always night (Settings > General > Previewer), a theme for each,
+  or LexPen's; the Day / Night button switches.
+- **Its place per file**: the next preview of a file opens where you were, the cursor where it was (the most recent
+  200 files).
+- **Edit...** (View and file > File) opens the file in LexPen as Explorer's Open would, then passes Esc to the program,
+  so one that closes its preview with Esc (Foldex) does.
+- **Keys**: the keys of what the previewer can do are LexPen's; every other key goes to the program it shows in, which
+  uses it or not (Esc closes the preview in Foldex and Xplorer2; Outlook ignores it).
 
 ## Compare
 
@@ -657,8 +692,8 @@ every action with its key.
 - **Drafts**: a new file is kept as a draft (`%LOCALAPPDATA%\LexPen\State\Drafts\editN.md`) until saved, and comes back
   at the next start, in its own window. Closing a changed draft's tab asks "Save draft editN?" (Yes: Save As, No: the
   draft is deleted, Cancel). Closing LexPen asks for the changed files and drafts in one question (Yes, No (keep
-  drafts): the drafts stay, Cancel); with Ask to save changed drafts (settings, Files) off, drafts are not asked
-  about and stay drafts. Rename draft... (a draft tab's right-click, F1) gives it a name, shown in its tab (still
+  drafts): the drafts stay, Cancel); the setting Changed drafts when closing LexPen (Files) chooses: ask, keep them as drafts
+  without asking, or delete them (no way back). Rename draft... (a draft tab's right-click, F1) gives it a name, shown in its tab (still
   italic) and offered by Save as; an extension a language knows (`query.sql`) switches it to that language.
 - **Changed on disk**: an open file with unsaved changes that changes on disk gets a blue bar (Reload / Keep mine),
   a removed or renamed file a red one (Close / Save it again / Keep as draft). A file without unsaved changes
@@ -816,7 +851,8 @@ every action with its key.
   formatting: `012` + 2 is `014`; types `:int`, `:float`, `:text` with their separators), procedures and functions
   of your own, shared between macros with `use`. System variables (`$$found`, `$$eof`, `$$lineText`, `$$wrap`, ...)
   tell what happened and where the cursor is; every switch has its on and off (`wrap.on`, `wrap.off`). `show`,
-  `new` and `show recent` move between documents, to collect text in one from another.
+  `new` and `show recent` move between documents, to collect text in one from another. A line ending in `\` goes on
+  on the next.
 - **Stored by name** in `macros\` of the data folder, each until you delete it. A click on one in View > Macros
   opens its window (not modal: the editor goes on working), its buttons on one row: Play (once, X times, to the end
   of the file, step by step), Edit (continue recording: recorded steps added to its end; edit; give name; key, in

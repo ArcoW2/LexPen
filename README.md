@@ -55,6 +55,16 @@ The short list, by group. Every feature in detail: [docs/features.md](docs/featu
 - **Follows the editor**: the cursor's line is marked and kept at the editor's height.
 - **Double-click a word** to go to it in the editor.
 
+### In other programs' preview (Explorer, Outlook, file managers)
+
+- **LexPen as a previewer**: Explorer's preview pane, Outlook's attachments and other programs that show previews
+  show a file in LexPen: its language's colours, markdown rendered, read-only.
+- **Find, bookmarks, highlights and notes** there too, kept with the file as in LexPen; the place in each file is kept.
+- **Its own ribbon tabs**, day and night and themes of its own, the source next to the preview, Print, Edit... (the
+  file in LexPen).
+- **Set up** in Settings > General > Previewer (for you, or for everyone on this computer as Outlook needs) and in
+  File types (which file types Explorer previews in LexPen).
+
 ### Compare
 
 - **Compare two files**: side by side, editable, the changed characters marked, copy across.
@@ -177,9 +187,9 @@ WebView2 developer tools switched off; the debug build keeps them.
 
 ### Versioning
 
-The version is `1.0.<commits>`, where the last number is the git commit count (`git rev-list --count HEAD`,
-see the `GitVersion` target in `LexPen.csproj`), so each commit gets its own version. Without git, or before
-the first commit, it is `1.0.0`. The version, short commit hash, build time, runtime and library versions
+The version is `<major>.<minor>.<commits>`: `VersionBase` in `LexPen.csproj` (`1.1` since LexPen became a previewer;
+raised by hand for a larger change), then the git commit count (`git rev-list --count HEAD`, see the `GitVersion`
+target), so each commit gets its own version. Without git, or before the first commit, the last number is `0`. The version, short commit hash, build time, runtime and library versions
 are shown under **Options > About LexPen**.
 
 ## Open files with LexPen (file types)
