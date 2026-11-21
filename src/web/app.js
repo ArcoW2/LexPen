@@ -5252,8 +5252,8 @@ addEventListener('keydown', e => {
   if (wanted) host('previewKey', { vk: e.keyCode, alt: e.altKey }).catch(() => {});
 });
 
-// Open in LexPen: the file as Explorer's Open gives it (edit, or view: File types). A stream has no file to open.
-appAction('previewer.open', { title: 'Open in LexPen', hint: 'The file shown here in LexPen, as opening it from Explorer would',
+// Edit...: the file in LexPen, as Explorer's Open gives it (edit, or view: File types). A stream has no file to open.
+appAction('previewer.open', { title: 'Edit...', hint: 'The file shown here in LexPen, as opening it from Explorer would (to edit, or to view as File types says)',
   group: 'files', enabled: () => !!activeDoc()?.path, run: () => { const path = activeDoc()?.path; if (path) host('previewerOpen', { path }); } });
 const showPreviewerOpen = () => $('.mm-previewer-open').toggleAttribute('data-none', !activeDoc()?.path);
 

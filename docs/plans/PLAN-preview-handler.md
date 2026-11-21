@@ -71,7 +71,7 @@ is one) can offer LexPen without LexPen taking any type from another program.
   another process, or needs a window of LexPen's own in between: [not yet checked].
 - **Its page**: LexPen's page in a role of its own, `previewer`: one pane, its tab bar hidden, the editor made only when you switch to the source (3.11),
   no sidebar, no outline, no menu bar, and of the ribbon only its Preview tab (3.11). The preview's bar stays: the language list (3.4), Find, Day / Night
-  (3.5), Print (3.9), and "Open in LexPen" (opens the file as Explorer's Open would: edit, or the project for viewing,
+  (3.5), Print (3.9), and "Edit..." (opens the file as Explorer's Open would: edit, or the project for viewing,
   as File types says; not for a stream, which has no file to open). The status bar stays too, as LexPen's bottom bar
   for a preview: the file's name, the preview cursor's place, find's count, and notices (3.10).
 - **One WebView2 per host window, kept**: `DoPreview` for the next file reuses it (a new document in the same page),
@@ -215,7 +215,7 @@ All of it by the file's path (`BookmarkStore.Key`), so LexPen and the previewer 
   | Bookmarks | Store, toggle, clear, go to (1-9), free bookmark (`bookmarkToggleFree`), next / previous (`bookmarkNext`), the list of this file's bookmarks (`bookmarkList`) |
   | Highlights | Highlight, selection to highlight, note, remove, remove all in this file, keep the adjusted one, next / previous, the list of this file's highlights (`highlight.list`: a drop-down on the ribbon, its window on a click) |
   | View | The source or the preview: Source, Preview (both on: split), Hex (`editor.toggle`, `preview.toggle`, `hex.toggle`); day / night (`theme.toggle`, `theme.day`, `theme.night`), zoom in / out / reset, the language (`chooseLanguage`) |
-  | File | Print, Open in LexPen (`previewer.open`), copy the selection (`copy`), copy the file's name or path (`file.copy`; not for a stream) |
+  | File | Print, Edit... (`previewer.open`: the file in LexPen), copy the selection (`copy`), copy the file's name or path (`file.copy`; not for a stream) |
 
   Not in it: saving, files, projects, tabs, docks and panels, compare, macros, replace, sort, the settings, the
   editor's view settings (wrap, gutter, line numbers: as LexPen's settings say), the ribbon's own change and customize.
@@ -232,10 +232,12 @@ All of it by the file's path (`BookmarkStore.Key`), so LexPen and the previewer 
     corner). Selection to highlight and Keep the adjusted highlight are left off (Highlight does the first and more;
     the second is rare in a previewer); both can be added.
   - **View and file**: View (Language over Zoom 100%, Zoom in over Zoom out; Source, Preview, Hex and Day / Night
-    are in the top bar) and File (Print, Open in LexPen, Copy, Copy name).
+    are in the top bar) and File (Print, Edit..., Copy, Copy name).
   - **The top bar**, one line: the preview tabs' names at the left (only with two or more), then at the right the
-    switches (the editor's called Source here), Open in LexPen, Day / Night and the zoom. No file name (the host shows
-    it) and no Print button (it is on View and file).
+    switches (the editor's called Source here), Edit... (the file in LexPen), Day / Night and the zoom. No file name (the host shows
+    it) and no Print button (it is on View and file). In a narrow preview pane it wraps to a second line.
+  - A button without a label (its label only spaces and line breaks) is named by its action's title wherever it shows
+    as text: the list of groups that do not fit (">>"), Customize.
   - The lists are drop-downs (highlights: as now; bookmarks: `bookmarkList` gets the same drop-down form as
     `highlight.list`). A button without a label has the label "
 " (its icon only; its tooltip names it).
@@ -259,7 +261,7 @@ All of it by the file's path (`BookmarkStore.Key`), so LexPen and the previewer 
 ### 3.12 Not in this plan
 
 - Thumbnails (`IThumbnailProvider`).
-- Editing in the previewer; "Open in LexPen" is the way to edit.
+- Editing in the previewer; "Edit..." is the way to edit.
 
 ### 3.13 Tests
 
@@ -313,7 +315,7 @@ In progress on the branch `preview-handler`; not merged. Not yet tried in Explor
   host ("1 of 8").
 - **Day and night** (3.5): `previewerMode`, `previewerThemeLight`, `previewerThemeDark`, the Day / Night button; the
   mode is per window now (`AppHost.ModeOf`).
-- **Print** and **Open in LexPen** in the previewer's bar; the Print window is placed over the preview on the screen.
+- **Print** and **Edit...** (first called Open in LexPen) in the previewer's bar (Print later moved to the View and file tab); the Print window is placed over the preview on the screen.
 - **Streams** (3.10): read whole on Initialize, the language by the name's extension, else the first line; highlights
   and notes kept while shown; the status bar notice "Highlights and notes cannot be stored for this file (no path)"
   from the first one.
@@ -332,7 +334,7 @@ In progress on the branch `preview-handler`; not merged. Not yet tried in Explor
   Height of the preview tab: 1, 2 or 3 rows; under three rows large buttons are drawn small. New... asks Editor tab
   or Preview tab. The last preview tab cannot be removed (a toast says why). `bookmarkList` got a drop-down as `highlight.list` has. Icons were drawn for
   the actions on it that had none (back, forward, block, section, the bookmarks list, the Occurrences bar, language,
-  Open in LexPen, copy name, highlight from selection / keep / remove all / previous / next).
+  Edit..., copy name, highlight from selection / keep / remove all / previous / next).
 - **The source** (3.11): the switches show in the previewer; the source is read-only (typing changes nothing) and the
   format bar stays hidden; Source, Preview or both carry over to the next file (Hex does not: it depends on the file).
 - **Keys to the host** (3.7): `SetSite` takes the host's `IPreviewHandlerFrame` when its site has one; a key the page

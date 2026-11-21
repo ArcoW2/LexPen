@@ -80,7 +80,7 @@ const RIBBON_ICONS = (() => {
     'outline.next': ['Next outline entry', t(1, 7, 6, 'H', 700) + dim('M2 10h7M2 13h5') + p('M12.5 3v9M10.5 10l2 2 2-2')],
     'occurrences.bar': ['Occurrences bar', marked],
     chooseLanguage: ['Language', p('M5.5 2.5c-1.6 0-1.6 1.2-1.6 2.6S3.7 7.6 3 8c.7.4.9 1.4.9 2.9s0 2.6 1.6 2.6M10.5 2.5c1.6 0 1.6 1.2 1.6 2.6s.2 2.5.9 2.9c-.7.4-.9 1.4-.9 2.9s0 2.6-1.6 2.6')],
-    'previewer.open': ['Open in LexPen', p(page + 'M9 12.5h5.5M12.5 10.5l2 2-2 2')],
+    'previewer.open': ['Edit...', p(page + 'M9 12.5h5.5M12.5 10.5l2 2-2 2')],
     'file.copy': ['Copy name', p(page) + '<rect x="9" y="9" width="5.5" height="5.5" rx="1"/>'],
     // Select & Sort
     selectAll: ['Select all', '<rect x="1.5" y="1.5" width="13" height="13" rx="1" stroke-dasharray="2 1.7"/>' + p('M4.5 5.5h7M4.5 8h7M4.5 10.5h5')],

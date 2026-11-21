@@ -24,6 +24,9 @@ const rb = {
 };
 
 const rbCall = item => [item.action, ...(item.params ?? [])];
+// A button's name as text (the list of groups that do not fit, Customize): its label, or the action's title when the
+// label is only spaces and line breaks (a button drawn without one, its icon alone).
+const rbName = item => item.label?.trim() ? item.label : actionTitle(item.action, item.params ?? []);
 // A previewer (docs/plans/PLAN-preview-handler.md 3.11) shows the ribbon's Preview tab alone, without tab names,
 // whatever commandBar says; LexPen's windows show that tab only while the ribbon is changed.
 const rbPreviewer = () => typeof previewer !== 'undefined' && !!previewer;
@@ -283,7 +286,7 @@ function rbOverflowItems() {
   return [...body.querySelectorAll('.mm-rb-group[hidden]')].map(el => {
     const g = tab.groups[+el.dataset.group.split('.')[1]];
     return { label: g.name.replace(/&/g, '&&'), sub: g.items.filter(it => it !== 'divider' && actionDef(it.action))
-      .map(it => ({ label: (it.label || actionTitle(it.action, it.params ?? [])).replace(/&/g, '&&'), action: it.action, params: it.params ?? [] })) };
+      .map(it => ({ label: rbName(it).replace(/&/g, '&&'), action: it.action, params: it.params ?? [] })) };
   });
 }
 
@@ -816,7 +819,7 @@ function rbEditMenu(e) {
         const tip = v.trim().slice(0, 2).toUpperCase();
         // No tip on this tab may start another ("P" and "PF": the P would run before the F is typed).
         const clash = rb.model.tabs[t].groups.flatMap(gr => gr.items).find(it => it !== item && it.tip && tip && (it.tip.startsWith(tip) || tip.startsWith(it.tip)));
-        if (clash) return toast(`Key tip ${tip} clashes with ${clash.tip} (${clash.label || actionTitle(clash.action, clash.params ?? [])}): one may not start the other.`, true);
+        if (clash) return toast(`Key tip ${tip} clashes with ${clash.tip} (${rbName(clash)}): one may not start the other.`, true);
         set(it => { if (tip) it.tip = tip; else delete it.tip; })();
       } },
       { label: '&Divider before it', checked: g >= 0 && rb.model.tabs[t].groups[g].items[i - 1] === 'divider',
@@ -941,7 +944,7 @@ function rbcLines() {
       }
       g.items.forEach((it, i) => lines.push(it === 'divider'
         ? { kind: 'divider', path: [ti, gi, i], text: '      ----' }
-        : { kind: 'item', path: [ti, gi, i], text: `      ${it.stack ? '  + ' : ''}${it.label || actionTitle(it.action, it.params ?? [])}${it.size === 'large' ? ' (large)' : ''}${rbDropDown(it.action, it.open) ? ' (drop-down)' : ''}` }));
+        : { kind: 'item', path: [ti, gi, i], text: `      ${it.stack ? '  + ' : ''}${rbName(it)}${it.size === 'large' ? ' (large)' : ''}${rbDropDown(it.action, it.open) ? ' (drop-down)' : ''}` }));
     });
   });
   return lines;
