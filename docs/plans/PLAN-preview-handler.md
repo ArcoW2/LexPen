@@ -1,6 +1,6 @@
 # Plan: LexPen as a previewer (a Windows preview handler)
 
-Status: draft 2026-11-20, revised 2026-11-21; in progress on the branch `preview-handler` (2026-11-21), see As
+Status: draft 2026-11-20, revised 2026-11-21 (3.11 the Preview tab); in progress on the branch `preview-handler` (2026-11-21), see As
 built. Asked for by Foldex's plan 33
 (`foldex\docs\plans\33-PLAN-preview-plugins.md`, 3.3), which leaves the handler, its class and its registration to this plan.
 
@@ -15,7 +15,8 @@ LexPen window instead of showing the file inside the program you are in.
 
 LexPen becomes a Windows preview handler, served by LexPen.exe itself. Its view is a single LexPen preview pane, read
 only: no editor, no tabs, no side panes. Everything that works in a preview works there, with the same keys: find,
-the preview's cursor, bookmarks, highlights, jumps by section, the language chosen, printing. A PDF shows in
+the preview's cursor, bookmarks, highlights, jumps by section, the language chosen, printing. Its commands are on a
+ribbon tab of their own, Preview, the only one it shows. A PDF shows in
 LexPen's PDF viewer and a file that is not text in Hex, and the language list can show any file as any language
 instead. What you mark is kept where LexPen
 keeps it now (bookmarks in LexPen's store, highlights in the store or next to the file, as the setting says), so the
@@ -69,7 +70,7 @@ is one) can offer LexPen without LexPen taking any type from another program.
   handlers in prevhost.exe do), with one WebView2 in it, sized on `SetRect`. Whether WebView2 accepts a parent in
   another process, or needs a window of LexPen's own in between: [not yet checked].
 - **Its page**: LexPen's page in a role of its own, `previewer`: one pane, its tab bar hidden, the editor never made,
-  no sidebar, no outline, no ribbon or menu bar. The preview's bar stays: the language list (3.4), Find, Day / Night
+  no sidebar, no outline, no menu bar, and of the ribbon only its Preview tab (3.11). The preview's bar stays: the language list (3.4), Find, Day / Night
   (3.5), Print (3.9), and "Open in LexPen" (opens the file as Explorer's Open would: edit, or the project for viewing,
   as File types says; not for a stream, which has no file to open). The status bar stays too, as LexPen's bottom bar
   for a preview: the file's name, the preview cursor's place, find's count, and notices (3.10).
@@ -196,12 +197,43 @@ All of it by the file's path (`BookmarkStore.Key`), so LexPen and the previewer 
 - **Read once**: the content is read whole from the stream when it comes (a stream may not be read twice); there is
   no file to watch for changes.
 
-### 3.11 Not in this plan
+### 3.11 The previewer's commands: a Preview tab on the ribbon
+
+- **The problem**: the previewer hides the menu bar, but not the ribbon. With the ribbon on (commandBar "ribbon" or
+  "both") it shows every tab, and most of their buttons do nothing in a read-only preview without tabs, project or
+  editor. With the menus only, the previewer has no commands at all except keys and the preview's bar.
+- **What a previewer can do**: the actions that work in a preview, without an editor, a project, tabs or docks. The
+  page itself says an action can run (`actionAvailable`) for most actions, because it only rules out the editor's;
+  this list is the ones that do something useful in a previewer:
+
+  | Group | Actions |
+  |---|---|
+  | Find | Find, Find next / previous (`find`, `findNext`, `findPrevious`); the Occurrences bar and its field (`occurrences.bar`, `occurrences.field`, `occurrences.show`, `occurrences.clear`) |
+  | Go to | Back / forward (`positionBack`, `positionForward`), next / previous block (`block.next`) and outline entry (`outline.next`) |
+  | Bookmarks | Store, toggle, clear, go to (1-9), free bookmark (`bookmarkToggleFree`), next / previous (`bookmarkNext`), the list of this file's bookmarks (`bookmarkList`) |
+  | Highlights | Highlight, selection to highlight, note, remove, remove all in this file, keep the adjusted one, next / previous, the list of this file's highlights (`highlight.list`: a drop-down on the ribbon, its window on a click) |
+  | View | Day / night (`theme.toggle`, `theme.day`, `theme.night`), zoom in / out / reset, the language (`chooseLanguage`) |
+  | File | Print, Open in LexPen (`previewer.open`), copy the selection (`copy`), copy the file's name or path (`file.copy`; not for a stream) |
+
+  Not in it: saving, files, projects, tabs, docks and panels, compare, macros, replace, sort, the settings, the
+  editor and its view (wrap, gutter, line numbers), the ribbon's own change and customize.
+- **A Preview tab**: the shipped ribbon gets a tab "Preview" with the actions above, in the groups above, small
+  buttons only (a row of icons with their labels, two rows at most), the lists as drop-downs (highlights: as now;
+  bookmarks: `bookmarkList` gets the same drop-down form as `highlight.list`).
+  - **In the previewer**: only that tab, its name not shown (no tab row), whatever commandBar says.
+  - **In LexPen's windows**: the tab is not shown, except in the ribbon's change mode, so it can be changed as any
+    other tab; it is kept in ribbon.json with the others. Changed there, the previewer shows it as changed.
+  - The menu bar stays hidden in the previewer.
+- **Tests**: the tab shown alone in the previewer with the ribbon and with the menus as commandBar; not shown in a
+  LexPen window, shown in change mode; each button in a previewer of a file and of a stream (the actions for a path
+  disabled for a stream); the bookmarks drop-down listing the file's bookmarks and going to one.
+
+### 3.12 Not in this plan
 
 - Thumbnails (`IThumbnailProvider`).
 - Editing in the previewer; "Open in LexPen" is the way to edit.
 
-### 3.12 Tests
+### 3.13 Tests
 
 - **Unit**:
   - the registration keys written and removed (below LEXPEN_REGISTRY_ROOT, as FileTypes' tests do): the class, the
@@ -230,7 +262,10 @@ All of it by the file's path (`BookmarkStore.Key`), so LexPen and the previewer 
 
 ## 4. Open questions
 
-None.
+1. **The source next to the preview** (3.11): the previewer never makes the editor, so there is no switch between the
+   preview and the text it is made from. Should the previewer offer the source as well (read-only), as LexPen's
+   Editor / Preview switch does?
+2. **Its height** (3.11): one row of small buttons (the groups side by side, so fewer labels or icons only), or two?
 
 ## 5. As built
 
