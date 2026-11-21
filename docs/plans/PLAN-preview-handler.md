@@ -173,14 +173,16 @@ All of it by the file's path (`BookmarkStore.Key`), so LexPen and the previewer 
   LexPen (`.<ext>\shellex\{8895b1c6-b41f-4c1c-a562-0d564250836f}` = LexPen's class). The handler that was there
   before is kept under LexPen's key and put back when you uncheck it, so taking the preview back gives the old
   previewer, not none. "Opens now with" gets a sibling column "Previews now with".
-- **Unregistering**: a settings button "Remove LexPen's previewer" takes off the class, the list and every binding
-  (the old handlers put back).
+- **Registered how**: one setting, Settings > General > Previewer > LexPen as a previewer: Not registered, For the
+  current user only, For everyone on this computer. It shows how it is now (read from the registry: no rights asked).
+  Not registered takes off the class, the list and every binding (the old handlers put back), also the list for
+  everyone, and is remembered (`previewerOff`) so LexPen's start does not register it again. A debug build never
+  registers.
 - **For everyone on this computer**: Outlook offers only previewers listed for the whole machine (HKLM
   `...\CurrentVersion\PreviewHandlers`; its Trust Center list showed only those, none of the user's: LexPen's and
-  PowerToys' missing). A settings button lists LexPen's class there, and one takes it off; both ask for administrator
-  rights (LexPen started elevated, `--previewer-machine add | remove`). The class and the bindings stay the user's;
-  whether Outlook also needs the class under HKLM: [not yet checked]. Remove LexPen's previewer takes the machine's
-  listing off too.
+  PowerToys' missing). For everyone on this computer lists LexPen's class there; leaving it takes it off; both ask
+  for administrator rights (LexPen started elevated, `--previewer-machine add | remove`). The class and the bindings
+  stay the user's; whether Outlook also needs the class under HKLM: [not yet checked].
 - Whether Explorer accepts a per-user, local-server preview handler without more keys (an AppID, a low-IL setting as
   in-process handlers in prevhost.exe need): [not yet checked].
 
@@ -341,7 +343,7 @@ In progress on the branch `preview-handler`; not merged. Not yet tried in Explor
   the class. Written at start when none is registered, when it names this exe, or one that is gone; a debug build
   never registers where none is (it would take the previews from the LexPen in use). The File types dialog's Preview
   and Previews now with columns; binding keeps the handler before it (`Previous` under the class) and puts it back;
-  Settings > General > Previewer: Remove LexPen's previewer.
+  Settings > General > Previewer: LexPen as a previewer (registered how).
 - **The preview tabs** (3.11): shipped in ribbon.json as tabs with `"previewer": true` and `"rows": 2` (Preview, View
   and file); a ribbon.json of your own without any gets the shipped ones at its end when read (`RibbonFile.Load`), so
   a ribbon changed before they existed still gives the previewer its commands. One of your own with a preview tab
@@ -369,9 +371,12 @@ In progress on the branch `preview-handler`; not merged. Not yet tried in Explor
   `PreviewerTests` checks what each combination offers. A row's `note` (a line above it) is new in the settings window.
 - **`IInitializeWithItem`** (3.1): added; the path from the item, else (an item in a zip) its content. Tested with
   shell items made for a file and for a file in a zip (`PreviewerTests`).
-- **For everyone on this computer** (3.8): Settings > General > Previewer, List for everyone on this computer... /
-  Take off that list...; the elevated LexPen writes only the HKLM listing and ends; a message says how it went. Not
-  tried with the administrator prompt (it changes the machine): to try with Outlook.
+- **LexPen as a previewer** (3.8): one choice, Not registered / For the current user only / For everyone on this
+  computer, read from the registry when the settings open (a live row: settings.js `live`, the host's liveGet /
+  liveSet; not in settings.json); it replaces Remove LexPen's previewer. Before it, LexPen's start registered the
+  previewer again after a Remove; `previewerOff` keeps Not registered. The elevated LexPen writes only the HKLM listing
+  and ends; a message says when it is not as asked. Reading the choice tried in a test LexPen ("For everyone on this
+  computer", as the registry is); changing it not tried here (it changes the machine): to try with Outlook.
 - **Right-click on a highlight in a preview**: Remove highlight and Highlight act where the right-click was; they used
   the preview's cursor, which a right-click does not move, so they removed nothing.
 - **Tests**: `PreviewerTests` (registration, binding with the handler before kept and put back, removal);

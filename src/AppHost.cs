@@ -904,8 +904,48 @@ sealed class AppHost : ApplicationContext
 
     /// <summary>At the start: LexPen's preview handler registered, with every extension its language packs give
     /// (docs/plans/PLAN-preview-handler.md 3.8; Previewer.Refresh says when).</summary>
-    public void RefreshPreviewer() =>
-        Previewer.Refresh(Environment.ProcessPath ?? Application.ExecutablePath, (languages["extensions"] as JsonObject ?? []).Select(e => e.Key));
+    public void RefreshPreviewer()
+    {
+        if (SettingFlag("previewerOff")) return;   // Settings > Previewer: Not registered
+        Previewer.Refresh(Environment.ProcessPath ?? Application.ExecutablePath, PreviewExtensions);
+    }
+
+    IEnumerable<string> PreviewExtensions => (languages["extensions"] as JsonObject ?? []).Select(e => e.Key);
+
+    /// <summary>How LexPen's previewer is registered now (Settings > Previewer): "none", "user" (for the current user)
+    /// or "all" (also listed for everyone on this computer, as Outlook needs). Read only: no administrator rights.</summary>
+    public string PreviewerRegistration => Previewer.RegisteredExe is null ? "none" : Previewer.ListedForMachine ? "all" : "user";
+
+    /// <summary>The previewer registered as `how` says ("none", "user", "all"); the list for everyone on this computer
+    /// changed as administrator (Windows asks). "none" asks first, and is remembered: LexPen's start leaves it then.
+    /// True when it is as asked afterwards, false when not (no administrator rights, a debug build), null when the
+    /// question was answered Cancel.</summary>
+    public bool? SetPreviewerRegistration(string how, IWin32Window owner)
+    {
+        if (how == "none")
+        {
+            if (AskForm.Answer(this, owner, new AskForm.Question
+                {
+                    Text = "Take LexPen off as a previewer? Explorer then previews every file type with what it had before.",
+                    Sign = AskForm.Sign.Question,
+                    Buttons = [("yes", "Take off", null), (null, "Cancel", null)],
+                }) != "yes") return null;
+            Previewer.Unregister(PreviewExtensions);
+            SetSetting("previewerOff", true, null);
+        }
+        else
+        {
+#if DEBUG
+            return false;   // a debug build never registers: it would take the previews from the LexPen you use
+#else
+            SetSetting("previewerOff", false, null);
+            Previewer.Register(Environment.ProcessPath ?? Application.ExecutablePath, PreviewExtensions);
+#endif
+        }
+        var all = how == "all";
+        if (Previewer.ListedForMachine != all) Previewer.AskListForMachine(all, owner.Handle);
+        return (Previewer.RegisteredExe is not null) == (how != "none") && Previewer.ListedForMachine == all;
+    }
 
     public void WatchMacros()
     {

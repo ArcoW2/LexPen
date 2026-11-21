@@ -199,41 +199,29 @@ sealed class SettingsForm : Form, IWebPost
                 window.BeginInvoke(() => app.ResetViewLayout(owner));   // after this reply: it asks first
                 return null;
 
-            // Remove LexPen's previewer (docs/plans/PLAN-preview-handler.md 3.8): asked first; every extension unbound.
-            case "previewerRemove":
-                window.BeginInvoke(() =>
+            // A live setting (settings.js def.live): how things are now, not settings.json. Reading asks for no rights.
+            case "liveGet":
+                return Arg("name") switch
                 {
-                    if (AskForm.Answer(app, owner, new AskForm.Question
-                        {
-                            Text = "Remove LexPen as a previewer? Explorer then previews every file type with what it had before.",
-                            Sign = AskForm.Sign.Question,
-                            Buttons = [("yes", "Remove", null), (null, "Cancel", null)],
-                        }) == "yes")
-                    {
-                        Previewer.Unregister((app.Languages["extensions"] as JsonObject ?? []).Select(e => e.Key));
-                        // Listed for everyone on this computer too: that off as well, as administrator.
-                        if (Previewer.ListedForMachine && !Previewer.AskListForMachine(false, owner.Handle))
-                            AskForm.Tell(app, owner, AskForm.Sign.Information, "LexPen's previewer is removed for you, but it is still listed for everyone on this computer: taking it off that list needs administrator rights.");
-                    }
-                });
-                return null;
+                    "previewer" => app.PreviewerRegistration,
+                    _ => null,
+                };
 
-            // For everyone on this computer (docs/plans/PLAN-preview-handler.md 3.8): the previewer listed for the machine
-            // (programs such as Outlook take only those), or taken off; Windows asks for administrator rights.
-            case "previewerMachineAdd":
-            case "previewerMachineRemove":
+            // How LexPen's previewer is registered (docs/plans/PLAN-preview-handler.md 3.8): not, for the current user,
+            // or for everyone on this computer (programs such as Outlook take only those; Windows asks for administrator
+            // rights). The page gets how it is afterwards; not as asked (declined, no rights), a message says why.
+            case "liveSet" when Arg("name") == "previewer":
             {
-                var add = Arg("op") == "previewerMachineAdd";
+                var how = Arg("value");
                 window.BeginInvoke(() =>
                 {
-                    var done = Previewer.AskListForMachine(add, owner.Handle);
-                    AskForm.Tell(app, owner, done ? AskForm.Sign.Information : AskForm.Sign.Warning, (add, done) switch
-                    {
-                        (true, true) => "LexPen's previewer is listed for everyone on this computer now. Programs that only take those (Outlook) show it after a restart, for the file types previewed in LexPen (File types).",
-                        (true, false) => "LexPen's previewer is not listed for everyone on this computer: that needs administrator rights.",
-                        (false, true) => "LexPen's previewer is no longer listed for everyone on this computer.",
-                        _ => "LexPen's previewer is still listed for everyone on this computer: taking it off needs administrator rights.",
-                    });
+                    if (app.SetPreviewerRegistration(how, owner) == false)
+                        AskForm.Tell(app, owner, AskForm.Sign.Warning,
+#if DEBUG
+                            how != "none" ? "A debug build does not register the previewer: it would take the previews from the LexPen you use. Use the published LexPen." :
+#endif
+                            "The previewer is not registered as asked: the list for everyone on this computer needs administrator rights.");
+                    page.Post(new JsonObject { ["event"] = "liveValue", ["name"] = "previewer", ["value"] = app.PreviewerRegistration });
                 });
                 return null;
             }

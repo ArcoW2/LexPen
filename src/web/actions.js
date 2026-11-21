@@ -641,7 +641,14 @@ const SETTING_ROWS = [
   { name: 'viewReset', group: 'General', sub: 'Viewing', kind: 'buttons', title: 'Reset to view layout',
     hint: 'The project for viewing gets the view layout again: one window, one pane, no sidebar, outline, formatting bar or ruler, every tab in the preview. Its tabs stay',
     buttons: [['Reset to view layout', 'viewReset']] },
-  // LexPen as a Windows preview handler (docs/plans/PLAN-preview-handler.md 3.5, 3.8): its day and night, apart from LexPen's.
+  // LexPen as a Windows preview handler (docs/plans/PLAN-preview-handler.md 3.5, 3.8): registered how (how it is now, read
+  // from Windows: a live row), its day and night, apart from LexPen's.
+  { name: 'previewer', group: 'General', sub: 'Previewer', kind: 'choice', live: true, title: 'LexPen as a previewer',
+    hint: 'Programs that show previews (Explorer\'s preview pane) may show files in LexPen. Which file types: File types (App > Windows Explorer)',
+    hints: { none: 'Not registered: no program shows files in LexPen, and LexPen\'s start leaves it so',
+      user: 'Registered for you: Explorer and other programs show files in LexPen; programs that only take previewers for everyone (Outlook) do not',
+      all: 'Registered for you and listed for everyone on this computer, as Outlook needs; changing that asks for administrator rights. The file types stay each user\'s own' },
+    options: () => [['none', 'Not registered'], ['user', 'For the current user only'], ['all', 'For everyone on this computer']] },
   { name: 'previewerMode', group: 'General', sub: 'Previewer', kind: 'choice', title: 'Day / night of the previewer',
     hint: 'LexPen in Explorer\'s preview pane (and other programs that show previews): as Windows is, or always day or night. Its Day / Night button switches until Windows changes (always day or night: until LexPen ends)',
     options: () => [['windows', 'As Windows'], ['light', 'Always day'], ['dark', 'Always night']] },
@@ -662,12 +669,6 @@ const SETTING_ROWS = [
   { name: 'previewerStream', group: 'General', sub: 'Previewer', kind: 'toggle', title: 'Take a file as a stream',
     hint: 'A program may give only the content (IInitializeWithStream; Outlook\'s attachments): shown, but nothing is kept and Edit... is off. Programs that prefer a stream take it before the path: switch this off to get the path there',
     hintOff: 'Not offered: a program that has only the content (Outlook\'s attachments) shows no LexPen preview; one that prefers a stream gives the path or the item instead. None of the three offered: no LexPen preview anywhere' },
-  { name: 'previewerMachine', group: 'General', sub: 'Previewer', kind: 'buttons', title: 'For everyone on this computer',
-    hint: 'Some programs (Outlook) only take previewers listed for everyone on this computer. Listing it asks for administrator rights; the file types stay each user\'s own (File types)',
-    buttons: [['List for everyone on this computer...', 'previewerMachineAdd'], ['Take off that list...', 'previewerMachineRemove']] },
-  { name: 'previewerRemove', group: 'General', sub: 'Previewer', kind: 'buttons', title: 'Remove LexPen\'s previewer',
-    hint: 'Takes LexPen off as a previewer: Explorer previews every file type with what it had before. Which file types Explorer previews in LexPen: File types (App > Windows Explorer)',
-    buttons: [['Remove LexPen\'s previewer', 'previewerRemove']] },
   { name: 'followWindows', group: 'General', sub: 'Theme', kind: 'toggle', title: 'Follow Windows',
     hint: 'Light or dark follows Windows (Settings > Personalization > Colors); the Day / Night button switches until Windows changes',
     hintOff: 'A change between light and dark in Windows does not switch the mode of LexPen' },
@@ -1076,6 +1077,7 @@ function settingDefs() {
       hintOff: r.hintOff ?? null,   // a toggle whose hint says what happens: hint when on, hintOff when off
       hints: r.hints ?? null,   // a choice whose hint says what happens: one per value
       note: r.note ?? null,     // a line above the row: what the rows from there on are for
+      live: !!r.live,           // its value is how things are now, from the host, not settings.json (settings.js)
       options: r.options?.() ?? (r.kind === 'size' ? [[0, `Default (${r.base()})`], ...FONT_SIZES.map(pt => [pt, pt + ' pt'])] : null),
       monoFirst: r.name === 'editorFont',
       range: r.range ?? null, unit: r.unit ?? '', buttons: r.buttons ?? null,

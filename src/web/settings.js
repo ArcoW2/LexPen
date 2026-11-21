@@ -30,7 +30,10 @@ let settings = null;   // { values, defaults, user, problems, defs, layout }
 // A row of "this window" (def.layer): its value is in the main window's layout, not in settings.json
 // (docs/plans/executed/PLAN-settings-layers.md); a change goes to that window.
 const ofWindow = name => Object.hasOwn(settings.defaults.defaultLayout ?? {}, name);
-const valueOf = name => ofWindow(name)
+// A live row (def.live): its value is not in settings.json but how things are now, asked from the host (liveGet) and
+// changed through it (liveSet; the host says the outcome as the event liveValue).
+const live = {};
+const valueOf = name => Object.hasOwn(live, name) ? live[name] : ofWindow(name)
   ? settings.layout?.[name] ?? settings.values.defaultLayout?.[name] ?? settings.defaults.defaultLayout?.[name] : settings.values[name];
 const defaultOf = def => def.layer === 'window' ? settings.defaults.defaultLayout?.[def.name] : def.default ?? settings.defaults[def.name];
 const rows = [];       // { def, el, control }
@@ -456,6 +459,11 @@ events.screen = s => {
 const unconfirmed = new Map();
 
 function set(name, value, quiet) {
+  if (rows.find(r => r.def.name === name)?.def.live) {
+    live[name] = value;   // as clicked, until the host says how it went (liveValue)
+    host('liveSet', { name, value }).catch(e => { ui.problems.hidden = false; ui.problems.textContent = e.message; });
+    return;
+  }
   // A setting of the theme set: stored in the set the main window shows; the bar says where, with Undo.
   if (rows.find(r => r.def.name === name)?.def.layer === 'set' && !quiet) {
     const before = settings.values[name];
@@ -481,6 +489,7 @@ function set(name, value, quiet) {
   });
 }
 
+events.liveValue = ({ name, value }) => { live[name] = value; show(); };
 events.settings = ({ settings: s }) => {
   const mine = Object.fromEntries([...unconfirmed.keys()].map(n => [n, settings.values[n]]));
   settings = { ...s, defs: settings.defs, look: settings.look, languageProblems: settings.languageProblems, layout: settings.layout,
@@ -542,8 +551,9 @@ events.look = ({ look }) => {
   show();
 };
 // A main window described the rows again (another list of themes).
-events.defs = ({ defs }) => {
+events.defs = async ({ defs }) => {
   settings.defs = defs;
+  for (const def of defs.filter(d => d.live && !Object.hasOwn(live, d.name))) live[def.name] = await host('liveGet', { name: def.name }).catch(() => null);
   const search = ui.search.value, focused = document.activeElement?.closest('.st-row')?.dataset.name;
   build();
   ui.search.value = search;
@@ -971,6 +981,8 @@ fpDialog.querySelector('.st-fp-buttons').addEventListener('click', e => {
   settings = await host('init');
   await usableFonts().catch(() => []);
   buildLegend();
+  // The live rows' values first: a list shows a value it does not know as an entry of its own.
+  for (const def of settings.defs?.filter(d => d.live) ?? []) live[def.name] = await host('liveGet', { name: def.name }).catch(() => null);
   build();
   if (!settingShown) { restoreView(); ui.search.focus(); ui.search.select(); }   // typing replaces the last search
 })();
