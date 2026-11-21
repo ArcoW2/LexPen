@@ -169,7 +169,7 @@ function rbRefresh() {
     const auto = !!def?.auto?.(params);
     b.classList.toggle('mm-on', !auto && !!def?.checked?.(params));
     b.classList.toggle('mm-auto', auto);
-    b.classList.toggle('mm-off', !rb.changing && !actionAvailable(name, params) && !rbListOnly({ action: name, params }));
+    b.classList.toggle('mm-off', !rb.changing && (!actionAvailable(name, params) && !rbListOnly({ action: name, params }) || rbListAllOff(name, params)));
     const badge = b.querySelector('.mm-rb-badge');
     const n = name === 'paste' && !params.length ? clips.active : 0;
     badge.hidden = !n;
@@ -303,6 +303,13 @@ function rbHasList(item) {
   if (item.params?.length) return false;
   const v = actionDef(item.action)?.variants;
   return !!RB_LISTS[item.action] || Array.isArray(v) && v.filter(p => p.length).length > 1;
+}
+// A button whose list is its action's variants, none of them possible now (Copy name without a file): greyed out as the
+// list would be. A list of other things (a drop-down, the bookmarks' list) is not looked at here.
+function rbListAllOff(name, params) {
+  if (params.length || RB_LISTS[name] || rbDropDown(name) || !rbListOnly({ action: name, params })) return false;   // a split button: its own part still works
+  const variants = actionDef(name)?.variants?.filter(p => p.length) ?? [];
+  return variants.length > 0 && variants.every(p => !actionAvailable(name, p));
 }
 const rbListOnly = item => rbDropDown(item.action, item.open) || !item.params?.length && !RB_LISTS[item.action] &&
   Array.isArray(actionDef(item.action)?.variants) && !actionDef(item.action).variants.some(p => !p.length);
