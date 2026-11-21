@@ -450,7 +450,7 @@ async function highlightToggle(pane) {
   const ranges = selectedRanges(pane);
   if (ranges === null) return;
   if (ranges.length) return addHighlights(doc, ranges);
-  const at = cursorOffset(pane), hit = at == null ? [] : highlightsAt(doc, at);
+  const at = menuOffset(pane) ?? cursorOffset(pane), hit = at == null ? [] : highlightsAt(doc, at);   // a preview's right-click: there
   if (!hit.length) return toast('Select text to highlight it.', true);
   await removeHighlights(doc, hit);
 }
@@ -465,14 +465,15 @@ async function highlightFromSelection(pane) {
   if (ranges?.length) addHighlights(doc, ranges);
 }
 
-// Remove highlight: at the cursor, or every one within the selection.
+// Remove highlight: at the cursor (a preview's right-click: where it was; a right-click does not move its cursor), or
+// every one within the selection.
 async function highlightRemove(pane) {
   const doc = pane.active?.doc;
   if (!doc) return;
   if (doc.pdf) return pdfHlRemoveSelected(pane);
   await loadHighlights(doc);
   const ranges = selectedRanges(pane) ?? [];
-  const hit = ranges.length ? ranges.flatMap(([a, b]) => highlightsAt(doc, a, b)) : highlightsAt(doc, cursorOffset(pane) ?? -1);
+  const hit = ranges.length ? ranges.flatMap(([a, b]) => highlightsAt(doc, a, b)) : highlightsAt(doc, menuOffset(pane) ?? cursorOffset(pane) ?? -1);
   if (hit.length) await removeHighlights(doc, [...new Set(hit)]);
 }
 
