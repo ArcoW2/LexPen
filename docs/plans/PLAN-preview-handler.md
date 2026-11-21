@@ -235,12 +235,12 @@ All of it by the file's path (`BookmarkStore.Key`), so LexPen and the previewer 
 - **Preview tabs**: a tab of the ribbon is an editor tab (LexPen's windows) or a preview tab (the previewer); New...
   in change mode asks which. LexPen ships two preview tabs, the actions above split over them so each fits:
   - **Preview**: Find (Find with Occurrences under it; Previous above Next), Go to (back, forward, block, section;
-    icons only), Bookmarks (previous and next first, icons only; Toggle; the list from the group's bottom-right
-    corner), Highlights (previous and next first, icons only; Highlight, Note, Remove, Remove all; the list from the
+    icons only), Bookmarks (previous and next first, icons only; Toggle with Copy under it; the list from the
+    group's bottom-right corner), Highlights (previous and next first, icons only; Highlight, Note, Remove, Remove all; the list from the
     corner). Selection to highlight and Keep the adjusted highlight are left off (Highlight does the first and more;
     the second is rare in a previewer); both can be added.
   - **View and file**: View (Language over Zoom 100%, Zoom in over Zoom out; Source, Preview, Hex and Day / Night
-    are in the top bar) and File (Print, Edit..., Copy, Copy name).
+    are in the top bar) and File (Print, Edit..., Copy name).
   - **The top bar**, one line: the preview tabs' names at the left (only with two or more), then at the right the
     switches (the editor's called Source here), Day / Night and the zoom. No file name (the host shows it), no Print
     and no Edit... (both on View and file > File). A narrow preview pane cuts off its right end.

@@ -68,6 +68,9 @@ public class RibbonTests : IDisposable
             Assert.DoesNotContain(its, i => i!["action"]!.GetValue<string>() == list);
         }
         Assert.All(Group("Go to")["items"]!.AsArray(), i => Assert.Equal("\n", i!["label"]!.GetValue<string>()));
+        // Copy (the selection) with the bookmarks, not with the file.
+        Assert.Contains(Group("Bookmarks")["items"]!.AsArray(), i => i!["action"]!.GetValue<string>() == "copy");
+        Assert.Equal(["print", "previewer.open", "file.copy"], tabs[1]["groups"]!.AsArray().First(g => g!["name"]!.GetValue<string>() == "File")!["items"]!.AsArray().Select(i => i!["action"]!.GetValue<string>()));
         // View: Language over Zoom 100%, then Zoom in over Zoom out (the switches and Day / Night are in the top bar).
         var view = tabs[1]["groups"]!.AsArray().First(g => g!["name"]!.GetValue<string>() == "View")!["items"]!;
         Assert.Equal(["chooseLanguage zoomReset", "zoomIn zoomOut"],

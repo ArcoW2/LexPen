@@ -115,7 +115,7 @@
         { "action": "block.next", "label": "\n" }, { "action": "outline.next", "label": "\n", "stack": true } ] },
       { "name": "Bookmarks", "corners": { "right": { "action": "bookmarkList", "open": "dropDown" } }, "items": [
         { "action": "bookmarkNext", "params": [-1], "label": "\n" }, { "action": "bookmarkNext", "params": [1], "label": "\n", "stack": true },
-        { "action": "bookmarkToggleFree", "label": "Toggle" } ] },
+        { "action": "bookmarkToggleFree", "label": "Toggle" }, { "action": "copy", "stack": true } ] },
       { "name": "Highlights", "corners": { "right": { "action": "highlight.list", "open": "dropDown" } }, "items": [
         { "action": "highlight.next", "params": [-1], "label": "\n" }, { "action": "highlight.next", "params": [1], "label": "\n", "stack": true },
         { "action": "highlight.toggle" }, { "action": "highlight.note", "label": "Note", "stack": true },
@@ -127,6 +127,6 @@
         { "action": "zoomIn" }, { "action": "zoomOut", "stack": true } ] },
       { "name": "File", "items": [
         { "action": "print" }, { "action": "previewer.open", "stack": true },
-        { "action": "copy" }, { "action": "file.copy", "label": "Copy name", "stack": true } ] } ] }
+        { "action": "file.copy", "label": "Copy name" } ] } ] }
   ]
 }
