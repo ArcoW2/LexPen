@@ -5194,13 +5194,16 @@ async function viewFile(path, last = false) {
 // kept; its language from its name, else guessed).
 events.preview = async ({ path, name, text }) => {
   while (!started) await new Promise(r => setTimeout(r, 50));
+  keepPreviewPlace();   // the file before: where it was
   // The source, the preview or both (3.11): as the file before it was switched to; the first one in the preview.
   const was = panes[0].active?.mode, mode = ['edit', 'split'].includes(was) ? was : 'preview';
   for (const tab of allTabs()) await closeTab(tab, true);
   const pane = panes[0];
+  watchPreviewPlace(pane);
   if (path) {
     const tab = await openFile(path, { pane, mode }).catch(e => { toast(e.message); return null; });
     if (tab && !tab.readOnly) await setReadOnly(tab, true);
+    if (tab) restorePreviewPlace(pane, tab);
   } else {
     const doc = makeDoc({ text: text ?? '' });
     // Its language by its name's extension, else by its first line (languageFor), as a file's; markdown is undefined.
@@ -5257,9 +5260,46 @@ appAction('previewer.open', { title: 'Edit...', hint: 'The file shown here in Le
 
 // The host let go of the file: nothing shown, the file not held.
 events.previewClear = async () => {
+  keepPreviewPlace();
   for (const tab of allTabs()) await closeTab(tab, true);
   await showAll();
 };
+
+// The previewer's place per file (docs/plans/PLAN-preview-handler.md 3.6; PreviewPlaces.cs): the source line and column
+// at the top of the preview, and the preview's cursor, kept by the file's path (by source, not pixels: the host's pane
+// may be another width next time). Kept when the next file comes, when the host lets go of it, and a moment after a
+// scroll; the next preview of the file goes there. A file in the source alone, a PDF, Hex, a stream: none kept.
+function previewPlaceNow() {
+  const pane = panes[0], tab = pane?.active;
+  if (!previewer || !tab?.doc.path || tab.mode === 'edit' || tab.hex || tab.doc.pdf || !tab.article?.childElementCount) return null;
+  const text = docText(tab.doc), top = pcLineOf(text, previewTopOffset(pane)), pc = previewCursorPos(tab);
+  return { path: tab.doc.path, place: { line: top.line, ch: top.ch, ...(pc ? { pcLine: pc.line, pcCh: pc.ch } : {}) } };
+}
+function keepPreviewPlace() {
+  const now = previewPlaceNow();
+  if (now) host('previewPlaceSet', now).catch(() => {});
+}
+function watchPreviewPlace(pane) {
+  if (pane.placeWatched) return;
+  pane.placeWatched = true;
+  let timer = 0;
+  pane.previewEl.addEventListener('scroll', () => { clearTimeout(timer); timer = setTimeout(keepPreviewPlace, 800); }, { passive: true });
+}
+async function restorePreviewPlace(pane, tab) {
+  const place = await host('previewPlace', { path: tab.doc.path }).catch(() => null);
+  if (!place) return;
+  // Once its preview is drawn (a render is a moment; a large file longer).
+  for (let i = 0; i < 100 && pane.active === tab && !tab.article?.childElementCount; i++) await new Promise(r => setTimeout(r, 50));
+  await nextFrame();
+  if (pane.active !== tab || tab.mode === 'edit') return;
+  const text = docText(tab.doc), o = pcOffsetOf(text, { line: place.line, ch: place.ch });
+  const at = previewRangesOf(tab, o, o + 1)[0] ?? previewBlockAt(tab, place.line);
+  if (at) pane.previewEl.scrollTop += at.getBoundingClientRect().top - pane.previewEl.getBoundingClientRect().top;
+  if (place.pcLine != null) {
+    placePreviewCursor(tab, { line: place.pcLine, ch: place.pcCh ?? 0 });
+    drawPreviewCaret(pane);
+  }
+}
 
 // A compare from Explorer in this window (the project for comparing, docs/plans/executed/PLAN-compare-project.md): as
 // starting one here, a compare already running ends first; the files of the old one stay as tabs.

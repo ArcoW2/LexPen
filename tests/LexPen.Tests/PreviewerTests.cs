@@ -135,6 +135,26 @@ public class PreviewerTests : IDisposable
         Assert.Null(PreviewHandler.Make(null!, false, false, false));
     }
 
+    // The previewer's place per file (3.6): kept by path (case ignored), read back after a restart, the most recent
+    // PreviewPlaces.Max only.
+    [Fact]
+    public void APlaceIsKeptPerFileAndOnlyTheMostRecentOnes()
+    {
+        var file = Path.Combine(Path.GetTempPath(), "lexpen-places-" + Guid.NewGuid().ToString("N"), "preview-places.json");
+        try
+        {
+            var places = new PreviewPlaces(file);
+            places.Set(@"C:\Docs\A.md", new System.Text.Json.Nodes.JsonObject { ["line"] = 12, ["ch"] = 3 });
+            Assert.Equal(12, new PreviewPlaces(file).Get(@"c:\docs\a.md")!["line"]!.GetValue<int>());   // another LexPen, another case
+            for (var i = 0; i < PreviewPlaces.Max; i++) places.Set($@"C:\Docs\{i}.md", new System.Text.Json.Nodes.JsonObject { ["line"] = i });
+            var again = new PreviewPlaces(file);
+            Assert.Null(again.Get(@"C:\Docs\A.md"));   // the oldest gone
+            Assert.Equal(PreviewPlaces.Max - 1, again.Get($@"C:\Docs\{PreviewPlaces.Max - 1}.md")!["line"]!.GetValue<int>());
+            Assert.NotNull(again.Get(@"C:\Docs\0.md"));
+        }
+        finally { Directory.Delete(Path.GetDirectoryName(file)!, true); }
+    }
+
     static nint ParsingName(string path)
     {
         var iid = new Guid("43826d1e-e718-42ee-bc55-a1e261c37bfe");   // IShellItem

@@ -17,8 +17,8 @@ LexPen becomes a Windows preview handler, served by LexPen.exe itself. Its view 
 only: no editor, no tabs, no side panes. Everything that works in a preview works there, with the same keys: find,
 the preview's cursor, bookmarks, highlights, jumps by section, the language chosen, printing. Its commands are on
 ribbon tabs of its own, preview tabs, the only ones it shows. A PDF shows in
-LexPen's PDF viewer and a file that is not text in Hex, and the language list can show any file as any language
-instead. What you mark is kept where LexPen
+LexPen's PDF viewer and a file that is not text in Hex (a view mode, not a language); the language list can show any
+text file as any language instead. What you mark is kept where LexPen
 keeps it now (bookmarks in LexPen's store, highlights in the store or next to the file, as the setting says), so the
 previewer and LexPen show the same marks. A language list in the preview's bar chooses the language for that file, and
 LexPen remembers it. Day and night work as in LexPen: the previewer has a theme of its own for each, and follows
@@ -103,14 +103,14 @@ is one) can offer LexPen without LexPen taking any type from another program.
   - a PDF in LexPen's PDF viewer (docs/plans/executed/PLAN-pdf-view.md), read-only as it is;
   - a file that is not text in Hex (docs/plans/executed/PLAN-hex-view.md), read-only: no byte can be changed.
 
-  Either one can be shown as a language instead, from the language list (3.4): a file that is text after all, or
-  that you want to see as text.
+  Either one can be shown as text in a language instead, from the language list (3.4): a file that is text after all,
+  or that you want to see as text. Hex is a view mode, not a language: the Hex switch (3.11), as in LexPen.
 
 ### 3.4 The language
 
-- **The list in the preview's bar**: the language packs, as the editor's bottom bar offers them, and Hex. Choosing
-  one shows the file in it at once: text as that language, any file as its bytes. A PDF has its viewer first in the
-  list.
+- **The list in the preview's bar**: the language packs, as the editor's bottom bar offers them. Choosing one shows
+  the file in it at once. A PDF has its viewer first in the list. Hex is no entry of it: it is a view mode (the Hex
+  switch, 3.11), not a language.
 - **Kept per file**, where LexPen keeps a language you chose for a file now (State\file-languages.json,
   `AppHost.FileLanguage`): the next preview of that file, and LexPen's editor, use it.
 - **Per extension**: the File types dialog's Language column is the language a file of that extension starts with,
@@ -145,7 +145,8 @@ All of it by the file's path (`BookmarkStore.Key`), so LexPen and the previewer 
 - **The language** (3.4).
 - **The place in the file**: the preview's scroll position and cursor per file, so the next preview of it opens where
   you were. LexPen keeps these for open tabs only (the session); for the previewer a small store of its own in the
-  state folder, the most recent files only: [not yet decided how many].
+  state folder, the most recent 200 files only (decided during the build). Kept by source line and column, not by
+  pixels: the host's pane may be another width next time.
 - **Find**: the find history, shared with LexPen's (docs/plans/executed/PLAN-find-history.md).
 
 ### 3.7 Keys and focus
@@ -237,7 +238,7 @@ All of it by the file's path (`BookmarkStore.Key`), so LexPen and the previewer 
   Not in it: saving, files, projects, tabs, docks and panels, compare, macros, replace, sort, the settings, the
   editor's view settings (wrap, gutter, line numbers: as LexPen's settings say), the ribbon's own change and customize.
 - **The source**: the previewer offers the text the preview is made from, as LexPen's switches do: Editor, Preview,
-  Split, and Hex (which also gives 3.4 its Hex). The switches show in the preview's bar and on the Preview tab. The
+  Split, and Hex (a view mode). The switches show in the preview's bar and on the Preview tab. The
   editor is made the first time you switch to it, read-only as the whole previewer is: no typing, no replace, no
   format; what reads works there too (find, the cursor, bookmarks, highlights, copy, folding). A previewer starts in
   the preview; what you switch to holds for the next files in that host's window, until you switch back.
@@ -378,6 +379,14 @@ In progress on the branch `preview-handler`; not merged. Not yet tried in Explor
   previewer again after a Remove; `previewerOff` keeps Not registered. The elevated LexPen writes only the HKLM listing
   and ends; a message says when it is not as asked. Reading the choice tried in a test LexPen ("For everyone on this
   computer", as the registry is); Outlook previews a `.md` attachment in LexPen with the listing for everyone (tried by the user).
+- **Keys to the host, tried by the user**: Esc in a preview closes it in Foldex and in Xplorer2; Outlook ignores it
+  (it takes no Esc from a handler).
+- **The place in the file** (3.6): `PreviewPlaces` (State\preview-places.json, by path, the most recent 200), the
+  source line and column at the top of the preview and the preview's cursor; kept when the next file comes, when the
+  host lets go, and 800 ms after a scroll; the next preview of the file scrolls there once drawn. Not for a stream,
+  a PDF, Hex or the source alone. Tested: `PreviewerTests` (kept, read back, the oldest gone); in a test LexPen as
+  previewer, back to line 138 with the cursor on 141 after another file, and to the same line in a window 884 and
+  then 504 px wide.
 - **Right-click on a highlight in a preview**: Remove highlight and Highlight act where the right-click was; they used
   the preview's cursor, which a right-click does not move, so they removed nothing.
 - **Tests**: `PreviewerTests` (registration, binding with the handler before kept and put back, removal);
@@ -389,9 +398,6 @@ In progress on the branch `preview-handler`; not merged. Not yet tried in Explor
 
 ### Not yet built
 
-- **Hex in the language list** (3.4): Hex is in the switches and on the Preview tab now (3.11); the status bar's
-  language list still has no Hex entry.
-- **The place in the file** (3.6): the previewer does not keep the scroll position and cursor per file.
 - **Explorer itself**: Alt+P and F5 with the focus in the preview (3.7) among the first things to try. It needs a published (release) LexPen, which registers the class at its start, and an extension
   checked under Preview in the File types dialog. Whether Explorer takes a per-user local-server handler without more
   keys is still [not yet checked].

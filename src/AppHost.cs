@@ -542,6 +542,9 @@ sealed class AppHost : ApplicationContext
 
     public string? FileLanguage(string path) => fileLanguages.GetValueOrDefault(path);
 
+    /// <summary>The previewer's place per file (PreviewPlaces): its store in the state folder.</summary>
+    public PreviewPlaces PreviewPlaces { get; } = new(Path.Combine(DataFolder.StateDir(DataDir), "preview-places.json"));
+
     /// <summary>Null: the language follows the extension again.</summary>
     public void SetFileLanguage(string path, string? language)
     {

@@ -16,7 +16,8 @@ LexPen ships `startup.md`, a markdown file about LexPen itself, and on its very 
 "Startup" and shows the file there, in the preview. It is written for someone who never saw LexPen: what it is, the
 first things to set up, and where to find the rest. Each setting it mentions is one click away: a link of the form
 `lexpen:<action>` opens that setting or dialog (LexPen as a previewer, File types). It can be opened again from
-Options > Startup. English now; other languages later, each its own file, linked from the others.
+Options > Startup. English now; other languages later, each its own file, linked from the others
+(PLAN-interface-languages.md).
 
 ## 3. Details
 
@@ -65,13 +66,10 @@ Options > Startup. English now; other languages later, each its own file, linked
 - Now a `lexpen:` link counts as a web address (`isUrl`) and goes to the browser, which knows no such scheme; that is
   what changes.
 
-### 3.4 Other languages (for the languages plan)
+### 3.4 Other languages
 
-- **One file per language**: `startup.md` in English, `startup.<language>.md` for each other one (`startup.nl.md`). Each
-  starts with a line of links to the others ("English | Nederlands | ...").
-- **LexPen's language in it**: once LexPen has interface languages, startup.md names the language LexPen is in and
-  links to its setting; the first start shows the file of that language, else the English one.
-- To move into LexPen's languages plan when there is one (see Open questions).
+English now. The files per language, their links to each other and the interface language named in them (with its
+setting) are part of PLAN-interface-languages.md (3.6 there).
 
 ### 3.5 Tests
 
@@ -85,5 +83,4 @@ Options > Startup. English now; other languages later, each its own file, linked
 
 ## 4. Open questions
 
-1. **LexPen's languages plan**: LexPen has none yet (Foldex has one, 38-PLAN-languages.md). Should one be made for
-   LexPen, with 3.4 moved into it?
+None.
