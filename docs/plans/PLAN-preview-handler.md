@@ -381,6 +381,8 @@ In progress on the branch `preview-handler`; not merged. Not yet tried in Explor
   computer", as the registry is); Outlook previews a `.md` attachment in LexPen with the listing for everyone (tried by the user).
 - **Keys to the host, tried by the user**: Esc in a preview closes it in Foldex and in Xplorer2; Outlook ignores it
   (it takes no Esc from a handler).
+- **Edit... then Esc**: after opening the file in LexPen, the previewer passes Esc to its host as the key would go,
+  so a host that closes its preview with Esc (Foldex) does, and the file shows in LexPen only; Outlook ignores it.
 - **The place in the file** (3.6): `PreviewPlaces` (State\preview-places.json, by path, the most recent 200), the
   source line and column at the top of the preview and the preview's cursor; kept when the next file comes, when the
   host lets go, and 800 ms after a scroll; the next preview of the file scrolls there once drawn. Not for a stream,
