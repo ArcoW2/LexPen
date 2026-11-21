@@ -5255,7 +5255,7 @@ addEventListener('keydown', e => {
 });
 
 // Edit...: the file in LexPen, as Explorer's Open gives it (edit, or view: File types). A stream has no file to open.
-appAction('previewer.open', { title: 'Edit...', hint: 'The file shown here in LexPen, as opening it from Explorer would (to edit, or to view as File types says)',
+appAction('previewer.open', { title: 'Edit...', hint: 'The file shown here in LexPen, as opening it from Explorer would (to edit, or to view as File types says); then Esc to the program the preview is in, which may close its preview with it',
   group: 'files', enabled: () => !!activeDoc()?.path, run: () => { const path = activeDoc()?.path; if (path) host('previewerOpen', { path }); } });
 
 // The host let go of the file: nothing shown, the file not held.

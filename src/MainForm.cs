@@ -1445,6 +1445,10 @@ sealed class MainForm : Form
             {
                 var path = Arg("path");
                 app.Launch([path], shift: false, view: FileTypes.ModeOf(Path.GetExtension(path)) == "view");
+                // Then Esc to the host, as the key would go (3.7): a host that closes its preview with it (Foldex) does
+                // so, now that the file is open in LexPen; one that does not take it (Outlook) ignores it. After the
+                // launch, so the host's closing the preview does not come first.
+                BeginInvoke(() => HostKey?.Invoke(0x1B, false));
                 return null;
             }
 
