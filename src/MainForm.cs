@@ -1448,6 +1448,10 @@ sealed class MainForm : Form
                 return null;
             }
 
+            // A previewer's key it does not use itself: its host's (Explorer's Alt+P, F5, ...).
+            case "previewKey":
+                return HostKey?.Invoke(msg["vk"]!.GetValue<int>(), msg["alt"]?.GetValue<bool>() == true) == true;
+
             // A previewer never edits: it takes no lock, so it never keeps a window of LexPen from editing a file.
             case "lock":
                 return !IsPreviewer && app.Lock(Arg("path"), this);
@@ -2031,6 +2035,10 @@ sealed class MainForm : Form
     public void ClearPreview() => Post(new JsonObject { ["event"] = "previewClear" });
 
     public void FocusPreview() => web.Focus();
+
+    /// <summary>A key the previewer's page did not use, for its host (3.7: the preview handler passes it on to the
+    /// host's frame): the virtual key and whether Alt was down. True: the host took it.</summary>
+    public Func<int, bool, bool>? HostKey;
 
     const int GwlStyle = -16;
     const nint WsChild = 0x40000000, WsVisible = 0x10000000, WsClipChildren = 0x02000000;

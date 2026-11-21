@@ -116,6 +116,8 @@ function runKey(key, e, unshifted) {
     if (key.includes(', ')) toast(`${key} is not a key.`);
     return;
   }
+  // A previewer takes only the keys of what it can do (app.js previewerAction); the others are its host's.
+  if (typeof previewer !== 'undefined' && previewer && !previewerAction(call[0])) return;
   if (runAction(call[0], call.slice(1), { extend, from: 'key' }) === PASS) return;
   e.preventDefault();
   e.stopPropagation();

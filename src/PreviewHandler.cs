@@ -210,6 +210,17 @@ partial interface IObjectWithSite
     [PreserveSig] int GetSite(nint iid, out nint site);
 }
 
+[StructLayout(LayoutKind.Sequential)]
+struct NativeMsg { public nint Hwnd; public uint Message; public nint WParam, LParam; public uint Time; public int X, Y; }
+
+// The host's side (3.7): its site gives it; TranslateAccelerator hands it a key the preview did not use.
+[GeneratedComInterface, Guid("fec87aaf-35f9-447a-adb7-20234491401a")]
+partial interface IPreviewHandlerFrame
+{
+    void GetWindowContext(nint info);
+    [PreserveSig] int TranslateAccelerator(in NativeMsg msg);
+}
+
 [GeneratedComInterface, Guid("00000114-0000-0000-C000-000000000046")]
 partial interface IOleWindow
 {
@@ -243,6 +254,7 @@ sealed partial class PreviewHandler(AppHost app) : IInitializeWithFile, IInitial
     nint parent;
     NativeRect rect;
     nint site;
+    IPreviewHandlerFrame? frame;   // the host's, when its site has one (Explorer's has; a host may give none)
     MainForm? form;
 
     public void Initialize(string path, uint mode)
@@ -277,6 +289,7 @@ sealed partial class PreviewHandler(AppHost app) : IInitializeWithFile, IInitial
         if (form is null || form.IsDisposed)
         {
             form = app.OpenPreviewer();
+            form.HostKey = HostKey;
             form.EmbedIn(parent, Bounds());
         }
         if (path is not null) form.ShowPreview(path, null, null);
@@ -299,9 +312,33 @@ sealed partial class PreviewHandler(AppHost app) : IInitializeWithFile, IInitial
     {
         if (this.site != 0) Marshal.Release(this.site);
         this.site = site;
-        if (site != 0) Marshal.AddRef(site);
+        frame = null;
+        if (site != 0)
+        {
+            Marshal.AddRef(site);
+            var iid = typeof(IPreviewHandlerFrame).GUID;
+            if (Marshal.QueryInterface(site, in iid, out var f) == 0)
+            {
+                frame = (IPreviewHandlerFrame)Previewer.Wrappers.GetOrCreateObjectForComInstance(f, CreateObjectFlags.None);
+                Marshal.Release(f);
+            }
+        }
         else Close();
     }
+
+    // A key the page did not use, to the host as the key message Windows would have sent it (Alt: a system key), as
+    // preview handlers do (IPreviewHandlerFrame.TranslateAccelerator). True: the host took it.
+    bool HostKey(int vk, bool alt)
+    {
+        if (frame is null || form is null) return false;
+        var lParam = 1 | (nint)(MapVirtualKey((uint)vk, 0) << 16) | (alt ? 1 << 29 : 0);
+        var msg = new NativeMsg { Hwnd = form.Handle, Message = alt ? 0x0104u : 0x0100u, WParam = vk, LParam = lParam, Time = (uint)Environment.TickCount };
+        try { return frame.TranslateAccelerator(in msg) == 0; }
+        catch (Exception ex) when (ex is COMException or InvalidCastException) { return false; }   // the host gone
+    }
+
+    [DllImport("user32.dll")]
+    static extern uint MapVirtualKey(uint code, uint mapType);
 
     public int GetSite(nint iid, out nint site)
     {

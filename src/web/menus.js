@@ -280,6 +280,7 @@ addEventListener('keydown', e => {
   if (document.querySelector('dialog[open]')) return;
   if (!menuBar.levels.length) {
     if (!e.altKey || e.ctrlKey || e.shiftKey || !/^Key[A-Z]$/.test(e.code)) return;
+    if (previewer) return;   // a previewer has no menu bar: Alt+letter is its host's (app.js, previewer keys)
     // The ribbon only, its key tips for Alt: the ribbon's (ribbon.js); its menus for Alt: shown first.
     if (typeof rbMode === 'function' && rbMode() === 'ribbon') {
       if ((setting('altOpens') || 'tips') === 'tips') return;

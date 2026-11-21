@@ -5215,6 +5215,36 @@ events.preview = async ({ path, name, text }) => {
   showPreviewerOpen();
 };
 
+// Keys for the host (docs/plans/PLAN-preview-handler.md 3.7): a key the previewer does not use goes to the program it
+// shows in (Explorer's Alt+P, F5, ...), which takes it or not. Used: an action ran (keys.js stops it), the find bar's
+// Esc, a menu or dialog open when it came. In a text field only F-keys and Alt+key go (Ctrl+key and AltGr are the
+// field's); never the editing keys (Ctrl+A, C, V, X, Y, Z, Insert). F5 is held back from the page (no reload) but is
+// the host's.
+// What a previewer's keys do (3.11): these, the buttons and corners of the preview tabs, and the cursor's moves (its
+// source view); a key of anything else is not LexPen's there (Save, a macro: F5) and goes to the host.
+const PREVIEWER_ACTIONS = new Set(['find', 'findNext', 'findPrevious', 'copy', 'selectAll', 'focusPart', 'positionBack',
+  'positionForward', 'block.next', 'outline.next', 'bookmarkStore', 'bookmarkToggle', 'bookmarkClear', 'bookmarkGo',
+  'bookmarkToggleFree', 'bookmarkNext', 'bookmarkList', 'highlight.toggle', 'highlight.fromSelection', 'highlight.note',
+  'highlight.remove', 'highlight.clear', 'highlight.keep', 'highlight.next', 'highlight.list', 'occurrences.show',
+  'occurrences.field', 'occurrences.clear', 'occurrences.bar', 'zoomIn', 'zoomOut', 'zoomReset', 'theme.toggle', 'theme.day',
+  'theme.night', 'print', 'previewer.open', 'editor.toggle', 'preview.toggle', 'hex.toggle', 'chooseLanguage', 'file.copy']);
+function previewerAction(name) {
+  if (PREVIEWER_ACTIONS.has(name) || actionDef(name)?.move) return true;
+  const call = c => typeof c === 'string' ? c : Array.isArray(c) ? c[0] : c?.action;
+  return !!rb.model?.tabs.some(t => t.previewer && t.groups.some(g => [...g.items, ...Object.values(g.corners ?? {})].some(i => call(i) === name)));
+}
+let hostKeyBusy = false;
+addEventListener('keydown', () => { hostKeyBusy = !!menuBar.levels.length || !!document.querySelector('dialog[open]'); }, true);
+addEventListener('keydown', e => {
+  if (!previewer || hostKeyBusy || e.isComposing || ['Control', 'Shift', 'Alt', 'Meta', 'AltGraph'].includes(e.key)) return;
+  if (e.defaultPrevented && e.key !== 'F5') return;
+  const field = !!e.target.closest?.('input, textarea, select, [contenteditable]:not([contenteditable=false])');
+  const fKey = /^F\d{1,2}$/.test(e.key);
+  const wanted = field ? fKey || e.altKey && !e.ctrlKey
+    : fKey || e.key === 'Escape' || e.altKey && !e.ctrlKey || e.ctrlKey && !e.altKey && !/^([acvxyz]|insert)$/i.test(e.key);
+  if (wanted) host('previewKey', { vk: e.keyCode, alt: e.altKey }).catch(() => {});
+});
+
 // Open in LexPen: the file as Explorer's Open gives it (edit, or view: File types). A stream has no file to open.
 appAction('previewer.open', { title: 'Open in LexPen', hint: 'The file shown here in LexPen, as opening it from Explorer would',
   group: 'files', enabled: () => !!activeDoc()?.path, run: () => { const path = activeDoc()?.path; if (path) host('previewerOpen', { path }); } });

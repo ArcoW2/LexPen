@@ -145,7 +145,9 @@ All of it by the file's path (`BookmarkStore.Key`), so LexPen and the previewer 
 - **The keys the preview uses** are LexPen's, from keys.json, as in a LexPen window, with the editor's left out.
 - **Every other key** goes to the host: the page passes it to LexPen's host side, which calls
   `IPreviewHandlerFrame.TranslateAccelerator`, so Explorer's and Foldex's own keys keep working with the focus in the
-  preview. Which keys the host wants back (Tab out of the preview, F5, Alt+keys): [not yet checked per host].
+  preview. This is the standard way for a preview handler; the frame comes from the host's site (`SetSite`). A host
+  that gives no frame gets no keys; nothing is made for one host in particular. Which keys the host takes is the
+  host's to say (`TranslateAccelerator` answers S_OK when it took one).
 - `SetFocus` puts the focus in the preview; `QueryFocus` says where it is.
 
 ### 3.8 Registration (for the current user, no admin)
@@ -330,6 +332,15 @@ In progress on the branch `preview-handler`; not merged. Not yet tried in Explor
   Open in LexPen, copy name, highlight from selection / keep / remove all / previous / next).
 - **The source** (3.11): the switches show in the previewer; the source is read-only (typing changes nothing) and the
   format bar stays hidden; Source, Preview or both carry over to the next file (Hex does not: it depends on the file).
+- **Keys to the host** (3.7): `SetSite` takes the host's `IPreviewHandlerFrame` when its site has one; a key the page
+  does not use goes to it as a WM_KEYDOWN (with Alt: WM_SYSKEYDOWN) of the previewer's window. In the previewer only
+  the keys of what it can do are LexPen's (`previewerAction`: a fixed set, everything on the preview tabs, the
+  cursor's moves); the rest goes to the host: F5 (a macro's key in LexPen), Ctrl+S, Alt+P, Esc with nothing to close,
+  F-keys. In a text field only F-keys and Alt+key go; the editing keys (Ctrl+A, C, V, X, Y, Z, Insert) never; a key
+  that comes while a menu or dialog is open stays. Alt+letter no longer opens the hidden menus in a previewer. Tried
+  on the page with real key presses (each key above, Ctrl+F, F3, F8, Ctrl+C, the find box's keys); the call to the
+  frame itself needs a host that gives one (Explorer): not yet tried. Foldex's host gives no site, so it gets no keys
+  until it does (its side, the same standard).
 - **Right-click on a highlight in a preview**: Remove highlight and Highlight act where the right-click was; they used
   the preview's cursor, which a right-click does not move, so they removed nothing.
 - **Tests**: `PreviewerTests` (registration, binding with the handler before kept and put back, removal);
@@ -344,9 +355,7 @@ In progress on the branch `preview-handler`; not merged. Not yet tried in Explor
 - **Hex in the language list** (3.4): Hex is in the switches and on the Preview tab now (3.11); the status bar's
   language list still has no Hex entry.
 - **The place in the file** (3.6): the previewer does not keep the scroll position and cursor per file.
-- **Keys to the host** (3.7): `TranslateAccelerator` answers S_FALSE; keys the page does not use are not passed to
-  `IPreviewHandlerFrame`, so Explorer's own keys may not work with the focus in the preview.
-- **Explorer itself**: needs a published (release) LexPen, which registers the class at its start, and an extension
+- **Explorer itself**: Alt+P and F5 with the focus in the preview (3.7) among the first things to try. It needs a published (release) LexPen, which registers the class at its start, and an extension
   checked under Preview in the File types dialog. Whether Explorer takes a per-user local-server handler without more
   keys is still [not yet checked].
 - **The Print window as a modal of the host**: placed over it, not tried with a printer from a host.
