@@ -17,7 +17,7 @@ LexPen ships `startup.md`, a markdown file about LexPen itself, and on its very 
 first things to set up, and where to find the rest. Each setting it mentions is one click away: a link of the form
 `lexpen:<action>` opens that setting or dialog (LexPen as a previewer, File types). It can be opened again from
 Options > Startup. English now; other languages later, each its own file, linked from the others
-(PLAN-interface-languages.md).
+(PLAN-app-languages.md).
 
 ## 3. Details
 
@@ -68,8 +68,9 @@ Options > Startup. English now; other languages later, each its own file, linked
 
 ### 3.4 Other languages
 
-English now. The files per language, their links to each other and the interface language named in them (with its
-setting) are part of PLAN-interface-languages.md (3.6 there).
+English now. The files per app language (English, Nederlands, Deutsch: LexPen's own texts, not the document
+languages), their links to each other and the app language named in them (with its setting) are part of
+PLAN-app-languages.md (3.7 there).
 
 ### 3.5 Tests
 
