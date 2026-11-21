@@ -640,10 +640,12 @@ $('.st-foot [data-open]').addEventListener('click', e => host('openFile', { file
 
 // ---------- File types (docs/plans/executed/PLAN-file-types.md) ----------
 // Every extension of the language packs: checked when LexPen opens it, how (edit or view; choosing one checks the row),
-// the app Windows starts now. The filter narrows the rows; Check all / none and All edit / view act on the rows shown;
-// Assign on every row: it clears the filter and the host asks first. A debug build refuses Assign (the host says so).
+// the app Windows starts now. The filter narrows the rows. Rows are selected apart from their checkbox (click, Ctrl+click,
+// Shift+click, Ctrl+A for the rows shown); the line below the table puts each setting on Change into the selected rows
+// shown. Assign on every row: it clears the filter and the host asks first. A debug build refuses Assign (the host says so).
 const ftDialog = $('.st-ft'), ftFilter = $('.st-ft-filter'), ftBody = ftDialog.querySelector('tbody'), ftNote = $('.st-ft-note');
-const ft = { rows: [], sort: 'extension', desc: false };
+const ftFoot = ftDialog.querySelector('tfoot'), ftApply = ftDialog.querySelector('.st-ft-apply');
+const ft = { rows: [], sort: 'extension', desc: false, drawn: [], selected: new Set(), anchor: null };
 
 function ftShown() {
   const words = ftFilter.value.toLowerCase().split(/\s+/).filter(Boolean);
@@ -657,8 +659,11 @@ function ftDraw() {
     th.classList.toggle('st-on', th.dataset.sort === ft.sort);
     th.classList.toggle('st-desc', th.dataset.sort === ft.sort && ft.desc);
   }
+  ft.drawn = rows;
   ftBody.replaceChildren(...rows.map(r => {
     const tr = document.createElement('tr');
+    tr.classList.toggle('st-sel', ft.selected.has(r.extension));
+    tr.addEventListener('click', e => { if (!e.target.closest('input, select')) ftSelect(r, e); });
     tr.innerHTML = '<td><input type="checkbox"></td><td></td><td></td><td><select><option value="edit">Edit</option><option value="view">View</option></select></td><td></td>' +
       '<td><input type="checkbox" class="st-ft-preview"></td><td></td>';
     const [check, ext, language, , now, previewCell, previewNow] = tr.children, box = check.firstChild, select = tr.querySelector('select');
@@ -679,7 +684,54 @@ function ftDraw() {
     return tr;
   }));
   ftChanged();
+  ftMarkSelected();
 }
+
+// A click selects the row alone, Ctrl+click adds or removes it, Shift+click the rows from the last one clicked.
+function ftSelect(r, e) {
+  const at = ft.drawn.indexOf(r), from = ft.drawn.findIndex(x => x.extension === ft.anchor);
+  if (e.shiftKey && from >= 0) {
+    if (!e.ctrlKey) ft.selected.clear();
+    for (const x of ft.drawn.slice(Math.min(at, from), Math.max(at, from) + 1)) ft.selected.add(x.extension);
+  } else {
+    if (!e.ctrlKey) ft.selected.clear();
+    if (e.ctrlKey && ft.selected.has(r.extension)) ft.selected.delete(r.extension);
+    else ft.selected.add(r.extension);
+    ft.anchor = r.extension;
+  }
+  ftMarkSelected();
+}
+
+function ftMarkSelected() {
+  ft.drawn.forEach((r, i) => ftBody.children[i].classList.toggle('st-sel', ft.selected.has(r.extension)));
+  const count = ft.drawn.filter(r => ft.selected.has(r.extension)).length;
+  ftApply.textContent = count ? `Apply to selected (${count})` : 'Apply to selected';
+  ftApply.disabled = !count || !ftFoot.querySelector('.st-ft-change option[value="1"]:checked');
+}
+
+// The line below the table: a setting on Change can be set, on Keep each row keeps its own. Setting how it opens checks
+// the rows too (as choosing it in one row does), unless "LexPen opens it" is on Change itself.
+for (const change of ftFoot.querySelectorAll('.st-ft-change')) change.addEventListener('change', () => {
+  ftFoot.querySelector(`[data-value="${change.dataset.for}"]`).disabled = !change.value;
+  ftMarkSelected();
+});
+ftApply.addEventListener('click', () => {
+  const on = name => ftFoot.querySelector(`.st-ft-change[data-for="${name}"]`).value;
+  const value = name => { const v = ftFoot.querySelector(`[data-value="${name}"]`); return v.type === 'checkbox' ? v.checked : v.value; };
+  for (const r of ft.drawn.filter(r => ft.selected.has(r.extension))) {
+    if (on('as')) { r.as = value('as'); r.checked = true; }
+    if (on('checked')) r.checked = value('checked');
+    if (on('previewOn')) r.previewOn = value('previewOn');
+  }
+  ftDraw();
+});
+ftDialog.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.key.toLowerCase() === 'a' && !e.target.closest('input[type=search]')) {
+    e.preventDefault();
+    for (const r of ft.drawn) ft.selected.add(r.extension);
+    ftMarkSelected();
+  }
+});
 
 // Nothing changed since the dialog opened: the last button is Close; else Cancel (closing it throws the changes away).
 function ftChanged() {
@@ -697,6 +749,12 @@ async function openFileTypes() {
   ftFilter.value = '';
   ftNote.textContent = '';
   ftNote.classList.remove('st-error');
+  ft.selected.clear();
+  ft.anchor = null;
+  for (const change of ftFoot.querySelectorAll('.st-ft-change')) {
+    change.value = '';
+    ftFoot.querySelector(`[data-value="${change.dataset.for}"]`).disabled = true;
+  }
   ftDialog.showModal();
   ftFilter.focus();
   await ftLoad();
@@ -728,11 +786,6 @@ ftDialog.querySelector('.st-ft-buttons').addEventListener('click', async e => {
     }
     return;
   }
-  for (const r of ftShown()) {
-    if (what === 'all' || what === 'none') r.checked = what === 'all';
-    else { r.as = what; r.checked = true; }
-  }
-  ftDraw();
 });
 
 // ---------- This window's layout: Save as default, Reset to default ----------

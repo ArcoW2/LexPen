@@ -94,6 +94,14 @@
 .st-ft-table td { padding: 3px 10px; border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent); white-space: nowrap; }
 .st-ft-table tr:hover td { background: var(--hover); }
 .st-ft-table select { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 1px 4px; }
+.st-ft-table tbody tr { cursor: default; user-select: none; }
+.st-ft-table tbody td:is(:nth-child(5), :nth-child(7)) { white-space: normal; }   /* the app names wrap when the window is narrow */
+.st-ft-table tbody tr.st-sel td { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+.st-ft-table tfoot td { position: sticky; bottom: 0; z-index: 1; padding: 6px 10px; background: var(--bg-bar); border-top: 1px solid var(--border); white-space: nowrap; }
+.st-ft-table tfoot :is(select, input) { display: block; }
+.st-ft-table tfoot :is(select, input) + :is(select, input) { margin-top: 4px; }
+.st-ft-table tfoot :disabled, .st-ft-buttons button:disabled { opacity: .5; }
+.st-ft-buttons button:disabled:hover { border-color: var(--border); }
 .st-ft-lexpen { color: var(--accent); }
 .st-ft-dim { color: var(--fg-dim); }
 .st-ft-note { padding: 6px 14px; min-height: 1.3em; color: var(--fg-dim); border-top: 1px solid var(--border); }

@@ -29,14 +29,22 @@
         <th data-sort="as">Opens as</th><th data-sort="opensWith">Opens now with</th>
         <th data-sort="previewOn" title="Explorer's preview pane shows it in LexPen">Preview</th><th data-sort="previewsWith">Previews now with</th></tr></thead>
       <tbody></tbody>
+      <tfoot><tr>
+        <td><select class="st-ft-change" data-for="checked" title="LexPen opens it: keep it per row, or change it"><option value="">Keep</option><option value="1">Change</option></select>
+          <input type="checkbox" data-value="checked" disabled></td>
+        <td></td><td></td>
+        <td><select class="st-ft-change" data-for="as" title="Opens as: keep it per row, or change it"><option value="">Keep</option><option value="1">Change</option></select>
+          <select data-value="as" disabled><option value="edit">Edit</option><option value="view">View</option></select></td>
+        <td></td>
+        <td><select class="st-ft-change" data-for="previewOn" title="Preview: keep it per row, or change it"><option value="">Keep</option><option value="1">Change</option></select>
+          <input type="checkbox" data-value="previewOn" disabled></td>
+        <td></td>
+      </tr></tfoot>
     </table>
   </div>
   <div class="st-ft-note"></div>
   <div class="st-ft-buttons">
-    <button data-ft="all" title="Checks the rows shown">Check all</button>
-    <button data-ft="none" title="Unchecks the rows shown">Check none</button>
-    <button data-ft="edit" title="The rows shown: opened to edit, and checked">All edit</button>
-    <button data-ft="view" title="The rows shown: opened to view (the project for viewing), and checked">All view</button>
+    <button class="st-ft-apply" title="Puts the settings on Change in the line below the table into the selected rows. Select a row by clicking it; Ctrl+click adds or removes one, Shift+click a range, Ctrl+A all rows shown" disabled>Apply to selected</button>
     <span class="st-ft-gap"></span>
     <button data-ft="assign" title="Every row, also the ones the filter hides: asks first">Assign</button>
     <button data-ft="cancel">Close</button>
