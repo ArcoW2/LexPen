@@ -3983,10 +3983,10 @@ function outlineMenuItems(pane, from = 'frame') {
   return [
     { label: 'Groups together, by line', checked: !!setting('outlineMerged'), run: () => setSetting('outlineMerged', !setting('outlineMerged')) },
     { label: 'Bullet in the group\'s colour', checked: setting('outlineBullets') !== false, run: () => setSetting('outlineBullets', setting('outlineBullets') === false) },
-    '-',
+    ...previewer ? [] : ['-',
     from === 'float' ? { label: 'Back in the window', run: () => outlineBack() }
       : from === 'win' ? { label: 'Float in a window of its own', run: () => setDockFloating('outline:w', true) }
-      : { label: 'Float in a window of its own', run: () => floatOutline(pane) },
+      : { label: 'Float in a window of its own', run: () => floatOutline(pane) }],   // a previewer's: docked only
   ];
 }
 
@@ -5204,6 +5204,7 @@ events.preview = async ({ path, name, text }) => {
     const tab = await openFile(path, { pane, mode }).catch(e => { toast(e.message); return null; });
     if (tab && !tab.readOnly) await setReadOnly(tab, true);
     if (tab) restorePreviewPlace(pane, tab);
+    if (tab) await restorePreviewOutline(tab);
   } else {
     const doc = makeDoc({ text: text ?? '' });
     // Its language by its name's extension, else by its first line (languageFor), as a file's; markdown is undefined.
@@ -5213,15 +5214,43 @@ events.preview = async ({ path, name, text }) => {
     tab.readOnly = true;
     insertTab(pane, tab);
     await activate(pane, tab);
+    await restorePreviewOutline(tab);
   }
   await showAll();
 };
 
+// The previewer's outline open or closed per language (3.3; PreviewOutline.cs): as left for the last file of the
+// language (closed the first time), kept as you open or close it (saveDocks). Known: language -> open, as kept.
+const previewOutlineKnown = new Map();
+const previewOutlineLanguage = tab => tab.doc.pdf ? 'pdf' : tab.doc.language ?? 'markdown';
+async function restorePreviewOutline(tab) {
+  const language = previewOutlineLanguage(tab), open = (await host('previewOutline', { language }).catch(() => null)) === true;
+  previewOutlineKnown.set(language, open);
+  const m = dockModel(), area = dockArea(m, '0.right');
+  if (area.open !== open) { area.open = open; saveDocks(m); }
+}
+function keepPreviewOutline(m) {
+  const tab = panes[0].active, open = dockArea(m, '0.right').open;
+  if (!tab) return;
+  const language = previewOutlineLanguage(tab);
+  if (previewOutlineKnown.get(language) === open) return;
+  previewOutlineKnown.set(language, open);
+  host('previewOutlineSet', { language, open }).catch(() => {});
+}
+
 // The page as a previewer (CSS: body[data-role=previewer]). Its editor is the source of what it shows (read-only): the
 // switch says so.
+// Its outline is always there, docked at the right of the text, its area closed to a strip until opened (open or closed
+// as last for the file's language: restorePreviewOutline); none of the window's other panes (CSS).
 function setPreviewerRole() {
   document.body.dataset.role = 'previewer';
   Object.assign($('.mm-switch-editor'), { textContent: 'Source' }).dataset.title = 'Show / hide the source';
+  const area = (groups = [], open = true) => ({ open, size: 0, groups });
+  layoutOwn = { ...layoutOwn, outline: true, outline2: false, docks: { left: { groups: [] }, right: area(), bottom: area(),
+    editor: [{ left: area(), right: area([{ panes: ['outline:0'], active: 'outline:0', size: 1 }], false), bottom: area() },
+      { left: area(), right: area(), bottom: area() }], state: {} } };
+  mergeLayout();
+  applySettings();
 }
 
 // Keys for the host (docs/plans/PLAN-preview-handler.md 3.7): a key the previewer does not use goes to the program it

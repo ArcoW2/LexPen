@@ -1753,8 +1753,10 @@ body.mm-rb-changing .mm-rb-bodies { overflow-x: auto; }
 .mm-hx-empty { color: var(--fg-dim); padding: 8px 0; }
 /* A previewer (docs/plans/PLAN-preview-handler.md): the preview (or its source, read-only), with the preview tabs'
    names, the switches, Day / Night and the zoom above it (one line; a narrow pane cuts off its right end), the ribbon's
-   preview tab under that (3.11), the status bar under it; no menus, tabs, docks or editing. Its ribbon keeps the height its tab says: no grip, no "only when wanted". */
-body[data-role=previewer] :is(.mm-menubar, .mm-record-stop, .mm-save, .mm-orient, .mm-dock, .mm-dock-split,
+   preview tab under that (3.11), the status bar under it, the outline docked at the right of the text (closed to a
+   strip until opened); no menus, tabs, other docks or editing. Its ribbon keeps the height its tab says: no grip, no "only when wanted". */
+body[data-role=previewer] :is(.mm-menubar, .mm-record-stop, .mm-save, .mm-orient, .mm-main > .mm-dock, .mm-main > .mm-dock-split,
+  .mm-body > .mm-dock:not([data-side=right]), .mm-body > .mm-dock-split:not([data-side=right]),
   .mm-tabs-row, .mm-st-project, .mm-st-set, .mm-st-panes, .mm-st-pane, .mm-st-ins, .mm-st-clip, .mm-st-elev, .mm-st-eol,
   .mm-find-toggle, .mm-rb-grip-h, .mm-rb-collapse, .mm-format, .mm-doc-name) { display: none !important; }   /* .mm-format: its source is read-only; the name: the host shows it */
 /* One line: the preview tabs' names at the left, the switches (Source, Preview, Hex), Day / Night and the zoom at the

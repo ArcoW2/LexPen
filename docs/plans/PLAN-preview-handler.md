@@ -1,6 +1,6 @@
 # Plan: LexPen as a previewer (a Windows preview handler)
 
-Status: draft 2026-11-20, revised 2026-11-21 (3.11 the Preview tab, the source, its height); in progress on the branch `preview-handler` (2026-11-21), see As
+Status: draft 2026-11-20, revised 2026-11-22 (3.3 the outline docked); in progress on the branch `preview-handler` (2026-11-21), see As
 built. Asked for by Foldex's plan 33
 (`foldex\docs\plans\33-PLAN-preview-plugins.md`, 3.3), which leaves the handler, its class and its registration to this plan.
 
@@ -78,7 +78,8 @@ is one) can offer LexPen without LexPen taking any type from another program.
   handlers in prevhost.exe do), with one WebView2 in it, sized on `SetRect`. Whether WebView2 accepts a parent in
   another process, or needs a window of LexPen's own in between: [not yet checked].
 - **Its page**: LexPen's page in a role of its own, `previewer`: one pane, its tab bar hidden, the editor made only when you switch to the source (3.11),
-  no sidebar, no outline, no menu bar, and of the ribbon only its Preview tab (3.11). The preview's bar stays: the language list (3.4), Find, Day / Night
+  no sidebar, no menu bar, the outline always there (docked at the right of the text, its area closed to a strip with
+  its tab until opened; not floating, not moved), and of the ribbon only its Preview tab (3.11). The preview's bar stays: the language list (3.4), Find, Day / Night
   (3.5), Print (3.9), and "Edit..." (opens the file as Explorer's Open would: edit, or the project for viewing,
   as File types says; not for a stream, which has no file to open). The status bar stays too, as LexPen's bottom bar
   for a preview: the file's name, the preview cursor's place, find's count, and notices (3.10).
@@ -383,6 +384,17 @@ In progress on the branch `preview-handler`; not merged. Not yet tried in Explor
   (it takes no Esc from a handler).
 - **Edit... then Esc**: after opening the file in LexPen, the previewer passes Esc to its host as the key would go,
   so a host that closes its preview with Esc (Foldex) does, and the file shows in LexPen only; Outlook ignores it.
+- **The outline**: always there, docked at the right of the text, its area closed to a strip with its tab; a click on
+  the tab opens it, the area's button closes it again. The previewer's layout says so (`setPreviewerRole`: outline on,
+  the pane's right area holding it). Open or closed is kept per language (`PreviewOutline`, State\preview-outline.json,
+  shared by every previewer): the next file of that language opens it so; a language never set: closed. No ribbon button, no float, no drag, no
+  right-click menu on its tab: a floating outline would be owned by the host's top-level window across two processes
+  (a hung host could freeze LexPen), and LexPen's one floating outline would move in and out of previews. A language
+  without an outline: no strip. Tested in a test LexPen as previewer: the strip with "Outline", opened to 220 px with
+  the headings of demo.md, a click on "Code" scrolled the preview there; markdown opened, then an ASA file closed (never
+  set), markdown again open, closed and back closed. `PreviewerTests`: kept per language, read back, case ignored.
+- **A window gone while its browser view starts** (`MainForm.StartBrowser`): WebView2's E_ABORT, as when a host lets
+  go of its preview window moving on to the next file, closes that window quietly; it was an exception dialog.
 - **The place in the file** (3.6): `PreviewPlaces` (State\preview-places.json, by path, the most recent 200), the
   source line and column at the top of the preview and the preview's cursor; kept when the next file comes, when the
   host lets go, and 800 ms after a scroll; the next preview of the file scrolls there once drawn. Not for a stream,

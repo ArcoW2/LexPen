@@ -99,6 +99,7 @@ function setDockHidden(m, id, on) {
 function saveDocks(m) {
   for (const key of DOCK_AREAS) { const a = dockArea(m, key); a.groups = a.groups.filter(g => g.panes.length); }
   keepLayout('docks', JSON.parse(JSON.stringify(m)));
+  if (previewer) keepPreviewOutline(m);   // its outline open or closed, per language (app.js)
   renderDocks();
 }
 
@@ -187,6 +188,8 @@ function dockTab(id, inStrip, active = false) {
   b.textContent = dockPanes.get(id).title;
   b.title = inStrip ? `${dockPanes.get(id).title}: open the area with it` : dockPanes.get(id).title + ' (drag: move it; right-click: dock, float, close)';
   const click = () => inStrip ? showDockPane(id, true) : activateDockPane(id);
+  // A previewer's (its outline): docked where it is, so a click only; no drag, no menu.
+  if (previewer) { b.title = inStrip ? b.title : dockPanes.get(id).title; b.addEventListener('click', click); return b; }
   b.addEventListener('click', e => { if (e.detail === 0) click(); });   // the keyboard's (Enter, Space); the mouse's: dragDockTab
   b.addEventListener('pointerdown', e => dragDockTab(e, id, click));
   b.addEventListener('contextmenu', e => {
