@@ -36,7 +36,7 @@ actions:
   section:
     title: Section
     hint: To the next / previous procedure or function
-    jump: { line: '^\s*(class\s+)?(procedure|function|constructor|destructor)\b', flags: i }
+    jump: { line: '^(class\s+)?(procedure|function|constructor|destructor)\b', flags: i }   # at the line's start, as the outline
     variants: [[1], [-1]]
     variantTitles: { '1': Next section, '-1': Previous section }
   snippetTry:
