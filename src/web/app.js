@@ -4208,7 +4208,10 @@ function fromOutline(pane, m, from) {
     case 'click':
       if (pane.active?.doc.pdf) return pdfOutlineGo(pane.active, m);   // a PDF's bookmark: its place (pdfview.js)
       if (pane.sneakEnded) { pane.sneakEnded = false; return; }   // the release of a sneak preview
-      return goToLine(pane, m.line, true, true);   // placed as a find; the cursor stays (a double-click moves it)
+      // The preview alone: its cursor to the entry (blocks.js), as the outline follows it. Else placed as a find; the
+      // editor's cursor stays (a double-click moves it).
+      if (pane.active?.mode === 'preview' && !pane.active.hex) return previewCursorTo(pane, blockStart(pane.active.doc, m.line, true));
+      return goToLine(pane, m.line, true, true);
     case 'group': return toggleOutlineGroup(pane, m.gi);   // a group's header: fold or unfold
     case 'dblclick': {   // the cursor on the entry's own text in its line, in the editor
       if (!pane.cm || pane.active?.mode === 'preview') return;
