@@ -349,7 +349,10 @@ sealed class MainForm : Form
     // browser's data folder for a moment, and WebView2 answers "the requested resource is in use" (0x800700AA). Then
     // wait and try again (the control starts over after a failed try); still in use after a few seconds: say so and
     // close this window instead of the exception dialog.
+    // The window gone while its browser view starts (E_ABORT: a previewer's host let go of it, or destroyed the window
+    // it was in, moving on to the next file): no browser view, and no exception dialog; this window just closes.
     const int ResourceInUse = unchecked((int)0x800700AA);
+    const int Aborted = unchecked((int)0x80004004);
 
     async Task<bool> StartBrowser()
     {
@@ -359,6 +362,14 @@ sealed class MainForm : Form
             {
                 await web.EnsureCoreWebView2Async(await app.WebEnvironment());
                 return true;
+            }
+            catch (COMException ex) when (ex.HResult == Aborted)
+            {
+                return false;
+            }
+            catch (ObjectDisposedException) when (IsDisposed)
+            {
+                return false;
             }
             catch (COMException ex) when (ex.HResult == ResourceInUse && attempt < 10)
             {
@@ -380,7 +391,7 @@ sealed class MainForm : Form
 
         if (!await StartBrowser())
         {
-            Close();
+            if (!IsDisposed) Close();
             return;
         }
         var core = web.CoreWebView2;
