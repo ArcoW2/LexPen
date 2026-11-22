@@ -26,14 +26,17 @@ rules:
   - { regex: '#\d+', token: string }             # character codes: #13#10
   - { regex: '\$[0-9a-fA-F]+', token: number }   # $FF
 names: { separator: '.', quotes: ['&'], case: false }   # how its names are written (go to definition): see README.md, Outline
+# The unit's sections at level 1, its types and routines under them. A routine only at the line's start: the methods
+# declared inside a class or record (indented) are no entries, their implementations (TMatch.Test) are.
 outline:
-  - { pattern: '^\s*(\w+)\s*=\s*(?:packed\s+)?(?:class|record|interface)\b', name: 1, level: 1, flags: i, definition: true }
-  - { pattern: '^\s*(?:class\s+)?(?:procedure|function|constructor|destructor)\s+([\w.]+)', name: 1, level: 2, flags: i, definition: true }
+  - { pattern: '^\s*(interface|implementation|initialization|finalization)\s*(?://.*|\{.*\}|\(\*.*\*\))?$', name: 1, level: 1, flags: i }
+  - { pattern: '^\s*(\w+)\s*=\s*(?:packed\s+)?(?:class|record|interface)\b', name: 1, level: 2, flags: i, definition: true }
+  - { pattern: '^(?:class\s+)?(?:procedure|function|constructor|destructor)\s+([\w.]+)', name: 1, level: 2, flags: i, definition: true }
 actions:
   section:
     title: Section
     hint: To the next / previous procedure or function
-    jump: { line: '^\s*(class\s+)?(procedure|function|constructor|destructor)\b', flags: i }
+    jump: { line: '^(class\s+)?(procedure|function|constructor|destructor)\b', flags: i }   # at the line's start, as the outline
     variants: [[1], [-1]]
     variantTitles: { '1': Next section, '-1': Previous section }
   snippetTry:
