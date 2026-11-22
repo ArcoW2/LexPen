@@ -168,6 +168,7 @@ function drawPreviewCaret(pane) {
     parts.push(mark);
   }
   layer.replaceChildren(...parts);
+  markOutline(pane);   // the outline's entry at this cursor (app.js), as at the editor's
 }
 
 // The bookmarks of a document for the preview: the editor's (bookmarks.js) once it has them, else the stored ones

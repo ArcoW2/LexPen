@@ -3996,15 +3996,16 @@ function scheduleOutline() {
   outlineTimer = setTimeout(() => panes.forEach(showOutline), 300);
 }
 
-// The heading the pane is at: the last one at or above the cursor's line (the editor shown), else the top line of
-// the preview.
+// The heading the pane is at: the last one at or above the cursor's line, the editor's (the editor shown) or the
+// preview's cursor's (the preview alone; before it is placed, the top line of the preview).
 function markOutline(pane) {
   if (!outlineServed(pane) || !pane.outlineRows.length) return;
   cancelAnimationFrame(pane.markFrame);
   pane.markFrame = requestAnimationFrame(() => {
     const tab = pane.active;
     if (!tab) return;
-    const line = tab.doc.pdf ? pdfOutlineLine(tab) : tab.mode !== 'preview' && pane.cm ? pane.cm.getCursor().line : previewLine(pane);
+    const line = tab.doc.pdf ? pdfOutlineLine(tab) : tab.mode !== 'preview' && pane.cm ? pane.cm.getCursor().line
+      : previewCursorPos(tab)?.line ?? previewLine(pane);
     // The last entry at or above the line, of all groups (in groups the list is not in line order).
     let current = null;
     for (const r of pane.outlineRows)
