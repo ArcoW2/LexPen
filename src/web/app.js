@@ -3983,10 +3983,10 @@ function outlineMenuItems(pane, from = 'frame') {
   return [
     { label: 'Groups together, by line', checked: !!setting('outlineMerged'), run: () => setSetting('outlineMerged', !setting('outlineMerged')) },
     { label: 'Bullet in the group\'s colour', checked: setting('outlineBullets') !== false, run: () => setSetting('outlineBullets', setting('outlineBullets') === false) },
-    '-',
+    ...previewer ? [] : ['-',
     from === 'float' ? { label: 'Back in the window', run: () => outlineBack() }
       : from === 'win' ? { label: 'Float in a window of its own', run: () => setDockFloating('outline:w', true) }
-      : { label: 'Float in a window of its own', run: () => floatOutline(pane) },
+      : { label: 'Float in a window of its own', run: () => floatOutline(pane) }],   // a previewer's: docked only
   ];
 }
 
@@ -5219,9 +5219,17 @@ events.preview = async ({ path, name, text }) => {
 
 // The page as a previewer (CSS: body[data-role=previewer]). Its editor is the source of what it shows (read-only): the
 // switch says so.
+// Its outline is always there, docked at the right of the text, its area closed to a strip until opened; none of the
+// window's other panes (CSS). Kept while the previewer lives, not with a project (it has none).
 function setPreviewerRole() {
   document.body.dataset.role = 'previewer';
   Object.assign($('.mm-switch-editor'), { textContent: 'Source' }).dataset.title = 'Show / hide the source';
+  const area = (groups = [], open = true) => ({ open, size: 0, groups });
+  layoutOwn = { ...layoutOwn, outline: true, outline2: false, docks: { left: { groups: [] }, right: area(), bottom: area(),
+    editor: [{ left: area(), right: area([{ panes: ['outline:0'], active: 'outline:0', size: 1 }], false), bottom: area() },
+      { left: area(), right: area(), bottom: area() }], state: {} } };
+  mergeLayout();
+  applySettings();
 }
 
 // Keys for the host (docs/plans/PLAN-preview-handler.md 3.7): a key the previewer does not use goes to the program it
