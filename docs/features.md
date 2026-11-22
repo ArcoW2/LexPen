@@ -541,7 +541,7 @@ which ends a while after the last preview).
 - **What works there**: find (Ctrl+F, F3), the occurrences bar, the preview's cursor, bookmarks, highlights and notes,
   position back / forward, next / previous block and outline entry, zoom, copy, print, day and night.
 - **Its outline**: at the right of the preview, closed to a strip with its tab; click the tab to open it, the area's
-  button to close it. Docked only.
+  button to close it. Open or closed is kept per language: the next file of that language shows it so. Docked only.
 - **Its ribbon**: preview tabs of their own (Preview; View and file), shown only in the previewer and in LexPen's
   ribbon change mode, where they are changed as any tab (New... makes an editor tab or a preview tab; each preview
   tab has its own height of one, two or three rows). The menus are not shown there.

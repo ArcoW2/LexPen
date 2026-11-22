@@ -545,6 +545,9 @@ sealed class AppHost : ApplicationContext
     /// <summary>The previewer's place per file (PreviewPlaces): its store in the state folder.</summary>
     public PreviewPlaces PreviewPlaces { get; } = new(Path.Combine(DataFolder.StateDir(DataDir), "preview-places.json"));
 
+    /// <summary>The previewer's outline open or closed per language (PreviewOutline): its store in the state folder.</summary>
+    public PreviewOutline PreviewOutline { get; } = new(Path.Combine(DataFolder.StateDir(DataDir), "preview-outline.json"));
+
     /// <summary>Null: the language follows the extension again.</summary>
     public void SetFileLanguage(string path, string? language)
     {

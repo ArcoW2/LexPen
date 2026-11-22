@@ -1470,6 +1470,13 @@ sealed class MainForm : Form
                 if (msg["place"] is JsonObject previewPlace) app.PreviewPlaces.Set(Arg("path"), previewPlace);
                 return null;
 
+            // A previewer's outline open or closed for a language (PreviewOutline): the one kept, and the one to keep.
+            case "previewOutline":
+                return app.PreviewOutline.Get(Arg("language"));
+            case "previewOutlineSet":
+                app.PreviewOutline.Set(Arg("language"), msg["open"]?.GetValue<bool>() == true);
+                return null;
+
             // A previewer's key it does not use itself: its host's (Explorer's Alt+P, F5, ...).
             case "previewKey":
                 return HostKey?.Invoke(msg["vk"]!.GetValue<int>(), msg["alt"]?.GetValue<bool>() == true) == true;

@@ -99,6 +99,7 @@ function setDockHidden(m, id, on) {
 function saveDocks(m) {
   for (const key of DOCK_AREAS) { const a = dockArea(m, key); a.groups = a.groups.filter(g => g.panes.length); }
   keepLayout('docks', JSON.parse(JSON.stringify(m)));
+  if (previewer) keepPreviewOutline(m);   // its outline open or closed, per language (app.js)
   renderDocks();
 }
 

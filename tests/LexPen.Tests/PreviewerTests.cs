@@ -155,6 +155,26 @@ public class PreviewerTests : IDisposable
         finally { Directory.Delete(Path.GetDirectoryName(file)!, true); }
     }
 
+    // The previewer's outline open or closed per language (3.3): kept, read back after a restart, case ignored; none
+    // set: null (closed).
+    [Fact]
+    public void TheOutlineIsKeptOpenOrClosedPerLanguage()
+    {
+        var file = Path.Combine(Path.GetTempPath(), "lexpen-outline-" + Guid.NewGuid().ToString("N"), "preview-outline.json");
+        try
+        {
+            var outline = new PreviewOutline(file);
+            Assert.Null(outline.Get("markdown"));
+            outline.Set("markdown", true);
+            outline.Set("sql", false);
+            var again = new PreviewOutline(file);
+            Assert.True(again.Get("Markdown"));
+            Assert.False(again.Get("sql"));
+            Assert.Null(again.Get("json"));
+        }
+        finally { Directory.Delete(Path.GetDirectoryName(file)!, true); }
+    }
+
     static nint ParsingName(string path)
     {
         var iid = new Guid("43826d1e-e718-42ee-bc55-a1e261c37bfe");   // IShellItem

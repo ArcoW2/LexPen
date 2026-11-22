@@ -386,11 +386,15 @@ In progress on the branch `preview-handler`; not merged. Not yet tried in Explor
   so a host that closes its preview with Esc (Foldex) does, and the file shows in LexPen only; Outlook ignores it.
 - **The outline**: always there, docked at the right of the text, its area closed to a strip with its tab; a click on
   the tab opens it, the area's button closes it again. The previewer's layout says so (`setPreviewerRole`: outline on,
-  the pane's right area holding it, closed), kept while the previewer lives. No ribbon button, no float, no drag, no
+  the pane's right area holding it). Open or closed is kept per language (`PreviewOutline`, State\preview-outline.json,
+  shared by every previewer): the next file of that language opens it so; a language never set: closed. No ribbon button, no float, no drag, no
   right-click menu on its tab: a floating outline would be owned by the host's top-level window across two processes
   (a hung host could freeze LexPen), and LexPen's one floating outline would move in and out of previews. A language
   without an outline: no strip. Tested in a test LexPen as previewer: the strip with "Outline", opened to 220 px with
-  the headings of demo.md, a click on "Code" scrolled the preview there.
+  the headings of demo.md, a click on "Code" scrolled the preview there; markdown opened, then an ASA file closed (never
+  set), markdown again open, closed and back closed. `PreviewerTests`: kept per language, read back, case ignored.
+- **A window gone while its browser view starts** (`MainForm.StartBrowser`): WebView2's E_ABORT, as when a host lets
+  go of its preview window moving on to the next file, closes that window quietly; it was an exception dialog.
 - **The place in the file** (3.6): `PreviewPlaces` (State\preview-places.json, by path, the most recent 200), the
   source line and column at the top of the preview and the preview's cursor; kept when the next file comes, when the
   host lets go, and 800 ms after a scroll; the next preview of the file scrolls there once drawn. Not for a stream,
