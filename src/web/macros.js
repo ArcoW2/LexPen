@@ -237,6 +237,10 @@ async function playMacro(text, { times = 1, notfound, onerror, screen = 'on', ev
   const error = program.problems.find(p => p.severity === 'error');
   if (error) { toast(`${name} has an error, line ${error.line}: ${error.message}`); return { ok: false, reason: 'invalid', error }; }
   Object.assign(macroPlay, { running: true, stop: false, mode: screen, every, lastPaint: performance.now(), lastBreak: performance.now(), guardMark: null });
+  // The document it works on counts as active (app.js noteActive): previousActive comes back to it, also when it was
+  // restored at the start (never activated) or only got the focus as a pane.
+  const working = activeTab();
+  if (working && languageOf(working.doc) !== 'macro') noteActive(working);
   document.body.toggleAttribute('data-macro-running', true);
   holdPane('macros', 'playing');   // the floating Macros panel stays with this window meanwhile (plan 22; panechannel.js)
   toast(`${name} runs; Esc stops it.`, true);
