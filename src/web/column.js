@@ -326,8 +326,9 @@ function pasteText(cm, text, marked, select = false) {
         [line, col] = [box.top, box.left];
         if (pieces.length === 1) pieces = Array(box.bottom - box.top + 1).fill(pieces[0]);   // one line: on every line
       } else {
-        const from = cm.getCursor('from');
-        [line, col] = [from.line, vcolAt(cm, from.line, from.ch)];
+        // The cursor past the end of the line (virtual.js): the column it shows, not the line's end.
+        const from = cm.getCursor('from'), past = !cm.somethingSelected() && virtualOf(cm);
+        [line, col] = past ? [past.line, past.col] : [from.line, vcolAt(cm, from.line, from.ch)];
         if (cm.somethingSelected()) cm.replaceSelection('');
       }
       pasteColumn(cm, pieces, line, col);

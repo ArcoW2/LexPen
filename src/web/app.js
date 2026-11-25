@@ -1853,7 +1853,7 @@ async function stepTab(step) {
 
 // F4: the document active before this one; again: back to this one.
 async function previousActive() {
-  const tab = allTabs().find(t => t.id === recentTabs[1]);
+  const tab = previousTab();
   if (!tab) return;
   const pane = paneOf(tab);
   await activate(pane, tab);
@@ -1921,6 +1921,17 @@ function setSwitch(part) {
 // document reached the most recent one.
 const recentTabs = [];   // tab ids, most recently active first
 let tabWalk = null;      // { list, at } while Ctrl is held
+
+// The document active before this one: the most recent tab that is not the active one. A macro run step by step
+// passes its own tab (macros.js): it is not one of the documents the macro works on, so the macro switches between those.
+function previousTab() {
+  const tabs = allTabs(), now = activeTab(), skip = typeof macroDebug === 'object' ? macroDebug.tab : null;
+  for (const id of recentTabs) {
+    const tab = tabs.find(t => t.id === id);
+    if (tab && tab !== now && tab !== skip) return tab;
+  }
+  return null;
+}
 
 function noteActive(tab) {
   if (tabWalk) return;
@@ -5221,6 +5232,9 @@ events.preview = async ({ path, name, text }) => {
     await restorePreviewOutline(tab);
   }
   await showAll();
+  // The keys on the file at once: the preview, or the editor when it opened in the source (focusPane). The page's own
+  // focus only; the window takes the keys when the host gives it the focus (SetFocus).
+  if (pane.active) focusPane(pane);
 };
 
 // The previewer's outline open or closed per language (3.3; PreviewOutline.cs): as left for the last file of the

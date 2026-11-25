@@ -9,7 +9,7 @@ const sp = { where: document.querySelector('.sp-where'), vars: document.querySel
 paneHandlers.step = ({ where, running, ended, tables, titles }) => {
   sp.where.textContent = ended ? 'The macro ended' : running ? (where ? where + ' (running)' : 'Running') : where;
   for (const b of document.querySelectorAll('[data-how]')) {
-    b.disabled = running || ended;
+    b.disabled = running || ended && b.dataset.how === 'stop';   // ended: Step, Step into and Continue start it again
     b.title = titles?.[b.dataset.how] ?? '';
   }
   sp.vars.replaceChildren(...tables.map(({ title, rows }) => {
@@ -28,7 +28,11 @@ paneHandlers.step = ({ where, running, ended, tables, titles }) => {
   }));
 };
 
-document.addEventListener('click', e => { const how = e.target.closest('[data-how]')?.dataset.how; if (how) toWindow({ kind: 'step', how }); });
+document.addEventListener('click', e => {
+  if (e.target.closest('[data-reference]')) return toWindow({ kind: 'reference' });   // the macro language
+  const how = e.target.closest('[data-how]')?.dataset.how;
+  if (how) toWindow({ kind: 'step', how });
+});
 document.addEventListener('mousedown', e => { if (e.target.closest('button')) e.preventDefault(); });   // the keys stay where they are
 addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;

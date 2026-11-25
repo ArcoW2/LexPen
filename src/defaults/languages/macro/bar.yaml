@@ -7,7 +7,7 @@
 - { action: macro.runThis, label: Run, letter: r }
 - { action: macro.stepThis, label: Step, letter: t }
 - '-'
-- { action: macro.reference, label: '?', letter: h }
+- { action: macro.reference, label: Reference, letter: e }
 - '-'
 - { action: toggleComment, icon: comment }
 - { action: indent, icon: indent }

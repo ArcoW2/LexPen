@@ -12,7 +12,8 @@
   .sp-bar button { padding: 2px 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-bar); color: var(--fg); font: inherit; }
   .sp-bar button:hover:not(:disabled) { border-color: var(--accent); }
   .sp-bar button:disabled { opacity: .5; }
-  .sp-vars { flex: 1; min-height: 0; overflow: auto; display: flex; flex-wrap: wrap; gap: 4px 24px; padding: 4px 8px 6px; align-content: flex-start; }
+  .sp-vars { flex: 1; min-height: 0; overflow: auto; display: flex; flex-wrap: wrap; gap: 4px 24px; padding: 4px 8px 6px; align-content: flex-start;
+    align-items: flex-start; }   /* each table its own height: stretched to the taller one, its rows would spread out */
   table { border-collapse: collapse; max-width: 100%; }
   td { padding: 1px 8px 1px 0; vertical-align: top; max-width: 30ch; overflow: hidden; text-overflow: ellipsis; white-space: pre; }
   td:first-child { font-family: var(--editor-font, Consolas, monospace); }
@@ -25,6 +26,7 @@
 <div class="sp-bar"><span class="sp-where"></span>
   <button type="button" data-how="over">Step</button><button type="button" data-how="into">Step into</button>
   <button type="button" data-how="continue">Continue</button><button type="button" data-how="stop">Stop</button>
+  <button type="button" data-reference title="The macro language: every statement, the system variables, the rules of text and numbers">Reference</button>
 </div>
 <div class="sp-vars"></div>
 <script src="pane.js"></script>
