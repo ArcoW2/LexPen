@@ -626,6 +626,8 @@ which ends a while after the last preview).
   Folder and Search (their tab's right-click menu, a drag) or float in a window of their own; each opens as it was
   last. Bookmarks and Step by step can also dock beside an editor pane's text, working on that pane's document (Step
   by step by default under the macro's text). None of them is modal.
+- **Drag without docking**: with Shift held, a panel dragged (its tab, or its floating window by the title bar) docks
+  nowhere: no place lights up, and let go it floats there, also over the LexPen window.
 - **Floating panels follow the focus**: one floating Outline, Highlights, Characters, Folder, Search, Bookmarks,
   Messages, Clipboards, Macros, Columns and Keyboard shortcuts for all of LexPen; it serves the window worked in
   (not one that has that panel docked of its own, nor beside its active document), stays on top of it in its look,

@@ -434,7 +434,7 @@ function showDropPlace(to) {
 // goes there; let go elsewhere (outside the window too), it floats there. Esc: the drag ends, nothing moves. A cover
 // lies over the page from the press on, else a move over a pane's frame (its own process) would go there and never
 // come here; so a press and release without a drag is the tab's click (`click`). The tab keeps the pointer, so the
-// release outside the window comes too.
+// release outside the window comes too. Shift held: no place lights up, let go it floats (over this window too).
 function dragDockTab(e, id, click) {
   if (e.button !== 0) return;
   const tab = e.currentTarget, x0 = e.clientX, y0 = e.clientY;
@@ -447,6 +447,8 @@ function dragDockTab(e, id, click) {
     removeEventListener('pointermove', move);
     removeEventListener('pointerup', up);
     removeEventListener('keydown', key, true);
+    removeEventListener('keyup', key, true);
+    removeEventListener('pointermove', at);
     cover.remove();
     showDropPlace(null);
     if (!dragging) return drop && click();
@@ -460,28 +462,33 @@ function dragDockTab(e, id, click) {
       dragging = true;
       cover.style.cursor = 'grabbing';
     }
-    to = dockDropAt(ev.clientX, ev.clientY, id);
+    to = ev.shiftKey ? null : dockDropAt(ev.clientX, ev.clientY, id);
     showDropPlace(to);
   };
-  const up = () => finish(true);
+  const up = ev => { if (ev.shiftKey) to = null; finish(true); };
+  let last = null;
+  const at = ev => { last = ev; };
   const key = ev => {
-    if (ev.key !== 'Escape') return;
+    if (ev.key === 'Shift' && dragging && last) { to = ev.type === 'keydown' ? null : dockDropAt(last.clientX, last.clientY, id); return showDropPlace(to); }
+    if (ev.type !== 'keydown' || ev.key !== 'Escape') return;
     ev.preventDefault();
     ev.stopPropagation();
     finish(false);
   };
   addEventListener('pointermove', move);
+  addEventListener('pointermove', at);
   addEventListener('pointerup', up);
   addEventListener('keydown', key, true);
+  addEventListener('keyup', key, true);
 }
 
 // A floating pane's window moved by its title bar (PaneForm.cs): over this window the place under the cursor lights
-// up; let go there, it docks there.
+// up; let go there, it docks there. Shift held (DockMoves.cs: `shift`): no place, it stays floating where it is.
 const dockByHost = pane => dockPanes.has(pane) ? pane : [...dockPanes].find(([, d]) => d.hostId === pane)?.[0];
-function onPaneMoving({ pane, at }) { const id = dockByHost(pane); if (id) showDropPlace(dockDropAt(at[0], at[1], id)); }
-function onPaneMoved({ pane, at }) {
+function onPaneMoving({ pane, at, shift }) { const id = dockByHost(pane); if (id) showDropPlace(shift ? null : dockDropAt(at[0], at[1], id)); }
+function onPaneMoved({ pane, at, shift }) {
   showDropPlace(null);
-  const id = dockByHost(pane), to = id && dockDropAt(at[0], at[1], id);
+  const id = !shift && dockByHost(pane), to = id && dockDropAt(at[0], at[1], id);
   if (to) dockMove(id, to);
 }
 
