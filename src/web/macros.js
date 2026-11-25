@@ -649,16 +649,27 @@ addEventListener('mouseup', () => {
 // The editor's own key, again (editorKey "Shift-Down"): as if it were pressed in the editor.
 const EDITOR_KEY_CODES = { Backspace: 8, Tab: 9, Enter: 13, Esc: 27, Space: 32, PageUp: 33, PageDown: 34, End: 35, Home: 36,
   Left: 37, Up: 38, Right: 39, Down: 40, Insert: 45, Delete: 46 };
-function pressEditorKey(cm, name) {
+// An editor key by its name ("Shift-Down") as the key event the editor takes; a name that is no key: a mistake.
+function editorKeyEvent(name) {
   const parts = String(name).split('-'), base = parts.pop() || '-', mods = new Set(parts);
   const keyCode = EDITOR_KEY_CODES[base] ?? (/^F(\d{1,2})$/.test(base) ? 111 + +base.slice(1) : /^[A-Z0-9]$/i.test(base) ? base.toUpperCase().charCodeAt(0) : null);
   if (keyCode == null) throw new MacroError(`"${name}" is not an editor key`);
-  const e = { type: 'keydown', keyCode, which: keyCode, shiftKey: mods.has('Shift'), ctrlKey: mods.has('Ctrl'), altKey: mods.has('Alt'), metaKey: mods.has('Cmd'),
+  return { type: 'keydown', keyCode, which: keyCode, shiftKey: mods.has('Shift'), ctrlKey: mods.has('Ctrl'), altKey: mods.has('Alt'), metaKey: mods.has('Cmd'),
     preventDefault() {}, stopPropagation() {} };
-  cm.triggerOnKeyDown(e);
 }
-appAction('editorKey', { title: 'Editor key', hint: 'A key of the editor itself (an arrow, Home, Backspace, ...), as a recorded macro has it: editorKey "Shift-Down"', group: 'macros',
-  editor: true, variants: [], run: ([name], { pane }) => pressEditorKey(pane.cm, name) });
+
+// The keys in turn; "Right*3": that key three times. All of them are checked first: a mistake presses none.
+function pressEditorKeys(cm, names) {
+  if (!names.length) throw new MacroError('editorKey needs a key ("Down", "Shift-End", "Right*3")');
+  const presses = names.map(name => {
+    const m = /^(.+)\*(\d+)$/.exec(String(name)), times = m ? +m[2] : 1;
+    if (times < 1) throw new MacroError(`"${name}": a key is pressed 1 or more times`);
+    return { e: editorKeyEvent(m ? m[1] : name), times };
+  });
+  for (const { e, times } of presses) for (let i = 0; i < times; i++) cm.triggerOnKeyDown({ ...e });
+}
+appAction('editorKey', { title: 'Editor key', hint: 'Keys of the editor itself (an arrow, Home, Backspace, ...) in turn, as a recorded macro has them; *n: n times: editorKey "Ctrl-Right" "Right*3" "Shift-End"', group: 'macros',
+  editor: true, variants: [], run: (names, { pane }) => pressEditorKeys(pane.cm, names) });
 
 function startRecording() {
   Object.assign(macroRecording, { on: true, steps: [], typed: '', lastTab: activeTab(), mouse: null, find: null, pasted: null });
