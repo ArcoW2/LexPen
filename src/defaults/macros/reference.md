@@ -248,3 +248,6 @@ a parameter `ref $list` is the caller's variable itself.
 
 Any LexPen action by its name with its values, as in keys.json: `bookmarkStore 3`, `selectLine`, `upperCase`.
 A recorded move with Shift ends in `extend`. The editor's own keys are `editorKey "Down"`, `editorKey "Shift-End"`.
+Several keys go in one line, in turn, and `*n` presses a key n times:
+`editorKey "Ctrl-Right" "Right*3" "Shift-End" "Shift-Left*2"`. A key that is not one stops the line before any key
+is pressed.
