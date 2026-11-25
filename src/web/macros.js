@@ -540,7 +540,8 @@ loadMacroNames().then(names => {
 
 // ---------- Recording (3.1) ----------
 // What you do becomes the steps of a macro: the actions you run (keys, menus, bars) with their values; typed text, a
-// run of it one `type`; the editor's own keys (arrows, Home, Backspace, Enter, ...) as `editorKey "Down"`; a click
+// run of it one `type`; the editor's own keys (arrows, Home, Backspace, Enter, ...) as `editorKey "Down"`, a run of
+// them one step (`editorKey "Ctrl-Right" "Right*3"`: recordEditorKey); a click
 // that moves the cursor as `moveto line, column` (on the cursor's line only the column); a find or replace of the
 // find bar with its switches; a switch to another document or pane as `show "name"`. While it records, a Stop
 // recording button shows right of the menus. The result is a macro of its own, Macro N (plan 36), unless the macro
@@ -566,6 +567,24 @@ function recordStep(step) {
   flushFind();
   flushTyped();
   macroRecording.steps.push(step);
+}
+
+// The editor's own keys one after the other: one editorKey step, in turn, the same key again as "Right*3". Anything
+// recorded in between (typing, an action, a find, a click) starts a step of its own.
+function recordEditorKey(name) {
+  if (!recordingNow()) return;
+  flushFind();
+  flushTyped();
+  const steps = macroRecording.steps, run = macroRecording.keys;
+  if (run?.at === steps.length - 1) {
+    const last = run.list.at(-1);
+    if (last.name === name) last.times++; else run.list.push({ name, times: 1 });
+  } else {
+    macroRecording.keys = { at: steps.length, list: [{ name, times: 1 }] };
+    steps.push('');
+  }
+  const { at, list } = macroRecording.keys;
+  steps[at] = 'editorKey ' + list.map(k => macroQuote(k.times > 1 ? `${k.name}*${k.times}` : k.name)).join(' ');
 }
 
 // An action run by you (actions.js runAction): its name and values; a move with Shift ends in `extend`.
@@ -630,7 +649,7 @@ function setupMacroRecording(pane) {
     const ch = /^'(.)'$/.exec(name);   // a character an editor helper typed (a closing bracket): typed text
     if (ch) { flushFind(); macroRecording.typed += ch[1]; return; }
     // With Shift the editor finds the key without it (and selects): the name it gives has no Shift.
-    recordStep('editorKey ' + macroQuote(e?.shiftKey && !/(^|-)Shift-/.test(name) ? 'Shift-' + name : name));
+    recordEditorKey(e?.shiftKey && !/(^|-)Shift-/.test(name) ? 'Shift-' + name : name);
   });
   cm.on('mousedown', (_, e) => { if (recordingNow() && e.button === 0) macroRecording.mouse = { cm, line: cm.getCursor().line }; });
 }
@@ -672,7 +691,7 @@ appAction('editorKey', { title: 'Editor key', hint: 'Keys of the editor itself (
   editor: true, variants: [], run: (names, { pane }) => pressEditorKeys(pane.cm, names) });
 
 function startRecording() {
-  Object.assign(macroRecording, { on: true, steps: [], typed: '', lastTab: activeTab(), mouse: null, find: null, pasted: null });
+  Object.assign(macroRecording, { on: true, steps: [], typed: '', lastTab: activeTab(), mouse: null, find: null, pasted: null, keys: null });
   document.body.toggleAttribute('data-recording', true);
   holdPane('macros', 'recording');   // as while playing (plan 22)
   const next = macroStore.nextRecording;
