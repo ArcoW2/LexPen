@@ -580,6 +580,16 @@ appAction('settings', { title: 'Settings...', hint: 'Every setting, searchable; 
   run: () => openToolPane('settings', 'openSettings') });   // its window, or docked (app.js)
 appAction('chooseLanguage', { title: 'Language...', hint: 'Of the active tab: colouring, outline, bar and actions (also a click on the language in the bottom bar)', group: 'view',
   enabled: () => !!activeDoc(), run: () => showLanguageList() });
+// The active tab's language without the list (a macro, a key): by a pack's id, name, alias or extension, case ignored
+// (languageByName: setLanguage "csv", "CSV", "tsql"); as chosen from the list (languages.js setLanguage).
+appAction('setLanguage', { title: 'Set language', hint: 'Of the active tab, by its name (case ignored), without the list: setLanguage "csv"', group: 'view',
+  enabled: () => !!activeDoc(), run: ([name], ctx) => {
+    const doc = activeDoc(), id = languageByName(name);
+    if (doc && id) return setLanguage(doc, id);
+    const why = !doc ? 'there is no document to set the language of' : `there is no language "${name ?? ''}"`;
+    if (ctx.from === 'macro' && typeof MacroError === 'function') throw new MacroError(why);
+    toast(why[0].toUpperCase() + why.slice(1) + '.', true);
+  } });
 appAction('tabOrder.set', { title: 'Document order', hint: 'Recently used, or the order of the tab bar', group: 'settings',
   variants: [['recent'], ['tabs']], variantTitles: { recent: 'Next document in recently used order', tabs: 'Next document in tab bar order' },
   checked: ([order]) => setting('tabOrder') === order, run: ([order]) => setSetting('tabOrder', order) });
