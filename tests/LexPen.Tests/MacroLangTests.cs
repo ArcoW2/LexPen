@@ -70,6 +70,87 @@ public class MacroLangTests
         Assert.Equal("3 there is no action x", RunError("p\nprocedure p\n  x\nendprocedure", "new MacroError('there is no action x')"));
     }
 
+    // A run where every action is noted: "name arg arg" per call, a line each.
+    static string RunActions(string text)
+    {
+        var engine = new Jint.Engine();
+        engine.Execute(Source);
+        engine.SetValue("text", text);
+        engine.Execute("""
+            var out = [];
+            const env = { action(name, args) { out.push([name, ...args].join(' ')); } };
+            const program = macroProgram(text, {});
+            if (program.problems.length) out.push(program.problems.map(p => p.message).join('; '));
+            else runMacro(program, env);
+            """);
+        engine.Advanced.ProcessTasks();
+        return engine.Evaluate("out.join('\\n')").ToString();
+    }
+
+    [Fact]
+    public void AnActionTakesANegativeNumberAsItsArgument()
+    {
+        Assert.Equal("stepTab -1\nstepTab 1", RunActions("stepTab -1\nstepTab 1"));
+        Assert.Equal("go -2.5 3", RunActions("go -2.5 3"));
+    }
+
+    // A run with message, ask, type and actions noted, a line each ("ask text | button | button"); ask answers
+    // `answer` when it has buttons, else OK (as the host); a mistake or an error as its message.
+    static string RunAsk(string text, string answer)
+    {
+        var engine = new Jint.Engine();
+        engine.Execute(Source);
+        engine.SetValue("text", text);
+        engine.SetValue("answer", answer);
+        engine.Execute("""
+            var out = [];
+            const env = {
+              message(t) { out.push('message ' + t); },
+              ask(t, buttons) { out.push(['ask ' + t, ...buttons].join(' | ')); return buttons.length ? answer : 'OK'; },
+              type(t) { out.push('type ' + t); },
+              action(name) { out.push(name); },
+            };
+            const program = macroProgram(text, {});
+            const errors = program.problems.filter(p => p.severity === 'error');
+            if (errors.length) out.push(errors.map(p => p.message).join('; '));
+            else runMacro(program, env).then(r => { if (r.error) out.push('error ' + r.error.message); });
+            """);
+        engine.Advanced.ProcessTasks();
+        return engine.Evaluate("out.join('\\n')").ToString();
+    }
+
+    [Fact]
+    public void MessageAndMessageboxShowTheirTextAndTheMacroGoesOn()
+    {
+        Assert.Equal("message Found 3\nask Done\nnext", RunAsk("set $n = 3\nmessage \"Found \" & $n\nmessagebox \"Done\"\nnext", ""));
+    }
+
+    [Fact]
+    public void AskPutsTheButtonUsedInItsVariable()
+    {
+        Assert.Equal("ask Replace 2 times? | Yes | No\ntype No", RunAsk("ask $go \"Replace \" & 2 & \" times?\" \"Yes\" \"No\"\ntype $go", "No"));
+        Assert.Equal("ask Sure? | Yes\ntype []", RunAsk("ask $go \"Sure?\" \"Yes\"\ntype \"[\" & $go & \"]\"", ""));   // closed: ""
+        Assert.Equal("ask Sure?\ntype OK", RunAsk("ask $go \"Sure?\"\ntype $go", ""));   // no buttons: a messagebox
+    }
+
+    [Fact]
+    public void AVariableSetByAskGivesNoWarningWhenRead()
+    {
+        var engine = new Jint.Engine();
+        engine.Execute(Source);
+        engine.SetValue("text", "ask $go \"Sure?\" \"Yes\"\ntype $go");
+        Assert.Equal("[]", engine.Evaluate("JSON.stringify(macroProgram(text, {}).problems)").ToString());
+    }
+
+    [Fact]
+    public void AskMessageAndMessageboxNeedTheirParts()
+    {
+        Assert.Contains("a variable ($name) is needed here", RunAsk("ask \"Sure?\" \"Yes\"", ""));
+        Assert.Contains("ask needs a text after its variable", RunAsk("ask $a", ""));
+        Assert.Contains("message needs a text", RunAsk("message", ""));
+        Assert.Contains("messagebox needs a text", RunAsk("messagebox", ""));
+    }
+
     [Fact]
     public void ABackslashOnTheLastLineIsAMistake()
     {

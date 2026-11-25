@@ -7,7 +7,8 @@
 // ---------- Words ----------
 const MACRO_STATEMENTS = new Set(['if', 'then', 'elseif', 'else', 'endif', 'switch', 'case', 'endswitch', 'goto', 'gosub',
   'return', 'stop', 'set', 'inc', 'dec', 'append', 'copy', 'paste', 'type', 'moveto', 'find', 'replace', 'new', 'show',
-  'open', 'notfound', 'onerror', 'screen', 'procedure', 'endprocedure', 'function', 'endfunction', 'global', 'use']);
+  'open', 'notfound', 'onerror', 'screen', 'procedure', 'endprocedure', 'function', 'endfunction', 'global', 'use',
+  'message', 'messagebox', 'ask']);
 const MACRO_OPERATORS = new Set(['and', 'or', 'not', 'contains', 'starts', 'ends', 'matches', 'opened']);
 const MACRO_BUILTINS = {
   len: [1, s => String(s.length)],
@@ -194,6 +195,8 @@ function macroPrimary(tokens, p, line, full) {
   if (!tok) fail('a value is missing here');
   p.at++;
   if (tok.t === 'str' || tok.t === 'num') return { k: 'lit', s: tok.v };
+  // A negative number as a term (an action's argument: stepTab -1); in an expression the minus is read before this.
+  if (tok.t === 'op' && tok.v === '-' && tokens[p.at]?.t === 'num') return { k: 'lit', s: '-' + tokens[p.at++].v };
   if (tok.t === 'var') return { k: 'var', name: tok.v, type: tok.type, col: tok.col };
   if (tok.t === 'sys') return { k: 'sys', name: tok.v, col: tok.col };
   if (tok.t === 'op' && tok.v === '(') {
@@ -244,6 +247,12 @@ function macroStatement(text, line) {
     if (tok?.t === 'label') return tok.v;
     if (tok?.t === 'word') throw new MacroError(`a label needs its colon (goto :${tok.v}); to move the cursor: moveto ${tok.v}`, line, tok.col);
     fail('a label (:name) is needed here', tok);
+  };
+  // A term, or terms joined with & (find "TODO " & $$clipboard): one of several values on a line.
+  const joined = () => {
+    let a = macroPrimary(tokens, p, line);
+    while (tokens[p.at]?.t === 'op' && tokens[p.at].v === '&') { p.at++; a = { k: 'cat', a, b: macroPrimary(tokens, p, line) }; }
+    return a;
   };
   if (first.t === 'label') { end(); return { k: 'label', name: first.v, line }; }
   if (!word) fail('a line starts with a statement or an action', first);
@@ -297,15 +306,25 @@ function macroStatement(text, line) {
       return { k: 'append', ...v, item, sep, line };
     }
     case 'copy': { const v = variable(); end(); return { k: 'copy', ...v, line }; }
+    // message <text>: at the bottom of the window, no wait; messagebox <text>: a box with OK, the macro waits; ask $name
+    // <text> <button> ...: a box with those buttons, the one used into $name (docs/plans/executed/PLAN-macro-messages.md).
+    case 'message': case 'messagebox': {
+      if (p.at >= tokens.length) fail(`${word} needs a text`);
+      const value = joined();
+      end();
+      return { k: word, value, line };
+    }
+    case 'ask': {
+      const v = variable();
+      if (p.at >= tokens.length) fail('ask needs a text after its variable');
+      const value = joined(), args = [];
+      while (p.at < tokens.length) args.push(joined());
+      return { k: 'ask', ...v, value, args, line };
+    }
     case 'paste': case 'type': { const value = expr(); end(); return { k: word, value, line }; }
     case 'moveto': return macroMoveto(tokens, p, line);
     case 'find': case 'replace': {
       // A text, or texts joined with & (find "TODO " & $$clipboard); then the switches.
-      const joined = () => {
-        let a = macroPrimary(tokens, p, line);
-        while (tokens[p.at]?.t === 'op' && tokens[p.at].v === '&') { p.at++; a = { k: 'cat', a, b: macroPrimary(tokens, p, line) }; }
-        return a;
-      };
       const args = [joined()];
       if (word === 'replace') args.push(joined());
       const flags = new Set();
@@ -605,7 +624,7 @@ function macroCheck(program, ctx) {
           } else if (!program.uses.length) problem('error', `there is no function ${x.name}`, step.line, x.col);
         }
       });
-      if (['set', 'inc', 'dec', 'append', 'copy'].includes(step.op) && !step.hidden) written.add(step.name);
+      if (['set', 'inc', 'dec', 'append', 'copy', 'ask'].includes(step.op) && !step.hidden) written.add(step.name);
       if (step.op === 'inc' || step.op === 'dec' || step.op === 'append') read.push({ name: step.name, line: step.line, self: true });
       if (step.op === 'goto' || step.op === 'gosub') jumps.push(step);
       if (step.op === 'gosub') gosubs++;
@@ -645,7 +664,7 @@ function macroCheck(program, ctx) {
       if (!last || last.op !== 'return') problem('warning', `${proc.name} can reach its end without a return (it then gives "")`, proc.end ?? proc.line);
     }
     if (proc) for (const r of new Set([...written].filter(n => !proc.params.some(p => p.name === n))))
-      if (program.main.code.some(s => s.name === r && ['set', 'copy', 'append', 'inc', 'dec'].includes(s.op)) && !proc.globals.has(r))
+      if (program.main.code.some(s => s.name === r && ['set', 'copy', 'append', 'inc', 'dec', 'ask'].includes(s.op)) && !proc.globals.has(r))
         problem('warning', `$${r} is the procedure's own; the macro's $${r} is not changed (global $${r} to change it)`, proc.line);
   }
   for (const [name, p] of program.procs) if (!called.has(name) && !program.uses.length) problem('warning', `nothing calls ${p.name}`, p.line);
@@ -816,6 +835,13 @@ async function runMacro(program, env, options = {}) {
       }
       case 'copy': return setVar(frame, step.name, String(await env.selection() ?? ''), step.type, step.line);
       case 'paste': case 'type': return void await env.type((await v(step.value)).s);
+      case 'message': return void await env.message((await v(step.value)).s);
+      case 'messagebox': return void await env.ask((await v(step.value)).s, []);
+      case 'ask': {
+        const text = (await v(step.value)).s, buttons = [];
+        for (const b of step.args) buttons.push((await v(b)).s);
+        return setVar(frame, step.name, String(await env.ask(text, buttons) ?? ''), step.type, step.line);
+      }
       case 'moveto': {
         const amount = async a => a?.end ? { end: true } : a && { n: wholeNumber((await v(a.value)).s), relative: a.sign ? (a.sign === '-' ? -1 : 1) : 0 };
         return void await env.moveto({ where: step.where, line: await amount(step.ln), col: await amount(step.col) });

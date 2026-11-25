@@ -120,6 +120,15 @@ const macroEnv = {
     return 1;
   },
   selection() { return macroEditor().cm.getSelection(); },
+  // message: as LexPen's own messages (the bottom of the window, the Messages pane); the macro goes on.
+  message(text) { toast(text, true); },
+  // messagebox and ask: the host's question window, modal; the document on screen first, and the time the box is
+  // open does not count for the runaway guard. The button used, "" when closed; no buttons: OK.
+  async ask(text, buttons) {
+    macroEndOperations();
+    try { return await host('macroAsk', { text, buttons }); }
+    finally { macroPlay.guardSince = performance.now(); }
+  },
   async newDoc(name) {
     if (allTabs().some(t => docName(t.doc).toLowerCase() === String(name).toLowerCase())) throw new MacroError(`a document "${name}" is open already`);
     await newFile();
@@ -136,7 +145,7 @@ const macroEnv = {
     await activate(pane, tab);
   },
   async showRecent() {
-    const tab = allTabs().find(t => t.id === recentTabs[1]);
+    const tab = previousTab();
     if (!tab) throw new MacroError('there is no previous document');
     const pane = paneOf(tab);
     state.activePane = pane.index;
@@ -395,7 +404,7 @@ async function macroMenuItems() {
     { label: current ? `&Play "${current.replace(/&/g, '&&')}"` : '&Play', action: 'macro.play', params: [], key: keyText('macro.play'), enabled: !!current },
     { label: 'Play &X times...', action: 'macro.playTimes', params: [], key: keyText('macro.playTimes'), enabled: !!current },
     { label: 'Play to the &end of the file', action: 'macro.playToEnd', params: [], key: keyText('macro.playToEnd'), enabled: !!current },
-    { label: 'Step &by step', action: 'macro.stepThis', params: [], key: keyText('macro.stepThis'), enabled: !!macroPaneOf() || !!macroDebug.resume },
+    { label: 'Step &by step', action: 'macro.stepThis', params: [], key: keyText('macro.stepThis'), enabled: !!macroToStep() || !!macroDebug.resume },
     '-',{ label: '&Manage...', action: 'macro.manage', params: [], key: keyText('macro.manage') }];
 }
 
@@ -495,6 +504,7 @@ async function fromMacrosPane(m) {
   const what = m.what, name = m.name ?? macroWindowName();
   if (what === 'new') return newMacro().then(() => fillMacroWindow());
   if (what === 'record') { closeMacroWindow(); macroStore.nextRecording = null; return runAction('macro.record', [], { from: 'menu' }); }
+  if (what === 'reference') return openMacroReference(null);   // the macro language, from the top
   if (!name) return;
   if (what === 'play') return playStoredMacro(name);
   if (what === 'times') return playMacroTimes(name);
@@ -708,6 +718,8 @@ const MACRO_STATEMENT_HINTS = {
   if: 'if <condition> then <step>, or a block up to endif', switch: 'switch <value> case ... endswitch',
   procedure: 'procedure name($a, ref $b) ... endprocedure', function: 'function name($a) ... return <value> ... endfunction',
   global: 'global $name: the macro\'s variable inside a procedure', use: 'use "macro": its procedures and functions',
+  message: 'message <text>: at the bottom of the window; the macro goes on', messagebox: 'messagebox <text>: a box with OK; the macro waits',
+  ask: 'ask $name <text> "Yes" "No": a box with these buttons; the one used into $name ("" closed)',
 };
 // The statements Statement... inserts: a block with $0 where the cursor goes, indented as the cursor's line.
 const MACRO_SNIPPETS = [
@@ -727,6 +739,7 @@ const MACRO_SNIPPETS = [
   ['new', 'new "$0"'], ['show', 'show "$0"'], ['show recent', 'show recent$0'], ['open', 'open "$0"'],
   ['notfound continue', 'notfound continue$0'], ['onerror continue', 'onerror continue$0'], ['screen off', 'screen off$0'],
   ['stop', 'stop$0'], ['global', 'global $$0'], ['use', 'use "$0"'],
+  ['message', 'message "$0"'], ['messagebox', 'messagebox "$0"'], ['ask', 'ask $$0 "" "Yes" "No"'],
 ];
 
 const macroPaneOf = () => { const p = panes[state.activePane]; return p?.cm && p.active && languageOf(p.active.doc) === 'macro' ? p : null; };
@@ -939,12 +952,13 @@ appAction('macro.runThis', { title: 'Run this macro', hint: 'The macro of this t
 appAction('macro.reference', { title: 'The macro language', hint: 'Every statement, the system variables, the rules of text and numbers', group: 'macros',
   run: () => { const p = macroPaneOf(); return openMacroReference(p ? macroReferenceAnchor(p.cm) : null); } });
 
-// F1 in a macro's tab on a word of the language: its entry in the reference; elsewhere F1 as always.
+// F1 in a macro's tab: the reference (the macro language), at the entry of the word at the cursor when it is one, else
+// from the top; elsewhere F1 as always (Keyboard shortcuts and commands).
 {
   const f1 = appActions.get('commands'), run = f1?.run;
   if (f1) f1.run = (params, ctx) => {
-    const p = macroPaneOf(), anchor = p && p.cm.hasFocus() ? macroReferenceAnchor(p.cm) : null;
-    return anchor ? openMacroReference(anchor) : run(params, ctx);
+    const p = macroPaneOf();
+    return p && p.cm.hasFocus() ? openMacroReference(macroReferenceAnchor(p.cm)) : run(params, ctx);
   };
 }
 
@@ -953,17 +967,26 @@ appAction('macro.reference', { title: 'The macro language', hint: 'Every stateme
 // tab, its variables in the Step by step pane (below). Step (F10): the next line, a gosub or a call as one step; Step
 // into (F11): into it too; Continue (F5): on to a breakpoint (a click on a line number, F9) or the end; Stop
 // (Shift+F5, Esc).
-const macroDebug = { tab: null, pane: null, active: null, how: 'into', level: 0, resume: null, view: null, line: null, before: null };
+const macroDebug = { tab: null, pane: null, active: null, how: 'into', level: 0, resume: null, view: null, line: null, before: null, last: null };
+
+// The macro to step through: the active tab's, else the one stepped through last while it is still open (ended or
+// stopped, the focus is in the document: it starts again from there, as the macro is being made).
+function macroToStep() {
+  const own = macroPaneOf();
+  if (own) return own;
+  const last = macroDebug.last, pane = last && paneOf(last);
+  return pane?.cm && pane.active === last ? pane : null;
+}
 
 async function stepThisMacro(how = 'over') {
   if (macroDebug.resume) return macroDebug.resume(how);
   if (macroDebug.tab) return;   // on its way to the next stop
-  const pane = macroPaneOf();
+  const pane = macroToStep();
   if (!pane) return toast('Step by step is for a macro\'s tab (a .lpm file).', true);
   const other = panes.find(p => p !== pane && p.active && !p.el.hidden && languageOf(p.active.doc) !== 'macro');
   if (!other) return toast('Step by step works on the document in the other pane: open one there (the macro in one pane, the document in the other).', true);
   const tab = pane.active, name = docName(tab.doc).replace(/\.lpm$/i, '');
-  Object.assign(macroDebug, { tab, pane, how: how === 'continue' ? 'continue' : 'into', level: 0, before: null });
+  Object.assign(macroDebug, { tab, pane, how: how === 'continue' ? 'continue' : 'into', level: 0, before: null, last: tab });
   showMacroDebugPanel(pane);
   state.activePane = other.index;
   other.cm?.focus();
@@ -1029,7 +1052,9 @@ function stepChannel(id) {
     state: () => new Map([['look', paneLook()], ['title', { kind: 'title', text: 'Step by step' }], ['step', stepState()]]),
     receive: m => {
       if (m.kind === 'escape') return events.toolEscape({ pane: macroDebug.active ?? undefined });
-      if (m.kind === 'step') return macroDebug.resume?.(m.how);
+      if (m.kind === 'reference') return openMacroReference(null);   // the macro language, from the top
+      // Ended or stopped: Step, Step into and Continue start it again (stepThisMacro).
+      if (m.kind === 'step') return macroDebug.resume ? macroDebug.resume(m.how) : m.how !== 'stop' && stepThisMacro(m.how);
     },
     onFloat: () => setDockFloating(id, true),
     // Back in its view: docked (moved onto the window); its window closed by hand: it stays floating.

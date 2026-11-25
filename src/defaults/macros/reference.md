@@ -4,7 +4,7 @@ A macro is a small script: one step per line. A step is a LexPen action (every k
 statement below. `#` starts a comment. A `\` at the end of a line (not in text or a comment) goes on on the next
 line: one step over several lines. Macros are kept in `macros\` of the data folder, one `.lpm` file each
 (View > Macros > Manage). In the macro editor the bar has Action..., Statement... and Variable... to insert one,
-Check to list the mistakes, Run and Step; Ctrl+Space completes, F1 on a word shows it here.
+Check to list the mistakes, Run, Step and Reference (this page); Ctrl+Space completes, F1 shows this page (on a word: its entry).
 
 ## Text
 
@@ -123,6 +123,31 @@ file. The same switches as find; `^p` and the other codes of the find bar work i
 ### stop
 
 Ends the macro.
+
+## Messages
+
+### message
+
+`message "Nothing found"` shows a text at the bottom of the window, as LexPen's own messages (also in the Messages
+pane). The macro goes on at once.
+
+### messagebox
+
+`messagebox "Done: " & $n & " changes"` shows a text in a box with OK, on top of the window. The macro waits until it
+is closed (OK, Enter or Esc).
+
+### ask
+
+`ask $answer "Replace all?" "Yes" "No" "Cancel"` shows a text in a box with these buttons, the first the default
+(Enter). The name of the button used goes into `$answer`, as written; closed without a button: `""`. Each button has a
+key: its first free letter, underlined. Without buttons, `ask` is a `messagebox` and `$answer` gets `"OK"`.
+
+The text and each button are one value, or values joined with `&`; a longer expression goes between brackets.
+
+```
+ask $go "Replace " & $n & " times?" "Yes" "No"
+if $go <> "Yes" then stop
+```
 
 ## Conditions
 

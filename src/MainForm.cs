@@ -1153,6 +1153,25 @@ sealed class MainForm : Form
                 }) == "yes";
             }
 
+            // A macro's messagebox and ask (docs/plans/executed/PLAN-macro-messages.md): the text with the macro's buttons, the first
+            // the default; the name of the button used, "" when closed. No buttons: OK (Enter and Esc), the answer "OK".
+            case "macroAsk":
+            {
+                var names = (msg["buttons"] as JsonArray ?? []).Select(b => b?.GetValue<string>() ?? "").ToList();
+                if (names.Count == 0)
+                {
+                    AskForm.Ask(app, this, new AskForm.Question { Text = Arg("text"), Sign = AskForm.Sign.Information, Buttons = [(null, "OK", null)], CancelDefault = true });
+                    return "OK";
+                }
+                var answer = AskForm.Answer(app, this, new AskForm.Question
+                {
+                    Text = Arg("text"),
+                    Sign = AskForm.Sign.Question,
+                    Buttons = names.Select((n, i) => ((string?)i.ToString(), n, (string?)null)).ToList(),
+                });
+                return int.TryParse(answer, out var at) ? names[at] : "";
+            }
+
             // A save refused (docs/plans/PLAN-elevated-save.md): `kind` "readOnly" (the file's mark: save anyway, Cancel the
             // default) or "rights" (administrator rights; `closing`: for the rest of LexPen's close too). True: go ahead.
             case "askSaveRefused":
