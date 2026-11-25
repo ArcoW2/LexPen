@@ -50,7 +50,7 @@ const MENUS = [
       ['Manage highlights...', 'highlight.list']] },
   ]],
   ['&Select', [
-    ['Select &all', 'selectAll'], ['Select &line', 'selectLine'], ['Select inside &brackets', 'selectInsideBrackets'], '-',
+    ['Select &all', 'selectAll'], ['Select &line', 'selectLine'], ['Select inside &brackets', 'selectInsideBrackets'], ['Select the block &with its braces', 'selectBraceBlock'], '-',
     ['&Column mode', 'columnMode.toggle'], { label: 'Select a bloc&k', sub: [['&Up', 'blockSelect', 'up'], ['&Down', 'blockSelect', 'down'],
       ['&Left', 'blockSelect', 'left'], ['&Right', 'blockSelect', 'right']] }, '-',
     { label: '&Multiple cursors', sub: [['&Add occurrence', 'cursorAdd'], ['&Next occurrence', 'cursorNext'],
@@ -75,7 +75,8 @@ const MENUS = [
       ['Bookmarks of this &file...', 'bookmarkList'], '-', ['&Manage bookmarks...', 'bookmarks.pane']] }, '-',
     ['Next &highlight', 'highlight.next', 1], ['Previous h&ighlight', 'highlight.next', -1], '-',
     ['Next secti&on', 'section', 1], ['Pre&vious section', 'section', -1], ['Ne&xt block', 'block.next', 1], ['Previous bloc&k', 'block.next', -1], '-',
-    ['Opening b&racket', 'goToOpenBracket'], ['Closing br&acket', 'goToCloseBracket'], '-',
+    ['Opening b&racket', 'goToOpenBracket'], ['Closing br&acket', 'goToCloseBracket'],
+    ['Opening brace of the block', 'goToOpenBrace'], ['Closing brace of the block', 'goToCloseBrace'], '-',   // no letter left in Go
     ['&Position back', 'positionBack'], ['Position &forward', 'positionForward'], '-',
     ['Next &document', 'nextDocument'], ['Previous docu&ment', 'previousDocument'], ['Back in the &window', 'back'], ['Forward in the wi&ndow', 'forward'],
   ]],

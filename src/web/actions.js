@@ -398,6 +398,14 @@ appAction('goToOpenBracket', { title: 'Go to opening bracket', hint: 'Of the pai
   run: (_, { pane, extend }) => { goToBracket(pane.cm, 'open', extend); pane.cm.focus(); } });
 appAction('goToCloseBracket', { title: 'Go to closing bracket', hint: 'Of the pair the highlight shows (end of begin ... end); with Shift: select to it', group: 'edit', editor: true, move: true,
   run: (_, { pane, extend }) => { goToBracket(pane.cm, 'close', extend); pane.cm.focus(); } });
+// The { } block around the cursor (brackets.js braceBlock; docs/plans/executed/PLAN-json-blocks.md): in JSON the object;
+// strings, arrays and other pairs passed over; again: the block around it.
+appAction('goToOpenBrace', { title: 'Go to opening brace of the block', hint: 'The { of the { } block around the cursor (in JSON: the object), strings and other pairs passed over; again: of the block around it; with Shift: select to it', group: 'edit', editor: true, move: true,
+  run: (_, { pane, extend }) => { goToBrace(pane.cm, 'open', extend); pane.cm.focus(); } });
+appAction('goToCloseBrace', { title: 'Go to closing brace of the block', hint: 'The } of the { } block around the cursor (in JSON: the object), strings and other pairs passed over; again: of the block around it; with Shift: select to it', group: 'edit', editor: true, move: true,
+  run: (_, { pane, extend }) => { goToBrace(pane.cm, 'close', extend); pane.cm.focus(); } });
+appAction('selectBraceBlock', { title: 'Select the block with its braces', hint: 'The { } block around the cursor, { and } included (in JSON: the object); again: the block around it', group: 'edit', editor: true,
+  run: (_, { pane }) => { selectBraceBlock(pane.cm); pane.cm.focus(); } });
 // Multiple cursors (cursors.js): the current occurrence of the find bar's text, else of the selection. Also from the
 // find field (after Ctrl+F, Enter), on that pane's editor.
 const occurrenceAction = (kind, title, hint) => appAction('cursor' + kind[0].toUpperCase() + kind.slice(1), { title, hint, group: 'edit', editor: true,

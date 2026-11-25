@@ -221,6 +221,48 @@ function goToBracket(cm, which, extend) {
   return true;
 }
 
+// ---------- The { } block around the cursor (docs/plans/executed/PLAN-json-blocks.md) ----------
+// In JSON the object; in C#, JavaScript, CSS, ... the { } block. The innermost { } pair around the selection, from
+// the pairs the highlight reads (strings, comments and other pairs passed over: inside a JSON array, the object that
+// holds it). `strict`: a pair that only touches the selection's ends is not around it, so the cursor before its { or
+// after its } goes on to the block around it. Not strict (select): a selection that is a whole block takes the one
+// around it. { from, to } (the { and the } included), or null.
+function braceBlock(cm, strict) {
+  const from = cm.getCursor('from'), to = cm.getCursor('to'), an = bracketAnalysis(cm, cm.getCursor('head').line);
+  if (!an || from.line < an.from || to.line > an.to) return null;
+  const off = pos => an.starts[pos.line - an.from] + pos.ch, a = off(from), b = off(to);
+  const sign = at => { const p = bracketPos(an, at); return an.texts[p.line - an.from][p.ch]; };
+  let best = null;
+  for (const s of an.sets) {
+    if (s.words || s.parts.length !== 2) continue;
+    const open = s.parts[0][0], close = s.parts[1][1];
+    if (sign(open) !== '{' || sign(close - 1) !== '}') continue;
+    const around = strict ? open < a && b < close : open <= a && b <= close && !(open === a && close === b);
+    if (around && (!best || open > best.open)) best = { open, close };
+  }
+  return best && { from: bracketPos(an, best.open), to: bracketPos(an, best.close) };
+}
+
+// Go to the { ('open': the cursor before it) or the } ('close': after it) of the block around the cursor; again: of
+// the block around that one. `extend`: select from where the selection starts.
+function goToBrace(cm, which, extend) {
+  const block = braceBlock(cm, true);
+  if (!block) return false;
+  const to = which === 'open' ? block.from : block.to;
+  if (extend) cm.setSelection(cm.getCursor('anchor'), to); else cm.setCursor(to);
+  cm.scrollIntoView(to, 60);
+  return true;
+}
+
+// Select the block around the cursor, its { and } included (in JSON: the object as a value); again: the one around it.
+function selectBraceBlock(cm) {
+  const block = braceBlock(cm, false);
+  if (!block) return false;
+  cm.setSelection(block.from, block.to);
+  cm.scrollIntoView(block.from, 60);
+  return true;
+}
+
 // ---------- Close while typing ----------
 // Setting closeBrackets: an opening sign adds its closer; typing that closer right before one steps over it;
 // Backspace between an empty pair removes both. Quotes the same, not after a letter or digit. Not inside a string

@@ -106,6 +106,44 @@ public class LanguagePacksTests : IDisposable
         Assert.Equal("sql", ext[".ddl"]!.GetValue<string>());
     }
 
+    // The JSON outline (docs/plans/executed/PLAN-json-blocks.md): the pack's pattern, run per line as outlineOf runs it (flags
+    // gm, case: true), gives the keys of objects and arrays with their line's indentation; keys of other values, a
+    // key-like text inside a value and a commented-out key are no entries.
+    [Fact]
+    public void TheJsonOutlineHasTheKeysOfObjectsAndArrays()
+    {
+        var group = LanguagePacks.Load(Shipped, Path.Combine(dir, "none"))["packs"]!["json"]!["outline"]![0]!;
+        Assert.Equal("Objects", group["group"]!.GetValue<string>());
+        var p = group["patterns"]![0]!;
+        Assert.Equal("line", p["indent"]!.GetValue<string>());
+        var engine = new Jint.Engine();
+        engine.SetValue("pattern", p["pattern"]!.GetValue<string>());
+        engine.SetValue("doc", string.Join("\n",
+            "{",
+            "  \"id\": \"top\",",
+            "  \"user\": {",
+            "    \"name\": \"Ann \\\"A\\\"\",",
+            "    \"in \\\"q\\\" ner\": {",
+            "      \"id\": 1",
+            "    },",
+            "    \"note\": \"a \\\"key\\\": {in text\",",
+            "    \"tags\": [\"a\", \"b\"],",
+            "    \"connections\": [",
+            "      {",
+            "        \"settings\": {}",
+            "      }",
+            "    ]",
+            "  },",
+            "  // \"old\": {},",
+            "  \"empty\" : [ ]",
+            "}"));
+        var found = engine.Evaluate("""
+            doc.split('\n').flatMap((t, l) => [...t.matchAll(new RegExp(pattern, 'gm'))]
+              .map(m => `${l + 1} ${t.match(/^\s*/)[0].length} ${m[1]}`)).join('|')
+            """).ToString();
+        Assert.Equal("3 2 user|5 4 in \\\"q\\\" ner|9 4 tags|10 4 connections|12 8 settings|17 2 empty", found);
+    }
+
     [Fact]
     public void APackReadsAsJson()
     {
