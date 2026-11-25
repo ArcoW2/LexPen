@@ -1922,13 +1922,14 @@ function setSwitch(part) {
 const recentTabs = [];   // tab ids, most recently active first
 let tabWalk = null;      // { list, at } while Ctrl is held
 
-// The document active before this one: the most recent tab that is not the active one. A macro run step by step
-// passes its own tab (macros.js): it is not one of the documents the macro works on, so the macro switches between those.
+// The document active before this one: the most recent tab that is not the active one. While a macro runs (played,
+// Run, step by step: macros.js) the macros' own tabs (.lpm) are passed: they are not documents the macro works on (the
+// one being made or stepped through was often active last), so the macro switches between its documents.
 function previousTab() {
-  const tabs = allTabs(), now = activeTab(), skip = typeof macroDebug === 'object' ? macroDebug.tab : null;
+  const tabs = allTabs(), now = activeTab(), running = typeof macroPlay === 'object' && macroPlay.running;
   for (const id of recentTabs) {
     const tab = tabs.find(t => t.id === id);
-    if (tab && tab !== now && tab !== skip) return tab;
+    if (tab && tab !== now && !(running && languageOf(tab.doc) === 'macro')) return tab;
   }
   return null;
 }
