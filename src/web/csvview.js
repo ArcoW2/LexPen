@@ -166,7 +166,7 @@ function csvDraw(pane) {
   view.first = first;
   view.last = last;
   rows.style.setProperty('--first', first);
-  const out = [];
+  const out = [], sel = csvSelection(tab);
   for (let i = first; i < last; i++) {
     const row = read.rows[i], el = document.createElement('div');
     el.className = i % 2 ? 'mm-csv-row mm-csv-odd' : 'mm-csv-row';   // every other row: the alternate colour (csvStripes)
@@ -183,6 +183,7 @@ function csvDraw(pane) {
       if (!shown.ok) cell.classList.add('mm-csv-bad');
       if (f) cell.title = text.slice(f.start, f.end);   // the field as it is in the file
       if (tab.csvCur?.row === i && tab.csvCur.col === c) cell.classList.add('mm-csv-cur');
+      if (csvInSelection(sel, i, c)) cell.classList.add('mm-csv-sel');
       if (tab.csvHits?.has(i + ':' + c)) cell.classList.add('mm-csv-hit');   // a match of the find bar (csvfind.js)
       el.append(cell);
     }
@@ -342,7 +343,9 @@ function csvClick(pane, e) {
   const gap = e.target.closest?.('.mm-csv-gap');
   if (gap && pane.active?.csv) return csvChange(pane.active.doc, def => { delete def.columns[+gap.dataset.c].hidden; });
   const cell = e.target.closest?.('.mm-csv-row .mm-csv-cell');
-  if (cell && pane.active?.csv) csvSetCell(pane, +cell.parentElement.dataset.r, +cell.dataset.c, false);
+  if (!cell || !pane.active?.csv) return;
+  if (e.shiftKey) getSelection().removeAllRanges();   // the cells are the selection, not the text
+  csvSetCell(pane, +cell.parentElement.dataset.r, +cell.dataset.c, false, e.shiftKey);
 }
 
 // ---------- The current cell ----------
@@ -350,13 +353,48 @@ function csvClick(pane, e) {
 // on a cell, the keys move it (Up / Down, Left / Right in the order shown, PgUp / PgDn a screen, Home / End the
 // row's first / last column, Ctrl+Home / Ctrl+End the first / last cell, Tab / Shift+Tab the next / previous cell, on
 // to the next / previous row at the row's end, as a spreadsheet). The find bar starts from it (csvfind.js).
-function csvSetCell(pane, row, col, reveal = true) {
+// `extend` (Shift with a key or a click): the selection, from the anchor (the cell it was on when the extending
+// began) to the new cell; without it the selection is gone (docs/plans/executed/PLAN-csv-copy-markdown.md).
+function csvSetCell(pane, row, col, reveal = true, extend = false) {
   const tab = pane.active;
+  tab.csvAnchor = extend ? tab.csvAnchor ?? tab.csvCur ?? { row, col } : null;
   tab.csvCur = { row, col };
   if (reveal) csvReveal(pane, row, col);
   for (const el of tab.article.querySelectorAll('.mm-csv-cur')) el.classList.remove('mm-csv-cur');
   tab.article.querySelector(`.mm-csv-row[data-r="${row}"] .mm-csv-cell[data-c="${col}"]`)?.classList.add('mm-csv-cur');
+  csvMarkSelection(tab);
   updateStatus();
+}
+
+// The selection: { rows: [first, last], cols: the columns by their place in the file, in the order shown }; null:
+// none (no anchor, or the anchor's column hidden since).
+function csvSelection(tab) {
+  const a = tab.csvAnchor, b = tab.csvCur, data = tab.doc.csv;
+  if (!a || !b || !data) return null;
+  const i = data.order.indexOf(a.col), j = data.order.indexOf(b.col), count = data.read.rows.length;
+  if (i < 0 || j < 0 || !count) return null;
+  const clamp = r => Math.max(0, Math.min(count - 1, r));
+  return { rows: [clamp(Math.min(a.row, b.row)), clamp(Math.max(a.row, b.row))], cols: data.order.slice(Math.min(i, j), Math.max(i, j) + 1) };
+}
+const csvInSelection = (sel, row, col) => !!sel && row >= sel.rows[0] && row <= sel.rows[1] && sel.cols.includes(col);
+
+// The marks of the selection on the cells drawn.
+function csvMarkSelection(tab) {
+  const sel = csvSelection(tab);
+  for (const el of tab.article.querySelectorAll('.mm-csv-row .mm-csv-cell'))
+    el.classList.toggle('mm-csv-sel', csvInSelection(sel, +el.parentElement.dataset.r, +el.dataset.c));
+}
+
+// Copy as Markdown table: the selection, else every row and shown column, as the view shows them.
+function csvCopyMarkdown(tab) {
+  const data = tab?.doc.csv;
+  if (!data) return;
+  const { read, def } = data, sel = csvSelection(tab);
+  const cols = sel?.cols ?? data.order, [first, last] = sel?.rows ?? [0, read.rows.length - 1];
+  const rows = [];
+  for (let r = first; r <= last; r++) rows.push(cols.map(c => { const f = read.rows[r]?.fields[c]; return f ? csvShow(f.text, def.columns[c]).text : ''; }));
+  putOnClipboard(csvMarkdownTable(cols.map(c => csvName(read, def, c)), rows, cols.map(c => def.columns[c]?.align === 'right')));
+  toast(`Copied ${rows.length} ${rows.length === 1 ? 'row' : 'rows'} as a Markdown table`, true);
 }
 
 // The row (below the header kept at the top) and the column in view.
@@ -378,7 +416,7 @@ function csvReveal(pane, row, col) {
 // The keys in the column view: true when one moved the current cell.
 function csvKey(pane, e) {
   const tab = pane.active, view = tab?.csv;
-  if (!view || e.altKey || e.metaKey || (e.shiftKey && e.key !== 'Tab') || e.target.closest?.('input, textarea, select')) return false;
+  if (!view || e.altKey || e.metaKey || e.target.closest?.('input, textarea, select')) return false;
   const count = view.data.read.rows.length, order = view.data.order;
   if (!count || !order.length) return false;
   const cur = tab.csvCur ?? { row: Math.max(0, view.first + 1), col: order[0] };
@@ -400,7 +438,7 @@ function csvKey(pane, e) {
   else if (k === 'Home') { at = 0; if (ctrl) row = 0; }
   else if (k === 'End') { at = order.length - 1; if (ctrl) row = count - 1; }
   else return false;
-  csvSetCell(pane, Math.max(0, Math.min(count - 1, row)), order[Math.max(0, Math.min(order.length - 1, at))]);
+  csvSetCell(pane, Math.max(0, Math.min(count - 1, row)), order[Math.max(0, Math.min(order.length - 1, at))], true, e.shiftKey && k !== 'Tab');
   return true;
 }
 
@@ -419,6 +457,7 @@ function csvViewItems(doc) {
   return [
     { label: 'Show &all columns', run: () => csvShowAll(doc), enabled: doc.csvDef.columns.some(col => col.hidden) },
     { label: 'Column &info', action: 'csv.info' },
+    { label: 'Copy as &Markdown table', action: 'csv.copyMarkdown' },
     { label: '&Write the columns in this order...', action: 'csv.writeOrder', params: [false] },
     { label: 'Write the &shown columns in this order...', action: 'csv.writeOrder', params: [true], enabled: doc.csvDef.columns.some(col => col.hidden) },
     '-',
@@ -625,6 +664,8 @@ async function csvWriteOrder(doc, withoutHidden) {
 
 appAction('csv.info', { title: 'Column info', hint: 'Per column of the CSV: its type, longest and shortest value, how many are empty and how many do not fit', group: 'view',
   enabled: () => !!activeDoc()?.csv, run: () => showColumnInfo(activeDoc()) });
+appAction('csv.copyMarkdown', { title: 'Copy as Markdown table', hint: 'The selected cells of the column view (none: the whole table) as a Markdown table, the shown columns in their order, onto the active clipboard', group: 'edit',
+  enabled: () => !!activeTab()?.csv, run: () => csvCopyMarkdown(activeTab()) });
 appAction('csv.writeOrder', { title: 'Write the columns in this order', hint: 'Every row of the text rewritten in the order of the column view, as one undo step; asks first', group: 'edit',
   variants: [[false], [true]], variantTitles: { false: 'Write the columns in this order', true: 'Write the shown columns in this order (without the hidden ones)' },
   enabled: () => !!activeDoc()?.csvDef && activeDoc()?.language === 'csv', run: ([withoutHidden = false] = []) => csvWriteOrder(activeDoc(), !!withoutHidden) });

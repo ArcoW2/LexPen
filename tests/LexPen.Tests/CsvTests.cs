@@ -26,6 +26,20 @@ public class CsvTests
         _ => e.GetRawText(),
     };
 
+    // A Markdown table from strings: padded to the widest text (3 at least), a right-aligned column padded on the left
+    // and its delimiter ending in ':', a pipe escaped, a line break a space, a missing value empty.
+    [Fact]
+    public void AMarkdownTableIsLinedUpWithItsAlignmentAndEscapes()
+    {
+        var table = Js("csvMarkdownTable(['Id', 'Name'], [['1', 'a|b'], ['12', 'two\\nlines'], ['3']], [true, false])").GetString();
+        Assert.Equal(
+            "|  Id | Name      |\n" +
+            "| --: | --------- |\n" +
+            "|   1 | a\\|b      |\n" +
+            "|  12 | two lines |\n" +
+            "|   3 |           |\n", table);
+    }
+
     static string[][] Rows(JsonElement read) =>
         read.GetProperty("rows").EnumerateArray().Select(r => r.GetProperty("fields").EnumerateArray().Select(f => f.GetProperty("text").GetString()!).ToArray()).ToArray();
 

@@ -260,6 +260,19 @@ function csvShow(raw, col) {
   return { text: s, ok: true };
 }
 
+// A Markdown pipe table: `header` the column names, `rows` the values (strings), `right` per column true when it is
+// right-aligned (its delimiter ends in ':', its cells padded on the left). A line break in a value is a space, a pipe
+// is escaped; every cell padded to its column's widest text, at least 3.
+function csvMarkdownTable(header, rows, right = []) {
+  const cell = s => String(s ?? '').replace(/\r\n?|\n/g, ' ').replace(/\|/g, '\\|');
+  const head = header.map(cell), body = rows.map(r => header.map((_, c) => cell(r[c])));
+  const widths = head.map(h => Math.max(3, h.length));   // a loop, not a spread: a whole table can be very long
+  for (const r of body) r.forEach((s, c) => { if (s.length > widths[c]) widths[c] = s.length; });
+  const line = cells => '| ' + cells.map((s, c) => right[c] ? s.padStart(widths[c]) : s.padEnd(widths[c])).join(' | ') + ' |';
+  const delimiter = '| ' + widths.map((w, c) => right[c] ? '-'.repeat(w - 1) + ':' : '-'.repeat(w)).join(' | ') + ' |';
+  return [line(head), delimiter, ...body.map(line)].join('\n') + '\n';
+}
+
 // ---------- CSV on the Web (CSVW) metadata ----------
 // The definition as CSVW (https://www.w3.org/TR/tabular-metadata/): the dialect and per column a name, a datatype
 // and its format; what CSVW has no place for in properties of LexPen's own (lexpen:...), which another reader skips.
