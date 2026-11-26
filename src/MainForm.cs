@@ -183,7 +183,11 @@ sealed class MainForm : Form
 
     void UpdateTitle()
     {
-        Text = web.CoreWebView2?.DocumentTitle is { Length: > 0 } t ? t : "LexPen";   // "name - LexPen" (app.js updateChrome)
+        // "name in project - LexPen": the page's title is "name - LexPen" (app.js updateChrome), the project goes between.
+        var title = web.CoreWebView2?.DocumentTitle is { Length: > 0 } t ? t : "LexPen";
+        var name = title.EndsWith(" - LexPen") ? title[..^" - LexPen".Length] : null;
+        var project = app.ProjectInfo(this)["display"]?.GetValue<string>() is { Length: > 0 } p ? p : null;
+        Text = project is null ? title : name is null ? $"{project} - LexPen" : $"{name} in {project} - LexPen";
         app.SettingsTitle(this);
         app.UpdateBars();   // the floating panels' bottom bars name its document
     }
