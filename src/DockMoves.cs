@@ -5,7 +5,8 @@ namespace LexPen;
 /// <summary>
 /// A floating tool's window moved by its title bar (not resized): the LexPen window it belongs to hears where the
 /// cursor is while it moves (paneMoving) and where it is let go (paneMoved), in its page's coordinates, so its page
-/// shows the places it can dock at and docks it there (docs/plans/executed/PLAN-docking.md 3.8).
+/// shows the places it can dock at and docks it there (docs/plans/executed/PLAN-docking.md 3.8). Shift held: it
+/// docks nowhere (`shift`), so it can be moved over the window and stay floating.
 /// </summary>
 static class DockMoves
 {
@@ -16,7 +17,7 @@ static class DockMoves
         var sizeAtStart = Size.Empty;
         void Tell(string what)
         {
-            if (owner() is { IsDisposed: false } w) w.Post(new JsonObject { ["event"] = what, ["pane"] = id, ["at"] = w.PagePoint(Cursor.Position) });
+            if (owner() is { IsDisposed: false } w) w.Post(new JsonObject { ["event"] = what, ["pane"] = id, ["at"] = w.PagePoint(Cursor.Position), ["shift"] = (Control.ModifierKeys & Keys.Shift) != 0 });
         }
         form.ResizeBegin += (_, _) => { moving = true; moved = false; sizeAtStart = form.Size; };
         form.Move += (_, _) =>
