@@ -59,15 +59,15 @@
 <body>
 <div class="cp-empty" hidden></div>
 <div class="cp-main" hidden>
-  <div class="cp-tabs"><button type="button" data-tab="file" title="How the file is built: delimiter, lines before the data, header line, quotes">File</button><button type="button" class="cp-on" data-tab="columns">Columns</button><button type="button" data-tab="definition">Definition</button>
+  <div class="cp-tabs"><button type="button" data-tab="file" title="How the file is built: delimiter, first data line, header line, quotes">File</button><button type="button" class="cp-on" data-tab="columns">Columns</button><button type="button" data-tab="definition">Definition</button>
     <span class="cp-name"></span></div>
   <div class="cp-file" hidden>
     <label for="cp-delim">Delimiter</label>
     <div class="cp-line"><input id="cp-delim" class="cp-short" list="cp-delims" title="One or more characters; \t is a tab">
       <datalist id="cp-delims"><option value=","><option value=";"><option value="\t"><option value="|"><option value=" "></datalist>
       <label><input type="checkbox" id="cp-trim"> Trim spaces</label></div>
-    <label for="cp-skip">Lines before the data</label>
-    <div class="cp-line"><input type="number" id="cp-skip" min="0" title="The lines before the first data row, the header line included"></div>
+    <label for="cp-skip">First data line</label>
+    <div class="cp-line"><input type="number" id="cp-skip" min="1" title="The line the data starts on (1: the first); the lines above it, the header line among them, are not data"></div>
     <label for="cp-header">Header line</label>
     <div class="cp-line"><select id="cp-header" title="Which of the lines before the data holds the column names"></select></div>
     <label for="cp-quote">Quote</label>

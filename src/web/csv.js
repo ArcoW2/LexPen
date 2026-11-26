@@ -260,6 +260,179 @@ function csvShow(raw, col) {
   return { text: s, ok: true };
 }
 
+// ---------- The definition set by steps (macros, keys; docs/plans/executed/PLAN-csv-definition-in-macros.md) ----------
+// The actions csv.delimiter, csv.firstDataLine, csv.header, csv.quote, csv.escape, csv.column and csv.columnOrder as
+// steps on a definition: csvStep gives the definition after one ({ def }) or why it cannot be ({ error }); csvSteps
+// gives the steps from one definition to another (what a recording writes). `text`: the document's, for the columns
+// (their number and the header's names, from its first part as csvFit reads it).
+const CSV_FILE_STEPS = ['delimiter', 'header', 'firstDataLine', 'quote', 'escape'];
+const CSV_COLUMN_ATTRS = ['name', 'type', 'quote', 'quoteStart', 'quoteEnd', 'decimal', 'group', 'pattern', 'format', 'align', 'trim', 'hidden', 'width'];
+const csvSample = text => text.slice(0, 64 * 1024);
+
+// The columns of the file by the definition: their number and each one's name as the view shows it.
+function csvColumnNames(def, text) {
+  const read = csvRead(csvSample(text), def), count = Math.max(read.columns, def.columns.length);
+  return Array.from({ length: count }, (_, c) => def.columns[c]?.name || read.names?.[c] || `Column ${c + 1}`);
+}
+
+// A column by its place (a number, 1-based) or its name: its index, or an error.
+function csvColumnRef(ref, names) {
+  if (typeof ref === 'number' || /^\d+$/.test(String(ref ?? ''))) {
+    const n = Number(ref);
+    return Number.isInteger(n) && n >= 1 && n <= names.length ? { c: n - 1 } : { error: `there is no column ${ref}: the file has ${names.length}` };
+  }
+  const c = names.indexOf(String(ref ?? ''));
+  return c >= 0 ? { c } : { error: `there is no column named "${ref ?? ''}"` };
+}
+
+const csvWhole = v => { const n = Number(v); return String(v ?? '').trim() !== '' && Number.isInteger(n) ? n : null; };
+const csvYesNo = v => { const s = String(v ?? '').toLowerCase(); return s === 'true' ? true : s === 'false' ? false : null; };
+
+// One step: `action` without its "csv." (delimiter, firstDataLine, header, quote, escape, column, columnOrder),
+// `values` as the macro gives them (numbers or texts).
+function csvStep(def, action, values, text) {
+  const d = JSON.parse(JSON.stringify(def)), v = values ?? [], fail = error => ({ error });
+  const fitted = () => ({ def: csvFit(d, text) });   // the file read another way: the columns fitted to it again
+  switch (action) {
+    case 'delimiter': {
+      if (!v.length || v.length > 2 || !String(v[0] ?? '')) return fail('csv.delimiter needs the delimiter, and may have "trim" or "notrim"');
+      d.delimiter = String(v[0]);
+      if (v.length > 1) {
+        const t = String(v[1]).toLowerCase();
+        if (t !== 'trim' && t !== 'notrim') return fail(`csv.delimiter: "${v[1]}" is not "trim" or "notrim"`);
+        d.trim = t === 'trim';
+      }
+      return fitted();
+    }
+    case 'firstDataLine': {
+      const n = csvWhole(v[0]);
+      if (v.length !== 1 || n === null || n < 1) return fail('csv.firstDataLine needs a line number, 1 or more');
+      if (d.header > 0 && n <= d.header) return fail(`the data cannot start on line ${n}: the header is on line ${d.header}`);
+      d.skip = n - 1;
+      return fitted();
+    }
+    case 'header': {
+      const n = csvWhole(v[0]);
+      if (v.length !== 1 || n === null || n < 0) return fail('csv.header needs a line number (0: no header)');
+      d.header = n;
+      if (n > 0 && n > (d.skip || 0)) d.skip = n;   // the header is above the data: the data from the line after it
+      return fitted();
+    }
+    case 'quote': {
+      if (!v.length || v.length > 2) return fail('csv.quote needs the quote, or the start and the end quote');
+      d.quote = String(v[0] ?? '');
+      d.quoteEnd = v.length > 1 ? String(v[1] ?? '') : d.quote;
+      return fitted();
+    }
+    case 'escape': {
+      const how = String(v[0] ?? '').toLowerCase();
+      if (how === 'double' || how === 'none') { if (v.length !== 1) return fail(`csv.escape "${how}" takes no other value`); d.escape = how; }
+      else if (how === 'char') {
+        if (v.length !== 2 || !String(v[1] ?? '')) return fail('csv.escape "char" needs the escape character');
+        d.escape = 'char';
+        d.escapeChar = String(v[1]);
+      } else return fail('csv.escape needs "double", "char" (and the character) or "none"');
+      return fitted();
+    }
+    case 'column': {
+      const names = csvColumnNames(d, text), at = csvColumnRef(v[0], names);
+      if (at.error) return fail(at.error);
+      const pairs = v.slice(1);
+      if (!pairs.length || pairs.length % 2) return fail('csv.column needs the column, then attribute and value pairs');
+      while (d.columns.length < names.length) d.columns.push({ name: names[d.columns.length], type: 'text', align: 'left' });
+      const col = d.columns[at.c];
+      for (let i = 0; i < pairs.length; i += 2) {
+        const attr = String(pairs[i] ?? ''), raw = pairs[i + 1], s = String(raw ?? '');
+        const key = CSV_COLUMN_ATTRS.find(a => a.toLowerCase() === attr.toLowerCase());
+        if (!key) return fail(`"${attr}" is not a column attribute (${CSV_COLUMN_ATTRS.join(', ')})`);
+        if (key === 'type') { if (!CSV_TYPES.includes(s.toLowerCase())) return fail(`"${s}" is not a type (${CSV_TYPES.join(', ')})`); col.type = s.toLowerCase(); }
+        else if (key === 'quote') { col.quote = s; col.quoteEnd = s; }
+        else if (key === 'quoteStart') { col.quoteEnd ??= col.quote ?? d.quoteEnd ?? d.quote ?? ''; col.quote = s; }
+        else if (key === 'quoteEnd') { col.quote ??= d.quote ?? ''; col.quoteEnd = s; }
+        else if (key === 'decimal') { if (s !== '.' && s !== ',') return fail(`the decimal sign is "." or ",", not "${s}"`); col.decimal = s; }
+        else if (key === 'group') { if (!['.', ',', "'", ' ', ''].includes(s)) return fail(`the thousands sign is ".", ",", "'", " " or "", not "${s}"`); col.group = s; }
+        else if (key === 'align') { if (!['left', 'right'].includes(s.toLowerCase())) return fail(`align is "left" or "right", not "${s}"`); col.align = s.toLowerCase(); }
+        else if (key === 'trim' || key === 'hidden') {
+          const b = csvYesNo(raw);
+          if (b === null) return fail(`${key} is "true" or "false", not "${s}"`);
+          if (b) col[key] = true; else delete col[key];
+        } else if (key === 'width') {
+          const n = csvWhole(raw);
+          if (n === null || n < 0) return fail(`the width is a number of characters (0: fitted), not "${s}"`);
+          if (n) col.width = n; else delete col.width;
+        } else col[key] = s;   // name, pattern, format
+      }
+      return { def: d };
+    }
+    case 'columnOrder': {
+      const names = csvColumnNames(d, text), seen = new Set();
+      for (const ref of v) {
+        const at = csvColumnRef(ref, names);
+        if (at.error) return fail(at.error);
+        if (seen.has(at.c)) return fail(`csv.columnOrder has column ${at.c + 1} (${names[at.c]}) twice`);
+        seen.add(at.c);
+      }
+      if (seen.size !== names.length) {
+        const missing = names.map((n, c) => seen.has(c) ? null : `${c + 1} (${n})`).filter(Boolean);
+        return fail(`csv.columnOrder needs every column once; missing: ${missing.join(', ')}`);
+      }
+      while (d.columns.length < names.length) d.columns.push({ name: names[d.columns.length], type: 'text', align: 'left' });
+      v.forEach((ref, i) => { d.columns[csvColumnRef(ref, names).c].order = i; });
+      return { def: d };
+    }
+  }
+  return fail(`there is no csv step "${action}"`);
+}
+
+// The columns' places in the order shown (their order; unset: their place in the file), as csvData sorts them.
+const csvSlots = (def, count) => Array.from({ length: count }, (_, c) => c).sort((a, b) => (def.columns[a]?.order ?? a) - (def.columns[b]?.order ?? b) || a - b);
+
+// The steps from `before` to `after` ([{ action, values }]): the file's attributes that changed, then per column the
+// attributes set on it (a column by its name when no other has it and it is no number, else by its place), then the
+// order when it changed. Each step is tried on the way (csvStep), so a column that changed only because the file is
+// read another way (fitted again) gives no step, and a later step names a column as it is called by then.
+function csvSteps(before, after, text) {
+  const steps = [];
+  let cur = before;
+  const take = (action, values) => { const r = csvStep(cur, action, values, text); if (r.def) { cur = r.def; steps.push({ action, values }); } };
+  if (after.delimiter !== cur.delimiter || !!after.trim !== !!cur.trim)
+    take('delimiter', !!after.trim !== !!cur.trim ? [after.delimiter, after.trim ? 'trim' : 'notrim'] : [after.delimiter]);
+  if ((after.header || 0) !== (cur.header || 0)) take('header', [after.header || 0]);
+  if ((after.skip || 0) !== (cur.skip || 0)) take('firstDataLine', [(after.skip || 0) + 1]);
+  if ((after.quote ?? '') !== (cur.quote ?? '') || (after.quoteEnd ?? after.quote ?? '') !== (cur.quoteEnd ?? cur.quote ?? ''))
+    take('quote', (after.quoteEnd ?? after.quote) === after.quote ? [after.quote ?? ''] : [after.quote ?? '', after.quoteEnd ?? '']);
+  if (after.escape !== cur.escape || after.escape === 'char' && after.escapeChar !== cur.escapeChar)
+    take('escape', after.escape === 'char' ? ['char', after.escapeChar] : [after.escape]);
+  const count = Math.max(after.columns.length, csvColumnNames(cur, text).length);
+  for (let c = 0; c < count; c++) {
+    const a = after.columns[c];
+    if (!a) continue;
+    const names = csvColumnNames(cur, text), b = cur.columns[c] ?? { name: names[c], type: 'text', align: 'left' }, pairs = [];
+    const same = (x, y) => (x ?? '') === (y ?? '');
+    if (a.name !== undefined && !same(a.name, b.name ?? names[c])) pairs.push('name', a.name);
+    if (a.type !== undefined && !same(a.type, b.type ?? 'text')) pairs.push('type', a.type);
+    if (a.quote !== undefined || a.quoteEnd !== undefined) {
+      const qs = a.quote ?? '', qe = a.quoteEnd ?? a.quote ?? '', changedStart = !same(qs, b.quote), changedEnd = !same(qe, b.quoteEnd ?? b.quote);
+      if (changedStart && changedEnd && qs === qe) pairs.push('quote', qs);
+      else { if (changedStart) pairs.push('quoteStart', qs); if (changedEnd) pairs.push('quoteEnd', qe); }
+    }
+    for (const k of ['decimal', 'group']) if (a[k] !== undefined && !same(a[k], b[k])) pairs.push(k, a[k]);
+    for (const k of ['pattern', 'format']) if (!same(a[k], b[k])) pairs.push(k, a[k] ?? '');   // cleared: "" (as unset)
+    if (a.align !== undefined && !same(a.align, b.align ?? 'left')) pairs.push('align', a.align);
+    for (const k of ['trim', 'hidden']) if (!!a[k] !== !!b[k]) pairs.push(k, a[k] ? 'true' : 'false');
+    if ((a.width || 0) !== (b.width || 0)) pairs.push('width', a.width || 0);
+    if (!pairs.length) continue;
+    const name = names[c], ref = names.indexOf(name) === names.lastIndexOf(name) && !/^\d+$/.test(name) ? name : c + 1;
+    take('column', [ref, ...pairs]);
+  }
+  const n = csvColumnNames(cur, text).length, was = csvSlots(cur, n), now = csvSlots(after, n);
+  if (was.join() !== now.join()) {
+    const names = csvColumnNames(cur, text), byName = new Set(names).size === names.length && !names.some(x => /^\d+$/.test(x));
+    take('columnOrder', now.map(c => byName ? names[c] : c + 1));
+  }
+  return steps;
+}
+
 // A Markdown pipe table: `header` the column names, `rows` the values (strings), `right` per column true when it is
 // right-aligned (its delimiter ends in ':', its cells padded on the left). A line break in a value is a space, a pipe
 // is escaped; every cell padded to its column's widest text, at least 3.

@@ -81,7 +81,7 @@ function drawFile() {
   const put = (sel, value) => { const el = $c(sel); if (el !== active) el.value = value; };
   put('#cp-delim', showSign(d.delimiter));
   $c('#cp-trim').checked = !!d.trim;
-  put('#cp-skip', d.skip ?? 0);
+  put('#cp-skip', (d.skip ?? 0) + 1);   // shown as the first data line (1-based); kept as the lines before it
   const header = $c('#cp-header');
   header.innerHTML = `<option value="0">none</option>` + Array.from({ length: d.skip ?? 0 }, (_, i) => `<option value="${i + 1}">line ${i + 1}</option>`).join('');
   header.value = String(Math.min(d.header ?? 0, d.skip ?? 0));
@@ -152,7 +152,7 @@ function fileChanged() {
   const d = cp.draft;
   d.delimiter = readSign($c('#cp-delim').value) || ',';
   d.trim = $c('#cp-trim').checked;
-  d.skip = Math.max(0, parseInt($c('#cp-skip').value, 10) || 0);
+  d.skip = Math.max(1, parseInt($c('#cp-skip').value, 10) || 1) - 1;
   d.header = Math.min(+$c('#cp-header').value || 0, d.skip);
   d.quote = $c('#cp-quote').value;
   d.quoteEnd = $c('#cp-quote-end').value || d.quote;

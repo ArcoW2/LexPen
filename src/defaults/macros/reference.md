@@ -253,3 +253,40 @@ Several keys go in one line, in turn, and `*n` presses a key n times:
 is pressed. A recording writes keys pressed one after the other in this way: one line until something else happens.
 `setLanguage "csv"` sets the language of the active document, as a choice in the bottom bar's list: by the language's
 name, id or another name it is known by, case ignored (`"CSV"`, `"tsql"`); `$$language` then reads it.
+
+## CSV
+
+How the active document is read as CSV, set as Columns... sets it; it must be read as CSV first (`setLanguage "csv"`
+or `csv.toggle`). Each step applies at once. A mistake (a value that does not fit, a column that is not there) stops
+the macro at that line (`onerror continue`: it goes on, `$$error` true).
+
+| Step | What |
+|---|---|
+| `csv.delimiter ";"` | The delimiter (a tab: `"\t"`); a second value `"trim"` or `"notrim"`: spaces around values dropped or kept |
+| `csv.firstDataLine 2` | The line the data starts on, 1-based; the lines above it are not data |
+| `csv.header 1` | The line with the column names, 1-based; `0`: none. On or below the first data line, the data starts on the line after it |
+| `csv.quote "\""` | The quote; two values: start and end (`csv.quote "[" "]"`); `""`: none |
+| `csv.escape "double"` | A quote inside quotes: `"double"`, `"char"` and the character (`csv.escape "char" "\\"`), `"none"` |
+| `csv.column 1 "name" "Id"` | One column, by its place in the file (1-based) or its name, then attributes and values |
+| `csv.columnOrder 3 1 2` | The order shown: every column once, by place or name, mixed allowed |
+
+The attributes of `csv.column`, every name and value between quotes (a number may go without):
+`name`, `type` (`"text"`, `"integer"`, `"decimal"`, `"date"`, `"boolean"`, `"auto"`), `quote` (both ends), `quoteStart`,
+`quoteEnd`, `decimal` (`"."`, `","`), `group` (the thousands sign), `pattern` (a date as written: `"yyyy-MM-dd"`),
+`format` (as shown), `align` (`"left"`, `"right"`), `trim` and `hidden` (`"true"`, `"false"`), `width` (0: fitted).
+A column named as a number is reached by its place.
+
+`csv.columnOrder` changes the view only; `csv.writeOrder` writes the text in the order shown.
+
+Recording writes what you change in Columns..., in a column's box and in the column view (move, size, hide, show) as
+these steps, only what changed: the file first, then a step per column, then the order.
+
+```
+#A list with a header line, read as columns
+newFile
+type "Id,Name,State\n1,Alpha,on\n"
+setLanguage "csv"
+csv.header 1
+csv.column "Id" "type" "integer" "align" "right"
+csv.columnOrder "Name" "Id" "State"
+```

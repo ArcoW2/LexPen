@@ -40,6 +40,119 @@ public class CsvTests
             "|   3 |           |\n", table);
     }
 
+    // ---------- The definition set by steps (csvStep, csvSteps: macros and recording) ----------
+    const string Plain = "var t = 'id,name,state\\n1,a,on\\n2,b,off\\n'; var d = csvDefinition({ skip: 0, header: 0 });";
+
+    static JsonElement Step(string action, string values, string setup = Plain) => Js(setup, $"csvStep(d, '{action}', {values}, t)");
+
+    [Fact]
+    public void TheHeaderMovesTheFirstDataLineBelowIt()
+    {
+        var def = Step("header", "[1]").GetProperty("def");
+        Assert.Equal(1, def.GetProperty("header").GetInt32());
+        Assert.Equal(1, def.GetProperty("skip").GetInt32());   // the data from line 2
+        Assert.Equal("name", Js(Plain, "csvColumnNames(csvStep(d, 'header', [1], t).def, t)[1]").GetString());
+    }
+
+    [Fact]
+    public void TheFirstDataLineIsOneBasedAndNotOnTheHeader()
+    {
+        Assert.Equal(2, Step("firstDataLine", "[3]").GetProperty("def").GetProperty("skip").GetInt32());
+        var setup = Plain + " d = csvStep(d, 'header', [2], t).def;";
+        Assert.Contains("the header is on line 2", Step("firstDataLine", "[2]", setup).GetProperty("error").GetString());
+        Assert.True(Step("firstDataLine", "[0]").TryGetProperty("error", out _));
+    }
+
+    [Fact]
+    public void TheDelimiterQuoteAndEscape()
+    {
+        var def = Step("delimiter", "[';', 'trim']").GetProperty("def");
+        Assert.Equal(";", def.GetProperty("delimiter").GetString());
+        Assert.True(def.GetProperty("trim").GetBoolean());
+        Assert.True(Step("delimiter", "[';', 'maybe']").TryGetProperty("error", out _));
+        def = Step("quote", "['[', ']']").GetProperty("def");
+        Assert.Equal("[", def.GetProperty("quote").GetString());
+        Assert.Equal("]", def.GetProperty("quoteEnd").GetString());
+        def = Step("quote", "[\"'\"]").GetProperty("def");
+        Assert.Equal("'", def.GetProperty("quoteEnd").GetString());
+        def = Step("escape", "['char', '\\\\']").GetProperty("def");
+        Assert.Equal("char", def.GetProperty("escape").GetString());
+        Assert.Equal("\\", def.GetProperty("escapeChar").GetString());
+        Assert.True(Step("escape", "['char']").TryGetProperty("error", out _));
+        Assert.True(Step("escape", "['twice']").TryGetProperty("error", out _));
+    }
+
+    [Fact]
+    public void AColumnByPlaceOrNameWithSeveralAttributes()
+    {
+        var setup = Plain + " d = csvStep(d, 'header', [1], t).def;";
+        var col = Step("column", "[2, 'name', 'Who', 'type', 'TEXT', 'hidden', 'true', 'width', 12]", setup).GetProperty("def").GetProperty("columns")[1];
+        Assert.Equal("Who", col.GetProperty("name").GetString());
+        Assert.Equal("text", col.GetProperty("type").GetString());
+        Assert.True(col.GetProperty("hidden").GetBoolean());
+        Assert.Equal(12, col.GetProperty("width").GetInt32());
+        col = Step("column", "['state', 'quoteStart', '[', 'quoteEnd', ']']", setup).GetProperty("def").GetProperty("columns")[2];
+        Assert.Equal("[", col.GetProperty("quote").GetString());
+        Assert.Equal("]", col.GetProperty("quoteEnd").GetString());
+        col = Step("column", "[1, 'quote', \"'\"]", setup).GetProperty("def").GetProperty("columns")[0];
+        Assert.Equal("'", col.GetProperty("quote").GetString());
+        Assert.Equal("'", col.GetProperty("quoteEnd").GetString());
+    }
+
+    [Theory]
+    [InlineData("[4, 'name', 'x']", "there is no column 4")]
+    [InlineData("['nope', 'name', 'x']", "there is no column named")]
+    [InlineData("[1, 'colour', 'red']", "is not a column attribute")]
+    [InlineData("[1, 'type', 'money']", "is not a type")]
+    [InlineData("[1, 'width', 'wide']", "the width is a number")]
+    [InlineData("[1, 'name']", "attribute and value pairs")]
+    public void AColumnStepThatDoesNotFit(string values, string error) =>
+        Assert.Contains(error, Step("column", values, Plain + " d = csvStep(d, 'header', [1], t).def;").GetProperty("error").GetString());
+
+    [Fact]
+    public void TheColumnOrderByPlaceByNameAndMixed()
+    {
+        var setup = Plain + " d = csvStep(d, 'header', [1], t).def;";
+        foreach (var values in new[] { "[3, 1, 2]", "['state', 'id', 'name']", "['state', 1, 'name']" })
+        {
+            var slots = Js(setup, $"csvSlots(csvStep(d, 'columnOrder', {values}, t).def, 3)");
+            Assert.Equal([2, 0, 1], slots.EnumerateArray().Select(e => e.GetInt32()));
+        }
+        Assert.Contains("missing: 3 (state)", Step("columnOrder", "[1, 2]", setup).GetProperty("error").GetString());
+        Assert.Contains("twice", Step("columnOrder", "[1, 1, 2]", setup).GetProperty("error").GetString());
+    }
+
+    // What a recording writes: only what changed, the file first, one step per column, the order last; columns fitted
+    // again (by the header set) give no step.
+    [Fact]
+    public void TheStepsFromOneDefinitionToAnother()
+    {
+        var setup = Plain + """
+             var a = csvStep(d, 'header', [1], t).def;
+             var b = JSON.parse(JSON.stringify(a)); b.delimiter = ',';
+             b.columns[1].name = 'Who'; b.columns[1].width = 9; b.columns[2].hidden = true;
+             b.columns[0].order = 2; b.columns[1].order = 0; b.columns[2].order = 1;
+             """;
+        var steps = Js(setup, "csvSteps(d, b, t)").EnumerateArray().Select(s => s.GetProperty("action").GetString() + " " + s.GetProperty("values").GetRawText()).ToArray();
+        Assert.Equal([
+            "header [1]",
+            "column [\"name\",\"name\",\"Who\",\"width\",9]",
+            "column [\"state\",\"hidden\",\"true\"]",
+            "columnOrder [\"Who\",\"state\",\"id\"]",
+        ], steps);
+        // Played back, the steps give the same definition.
+        Assert.Equal("[1,2,0]", Js(setup, "csvSlots(csvSteps(d, b, t).reduce((x, s) => csvStep(x, s.action, s.values, t).def, d), 3)").GetRawText());
+        Assert.Equal("[]", Js(setup, "csvSteps(a, a, t)").GetRawText());
+    }
+
+    [Fact]
+    public void AColumnWhoseNameRepeatsIsByPlace()
+    {
+        var setup = "var t = 'x,x\\n1,2\\n'; var d = csvStep(csvDefinition({ skip: 0, header: 0 }), 'header', [1], t).def;" +
+            " var b = JSON.parse(JSON.stringify(d)); b.columns[1].width = 5;";
+        Assert.Equal("[2,\"width\",5]", Js(setup, "csvSteps(d, b, t)[0].values").GetRawText());
+    }
+
     static string[][] Rows(JsonElement read) =>
         read.GetProperty("rows").EnumerateArray().Select(r => r.GetProperty("fields").EnumerateArray().Select(f => f.GetProperty("text").GetString()!).ToArray()).ToArray();
 

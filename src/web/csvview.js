@@ -23,13 +23,23 @@ const csvTable = doc => JSON.parse(csvwWrite(doc.csvDef, doc.path ? doc.path.rep
 
 // Apply (the pane): the preview redraws with it, and it is kept: next to the file when it came from there or was
 // saved there, else in LexPen's store a second later.
-function csvApply(doc, def) {
+// While a macro is recorded the change is written into it as csv.* steps, only what changed (csvSteps); not for a
+// change that is recorded as itself (`record: false`: the csv actions, Write the columns in this order).
+function csvApply(doc, def, { record = true } = {}) {
+  if (record) csvRecord(doc, doc.csvDef, def);
   doc.csvDef = def;
   doc.csv = null;
   for (const tab of tabsOf(doc)) if (paneOf(tab)?.active === tab && tab.mode !== 'edit') render(tab); else tab.stale = true;
   clearTimeout(doc.csvTimer);
   if (doc.csvBeside && doc.path) return csvSaveBeside(doc);
   if (doc.path || doc.draft) doc.csvTimer = setTimeout(() => host('columnsSet', { path: doc.path, draft: doc.draft, table: csvTable(doc) }).catch(() => {}), 1000);
+}
+
+function csvRecord(doc, before, after) {
+  if (!before || csvBoxPending?.doc === doc || typeof recordingNow !== 'function' || !recordingNow()) return;
+  const text = docText(doc).replace(/\r\n?/g, '\n');
+  for (const s of csvSteps(before, after, text))
+    recordStep(['csv.' + s.action, ...s.values.map(v => typeof v === 'number' ? String(v) : macroQuote(v))].join(' '));
 }
 
 // Save definition next to the file: name.csv-metadata.json (or the folder's csv-metadata.json that describes it).
@@ -266,11 +276,11 @@ function csvGap(c, name) {
 }
 
 // The definition changed by `change(def)` (a copy), applied and kept; the Columns pane shows it.
-function csvChange(doc, change) {
+function csvChange(doc, change, opts) {
   const def = JSON.parse(JSON.stringify(doc.csvDef)), count = doc.csv?.widths.length ?? def.columns.length;
   for (let c = def.columns.length; c < count; c++) def.columns.push({ name: csvName(doc.csv.read, def, c), type: 'text', align: 'left' });
   change(def);
-  csvApply(doc, def);
+  csvApply(doc, def, opts);
   if (typeof tellColumnsPane === 'function') tellColumnsPane();
 }
 
@@ -475,9 +485,19 @@ const CSV_BOX_SIGNS = [['.', '.'], [',', ','], ["'", "'"], [' ', 'space'], ['', 
 let csvBoxAt = null;   // where the box was dragged to last: the next one opens there
 
 // `x`, `y`: the mouse; `cell`: the column's place, which the box opens beside (not over it).
+// While it is open its changes are not recorded one by one: closing it (Close, Enter, a click outside, another box)
+// records what changed since it opened; Esc records nothing.
+let csvBoxPending = null;   // { doc, was }: the box open and the definition when it opened
+function csvBoxDone() {
+  const p = csvBoxPending;
+  csvBoxPending = null;
+  if (p) csvRecord(p.doc, p.was, p.doc.csvDef);
+}
 function csvColumnBox(doc, c, x, y, cell) {
+  csvBoxDone();
   document.querySelector('.mm-csv-box')?.remove();
   const was = JSON.parse(JSON.stringify(doc.csvDef));
+  csvBoxPending = { doc, was };
   const box = document.createElement('div');
   box.className = 'mm-csv-box';
   const opts = (list, value) => list.map(([v, t]) => `<option value="${escapeHtml(v)}"${v === (value ?? '') ? ' selected' : ''}>${escapeHtml(t)}</option>`).join('');
@@ -538,7 +558,8 @@ function csvColumnBox(doc, c, x, y, cell) {
   const close = keep => {
     clearTimeout(timer);
     removeEventListener('pointerdown', outside, true);
-    if (!keep) { csvApply(doc, was); if (typeof tellColumnsPane === 'function') tellColumnsPane(); }
+    if (!keep) { csvBoxPending = null; csvApply(doc, was, { record: false }); if (typeof tellColumnsPane === 'function') tellColumnsPane(); }
+    else csvBoxDone();   // recorded once, as it is when the box closes
     box.remove();
   };
   const flush = () => { const typed = box.querySelector('input:focus:not([type=checkbox])'); if (typed) { clearTimeout(timer); set(typed, false); } };
@@ -658,7 +679,7 @@ async function csvWriteOrder(doc, withoutHidden) {
   if (!doc.cmDoc) { state.activePane = paneOf(tab).index; await setMode('split'); }   // the editor holds the undo step
   const cd = doc.cmDoc;
   cd.replaceRange(out, CodeMirror.Pos(cd.firstLine(), 0), CodeMirror.Pos(cd.lastLine(), cd.getLine(cd.lastLine()).length), 'csvOrder');
-  csvApply(doc, { ...def, columns });
+  csvApply(doc, { ...def, columns }, { record: false });   // recorded as itself (csv.writeOrder)
   if (typeof tellColumnsPane === 'function') tellColumnsPane();
 }
 
@@ -666,6 +687,34 @@ appAction('csv.info', { title: 'Column info', hint: 'Per column of the CSV: its 
   enabled: () => !!activeDoc()?.csv, run: () => showColumnInfo(activeDoc()) });
 appAction('csv.copyMarkdown', { title: 'Copy as Markdown table', hint: 'The selected cells of the column view (none: the whole table) as a Markdown table, the shown columns in their order, onto the active clipboard', group: 'edit',
   enabled: () => !!activeTab()?.csv, run: () => csvCopyMarkdown(activeTab()) });
+// The definition from a macro or a key (docs/plans/executed/PLAN-csv-definition-in-macros.md): the active document's,
+// when it is read as CSV; each step applies at once, as Apply does. A mistake stops a macro (MacroError), else a message.
+async function csvDefinitionStep(action, values, ctx) {
+  const doc = activeDoc();
+  const fail = why => {
+    if (ctx.from === 'macro' && typeof MacroError === 'function') throw new MacroError(why);
+    toast(why[0].toUpperCase() + why.slice(1) + '.', true);
+  };
+  if (!doc || doc.language !== 'csv') return fail('the document is not read as CSV (setLanguage "csv" or csv.toggle first)');
+  const text = docText(doc).replace(/\r\n?/g, '\n');
+  if (!doc.csvDef) await csvLoad(doc, text);
+  const r = csvStep(doc.csvDef, action, values, text);
+  if (r.error) return fail(r.error);
+  csvApply(doc, r.def, { record: false });   // the action is recorded as itself
+  if (typeof tellColumnsPane === 'function') tellColumnsPane();
+}
+for (const [action, title, hint] of [
+  ['delimiter', 'CSV: delimiter', 'The delimiter (csv.delimiter ";"; a tab: "\\t"), and "trim" or "notrim": spaces around values dropped or kept'],
+  ['firstDataLine', 'CSV: first data line', 'The line the data starts on, 1-based (csv.firstDataLine 2); the lines above it are not data'],
+  ['header', 'CSV: header line', 'The line with the column names, 1-based, 0: none (csv.header 1); on or below the first data line, the data starts after it'],
+  ['quote', 'CSV: quote', 'The quote (csv.quote "\\""), or the start and end quote (csv.quote "[" "]"); "": no quotes'],
+  ['escape', 'CSV: escape', 'A quote inside quotes: "double", "char" and the character (csv.escape "char" "\\\\"), or "none"'],
+  ['column', 'CSV: column settings', 'A column by its place or name, then attributes and values: csv.column 1 "name" "Id" "type" "integer"'],
+  ['columnOrder', 'CSV: column order', 'Every column once, by place or name, in the order to show them: csv.columnOrder 3 1 2'],
+])
+  appAction('csv.' + action, { title, hint, group: 'view', enabled: () => activeDoc()?.language === 'csv',
+    run: (values, ctx) => csvDefinitionStep(action, values, ctx) });
+
 appAction('csv.writeOrder', { title: 'Write the columns in this order', hint: 'Every row of the text rewritten in the order of the column view, as one undo step; asks first', group: 'edit',
   variants: [[false], [true]], variantTitles: { false: 'Write the columns in this order', true: 'Write the shown columns in this order (without the hidden ones)' },
   enabled: () => !!activeDoc()?.csvDef && activeDoc()?.language === 'csv', run: ([withoutHidden = false] = []) => csvWriteOrder(activeDoc(), !!withoutHidden) });
