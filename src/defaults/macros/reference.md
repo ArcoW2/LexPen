@@ -251,3 +251,5 @@ A recorded move with Shift ends in `extend`. The editor's own keys are `editorKe
 Several keys go in one line, in turn, and `*n` presses a key n times:
 `editorKey "Ctrl-Right" "Right*3" "Shift-End" "Shift-Left*2"`. A key that is not one stops the line before any key
 is pressed. A recording writes keys pressed one after the other in this way: one line until something else happens.
+`setLanguage "csv"` sets the language of the active document, as a choice in the bottom bar's list: by the language's
+name, id or another name it is known by, case ignored (`"CSV"`, `"tsql"`); `$$language` then reads it.
