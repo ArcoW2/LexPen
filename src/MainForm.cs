@@ -183,13 +183,12 @@ sealed class MainForm : Form
 
     void UpdateTitle()
     {
-        var title = web.CoreWebView2?.DocumentTitle is { Length: > 0 } t ? t : "LexPen";
-        Text = app.ProjectInfo(this)["display"]?.GetValue<string>() is { Length: > 0 } project ? $"{title} - {project}" : title;
+        Text = web.CoreWebView2?.DocumentTitle is { Length: > 0 } t ? t : "LexPen";   // "name - LexPen" (app.js updateChrome)
         app.SettingsTitle(this);
         app.UpdateBars();   // the floating panels' bottom bars name its document
     }
 
-    /// <summary>The name of the active document, from the page's title ("[changed mark ]name - LexPen", app.js
+    /// <summary>The name of the active document, from the page's title ("name - LexPen", app.js
     /// updateChrome); null: none.</summary>
     public string? DocName =>
         web.CoreWebView2?.DocumentTitle is { } t && t.EndsWith(" - LexPen") ? t[..^" - LexPen".Length].TrimStart((char)0x25CF, ' ') : null;
