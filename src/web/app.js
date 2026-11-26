@@ -1873,7 +1873,7 @@ const labelText = doc => doc.gitOf ? `${doc.gitOf.path} @ ${doc.gitOf.label} (fr
 
 function updateChrome() {
   const tab = activeTab(), doc = tab?.doc;
-  document.title = (doc && changed(doc) ? '\u25CF ' : '') + (doc ? docName(doc) + ' - ' : '') + 'LexPen';
+  document.title = (doc ? docName(doc) + ' - ' : '') + 'LexPen';   // the window's title: the active document's name
   showDocName();
   // A draft can always be saved as a file.
   document.body.toggleAttribute('data-dirty', !!doc && (doc.dirty || !!doc.draft));
