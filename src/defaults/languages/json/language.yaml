@@ -5,6 +5,14 @@ aliases: [jsonc, json5]   # other names it is known by (a markdown fence ```json
 open: edit
 mode: { name: javascript, json: true }   # built in
 fold: brace
+# The outline (docs/plans/executed/PLAN-json-blocks.md): the structure, the keys whose value is an object or an array, nested
+# as the file is indented (indent: line). A key: a quoted name at the start of a line (after its indentation), then a
+# colon. Keys of other values are not in it (nearly every line would be one); an array's objects have no name, so the
+# same keys show once per object. Minified JSON (all on one line) has no outline until it is reformatted.
+outline:
+  - group: 'Objects'
+    patterns:
+      - { pattern: '^\s*"((?:[^"\\]|\\.)*)"\s*:\s*[\[{]', name: 1, case: true, indent: line }
 actions:
   # Pretty print: the selection (a whole JSON value) or the whole file, indented; numbers, escapes and key order stay
   # as written. With comments it asks whether to keep them.
