@@ -187,7 +187,7 @@ WebView2 developer tools switched off; the debug build keeps them.
 
 ### Versioning
 
-The version is `<major>.<minor>.<commits>`: `VersionBase` in `LexPen.csproj` (`1.1` since LexPen became a previewer;
+The version is `<major>.<minor>.<commits>`: `VersionBase` in `LexPen.csproj` (`1.1` since LexPen became a previewer, `1.2` since the macro additions;
 raised by hand for a larger change), then the git commit count (`git rev-list --count HEAD`, see the `GitVersion`
 target), so each commit gets its own version. Without git, or before the first commit, the last number is `0`. The version, short commit hash, build time, runtime and library versions
 are shown under **Options > About LexPen**.
