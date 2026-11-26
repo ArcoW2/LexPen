@@ -440,7 +440,7 @@ every action with its key.
   the editor's cursor; a double click on a cell puts the editor's cursor on that character. How the file is read is
   detected when it opens (delimiter, quote, lines before the data, header, per column the type), and set in the
   Columns pane (View > Panels, or the column view's right-click > Columns...): delimiter (more than one character
-  too), quotes (start and end may differ, per column too) and their escape, lines before the data and the header line;
+  too), quotes (start and end may differ, per column too) and their escape, the first data line and the header line;
   per column the type, Read as (decimal and thousands sign, a date pattern), format (`#,##0.00`, `dd-MM-yyyy`),
   alignment, trim, shown, width and order; ticked columns take a value set in one of them; a warning counts the values
   that do not fit; the Definition tab shows it all as CSV on the Web (CSVW) text. Apply keeps it in LexPen
@@ -461,6 +461,10 @@ every action with its key.
   columns, By row. Settings > Preview > Columns (CSV): the widest column (40 characters), the header at the top,
   alternate row colours (on; a colour of the theme or one you pick, and how much of it is mixed into the background),
   detecting a file's build.
+- **CSV definition from a macro**: `csv.delimiter`, `csv.firstDataLine`, `csv.header`, `csv.quote`, `csv.escape`,
+  `csv.column <place or name> "attribute" "value" ...` and `csv.columnOrder` set how the active document is read and
+  shown, as Columns... does (also from keys.json). While recording, what you change in Columns..., a column's box and
+  the column view (move, size, hide, show) is written as these steps, only what changed.
 - **PDF**: a PDF opens in a tab of its own on the preview side, read-only, drawn by pdf.js. It is a PDF by what it
   holds, not its name (a PDF named `.bin` opens as one; a text file named `.pdf` opens as text, said so); its language
   stays PDF (dimmed in the bottom bar), and PDF cannot be chosen for a text file. A file that is neither text nor a
