@@ -433,7 +433,9 @@ every action with its key.
   editor with the file as it is, the preview as columns: each value in its column's format and alignment, the original
   text when the mouse rests on it, a value that does not fit its type marked, the lines before the data folded, the
   header kept at the top, a current cell (a click, or the arrows, PgUp / PgDn, Home / End, Ctrl+Home / Ctrl+End, Tab /
-  Shift+Tab (on to the next row at the row's end) move it; the bottom bar names it), only the rows in view drawn (the
+  Shift+Tab (on to the next row at the row's end) move it; the bottom bar names it; Shift with those keys or with a
+  click selects the rectangle of cells from it, and Copy as Markdown table (the right-click) copies that selection,
+  or the whole table, as a lined-up pipe table of the shown columns in their order), only the rows in view drawn (the
   view of 100,000 rows measured at under half a second). The bottom bar names the row and column under the mouse or
   the editor's cursor; a double click on a cell puts the editor's cursor on that character. How the file is read is
   detected when it opens (delimiter, quote, lines before the data, header, per column the type), and set in the

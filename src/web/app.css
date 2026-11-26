@@ -1060,6 +1060,7 @@ body { --col-guide: color-mix(in srgb, var(--col-guide-colour, var(--border)) va
 .mm-csv-cell.mm-csv-cur { outline: 2px solid var(--accent); outline-offset: -2px; }
 .mm-find-csvcol { max-width: 14em; margin: 0 2px; font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 3px; }
 .mm-find-csvorder { white-space: nowrap; }
+.mm-csv-cell.mm-csv-sel { background: color-mix(in srgb, var(--accent) 22%, transparent); }
 .mm-csv-cell.mm-csv-hit { background: color-mix(in srgb, var(--highlight) 30%, transparent); }
 .mm-csv-bad { text-decoration: underline wavy var(--warning); text-decoration-skip-ink: none; }
 .mm-csv-problem { background: color-mix(in srgb, var(--warning) 12%, transparent); }

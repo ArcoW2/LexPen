@@ -5284,7 +5284,7 @@ const PREVIEWER_ACTIONS = new Set(['find', 'findNext', 'findPrevious', 'copy', '
   'bookmarkToggleFree', 'bookmarkNext', 'bookmarkList', 'highlight.toggle', 'highlight.fromSelection', 'highlight.note',
   'highlight.remove', 'highlight.clear', 'highlight.keep', 'highlight.next', 'highlight.list', 'occurrences.show',
   'occurrences.field', 'occurrences.clear', 'occurrences.bar', 'zoomIn', 'zoomOut', 'zoomReset', 'theme.toggle', 'theme.day',
-  'theme.night', 'print', 'previewer.open', 'editor.toggle', 'preview.toggle', 'hex.toggle', 'chooseLanguage', 'file.copy']);
+  'theme.night', 'print', 'previewer.open', 'editor.toggle', 'preview.toggle', 'hex.toggle', 'chooseLanguage', 'file.copy', 'csv.copyMarkdown']);
 function previewerAction(name) {
   if (PREVIEWER_ACTIONS.has(name) || actionDef(name)?.move) return true;
   const call = c => typeof c === 'string' ? c : Array.isArray(c) ? c[0] : c?.action;
